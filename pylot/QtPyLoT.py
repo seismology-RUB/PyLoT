@@ -23,6 +23,14 @@ from pylot.core.util import _getVersionString
 # Version information
 __version__ = _getVersionString()
 
+class MainWindow(QMainWindow):
+    
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+        
+        self.Stream = None
+
+
 # Creating a Qt application
 pylot_app = QApplication(sys.argv)
 
