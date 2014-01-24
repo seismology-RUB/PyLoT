@@ -28,8 +28,33 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         
-        self.Stream = None
+        filterDockWidget = QDockWidget("Filter Options", self)
+    
+ 
+ class PickWindow(QDialog):
 
+	def __init__(self, station=None, parent=None):
+		super(PickWindow, self).__init__(parent)
+		
+		filterDockWidget = FilterOptionsDock()
+
+class PropertiesWindow(QDialog):
+		
+	def __init__(self, parent=None):
+		super(PropertiesWindow, self).__init__(parent)
+
+class FilterOptionsDock(QDockWidget):
+	
+	def __init__(self, filter=None):
+		super(FilterOptionsDock, self).__init__()
+		
+		if filter is not None and filter isinstance(FilterOptions):
+			for key, value in filter.iteritems():
+
+class FilterOptions():
+	
+	def __init__():
+		
 
 # Creating a Qt application
 pylot_app = QApplication(sys.argv)
