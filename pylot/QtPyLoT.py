@@ -45,16 +45,46 @@ class PropertiesWindow(QDialog):
 
 class FilterOptionsDock(QDockWidget):
 	
-	def __init__(self, filter=None):
+	def __init__(self, filterOptions=None):
 		super(FilterOptionsDock, self).__init__()
 		
-		if filter is not None and filter isinstance(FilterOptions):
-			for key, value in filter.iteritems():
+		if filterOptions and not isinstance(filterOptions, FilterOptions):
+			try:
+                     fOptions = FilterOptions(filterOptions)
+                 except e:
+                     raise OptionsError, '%s' % e
 
-class FilterOptions():
+class FilterOptions(object):
 	
-	def __init__():
-		
+	def __init__(self, filtertype=None, freq=None, order=None):
+         self.__filterInformation = {}
+         self._setfilterType(filtertype)
+         self._setFreq(freq)
+         self._setOrder(order)
+     
+     def _getFreq(self):
+         return self.__filterInformation['freq']
+         
+     def _setFreq(self, freq):
+         self.__filterInformation['freq'] = freq
+     
+     def _getOrder(self):
+         return self.__filterInformation['order']
+         
+     def _setOrder(self, order):
+         self.__filterInformation['order'] = order
+         
+     def _getFilterType(self):
+         return self.__filterInformation['filtertype']
+     
+     def _setFilterType(self, filtertype):
+         self.__filterInformation['filtertype'] = filtertype         
+         
+     filterType = property(fget=_getFilterType, fset=_setFilterType)
+     order = property(fget=_getOrder, fset=_setOrder)
+     freq = property(fget=_getFreq, fset=_setFreq)
+     
+class OptionsError(Exception): pass        
 
 # Creating a Qt application
 pylot_app = QApplication(sys.argv)
