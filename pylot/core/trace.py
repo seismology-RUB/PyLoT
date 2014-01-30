@@ -15,3 +15,4 @@ class Stats(AttribDict):
 
 class Trace(Obspytrace):
     pass
+         

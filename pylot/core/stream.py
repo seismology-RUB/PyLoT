@@ -11,6 +11,3 @@ from obspy.core import Stream as Obspystream
 class Stream(Obspystream):
     pass
 
-
-def read():
-    pass

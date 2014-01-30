@@ -86,11 +86,12 @@ class FilterOptions(object):
      
 class OptionsError(Exception): pass        
 
-# Creating a Qt application
-pylot_app = QApplication(sys.argv)
+if __name__ == '__main__':
+    ##Creating a Qt application
+    pylot_app = QApplication(sys.argv)
 
-pylot_main = QWidget()
-pylot_main.setWindowTitle('TestWindow')
+    pylot_main = MainWindow()
+    pylot_main.setWindowTitle('TestWindow')
 
 ok_btn = QPushButton('OK', pylot_main)
 
