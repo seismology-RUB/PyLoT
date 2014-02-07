@@ -28,8 +28,11 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         
-        filterDockWidget = QDockWidget("Filter Options", self)
-    
+        filterDefaults
+        self.filterOptions = FilterOptions(filterDefaults)
+        
+        filterDockWidget = FilterOptionsDock("Filter Options", self)
+        
  
  class PickWindow(QDialog):
 
@@ -45,7 +48,7 @@ class PropertiesWindow(QDialog):
 
 class FilterOptionsDock(QDockWidget):
 
-    def __init__(self, filterOptions=None):
+    def __init__(self, titleString="Filter options", filterOptions=None):
 	super(FilterOptionsDock, self).__init__()
 
 	if filterOptions and not isinstance(filterOptions, FilterOptions):
