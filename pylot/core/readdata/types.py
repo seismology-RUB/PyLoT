@@ -5,9 +5,19 @@
 # EGELADOS structure. 
 #
 
+import os
+
+
 class GenericDataBase(object):
-	def __init__(self, root=None, kwargs**):
-		pass
+	'''
+	GenericDataBase type holds all information about the current data-
+	base working on.
+	'''
+	def __init__(self, stexp=None, **kwargs):
+		structExpression = os.path.split(stexp)
+		self.dataBaseDict = kwargs 
+		
+				
 		
 
 class SeiscompDataStructure(GenericDataBase):
