@@ -10,7 +10,10 @@ Created on Thu Feb 13 09:58:45 2014
 class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write
-    parameter ASCII and binary files. Parameters are given by example:
+    parameter ASCII and binary files.
+
+    Parameters are given for example as follows:
+
     phl         S           # phaselabel
     ff1         0.1         # freqmin
     ff2         0.5         # freqmax
@@ -31,7 +34,7 @@ class AutoPickParameter(object):
     proPh       Sn          # nextprominentphase
     '''
 
-    def __init__(self, fn):
+    def __init__(self, fn=None):
         '''
         Initialize parameter object:
 
@@ -41,45 +44,47 @@ class AutoPickParameter(object):
         self.filename = fn
         parFileCont = {}
         try:
-            inputFile = open(self.filename, 'r')
-            lines = inputFile.readlines()
-            for line in lines:
-                parspl = line.split('\t')[:2]
-                parFileCont[parspl[0]] = parspl[1]
-            for key, value in parFileCont.iteritems():
-                try:
-                    val = int(value)
-                except:
+            if self.filename is not None:
+                inputFile = open(self.filename, 'r')
+                lines = inputFile.readlines()
+                for line in lines:
+                    parspl = line.split('\t')[:2]
+                    parFileCont[parspl[0].strip()] = parspl[1]
+                for key, value in parFileCont.iteritems():
                     try:
-                        val = float(value)
+                        val = int(value)
                     except:
-                        if value.find(';') > 0:
-                            vallist = value.strip().split(';')
-                            val = []
-                            for val0 in vallist:
-                                val0 = float(val0)
-                                val.append(val0)
-                        else:
-                            val = str(value.strip())
-                parFileCont[key] = val
+                        try:
+                            val = float(value)
+                        except:
+                            if value.find(';') > 0:
+                                vallist = value.strip().split(';')
+                                val = []
+                                for val0 in vallist:
+                                    val0 = float(val0)
+                                    val.append(val0)
+                            else:
+                                val = str(value.strip())
+                    parFileCont[key] = val
+            else:
+                parFileCont = {}
         except Exception, e:
-            raise 'ParameterError:\n %s' % e
-        finally:
-            parFileCont = None
+            self._printParameterError(e)
+            parFileCont = {}
         self.__parameter = parFileCont
 
     def __str__(self):
         string = ''
         string += 'Automated picking parameter:\n\n'
-        if self.__parameter is not None:
+        if self.__parameter:
             for key, value in self.__parameter.iteritems():
-                string += '%s:\t\t%s' % (key, value)
+                string += '%s:\t\t%s\n' % (key, value)
         else:
             string += 'Empty parameter dictionary.'
         return string
 
     def __repr__(self):
-        return 'AutoPickParameter(%s)' % self.filename
+        return "AutoPickParameter('%s')" % self.filename
 
     def __nonzero__(self):
         return self.__parameter
@@ -90,22 +95,21 @@ class AutoPickParameter(object):
                 try:
                     return self.__parameter[param]
                 except KeyError, e:
-                    raise 'ParameterError:\n %s' % e
+                    self._printParameterError(e)
         except TypeError:
             try:
-                return self.__parameter[param]
+                return self.__parameter[args]
             except KeyError, e:
-                raise 'ParameterError:\n %s' % e
+                self._printParameterError(e)
 
     def setParam(self, **kwargs):
-        for param, value in kwargs:
+        for param, value in kwargs.iteritems():
             try:
                 self.__parameter[param] = value
             except KeyError, e:
-                raise 'ParameterError:\n %s' % e
+                self._printParameterError(e)
             finally:
-                self.__str__()
+                print self
 
-
-class ParameterError(Exception):
-    pass
+    def _printParameterError(self, errmsg):
+        print 'ParameterError:\n non-existent parameter %s' % errmsg
