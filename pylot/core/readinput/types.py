@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 13 09:58:45 2014
-
-@author: sebastianw
-"""
-
 
 class AutoPickParameter(object):
     '''
@@ -41,11 +35,68 @@ class AutoPickParameter(object):
         read content of an ASCII file an form a type consistent dictionary
         contain all parameters.
         '''
-        self.filename = fn
-        parFileCont = {}
+        self.__filename = fn
+        self.__parameter = self._readParameterFile()
+
+	# Human-readable string representation of the object
+    def __str__(self):
+        string = ''
+        string += 'Automated picking parameter:\n\n'
+        if self.__parameter:
+            for key, value in self.__parameter.iteritems():
+                string += '%s:\t\t%s\n' % (key, value)
+        else:
+            string += 'Empty parameter dictionary.'
+        return string
+
+	# String representation of the object
+    def __repr__(self):
+        return "AutoPickParameter('%s')" % self.__filename
+
+	# Boolean test
+    def __nonzero__(self):
+        return self.__parameter
+
+	def __getitem__(self, key):
+		return self.getParam(key)
+
+    def getParam(self, *args):
+        try:
+            for param in args:
+                try:
+                    return self.__parameter[param]
+                except KeyError, e:
+                    self._printParameterError(e)
+        except TypeError:
+            try:
+                return self.__parameter[args]
+            except KeyError, e:
+                self._printParameterError(e)
+
+	def __setitem__(self, key, value):
+		kwargs = {}
+		kwargs[key] = value
+		kwargs['directcall'] = True
+		self.setParam(**kwargs)
+
+    def setParam(self, directcall=None, **kwargs):
+        for param, value in kwargs.iteritems():
+            try:
+                self.__parameter[param] = value
+            except KeyError, e:
+                self._printParameterError(e)
+            finally:
+				if not directcall:
+					print self
+ 
+	def __len__(self):
+		return len(self.__parameter.keys())
+ 
+	def _readParameterFile(self):
+		parFileCont = {}
         try:
             if self.filename is not None:
-                inputFile = open(self.filename, 'r')
+                inputFile = open(self.__filename, 'r')
                 lines = inputFile.readlines()
                 for line in lines:
                     parspl = line.split('\t')[:2]
@@ -71,45 +122,7 @@ class AutoPickParameter(object):
         except Exception, e:
             self._printParameterError(e)
             parFileCont = {}
-        self.__parameter = parFileCont
-
-    def __str__(self):
-        string = ''
-        string += 'Automated picking parameter:\n\n'
-        if self.__parameter:
-            for key, value in self.__parameter.iteritems():
-                string += '%s:\t\t%s\n' % (key, value)
-        else:
-            string += 'Empty parameter dictionary.'
-        return string
-
-    def __repr__(self):
-        return "AutoPickParameter('%s')" % self.filename
-
-    def __nonzero__(self):
-        return self.__parameter
-
-    def getParam(self, *args):
-        try:
-            for param in args:
-                try:
-                    return self.__parameter[param]
-                except KeyError, e:
-                    self._printParameterError(e)
-        except TypeError:
-            try:
-                return self.__parameter[args]
-            except KeyError, e:
-                self._printParameterError(e)
-
-    def setParam(self, **kwargs):
-        for param, value in kwargs.iteritems():
-            try:
-                self.__parameter[param] = value
-            except KeyError, e:
-                self._printParameterError(e)
-            finally:
-                print self
+        return parFileCont
 
     def _printParameterError(self, errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
