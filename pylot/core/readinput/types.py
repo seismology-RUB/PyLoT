@@ -36,7 +36,36 @@ class AutoPickParameter(object):
         contain all parameters.
         '''
         self.__filename = fn
-        self.__parameter = self._readParameterFile()
+        parFileCont = {}
+        try:
+            if self.__filename is not None:
+                inputFile = open(self.__filename, 'r')
+                lines = inputFile.readlines()
+                for line in lines:
+                    parspl = line.split('\t')[:2]
+                    parFileCont[parspl[0].strip()] = parspl[1]
+                for key, value in parFileCont.iteritems():
+                    try:
+                        val = int(value)
+                    except:
+                        try:
+                            val = float(value)
+                        except:
+                            if value.find(';') > 0:
+                                vallist = value.strip().split(';')
+                                val = []
+                                for val0 in vallist:
+                                    val0 = float(val0)
+                                    val.append(val0)
+                            else:
+                                val = str(value.strip())
+                    parFileCont[key] = val
+            else:
+                parFileCont = {}
+        except Exception, e:
+            self._printParameterError(e)
+            parFileCont = {}
+        self.__parameter = parFileCont
 
 	# Human-readable string representation of the object
     def __str__(self):
@@ -85,44 +114,11 @@ class AutoPickParameter(object):
                 self.__parameter[param] = value
             except KeyError, e:
                 self._printParameterError(e)
-            finally:
-				if not directcall:
-					print self
+		if not directcall:
+			print self
  
 	def __len__(self):
 		return len(self.__parameter.keys())
  
-	def _readParameterFile(self):
-		parFileCont = {}
-        try:
-            if self.filename is not None:
-                inputFile = open(self.__filename, 'r')
-                lines = inputFile.readlines()
-                for line in lines:
-                    parspl = line.split('\t')[:2]
-                    parFileCont[parspl[0].strip()] = parspl[1]
-                for key, value in parFileCont.iteritems():
-                    try:
-                        val = int(value)
-                    except:
-                        try:
-                            val = float(value)
-                        except:
-                            if value.find(';') > 0:
-                                vallist = value.strip().split(';')
-                                val = []
-                                for val0 in vallist:
-                                    val0 = float(val0)
-                                    val.append(val0)
-                            else:
-                                val = str(value.strip())
-                    parFileCont[key] = val
-            else:
-                parFileCont = {}
-        except Exception, e:
-            self._printParameterError(e)
-            parFileCont = {}
-        return parFileCont
-
     def _printParameterError(self, errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
