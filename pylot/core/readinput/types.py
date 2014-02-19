@@ -67,7 +67,7 @@ class AutoPickParameter(object):
             parFileCont = {}
         self.__parameter = parFileCont
 
-	# Human-readable string representation of the object
+    # Human-readable string representation of the object
     def __str__(self):
         string = ''
         string += 'Automated picking parameter:\n\n'
@@ -78,49 +78,49 @@ class AutoPickParameter(object):
             string += 'Empty parameter dictionary.'
         return string
 
-	# String representation of the object
+    # String representation of the object
     def __repr__(self):
         return "AutoPickParameter('%s')" % self.__filename
 
-	# Boolean test
+    # Boolean test
     def __nonzero__(self):
         return self.__parameter
 
-	def __getitem__(self, key):
-		return self.__parameter[key]
+    def __getitem__(self, key):
+        return self.__parameter[key]
 
-	def __setitem__(self, key, value):
-		self.__parameter[key] = value    
+    def __setitem__(self, key, value):
+        self.__parameter[key] = value
 
-	def __delitem__(self, key):
-		del self.__parameter[key]
+    def __delitem__(self, key):
+        del self.__parameter[key]
 
-	def __iter__(self):
-		return iter(self.__parameter)
- 
-	def __len__(self):
-		return len(self.__parameter.keys())
+    def __iter__(self):
+        return iter(self.__parameter)
 
-	def getParam(self, *args):
+    def __len__(self):
+        return len(self.__parameter.keys())
+
+    def getParam(self, *args):
         try:
             for param in args:
                 try:
-                    return self.__getitem__[param]
+                    return self.__getitem__(param)
                 except KeyError, e:
                     self._printParameterError(e)
         except TypeError:
             try:
-                return self.__getitem__[args]
+                return self.__getitem__(args)
             except KeyError, e:
                 self._printParameterError(e)
 
-	def setParam(self, **kwargs):
+    def setParam(self, **kwargs):
         for param, value in kwargs.iteritems():
             try:
-                self.__setitem__[param] = value
+                self.__setitem__(param, value)
             except KeyError, e:
                 self._printParameterError(e)
-		print self
+        print self
 
     def _printParameterError(self, errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
