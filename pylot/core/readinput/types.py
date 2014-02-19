@@ -87,38 +87,40 @@ class AutoPickParameter(object):
         return self.__parameter
 
 	def __getitem__(self, key):
-		return self.getParam(key)
+		return self.__parameter[key]
 
-    def getParam(self, *args):
+	def __setitem__(self, key, value):
+		self.__parameter[key] = value    
+
+	def __delitem__(self, key):
+		del self.__parameter[key]
+
+	def __iter__(self):
+		return iter(self.__parameter)
+ 
+	def __len__(self):
+		return len(self.__parameter.keys())
+
+	def getParam(self, *args):
         try:
             for param in args:
                 try:
-                    return self.__parameter[param]
+                    return self.__getitem__[param]
                 except KeyError, e:
                     self._printParameterError(e)
         except TypeError:
             try:
-                return self.__parameter[args]
+                return self.__getitem__[args]
             except KeyError, e:
                 self._printParameterError(e)
 
-	def __setitem__(self, key, value):
-		kwargs = {}
-		kwargs[key] = value
-		kwargs['directcall'] = True
-		self.setParam(**kwargs)
-
-    def setParam(self, directcall=None, **kwargs):
+	def setParam(self, **kwargs):
         for param, value in kwargs.iteritems():
             try:
-                self.__parameter[param] = value
+                self.__setitem__[param] = value
             except KeyError, e:
                 self._printParameterError(e)
-		if not directcall:
-			print self
- 
-	def __len__(self):
-		return len(self.__parameter.keys())
- 
+		print self
+
     def _printParameterError(self, errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
