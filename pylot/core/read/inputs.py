@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write

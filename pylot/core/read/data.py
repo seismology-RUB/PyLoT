@@ -65,6 +65,8 @@ class SeiscompDataStructure(object):
     def modifiyFields(self, **kwargs):
         if kwargs and isinstance(kwargs, dict):
             for key, value in kwargs.iteritems():
+                key = str(key)
+                value = str(value)
                 try:
                     if key in self.__sdsFields.keys():
                         self.__sdsFields[key] = str(value)
