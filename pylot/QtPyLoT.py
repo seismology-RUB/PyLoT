@@ -1,101 +1,83 @@
+#!/usr/bin/env python
+#
+#
 # Main program: QtPyLoT.py
-#
-# 
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
 
 import os
 import platform
 import sys
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 import helpform
 from pylot.core.util import _getVersionString
+from pylot.core.read.inputs import FilterOptions
+from pylot.core.util import FILTERDEFAULTS
 
 # Version information
 __version__ = _getVersionString()
 
+
 class MainWindow(QMainWindow):
-    
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        
-        filterDefaults
-        self.filterOptions = FilterOptions(filterDefaults)
-        
-        filterDockWidget = FilterOptionsDock("Filter Options", self)
-        
- 
- class PickWindow(QDialog):
+
+        filterOptionsP = FILTERDEFAULTS['P']
+        filterOptionsS = FILTERDEFAULTS['S']
+        self.filterOptionsP = FilterOptions(**filterOptionsP)
+        self.filterOptionsS = FilterOptions(**filterOptionsS)
+
+        filteroptions = [self.filterOptionsP if not self.seismicPhase == 'S'
+                         else self.filterOptionsS]
+        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
+                                             parent=self,
+                                             filterOptions=filteroptions)
+        self.
+
+
+class PickWindow(QDialog):
 
     def __init__(self, station=None, parent=None):
-	super(PickWindow, self).__init__(parent)
+        super(PickWindow, self).__init__(parent)
 
-	filterDockWidget = FilterOptionsDock()
+        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
+                                             parent=self,
+                                             filterOptions=filteroptions)
+
 
 class PropertiesWindow(QDialog):
 
     def __init__(self, parent=None):
-	super(PropertiesWindow, self).__init__(parent)
+        super(PropertiesWindow, self).__init__(parent)
+
 
 class FilterOptionsDock(QDockWidget):
 
-    def __init__(self, titleString="Filter options", filterOptions=None):
-	super(FilterOptionsDock, self).__init__()
+    def __init__(self, parent=None, titleString="Filter options",
+                 filterOptions=None):
+        super(FilterOptionsDock, self).__init__()
 
-	if filterOptions and not isinstance(filterOptions, FilterOptions):
-	    try:
-		fOptions = FilterOptions(filterOptions)
-	    except e:
-		raise OptionsError, '%s' % e
+        if filterOptions and not isinstance(filterOptions, FilterOptions):
+            try:
+                fOptions = FilterOptions(**filterOptions)
+                filterOptions = fOptions
+            except e:
+                raise OptionsError('%s' % e)
 
-class FilterOptions(object):
+        
 
-    def __init__(self, filtertype=None, freq=None, order=None):
-	self.__filterInformation = {}
-	self._setfilterType(filtertype)
-	self._setFreq(freq)
-	self._setOrder(order)
-     
-    def _getFreq(self):
-	return self.__filterInformation['freq']
 
-    def _setFreq(self, freq):
-	self.__filterInformation['freq'] = freq
-     
-    def _getOrder(self):
-	return self.__filterInformation['order']
+class OptionsError(Exception):
+    pass
 
-    def _setOrder(self, order):
-	self.__filterInformation['order'] = order
-
-    def _getFilterType(self):
-	return self.__filterInformation['filtertype']
-     
-    def _setFilterType(self, filtertype):
-	self.__filterInformation['filtertype'] = filtertype         
-
-    filterType = property(fget=_getFilterType, fset=_setFilterType)
-    order = property(fget=_getOrder, fset=_setOrder)
-    freq = property(fget=_getFreq, fset=_setFreq)
-
-class OptionsError(Exception): pass        
 
 if __name__ == '__main__':
-    ##Creating a Qt application
+    # Creating a Qt application
     pylot_app = QApplication(sys.argv)
 
     pylot_main = MainWindow()
     pylot_main.setWindowTitle('PyLoT-The Picking and Localization Tool')
 
-    # Show window and run the app
+    # Show main window and run the app
     pylot_main.show()
     pylot_app.exec_()

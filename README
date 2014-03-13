@@ -6,7 +6,7 @@ The Python picking and Localisation Tool
 
 This python library contains a graphical user interfaces for picking
 seismic phases. This software needs ObsPy (http://github.com/obspy/obspy/wiki)
-and the Qt4 libraries to be installed first.
+and the PySide Qt4 bindings for python to be installed first.
 
 PILOT has originally been developed in Mathworks' MatLab. In order to
 distribute PILOT without facing portability problems, it has been decided
