@@ -125,3 +125,34 @@ class AutoPickParameter(object):
 
     def _printParameterError(self, errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
+
+
+class FilterOptions(object):
+
+    def __init__(self, filtertype=None, freq=None, order=None):
+        self.__filterInformation = {}
+        self._setfilterType(filtertype)
+        self._setFreq(freq)
+        self._setOrder(order)
+
+    def _getFreq(self):
+        return self.__filterInformation['freq']
+
+    def _setFreq(self, freq):
+        self.__filterInformation['freq'] = freq
+
+    def _getOrder(self):
+        return self.__filterInformation['order']
+
+    def _setOrder(self, order):
+        self.__filterInformation['order'] = order
+
+    def _getFilterType(self):
+        return self.__filterInformation['filtertype']
+
+    def _setFilterType(self, filtertype):
+        self.__filterInformation['filtertype'] = filtertype
+
+    filterType = property(fget=_getFilterType, fset=_setFilterType)
+    order = property(fget=_getOrder, fset=_setOrder)
+    freq = property(fget=_getFreq, fset=_setFreq)
