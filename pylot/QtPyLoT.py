@@ -12,6 +12,7 @@ import helpform
 from pylot.core.util import _getVersionString
 from pylot.core.read.inputs import FilterOptions
 from pylot.core.util import FILTERDEFAULTS
+from pylot.core.util import MPLWidget
 
 # Version information
 __version__ = _getVersionString()
@@ -21,6 +22,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
+
+        # create central matplotlib figure widget
+        dataPlot = setupPlot()
+        self.setCentralWidget(dataPlot)
 
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
@@ -32,7 +37,13 @@ class MainWindow(QMainWindow):
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
                                              filterOptions=filteroptions)
-        self.
+
+    def setupPlot(self):
+        # create a matplotlib widget
+        self.DataPlot = MPLWidget()
+        # create a layout inside the blank widget and add the matplotlib widget
+        layout = QtGui.QVBoxLayout(self.ui.widget_PlotArea)
+        layout.addWidget(self.DataPlot, 1)
 
 
 class PickWindow(QDialog):
@@ -63,8 +74,6 @@ class FilterOptionsDock(QDockWidget):
                 filterOptions = fOptions
             except e:
                 raise OptionsError('%s' % e)
-
-        
 
 
 class OptionsError(Exception):
