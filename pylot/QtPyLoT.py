@@ -23,9 +23,11 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        self.setWindowIcon(QIcon("PyLoT.ico"))
+
         # create central matplotlib figure widget
-        dataPlot = setupPlot()
-        self.setCentralWidget(dataPlot)
+        setupPlot()
+        self.setCentralWidget(self.DataPlot)
 
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
@@ -44,6 +46,10 @@ class MainWindow(QMainWindow):
         # create a layout inside the blank widget and add the matplotlib widget
         layout = QtGui.QVBoxLayout(self.ui.widget_PlotArea)
         layout.addWidget(self.DataPlot, 1)
+
+    def plotData(self, data):
+        if data is not None and isinstance(data, Stream):
+            self.DataPlot.height
 
 
 class PickWindow(QDialog):
