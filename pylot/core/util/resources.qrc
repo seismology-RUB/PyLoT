@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/icons" lang="images">
+        <file>icons/pylot.ico</file>
+    </qresource>
+    <qresource prefix="/help" lang="HTML">
+        <file>help/index.html</file>
+    </qresource>
+</RCC>

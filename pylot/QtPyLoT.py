@@ -34,6 +34,9 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
+    def loadData(self):
+        pass
+
     def setupUi(self):
         self.setWindowIcon(QIcon("PyLoT.ico"))
 
@@ -44,7 +47,7 @@ class MainWindow(QMainWindow):
                                              parent=self,
                                              filterOptions=filteroptions)
 
-        statLayout = self.layoutStationButtons()
+        statLayout = self.layoutStationButtons(self.numStations)
 
         maingrid = QGridLayout()
         maingrid.setSpacing(10)
@@ -62,19 +65,39 @@ class MainWindow(QMainWindow):
 
     def plotData(self, data):
         if data is not None and isinstance(data, Stream):
-            self.DataPlot.height
+            self.stats.numStations = data.
 
     def updateFilterOptions(self):
-        self.filteroptions = [self.filterOptionsP if not self.seismicPhase == 'S'
-                         else self.filterOptionsS]
+        self.filteroptions = [self.filterOptionsP
+                              if not self.seismicPhase == 'S'
+                              else self.filterOptionsS]
 
-if __name__ == '__main__':
-    # Creating a Qt application
+    def layoutStationButtons(self, numStations):
+        layout = QVBoxLayout()
+        for n in range(numStations):
+            stationButtons[n] = QPushButton('%s'.format(self.))
+
+    def helpHelp(self):
+        if internet_on():
+            pass
+
+
+def main():
+    # create th Qt application
     pylot_app = QApplication(sys.argv)
 
-    pylot_main = MainWindow()
-    pylot_main.setWindowTitle('PyLoT-The Picking and Localization Tool')
+    # set Application Information
+    pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
+    pylot_app.setOrganizationDomain("rub.de")
+    pylot_app.setApplicationName("PyLoT")
+    pylot_app.setWindowIcon(QIcon(":/pylot.ico"))
+
+    # create the main window
+    pylot_form = MainWindow()
 
     # Show main window and run the app
-    pylot_main.show()
+    pylot_form.show()
     pylot_app.exec_()
+
+
+main()
