@@ -23,22 +23,33 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
-        self.setWindowIcon(QIcon("PyLoT.ico"))
-
-        # create central matplotlib figure widget
-        setupPlot()
-        self.setCentralWidget(self.DataPlot)
-
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
-        filteroptions = [self.filterOptionsP if not self.seismicPhase == 'S'
-                         else self.filterOptionsS]
+        self.loadData()
+
+        self.updateFilterOptions()
+
+        self.setupUi()
+
+    def setupUi(self):
+        self.setWindowIcon(QIcon("PyLoT.ico"))
+
+        # create central matplotlib figure widget
+        dataLayout = setupPlot()
+
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
                                              filterOptions=filteroptions)
+
+        statLayout = self.layoutStationButtons()
+
+        maingrid = QGridLayout()
+        maingrid.setSpacing(10)
+        maingrid.addLayout(statLayout, 0, 0)
+        maingrid.addWidget()
 
     def setupPlot(self):
         # create a matplotlib widget
@@ -47,44 +58,15 @@ class MainWindow(QMainWindow):
         layout = QtGui.QVBoxLayout(self.ui.widget_PlotArea)
         layout.addWidget(self.DataPlot, 1)
 
+        return layout
+
     def plotData(self, data):
         if data is not None and isinstance(data, Stream):
             self.DataPlot.height
 
-
-class PickWindow(QDialog):
-
-    def __init__(self, station=None, parent=None):
-        super(PickWindow, self).__init__(parent)
-
-        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
-                                             parent=self,
-                                             filterOptions=filteroptions)
-
-
-class PropertiesWindow(QDialog):
-
-    def __init__(self, parent=None):
-        super(PropertiesWindow, self).__init__(parent)
-
-
-class FilterOptionsDock(QDockWidget):
-
-    def __init__(self, parent=None, titleString="Filter options",
-                 filterOptions=None):
-        super(FilterOptionsDock, self).__init__()
-
-        if filterOptions and not isinstance(filterOptions, FilterOptions):
-            try:
-                fOptions = FilterOptions(**filterOptions)
-                filterOptions = fOptions
-            except e:
-                raise OptionsError('%s' % e)
-
-
-class OptionsError(Exception):
-    pass
-
+    def updateFilterOptions(self):
+        self.filteroptions = [self.filterOptionsP if not self.seismicPhase == 'S'
+                         else self.filterOptionsS]
 
 if __name__ == '__main__':
     # Creating a Qt application
