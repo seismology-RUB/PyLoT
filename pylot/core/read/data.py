@@ -13,26 +13,43 @@ class GenericDataBase(object):
     GenericDataBase type holds all information about the current data-
     base working on.
     '''
-    def __init__(self, stexp=None, **kwargs):
+    def __init__(self, stexp=None, folderdepth=4, **kwargs):
         dbRegExp = {}
-
-        structExpression = os.path.split(stexp)
+        structExpression = []
+        depth = 0
+        while stexp is not os.path.sep:
+            [stexp, tlexp] = os.path.split(stexp)
+            structExpression.append(tlexp)
+            depth += 1
+            if depth is folderdepth:
+                rootExpression = stexp
+                break
+        structExpression.reverse()
+                
+        self.folderDepth = folderdepth
         self.dataBaseDict = kwargs
 
 
 class SeiscompDataStructure(object):
 
-    def __init__(self, dataType='waveform', **kwargs):
+    def __init__(self, dataType='waveform', date=None, **kwargs):
         '''
         Object initialization method:
 
-        :type dataType: str
-        :param dataType: Desired data type. Default: ``'waveform'``
+        :param str dataType: Desired data type. Default: ``'waveform'``
+        :param date: Either date string or an instance of
+                     obspy.core.utcdatetime.UTCDateTime. Default: ``None``
+        :type date: str or UTCDateTime or None
         '''
         # imports
         from obspy.core import UTCDateTime
 
-        now = UTCDateTime()
+        if date is not None and not isinstance(date, UTCDateTime):
+            try:
+                dod = UTCDateTime(date)
+            except:
+                dod = UTCDateTime()
+
         # Data type options
         self.__typeOptions = {'waveform': 'D',  # Waveform data
                               'detect': 'E',  # Detection data
@@ -47,10 +64,13 @@ class SeiscompDataStructure(object):
             self.dataType = dataType
         else:
             self.dataType = 'waveform'  # default value for dataType
+            print '''Warning: Selected datatype ('%s') not available.\n
+                     Using 'waveform' instead!'''.format(dataType)
 
         # SDS fields' default values
         # definitions from
         # http://www.seiscomp3.org/wiki/doc/applications/slarchive/SDS
+
         self.__sdsFields = {'SDSdir': '/data/SDS',  # base directory
                             'YEAR': '{0:04d}'.format(now.year),  # 4 digits
                             'NET': '??',  # up to 8 characters
