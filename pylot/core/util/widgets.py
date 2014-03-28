@@ -27,3 +27,31 @@ class MPLWidget(FigureCanvasQTAgg):
         self.axes.set_xlabel(xlabel)
         self.axes.set_ylabel(ylabel)
         self.axes.set_title(title)
+
+class PickWindow(QDialog):
+
+    def __init__(self, station=None, parent=None):
+        super(PickWindow, self).__init__(parent)
+
+        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
+                                             parent=self,
+                                             filterOptions=filteroptions)
+
+class PropertiesWindow(QDialog):
+
+    def __init__(self, parent=None):
+        super(PropertiesWindow, self).__init__(parent)
+
+
+class FilterOptionsDock(QDockWidget):
+
+    def __init__(self, parent=None, titleString="Filter options",
+                 filterOptions=None):
+        super(FilterOptionsDock, self).__init__()
+
+        if filterOptions and not isinstance(filterOptions, FilterOptions):
+            try:
+                fOptions = FilterOptions(**filterOptions)
+                filterOptions = fOptions
+            except e:
+                raise OptionsError('%s' % e)
