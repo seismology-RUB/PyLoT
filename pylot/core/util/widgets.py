@@ -12,6 +12,7 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from PySide.QtGui import (QDialog, QDockWidget)
 
 
 class MPLWidget(FigureCanvasQTAgg):
@@ -28,16 +29,18 @@ class MPLWidget(FigureCanvasQTAgg):
         self.axes.set_ylabel(ylabel)
         self.axes.set_title(title)
 
-class PickWindow(QDialog):
+
+class PickDlg(QDialog):
 
     def __init__(self, station=None, parent=None):
-        super(PickWindow, self).__init__(parent)
+        super(PickDlg, self).__init__(parent)
 
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
                                              filterOptions=filteroptions)
 
-class PropertiesWindow(QDialog):
+
+class PropertiesDlg(QDialog):
 
     def __init__(self, parent=None):
         super(PropertiesWindow, self).__init__(parent)
