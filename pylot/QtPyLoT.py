@@ -1,7 +1,24 @@
 #!/usr/bin/env python
-#
-#
-# Main program: QtPyLoT.py
+# -*- coding: utf-8 -*-
+"""
+PyLoT: Main program
+===================
+PyLoT is a seismic data processing software capable of picking seismic
+phases (symmetric and asymmetric error assignment), exporting these to
+several common phase data formats and post process the data, e.g. locating
+events, via external localization software.
+Additionally PyLoT is meant as an interface to autoPyLoT which can
+automatically pick seismic phases, if the parameters have properly been
+chosen for the particular data set.
+
+:author:
+    Sebastian Wehling-Benatelli
+:copyright:
+    The PyLoT Development Team (https://ariadne.geophysik.rub.de/trac/PyLoT)
+:license:
+    GNU Lesser General Public License, Version 3
+    (http://www.gnu.org/copyleft/lesser.html)
+"""
 
 import os
 import platform
@@ -12,7 +29,8 @@ import helpform
 from pylot.core.util import _getVersionString
 from pylot.core.read.inputs import FilterOptions
 from pylot.core.util import FILTERDEFAULTS
-from pylot.core.util import MPLWidget
+from pylot.core.util import checkurl
+from pylot.core.util import (PickDlg, FilterOptionsDock, PropertiesDlg)
 
 # Version information
 __version__ = _getVersionString()
