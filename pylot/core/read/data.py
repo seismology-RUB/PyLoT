@@ -31,16 +31,16 @@ class GenericDataBase(object):
 
 
 class SeiscompDataStructure(object):
+    '''
+    Dictionary containing the data acces information for an SDS data archive:
+
+    :param str dataType: Desired data type. Default: ``'waveform'``
+    :param date: Either date string or an instance of
+         :class:`obspy.core.utcdatetime.UTCDateTime. Default: ``None``
+        :type date: str or UTCDateTime or None
+    '''
 
     def __init__(self, dataType='waveform', date=None, **kwargs):
-        '''
-        Object initialization method:
-
-        :param str dataType: Desired data type. Default: ``'waveform'``
-        :param date: Either date string or an instance of
-                     obspy.core.utcdatetime.UTCDateTime. Default: ``None``
-        :type date: str or UTCDateTime or None
-        '''
         # imports
         from obspy.core import UTCDateTime
 

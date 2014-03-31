@@ -3,9 +3,9 @@
 # Purpose: Convience imports for PyLoT
 #
 '''
+================================================
 PyLoT - the Python picking and Localization Tool
-
-The Python picking and Localisation Tool
+================================================
 
 This python library contains a graphical user interfaces for picking
 seismic phases. This software needs ObsPy (http://github.com/obspy/obspy/wiki)
@@ -20,7 +20,7 @@ benefit a lot compared to the former MatLab version.
 The development of PyLoT is part of the joint research project MAGS2.
 
 :copyright:
-    The PyLoT-Development Team
+    The PyLoT Development Team
 :license:
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
