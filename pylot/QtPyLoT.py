@@ -26,6 +26,7 @@ import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
 import helpform
+from obspy.core import (read, UTCDateTime)
 from pylot.core.util import _getVersionString
 from pylot.core.read.inputs import FilterOptions
 from pylot.core.util import FILTERDEFAULTS
@@ -47,13 +48,15 @@ class MainWindow(QMainWindow):
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
         self.loadData()
-
+        self.updateArchiveType()
         self.updateFilterOptions()
 
         self.setupUi()
 
     def loadData(self):
-        pass
+        loadDataDlg = LoadDataDlg(self)
+
+        dataStream = read()
 
     def setupUi(self):
         self.setWindowIcon(QIcon("PyLoT.ico"))
@@ -65,16 +68,24 @@ class MainWindow(QMainWindow):
                                              parent=self,
                                              filterOptions=filteroptions)
 
+        self.eventLabel = QLabel()
+        self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
+        status = self.statusBar()
+        status.setSizeGripEnabled(False)
+        status.addPermanentWidget(self.eventLabel)
+        status.showMessage("Ready", 5000)
+
         statLayout = self.layoutStationButtons(self.numStations)
 
         maingrid = QGridLayout()
         maingrid.setSpacing(10)
         maingrid.addLayout(statLayout, 0, 0)
+        maingrid.addLayout(dataLayout, 1, 0)
         maingrid.addWidget()
 
     def setupPlot(self):
         # create a matplotlib widget
-        self.DataPlot = MPLWidget()
+        self.DataPlot = MPLWidget(parent=self)
         # create a layout inside the blank widget and add the matplotlib widget
         layout = QtGui.QVBoxLayout(self.ui.widget_PlotArea)
         layout.addWidget(self.DataPlot, 1)
@@ -83,12 +94,15 @@ class MainWindow(QMainWindow):
 
     def plotData(self, data):
         if data is not None and isinstance(data, Stream):
-            self.stats.numStations = data.
+            pass
 
     def updateFilterOptions(self):
         self.filteroptions = [self.filterOptionsP
                               if not self.seismicPhase == 'S'
                               else self.filterOptionsS]
+
+    def updateStatus(self, message):
+        self.statusBar().showMessage(message, 5000)
 
     def layoutStationButtons(self, numStations):
         layout = QVBoxLayout()
