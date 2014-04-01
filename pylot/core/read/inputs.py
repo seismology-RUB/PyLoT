@@ -6,9 +6,13 @@ class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write
     parameter ASCII and binary files.
+    
+    :param fn str: Filename of the input file
 
     Parameters are given for example as follows:
-
+    ==========  ==========  =======================================
+    Name        Value       Comment
+    ==========  ==========  =======================================
     phl         S           # phaselabel
     ff1         0.1         # freqmin
     ff2         0.5         # freqmax
@@ -27,6 +31,7 @@ class AutoPickParameter(object):
     aerr        30;60       # adjusted_error_slope_fitting_loc_glob
     tsn         20;5;20;10  # length_signal_window_S/N
     proPh       Sn          # nextprominentphase
+    ==========  ==========  =======================================
     '''
 
     def __init__(self, fn=None):
