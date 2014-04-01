@@ -8,7 +8,7 @@
 import os
 
 
-class GenericDataBase(object):
+class GenericDataStructure(object):
     '''
     GenericDataBase type holds all information about the current data-
     base working on.

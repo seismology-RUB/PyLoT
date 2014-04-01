@@ -14,6 +14,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from PySide.QtGui import (QDialog, QDockWidget)
 
+from pylot.core.util import OptionsError
+from pylot.core.util import FilterOptions
+
 
 class MPLWidget(FigureCanvasQTAgg):
 
@@ -43,7 +46,7 @@ class PickDlg(QDialog):
 class PropertiesDlg(QDialog):
 
     def __init__(self, parent=None):
-        super(PropertiesWindow, self).__init__(parent)
+        super(PropertiesDlg, self).__init__(parent)
 
 
 class FilterOptionsDock(QDockWidget):
@@ -56,5 +59,11 @@ class FilterOptionsDock(QDockWidget):
             try:
                 fOptions = FilterOptions(**filterOptions)
                 filterOptions = fOptions
-            except e:
+            except Exception, e:
                 raise OptionsError('%s' % e)
+
+
+class LoadDataDlg(QDialog):
+
+    def __init__(self, parent=None):
+        super(LoadDataDlg, self).__init__(parent)
