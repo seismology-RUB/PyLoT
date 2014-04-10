@@ -134,9 +134,9 @@ class AutoPickParameter(object):
 
 class FilterOptions(object):
 
-    def __init__(self, filtertype=None, freq=None, order=None):
+    def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3):
         self.__filterInformation = {}
-        self._setfilterType(filtertype)
+        self._setFilterType(filtertype)
         self._setFreq(freq)
         self._setOrder(order)
 
