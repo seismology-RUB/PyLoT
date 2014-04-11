@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         # create a matplotlib widget
         self.DataPlot = MPLWidget(parent=self)
         # create a layout inside the blank widget and add the matplotlib widget
-        layout = QtGui.QVBoxLayout(self.ui.widget_PlotArea)
+        layout = QVBoxLayout(self.ui.widget_PlotArea)
         layout.addWidget(self.DataPlot, 1)
 
         return layout
@@ -131,5 +131,5 @@ def main():
     pylot_form.show()
     pylot_app.exec_()
 
-
-main()
+if __name__ == "__main__":
+    main()
