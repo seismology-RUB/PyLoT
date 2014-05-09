@@ -107,7 +107,18 @@ class MainWindow(QMainWindow):
     def layoutStationButtons(self, numStations):
         layout = QVBoxLayout()
         for n in range(numStations):
-            stationButtons[n] = QPushButton('%s'.format(self.))
+            tr = data.select(component=self.dispOptions.comp)
+            try:
+                stationButtons[n] = QPushButton('%s'.format(
+                                                tr[n].stats.station))
+            except IndexError:
+                error = QErrorMessage(self)
+                errorString = QString()
+                errorString.setText('''Number of stations does not match number
+                                    of traces!''')
+                error.showMessage(errorString)
+                self.__del__()
+        layout.addWidget(stationButtons)
 
     def helpHelp(self):
         if internet_on():
