@@ -25,7 +25,7 @@ class GenericDataStructure(object):
                 rootExpression = stexp
                 break
         structExpression.reverse()
-                
+
         self.folderDepth = folderdepth
         self.dataBaseDict = kwargs
 
@@ -40,15 +40,33 @@ class SeiscompDataStructure(object):
         :type date: str or UTCDateTime or None
     '''
 
-    def __init__(self, dataType='waveform', date=None, **kwargs):
+    def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
         # imports
         from obspy.core import UTCDateTime
+        import numpy as np
 
-        if date is not None and not isinstance(date, UTCDateTime):
-            try:
-                dod = UTCDateTime(date)
-            except:
-                dod = UTCDateTime()
+        def checkDate(date):
+            if not isinstance(date, UTCDateTime):
+                return True
+            return False
+
+        try:
+            if checkDate(sdate):
+                sdate = UTCDateTime(sdate)
+            if checkDate(edate):
+                edate = UTCDateTime(edate)
+        except TypeError:
+            edate = UTCDateTime()
+            sdate = edate - np.pi*1e7/2
+
+        year = ''
+        if not edate.year == sdate.year:
+            nyears = edate.year - sdate.year
+            for yr in range(nyears):
+                year += '{0:04d},'.format(sdate.year+yr)
+            year = '{'+year[:-1]+'}'
+        else:
+            year = '{0:04d},'.format(sdate.year)
 
         # Data type options
         self.__typeOptions = {'waveform': 'D',  # Waveform data
@@ -72,13 +90,13 @@ class SeiscompDataStructure(object):
         # http://www.seiscomp3.org/wiki/doc/applications/slarchive/SDS
 
         self.__sdsFields = {'SDSdir': '/data/SDS',  # base directory
-                            'YEAR': '{0:04d}'.format(now.year),  # 4 digits
+                            'YEAR': year,  # 4 digits
                             'NET': '??',  # up to 8 characters
                             'STA': '????',  # up to 8 characters
                             'CHAN': 'HH?',  # up to 8 characters
                             'TYPE': self._getType(),  # 1 character
                             'LOC': '',  # up to 8 characters
-                            'DAY': '{0:03d}'.format(now.julday)  # 3 digit doy
+                            'DAY': '{0:03d}'.format(sdate.julday)  # 3 digits
                             }
         self.modifiyFields(**kwargs)
 
