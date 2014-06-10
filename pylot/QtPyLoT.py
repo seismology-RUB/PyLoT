@@ -25,13 +25,16 @@ import platform
 import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
-import helpform
 from obspy.core import (read, UTCDateTime)
 from pylot.core.util import _getVersionString
-from pylot.core.read.inputs import FilterOptions
+from pylot.core.read import FilterOptions
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import checkurl
-from pylot.core.util import (PickDlg, FilterOptionsDock, PropertiesDlg)
+from pylot.core.util import (PickDlg,
+                             FilterOptionsDock,
+                             PropertiesDlg,
+                             MPLWidget,
+                             HelpForm)
 
 # Version information
 __version__ = _getVersionString()
