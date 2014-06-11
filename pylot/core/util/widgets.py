@@ -12,8 +12,29 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
-from PySide.QtGui import (QDialog, QDockWidget, QDoubleSpinBox, QLabel,
-                          QGroupBox, QGridLayout)
+from PySide.QtGui import (QAction,
+                          QApplication,
+                          QCheckBox,
+                          QComboBox,
+                          QDialog,
+                          QDialogButtonBox,
+                          QDockWidget,
+                          QDoubleSpinBox,
+                          QGroupBox,
+                          QGridLayout,
+                          QHBoxLayout,
+                          QIcon,
+                          QKeySequence,
+                          QLabel,
+                          QMessageBox,
+                          QSpinBox,
+                          QTextBrowser,
+                          QToolBar,
+                          QVBoxLayout)
+from PySide.QtCore import (Qt,
+                           QUrl,
+                           SIGNAL,
+                           SLOT)
 from pylot.core.util import OptionsError
 from pylot.core.read import FilterOptions
 
