@@ -6,7 +6,7 @@ class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write
     parameter ASCII and binary files.
-    
+
     :param fn str: Filename of the input file
 
     Parameters are given for example as follows:
@@ -134,7 +134,8 @@ class AutoPickParameter(object):
 
 class FilterOptions(object):
 
-    def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3):
+    def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3,
+                 **kwargs):
         self.__filterInformation = {}
         self._setFilterType(filtertype)
         self._setFreq(freq)
