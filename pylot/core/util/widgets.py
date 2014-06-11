@@ -38,9 +38,7 @@ class PickDlg(QDialog):
     def __init__(self, station=None, parent=None):
         super(PickDlg, self).__init__(parent)
 
-        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
-                                             parent=self,
-                                             filterOptions=filteroptions)
+        pass
 
 
 class PropertiesDlg(QDialog):
@@ -49,7 +47,7 @@ class PropertiesDlg(QDialog):
         super(PropertiesDlg, self).__init__(parent)
 
 
-class FilterOptionsDock(QDockWidget):
+class FilterOptionsDock(QDialog):
 
     def __init__(self, parent=None, titleString="Filter options",
                  filterOptions=None):
@@ -64,38 +62,139 @@ class FilterOptionsDock(QDockWidget):
         else:
             filterOptions = FilterOptions()
 
-        freqminLabel = QLabel()
-        freqminLabel.setText("minimum:")
-        freqminSpinBox = QDoubleSpinBox()
-        freqminSpinBox.setRange(5e-7, 1e6)
-        freqminSpinBox.setDecimals(2)
-        freqminSpinBox.setValue(filterOptions.freq[0])
-        freqmaxLabel = QLabel()
-        freqmaxLabel.setText("maximum:")
-        freqmaxSpinBox = QDoubleSpinBox()
-        freqmaxSpinBox.setRange(5e-7, 1e6)
-        freqmaxSpinBox.setDecimals(2)
+        self.filterOptions = filterOptions
 
-        if filterOptions.filterType not in ['bandpass', 'bandstop']:
-            freqminLabel.setText("cutoff:")
-            freqmaxLabel.setEnabled(False)
-            freqmaxSpinBox.setEnabled(False)
+        self.freqminLabel = QLabel()
+        self.freqminLabel.setText("minimum:")
+        self.freqminSpinBox = QDoubleSpinBox()
+        self.freqminSpinBox.setRange(5e-7, 1e6)
+        self.freqminSpinBox.setDecimals(2)
+        self.freqminSpinBox.setSuffix(' Hz')
+        self.freqminSpinBox.setValue(filterOptions.freq[0])
+        self.freqmaxLabel = QLabel()
+        self.freqmaxLabel.setText("maximum:")
+        self.freqmaxSpinBox = QDoubleSpinBox()
+        self.freqmaxSpinBox.setRange(5e-7, 1e6)
+        self.freqmaxSpinBox.setDecimals(2)
+        self.freqmaxSpinBox.setSuffix(' Hz')
+        if self.filterOptions.filterType in ['bandpass', 'bandstop']:
+            self.freqmaxSpinBox.setValue(self.filterOptions.freq[1])
 
-        freqGroupBox = QGroupBox("Frequency range")
-        gbLayout = QGridLayout()
-        gbLayout.addWidget(freqminLabel, 0, 0)
-        gbLayout.addWidget(freqminSpinBox, 0, 1)
-        gbLayout.addWidget(freqmaxLabel, 1, 0)
-        gbLayout.addWidget(freqmaxSpinBox, 1, 1)
-        freqGroupBox.setLayout(gbLayout)
+        typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
-        grid = QGridLayout()
-        grid.addWidget(freqGroupBox, 0, 0, 2, 2)
+        self.orderLabel = QLabel()
+        self.orderLabel.setText("Order:")
+        self.orderSpinBox = QSpinBox()
+        self.orderSpinBox.setRange(2, 10)
+        self.selectTypeLabel = QLabel()
+        self.selectTypeLabel.setText("Select filter type:")
+        self.selectTypeCombo = QComboBox()
+        self.selectTypeCombo.addItems(typeOptions)
+        self.selectTypeLayout = QVBoxLayout()
+        self.selectTypeLayout.addWidget(self.orderLabel)
+        self.selectTypeLayout.addWidget(self.orderSpinBox)
+        self.selectTypeLayout.addWidget(self.selectTypeLabel)
+        self.selectTypeLayout.addWidget(self.selectTypeCombo)
 
-        self.setLayout(grid)
+        self.freqGroupBox = QGroupBox("Frequency range")
+        self.freqGroupLayout = QGridLayout()
+        self.freqGroupLayout.addWidget(self.freqminLabel, 0, 0)
+        self.freqGroupLayout.addWidget(self.freqminSpinBox, 0, 1)
+        self.freqGroupLayout.addWidget(self.freqmaxLabel, 1, 0)
+        self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
+        self.freqGroupBox.setLayout(self.freqGroupLayout)
+
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Apply |
+                                          QDialogButtonBox.Close)
+
+        self.layoutEditables = QHBoxLayout()
+        self.layoutEditables.addWidget(self.freqGroupBox)
+        self.layoutEditables.addLayout(self.selectTypeLayout)
+
+        self.setLayout(self.layoutEditables)
+
+        self.connect(self.freqminSpinBox, SIGNAL("valueChanged(double)"),
+                     self.updateUi)
+        self.connect(self.freqmaxSpinBox, SIGNAL("valueChanged(double)"),
+                     self.updateUi)
+        self.connect(self.orderSpinBox, SIGNAL("valueChanged(int)"),
+                     self.updateUi)
+        self.connect(self.selectTypeCombo, SIGNAL("currentIndexChanged(int)"),
+                     self.updateUi)
+        self.updateUi()
+
+    def updateUi(self):
+        if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
+            self.freqminLabel.setText("cutoff:")
+            self.freqmaxLabel.setEnabled(False)
+            self.freqmaxSpinBox.setEnabled(False)
+            self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+        else:
+            self.freqminLabel.setText("minimum:")
+            self.freqmaxLabel.setEnabled(True)
+            self.freqmaxSpinBox.setEnabled(True)
+
+        self.filterOptions.filterType = self.selectTypeCombo.currentText()
+        freq = []
+        freq.append(self.freqminSpinBox.value())
+        if self.filterOptions.filterType in ['bandpass', 'bandstop']:
+            if self.freqminSpinBox.value() > self.freqmaxSpinBox.value():
+                QMessageBox.warning(self, "Value error",
+                                    "Maximum frequency must be at least the "
+                                    "same value as minimum frequency (notch)!")
+                self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+                self.freqmaxSpinBox.selectAll()
+                self.freqmaxSpinBox.setFocus()
+                return
+            freq.append(self.freqmaxSpinBox.value())
+        self.filterOptions.freq = freq
+        self.filterOptions.order = self.orderSpinBox.value()
+        return self.filterOptions
 
 
 class LoadDataDlg(QDialog):
 
     def __init__(self, parent=None):
         super(LoadDataDlg, self).__init__(parent)
+
+        pass
+
+
+class HelpForm(QDialog):
+
+    def __init__(self, page, parent=None):
+        super(HelpForm, self).__init__(parent)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WA_GroupLeader)
+
+        backAction = QAction(QIcon(":/back.png"), "&Back", self)
+        backAction.setShortcut(QKeySequence.Back)
+        homeAction = QAction(QIcon(":/home.png"), "&Home", self)
+        homeAction.setShortcut("Home")
+        self.pageLabel = QLabel()
+
+        toolBar = QToolBar()
+        toolBar.addAction(backAction)
+        toolBar.addAction(homeAction)
+        toolBar.addWidget(self.pageLabel)
+        self.textBrowser = QTextBrowser()
+
+        layout = QVBoxLayout()
+        layout.addWidget(toolBar)
+        layout.addWidget(self.textBrowser, 1)
+        self.setLayout(layout)
+
+        self.connect(backAction, SIGNAL("triggered()"),
+                     self.textBrowser, SLOT("backward()"))
+        self.connect(homeAction, SIGNAL("triggered()"),
+                     self.textBrowser, SLOT("home()"))
+        self.connect(self.textBrowser, SIGNAL("sourceChanged(QUrl)"),
+                     self.updatePageTitle)
+
+        self.textBrowser.setSearchPaths([":/help"])
+        self.textBrowser.setSource(QUrl(page))
+        self.resize(400, 600)
+        self.setWindowTitle("{0} Help".format(QApplication.applicationName()))
+
+    def updatePageTitle(self):
+        self.pageLabel.setText(self.textBrowser.documentTitle())
