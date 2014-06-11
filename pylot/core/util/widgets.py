@@ -28,6 +28,7 @@ from PySide.QtGui import (QAction,
                           QLabel,
                           QMessageBox,
                           QSpinBox,
+                          QTabBar,
                           QTextBrowser,
                           QToolBar,
                           QVBoxLayout)
@@ -66,6 +67,19 @@ class PropertiesDlg(QDialog):
 
     def __init__(self, parent=None):
         super(PropertiesDlg, self).__init__(parent)
+
+        self.tabBar = QTabBar()
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Apply |
+                                          QDialogButtonBox.Close)
+
+        self.connect(self.buttonBox.button(QDialogButtonBox.Apply),
+                     SIGNAL("clicked()"), self.apply)
+        self.connect(self.buttonBox, SIGNAL("rejected()"),
+                     self, SLOT("reject()"))
+        pass
+
+    def apply(self):
+        pass
 
 
 class FilterOptionsDock(QDialog):
@@ -125,9 +139,6 @@ class FilterOptionsDock(QDialog):
         self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
         self.freqGroupBox.setLayout(self.freqGroupLayout)
 
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Apply |
-                                          QDialogButtonBox.Close)
-
         self.layoutEditables = QHBoxLayout()
         self.layoutEditables.addWidget(self.freqGroupBox)
         self.layoutEditables.addLayout(self.selectTypeLayout)
@@ -183,7 +194,8 @@ class LoadDataDlg(QDialog):
 
 class HelpForm(QDialog):
 
-    def __init__(self, page, parent=None):
+    def __init__(self, page='https://ariadne.geophysik.rub.de/trac/PyLoT/wiki',
+                 parent=None):
         super(HelpForm, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)
