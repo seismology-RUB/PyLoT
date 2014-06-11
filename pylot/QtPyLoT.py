@@ -57,22 +57,20 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
     def loadData(self):
-        loadDataDlg = LoadDataDlg(self)
-
-        dataStream = read()
+        pass
 
     def setupUi(self):
         self.setWindowIcon(QIcon("PyLoT.ico"))
 
         # create central matplotlib figure widget
-        dataLayout = setupPlot()
+        self.DataPlot = MPLWidget(parent=self)
 
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
                                              filterOptions=filteroptions)
 
         self.eventLabel = QLabel()
-        self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
+        self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         status = self.statusBar()
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
@@ -84,16 +82,7 @@ class MainWindow(QMainWindow):
         maingrid.setSpacing(10)
         maingrid.addLayout(statLayout, 0, 0)
         maingrid.addLayout(dataLayout, 1, 0)
-        maingrid.addWidget()
-
-    def setupPlot(self):
-        # create a matplotlib widget
-        self.DataPlot = MPLWidget(parent=self)
-        # create a layout inside the blank widget and add the matplotlib widget
-        layout = QVBoxLayout(self.ui.widget_PlotArea)
-        layout.addWidget(self.DataPlot, 1)
-
-        return layout
+        maingrid.setCentralWidget(self.DataPlot)
 
     def plotData(self, data):
         if data is not None and isinstance(data, Stream):
@@ -122,6 +111,8 @@ class MainWindow(QMainWindow):
                 error.showMessage(errorString)
                 self.__del__()
         layout.addWidget(stationButtons)
+
+        return layout
 
     def helpHelp(self):
         if internet_on():
