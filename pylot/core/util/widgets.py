@@ -70,10 +70,26 @@ class PropertiesDlg(QDialog):
     def __init__(self, parent=None):
         super(PropertiesDlg, self).__init__(parent)
 
-        self.tabBar = QTabBar()
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Apply |
+        appName = QApplication.applicationName()
+
+        self.setWindowTitle("{0} Properties".format(appName))
+
+        tabWidget = QTabWidget()
+        tabWidget.addTab(InputsTab(self), "Inputs")
+        tabWidget.addTab(OutputsTab(self), "Outputs")
+        tabWidget.addTab(PhasesTab(self), "Phases")
+        tabWidget.addTab(GraphicsTab(self), "Graphics")
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                          QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close)
 
+        layout = QVBoxLayout()
+        layout.addWidget(tabWidget)
+        layout.addWidget(self.buttonBox)
+        self.setLayout(layout)
+
+        self.connect(self.buttonBox, SIGNAL("accepted()"), self,
+                     SLOT("accept()"))
         self.connect(self.buttonBox.button(QDialogButtonBox.Apply),
                      SIGNAL("clicked()"), self.apply)
         self.connect(self.buttonBox, SIGNAL("rejected()"),
@@ -81,6 +97,54 @@ class PropertiesDlg(QDialog):
         pass
 
     def apply(self):
+        pass
+
+
+class InputsTab(QWidget):
+
+    def __init__(self, parent=None):
+        super(InputsTab, self).__init__(parent)
+
+        dataDirLabel = QLabel("data directory:")
+        dataDirEdit = QLineEdit()
+
+        layout = QGridLayout()
+        layout.addWidget(dataDirLabel, 0, 0)
+        layout.addWidget(dataDirEdit, 0, 1)
+
+        self.setLayout(layout)
+
+
+class OutputsTab(QWidget):
+
+    def __init__(self, parent=None):
+        super(OutputsTab, self).__init__(parent)
+
+        eventOutputLabel = QLabel("event ouput format")
+        eventOutputComboBox = QComboBox()
+        eventoutputformats = ["QuakeML", "VelEst"]
+        eventOutputComboBox.addItems(eventoutputformats)
+
+        layout = QGridLayout()
+        layout.addWidget(eventOutputLabel, 0, 0)
+        layout.addWidget(eventOutputComboBox, 0, 1)
+
+        self.setLayout(layout)
+
+
+class PhasesTab(QWidget):
+
+    def __init__(self, parent=None):
+        super(PhasesTab, self).__init__(parent)
+
+        pass
+
+
+class GraphicsTab(QWidget):
+
+    def __init__(self, parent=None):
+        super(GraphicsTab, self).__init__(parent)
+
         pass
 
 
