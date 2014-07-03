@@ -51,7 +51,6 @@ class MainWindow(QMainWindow):
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
         self.loadData()
-        self.updateArchiveType()
         self.updateFilterOptions()
 
         self.setupUi()
