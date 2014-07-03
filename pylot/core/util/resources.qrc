@@ -2,6 +2,6 @@
     <qresource>
 		<file alias="icon.ico">icons/pylot.ico</file>
 
-		<file>help/index.html</file>
+		<file alias="help.html">help/index.html</file>
     </qresource>
 </RCC>
