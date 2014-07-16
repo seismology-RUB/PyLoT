@@ -27,7 +27,8 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 from obspy.core import (read, UTCDateTime)
 from pylot.core.util import _getVersionString
-from pylot.core.read import FilterOptions
+from pylot.core.read import (Data,
+                             FilterOptions)
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import checkurl
 from pylot.core.util import (PickDlg,
@@ -56,13 +57,18 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
     def loadData(self):
-        pass
+        self.data = Data()
 
     def setupUi(self):
         self.setWindowIcon(QIcon("PyLoT.ico"))
 
+        xlab = 'time since {0}'.format()
+
         # create central matplotlib figure widget
-        self.DataPlot = MPLWidget(parent=self)
+        self.DataPlot = MPLWidget(parent=self,
+                                  xlabel=xlab,
+                                  ylabel=ylab,
+                                  title=eventtitle)
 
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
@@ -83,9 +89,8 @@ class MainWindow(QMainWindow):
         maingrid.addLayout(dataLayout, 1, 0)
         maingrid.setCentralWidget(self.DataPlot)
 
-    def plotData(self, data):
-        if data is not None and isinstance(data, Stream):
-            pass
+    def plotData(self):
+        pass
 
     def updateFilterOptions(self):
         self.filteroptions = [self.filterOptionsP
