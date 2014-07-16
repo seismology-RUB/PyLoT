@@ -6,6 +6,42 @@
 #
 
 import os
+from obspy.core import (read, Stream)
+from obspy.core.event import Event
+
+
+class Data(object):
+    '''
+    Data container class providing ObSpy-Stream and -Event instances as
+    variables. 
+    '''
+
+    def __init__(self, parent=None, wfdata=None, evtdata=None):
+        if wfdata is not None and isinstance(wfdata, Stream):
+            self.wfdata = wfdata
+        elif wfdata is not None:
+            try:
+                self.wfdata = read(wfdata)
+            except IOError, e:
+                msg = 'An I/O error occured while loading data!'
+                inform = 'Variable wfdata will be empty.'
+                details = '{0}'.format(e)
+                if parent is not None:
+                    from PySide.QtGui import QMessageBox
+                    warnio = QMessageBox(parent=parent)
+                    warnio.setText(msg)
+                    warnio.setDetailedText(details)
+                    warnio.setStandarButtons(QMessageBox.Ok)
+                    warnio.setIcon(QMessageBox.Warning)
+                else:
+                    print msg, '\n', details
+                self.wfdata = Stream()
+        else:
+            self.wfdata = Stream()
+        if evtdata is not None and isinstance(evtdata, Event):
+            self.evtdata = evtdata
+        else:
+            self.evtdata = Event()
 
 
 class GenericDataStructure(object):
