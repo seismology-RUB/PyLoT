@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-#
-# Provide user the opportunity to read arbitrary organized database
-# types. This means e.g. seiscomp data structure (SDS) or event based
-# EGELADOS structure.
-#
+# -*- coding: utf-8 -*-
 
 import os
 from obspy.core import (read, Stream)
@@ -13,7 +9,12 @@ from obspy.core.event import Event
 class Data(object):
     '''
     Data container class providing ObSpy-Stream and -Event instances as
-    variables. 
+    variables.
+    
+    :type parent: PySide.QtGui.QWidget object, optional
+    :param parent: A PySide.QtGui.QWidget class utilized when
+    called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
+    to standard out.
     '''
 
     def __init__(self, parent=None, wfdata=None, evtdata=None):
@@ -71,9 +72,9 @@ class SeiscompDataStructure(object):
     Dictionary containing the data acces information for an SDS data archive:
 
     :param str dataType: Desired data type. Default: ``'waveform'``
-    :param date: Either date string or an instance of
+    :param sdate, edate: Either date string or an instance of
          :class:`obspy.core.utcdatetime.UTCDateTime. Default: ``None``
-        :type date: str or UTCDateTime or None
+    :type sdate, edate: str or UTCDateTime or None
     '''
 
     def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
