@@ -3,7 +3,8 @@
 
 import os
 from obspy.core import (read, Stream)
-from obspy.core.event import Event
+from obspy.core.event import (Event, Catalog)
+from pylot.core.util import fnConstructor
 
 
 class Data(object):
@@ -43,6 +44,25 @@ class Data(object):
             self.evtdata = evtdata
         else:
             self.evtdata = Event()
+
+    def exportEvent(self, fnout=None, format='QUAKEML'):
+
+        if fnout is None:
+            fnout = self.event.resource_id.__str__().split('/')[-1]
+        # handle forbidden filenames especially on windows systems
+        fnout = fnConstructor(fnout)
+
+        format = format.upper().strip()
+
+        # export event to QuakeML or JSON via ObsPy
+        if format in 'QUAKEML' or 'JSON':
+            cat = Catalog()
+            cat.append(self.event)
+            cat.write(fnout + format.lower(), format=format)
+        
+        # export event to VelEst format
+        if format in 'VELEST':
+            pass
 
 
 class GenericDataStructure(object):
