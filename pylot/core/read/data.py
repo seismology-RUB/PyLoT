@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from PySide.QtGui import QMessageBox
 from obspy.core import (read, Stream)
 from obspy.core.event import (Event, Catalog)
 from pylot.core.util import fnConstructor
@@ -29,10 +30,10 @@ class Data(object):
                 inform = 'Variable wfdata will be empty.'
                 details = '{0}'.format(e)
                 if parent is not None:
-                    from PySide.QtGui import QMessageBox
                     warnio = QMessageBox(parent=parent)
                     warnio.setText(msg)
                     warnio.setDetailedText(details)
+                    warnio.setInformativeText(inform)
                     warnio.setStandarButtons(QMessageBox.Ok)
                     warnio.setIcon(QMessageBox.Warning)
                 else:
