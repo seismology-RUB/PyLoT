@@ -12,7 +12,7 @@ class Data(object):
     '''
     Data container class providing ObSpy-Stream and -Event instances as
     variables.
-    
+
     :type parent: PySide.QtGui.QWidget object, optional
     :param parent: A PySide.QtGui.QWidget class utilized when
     called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
@@ -46,24 +46,34 @@ class Data(object):
         else:
             self.evtdata = Event()
 
-    def exportEvent(self, fnout=None, format='QUAKEML'):
+    def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
         if fnout is None:
             fnout = self.event.resource_id.__str__().split('/')[-1]
         # handle forbidden filenames especially on windows systems
         fnout = fnConstructor(fnout)
 
-        format = format.upper().strip()
+        evtformat = evtformat.upper().strip()
 
         # export event to QuakeML or JSON via ObsPy
-        if format in 'QUAKEML' or 'JSON':
+        if evtformat in 'QUAKEML' or 'JSON':
             cat = Catalog()
             cat.append(self.event)
-            cat.write(fnout + format.lower(), format=format)
-        
+            cat.write(fnout + evtformat.lower(), format=evtformat)
+
         # export event to VelEst format
-        if format in 'VELEST':
+        if evtformat in 'VELEST':
+            '''
+            Test whether the station code is longer than 4 digits.
+            If that is the case a warning should be displayed explaining that
+            VelEst can only handle 4 digit stationcodes. Thus, the leading too
+            much digits will be skipped, e.g. "STS12" becomes "TS12"
+            '''
             pass
+
+    def plotData(self, widget):
+
+        pass #axes = widget.axes
 
 
 class GenericDataStructure(object):
