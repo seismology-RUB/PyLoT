@@ -56,6 +56,9 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
+    def _getCurrentPlotType(self):
+        return 'TestType'
+
     def loadData(self):
         self.data = Data()
 
