@@ -4,6 +4,7 @@
 
 import re
 
+
 def fnConstructor(s):
 
     badchars = re.compile(r'[^A-Za-z0-9_. ]+|^\.|\.$|^ | $|^$')
