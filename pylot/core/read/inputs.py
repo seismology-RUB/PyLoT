@@ -134,21 +134,21 @@ class AutoPickParameter(object):
 
 class FilterOptions(object):
     '''
-    FilterOptions is a parameter object type providing Butterworth filter option
-    parameter for PyLoT. Its easy to access properties helps to manage file
-    based as well as parameter manipulation within the GUI.
-    
+    FilterOptions is a parameter object type providing Butterworth filter
+    option parameter for PyLoT. Its easy to access properties helps to manage
+    file based as well as parameter manipulation within the GUI.
+
     :type filtertype: str, optional
     :param filtertype: String containing the desired filtertype For information
     about the supported filter types see _`Supported Filter` section .
-    
+
     :type freq: list, optional
     :param freq: list of float(s) describing the cutoff limits of the filter
-    
+
     :type order: int, optional
     :param order: Integer value describing the order of the desired Butterworth
     filter.
-    
+
     .. rubric:: _`Supported Filter`
 
         ``'bandpass'``
@@ -169,6 +169,16 @@ class FilterOptions(object):
         self._setFilterType(filtertype)
         self._setFreq(freq)
         self._setOrder(order)
+
+    def __str__(self):
+        hrs = '''\n\tFilter parameter:\n
+        Type:\t\t{ftype}\n
+        Frequencies:\t{freq}\n
+        Order:\t\t{order}\n
+        '''.format(ftype=self.filterType,
+                   freq=self.freq,
+                   order=self.order)
+        return hrs
 
     def _getFreq(self):
         return self.__filterInformation['freq']
