@@ -63,12 +63,13 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon("PyLoT.ico"))
 
         xlab = 'time since {0}'.format()
+        plottitle = self._getCurrentPlotType()
 
         # create central matplotlib figure widget
         self.DataPlot = MPLWidget(parent=self,
                                   xlabel=xlab,
-                                  ylabel=ylab,
-                                  title=eventtitle)
+                                  ylabel=None,
+                                  title=plottitle)
 
         filterDockWidget = FilterOptionsDock(titleString="Filter Options",
                                              parent=self,
@@ -90,7 +91,7 @@ class MainWindow(QMainWindow):
         maingrid.setCentralWidget(self.DataPlot)
 
     def plotData(self):
-        pass
+        self.data.plotData(self.DataPlot)
 
     def updateFilterOptions(self):
         self.filteroptions = [self.filterOptionsP
