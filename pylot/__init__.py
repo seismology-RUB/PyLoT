@@ -27,6 +27,5 @@ The development of PyLoT is part of the joint research project MAGS2.
 '''
 
 from obspy.core.utcdatetime import UTCDateTime
-from obspy.core.util.attribdict import AttribDict
 from pylot.core.read import *
 from pylot.core.util import *
