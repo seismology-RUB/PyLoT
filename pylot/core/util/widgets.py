@@ -148,22 +148,17 @@ class GraphicsTab(QWidget):
         pass
 
 
-class FilterOptionsDock(QDialog):
+class FilterOptionsDialog(QDialog):
 
     def __init__(self, parent=None, titleString="Filter options",
                  filterOptions=None):
-        super(FilterOptionsDock, self).__init__()
-
-        if filterOptions and not isinstance(filterOptions, FilterOptions):
-            try:
-                fOptions = FilterOptions(**filterOptions)
-                filterOptions = fOptions
-            except Exception, e:
-                raise OptionsError('%s' % e)
-        else:
-            filterOptions = FilterOptions()
-
-        self.filterOptions = filterOptions
+        """
+        PyLoT widget FilterOptionsDialog is a QDialog object. It is an UI to
+        adjust parameters for filtering seismic data.
+        """
+        super(FilterOptionsDialog, self).__init__()
+        
+        self.filterOptions = [filterOptions if filterOptions is not None else FilterOptions()][0]
 
         self.freqminLabel = QLabel()
         self.freqminLabel.setText("minimum:")
