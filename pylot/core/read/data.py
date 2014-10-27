@@ -82,11 +82,15 @@ class GenericDataStructure(object):
     base working on.
     '''
     def __init__(self, stexp=None, folderdepth=4, **kwargs):
-        dbRegExp = {}
         structExpression = []
         depth = 0
         while stexp is not os.path.sep:
-            [stexp, tlexp] = os.path.split(stexp)
+            try:
+                [stexp, tlexp] = os.path.split(stexp)
+            except AttributeError:
+                rootExpression = None
+                structExpression = None
+                break
             structExpression.append(tlexp)
             depth += 1
             if depth is folderdepth:
@@ -95,7 +99,7 @@ class GenericDataStructure(object):
         structExpression.reverse()
 
         self.folderDepth = folderdepth
-        self.dataBaseDict = kwargs
+        self.dataBaseDict = {}
 
 
 class SeiscompDataStructure(object):
