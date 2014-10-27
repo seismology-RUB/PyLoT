@@ -32,7 +32,7 @@ from pylot.core.read import (Data,
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import checkurl
 from pylot.core.util import (PickDlg,
-                             FilterOptionsDock,
+                             FilterOptionsDialog,
                              PropertiesDlg,
                              MPLWidget,
                              HelpForm)
@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
                                   ylabel=None,
                                   title=plottitle)
 
-        filterDockWidget = FilterOptionsDock(titleString="Filter Options",
+        filterDockWidget = FilterOptionsDialog(titleString="Filter Options",
                                              parent=self,
                                              filterOptions=filteroptions)
 
