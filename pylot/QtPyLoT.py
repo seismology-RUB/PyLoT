@@ -97,9 +97,14 @@ class MainWindow(QMainWindow):
         self.data.plotData(self.DataPlot)
 
     def updateFilterOptions(self):
-        self.filteroptions = [self.filterOptionsP
-                              if not self.seismicPhase == 'S'
-                              else self.filterOptionsS]
+        try:
+            self.filteroptions = [self.filterOptionsP
+                                  if not self.seismicPhase == 'S'
+                                  else self.filterOptionsS]
+        except e:
+            self.updateStatus('Error: %s' % e + ' ... no filteroptions loaded')
+        else:
+            self.updateStatus('Filteroptions succesfully loaded ...')
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
