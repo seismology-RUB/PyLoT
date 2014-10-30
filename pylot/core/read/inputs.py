@@ -165,39 +165,34 @@ class FilterOptions(object):
     '''
     def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3,
                  **kwargs):
-        self.__filterInformation = {}
-        self._setFilterType(filtertype)
-        self._setFreq(freq)
-        self._setOrder(order)
+        self.setFilterType(filtertype)
+        self.setFreq(freq)
+        self.setOrder(order)
 
     def __str__(self):
         hrs = '''\n\tFilter parameter:\n
         Type:\t\t{ftype}\n
         Frequencies:\t{freq}\n
         Order:\t\t{order}\n
-        '''.format(ftype=self.filterType,
-                   freq=self.freq,
-                   order=self.order)
+        '''.format(ftype=self.getFilterType(),
+                   freq=self.getFreq(),
+                   order=self.getOrder())
         return hrs
 
-    def _getFreq(self):
-        return self.__filterInformation['freq']
+    def getFreq(self):
+        return self.freq
 
-    def _setFreq(self, freq):
-        self.__filterInformation['freq'] = freq
+    def setFreq(self, freq):
+        self.freq = freq
 
-    def _getOrder(self):
-        return self.__filterInformation['order']
+    def getOrder(self):
+        return self.order
 
-    def _setOrder(self, order):
-        self.__filterInformation['order'] = order
+    def setOrder(self, order):
+        self.order = order
 
-    def _getFilterType(self):
-        return self.__filterInformation['filtertype']
+    def getFilterType(self):
+        return self.filterType
 
-    def _setFilterType(self, filtertype):
-        self.__filterInformation['filtertype'] = filtertype
-
-    filterType = property(fget=_getFilterType, fset=_setFilterType)
-    order = property(fget=_getOrder, fset=_setOrder)
-    freq = property(fget=_getFreq, fset=_setFreq)
+    def setFilterType(self, filtertype):
+        self.filterType = filtertype

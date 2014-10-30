@@ -157,8 +157,11 @@ class FilterOptionsDialog(QDialog):
         adjust parameters for filtering seismic data.
         """
         super(FilterOptionsDialog, self).__init__()
-        
-        self.filterOptions = [filterOptions if filterOptions is not None else FilterOptions()][0]
+
+        if filterOptions is not None:
+            self.filterOptions = filterOptions
+        else:
+            self.filterOptions = FilterOptions()
 
         self.freqminLabel = QLabel()
         self.freqminLabel.setText("minimum:")
@@ -166,7 +169,7 @@ class FilterOptionsDialog(QDialog):
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
         self.freqminSpinBox.setSuffix(' Hz')
-        self.freqminSpinBox.setValue(filterOptions.freq[0])
+        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
         self.freqmaxLabel = QLabel()
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
@@ -174,7 +177,7 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
         if self.filterOptions.filterType in ['bandpass', 'bandstop']:
-            self.freqmaxSpinBox.setValue(self.filterOptions.freq[1])
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
 
         typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
@@ -243,6 +246,9 @@ class FilterOptionsDialog(QDialog):
         self.filterOptions.freq = freq
         self.filterOptions.order = self.orderSpinBox.value()
         return self.filterOptions
+        
+    def getFilterOptions(self):
+    	return self.filterOptions
 
 
 class LoadDataDlg(QDialog):
