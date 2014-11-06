@@ -14,11 +14,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from PySide.QtGui import (QAction,
                           QApplication,
-                          QCheckBox,
                           QComboBox,
                           QDialog,
                           QDialogButtonBox,
-                          QDockWidget,
                           QDoubleSpinBox,
                           QGroupBox,
                           QGridLayout,
@@ -30,7 +28,6 @@ from PySide.QtGui import (QAction,
                           QMessageBox,
                           QSpinBox,
                           QTabWidget,
-                          QTextBrowser,
                           QToolBar,
                           QVBoxLayout,
                           QWidget)
@@ -38,7 +35,7 @@ from PySide.QtCore import (Qt,
                            QUrl,
                            SIGNAL,
                            SLOT)
-from pylot.core.util import OptionsError
+from PySide.QtWebKit import QWebView
 from pylot.core.read import FilterOptions
 
 
@@ -217,7 +214,6 @@ class FilterOptionsDialog(QDialog):
                      self.updateUi)
         self.connect(self.selectTypeCombo, SIGNAL("currentIndexChanged(int)"),
                      self.updateUi)
-        self.updateUi()
 
     def updateUi(self):
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
@@ -248,7 +244,7 @@ class FilterOptionsDialog(QDialog):
         return self.filterOptions
         
     def getFilterOptions(self):
-    	return self.filterOptions
+        return self.filterOptions
 
 
 class LoadDataDlg(QDialog):
@@ -261,8 +257,7 @@ class LoadDataDlg(QDialog):
 
 class HelpForm(QDialog):
 
-    def __init__(self, page='https://ariadne.geophysik.rub.de/trac/PyLoT/wiki',
-                 parent=None):
+    def __init__(self, page=QUrl(':/help.html'), parent=None):
         super(HelpForm, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)
@@ -277,24 +272,25 @@ class HelpForm(QDialog):
         toolBar.addAction(backAction)
         toolBar.addAction(homeAction)
         toolBar.addWidget(self.pageLabel)
-        self.textBrowser = QTextBrowser()
+        self.webBrowser = QWebView()
+        self.webBrowser.setHtml(page)
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)
-        layout.addWidget(self.textBrowser, 1)
+        layout.addWidget(self.webBrowser, 1)
         self.setLayout(layout)
 
         self.connect(backAction, SIGNAL("triggered()"),
-                     self.textBrowser, SLOT("backward()"))
+                     self.webBrowser, SLOT("backward()"))
         self.connect(homeAction, SIGNAL("triggered()"),
-                     self.textBrowser, SLOT("home()"))
-        self.connect(self.textBrowser, SIGNAL("sourceChanged(QUrl)"),
+                     self.webBrowser, SLOT("home()"))
+        self.connect(self.webBrowser, SIGNAL("sourceChanged(QUrl)"),
                      self.updatePageTitle)
 
-        self.textBrowser.setSearchPaths([":/help"])
-        self.textBrowser.setSource(QUrl(page))
+        self.webBrowser.setSearchPaths([":/help"])
+        self.webBrowser.setSource(QUrl(page))
         self.resize(400, 600)
         self.setWindowTitle("{0} Help".format(QApplication.applicationName()))
 
     def updatePageTitle(self):
-        self.pageLabel.setText(self.textBrowser.documentTitle())
+        self.pageLabel.setText(self.webBrowser.documentTitle())

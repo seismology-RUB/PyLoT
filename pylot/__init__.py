@@ -25,7 +25,3 @@ The development of PyLoT is part of the joint research project MAGS2.
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
 '''
-
-from obspy.core.utcdatetime import UTCDateTime
-from pylot.core.read import *
-from pylot.core.util import *
