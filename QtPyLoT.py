@@ -26,6 +26,7 @@ import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
 from obspy.core import (read, UTCDateTime)
+from pylot import *
 from pylot.core.util import _getVersionString
 from pylot.core.read import (Data,
                              FilterOptions)
@@ -46,13 +47,17 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        # initialize filter parameter
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
+        # initialize data
+        self.data = None
         self.loadData()
         self.updateFilterOptions()
+        self.startTime = min([tr.stats.starttime for tr in self.data])
 
         self.setupUi()
 
@@ -63,9 +68,9 @@ class MainWindow(QMainWindow):
         self.data = Data()
 
     def setupUi(self):
-        self.setWindowIcon(QIcon("PyLoT.ico"))
+        self.setWindowIcon(QIcon(":/pylot.ico"))
 
-        xlab = 'time since {0}'.format()
+        xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
         plottitle = self._getCurrentPlotType()
 
         # create central matplotlib figure widget
@@ -74,9 +79,9 @@ class MainWindow(QMainWindow):
                                   ylabel=None,
                                   title=plottitle)
 
-        filterDockWidget = FilterOptionsDialog(titleString="Filter Options",
+        filterDlg = FilterOptionsDialog(titleString="Filter Options",
                                              parent=self,
-                                             filterOptions=filteroptions)
+                                             filterOptions=self.filteroptions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -86,6 +91,7 @@ class MainWindow(QMainWindow):
         status.showMessage("Ready", 5000)
 
         statLayout = self.layoutStationButtons(self.numStations)
+        dataLayout = MPLWidget()
 
         maingrid = QGridLayout()
         maingrid.setSpacing(10)
@@ -96,12 +102,18 @@ class MainWindow(QMainWindow):
     def plotData(self):
         self.data.plotData(self.DataPlot)
 
+    def adjustFilterOptions(self):
+        filterDlg = FilterOptionsDialog(titleString="Filter Options",
+                                        parent=self,
+                                        filterOptions=self.filteroptions)
+        filterDlg.connect()
+
     def updateFilterOptions(self):
         try:
             self.filteroptions = [self.filterOptionsP
                                   if not self.seismicPhase == 'S'
                                   else self.filterOptionsS]
-        except e:
+        except Exception, e:
             self.updateStatus('Error: %s' % e + ' ... no filteroptions loaded')
         else:
             self.updateStatus('Filteroptions succesfully loaded ...')
@@ -111,16 +123,16 @@ class MainWindow(QMainWindow):
 
     def layoutStationButtons(self, numStations):
         layout = QVBoxLayout()
+        stationButtons = []
         for n in range(numStations):
-            tr = data.select(component=self.dispOptions.comp)
+            tr = self.data.select(component=self.dispOptions.comp)
             try:
                 stationButtons[n] = QPushButton('%s'.format(
                                                 tr[n].stats.station))
             except IndexError:
                 error = QErrorMessage(self)
-                errorString = QString()
-                errorString.setText('''Number of stations does not match number
-                                    of traces!''')
+                errorString = '''Number of stations does not match number of
+                                 traces!'''
                 error.showMessage(errorString)
                 self.__del__()
         layout.addWidget(stationButtons)
@@ -136,7 +148,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    # create th Qt application
+    # create the Qt application
     pylot_app = QApplication(sys.argv)
 
     # set Application Information
