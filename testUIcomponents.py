@@ -11,5 +11,5 @@ app = QApplication(sys.argv)
 for dlg in dialogs:
 	win = dlg()
 	win.show()
-	time.sleep(10)
+	time.sleep(1)
 	win.destroy()
