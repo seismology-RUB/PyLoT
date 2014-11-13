@@ -37,6 +37,7 @@ from pylot.core.util import (PickDlg,
                              PropertiesDlg,
                              MPLWidget,
                              HelpForm)
+from pylot.core.util import layoutStationButtons
 
 # Version information
 __version__ = _getVersionString()
@@ -67,6 +68,12 @@ class MainWindow(QMainWindow):
     def loadData(self):
         self.data = Data()
 
+    def getData(self):
+        return self.data
+
+    def getDataWidget(self):
+        return self.DataPlot
+
     def setupUi(self):
         self.setWindowIcon(QIcon(":/pylot.ico"))
 
@@ -79,10 +86,6 @@ class MainWindow(QMainWindow):
                                   ylabel=None,
                                   title=plottitle)
 
-        filterDlg = FilterOptionsDialog(titleString="Filter Options",
-                                             parent=self,
-                                             filterOptions=self.filteroptions)
-
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         status = self.statusBar()
@@ -90,23 +93,33 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 5000)
 
-        statLayout = self.layoutStationButtons(self.numStations)
-        dataLayout = MPLWidget()
+        statLayout = layoutStationButtons(self.getData(), self.getComponent())
+        dataLayout = self.getDataWidget()
 
         maingrid = QGridLayout()
         maingrid.setSpacing(10)
         maingrid.addLayout(statLayout, 0, 0)
         maingrid.addLayout(dataLayout, 1, 0)
-        maingrid.setCentralWidget(self.DataPlot)
+        maingrid.setCentralWidget(dataLayout)
 
     def plotData(self):
         self.data.plotData(self.DataPlot)
 
     def adjustFilterOptions(self):
-        filterDlg = FilterOptionsDialog(titleString="Filter Options",
+        fstring = "Filter Options ({0})".format(self.getSeismicPhase())
+        filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
-                                        filterOptions=self.filteroptions)
-        filterDlg.connect()
+                                        filterOptions=self.getFilterOptions())
+        filterDlg.accepted.connect(filterDlg.getFilterOptions)
+
+    def getFilterOptions(self):
+        return self.filteroptions
+
+    def setFilterOptions(self, filterOptions):
+        cases = {'P':self.filterOptionsP,
+                 'S':self.filterOptionsS}
+        cases[self.getSeismicPhase()] = filterOptions
+        self.updateFilterOptions()
 
     def updateFilterOptions(self):
         try:
@@ -118,26 +131,14 @@ class MainWindow(QMainWindow):
         else:
             self.updateStatus('Filteroptions succesfully loaded ...')
 
+    def getSeismicPhase(self):
+        return self.seismicPhase
+
+    def setSeismicPhase(self, phase):
+        self.seismicPhase = self.seismicPhaseButton.getValue()
+
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
-
-    def layoutStationButtons(self, numStations):
-        layout = QVBoxLayout()
-        stationButtons = []
-        for n in range(numStations):
-            tr = self.data.select(component=self.dispOptions.comp)
-            try:
-                stationButtons[n] = QPushButton('%s'.format(
-                                                tr[n].stats.station))
-            except IndexError:
-                error = QErrorMessage(self)
-                errorString = '''Number of stations does not match number of
-                                 traces!'''
-                error.showMessage(errorString)
-                self.__del__()
-        layout.addWidget(stationButtons)
-
-        return layout
 
     def helpHelp(self):
         if checkurl():

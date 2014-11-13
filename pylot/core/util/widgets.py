@@ -206,14 +206,10 @@ class FilterOptionsDialog(QDialog):
 
         self.setLayout(self.layoutEditables)
 
-        self.connect(self.freqminSpinBox, SIGNAL("valueChanged(double)"),
-                     self.updateUi)
-        self.connect(self.freqmaxSpinBox, SIGNAL("valueChanged(double)"),
-                     self.updateUi)
-        self.connect(self.orderSpinBox, SIGNAL("valueChanged(int)"),
-                     self.updateUi)
-        self.connect(self.selectTypeCombo, SIGNAL("currentIndexChanged(int)"),
-                     self.updateUi)
+        self.freqminSpinBox.connect(self.updateUi)
+        self.freqmaxSpinBox.connect(self.updateUi)
+        self.orderSpinBox.connect(self.updateUi)
+        self.selectTypeCombo.connect(self.updateUi)
 
     def updateUi(self):
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
@@ -241,7 +237,7 @@ class FilterOptionsDialog(QDialog):
             freq.append(self.freqmaxSpinBox.value())
         self.filterOptions.freq = freq
         self.filterOptions.order = self.orderSpinBox.value()
-        return self.filterOptions
+        return self.getFilterOptions()
         
     def getFilterOptions(self):
         return self.filterOptions
@@ -257,7 +253,7 @@ class LoadDataDlg(QDialog):
 
 class HelpForm(QDialog):
 
-    def __init__(self, page=QUrl(':/help.html'), parent=None):
+    def __init__(self, page=QUrl('https://ariadne.geophysik.rub.de/trac/PyLoT'), parent=None):
         super(HelpForm, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)
@@ -273,7 +269,7 @@ class HelpForm(QDialog):
         toolBar.addAction(homeAction)
         toolBar.addWidget(self.pageLabel)
         self.webBrowser = QWebView()
-        self.webBrowser.setHtml(page)
+        self.webBrowser.load(page)
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)
@@ -287,8 +283,6 @@ class HelpForm(QDialog):
         self.connect(self.webBrowser, SIGNAL("sourceChanged(QUrl)"),
                      self.updatePageTitle)
 
-        self.webBrowser.setSearchPaths([":/help"])
-        self.webBrowser.setSource(QUrl(page))
         self.resize(400, 600)
         self.setWindowTitle("{0} Help".format(QApplication.applicationName()))
 
