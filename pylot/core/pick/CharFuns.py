@@ -17,6 +17,7 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 import numpy as np
 from obspy.core import Stream
+import scipy
 
 class CharacteristicFunction(object):
     '''
@@ -46,10 +47,10 @@ class CharacteristicFunction(object):
         :type: float (optional, only for AR)
         '''
 
-        assert isinstance(data, Stream), "%s is not a Stream object" % str(data)
+        assert isinstance(data, Stream), "%s is not a stream object" % str(data)
 
-        self.orig_data = data[0]
-        self.dt = self.orig_data.stats.delta
+        self.orig_data = data
+        self.dt = self.orig_data[0].stats.delta
         self.setCut(cut)
         self.setTime1(t1)
         self.setTime2(t2)
@@ -118,25 +119,32 @@ class CharacteristicFunction(object):
         cutting window
         '''
         if cut is not None:
-            if self.cut[0] == 0:
-                start = 0
-            else:
-                start = self.cut[0] / self.dt
-            stop = self.cut[1] / self.dt
-            data = self.orig_data.data[start:stop]
-            return data
-
-        return self.orig_data.data
-
+           if self.cut[0] == 0:
+              start = 0
+           else:
+              start = self.cut[0] / self.dt
+           stop = self.cut[1] / self.dt
+           if len(self.orig_data) == 1:
+              data = self.orig_data[0].data[start:stop]
+              return data
+           elif len(self.orig_data) == 2:
+              hh = self.orig_data.copy()
+              h1 = hh[0].copy()
+              h2 = hh[1].copy()
+              hh[0].data = h1.data[start:stop]
+              hh[1].data = h2.data[start:stop]
+              data = hh 
+              return data
+        else:
+           if len(self.orig_data) == 1:
+              data = self.orig_data[0]
+              return data
+           elif len(self.orig_data) == 2:
+              data = self.orig_data
+              return data
+       
     def calcCF(self, data=None):
         self.cf = data
-
-    def arDet(self, data, order, rind, ldet):
-        pass
-
-    def arPred(self, data, arpara, rind, lpred):
-        pass
-
 
 
 class AICcf(CharacteristicFunction):
@@ -150,6 +158,7 @@ class AICcf(CharacteristicFunction):
     '''
 
     def calcCF(self, data):
+
         print 'Calculating AIC ...'
         xnp = self.getDataArray()
         datlen = len(xnp)
@@ -158,8 +167,8 @@ class AICcf(CharacteristicFunction):
         cumsumcf = np.cumsum(np.power(xnp, 2))
         i = np.where(cumsumcf == 0)
         cumsumcf[i] = np.finfo(np.float64).eps
-        cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) * 
-                 np.log((cumsumcf[datlen - 1] - 
+        cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) *
+                 np.log((cumsumcf[datlen - 1] -
                         cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
         inf = np.isinf(cf)
@@ -180,7 +189,6 @@ class HOScf(CharacteristicFunction):
     def calcCF(self, data):
 
         xnp = self.getDataArray(self.getCut())
-
         if self.getOrder() == 3:  # this is skewness
             print 'Calculating skewness ...'
             y = np.power(xnp, 3)
@@ -190,22 +198,22 @@ class HOScf(CharacteristicFunction):
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 
-        # Initialisation
-        # t2: long term moving window
+        #Initialisation
+        #t2: long term moving window
         ilta = round(self.getTime2() / self.getIncrement())
         lta = y[0]
         lta1 = y1[0]
 
-        # moving windows
+        #moving windows
         LTA = np.zeros(len(xnp))
         for j in range(3, len(xnp)):
             if j <= ilta:
-                lta = (y[j] + lta * (j - 1)) / j
-                lta1 = (y1[j] + lta1 * (j - 1)) / j
+                lta = (y[j] + lta * (j-1)) / j
+                lta1 = (y1[j] + lta1 * (j-1)) / j
             else:
                 lta = (y[j] - y[j - ilta]) / ilta + lta
                 lta1 = (y1[j] - y1[j - ilta]) / ilta + lta1
-            # define LTA
+            #define LTA
             if self.getOrder() == 3:
                 LTA[j] = lta / np.power(lta1, 1.5)
             elif self.getOrder() == 4:
@@ -222,39 +230,38 @@ class ARZcf(CharacteristicFunction):
 
         print 'Calculating AR-prediction error from single trace ...'
         xnp = self.getDataArray(self.getCut())
-
-        # some parameters needed
-        # add noise to time series
+        #some parameters needed
+        #add noise to time series
         xnoise = xnp + np.random.normal(0.0, 1.0, len(xnp)) * self.getFnoise() * max(abs(xnp))
         tend = len(xnp)
-        # Time1: length of AR-determination window [sec]
-        # Time2: length of AR-prediction window [sec]
-        ldet = int(round(self.getTime1() / self.getIncrement()))  # length of AR-determination window [samples]
-        lpred = int(np.ceil(self.getTime2() / self.getIncrement()))  # length of AR-prediction window [samples]
+        #Time1: length of AR-determination window [sec]
+        #Time2: length of AR-prediction window [sec]
+        ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
+        lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
 
         cf = []
         step = ldet + self.getOrder() - 1
         for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
             if i == step:
-                '''
-                In order to speed up the algorithm AR parameters are kept for time
-                intervals of length lpred
-                ''' 
-                # determination of AR coefficients
-                self.arDet(xnoise, self.getOrder(), i - ldet, i)
-                step = step + lpred
+               '''
+               In order to speed up the algorithm AR parameters are kept for time
+               intervals of length ldet
+               ''' 
+               #determination of AR coefficients
+               self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
+               step = step + ldet
 
-            # AR prediction of waveform using calculated AR coefficients
-            self.arPred(xnp, self.arpara, i + 1, lpred)
-            # prediction error = CF
+            #AR prediction of waveform using calculated AR coefficients
+            self.arPredZ(xnp, self.arpara, i + 1, lpred)
+            #prediction error = CF
             err = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
             cf.append(err)
         
-        # convert list to numpy array
+        #convert list to numpy array
         cf = np.asarray(cf)
         self.cf = cf
 
-    def arDet(self, data, order, rind, ldet):
+    def arDetZ(self, data, order, rind, ldet):
         '''
         Function to calculate AR parameters arpara after Thomas Meier (CAU), published
         in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
@@ -274,27 +281,27 @@ class ARZcf(CharacteristicFunction):
         Output: AR parameters arpara
         '''
 
-        # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
+        #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
             for i in range(rind, ldet):
                 rhs[k] = rhs[k] + data[i] * data[i - k]
 
-        # recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
-        A = np.array([[0, 0], [0, 0]])
+        #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
+        A = np.zeros((2,2))
         for k in range(1, self.getOrder() + 1):
             for j in range(1, k + 1):
                 for i in range(rind, ldet):
                     ki = k - 1
                     ji = j - 1
-                    A[ki, ji] = A[ki, ji] + data[i - ji] * data[i - ki]
+                    A[ki,ji] = A[ki,ji] + data[i - ji] * data[i - ki]
 
-                A[ji, ki] = A[ki, ji]
+                A[ji,ki] = A[ki,ji]
 
-        # apply Moore-Penrose inverse for SVD yielding the AR-parameters
+        #apply Moore-Penrose pseudo inverse for SVD yielding the AR-parameters
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
-    def arPred(self, data, arpara, rind, lpred):
+    def arPredZ(self, data, arpara, rind, lpred):
         '''
         Function to predict waveform, assuming an autoregressive process of order
         p (=size(arpara)), with AR parameters arpara calculated in arDet. After 
@@ -313,7 +320,7 @@ class ARZcf(CharacteristicFunction):
 
         Output: predicted waveform z
         '''
-        # be sure of the summation indeces
+        #be sure of the summation indeces
         if rind < len(arpara) + 1:
             rind = len(arpara) + 1
         if rind > len(data) - lpred + 1:
@@ -334,8 +341,134 @@ class ARZcf(CharacteristicFunction):
 
 class ARHcf(CharacteristicFunction):
 
-    pass
+    def calcCF(self, data):
 
+        print 'Calculating AR-prediction error from both horizontal traces ...'
+        
+        xnp = self.getDataArray(self.getCut())
+        
+        #some parameters needed
+        #add noise to time series
+        xenoise = xnp[0].data + np.random.normal(0.0, 1.0, len(xnp[0].data)) * self.getFnoise() * max(abs(xnp[0].data))
+        xnnoise = xnp[1].data + np.random.normal(0.0, 1.0, len(xnp[1].data)) * self.getFnoise() * max(abs(xnp[1].data))
+        Xnoise = np.array( [xenoise.tolist(), xnnoise.tolist()] )
+        tend = len(xnp[0].data)
+        #Time1: length of AR-determination window [sec]
+        #Time2: length of AR-prediction window [sec]
+        ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
+        lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
+              
+        cf = []
+        arstep = ldet + self.getOrder() - 3
+        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1):
+            if i == arstep:
+               '''
+               In order to speed up the algorithm AR parameters are kept for time
+               intervals of length ldet
+               '''
+               #determination of AR coefficients
+               self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
+               arstep = arstep + ldet
+
+            #AR prediction of waveform using calculated AR coefficients
+            self.arPredH(xnp, self.arpara, i + 1, lpred)
+            #prediction error = CF
+            err = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
+            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (2 * lpred))
+            cf.append(err)
+
+        #convert list to numpy array
+        cf = np.asarray(cf)
+        self.cf = cf
+
+    def arDetH(self, data, order, rind, ldet):
+        '''
+        Function to calculate AR parameters arpara after Thomas Meier (CAU), published
+        in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
+        Penrose inverse, i.e. the least-squares approach. "data" is a structured array.
+        AR parameters are calculated based on both horizontal components in order
+        to account for polarization.
+        :param: data, horizontal component seismograms to calculate AR parameters from
+        :type: structured array
+
+        :param: order, order of AR process
+        :type: int
+
+        :param: rind, first running summation index
+        :type: int
+
+        :param: ldet, length of AR-determination window (=end of summation index)
+        :type: int
+
+        Output: AR parameters arpara
+        '''
+
+        #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
+        rhs = np.zeros(self.getOrder())
+        for k in range(0, self.getOrder()):
+            for i in range(rind, ldet):
+                rhs[k] = rhs[k] + data[0,i] * data[0,i - k] + data[1,i] * data[1,i - k]
+
+        #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
+        A = np.zeros((4,4))
+        for k in range(1, self.getOrder() + 1):
+            for j in range(1, k + 1):
+                for i in range(rind, ldet):
+                    ki = k - 1
+                    ji = j - 1
+                    A[ki,ji] = A[ki,ji] + data[0,i - ji] * data[0,i - ki] + data[1,i - ji] *data[1,i - ki]
+
+                A[ji,ki] = A[ki,ji]
+
+        #apply Moore-Penrose pseudo inverse for SVD yielding the AR-parameters
+        #self.arpara = np.dot(np.linalg.pinv(A), rhs)
+        #self.arpara = np.linalg.solve(A, rhs)
+        #arpara = scipy.linalg.lstsq(A, rhs)
+        #arpara = np.linalg.lstsq(A, rhs)
+        #self.arpara = arpara[0]
+        self.arpara = np.dot(scipy.linalg.pinv(A), rhs)
+
+
+    def arPredH(self, data, arpara, rind, lpred):
+        '''
+        Function to predict waveform, assuming an autoregressive process of order
+        p (=size(arpara)), with AR parameters arpara calculated in arDet. After 
+        Thomas Meier (CAU), published in Kueperkoch et al. (2012).
+        :param: data, horizontal component seismograms to be predicted
+        :type: structured array
+
+        :param: arpara, AR parameters
+        :type: float
+
+        :param: rind, first running summation index
+        :type: int
+
+        :param: lpred, length of prediction window (=end of summation index)
+        :type: int
+
+        Output: predicted waveform z
+        :type: structured array
+        '''
+        #be sure of the summation indeces
+        if rind < len(arpara) + 1:
+            rind = len(arpara) + 1
+        if rind > len(data[0]) - lpred + 1:
+            rind = len(data[0]) - lpred + 1
+        if lpred < 1:
+            lpred = 1
+        if lpred > len(data[0]) - 1:
+            lpred = len(data[0]) - 1
+
+        z1 = np.append(data[0][0:rind], np.zeros(lpred))
+        z2 = np.append(data[1][0:rind], np.zeros(lpred))
+        for i in range(rind, rind + lpred):
+            for j in range(1, len(arpara) + 1):
+                ji = j - 1
+                z1[i] = z1[i] + arpara[ji] * z1[i - ji]
+                z2[i] = z2[i] + arpara[ji] * z2[i - ji]
+
+        z = np.array( [z1.tolist(), z2.tolist()] )
+        self.xpred = z
 
 class AR3Ccf(CharacteristicFunction):
 
