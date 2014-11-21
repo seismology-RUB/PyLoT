@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         self.data = None
         self.loadData()
         self.updateFilterOptions()
-        self.startTime = min([tr.stats.starttime for tr in self.data])
+        self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
 
         self.setupUi()
 
