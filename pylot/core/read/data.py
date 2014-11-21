@@ -55,21 +55,15 @@ class Data(object):
 
         evtformat = evtformat.upper().strip()
 
-        # export event to QuakeML or JSON via ObsPy
-        if evtformat in 'QUAKEML' or 'JSON':
-            cat = Catalog()
-            cat.append(self.event)
+        # establish catalog object (event object has no write method)
+        cat = Catalog()
+        cat.append(self.event)
+        # try exporting event via ObsPy
+        try:
             cat.write(fnout + evtformat.lower(), format=evtformat)
-
-        # export event to VelEst format
-        if evtformat in 'VELEST':
-            '''
-            Test whether the station code is longer than 4 digits.
-            If that is the case a warning should be displayed explaining that
-            VelEst can only handle 4 digit stationcodes. Thus, the leading too
-            much digits will be skipped, e.g. "STS12" becomes "TS12"
-            '''
-            pass
+        except KeyError, e:
+            raise KeyError('''{0} export format 
+                              not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
 
