@@ -14,9 +14,15 @@ class Data(object):
     variables.
 
     :type parent: PySide.QtGui.QWidget object, optional
-    :param parent: A PySide.QtGui.QWidget class utilized when
+    :param parent: A PySide.QtGui.QWidget object utilized when
     called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
     to standard out.
+    :type wfdata: ~obspy.core.stream.Stream object, optional
+    :param wfdata: ~obspy.core.stream.Stream object containing all available
+    waveform data for the actual event
+    :type evtdata: ~obspy.core.event.Event object, optional
+    :param evtdata ~obspy.core.event.Event object containing all derived or
+    loaded event. Container object holding, e.g. phase arrivals, etc.
     '''
 
     def __init__(self, parent=None, wfdata=None, evtdata=None):
