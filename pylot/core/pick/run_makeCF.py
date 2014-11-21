@@ -97,19 +97,42 @@ def run_makeCF(project, database, event, iplot, station=None):
           #calculate ARH-CF using subclass ARHcf of class CharcteristicFunction
           arhcf = ARHcf(H_copy, cuttimes, tpredh, arhorder, tdeth, addnoise) #instance of ARHcf
           ##############################################################
+          #create stream with 3 traces
+          #merge streams
+          AllC = read('%s' % wfefiles[i])
+          AllC += read('%s' % wfnfiles[i])
+          AllC += read('%s' % wfzfiles[i])
+          #filter and taper data
+          All1_filt = AllC[0].copy()
+          All2_filt = AllC[1].copy()
+          All3_filt = AllC[2].copy()
+          All1_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
+          All2_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
+          All3_filt.filter('bandpass', freqmin=bpz[0], freqmax=bpz[1], zerophase=False) 
+          All1_filt.taper(max_percentage=0.05, type='hann')
+          All2_filt.taper(max_percentage=0.05, type='hann')
+          All3_filt.taper(max_percentage=0.05, type='hann')
+          AllC[0].data = All1_filt.data
+          AllC[1].data = All2_filt.data
+          AllC[2].data = All3_filt.data
+          #calculate AR3C-CF using subclass AR3Ccf of class CharacteristicFunction
+          ar3ccf = AR3Ccf(AllC, cuttimes, tpredz, arhorder, tdetz, addnoise) #instance of AR3Ccf
+          ##############################################################
           if iplot:
              #plot vertical trace
              plt.figure()
              tr = st[0]
-             #time vectors
+             tstepz = tpredz / 16
              tdata = np.arange(0, tr.stats.npts / tr.stats.sampling_rate, tr.stats.delta)
-             tCF = np.arange(cuttimes[0], cuttimes[1], tr.stats.delta)
-             tARZCF = np.arange(cuttimes[0] + tdetz + tpredz, cuttimes[1], tr.stats.delta)
+             thoscf = np.arange(0, len(hoscf.getCF()) / tr.stats.sampling_rate, tr.stats.delta) + cuttimes[0]
+             taiccf = np.arange(0, len(aiccf.getCF()) / tr.stats.sampling_rate, tr.stats.delta) + cuttimes[0] 
+             tarzcf = np.arange(0, len(arzcf.getCF()) * tstepz, tstepz) + cuttimes[0] + tdetz +tpredz
+             taraiccf = np.arange(0, len(araiccf.getCF()) * tstepz, tstepz) + cuttimes[0] +tdetz + tpredz
              p1 = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
-             p2 = plt.plot(tCF, hoscf.getCF()/max(hoscf.getCF()), 'r')
-             p3 = plt.plot(tCF, aiccf.getCF()/max(aiccf.getCF()), 'b')
-             p4 = plt.plot(tARZCF, arzcf.getCF()/max(arzcf.getCF()), 'g')
-             p5 = plt.plot(tARZCF, araiccf.getCF()/max(araiccf.getCF()), 'y')
+             p2 = plt.plot(thoscf, hoscf.getCF()/max(hoscf.getCF()), 'r')
+             p3 = plt.plot(taiccf, aiccf.getCF()/max(aiccf.getCF()), 'b')
+             p4 = plt.plot(tarzcf, arzcf.getCF()/max(arzcf.getCF()), 'g')
+             p5 = plt.plot(taraiccf, araiccf.getCF()/max(araiccf.getCF()), 'y')
              plt.yticks([])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
@@ -119,11 +142,12 @@ def run_makeCF(project, database, event, iplot, station=None):
              #plot horizontal traces
              plt.figure(2)
              plt.subplot(211)
+             tsteph = tpredh / 4 
              th1data = np.arange(0, trH1_filt.stats.npts / trH1_filt.stats.sampling_rate, trH1_filt.stats.delta)
              th2data = np.arange(0, trH2_filt.stats.npts / trH2_filt.stats.sampling_rate, trH2_filt.stats.delta)
-             tARHCF = np.arange(cuttimes[0] + tdeth + tpredh, cuttimes[1], trH1_filt.stats.delta)
+             tarhcf = np.arange(0, len(arhcf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdeth +tpredh
              p21 = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
-             p22 = plt.plot(tARHCF, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p22 = plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
              plt.yticks([])
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
@@ -131,11 +155,36 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.legend([p21, p22], ['Data', 'ARH-CF']) 
              plt.subplot(212)
              p23 = plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
-             p24 = plt.plot(tARHCF, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p24 = plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
              plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
              plt.yticks([])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
+             #plot 3-component window
+             plt.figure(3)
+             tar3ccf = np.arange(0, len(ar3ccf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdetz +tpredz
+             plt.subplot(311)
+             p31 = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
+             p32 = plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.yticks([])
+             plt.xticks([])
+             plt.ylabel('Normalized Counts')
+             plt.title([tr.stats.station, tr.stats.channel])
+             plt.legend([p31, p32], ['Data', 'AR3C-CF']) 
+             plt.subplot(312)
+             plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
+             plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.yticks([])
+             plt.xticks([])
+             plt.ylabel('Normalized Counts')
+             plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
+             plt.subplot(313)
+             plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
+             plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.yticks([])
+             plt.ylabel('Normalized Counts')
+             plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
+             plt.xlabel('Time [s]')
              plt.show()
              raw_input()
              plt.close()
