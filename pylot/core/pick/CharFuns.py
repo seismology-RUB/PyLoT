@@ -118,38 +118,38 @@ class CharacteristicFunction(object):
         cutting window
         '''
         if cut is not None:
-           if self.cut[0] == 0:
-              start = 0
-           else:
-              start = self.cut[0] / self.dt
-           stop = self.cut[1] / self.dt
-           if len(self.orig_data) == 1:
-              zz = self.orig_data.copy()
-              z1 = zz[0].copy()
-              zz[0].data = z1.data[start:stop]
-              data = zz
-              return data
-           elif len(self.orig_data) == 2:
-              hh = self.orig_data.copy()
-              h1 = hh[0].copy()
-              h2 = hh[1].copy()
-              hh[0].data = h1.data[start:stop]
-              hh[1].data = h2.data[start:stop]
-              data = hh 
-              return data
-           elif len(self.orig_data) == 3:
-              hh = self.orig_data.copy()
-              h1 = hh[0].copy()
-              h2 = hh[1].copy()
-              h3 = hh[2].copy()
-              hh[0].data = h1.data[start:stop]
-              hh[1].data = h2.data[start:stop]
-              hh[2].data = h3.data[start:stop]
-              data = hh 
-              return data
+            if self.cut[0] == 0:
+                start = 0
+            else:
+                start = self.cut[0] / self.dt
+                stop = self.cut[1] / self.dt
+            if len(self.orig_data) == 1:
+                zz = self.orig_data.copy()
+                z1 = zz[0].copy()
+                zz[0].data = z1.data[start:stop]
+                data = zz
+                return data
+            elif len(self.orig_data) == 2:
+                hh = self.orig_data.copy()
+                h1 = hh[0].copy()
+                h2 = hh[1].copy()
+                hh[0].data = h1.data[start:stop]
+                hh[1].data = h2.data[start:stop]
+                data = hh 
+                return data
+            elif len(self.orig_data) == 3:
+                hh = self.orig_data.copy()
+                h1 = hh[0].copy()
+                h2 = hh[1].copy()
+                h3 = hh[2].copy()
+                hh[0].data = h1.data[start:stop]
+                hh[1].data = h2.data[start:stop]
+                hh[2].data = h3.data[start:stop]
+                data = hh 
+                return data
         else:
-           data = self.orig_data
-           return data
+            data = self.orig_data
+            return data
        
     def calcCF(self, data=None):
         self.cf = data
