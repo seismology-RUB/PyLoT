@@ -13,11 +13,15 @@ from PySide.QtGui import (QVBoxLayout,
 def layoutStationButtons(data, comp):
         layout = QVBoxLayout()
         stationButtons = []
-        st = data.select(component=comp)
-        numStations = len(st)
-        for n in range(numStations):
-            stationButtons[n] = QPushButton('%s'.format(
-                                            st[n].stats.station))
-        layout.addWidget(stationButtons)
-
+        try:
+            st = data.select(component=comp)
+            numStations = len(st)
+            for n in range(numStations):
+                stat = st[n].stats.station
+                stationButtons.append(QPushButton('%s'.format(stat)))
+        except:
+            for n in range(5):
+                stationButtons.append(QPushButton('ST%02d'.format(n)))
+        for button in stationButtons:
+            layout.addWidget(button)
         return layout

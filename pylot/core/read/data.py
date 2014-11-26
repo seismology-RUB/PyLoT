@@ -10,8 +10,7 @@ from pylot.core.util import fnConstructor
 
 class Data(object):
     '''
-    Data container class providing ObSpy-Stream and -Event instances as
-    variables.
+    Data container with attributes wfdata holding ~obspy.core.stream.
 
     :type parent: PySide.QtGui.QWidget object, optional
     :param parent: A PySide.QtGui.QWidget object utilized when
@@ -75,6 +74,12 @@ class Data(object):
 
         pass #axes = widget.axes
 
+    def getEventID(self):
+        try:
+            return self.evtdata.get('resource_id').id
+        except:
+            return 'smi:bug/pylot/1234'
+
 
 class GenericDataStructure(object):
     '''
@@ -104,7 +109,7 @@ class GenericDataStructure(object):
 
 class SeiscompDataStructure(object):
     '''
-    Dictionary containing the data acces information for an SDS data archive:
+    Dictionary containing the data access information for an SDS data archive:
 
     :param str dataType: Desired data type. Default: ``'waveform'``
     :param sdate, edate: Either date string or an instance of
