@@ -38,6 +38,7 @@ from pylot.core.util import (PickDlg,
                              MPLWidget,
                              HelpForm)
 from pylot.core.util import layoutStationButtons
+import qrc_resources
 
 # Version information
 __version__ = _getVersionString()
@@ -58,7 +59,10 @@ class MainWindow(QMainWindow):
         self.data = None
         self.loadData()
         self.updateFilterOptions()
-        self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
+        try:
+            self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
+        except:
+            self.startTime = UTCDateTime()
 
         self.setupUi()
 
@@ -66,7 +70,10 @@ class MainWindow(QMainWindow):
         return 'TestType'
 
     def loadData(self):
-        self.data = Data()
+        self.data = None
+
+    def getComponent(self):
+        return self
 
     def getData(self):
         return self.data
@@ -99,11 +106,12 @@ class MainWindow(QMainWindow):
         maingrid = QGridLayout()
         maingrid.setSpacing(10)
         maingrid.addLayout(statLayout, 0, 0)
-        maingrid.addLayout(dataLayout, 1, 0)
-        maingrid.setCentralWidget(dataLayout)
+        maingrid.addWidget(dataLayout, 1, 0)
+        self.setLayout(maingrid)
+        #self.setCentralWidget(dataLayout)
 
     def plotData(self):
-        self.data.plotData(self.DataPlot)
+        pass #self.data.plotData(self.DataPlot)
 
     def adjustFilterOptions(self):
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
