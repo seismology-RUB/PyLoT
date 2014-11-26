@@ -12,3 +12,15 @@ class ReferencePick(Pick):
 
     def __init__(self):
         Pick.__init__()
+
+
+class ConventionalPick(Pick):
+
+    def __init__(self):
+        Pick.__init__()
+
+
+class AutomaticPick(Pick):
+
+    def __init__(self):
+        Pick.__init__()
