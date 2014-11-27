@@ -1,6 +1,7 @@
 <RCC>
     <qresource>
 		<file alias="icon.ico">icons/pylot.ico</file>
+		<file alias="printer.png">icons/printer.png</file>
 
 		<file alias="help.html">help/index.html</file>
     </qresource>
