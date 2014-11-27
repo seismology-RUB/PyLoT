@@ -113,11 +113,11 @@ class MainWindow(QMainWindow):
         self.openEventAction = self.createAction("&Open event ...",
                                                  self.loadData,
                                                  QKeySequence.Open,
-                                                 QStyle.SP_DirOpenIcon,
+                                                 self.style().standardIcon(QStyle.SP_DirOpenIcon),
                                                  "Open an event.")
         self.quitAction = self.createAction("&Quit", self.cleanUp,
                                             QKeySequence.Close,
-                                            QStyle.SP_MediaStop,
+                                            self.style().standardIcon(QStyle.SP_MediaStop),
                                             "Close event and quit PyLoT")
         self.filterAction = self.createAction("&Filter ...", self.filterData,
                                               "Ctrl+F", ":/filter.png",
@@ -131,6 +131,7 @@ class MainWindow(QMainWindow):
         self.selectSAction = self.createAction("&S", self.alterPhase, "Ctrl+S",
                                                ":/sicon.png", "Toggle S phase",
                                                True)
+        self.printAction = self.createAction("&Print event ...", self.printEvent, QKeySequence.Print, QIcon(":/printer.png"), tip, checkable)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
