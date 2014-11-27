@@ -69,6 +69,21 @@ class MainWindow(QMainWindow):
     def _getCurrentPlotType(self):
         return 'TestType'
 
+    def createAction(self, text, slot=None, shortcut=None, icon=None,
+                     tip=None, checkable=False):
+        action = QAction(text, self)
+        if icon is not None:
+            action.setIcon(icon)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
+        if tip is not None:
+            action.setToolTip(tip)
+        if slot is not None:
+            action.triggered.connect(slot)
+        if checkable:
+            action.setCheckable(True)
+        return action
+
     def loadData(self):
         self.data = None
 
@@ -92,9 +107,33 @@ class MainWindow(QMainWindow):
                                   xlabel=xlab,
                                   ylabel=None,
                                   title=plottitle)
+        
+        self.setCentralWidget(self.getDataWidget())
+        
+        self.openEventAction = self.createAction("&Open event ...",
+                                                 self.loadData,
+                                                 QKeySequence.Open,
+                                                 QStyle.SP_DirOpenIcon,
+                                                 "Open an event.")
+        self.quitAction = self.createAction("&Quit", self.cleanUp,
+                                            QKeySequence.Close,
+                                            QStyle.SP_MediaStop,
+                                            "Close event and quit PyLoT")
+        self.filterAction = self.createAction("&Filter ...", self.filterData,
+                                              "Ctrl+F", ":/filter.png",
+                                              """Toggle un-/filtered waveforms 
+                                              to be displayed, accroding to the 
+                                              desired seismic phase.""", True)
+
+        self.selectPAction = self.createAction("&P", self.alterPhase, "Ctrl+P",
+                                               ":/picon.png", "Toggle P phase.",
+                                               True)
+        self.selectSAction = self.createAction("&S", self.alterPhase, "Ctrl+S",
+                                               ":/sicon.png", "Toggle S phase",
+                                               True)
 
         self.eventLabel = QLabel()
-        self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+        self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
         status = self.statusBar()
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
@@ -108,7 +147,6 @@ class MainWindow(QMainWindow):
         maingrid.addLayout(statLayout, 0, 0)
         maingrid.addWidget(dataLayout, 1, 0)
         self.setLayout(maingrid)
-        #self.setCentralWidget(dataLayout)
 
     def plotData(self):
         pass #self.data.plotData(self.DataPlot)
