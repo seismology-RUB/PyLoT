@@ -33,7 +33,7 @@ __version__ = 0.1
 __date__ = '2014-11-26'
 __updated__ = '2014-11-26'
 
-DEBUG = 1
+DEBUG = 0
 TESTRUN = 0
 PROFILE = 0
 
@@ -58,7 +58,7 @@ def main(argv=None): # IGNORE:C0111
     program_name = os.path.basename(sys.argv[0])
     program_version = "v%s" % __version__
     program_build_date = str(__updated__)
-    program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
+    program_version_message = '%makePyLoT %s (%s)' % (program_version, program_build_date)
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
     program_license = '''%s
 
@@ -77,38 +77,35 @@ USAGE
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-r", "--recursive", dest="recurse", action="store_true", help="recurse into subfolders [default: %(default)s]")
-        parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
-        parser.add_argument("-i", "--include", dest="include", help="only include paths matching this regex pattern. Note: exclude is given preference over include. [default: %(default)s]", metavar="RE" )
-        parser.add_argument("-e", "--exclude", dest="exclude", help="exclude paths matching this regex pattern. [default: %(default)s]", metavar="RE" )
+        parser.add_argument("-b", "--build", dest="build", action="store_true", help="build PyLoT")
+        parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level")
+        parser.add_argument("-i", "--install", dest="install", action="store_true", help="install PyLoT on the system")
+        parser.add_argument("-d", "--directory", dest="directory", help="installation directory", metavar="RE" )
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        parser.add_argument(dest="paths", help="paths to folder(s) with source file(s) [default: %(default)s]", metavar="path", nargs='+')
         
         # Process arguments
         args = parser.parse_args()
         
-        paths = args.paths
         verbose = args.verbose
-        recurse = args.recurse
-        inpat = args.include
-        expat = args.exclude
+        build = args.build
+        install = args.install
+        directory = args.directory
         
         if verbose > 0:
             print("Verbose mode on")
-            if recurse:
-                print("Recursive mode on")
-            else:
-                print("Recursive mode off")
-        
-        if inpat and expat and inpat == expat:
-            raise CLIError("include and exclude pattern are equal! Nothing will be processed.")
-        
-        for inpath in paths:
-            ### do something with inpath ###
-            print(inpath)
+            if install and not directory:
+                raise CLIError("trying to install without destination; please specify an installation directory")
+            if build and install:
+                print("Building and installing PyLoT ...")
+                buildPyLoT()
+                installPyLoT()
+            elif build and not install:
+                print("Building PyLoT without installing! Please wait ...")
+                buildPyLoT()
+        cleanUp()
         return 0
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        cleanUp()
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
@@ -118,11 +115,23 @@ USAGE
         sys.stderr.write(indent + "  for help use --help")
         return 2
 
+def buildPyLoT():
+    if sys.platform.startswith('win' or 'microsoft'):
+        raise CLIError("building on Windows system not tested yet; implementation pending")
+    elif sys.platform == 'darwin':
+        pass
+    
+
+def installPyLoT():
+    pass
+
+def cleanUp():
+    pass
+
 if __name__ == "__main__":
     if DEBUG:
         sys.argv.append("-h")
         sys.argv.append("-v")
-        sys.argv.append("-r")
     if TESTRUN:
         import doctest
         doctest.testmod()
