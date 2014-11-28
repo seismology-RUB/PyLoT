@@ -11,6 +11,9 @@ Additionally PyLoT is meant as an interface to autoPyLoT which can
 automatically pick seismic phases, if the parameters have properly been
 chosen for the particular data set.
 
+Some icons are out of a free of charge icon set, which can be found here:
+https://www.iconfinder.com/iconsets/flavour
+
 :author:
     Sebastian Wehling-Benatelli
 :copyright:
@@ -97,7 +100,7 @@ class MainWindow(QMainWindow):
         return self.DataPlot
 
     def setupUi(self):
-        self.setWindowIcon(QIcon(":/pylot.ico"))
+        self.setWindowIcon(QIcon(":/icon.ico"))
 
         xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
         plottitle = self._getCurrentPlotType()
@@ -110,14 +113,16 @@ class MainWindow(QMainWindow):
         
         self.setCentralWidget(self.getDataWidget())
         
+        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         self.openEventAction = self.createAction("&Open event ...",
                                                  self.loadData,
                                                  QKeySequence.Open,
-                                                 self.style().standardIcon(QStyle.SP_DirOpenIcon),
+                                                 openIcon,
                                                  "Open an event.")
         self.quitAction = self.createAction("&Quit", self.cleanUp,
                                             QKeySequence.Close,
-                                            self.style().standardIcon(QStyle.SP_MediaStop),
+                                            quitIcon,
                                             "Close event and quit PyLoT")
         self.filterAction = self.createAction("&Filter ...", self.filterData,
                                               "Ctrl+F", ":/filter.png",
@@ -131,7 +136,11 @@ class MainWindow(QMainWindow):
         self.selectSAction = self.createAction("&S", self.alterPhase, "Ctrl+S",
                                                ":/sicon.png", "Toggle S phase",
                                                True)
-        self.printAction = self.createAction("&Print event ...", self.printEvent, QKeySequence.Print, QIcon(":/printer.png"), tip, checkable)
+        self.printAction = self.createAction("&Print event ...",
+                                             self.printEvent,
+                                             QKeySequence.Print,
+                                             QIcon(":/printer.png"),
+                                             "Print waveform overview.")
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
@@ -174,15 +183,16 @@ class MainWindow(QMainWindow):
                                   if not self.seismicPhase == 'S'
                                   else self.filterOptionsS]
         except Exception, e:
-            self.updateStatus('Error: %s' % e + ' ... no filteroptions loaded')
+            self.updateStatus('Error ...')
+            QErrorMessage(e)
         else:
-            self.updateStatus('Filteroptions succesfully loaded ...')
+            self.updateStatus('Filter loaded ...')
 
     def getSeismicPhase(self):
         return self.seismicPhase
 
     def setSeismicPhase(self, phase):
-        self.seismicPhase = self.seismicPhaseButton.getValue()
+        self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
@@ -203,7 +213,7 @@ def main():
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
     pylot_app.setOrganizationDomain("rub.de")
     pylot_app.setApplicationName("PyLoT")
-    pylot_app.setWindowIcon(QIcon(":/pylot.ico"))
+    pylot_app.setWindowIcon(QIcon(":/icon.ico"))
 
     # create the main window
     pylot_form = MainWindow()
