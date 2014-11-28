@@ -155,7 +155,7 @@ class FilterOptionsDialog(QDialog):
         """
         super(FilterOptionsDialog, self).__init__()
 
-        if filterOptions is not None:
+        if filterOptions is not None and parent.getSeismicPhase() != "P":
             self.filterOptions = filterOptions
         else:
             self.filterOptions = FilterOptions()
@@ -206,10 +206,10 @@ class FilterOptionsDialog(QDialog):
 
         self.setLayout(self.layoutEditables)
 
-        self.freqminSpinBox.connect(self.updateUi)
-        self.freqmaxSpinBox.connect(self.updateUi)
-        self.orderSpinBox.connect(self.updateUi)
-        self.selectTypeCombo.connect(self.updateUi)
+        self.freqminSpinBox.valueChanged.connect(self.updateUi)
+        self.freqmaxSpinBox.valueChanged.connect(self.updateUi)
+        self.orderSpinBox.valueChanged.connect(self.updateUi)
+        self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
 
     def updateUi(self):
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:

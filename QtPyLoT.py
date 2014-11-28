@@ -52,9 +52,15 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        settings = QSettings()
+        self.setWindowTitle("PyLoT - do seismic processing the pythonic way")
+        self.setWindowIcon(QIcon(":/icon.ico"))
+        self.seismicPhase = str(settings.value("phase", "P"))
+
         # initialize filter parameter
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
+        print filterOptionsP, "\n", filterOptionsS
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
@@ -62,6 +68,7 @@ class MainWindow(QMainWindow):
         self.data = None
         self.loadData()
         self.updateFilterOptions()
+        print self.filteroptions
         try:
             self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
         except:
@@ -87,8 +94,27 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
         return action
 
+    def createMenus(self):
+
+        fileMenu = self.menuBar().addMenu("&File")
+        fileMenu.addAction(self.openEventAction)
+        fileMenu.addAction(self.saveEventAction)
+        fileMenu.addAction(self.printAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(self.quitAction)
+        
+        editMenu = self.menuBar().addMenu("&Edit")
+        editMenu.addAction(self.filterAction)
+        editMenu.addAction(self.filterEditAction)        
+        editMenu.addSeparator()
+        editMenu.addAction(self.selectPAction)
+        editMenu.addAction(self.selectSAction)
+
     def loadData(self):
         self.data = None
+
+    def saveData(self):
+        pass
 
     def getComponent(self):
         return self
@@ -115,51 +141,64 @@ class MainWindow(QMainWindow):
         
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
+        saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         self.openEventAction = self.createAction("&Open event ...",
                                                  self.loadData,
                                                  QKeySequence.Open,
                                                  openIcon,
                                                  "Open an event.")
+        self.saveEventAction = self.createAction("&Save event ...",
+                                                 self.saveData,
+                                                 QKeySequence.Save, saveIcon,
+                                                 "Save actual event data.")
         self.quitAction = self.createAction("&Quit", self.cleanUp,
                                             QKeySequence.Close,
                                             quitIcon,
                                             "Close event and quit PyLoT")
         self.filterAction = self.createAction("&Filter ...", self.filterData,
-                                              "Ctrl+F", ":/filter.png",
+                                              "Ctrl+F", QIcon(":/filter.png"),
                                               """Toggle un-/filtered waveforms 
-                                              to be displayed, accroding to the 
+                                              to be displayed, according to the 
                                               desired seismic phase.""", True)
-
-        self.selectPAction = self.createAction("&P", self.alterPhase, "Ctrl+P",
-                                               ":/picon.png", "Toggle P phase.",
-                                               True)
-        self.selectSAction = self.createAction("&S", self.alterPhase, "Ctrl+S",
-                                               ":/sicon.png", "Toggle S phase",
-                                               True)
+        self.filterEditAction = self.createAction("&Filter ...",
+                                                  self.adjustFilterOptions,
+                                                  "Alt+F", QIcon(None),
+                                                  """Adjust filter
+                                                  parameters.""")
+        self.selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+                                               QIcon(":/picon.png"),
+                                               "Toggle P phase.", True)
+        self.selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+                                               QIcon(":/sicon.png"),
+                                               "Toggle S phase", True)
         self.printAction = self.createAction("&Print event ...",
                                              self.printEvent,
                                              QKeySequence.Print,
                                              QIcon(":/printer.png"),
                                              "Print waveform overview.")
+        self.createMenus()
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
         status = self.statusBar()
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
-        status.showMessage("Ready", 5000)
+        status.showMessage("Ready", 10000)
 
-        statLayout = layoutStationButtons(self.getData(), self.getComponent())
-        dataLayout = self.getDataWidget()
+        #statLayout = layoutStationButtons(self.getData(), self.getComponent())
+        #dataLayout = self.getDataWidget()
 
-        maingrid = QGridLayout()
-        maingrid.setSpacing(10)
-        maingrid.addLayout(statLayout, 0, 0)
-        maingrid.addWidget(dataLayout, 1, 0)
-        self.setLayout(maingrid)
+#         maingrid = QGridLayout()
+#         maingrid.setSpacing(10)
+#         maingrid.addLayout(statLayout, 0, 0)
+#         maingrid.addWidget(dataLayout, 1, 0)
+        #self.setLayout(maingrid)
 
     def plotData(self):
         pass #self.data.plotData(self.DataPlot)
+
+    def filterData(self):
+        pass
 
     def adjustFilterOptions(self):
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
@@ -181,21 +220,31 @@ class MainWindow(QMainWindow):
         try:
             self.filteroptions = [self.filterOptionsP
                                   if not self.seismicPhase == 'S'
-                                  else self.filterOptionsS]
+                                  else self.filterOptionsS][0]
         except Exception, e:
             self.updateStatus('Error ...')
-            QErrorMessage(e)
+            emsg = QErrorMessage(self)
+            emsg.showMessage('Error: {0}'.format(e))
         else:
             self.updateStatus('Filter loaded ...')
 
     def getSeismicPhase(self):
         return self.seismicPhase
 
+    def alterPhase(self):
+        pass
+
     def setSeismicPhase(self, phase):
         self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
+
+    def printEvent(self):
+        pass
+
+    def cleanUp(self):
+        pass
 
     def helpHelp(self):
         if checkurl():
@@ -207,7 +256,7 @@ class MainWindow(QMainWindow):
 
 def main():
     # create the Qt application
-    pylot_app = QApplication(sys.argv)
+    pylot_app = QApplication(['PyLoT'])
 
     # set Application Information
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
