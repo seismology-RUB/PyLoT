@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/bin/env python
 # encoding: utf-8
 '''
 makePyLoT -- build and install PyLoT
@@ -22,8 +22,9 @@ It defines
 updated: Updated
 '''
 
-import sys
+import glob
 import os
+import sys
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -119,7 +120,13 @@ def buildPyLoT():
     if sys.platform.startswith('win' or 'microsoft'):
         raise CLIError("building on Windows system not tested yet; implementation pending")
     elif sys.platform == 'darwin':
-        pass
+        # create a symbolic link to the desired python interpreter in order to
+        # display the right application name
+        for path in os.getenv('PATH').split(':'):
+            found = glob.glob(os.path.join(path, 'python'))
+            if found:
+                os.symlink(found, 'PyLoT')
+                break
     
 
 def installPyLoT():
