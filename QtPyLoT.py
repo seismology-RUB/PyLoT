@@ -169,42 +169,43 @@ class MainWindow(QMainWindow):
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
-        self.openEventAction = self.createAction("&Open event ...",
-                                                 self.loadData,
-                                                 QKeySequence.Open,
-                                                 openIcon,
-                                                 "Open an event.")
-        self.saveEventAction = self.createAction("&Save event ...",
-                                                 self.saveData,
-                                                 QKeySequence.Save, saveIcon,
-                                                 "Save actual event data.")
-        self.quitAction = self.createAction("&Quit",
-                                            QCoreApplication.instance().quit,
-                                            QKeySequence.Close,
-                                            quitIcon,
-                                            "Close event and quit PyLoT")
-        self.filterAction = self.createAction("&Filter ...", self.filterData,
-                                              "Ctrl+F", QIcon(":/filter.png"),
-                                              """Toggle un-/filtered waveforms 
-                                              to be displayed, according to the 
-                                              desired seismic phase.""", True)
-        self.filterEditAction = self.createAction("&Filter parameter ...",
-                                                  self.adjustFilterOptions,
-                                                  "Alt+F", QIcon(None),
-                                                  """Adjust filter
-                                                  parameters.""")
-        self.selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
-                                               QIcon(":/picon.png"),
-                                               "Toggle P phase.", True)
-        self.selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
-                                               QIcon(":/sicon.png"),
-                                               "Toggle S phase", True)
-        self.printAction = self.createAction("&Print event ...",
-                                             self.printEvent,
-                                             QKeySequence.Print,
-                                             QIcon(":/printer.png"),
-                                             "Print waveform overview.")
-        self.createMenus()
+        openEventAction = self.createAction("&Open event ...", self.loadData,
+                                            QKeySequence.Open, openIcon,
+                                            "Open an event.")
+        openEventAction.setData(None)
+        saveEventAction = self.createAction("&Save event ...", self.saveData,
+                                            QKeySequence.Save, saveIcon,
+                                            "Save actual event data.")
+        quitAction = self.createAction("&Quit",
+                                       QCoreApplication.instance().quit,
+                                       QKeySequence.Close, quitIcon,
+                                       "Close event and quit PyLoT")
+        filterAction = self.createAction("&Filter ...", self.filterData,
+                                         "Ctrl+F", QIcon(":/filter.png"),
+                                         """Toggle un-/filtered waveforms 
+                                         to be displayed, according to the 
+                                         desired seismic phase.""", True)
+        filterEditAction = self.createAction("&Filter parameter ...",
+                                             self.adjustFilterOptions,
+                                             "Alt+F", QIcon(None),
+                                             """Adjust filter parameters.""")
+        selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+                                          QIcon(":/picon.png"),
+                                          "Toggle P phase.", True)
+        selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+                                          QIcon(":/sicon.png"),
+                                          "Toggle S phase", True)
+        printAction = self.createAction("&Print event ...",
+                                        self.printEvent, QKeySequence.Print,
+                                        QIcon(":/printer.png"),
+                                        "Print waveform overview.")
+        self.fileMenu = self.menuBar().addMenu('&File')
+        self.fileMenuActions = (openEventAction, saveEventAction, None,
+                                quitAction)
+        self.fileMenu.aboutToShow.connect(self.updateFileMenu)
+        self.createMenu('&Edit', (filterAction, filterEditAction, None,
+                                  selectPAction, selectSAction, None,
+                                  printAction))
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
