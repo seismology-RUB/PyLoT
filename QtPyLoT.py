@@ -151,7 +151,8 @@ class MainWindow(QMainWindow):
                                                  self.saveData,
                                                  QKeySequence.Save, saveIcon,
                                                  "Save actual event data.")
-        self.quitAction = self.createAction("&Quit", self.cleanUp,
+        self.quitAction = self.createAction("&Quit",
+                                            QCoreApplication.instance().quit,
                                             QKeySequence.Close,
                                             quitIcon,
                                             "Close event and quit PyLoT")
@@ -160,7 +161,7 @@ class MainWindow(QMainWindow):
                                               """Toggle un-/filtered waveforms 
                                               to be displayed, according to the 
                                               desired seismic phase.""", True)
-        self.filterEditAction = self.createAction("&Filter ...",
+        self.filterEditAction = self.createAction("&Filter parameter ...",
                                                   self.adjustFilterOptions,
                                                   "Alt+F", QIcon(None),
                                                   """Adjust filter
@@ -183,7 +184,7 @@ class MainWindow(QMainWindow):
         status = self.statusBar()
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
-        status.showMessage("Ready", 10000)
+        status.showMessage("Ready", 500)
 
         #statLayout = layoutStationButtons(self.getData(), self.getComponent())
         #dataLayout = self.getDataWidget()
@@ -205,7 +206,8 @@ class MainWindow(QMainWindow):
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
                                         filterOptions=self.getFilterOptions())
-        filterDlg.accepted.connect(filterDlg.getFilterOptions)
+        filterDlg.show()
+        filterDlg.closeEvent.connect(lambda: self.setFilterOptions(filterDlg.getFilterOptions()))
 
     def getFilterOptions(self):
         return self.filteroptions
@@ -244,7 +246,8 @@ class MainWindow(QMainWindow):
         pass
 
     def cleanUp(self):
-        pass
+        self
+        return 0
 
     def helpHelp(self):
         if checkurl():
@@ -256,7 +259,7 @@ class MainWindow(QMainWindow):
 
 def main():
     # create the Qt application
-    pylot_app = QApplication(['PyLoT'])
+    pylot_app = QApplication(sys.argv[0])
 
     # set Application Information
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
@@ -269,7 +272,7 @@ def main():
 
     # Show main window and run the app
     pylot_form.show()
-    pylot_app.exec_()
+    sys.exit(pylot_app.exec_())
 
 if __name__ == "__main__":
     main()
