@@ -4,6 +4,7 @@
 import os
 from PySide.QtGui import QMessageBox
 from obspy.core import (read, Stream)
+from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
 from pylot.core.util import fnConstructor
 
@@ -24,37 +25,37 @@ class Data(object):
     loaded event. Container object holding, e.g. phase arrivals, etc.
     '''
 
-    def __init__(self, parent=None, wfdata=None, evtdata=None):
-        if wfdata is not None and isinstance(wfdata, Stream):
-            self.wfdata = wfdata
-        elif wfdata is not None:
-            try:
-                self.wfdata = read(wfdata)
-            except IOError, e:
-                msg = 'An I/O error occured while loading data!'
-                inform = 'Variable wfdata will be empty.'
-                details = '{0}'.format(e)
-                if parent is not None:
-                    warnio = QMessageBox(parent=parent)
-                    warnio.setText(msg)
-                    warnio.setDetailedText(details)
-                    warnio.setInformativeText(inform)
-                    warnio.setStandarButtons(QMessageBox.Ok)
-                    warnio.setIcon(QMessageBox.Warning)
-                else:
-                    print msg, '\n', details
-                self.wfdata = Stream()
+    def __init__(self, parent=None, evtdata=None):
+        try:
+            self.wfdata = read()
+        except IOError, e:
+            msg = 'An I/O error occured while loading data!'
+            inform = 'Variable wfdata will be empty.'
+            details = '{0}'.format(e)
+            if parent is not None:
+                warnio = QMessageBox(parent=parent)
+                warnio.setText(msg)
+                warnio.setDetailedText(details)
+                warnio.setInformativeText(inform)
+                warnio.setStandarButtons(QMessageBox.Ok)
+                warnio.setIcon(QMessageBox.Warning)
+            else:
+                print msg, '\n', details
+            self.wfdata = Stream()
         else:
             self.wfdata = Stream()
         if evtdata is not None and isinstance(evtdata, Event):
             self.evtdata = evtdata
-        else:
+        elif evtdata is not None:
+            cat = readEvents(evtdata)
+            self.evtdata = cat[0]
+        else:  # create an empty Event object
             self.evtdata = Event()
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
         if fnout is None:
-            fnout = self.event.resource_id.__str__().split('/')[-1]
+            fnout = self.evtdata.getEventID()
         # handle forbidden filenames especially on windows systems
         fnout = fnConstructor(fnout)
 
