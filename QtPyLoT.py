@@ -53,9 +53,14 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
 
         settings = QSettings()
+        self.recentEvents = settings.value("recentEvents", [])
         self.setWindowTitle("PyLoT - do seismic processing the pythonic way")
         self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))
+        if settings.value("dataRoot", None) is None:
+            dirname = QFileDialog().getExistingDirectory()
+            settings.setValue("dataRoot", dirname)
+            settings.sync()
 
         # initialize filter parameter
         filterOptionsP = FILTERDEFAULTS['P']
