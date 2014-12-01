@@ -214,14 +214,19 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 500)
 
-        #statLayout = layoutStationButtons(self.getData(), self.getComponent())
-        #dataLayout = self.getDataWidget()
+#       statLayout = layoutStationButtons(self.getData(), self.getComponent())
+#       dataLayout = self.getDataWidget()
 
-#         maingrid = QGridLayout()
-#         maingrid.setSpacing(10)
-#         maingrid.addLayout(statLayout, 0, 0)
-#         maingrid.addWidget(dataLayout, 1, 0)
-        #self.setLayout(maingrid)
+#       maingrid = QGridLayout()
+#       maingrid.setSpacing(10)
+#       maingrid.addLayout(statLayout, 0, 0)
+#       maingrid.addWidget(self.getDataWidget(), 0, 1)
+#       self.setLayout(maingrid)
+
+    def okToContinue(self):
+        if self.dirty:
+            return self.saveData()
+        return True
 
     def plotData(self):
         pass #self.data.plotData(self.DataPlot)
@@ -273,9 +278,8 @@ class MainWindow(QMainWindow):
     def printEvent(self):
         pass
 
-    def cleanUp(self):
-        self
-        return 0
+    def closeEvent(self):
+        return self.saveData()
 
     def helpHelp(self):
         if checkurl():
