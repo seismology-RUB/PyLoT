@@ -99,24 +99,46 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
         return action
 
-    def createMenus(self):
+    def updateFileMenu(self):
 
-        fileMenu = self.menuBar().addMenu("&File")
-        fileMenu.addAction(self.openEventAction)
-        fileMenu.addAction(self.saveEventAction)
-        fileMenu.addAction(self.printAction)
-        fileMenu.addSeparator()
-        fileMenu.addAction(self.quitAction)
+        self.fileMenu.clear()
+        self.addActions(self.fileMenu, self.fileMenuActions[:-1])
+        current = self.data.evtdata.getEventID()
+        recentEvents = []
+        for eventID in self.recentEvents:
+            fname = fnConstructor(eventID)
+            if eventID != current and QFile.exists(fname):
+                recentEvents.append(eventID)
+        if recentEvents:
+            self.fileMenu.addSeparator()
+            for i, eventID in enumerate(recentEvents):
+                fname = fnConstructor(eventID)
+                action = QAction(QIcon(":/icon.png"),
+                                 "&{0} {1}".format(i + 1,
+                                                   QFileInfo(fname).fileName()),
+                                 self)
+                action.setData(fname)
+                self.connect(action, SIGNAL("triggered()"),
+                             self.loadData)
+                self.fileMenu.addAction(action)
+        self.fileMenu.addSeparator()
+        self.fileMenu.addAction(self.fileMenuActions[-1])
         
-        editMenu = self.menuBar().addMenu("&Edit")
-        editMenu.addAction(self.filterAction)
-        editMenu.addAction(self.filterEditAction)        
-        editMenu.addSeparator()
-        editMenu.addAction(self.selectPAction)
-        editMenu.addAction(self.selectSAction)
 
-    def loadData(self):
-        self.data = None
+    def loadData(self, fname=None):
+        if fname is None:
+            action = self.sender()
+            if isinstance(action, QAction):
+                if action.data() is None:
+                    fname = QFileDialog()
+                else:
+                    fname = unicode(action.data().toString())
+                if not self.okToContinue():
+                    return
+            else:
+                return
+        if fname:
+            self.data = Data(evtdata=fname)
 
     def saveData(self):
         pass
