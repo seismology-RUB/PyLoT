@@ -239,8 +239,10 @@ class MainWindow(QMainWindow):
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
                                         filterOptions=self.getFilterOptions())
-        filterDlg.show()
-        filterDlg.closeEvent.connect(lambda: self.setFilterOptions(filterDlg.getFilterOptions()))
+        if filterDlg.exec_():
+            filterOptions = filterDlg.getFilterOptions()
+        
+        self.setFilterOptions(filterOptions)
 
     def getFilterOptions(self):
         return self.filteroptions
