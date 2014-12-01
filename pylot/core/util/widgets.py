@@ -200,16 +200,22 @@ class FilterOptionsDialog(QDialog):
         self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
         self.freqGroupBox.setLayout(self.freqGroupLayout)
 
-        self.layoutEditables = QHBoxLayout()
-        self.layoutEditables.addWidget(self.freqGroupBox)
-        self.layoutEditables.addLayout(self.selectTypeLayout)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|
+                                          QDialogButtonBox.Cancel)
+        
+        grid = QGridLayout()
+        grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
+        grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
+        grid.addWidget(self.buttonBox, 2, 2, 1, 2)
 
-        self.setLayout(self.layoutEditables)
+        self.setLayout(grid)
 
         self.freqminSpinBox.valueChanged.connect(self.updateUi)
         self.freqmaxSpinBox.valueChanged.connect(self.updateUi)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
 
     def updateUi(self):
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
@@ -237,10 +243,13 @@ class FilterOptionsDialog(QDialog):
             freq.append(self.freqmaxSpinBox.value())
         self.filterOptions.freq = freq
         self.filterOptions.order = self.orderSpinBox.value()
-        return self.getFilterOptions()
         
     def getFilterOptions(self):
         return self.filterOptions
+
+    def accept(self):
+        self.updateUi()
+        QDialog.accept(self)
 
 
 class LoadDataDlg(QDialog):
