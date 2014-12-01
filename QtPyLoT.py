@@ -24,7 +24,6 @@ https://www.iconfinder.com/iconsets/flavour
 """
 
 import os
-import platform
 import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -34,6 +33,7 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import (Data,
                              FilterOptions)
 from pylot.core.util import FILTERDEFAULTS
+from pylot.core.util import fnConstructor
 from pylot.core.util import checkurl
 from pylot.core.util import (PickDlg,
                              FilterOptionsDialog,
