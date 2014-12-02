@@ -95,18 +95,20 @@ USAGE
         if verbose > 0:
             print("Verbose mode on")
             if install and not directory:
-                raise CLIError("trying to install without destination; please specify an installation directory")
+                raise CLIError("""Trying to install without appropriate
+                               destination; please specify an installation
+                               directory!""")
             if build and install:
-                print("Building and installing PyLoT ...")
-                buildPyLoT()
-                installPyLoT()
+                print("Building and installing PyLoT ...\n")
+                buildPyLoT(verbose)
+                installPyLoT(verbose)
             elif build and not install:
-                print("Building PyLoT without installing! Please wait ...")
-                buildPyLoT()
+                print("Building PyLoT without installing! Please wait ...\n")
+                buildPyLoT(verbose)
         cleanUp()
         return 0
     except KeyboardInterrupt:
-        cleanUp()
+        cleanUp(verbose)
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
@@ -116,23 +118,30 @@ USAGE
         sys.stderr.write(indent + "  for help use --help")
         return 2
 
-def buildPyLoT():
-    if sys.platform.startswith('win' or 'microsoft'):
+def buildPyLoT(verbosity=None):
+    system = sys.platform
+    if verbosity > 1:
+        msg = ("... on system: {0}\n"
+               "\n"
+               "              Current working directory: {1}\n"
+        ).format(system, os.getcwd())
+        print msg  
+    if system.startswith(('win', 'microsoft')):
         raise CLIError("building on Windows system not tested yet; implementation pending")
-    elif sys.platform == 'darwin':
+    elif system == 'darwin':
         # create a symbolic link to the desired python interpreter in order to
         # display the right application name
         for path in os.getenv('PATH').split(':'):
             found = glob.glob(os.path.join(path, 'python'))
             if found:
-                os.symlink(found, 'PyLoT')
+                os.symlink(found, './PyLoT')
                 break
     
 
-def installPyLoT():
+def installPyLoT(verbosity=None):
     pass
 
-def cleanUp():
+def cleanUp(verbosity=None):
     pass
 
 if __name__ == "__main__":
