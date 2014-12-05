@@ -23,25 +23,22 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import os
 import sys
+
 from PySide.QtCore import *
 from PySide.QtGui import *
-from obspy.core import (read, UTCDateTime)
-from pylot import *
+from obspy.core import (UTCDateTime)
+
 from pylot.core.util import _getVersionString
 from pylot.core.read import (Data,
                              FilterOptions)
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import fnConstructor
 from pylot.core.util import checkurl
-from pylot.core.util import (PickDlg,
-                             FilterOptionsDialog,
-                             PropertiesDlg,
+from pylot.core.util import (FilterOptionsDialog,
                              MPLWidget,
                              HelpForm)
-from pylot.core.util import layoutStationButtons
-import qrc_resources
+
 
 # Version information
 __version__ = _getVersionString()
@@ -86,6 +83,9 @@ class MainWindow(QMainWindow):
 
     def createAction(self, text, slot=None, shortcut=None, icon=None,
                      tip=None, checkable=False):
+        """
+        :rtype : ~PySide.QtGui.QAction
+        """
         action = QAction(text, self)
         if icon is not None:
             action.setIcon(icon)
@@ -203,9 +203,14 @@ class MainWindow(QMainWindow):
         self.fileMenuActions = (openEventAction, saveEventAction, None,
                                 quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
-        self.createMenu('&Edit', (filterAction, filterEditAction, None,
-                                  selectPAction, selectSAction, None,
-                                  printAction))
+
+        self.editMenu = self.menuBar().addMenu('&Edit')
+        for action in (filterAction, filterEditAction, None, selectPAction,
+                       selectSAction, None, printAction):
+            if action is None:
+                self.editMenu.addSeparator()
+            else:
+                self.editMenu.addAction(action)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
@@ -235,13 +240,15 @@ class MainWindow(QMainWindow):
         pass
 
     def adjustFilterOptions(self):
+        filterOptions = None
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
                                         filterOptions=self.getFilterOptions())
         if filterDlg.exec_():
             filterOptions = filterDlg.getFilterOptions()
-        
+
+        assert isinstance(filterOptions, FilterOptions)
         self.setFilterOptions(filterOptions)
 
     def getFilterOptions(self):
