@@ -46,11 +46,16 @@ class Data(object):
             self.wfdata = Stream()
         if evtdata is not None and isinstance(evtdata, Event):
             self.evtdata = evtdata
-        elif evtdata is not None:
+        elif evtdata is not None and not evtdata.endswith('.mat'):
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
+        elif evtdata is not None:
+            cat = readMatPhases(evtdata)
         else:  # create an empty Event object
             self.evtdata = Event()
+
+    def readMatPhases(self, fname):
+        pass
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
