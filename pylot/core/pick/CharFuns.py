@@ -92,8 +92,10 @@ class CharacteristicFunction(object):
         self.t2 = t2
 
     def getTimeArray(self):
-        cut = self.getCut()
-        return np.arange(cut[0], cut[1], self.getIncrement())
+        incr = self.getIncrement()
+        timeArray = np.arange(0, len(self.getCF()) / incr**-1,
+                              incr) + self.getCut()[0]
+        return timeArray
 
     def getOrder(self):
         return self.order
