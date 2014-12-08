@@ -28,12 +28,6 @@ class AutoPicking(object):
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
 
-        :param: Tcf, corresponding time array
-        :type: array
-
-        :param: dt, sampling interval [s]
-        :type: float
-
         :param: Tslope, length of time window after pick used to determine slope 
                 for quality estimation [s]
         :type: float
