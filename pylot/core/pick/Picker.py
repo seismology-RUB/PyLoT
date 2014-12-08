@@ -23,10 +23,10 @@ class AutoPicking(object):
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
     ''' 
-    def __init__(self, cf, Tcf, dt, Tslope, aerr, TSNR, PickWindow, peps, Tsmooth):
+    def __init__(self, cf, Tslope, aerr, TSNR, PickWindow, peps, Tsmooth):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
-        :type: array
+        :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
 
         :param: Tcf, corresponding time array
         :type: array
@@ -54,9 +54,9 @@ class AutoPicking(object):
         :type: float
         '''
 
-        self.cf = cf
-        self.Tcf = Tcf
-        self.dt = dt
+        self.cf = cf.getCF()
+        self.Tcf = cf.getTimeArray()
+        self.dt = cf.getIncrement()
         self.setTslope(Tslope)
         self.setaerr(aerr)
         self.setTSNR(TSNR)
@@ -121,7 +121,7 @@ class AutoPicking(object):
         return self.Pick
 
     def calcPick(self):
-        self.Pick = Pick
+        self.Pick = None
  
 class AICPicker(AutoPicking):
     '''

@@ -91,6 +91,10 @@ class CharacteristicFunction(object):
     def setTime2(self, t2):
         self.t2 = t2
 
+    def getTimeArray(self):
+        cut = self.getCut()
+        return np.arange(cut[0], cut[1], self.getIncrement())
+
     def getOrder(self):
         return self.order
 
@@ -98,6 +102,9 @@ class CharacteristicFunction(object):
         self.order = order
 
     def getIncrement(self):
+        """
+        :rtype : int
+        """
         return self.dt
 
     def getFnoise(self):
@@ -148,7 +155,7 @@ class CharacteristicFunction(object):
                 data = hh 
                 return data
         else:
-            data = self.orig_data
+            data = self.orig_data.copy()
             return data
        
     def calcCF(self, data=None):
