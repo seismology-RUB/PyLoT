@@ -58,8 +58,8 @@ def run_makeCF(project, database, event, iplot, station=None):
           ##############################################################
           #calculate HOS-CF using subclass HOScf of class CharacteristicFunction
           hoscf = HOScf(st_copy, cuttimes, t2, p) #instance of HOScf
-          #get corresponding time array
-          thoscf = np.arange(0, len(hoscf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0]
+          #get corresponding time array -> unnecessary because implemented in CharacteristicFunction
+          # thoscf = np.arange(0, len(hoscf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0]
           ##############################################################
           #get onset time from HOS-CF using class Picker
           #hospick = PragPicker(hoscf.getCF(), thoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2)
