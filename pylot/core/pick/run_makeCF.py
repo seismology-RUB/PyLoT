@@ -72,10 +72,10 @@ def run_makeCF(project, database, event, iplot, station=None):
           st_copy[0].data = tr_aic.data
           aiccf = AICcf(st_copy, cuttimes, t2, p) #instance of AICcf
           #get corresponding time array
-          taiccf = np.arange(0, len(aiccf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0] 
+          #taiccf = np.arange(0, len(aiccf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0]
           ##############################################################
           #get onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
-          aicpick = AICPicker(aiccf.getCF(), taiccf, tr_filt.stats.delta, 2, 70, [1, 0.5, 0.2], 2, 0.001, 2.5)
+          aicpick = AICPicker(aiccf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 2.5)
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           #get stream object of filtered data
