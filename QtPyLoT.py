@@ -133,7 +133,6 @@ class MainWindow(QMainWindow):
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
-        
 
     def loadData(self, fname=None):
         if fname is None:
@@ -179,9 +178,7 @@ class MainWindow(QMainWindow):
         statsButtons = layoutStationButtons(self.getData(), self.getComponent())
         _layout.addLayout(statsButtons)
         _layout.addWidget(self.DataPlot)
-        self.setLayout(_layout)
-        self.setCentralWidget(_widget)
-        
+
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
@@ -234,6 +231,12 @@ class MainWindow(QMainWindow):
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 500)
+
+        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
+        _layout.addLayout(statsButtons)
+        _layout.addWidget(self.DataPlot)
+        _widget.setLayout(_layout)
+        self.setCentralWidget(_widget)
 
     def okToContinue(self):
         if self.dirty:

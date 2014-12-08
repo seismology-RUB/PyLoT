@@ -21,7 +21,7 @@ def layoutStationButtons(data, comp):
                 stationButtons.append(QPushButton('%s'.format(stat)))
         except:
             for n in range(5):
-                stationButtons.append(QPushButton('ST%02d'.format(n)))
+                stationButtons.append(QPushButton('ST{0:02d}'.format(n+1)))
         for button in stationButtons:
             layout.addWidget(button)
         return layout
