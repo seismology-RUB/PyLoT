@@ -23,6 +23,7 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
+import os
 import sys
 
 from PySide.QtCore import *
@@ -35,6 +36,7 @@ from pylot.core.read import (Data,
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import fnConstructor
 from pylot.core.util import checkurl
+from pylot.core.util import layoutStationButtons
 from pylot.core.util import (FilterOptionsDialog,
                              MPLWidget,
                              HelpForm)
@@ -46,31 +48,39 @@ __version__ = _getVersionString()
 
 class MainWindow(QMainWindow):
 
+    closing = Signal()
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
         settings = QSettings()
-        self.recentEvents = settings.value("recentEvents", [])
-        self.setWindowTitle("PyLoT - do seismic processing the pythonic way")
+        if settings.value("user/FullName", None) is None:
+            fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
+            settings.setValue("user/FullName", fulluser)
+            settings.setValue("user/Login", os.getlogin())
+            settings.sync()
+        self.recentEvents = settings.value("data/recentEvents", [])
+        self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))
-        if settings.value("dataRoot", None) is None:
-            dirname = QFileDialog().getExistingDirectory()
-            settings.setValue("dataRoot", dirname)
+        if settings.value("data/dataRoot", None) is None:
+            dirname = QFileDialog().getExistingDirectory(caption = 'Choose data root ...')
+            settings.setValue("data/dataRoot", dirname)
             settings.sync()
 
         # initialize filter parameter
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
-        print filterOptionsP, "\n", filterOptionsS
+        # print filterOptionsP, "\n", filterOptionsS
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
         # initialize data
         self.data = None
+        self.dirty = False
         self.loadData()
         self.updateFilterOptions()
-        print self.filteroptions
+        # print self.filteroptions
         try:
             self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
         except:
@@ -103,7 +113,7 @@ class MainWindow(QMainWindow):
 
         self.fileMenu.clear()
         self.addActions(self.fileMenu, self.fileMenuActions[:-1])
-        current = self.data.evtdata.getEventID()
+        current = self.data.evtdata.getID()
         recentEvents = []
         for eventID in self.recentEvents:
             fname = fnConstructor(eventID)
@@ -141,7 +151,7 @@ class MainWindow(QMainWindow):
             self.data = Data(evtdata=fname)
 
     def saveData(self):
-        pass
+        return True
 
     def getComponent(self):
         return self
@@ -158,13 +168,19 @@ class MainWindow(QMainWindow):
         xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
         plottitle = self._getCurrentPlotType()
 
+        _widget = QWidget()
+        _layout = QHBoxLayout()
+
         # create central matplotlib figure widget
         self.DataPlot = MPLWidget(parent=self,
                                   xlabel=xlab,
                                   ylabel=None,
                                   title=plottitle)
-        
-        self.setCentralWidget(self.getDataWidget())
+        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
+        _layout.addLayout(statsButtons)
+        _layout.addWidget(self.DataPlot)
+        self.setLayout(_layout)
+        self.setCentralWidget(_widget)
         
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
@@ -218,15 +234,6 @@ class MainWindow(QMainWindow):
         status.setSizeGripEnabled(False)
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 500)
-
-#       statLayout = layoutStationButtons(self.getData(), self.getComponent())
-#       dataLayout = self.getDataWidget()
-
-#       maingrid = QGridLayout()
-#       maingrid.setSpacing(10)
-#       maingrid.addLayout(statLayout, 0, 0)
-#       maingrid.addWidget(self.getDataWidget(), 0, 1)
-#       self.setLayout(maingrid)
 
     def okToContinue(self):
         if self.dirty:
@@ -283,12 +290,25 @@ class MainWindow(QMainWindow):
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
+        if self.getData() is not None:
+            if not self.getData().isNew():
+                self.setWindowTitle("PyLoT - processing event %s[*]" % self.getData().getID())
+            elif self.getData().isNew():
+                self.setWindowTitle("PyLoT - New event [*]")
+            else:
+                self.setWindowTitle("PyLoT - seismic processing the python way[*]")
+        self.setWindowTitle("PyLoT - seismic processing the python way[*]")
+        self.setWindowModified(self.dirty)
+
+        self.statusBar().showMessage(message, 5000)
 
     def printEvent(self):
         pass
 
-    def closeEvent(self):
-        return self.saveData()
+    def closeEvent(self, event):
+        if self.okToContinue():
+            self.closing.emit()
+            QMainWindow.closeEvent(self, event)
 
     def helpHelp(self):
         if checkurl():
@@ -313,7 +333,7 @@ def main():
 
     # Show main window and run the app
     pylot_form.show()
-    sys.exit(pylot_app.exec_())
+    pylot_app.exec_()
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

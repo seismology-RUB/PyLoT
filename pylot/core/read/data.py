@@ -44,13 +44,18 @@ class Data(object):
             self.wfdata = Stream()
         else:
             self.wfdata = Stream()
+        self.newevent = False
         if evtdata is not None and isinstance(evtdata, Event):
             self.evtdata = evtdata
         elif evtdata is not None:
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
         else:  # create an empty Event object
+            self.newevent = True
             self.evtdata = Event()
+
+    def isNew(self):
+        return self.newevent
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
@@ -75,7 +80,7 @@ class Data(object):
 
         pass #axes = widget.axes
 
-    def getEventID(self):
+    def getID(self):
         try:
             return self.evtdata.get('resource_id').id
         except:
