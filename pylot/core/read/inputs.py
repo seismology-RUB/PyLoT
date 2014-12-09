@@ -165,34 +165,37 @@ class FilterOptions(object):
     '''
     def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3,
                  **kwargs):
-        self.setFilterType(filtertype)
-        self.setFreq(freq)
-        self.setOrder(order)
+        self._order = order
+        self._filtertype = filtertype
+        self._freq = freq
 
     def __str__(self):
         hrs = '''\n\tFilter parameter:\n
         Type:\t\t{ftype}\n
         Frequencies:\t{freq}\n
         Order:\t\t{order}\n
-        '''.format(ftype=self.getFilterType(),
-                   freq=self.getFreq(),
-                   order=self.getOrder())
+        '''.format(ftype=self.getFilterType,
+                   freq=self.getFreq,
+                   order=self.getOrder)
         return hrs
 
+    @property
     def getFreq(self):
-        return self.freq
+        return self.__getattribute__('_freq')
 
     def setFreq(self, freq):
-        self.freq = freq
+        self.__setattr__('_freq', freq)
 
+    @property
     def getOrder(self):
-        return self.order
+        return self.__getattribute__('_order')
 
     def setOrder(self, order):
-        self.order = order
+        self.__setattr__('_order', order)
 
+    @property
     def getFilterType(self):
-        return self.filterType
+        return self.__getattribute__('_filtertype')
 
     def setFilterType(self, filtertype):
-        self.filterType = filtertype
+        self.__setattr__('_filtertype', filtertype)

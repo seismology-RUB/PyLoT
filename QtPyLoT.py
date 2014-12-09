@@ -247,19 +247,29 @@ class MainWindow(QMainWindow):
         pass #self.data.plotData(self.DataPlot)
 
     def filterData(self):
-        pass
+        if self.getData():
+            kwargs = {}
+            freq = self.filteroptions.getFreq()
+            if len(freq) > 1:
+                kwargs['freqmin'] = freq[0]
+                kwargs['freqmax'] = freq[1]
+            else:
+                kwargs['freq'] = freq
+            kwargs['type'] = self.filteroptions.getFilterType()
+            #kwargs['order'] = self.filteroptions.getOrder()
+            self.data.filter(**kwargs)
 
     def adjustFilterOptions(self):
-        filterOptions = None
+        filteroptions = None
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
                                         filterOptions=self.getFilterOptions())
         if filterDlg.exec_():
-            filterOptions = filterDlg.getFilterOptions()
+            filteroptions = filterDlg.getFilterOptions()
 
-        assert isinstance(filterOptions, FilterOptions)
-        self.setFilterOptions(filterOptions)
+        assert isinstance(filteroptions, FilterOptions)
+        self.setFilterOptions(filteroptions)
 
     def getFilterOptions(self):
         return self.filteroptions

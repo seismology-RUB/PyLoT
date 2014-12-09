@@ -27,7 +27,10 @@ class Data(object):
 
     def __init__(self, parent=None, evtdata=None):
         try:
-            self.wfdata = read()
+            if parent:
+                self.wfdata = read(parent.fnames)
+            else:
+                self.wfdata = read()
         except IOError, e:
             msg = 'An I/O error occured while loading data!'
             inform = 'Variable wfdata will be empty.'
@@ -53,6 +56,7 @@ class Data(object):
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
+        self.orig = self.wfdata.copy()
 
     def isNew(self):
         return self.newevent
@@ -77,7 +81,6 @@ class Data(object):
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
-
         pass #axes = widget.axes
 
     def getID(self):
