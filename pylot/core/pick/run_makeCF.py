@@ -58,24 +58,19 @@ def run_makeCF(project, database, event, iplot, station=None):
           ##############################################################
           #calculate HOS-CF using subclass HOScf of class CharacteristicFunction
           hoscf = HOScf(st_copy, cuttimes, t2, p) #instance of HOScf
-          #get corresponding time array -> unnecessary because implemented in CharacteristicFunction
-          # thoscf = np.arange(0, len(hoscf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0]
           ##############################################################
           #get onset time from HOS-CF using class Picker
-          #hospick = PragPicker(hoscf.getCF(), thoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2)
-          #pdb.set_trace() 
+          #hospick = PragPicker(hoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2)
           ##############################################################
           #calculate AIC-HOS-CF using subclass AICcf of class CharacteristicFunction
           #class needs stream object => build it
           tr_aic = tr_filt.copy()
           tr_aic.data = hoscf.getCF()
           st_copy[0].data = tr_aic.data
-          aiccf = AICcf(st_copy, cuttimes, t2, p) #instance of AICcf
-          #get corresponding time array
-          #taiccf = np.arange(0, len(aiccf.getCF()) / tr_filt.stats.sampling_rate, tr_filt.stats.delta) + cuttimes[0]
+          aiccf = AICcf(st_copy, cuttimes, t2) #instance of AICcf
           ##############################################################
           #get onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
-          aicpick = AICPicker(aiccf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 2.5)
+          aicpick = AICPicker(aiccf, 2, 70, [1, 0.5, 0.2], 3)
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           #get stream object of filtered data
@@ -87,7 +82,10 @@ def run_makeCF(project, database, event, iplot, station=None):
           tr_arzaic = tr_filt.copy()
           tr_arzaic.data = arzcf.getCF()
           st_copy[0].data = tr_arzaic.data
-          araiccf = AICcf(st_copy, cuttimes, t2, p) #instance of AICcf
+          araiccf = AICcf(st_copy, cuttimes, tpredz, 0, tdetz) #instance of AICcf
+          ##############################################################
+          #get onset time from AIC-ARZ-CF using subclass AICPicker of class AutoPicking
+          aicarzpick = AICPicker(araiccf,  2, 70, [1, 0.5, 0.2], 2)
     elif not wfzfiles:
        print 'No vertical component data found!'
 
@@ -113,6 +111,17 @@ def run_makeCF(project, database, event, iplot, station=None):
           #calculate ARH-CF using subclass ARHcf of class CharcteristicFunction
           arhcf = ARHcf(H_copy, cuttimes, tpredh, arhorder, tdeth, addnoise) #instance of ARHcf
           ##############################################################
+          #calculate AIC-ARH-CF using subclass AICcf of class CharacteristicFunction
+          #class needs stream object => build it
+          tr_arhaic = trH1_filt.copy()
+          tr_arhaic.data = arhcf.getCF()
+          H_copy[0].data = tr_arhaic.data
+          #calculate ARH-AIC-CF
+          arhaiccf = AICcf(H_copy, cuttimes, tpredh, 0, tdeth) #instance of AICcf
+          ##############################################################
+          #get onset time from AIC-ARH-CF using subclass AICPicker of class AutoPicking
+          aicarhpick = AICPicker(arhaiccf,  2, 70, [1, 0.5, 0.2], 2)
+          ###############################################################
           #create stream with 3 traces
           #merge streams
           AllC = read('%s' % wfefiles[i])
@@ -138,18 +147,18 @@ def run_makeCF(project, database, event, iplot, station=None):
              #plot vertical trace
              plt.figure()
              tr = st[0]
-             tstepz = tpredz / 16
              tdata = np.arange(0, tr.stats.npts / tr.stats.sampling_rate, tr.stats.delta)
-             tarzcf = np.arange(0, len(arzcf.getCF()) * tstepz, tstepz) + cuttimes[0] + tdetz +tpredz
-             taraiccf = np.arange(0, len(araiccf.getCF()) * tstepz, tstepz) + cuttimes[0] +tdetz + tpredz
              p1 = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
-             p2 = plt.plot(thoscf, hoscf.getCF()/max(hoscf.getCF()), 'r')
-             p3 = plt.plot(taiccf, aiccf.getCF()/max(aiccf.getCF()), 'b')
-             p4 = plt.plot(tarzcf, arzcf.getCF()/max(arzcf.getCF()), 'g')
-             p5 = plt.plot(taraiccf, araiccf.getCF()/max(araiccf.getCF()), 'y')
-             plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'b')
+             p2 = plt.plot(hoscf.getTimeArray(), hoscf.getCF() / max(hoscf.getCF()), 'r')
+             p3 = plt.plot(aiccf.getTimeArray(), aiccf.getCF()/max(aiccf.getCF()), 'b')
+             p4 = plt.plot(arzcf.getTimeArray(), arzcf.getCF()/max(arzcf.getCF()), 'g')
+             p5 = plt.plot(araiccf.getTimeArray(), araiccf.getCF()/max(araiccf.getCF()), 'y')
+             plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([aicarzpick.getpick(), aicarzpick.getpick()], [-1.2, 1.2], 'y--')
+             plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [1.2, 1.2], 'y')
+             plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [-1.2, -1.2], 'y')
              plt.yticks([])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
@@ -165,14 +174,22 @@ def run_makeCF(project, database, event, iplot, station=None):
              tarhcf = np.arange(0, len(arhcf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdeth +tpredh
              p21 = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
              p22 = plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p23 = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
+             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
+             plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
+             plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [-1, -1], 'b')
              plt.yticks([])
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
              plt.suptitle(trH1_filt.stats.starttime)
-             plt.legend([p21, p22], ['Data', 'ARH-CF']) 
+             plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF']) 
              plt.subplot(212)
-             p23 = plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
-             p24 = plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
+             plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
+             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
+             plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
+             plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [-1, -1], 'b')
              plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
              plt.yticks([])
              plt.xlabel('Time [s]')
