@@ -23,7 +23,7 @@ class AutoPicking(object):
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
     ''' 
-    def __init__(self, cf, Tslope, aerr, TSNR, PickWindow, peps, Tsmooth):
+    def __init__(self, cf, Tslope, aerr, TSNR, PickWindow, peps=None, Tsmooth=None):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
@@ -47,6 +47,9 @@ class AutoPicking(object):
         :param: Tsmooth, length of moving smoothing window to calculate smoothed CF [s]
         :type: float
         '''
+
+        #assert isinstance(cf, CharFuns), "%s is not a CharacteristicFunction object" % str(cf)
+        #wie kann man hier isinstance benutzen?
 
         self.cf = cf.getCF()
         self.Tcf = cf.getTimeArray()
@@ -127,45 +130,23 @@ class AICPicker(AutoPicking):
  
         print 'Get onset (pick) from AIC-CF ...'
 
+        self.Pick = -1
         #taper AIC-CF to get rid off side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
         #get maximum of CF as starting point
         icfmax = np.argmax(aic)
-
-        #smooth CF
-        aicsmooth = np.zeros(len(aic))
-        ismooth = round(self.Tsmooth / self.dt)
-        if len(aic) < ismooth:
-           print 'AICPicker: Tsmooth larger than AIC function!'
-           self.Pick = -1
-           return self.Pick
-        else:
-           self.Pick = -1
-           for i in range(1, len(aic)):
-              if i > ismooth:
-                 ii1 = i - ismooth
-                 aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
-              else:
-                 aicsmooth[i] = np.mean(aic[0:i])
-
-        #find common, local minimum in front of maximum
-        #of smoothed and unsmoothed AIC-CF
+        
+        #find minimum in front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
         for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1): 
-           if aic[i - 1] * (1 + self.peps) >= aic[i]:
-              if aicsmooth[i - 1] * (1 + self.peps) >= aicsmooth[i]:
-                 self.Pick = self.Tcf[i]
-                 break
-
-        #try again with larger peps if picking failed
-        if self.Pick < 0:
-           peps2 = self.peps + 0.01
-           for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1): 
-              if aic[i - 1] * (1 + peps2) >= aic[i]:
-                 if aicsmooth[i - 1] * (1 + peps2) >= aicsmooth[i]:
-                    self.Pick = self.Tcf[i]
-                    break
+           if aic[i - 1] >= aic[i]:
+              self.Pick = self.Tcf[i]
+              break
+        if self.Pick == -1:
+           print 'AICPicker: Could not find minimum, picking window too short?'
+  
+        return self.Pick
 
 class PragPicker(AutoPicking):
     '''
