@@ -22,7 +22,7 @@ class CharacteristicFunction(object):
     '''
     SuperClass for different types of characteristic functions.
     '''
-    def __init__(self, data, cut, t2, order, t1=None, fnoise=0.001):
+    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=0.001):
         '''
         Initialize data type object with information from the original
         Seismogram.
@@ -55,6 +55,7 @@ class CharacteristicFunction(object):
         self.setTime2(t2)
         self.setOrder(order)
         self.setFnoise(fnoise)
+        self.setARdetStep(t2)
         self.calcCF(self.getDataArray())
         self.arpara = np.array([])
         self.xpred = np.array([])
@@ -66,12 +67,14 @@ class CharacteristicFunction(object):
         t2:\t{t2}\n
         Order:\t\t{order}\n
         Fnoise:\t{fnoise}\n
+        ARdetStep:\t{ardetstep}\n
         '''.format(name=type(self).__name__,
                    cut=self.getCut(),
                    t1=self.getTime1(),
                    t2=self.getTime2(),
                    order=self.getOrder(),
-                   fnoise=self.getFnoise())
+                   fnoise=self.getFnoise(),
+                   ardetstep=self.getARdetStep())
 
     def getCut(self):
         return self.cut
@@ -91,11 +94,13 @@ class CharacteristicFunction(object):
     def setTime2(self, t2):
         self.t2 = t2
 
-    def getTimeArray(self):
-        incr = self.getIncrement()
-        timeArray = np.arange(0, len(self.getCF()) / incr**-1,
-                              incr) + self.getCut()[0]
-        return timeArray
+    def getARdetStep(self):
+        return self.ARdetStep
+
+    def setARdetStep(self, t1):
+        if t1:
+           self.ARdetStep = t1 / 4
+           return self.ARdetStep
 
     def getOrder(self):
         return self.order
@@ -108,6 +113,29 @@ class CharacteristicFunction(object):
         :rtype : int
         """
         return self.dt
+
+    def getTimeArray(self):
+        if self.getTime1() == None and self.getTime2() and self.getOrder():
+           #for HOS 
+           incr = self.getIncrement()
+           timeArray = np.arange(0, len(self.getCF()) * incr,
+                                 incr) + self.getCut()[0] 
+        elif self.getTime1() == None and self.getTime2() and self.getOrder() == None:
+           #for AIC-HOS
+           incr = self.getIncrement()
+           timeArray = np.arange(0, len(self.getCF()) * incr,
+                                 incr) + self.getCut()[0]  
+        elif self.getTime1() and self.getTime2() and self.getOrder() == 0:
+           #for AIC-AR
+           incr = self.getARdetStep()
+           timeArray = np.arange(0, len(self.getCF()) * incr,
+                                 incr) + self.getCut()[0] + self.getTime1() + self.getTime2()
+        elif self.getTime1() and self.getTime2() and self.getOrder():
+           #for AR
+           incr = self.getARdetStep()
+           timeArray = np.arange(0, len(self.getCF()) * incr,
+                                 incr) + self.getCut()[0] + self.getTime1() + self.getTime2()
+        return timeArray
 
     def getFnoise(self):
         return self.fnoise
@@ -190,7 +218,7 @@ class AICcf(CharacteristicFunction):
                         cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
         inf = np.isinf(cf)
-        ff = np.where(inf == 'True')
+        ff = np.where(inf == True)
         if len(ff) >= 1:
             cf[ff] = 0
 
@@ -260,7 +288,7 @@ class ARZcf(CharacteristicFunction):
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
 
         cf = []
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, lpred / 16):
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, lpred / 4):
             #determination of AR coefficients
             self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
