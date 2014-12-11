@@ -179,21 +179,18 @@ class FilterOptions(object):
                    order=self.getOrder)
         return hrs
 
-    @property
     def getFreq(self):
         return self.__getattribute__('_freq')
 
     def setFreq(self, freq):
         self.__setattr__('_freq', freq)
 
-    @property
     def getOrder(self):
         return self.__getattribute__('_order')
 
     def setOrder(self, order):
         self.__setattr__('_order', order)
 
-    @property
     def getFilterType(self):
         return self.__getattribute__('_filtertype')
 

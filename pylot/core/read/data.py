@@ -126,10 +126,19 @@ class SeiscompDataStructure(object):
     :type sdate, edate: str or UTCDateTime or None
     '''
 
+    # Data type options
+    __typeOptions = {'waveform': 'D',  # Waveform data
+                          'detect': 'E',  # Detection data
+                          'log': 'L',  # Log data
+                          'timing': 'T',  # Timing data
+                          'calib': 'C',  # Calibration data
+                          'resp': 'R',  # Response data
+                          'opaque': 'O'  # Opaque data
+                          }
+
     def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
         # imports
         from obspy.core import UTCDateTime
-        import numpy as np
 
         def checkDate(date):
             if not isinstance(date, UTCDateTime):
@@ -143,7 +152,9 @@ class SeiscompDataStructure(object):
                 edate = UTCDateTime(edate)
         except TypeError:
             edate = UTCDateTime()
-            sdate = edate - np.pi*1e7/2
+            halfyear = UTCDateTime('1970-07-01')
+            sdate = UTCDateTime(edate - halfyear)
+            del halfyear
 
         year = ''
         if not edate.year == sdate.year:
@@ -152,17 +163,7 @@ class SeiscompDataStructure(object):
                 year += '{0:04d},'.format(sdate.year+yr)
             year = '{'+year[:-1]+'}'
         else:
-            year = '{0:04d},'.format(sdate.year)
-
-        # Data type options
-        self.__typeOptions = {'waveform': 'D',  # Waveform data
-                              'detect': 'E',  # Detection data
-                              'log': 'L',  # Log data
-                              'timing': 'T',  # Timing data
-                              'calib': 'C',  # Calibration data
-                              'resp': 'R',  # Response data
-                              'opaque': 'O'  # Opaque data
-                              }
+            year = '{0:04d}'.format(sdate.year)
 
         if dataType in self.__typeOptions.keys():
             self.dataType = dataType
@@ -180,7 +181,7 @@ class SeiscompDataStructure(object):
                             'NET': '??',  # up to 8 characters
                             'STA': '????',  # up to 8 characters
                             'CHAN': 'HH?',  # up to 8 characters
-                            'TYPE': self._getType(),  # 1 character
+                            'TYPE': self.getType(),  # 1 character
                             'LOC': '',  # up to 8 characters
                             'DAY': '{0:03d}'.format(sdate.julday)  # 3 digits
                             }
@@ -190,10 +191,14 @@ class SeiscompDataStructure(object):
         if kwargs and isinstance(kwargs, dict):
             for key, value in kwargs.iteritems():
                 key = str(key)
-                value = str(value)
+                if type(value) not in (str, int, float):
+                    for n, val in enumerate(value):
+                        value[n] = str(val)
+                else:
+                    value = str(value)
                 try:
-                    if key in self.__sdsFields.keys():
-                        self.__sdsFields[key] = str(value)
+                    if key in self.getSDSFields().keys():
+                        self.getSDSFields()[key] = value
                     else:
                         raise KeyError('unknown SDS wildcard: %s.' % key)
                 except KeyError, e:
@@ -203,16 +208,19 @@ class SeiscompDataStructure(object):
                     errmsg += '%s; desired value was: %s\n' % (e, value)
                     print errmsg
 
-    def _getType(self):
+    def getType(self):
         return self.__typeOptions[self.dataType]
 
+    def getSDSFields(self):
+        return self.__sdsFields
+
     def expandDataPath(self):
-        fullChan = '{0}.{1}'.format(self.__sdsFields['CHAN'], self._getType())
-        dataPath = os.path.join(self.__sdsFields['SDSdir'],
-                                self.__sdsFields['YEAR'],
-                                self.__sdsFields['NET'],
-                                self.__sdsFields['STA'],
+        fullChan = '{0}.{1}'.format(self.getSDSFields()['CHAN'], self.getType())
+        dataPath = os.path.join(self.getSDSFields()['SDSdir'],
+                                self.getSDSFields()['YEAR'],
+                                self.getSDSFields()['NET'],
+                                self.getSDSFields()['STA'],
                                 fullChan,
-                                '*{0}'.format(self.__sdsFields['DAY'])
+                                '*{0}'.format(self.getSDSFields()['DAY'])
                                 )
         return dataPath
