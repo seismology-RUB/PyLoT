@@ -74,7 +74,7 @@ class CharacteristicFunction(object):
                    t2=self.getTime2(),
                    order=self.getOrder(),
                    fnoise=self.getFnoise(),
-                   ardetstep=self.getARdetStep())
+                   ardetstep=self.getARdetStep[0]())
 
     def getCut(self):
         return self.cut
@@ -99,7 +99,9 @@ class CharacteristicFunction(object):
 
     def setARdetStep(self, t1):
         if t1:
-           self.ARdetStep = t1 / 4
+           self.ARdetStep = []
+           self.ARdetStep.append(t1 / 4)
+           self.ARdetStep.append(int(np.ceil(self.getTime2() / self.getIncrement()) / 4))
            return self.ARdetStep
 
     def getOrder(self):
@@ -115,27 +117,14 @@ class CharacteristicFunction(object):
         return self.dt
 
     def getTimeArray(self):
-        if self.getTime1() == None and self.getTime2() and self.getOrder():
-           #for HOS 
-           incr = self.getIncrement()
-           timeArray = np.arange(0, len(self.getCF()) * incr,
-                                 incr) + self.getCut()[0] 
-        elif self.getTime1() == None and self.getTime2() and self.getOrder() == None:
-           #for AIC-HOS
-           incr = self.getIncrement()
-           timeArray = np.arange(0, len(self.getCF()) * incr,
-                                 incr) + self.getCut()[0]  
-        elif self.getTime1() and self.getTime2() and self.getOrder() == 0:
-           #for AIC-AR
+        if self.getTime1():
            incr = self.getARdetStep()
-           timeArray = np.arange(0, len(self.getCF()) * incr,
-                                 incr) + self.getCut()[0] + self.getTime1() + self.getTime2()
-        elif self.getTime1() and self.getTime2() and self.getOrder():
-           #for AR
-           incr = self.getARdetStep()
-           timeArray = np.arange(0, len(self.getCF()) * incr,
-                                 incr) + self.getCut()[0] + self.getTime1() + self.getTime2()
-        return timeArray
+           self.TimeArray = np.arange(0, len(self.getCF()) * incr[0], incr[0]) + self.getCut()[0] \
+                           + self.getTime1() + self.getTime2()  
+        else:
+           incr = self.getIncrement()
+           self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0]  
+        return self.TimeArray
 
     def getFnoise(self):
         return self.fnoise
@@ -288,7 +277,8 @@ class ARZcf(CharacteristicFunction):
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
 
         cf = []
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, lpred / 4):
+        loopstep = self.getARdetStep()
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
             #determination of AR coefficients
             self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
@@ -300,6 +290,7 @@ class ARZcf(CharacteristicFunction):
         #convert list to numpy array
         cf = np.asarray(cf)
         self.cf = cf
+
 
     def arDetZ(self, data, order, rind, ldet):
         '''
@@ -399,7 +390,8 @@ class ARHcf(CharacteristicFunction):
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
         cf = []
-        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, lpred / 4):
+        loopstep = self.getARdetStep()
+        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, loopstep[1]):
             self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
@@ -516,7 +508,8 @@ class AR3Ccf(CharacteristicFunction):
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
         cf = []
-        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, lpred / 4):
+        loopstep = self.getARdetStep()
+        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, loopstep[1]):
             self.arDet3C(Xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
