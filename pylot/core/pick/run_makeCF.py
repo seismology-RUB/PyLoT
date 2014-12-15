@@ -59,9 +59,6 @@ def run_makeCF(project, database, event, iplot, station=None):
           #calculate HOS-CF using subclass HOScf of class CharacteristicFunction
           hoscf = HOScf(st_copy, cuttimes, t2, p) #instance of HOScf
           ##############################################################
-          #get onset time from HOS-CF using class Picker
-          #hospick = PragPicker(hoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2)
-          ##############################################################
           #calculate AIC-HOS-CF using subclass AICcf of class CharacteristicFunction
           #class needs stream object => build it
           tr_aic = tr_filt.copy()
@@ -69,8 +66,11 @@ def run_makeCF(project, database, event, iplot, station=None):
           st_copy[0].data = tr_aic.data
           aiccf = AICcf(st_copy, cuttimes, t2) #instance of AICcf
           ##############################################################
-          #get onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
+          #get prelimenary onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
           aicpick = AICPicker(aiccf, 2, 70, [1, 0.5, 0.2], 3)
+          ##############################################################
+          #get refined onset time from HOS-CF using class Picker
+          hospick = PragPicker(hoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2, aicpick.getpick())
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           #get stream object of filtered data
@@ -86,6 +86,9 @@ def run_makeCF(project, database, event, iplot, station=None):
           ##############################################################
           #get onset time from AIC-ARZ-CF using subclass AICPicker of class AutoPicking
           aicarzpick = AICPicker(araiccf,  2, 70, [1, 0.5, 0.2], 2)
+          ##############################################################
+          #get refined onset time from ARZ-CF using class Picker
+          arzpick = PragPicker(arzcf, 2, 70, [1, 0.5, 0.2], 2, 0, 0.2, aicarzpick.getpick())
     elif not wfzfiles:
        print 'No vertical component data found!'
 
@@ -156,9 +159,15 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([hospick.getpick(), hospick.getpick()], [-1.3, 1.3], 'r--')
+             plt.plot([hospick.getpick()-0.5, hospick.getpick()+0.5], [1.3, 1.3], 'r')
+             plt.plot([hospick.getpick()-0.5, hospick.getpick()+0.5], [-1.3, -1.3], 'r')
              plt.plot([aicarzpick.getpick(), aicarzpick.getpick()], [-1.2, 1.2], 'y--')
              plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [1.2, 1.2], 'y')
              plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [-1.2, -1.2], 'y')
+             plt.plot([arzpick.getpick(), arzpick.getpick()], [-1.4, 1.4], 'g--')
+             plt.plot([arzpick.getpick()-0.5, arzpick.getpick()+0.5], [1.4, 1.4], 'g')
+             plt.plot([arzpick.getpick()-0.5, arzpick.getpick()+0.5], [-1.4, -1.4], 'g')
              plt.yticks([])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
