@@ -102,7 +102,6 @@ class CharacteristicFunction(object):
            self.ARdetStep = []
            self.ARdetStep.append(t1 / 4)
            self.ARdetStep.append(int(np.ceil(self.getTime2() / self.getIncrement()) / 4))
-           return self.ARdetStep
 
     def getOrder(self):
         return self.order
