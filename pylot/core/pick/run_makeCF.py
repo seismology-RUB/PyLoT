@@ -19,7 +19,7 @@ def run_makeCF(project, database, event, iplot, station=None):
     #parameters for CF calculation
     t2 = 7              #length of moving window for HOS calculation [sec]
     p = 4               #order of statistics
-    cuttimes = [10, 40] #start and end time vor CF calculation
+    cuttimes = [5, 40] #start and end time for CF calculation
     bpz = [2, 30]       #corner frequencies of bandpass filter, vertical component
     bph = [2, 15]       #corner frequencies of bandpass filter, horizontal components
     tdetz= 1.2          #length of AR-determination window [sec], vertical component
@@ -182,7 +182,7 @@ def run_makeCF(project, database, event, iplot, station=None):
              th2data = np.arange(0, trH2_filt.stats.npts / trH2_filt.stats.sampling_rate, trH2_filt.stats.delta)
              tarhcf = np.arange(0, len(arhcf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdeth +tpredh
              p21 = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
-             p22 = plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p22 = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
              p23 = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
@@ -194,7 +194,6 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF']) 
              plt.subplot(212)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
-             plt.plot(tarhcf, arhcf.getCF()/max(arhcf.getCF()), 'r') 
              plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
