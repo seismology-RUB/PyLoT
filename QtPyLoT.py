@@ -39,6 +39,7 @@ from pylot.core.util import checkurl
 from pylot.core.util import layoutStationButtons
 from pylot.core.util import (FilterOptionsDialog,
                              MPLWidget,
+                             PropertiesDlg,
                              HelpForm)
 
 
@@ -193,6 +194,9 @@ class MainWindow(QMainWindow):
         saveEventAction = self.createAction("&Save event ...", self.saveData,
                                             QKeySequence.Save, saveIcon,
                                             "Save actual event data.")
+        prefsEventAction = self.createAction("Preferences", self.PyLoTprefs,
+                                               QKeySequence.Preferences, None,
+                                               "Edit PyLoT app preferences.")
         quitAction = self.createAction("&Quit",
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
@@ -218,6 +222,7 @@ class MainWindow(QMainWindow):
                                         "Print waveform overview.")
         self.fileMenu = self.menuBar().addMenu('&File')
         self.fileMenuActions = (openEventAction, saveEventAction, None,
+                                prefsEventAction, None,
                                 quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
 
@@ -326,6 +331,11 @@ class MainWindow(QMainWindow):
         if self.okToContinue():
             self.closing.emit()
             QMainWindow.closeEvent(self, event)
+
+    def PyLoTprefs(self):
+        props = PropertiesDlg(self)
+        if props.exec_():
+            return
 
     def helpHelp(self):
         if checkurl():
