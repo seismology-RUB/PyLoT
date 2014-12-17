@@ -31,12 +31,14 @@ from PySide.QtGui import (QAction,
                           QToolBar,
                           QVBoxLayout,
                           QWidget)
-from PySide.QtCore import (Qt,
+from PySide.QtCore import (QSettings,
+                           Qt,
                            QUrl,
                            SIGNAL,
                            SLOT)
 from PySide.QtWebKit import QWebView
 from pylot.core.read import FilterOptions
+from pylot.core.util.defaults import OUTPUTFORMATS
 
 
 class MPLWidget(FigureCanvasQTAgg):
@@ -71,17 +73,17 @@ class PropertiesDlg(QDialog):
 
         self.setWindowTitle("{0} Properties".format(appName))
 
-        tabWidget = QTabWidget()
-        tabWidget.addTab(InputsTab(self), "Inputs")
-        tabWidget.addTab(OutputsTab(self), "Outputs")
-        tabWidget.addTab(PhasesTab(self), "Phases")
-        tabWidget.addTab(GraphicsTab(self), "Graphics")
+        self.tabWidget = QTabWidget()
+        self.tabWidget.addTab(InputsTab(self), "Inputs")
+        self.tabWidget.addTab(OutputsTab(self), "Outputs")
+        self.tabWidget.addTab(PhasesTab(self), "Phases")
+        self.tabWidget.addTab(GraphicsTab(self), "Graphics")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close)
 
         layout = QVBoxLayout()
-        layout.addWidget(tabWidget)
+        layout.addWidget(self.tabWidget)
         layout.addWidget(self.buttonBox)
         self.setLayout(layout)
 
@@ -91,23 +93,40 @@ class PropertiesDlg(QDialog):
                      SIGNAL("clicked()"), self.apply)
         self.connect(self.buttonBox, SIGNAL("rejected()"),
                      self, SLOT("reject()"))
-        pass
 
     def apply(self):
-        pass
+        settings = QSettings()
+        for widint in range(self.tabWidget.count()):
+            curwid = self.tabWidget.widget(widint)
+            values = self.getValues(curwid)
+            settings.setValue()
 
 
 class InputsTab(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super(InputsTab, self).__init__(parent)
 
+        settings = QSettings()
+        fulluser = settings.value("user/FullName")
+        login = settings.value("user/Login")
+
+        fullNameLabel = QLabel("Full name for user '{0}'".format(login))
+
+        parent.fullNameEdit = QLineEdit()
+        parent.fullNameEdit.setText(fulluser)
+
+        dataroot = settings.value("data/dataRoot")
         dataDirLabel = QLabel("data directory:")
-        dataDirEdit = QLineEdit()
+        parent.dataDirEdit = QLineEdit()
+        parent.dataDirEdit.setText(dataroot)
+        parent.dataDirEdit.selectAll()
 
         layout = QGridLayout()
         layout.addWidget(dataDirLabel, 0, 0)
-        layout.addWidget(dataDirEdit, 0, 1)
+        layout.addWidget(parent.dataDirEdit, 0, 1)
+        layout.addWidget(fullNameLabel, 1, 0)
+        layout.addWidget(parent.fullNameEdit, 1, 1)
 
         self.setLayout(layout)
 
@@ -119,7 +138,7 @@ class OutputsTab(QWidget):
 
         eventOutputLabel = QLabel("event ouput format")
         eventOutputComboBox = QComboBox()
-        eventoutputformats = ["QuakeML", "VelEst"]
+        eventoutputformats = OUTPUTFORMATS.keys()
         eventOutputComboBox.addItems(eventoutputformats)
 
         layout = QGridLayout()
@@ -166,7 +185,7 @@ class FilterOptionsDialog(QDialog):
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
         self.freqminSpinBox.setSuffix(' Hz')
-        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
+        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq[0])
         self.freqmaxLabel = QLabel()
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
@@ -174,7 +193,7 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
         if self.filterOptions.filterType in ['bandpass', 'bandstop']:
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq[1])
 
         typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
