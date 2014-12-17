@@ -7,6 +7,7 @@ from obspy.core import (read, Stream)
 from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
 from pylot.core.util import fnConstructor
+from pylot.core.util.errors import FormatError
 
 
 class Data(object):
@@ -71,7 +72,8 @@ class Data(object):
         from pylot.core.util.defaults import OUTPUTFORMATS
 
         if evtformat.strip() not in OUTPUTFORMATS.values():
-            evtformat = OUTPUTFORMATS.values()[0]
+            errmsg = 'selected format {0} not available'.format(evtformat)
+            raise FormatError(errmsg)
 
         if fnout is None:
             ID = self.evtdata.getEventID()
