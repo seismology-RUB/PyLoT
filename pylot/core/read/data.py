@@ -63,10 +63,15 @@ class Data(object):
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
+        from pylot.core.util.defaults import OUTPUTFORMATS
+
+        if evtformat.strip() not in OUTPUTFORMATS.values():
+            evtformat = OUTPUTFORMATS.values()[0]
+
         if fnout is None:
-            fnout = self.evtdata.getEventID()
+            ID = self.evtdata.getEventID()
         # handle forbidden filenames especially on windows systems
-        fnout = fnConstructor(fnout)
+        fnout = fnConstructor(ID)
 
         evtformat = evtformat.upper().strip()
 

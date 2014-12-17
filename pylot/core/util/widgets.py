@@ -37,6 +37,7 @@ from PySide.QtCore import (Qt,
                            SLOT)
 from PySide.QtWebKit import QWebView
 from pylot.core.read import FilterOptions
+from pylot.core.util.defaults import OUTPUTFORMATS
 
 
 class MPLWidget(FigureCanvasQTAgg):
@@ -119,7 +120,7 @@ class OutputsTab(QWidget):
 
         eventOutputLabel = QLabel("event ouput format")
         eventOutputComboBox = QComboBox()
-        eventoutputformats = ["QuakeML", "VelEst"]
+        eventoutputformats = OUTPUTFORMATS.keys()
         eventOutputComboBox.addItems(eventoutputformats)
 
         layout = QGridLayout()
