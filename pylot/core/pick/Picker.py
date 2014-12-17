@@ -3,16 +3,16 @@
 Created Dec 2014
 Implementation of the picking algorithms published and described in:
 
-Küperkoch, L., Meier, T., Lee, J., Friederich, W., & Egelados Working Group, 2010:
+Kueperkoch, L., Meier, T., Lee, J., Friederich, W., & Egelados Working Group, 2010:
 Automated determination of P-phase arrival times at regional and local distances
 using higher order statistics, Geophys. J. Int., 181, 1159-1170
 
-Küperkoch, L., Meier, T., Brüstle, A., Lee, J., Friederich, W., & Egelados
+Kueperkoch, L., Meier, T., Bruestle, A., Lee, J., Friederich, W., & Egelados
 Working Group, 2012: Automated determination of S-phase arrival times using
 autoregressive prediction: application ot local and regional distances, Geophys. J. Int.,
 188, 687-702.
 
-:author: MAGS2 EP3 working group / Ludger Küperkoch	
+:author: MAGS2 EP3 working group / Ludger Kueperkoch	
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ class AutoPicking(object):
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
     ''' 
-    def __init__(self, cf, Tslope, aerr, TSNR, PickWindow, peps=None, Tsmooth=None):
+    def __init__(self, cf, Tslope, aerr, TSNR, PickWindow, aus=None, Tsmooth=None, Pick1=None):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
@@ -41,10 +41,13 @@ class AutoPicking(object):
         :param: PickWindow, length of pick window [s]
         :type: float
 
-        :param: peps, find local minimum at i if aic(i-1)*(1+peps) >= aic(i)
+        :param: aus ("artificial uplift of samples"), find local minimum at i if aic(i-1)*(1+aus) >= aic(i)
         :type: float
 
         :param: Tsmooth, length of moving smoothing window to calculate smoothed CF [s]
+        :type: float
+
+        :param: Pick1, initial (prelimenary) onset time, starting point for PragPicker
         :type: float
         '''
 
@@ -58,8 +61,9 @@ class AutoPicking(object):
         self.setaerr(aerr)
         self.setTSNR(TSNR)
         self.setPickWindow(PickWindow)
-        self.setpeps(peps)
+        self.setaus(aus)
         self.setTsmooth(Tsmooth)
+        self.setpick1(Pick1)
         self.calcPick()
 
     def __str__(self):
@@ -68,15 +72,17 @@ class AutoPicking(object):
         aerr:\t{aerr}\n
         TSNR:\t\t\t{TSNR}\n
         PickWindow:\t{PickWindow}\n
-        peps:\t{peps}\n
+        aus:\t{aus}\n
         Tsmooth:\t{Tsmooth}\n
+        Pick1:\t{Pick1}\n
         '''.format(name=type(self).__name__,
                    Tslope=self.getTslope(),
                    aerr=self.getaerr(),
                    TSNR=self.getTSNR(),
                    PickWindow=self.getPickWindow(),
-                   peps=self.getpeps(),
-                   Tsmooth=self.getTsmooth())     
+                   aus=self.getaus(),
+                   Tsmooth=self.getTsmooth(),
+                   Pick1=self.getpick1())     
 
     def getTslope(self):
         return self.Tslope
@@ -102,11 +108,11 @@ class AutoPicking(object):
     def setPickWindow(self, PickWindow):
         self.PickWindow = PickWindow
 
-    def getpeps(self):
-        return self.peps
+    def getaus(self):
+        return self.aus
 
-    def setpeps(self, peps):
-        self.peps = peps
+    def setaus(self, aus):
+        self.aus = aus
 
     def setTsmooth(self, Tsmooth):
         self.Tsmooth = Tsmooth
@@ -116,6 +122,12 @@ class AutoPicking(object):
 
     def getpick(self):
         return self.Pick
+
+    def getpick1(self):
+        return self.Pick1
+
+    def setpick1(self, Pick1):
+        self.Pick1 = Pick1
 
     def calcPick(self):
         self.Pick = None
@@ -128,7 +140,7 @@ class AICPicker(AutoPicking):
 
     def calcPick(self):
  
-        print 'Get onset (pick) from AIC-CF ...'
+        print 'Get onset time (pick) from AIC-CF ...'
 
         self.Pick = -1
         #taper AIC-CF to get rid off side maxima
@@ -155,4 +167,78 @@ class PragPicker(AutoPicking):
 
     def calcPick(self):
 
-        print 'Get onset (pick) from HOS- or AR-CF using pragmatic picking algorithm ...'
+        if self.getpick1() is not None:
+           print 'Get onset time (pick) from HOS- or AR-CF using pragmatic picking algorithm ...'
+
+           self.Pick = -1
+           #smooth CF
+           ismooth = round(self.Tsmooth / self.dt);
+           cfsmooth = np.zeros(len(self.cf))
+           if len(self.cf) < ismooth:
+              print 'PragPicker: Tsmooth larger than CF!'
+              return
+           else:
+              for i in range(1, len(self.cf)):
+                 if i > ismooth:
+                    ii1 = i - ismooth;
+                    cfsmooth[i] = cfsmooth[i - 1] + (self.cf[i] - self.cf[ii1]) / ismooth
+                 else:
+                    cfsmooth[i] = np.mean(self.cf[1 : i])
+
+           #select picking window
+           #which is centered around tpick1
+           ipick = np.where((self.Tcf >= self.getpick1() - self.PickWindow / 2) \
+                 & (self.Tcf <= self.getpick1() + self.PickWindow / 2))
+           cfipick = self.cf[ipick]
+           Tcfpick = self.Tcf[ipick]
+           cfsmoothipick = cfsmooth[ipick]
+           ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
+           cfpick1 = 2 * self.cf[ipick1]
+
+           #check trend of CF, i.e. differences of CF and adjust aus regarding this trend
+           #prominent trend: decrease aus
+           #flat: use given aus
+           cfdiff = np.diff(cfipick);
+           i0diff = np.where(cfdiff > 0)
+           cfdiff = cfdiff[i0diff]
+           minaus = min(cfdiff * (1 + self.aus));
+           aus1 = max([minaus, self.aus]);
+
+           #at first we look to the right until the end of the pick window is reached
+           flagpick_r = 0
+           flagpick_l = 0
+           flagpick = 0
+           lpickwindow = int(round(self.PickWindow / self.dt))
+           for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
+              if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                 if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                    if cfpick1 >= self.cf[i]:     
+                       pick_r = self.Tcf[i]
+                       self.Pick = pick_r
+                       flagpick_l = 1
+                       cfpick_r = self.cf[i]
+                       break
+
+           #now we look to the left
+           for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
+              if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                 if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                    if cfpick1 >= self.cf[i]:     
+                       pick_l = self.Tcf[i]
+                       self.Pick = pick_l
+                       flagpick_r = 1
+                       cfpick_l = self.cf[i]
+                       break
+
+           #now decide which pick: left or right?
+           if flagpick_l > 0 and flagpick_r > 0:
+              if cfpick_l <= cfpick_r:
+                 self.Pick = pick_l
+              else:
+                 self.Pick = pick_r
+
+        else: 
+           self.Pick = -1
+           print 'PragPicker: No initial onset time given! Check input!'
+           return
+

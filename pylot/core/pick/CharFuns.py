@@ -117,8 +117,8 @@ class CharacteristicFunction(object):
 
     def getTimeArray(self):
         if self.getTime1():
-           incr = self.getARdetStep()
-           self.TimeArray = np.arange(0, len(self.getCF()) * incr[0], incr[0]) + self.getCut()[0] \
+           incr = self.getARdetStep()[0]
+           self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] \
                            + self.getTime1() + self.getTime2()  
         else:
            incr = self.getIncrement()
@@ -143,18 +143,31 @@ class CharacteristicFunction(object):
         cutting window
         '''
         if cut is not None:
-            if self.cut[0] == 0:
-                start = 0
-            else:
-                start = self.cut[0] / self.dt
-                stop = self.cut[1] / self.dt
             if len(self.orig_data) == 1:
+                if self.cut[0] == 0 and self.cut[1] == 0:
+                   start = 0
+                   stop = len(self.orig_data[0])
+                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                   start = 0
+                   stop = self.cut[1] / self.dt
+                else:
+                   start = self.cut[0] / self.dt
+                   stop = self.cut[1] / self.dt
                 zz = self.orig_data.copy()
                 z1 = zz[0].copy()
                 zz[0].data = z1.data[start:stop]
                 data = zz
                 return data
             elif len(self.orig_data) == 2:
+                if self.cut[0] == 0 and self.cut[1] == 0:
+                   start = 0
+                   stop = min([len(self.orig_data[0]), len(self.orig_data[1])])
+                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                   start = 0
+                   stop = self.cut[1] / self.dt
+                else:
+                   start = self.cut[0] / self.dt
+                   stop = self.cut[1] / self.dt
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
@@ -163,6 +176,15 @@ class CharacteristicFunction(object):
                 data = hh 
                 return data
             elif len(self.orig_data) == 3:
+                if self.cut[0] == 0 and self.cut[1] == 0:
+                   start = 0
+                   stop = min([len(self.orig_data[0]), len(self.orig_data[1]), len(self.orig_data[2])])
+                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                   start = 0
+                   stop = self.cut[1] / self.dt
+                else:
+                   start = self.cut[0] / self.dt
+                   stop = self.cut[1] / self.dt
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
@@ -195,6 +217,9 @@ class AICcf(CharacteristicFunction):
         print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
+        nn = np.isnan(xnp)
+        if len(nn) > 1:
+           xnp[nn] = 0
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
@@ -224,6 +249,9 @@ class HOScf(CharacteristicFunction):
 
         x = self.getDataArray(self.getCut())
         xnp =x[0].data
+        nn = np.isnan(xnp)
+        if len(nn) > 1:
+           xnp[nn] = 0
         if self.getOrder() == 3:  # this is skewness
             print 'Calculating skewness ...'
             y = np.power(xnp, 3)
@@ -256,6 +284,9 @@ class HOScf(CharacteristicFunction):
             elif self.getOrder() == 4:
                 LTA[j] = lta / np.power(lta1, 2)
         
+        nn = np.isnan(LTA)
+        if len(nn) > 1:
+           LTA[nn] = 0
         self.cf = LTA
 
 
@@ -266,6 +297,9 @@ class ARZcf(CharacteristicFunction):
         print 'Calculating AR-prediction error from single trace ...'
         x = self.getDataArray(self.getCut())
         xnp = x[0].data
+        nn = np.isnan(xnp)
+        if len(nn) > 1:
+           xnp[nn] = 0
         #some parameters needed
         #add noise to time series
         xnoise = xnp + np.random.normal(0.0, 1.0, len(xnp)) * self.getFnoise() * max(abs(xnp))
@@ -288,6 +322,9 @@ class ARZcf(CharacteristicFunction):
         
         #convert list to numpy array
         cf = np.asarray(cf)
+        nn = np.isnan(cf)
+        if len(nn) > 1:
+           cf[nn] = 0
         self.cf = cf
 
 
@@ -376,6 +413,12 @@ class ARHcf(CharacteristicFunction):
         print 'Calculating AR-prediction error from both horizontal traces ...'
         
         xnp = self.getDataArray(self.getCut())
+        n0 = np.isnan(xnp[0].data)
+        if len(n0) > 1:
+           xnp[0].data[n0] = 0
+        n1 = np.isnan(xnp[1].data)
+        if len(n1) > 1:
+           xnp[1].data[n1] = 0
         
         #some parameters needed
         #add noise to time series
@@ -390,7 +433,7 @@ class ARHcf(CharacteristicFunction):
               
         cf = []
         loopstep = self.getARdetStep()
-        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, loopstep[1]):
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
             self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
@@ -401,6 +444,9 @@ class ARHcf(CharacteristicFunction):
 
         #convert list to numpy array
         cf = np.asarray(cf)
+        nn = np.isnan(cf)
+        if len(nn) > 1:
+           cf[nn] = 0
         self.cf = cf
 
     def arDetH(self, data, order, rind, ldet):
@@ -493,6 +539,15 @@ class AR3Ccf(CharacteristicFunction):
         print 'Calculating AR-prediction error from all 3 components ...'
         
         xnp = self.getDataArray(self.getCut())
+        n0 = np.isnan(xnp[0].data)
+        if len(n0) > 1:
+           xnp[0].data[n0] = 0
+        n1 = np.isnan(xnp[1].data)
+        if len(n1) > 1:
+           xnp[1].data[n1] = 0
+        n2 = np.isnan(xnp[2].data)
+        if len(n2) > 1:
+           xnp[2].data[n2] = 0
         
         #some parameters needed
         #add noise to time series
@@ -508,7 +563,7 @@ class AR3Ccf(CharacteristicFunction):
               
         cf = []
         loopstep = self.getARdetStep()
-        for i in range(ldet + self.getOrder() - 3, tend - lpred + 1, loopstep[1]):
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
             self.arDet3C(Xnoise, self.getOrder(), i-ldet, i)
             #AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
@@ -520,6 +575,9 @@ class AR3Ccf(CharacteristicFunction):
 
         #convert list to numpy array
         cf = np.asarray(cf)
+        nn = np.isnan(cf)
+        if len(nn) > 1:
+           cf[nn] = 0
         self.cf = cf
 
     def arDet3C(self, data, order, rind, ldet):
