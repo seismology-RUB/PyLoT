@@ -143,18 +143,25 @@ class MainWindow(QMainWindow):
                     filt = """Supported event formats (*.mat *.qml *.xml *.kor
                               *.evt)"""
                     caption = 'Select event to open'
-                    fname = QFileDialog().getOpenFileName(self, caption=caption,
+                    self.fname = QFileDialog().getOpenFileName(self, caption=caption,
                                                           filter=filt)
                 else:
-                    fname = unicode(action.data().toString())
+                    self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
                     return
             else:
                 return
         if fname:
-            self.data = Data(evtdata=fname)
+            self.fname = fname
+            self.data = Data(evtdata=self.fname)
 
     def saveData(self):
+        settings = QSettings()
+        exform = settings.value('data/exportFormat', 'None')
+        try:
+            self.data.exportEvent(self.fname, exform)
+        except FormatError:
+            return False
         return True
 
     def getComponent(self):
