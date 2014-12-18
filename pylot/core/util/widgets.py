@@ -11,7 +11,7 @@ matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from PySide.QtGui import (QAction,
                           QApplication,
                           QComboBox,
@@ -41,14 +41,14 @@ from pylot.core.read import FilterOptions
 from pylot.core.util.defaults import OUTPUTFORMATS
 
 
-class MPLWidget(FigureCanvasQTAgg):
+class MPLWidget(FigureCanvas):
 
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
         super(MPLWidget, self).__init__(Figure())
 
         self.setParent(parent)
         self.figure = Figure()
-        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
 
         self.axes.set_xlabel(xlabel)

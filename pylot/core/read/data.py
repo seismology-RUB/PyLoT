@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import numpy as np
 from PySide.QtGui import QMessageBox
 from obspy.core import (read, Stream)
 from obspy import readEvents
@@ -93,7 +94,8 @@ class Data(object):
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
-        pass #axes = widget.axes
+        time_ax = np.arange(0, len(self.wfdata[0].data)/self.wfdata[0].stats.sampling_rate, self.wfdata[0].stats.delta)
+        widget.axes.plot(time_ax, self.wfdata[0].data)
 
     def getID(self):
         try:
