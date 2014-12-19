@@ -16,6 +16,7 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from pylot.core.pick.CharFuns import CharacteristicFunction
 import pdb
 
 class AutoPicking(object):
@@ -51,7 +52,7 @@ class AutoPicking(object):
         :type: float
         '''
 
-        #assert isinstance(cf, CharFuns), "%s is not a CharacteristicFunction object" % str(cf)
+        assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
         #wie kann man hier isinstance benutzen?
 
         self.cf = cf.getCF()
