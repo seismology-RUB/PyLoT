@@ -36,6 +36,7 @@ from pylot.core.read import (Data,
 from pylot.core.util import FILTERDEFAULTS
 from pylot.core.util import fnConstructor
 from pylot.core.util import checkurl
+from pylot.core.util import FormatError
 from pylot.core.util import layoutStationButtons
 from pylot.core.util import (FilterOptionsDialog,
                              MPLWidget,
