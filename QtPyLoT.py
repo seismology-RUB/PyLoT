@@ -113,15 +113,21 @@ class MainWindow(QMainWindow):
     def updateFileMenu(self):
 
         self.fileMenu.clear()
-        self.addActions(self.fileMenu, self.fileMenuActions[:-1])
-        current = self.data.evtdata.getID()
+        for action in self.fileMenuActions[:-1]:
+            if action is None:
+                self.fileMenu.addSeparator()
+            else:
+                self.fileMenu.addAction(action)
+        try:
+            current = self.data.evtdata.getID()
+        except AttributeError:
+            current = None
         recentEvents = []
         for eventID in self.recentEvents:
             fname = fnConstructor(eventID)
             if eventID != current and QFile.exists(fname):
                 recentEvents.append(eventID)
         if recentEvents:
-            self.fileMenu.addSeparator()
             for i, eventID in enumerate(recentEvents):
                 fname = fnConstructor(eventID)
                 action = QAction(QIcon(":/icon.png"),
@@ -231,7 +237,10 @@ class MainWindow(QMainWindow):
         self.fileMenuActions = (openEventAction, saveEventAction, None,
                                 prefsEventAction, None,
                                 quitAction)
+        self.fileMenuActions = (openEventAction, saveEventAction,
+                                prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
+        self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
         for action in (filterAction, filterEditAction, None, selectPAction,
