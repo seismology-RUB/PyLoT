@@ -243,12 +243,13 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
-        for action in (filterAction, filterEditAction, None, selectPAction,
-                       selectSAction, None, printAction):
-            if action is None:
-                self.editMenu.addSeparator()
-            else:
-                self.editMenu.addAction(action)
+        editActions = (filterAction, filterEditAction, None, selectPAction,
+                       selectSAction, None, printAction)
+        self.addMenuActions(self.editMenu, editActions)
+
+        self.helpMenu = self.menuBar().addMenu('&Help')
+        helpActions = (helpAction)
+        self.addMenuActions(self.helpMenu, helpActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
@@ -262,6 +263,13 @@ class MainWindow(QMainWindow):
         _layout.addWidget(self.DataPlot)
         _widget.setLayout(_layout)
         self.setCentralWidget(_widget)
+
+    def addMenuActions(self, menu, actions):
+        for action in (actions):
+            if action is None:
+                menu.addSeparator()
+            else:
+                menu.addAction(action)
 
     def okToContinue(self):
         if self.dirty:
