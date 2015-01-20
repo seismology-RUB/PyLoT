@@ -234,9 +234,6 @@ class MainWindow(QMainWindow):
                                         QIcon(":/printer.png"),
                                         "Print waveform overview.")
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (openEventAction, saveEventAction, None,
-                                prefsEventAction, None,
-                                quitAction)
         self.fileMenuActions = (openEventAction, saveEventAction,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
