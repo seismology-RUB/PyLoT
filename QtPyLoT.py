@@ -209,7 +209,8 @@ class MainWindow(QMainWindow):
                                             QKeySequence.Save, saveIcon,
                                             "Save actual event data.")
         prefsEventAction = self.createAction("Preferences", self.PyLoTprefs,
-                                               QKeySequence.Preferences, None,
+                                               QKeySequence.Preferences,
+                                               QIcon(None),
                                                "Edit PyLoT app preferences.")
         quitAction = self.createAction("&Quit",
                                        QCoreApplication.instance().quit,

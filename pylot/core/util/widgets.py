@@ -94,15 +94,36 @@ class PropertiesDlg(QDialog):
         self.connect(self.buttonBox, SIGNAL("rejected()"),
                      self, SLOT("reject()"))
 
+    def accept(self, *args, **kwargs):
+        self.apply()
+        self.destroy()
+
+    def reject(self, *args, **kwargs):
+        self.destroy()
+
     def apply(self):
-        settings = QSettings()
         for widint in range(self.tabWidget.count()):
             curwid = self.tabWidget.widget(widint)
-            values = self.getValues(curwid)
-            settings.setValue()
+            values = curwid.getValues()
+            if values is not None: self.setValues(values)
+
+    def setValues(self, tabValues):
+        settings = QSettings()
+        for setting, value in tabValues.iteritems():
+            settings.setValue(setting, value)
+        settings.sync()
 
 
-class InputsTab(QWidget):
+class PropTab(QWidget):
+
+    def __init__(self, parent=None):
+        super(PropTab, self).__init__(parent)
+
+    def getValues(self):
+        return None
+
+
+class InputsTab(PropTab):
 
     def __init__(self, parent):
         super(InputsTab, self).__init__(parent)
@@ -113,42 +134,61 @@ class InputsTab(QWidget):
 
         fullNameLabel = QLabel("Full name for user '{0}'".format(login))
 
-        parent.fullNameEdit = QLineEdit()
-        parent.fullNameEdit.setText(fulluser)
+        self.fullNameEdit = QLineEdit()
+        self.fullNameEdit.setText(fulluser)
 
         dataroot = settings.value("data/dataRoot")
         dataDirLabel = QLabel("data directory:")
-        parent.dataDirEdit = QLineEdit()
-        parent.dataDirEdit.setText(dataroot)
-        parent.dataDirEdit.selectAll()
+        self.dataDirEdit = QLineEdit()
+        self.dataDirEdit.setText(dataroot)
+        self.dataDirEdit.selectAll()
 
         layout = QGridLayout()
         layout.addWidget(dataDirLabel, 0, 0)
-        layout.addWidget(parent.dataDirEdit, 0, 1)
+        layout.addWidget(self.dataDirEdit, 0, 1)
         layout.addWidget(fullNameLabel, 1, 0)
-        layout.addWidget(parent.fullNameEdit, 1, 1)
+        layout.addWidget(self.fullNameEdit, 1, 1)
 
         self.setLayout(layout)
 
+    def getValues(self):
+        values = {}
+        values["data/dataRoot"] = self.dataDirEdit.text()
+        values["user/FullName"] = self.fullNameEdit.text()
+        return values
 
-class OutputsTab(QWidget):
+
+class OutputsTab(PropTab):
 
     def __init__(self, parent=None):
         super(OutputsTab, self).__init__(parent)
 
-        eventOutputLabel = QLabel("event ouput format")
-        eventOutputComboBox = QComboBox()
-        eventoutputformats = OUTPUTFORMATS.keys()
-        eventOutputComboBox.addItems(eventoutputformats)
+        settings = QSettings()
+        curval = settings.value("output/Format", None)
 
+        eventOutputLabel = QLabel("event ouput format")
+        self.eventOutputComboBox = QComboBox()
+        eventoutputformats = OUTPUTFORMATS.keys()
+        self.eventOutputComboBox.addItems(eventoutputformats)
+
+        if curval is None:
+            ind = 0
+        else:
+            ind = self.eventOutputComboBox.findText(curval)
+
+        self.eventOutputComboBox.setCurrentIndex(ind)
         layout = QGridLayout()
         layout.addWidget(eventOutputLabel, 0, 0)
-        layout.addWidget(eventOutputComboBox, 0, 1)
+        layout.addWidget(self.eventOutputComboBox, 0, 1)
 
         self.setLayout(layout)
 
+    def getValues(self):
+        values = {}
+        values["output/Format"] = self.eventOutputComboBox.currentText()
+        return values
 
-class PhasesTab(QWidget):
+class PhasesTab(PropTab):
 
     def __init__(self, parent=None):
         super(PhasesTab, self).__init__(parent)
@@ -156,7 +196,7 @@ class PhasesTab(QWidget):
         pass
 
 
-class GraphicsTab(QWidget):
+class GraphicsTab(PropTab):
 
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
