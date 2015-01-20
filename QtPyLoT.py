@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
+        helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         openEventAction = self.createAction("&Open event ...", self.loadData,
                                             QKeySequence.Open, openIcon,
                                             "Open an event.")
@@ -233,6 +234,11 @@ class MainWindow(QMainWindow):
                                         self.printEvent, QKeySequence.Print,
                                         QIcon(":/printer.png"),
                                         "Print waveform overview.")
+        helpAction = self.createAction("&Help ...", self.helpHelp,
+                                       QKeySequence.HelpContents, helpIcon,
+                                       """Show either the documentation
+                                       homepage (internet connection available),
+                                       or shipped documentation files.""")
         self.fileMenu = self.menuBar().addMenu('&File')
         self.fileMenuActions = (openEventAction, saveEventAction,
                                 prefsEventAction, quitAction)
