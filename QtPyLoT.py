@@ -254,6 +254,7 @@ class MainWindow(QMainWindow):
 
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction)
+        helpActions = (helpAction, )
         self.addMenuActions(self.helpMenu, helpActions)
 
         self.eventLabel = QLabel()
