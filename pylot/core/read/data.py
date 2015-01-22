@@ -30,9 +30,7 @@ class Data(object):
     def __init__(self, parent=None, evtdata=None):
         try:
             if parent:
-                self.wfdata = read(parent.fnames)
-            else:
-                self.wfdata = read()
+                self.wfdata = read(parent.getWFFnames())
         except IOError, e:
             msg = 'An I/O error occured while loading data!'
             inform = 'Variable wfdata will be empty.'
@@ -45,7 +43,7 @@ class Data(object):
                 warnio.setStandarButtons(QMessageBox.Ok)
                 warnio.setIcon(QMessageBox.Warning)
             else:
-                print msg, '\n', details
+                print msg, "\n", details
             self.wfdata = Stream()
         else:
             self.wfdata = Stream()
@@ -56,7 +54,7 @@ class Data(object):
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
         elif evtdata is not None:
-            cat = readMatPhases(evtdata)
+            cat = self.readMatPhases(evtdata)
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
@@ -78,6 +76,8 @@ class Data(object):
 
         if fnout is None:
             ID = self.evtdata.getEventID()
+        else:
+            ID = self.getID()
         # handle forbidden filenames especially on windows systems
         fnout = fnConstructor(ID)
 

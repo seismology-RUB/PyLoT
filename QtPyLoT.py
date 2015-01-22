@@ -39,6 +39,8 @@ from pylot.core.util import checkurl
 from pylot.core.util import FormatError
 from pylot.core.util import layoutStationButtons
 from pylot.core.util import (FilterOptionsDialog,
+                             NewEventDlg,
+                             createEvent,
                              MPLWidget,
                              PropertiesDlg,
                              HelpForm)
@@ -150,8 +152,9 @@ class MainWindow(QMainWindow):
                     filt = """Supported event formats (*.mat *.qml *.xml *.kor
                               *.evt)"""
                     caption = 'Select event to open'
-                    self.fname = QFileDialog().getOpenFileName(self, caption=caption,
-                                                          filter=filt)
+                    self.fname = QFileDialog().getOpenFileName(self,
+                                                               caption=caption,
+                                                               filter=filt)
                 else:
                     self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
@@ -161,6 +164,9 @@ class MainWindow(QMainWindow):
         if fname:
             self.fname = fname
             self.data = Data(evtdata=self.fname)
+
+    def getWFFnames(self):
+        pass
 
     def saveData(self):
         settings = QSettings()
@@ -202,6 +208,11 @@ class MainWindow(QMainWindow):
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
+        newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
+        newEventAction = self.createAction("&New event ...",
+                                           self.createNewEvent,
+                                           QKeySequence.New, newIcon,
+                                           "Create a new event.")
         openEventAction = self.createAction("&Open event ...", self.loadData,
                                             QKeySequence.Open, openIcon,
                                             "Open an event.")
@@ -242,7 +253,8 @@ class MainWindow(QMainWindow):
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (openEventAction, saveEventAction,
+        self.fileMenuActions = (newEventAction, openEventAction,
+                                saveEventAction, None,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -253,7 +265,6 @@ class MainWindow(QMainWindow):
         self.addMenuActions(self.editMenu, editActions)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
-        helpActions = (helpAction)
         helpActions = (helpAction, )
         self.addMenuActions(self.helpMenu, helpActions)
 
@@ -271,7 +282,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(_widget)
 
     def addMenuActions(self, menu, actions):
-        for action in (actions):
+        for action in actions:
             if action is None:
                 menu.addSeparator()
             else:
@@ -356,6 +367,14 @@ class MainWindow(QMainWindow):
 
     def printEvent(self):
         pass
+
+    def createNewEvent(self):
+        if self.okToContinue():
+            new = NewEventDlg()
+            if new.exec_():
+                evtpar = new.getValues()
+            self.data = Data(self, evtdata=createEvent(**evtpar))
+            self.dirty = True
 
     def closeEvent(self, event):
         if self.okToContinue():

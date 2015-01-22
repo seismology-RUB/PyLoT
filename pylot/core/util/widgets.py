@@ -5,6 +5,7 @@ Created on Wed Mar 19 11:27:35 2014
 @author: sebastianw
 """
 
+import datetime
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -15,6 +16,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from PySide.QtGui import (QAction,
                           QApplication,
                           QComboBox,
+                          QDateTimeEdit,
                           QDialog,
                           QDialogButtonBox,
                           QDoubleSpinBox,
@@ -203,6 +205,66 @@ class GraphicsTab(PropTab):
 
         pass
 
+
+class NewEventDlg(QDialog):
+    def __init__(self, parent=None, titleString="Create a new event"):
+        """
+        QDialog object utilized to create a new event manually.
+        """
+        super(NewEventDlg, self).__init__()
+
+        self.setupUI()
+
+        now = datetime.datetime.now()
+        self.eventTimeEdit.setDateTime(now)
+        # event dates in the future are forbidden
+        self.eventTimeEdit.setMaximumDateTime(now)
+
+        self.latEdit.setText("51.0000")
+        self.lonEdit.setText("7.0000")
+        self.depEdit.setText("10.0")
+
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def getValues(self):
+        if self.accepted():
+            return {'origintime' : self.eventTimeEdit.dateTime().toPyDateTime(),
+                    'latitude' : self.latEdit.text(),
+                    'longitude' : self.lonEdit.text(),
+                    'depth' : self.depEdit.text()}
+
+    def setupUI(self):
+
+        # create widget objects
+        timeLabel = QLabel()
+        timeLabel.setText("Select time: ")
+        self.eventTimeEdit = QDateTimeEdit()
+        latLabel = QLabel()
+        latLabel.setText("Latitude: ")
+        self.latEdit = QLineEdit()
+        lonLabel = QLabel()
+        lonLabel.setText("Longitude: ")
+        self.lonEdit = QLineEdit()
+        depLabel = QLabel()
+        depLabel.setText("Depth: ")
+        self.depEdit = QLineEdit()
+
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                          QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(timeLabel, 0, 0)
+        grid.addWidget(self.eventTimeEdit, 0, 1)
+        grid.addWidget(latLabel, 1, 0)
+        grid.addWidget(self.latEdit, 1, 1)
+        grid.addWidget(lonLabel, 2, 0)
+        grid.addWidget(self.lonEdit, 2, 1)
+        grid.addWidget(depLabel, 3, 0)
+        grid.addWidget(self.depEdit, 3, 1)
+        grid.addWidget(self.buttonBox, 4, 1)
+
+        self.setLayout(grid)
 
 class FilterOptionsDialog(QDialog):
 

@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-
+from obspy.core.event import *
 
 def fnConstructor(s):
 
@@ -17,3 +17,8 @@ def fnConstructor(s):
     if badsuffix.match(fn):
         fn = '_' + fn
     return fn
+
+def createEvent(origintime, latitude, longitude, depth, **kwargs):
+    evt = Event()
+
+
