@@ -371,10 +371,10 @@ class MainWindow(QMainWindow):
     def createNewEvent(self):
         if self.okToContinue():
             new = NewEventDlg()
-            if new.exec_():
+            if new.exec_() != QDialog.Rejected:
                 evtpar = new.getValues()
-            self.data = Data(self, evtdata=createEvent(**evtpar))
-            self.dirty = True
+                self.data = Data(self, evtdata=createEvent(**evtpar))
+                self.dirty = True
 
     def closeEvent(self, event):
         if self.okToContinue():
