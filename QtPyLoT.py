@@ -166,7 +166,20 @@ class MainWindow(QMainWindow):
             self.data = Data(evtdata=self.fname)
 
     def getWFFnames(self):
-        pass
+        try:
+            evt = self.getData().getEvtData()
+            if evt.picks:
+                for pick in evt.picks:
+                    if pick.waveform_id is not None:
+                        fname = pick.waveform_id.getSEEDstring()
+                        if fname not in self.fnames:
+                            self.fnames.append(fname)
+            else:
+                if self.dataStructure:
+                    searchPath = self.dataStructure.expandDataPath()
+        except:
+            return None
+
 
     def saveData(self):
         settings = QSettings()
@@ -177,7 +190,7 @@ class MainWindow(QMainWindow):
             return False
         return True
 
-    def getComponent(self):
+    def getDispComponent(self):
         return self
 
     def getData(self):
@@ -294,20 +307,20 @@ class MainWindow(QMainWindow):
         return True
 
     def plotData(self):
-        pass #self.data.plotData(self.DataPlot)
+        self.getData().plotData(self.getDataWidget())
 
     def filterData(self):
         if self.getData():
             kwargs = {}
-            freq = self.filteroptions.getFreq()
+            freq = self.getFilterOptions().getFreq()
             if len(freq) > 1:
                 kwargs['freqmin'] = freq[0]
                 kwargs['freqmax'] = freq[1]
             else:
                 kwargs['freq'] = freq
-            kwargs['type'] = self.filteroptions.getFilterType()
-            #kwargs['order'] = self.filteroptions.getOrder()
-            self.data.filter(**kwargs)
+            kwargs['type'] = self.getFilterOptions().getFilterType()
+            kwargs['corners'] = self.filteroptions.getOrder()
+            self.getData().filter(kwargs)
 
     def adjustFilterOptions(self):
         filteroptions = None

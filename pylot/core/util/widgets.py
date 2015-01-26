@@ -134,16 +134,26 @@ class InputsTab(PropTab):
         fulluser = settings.value("user/FullName")
         login = settings.value("user/Login")
 
-        fullNameLabel = QLabel("Full name for user '{0}'".format(login))
+        fullNameLabel = QLabel("Full name for user '{0}': ".format(login))
 
+        # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
         self.fullNameEdit.setText(fulluser)
 
+        # information about data structure
         dataroot = settings.value("data/dataRoot")
-        dataDirLabel = QLabel("data directory:")
+        dataDirLabel = QLabel("data root directory: ")
         self.dataDirEdit = QLineEdit()
         self.dataDirEdit.setText(dataroot)
         self.dataDirEdit.selectAll()
+        structureLabel = QLabel("data structure: ")
+        self.structureSelect = QComboBox()
+
+        from pylot.core.util.structure import DATASTRUCTURE
+
+        datastruct = DATASTRUCTURE.keys()
+        self.structureSelect.addItems(datastruct)
+        self.updateWidget(DATASTRUCTURE)
 
         layout = QGridLayout()
         layout.addWidget(dataDirLabel, 0, 0)
@@ -158,6 +168,13 @@ class InputsTab(PropTab):
         values["data/dataRoot"] = self.dataDirEdit.text()
         values["user/FullName"] = self.fullNameEdit.text()
         return values
+
+    def updateWidget(self, structure):
+        key = self.structureSelect.currentText()
+        structure = structure[key]
+        structure().getFields().keys()
+
+
 
 
 class OutputsTab(PropTab):

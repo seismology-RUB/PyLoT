@@ -94,8 +94,10 @@ class Data(object):
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
-        time_ax = np.arange(0, len(self.wfdata[0].data)/self.wfdata[0].stats.sampling_rate, self.wfdata[0].stats.delta)
-        widget.axes.plot(time_ax, self.wfdata[0].data)
+        wfst = self.getWFData()
+        time_ax = np.arange(0, len(wfst[0].data) / wfst[0].stats.sampling_rate,
+                            wfst[0].stats.delta)
+        widget.axes.plot(time_ax, wfst[0].data)
 
     def getID(self):
         try:
@@ -103,12 +105,22 @@ class Data(object):
         except:
             return 'smi:bug/pylot/1234'
 
+    def filter(self, kwargs):
+        self.getWFData().filter(**kwargs)
+
+    def getWFData(self):
+        return self.wfdata
+
+    def getEvtData(self):
+        return self.evtdata
+
 
 class GenericDataStructure(object):
     '''
     GenericDataBase type holds all information about the current data-
     base working on.
     '''
+
     def __init__(self, stexp=None, folderdepth=4, **kwargs):
         structExpression = []
         depth = 0
@@ -130,6 +142,53 @@ class GenericDataStructure(object):
         self.dataBaseDict = {}
 
 
+class PilotDataStructure(object):
+    '''
+    Object containing the data access information for the old PILOT data
+    structure.
+    '''
+
+    def __init__(self, dataformat='GSE2', fsuffix='gse',
+                 root='/data/Egelados/EVENT_DATA/LOCAL/', database='2006.01',
+                 **kwargs):
+        self.dataType = dataformat
+        self.__pdsFields = {'ROOT': root,
+                          'DATABASE': database,
+                          'SUFFIX': fsuffix
+        }
+
+        self.modifiyFields(**kwargs)
+
+    def modifiyFields(self, **kwargs):
+        if kwargs and isinstance(kwargs, dict):
+            for key, value in kwargs.iteritems():
+                key = str(key)
+                if type(value) not in (str, int, float):
+                    for n, val in enumerate(value):
+                        value[n] = str(val)
+                else:
+                    value = str(value)
+                try:
+                    if key in self.getFields().keys():
+                        self.getFields()[key] = value
+                    else:
+                        raise KeyError('unknown PDS wildcard: %s.' % key)
+                except KeyError, e:
+                    errmsg = ''
+                    errmsg += 'WARNING:\n'
+                    errmsg += 'unable to set values for PDS fields\n'
+                    errmsg += '%s; desired value was: %s\n' % (e, value)
+                    print errmsg
+
+    def getType(self):
+        return self.dataType
+
+    def getFields(self):
+        return self.__pdsFields
+
+    def expandDataPath(self):
+        return
+
 class SeiscompDataStructure(object):
     '''
     Dictionary containing the data access information for an SDS data archive:
@@ -142,13 +201,13 @@ class SeiscompDataStructure(object):
 
     # Data type options
     __typeOptions = {'waveform': 'D',  # Waveform data
-                          'detect': 'E',  # Detection data
-                          'log': 'L',  # Log data
-                          'timing': 'T',  # Timing data
-                          'calib': 'C',  # Calibration data
-                          'resp': 'R',  # Response data
-                          'opaque': 'O'  # Opaque data
-                          }
+                     'detect': 'E',  # Detection data
+                     'log': 'L',  # Log data
+                     'timing': 'T',  # Timing data
+                     'calib': 'C',  # Calibration data
+                     'resp': 'R',  # Response data
+                     'opaque': 'O'  # Opaque data
+    }
 
     def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
         # imports
@@ -174,8 +233,8 @@ class SeiscompDataStructure(object):
         if not edate.year == sdate.year:
             nyears = edate.year - sdate.year
             for yr in range(nyears):
-                year += '{0:04d},'.format(sdate.year+yr)
-            year = '{'+year[:-1]+'}'
+                year += '{0:04d},'.format(sdate.year + yr)
+            year = '{' + year[:-1] + '}'
         else:
             year = '{0:04d}'.format(sdate.year)
 
@@ -198,7 +257,7 @@ class SeiscompDataStructure(object):
                             'TYPE': self.getType(),  # 1 character
                             'LOC': '',  # up to 8 characters
                             'DAY': '{0:03d}'.format(sdate.julday)  # 3 digits
-                            }
+        }
         self.modifiyFields(**kwargs)
 
     def modifiyFields(self, **kwargs):
@@ -211,8 +270,8 @@ class SeiscompDataStructure(object):
                 else:
                     value = str(value)
                 try:
-                    if key in self.getSDSFields().keys():
-                        self.getSDSFields()[key] = value
+                    if key in self.getFields().keys():
+                        self.getFields()[key] = value
                     else:
                         raise KeyError('unknown SDS wildcard: %s.' % key)
                 except KeyError, e:
@@ -225,7 +284,7 @@ class SeiscompDataStructure(object):
     def getType(self):
         return self.__typeOptions[self.dataType]
 
-    def getSDSFields(self):
+    def getFields(self):
         return self.__sdsFields
 
     def expandDataPath(self):
@@ -236,5 +295,5 @@ class SeiscompDataStructure(object):
                                 self.getSDSFields()['STA'],
                                 fullChan,
                                 '*{0}'.format(self.getSDSFields()['DAY'])
-                                )
+        )
         return dataPath
