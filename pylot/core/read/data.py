@@ -187,7 +187,10 @@ class PilotDataStructure(object):
         return self.__pdsFields
 
     def expandDataPath(self):
-        return
+        datapath = os.path.join(self.getFields()['ROOT'],
+                                self.getFields()['DATABASE'],
+                                "*{0}".format(self.getFields()['SUFFIX']))
+        return datapath
 
 class SeiscompDataStructure(object):
     '''
