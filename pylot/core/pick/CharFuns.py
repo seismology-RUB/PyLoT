@@ -155,7 +155,7 @@ class CharacteristicFunction(object):
                    stop = self.cut[1] / self.dt
                 zz = self.orig_data.copy()
                 z1 = zz[0].copy()
-                zz[0].data = z1.data[start:stop]
+                zz[0].data = z1.data[int(start):int(stop)]
                 data = zz
                 return data
             elif len(self.orig_data) == 2:
@@ -171,8 +171,8 @@ class CharacteristicFunction(object):
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
-                hh[0].data = h1.data[start:stop]
-                hh[1].data = h2.data[start:stop]
+                hh[0].data = h1.data[int(start):int(stop)]
+                hh[1].data = h2.data[int(start):int(stop)]
                 data = hh 
                 return data
             elif len(self.orig_data) == 3:
@@ -189,9 +189,9 @@ class CharacteristicFunction(object):
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
                 h3 = hh[2].copy()
-                hh[0].data = h1.data[start:stop]
-                hh[1].data = h2.data[start:stop]
-                hh[2].data = h3.data[start:stop]
+                hh[0].data = h1.data[int(start):int(stop)]
+                hh[1].data = h2.data[int(start):int(stop)]
+                hh[2].data = h3.data[int(start):int(stop)]
                 data = hh 
                 return data
         else:
@@ -263,10 +263,9 @@ class HOScf(CharacteristicFunction):
 
         #Initialisation
         #t2: long term moving window
-        ilta = round(self.getTime2() / self.getIncrement())
+        ilta = int(round(self.getTime2() / self.getIncrement()))
         lta = y[0]
         lta1 = y1[0]
-
         #moving windows
         LTA = np.zeros(len(xnp))
         for j in range(0, len(xnp)):

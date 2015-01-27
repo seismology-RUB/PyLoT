@@ -17,7 +17,6 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 import numpy as np
 import matplotlib.pyplot as plt
 from pylot.core.pick.CharFuns import CharacteristicFunction
-import pdb
 
 class AutoPicking(object):
     '''
@@ -173,7 +172,7 @@ class PragPicker(AutoPicking):
 
            self.Pick = -1
            #smooth CF
-           ismooth = round(self.Tsmooth / self.dt);
+           ismooth = int(round(self.Tsmooth / self.dt))
            cfsmooth = np.zeros(len(self.cf))
            if len(self.cf) < ismooth:
               print 'PragPicker: Tsmooth larger than CF!'

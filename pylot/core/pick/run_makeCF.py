@@ -13,13 +13,12 @@ from CharFuns import *
 from Picker import *
 import glob
 import argparse
-import pdb
 
 def run_makeCF(project, database, event, iplot, station=None):
     #parameters for CF calculation
     t2 = 7              #length of moving window for HOS calculation [sec]
     p = 4               #order of statistics
-    cuttimes = [5, 40] #start and end time for CF calculation
+    cuttimes = [10, 40] #start and end time for CF calculation
     bpz = [2, 30]       #corner frequencies of bandpass filter, vertical component
     bph = [2, 15]       #corner frequencies of bandpass filter, horizontal components
     tdetz= 1.2          #length of AR-determination window [sec], vertical component
@@ -151,11 +150,11 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.figure()
              tr = st[0]
              tdata = np.arange(0, tr.stats.npts / tr.stats.sampling_rate, tr.stats.delta)
-             p1 = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
-             p2 = plt.plot(hoscf.getTimeArray(), hoscf.getCF() / max(hoscf.getCF()), 'r')
-             p3 = plt.plot(aiccf.getTimeArray(), aiccf.getCF()/max(aiccf.getCF()), 'b')
-             p4 = plt.plot(arzcf.getTimeArray(), arzcf.getCF()/max(arzcf.getCF()), 'g')
-             p5 = plt.plot(araiccf.getTimeArray(), araiccf.getCF()/max(araiccf.getCF()), 'y')
+             p1, = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
+             p2, = plt.plot(hoscf.getTimeArray(), hoscf.getCF() / max(hoscf.getCF()), 'r')
+             p3, = plt.plot(aiccf.getTimeArray(), aiccf.getCF()/max(aiccf.getCF()), 'b')
+             p4, = plt.plot(arzcf.getTimeArray(), arzcf.getCF()/max(arzcf.getCF()), 'g')
+             p5, = plt.plot(araiccf.getTimeArray(), araiccf.getCF()/max(araiccf.getCF()), 'y')
              plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [-1, -1], 'b')
@@ -176,14 +175,14 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.legend([p1, p2, p3, p4, p5], ['Data', 'HOS-CF', 'HOSAIC-CF', 'ARZ-CF', 'ARZAIC-CF']) 
              #plot horizontal traces
              plt.figure(2)
-             plt.subplot(211)
+             plt.subplot(2,1,1)
              tsteph = tpredh / 4 
              th1data = np.arange(0, trH1_filt.stats.npts / trH1_filt.stats.sampling_rate, trH1_filt.stats.delta)
              th2data = np.arange(0, trH2_filt.stats.npts / trH2_filt.stats.sampling_rate, trH2_filt.stats.delta)
              tarhcf = np.arange(0, len(arhcf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdeth +tpredh
-             p21 = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
-             p22 = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
-             p23 = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
+             p21, = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
+             p22, = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p23, = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [-1, -1], 'b')
@@ -192,7 +191,7 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
              plt.suptitle(trH1_filt.stats.starttime)
              plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF']) 
-             plt.subplot(212)
+             plt.subplot(2,1,2)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
              plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
@@ -205,22 +204,22 @@ def run_makeCF(project, database, event, iplot, station=None):
              #plot 3-component window
              plt.figure(3)
              tar3ccf = np.arange(0, len(ar3ccf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdetz +tpredz
-             plt.subplot(311)
-             p31 = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
-             p32 = plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.subplot(3,1,1)
+             p31, = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
+             p32, = plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
              plt.yticks([])
              plt.xticks([])
              plt.ylabel('Normalized Counts')
              plt.title([tr.stats.station, tr.stats.channel])
              plt.legend([p31, p32], ['Data', 'AR3C-CF']) 
-             plt.subplot(312)
+             plt.subplot(3,1,2)
              plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
              plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
              plt.yticks([])
              plt.xticks([])
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
-             plt.subplot(313)
+             plt.subplot(3,1,3)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
              plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
              plt.yticks([])
