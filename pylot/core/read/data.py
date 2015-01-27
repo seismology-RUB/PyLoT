@@ -288,12 +288,12 @@ class SeiscompDataStructure(object):
         return self.__sdsFields
 
     def expandDataPath(self):
-        fullChan = '{0}.{1}'.format(self.getSDSFields()['CHAN'], self.getType())
-        dataPath = os.path.join(self.getSDSFields()['SDSdir'],
-                                self.getSDSFields()['YEAR'],
-                                self.getSDSFields()['NET'],
-                                self.getSDSFields()['STA'],
+        fullChan = '{0}.{1}'.format(self.getFields()['CHAN'], self.getType())
+        dataPath = os.path.join(self.getFields()['SDSdir'],
+                                self.getFields()['YEAR'],
+                                self.getFields()['NET'],
+                                self.getFields()['STA'],
                                 fullChan,
-                                '*{0}'.format(self.getSDSFields()['DAY'])
+                                '*{0}'.format(self.getFields()['DAY'])
         )
         return dataPath
