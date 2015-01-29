@@ -64,18 +64,20 @@ class MainWindow(QMainWindow):
             settings.setValue("user/Login", os.getlogin())
             settings.sync()
         self.recentEvents = settings.value("data/recentEvents", [])
+        self.dataStructure = settings.value("data/structure", None)
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))
         if settings.value("data/dataRoot", None) is None:
-            dirname = QFileDialog().getExistingDirectory(caption = 'Choose data root ...')
+            dirname = QFileDialog().getExistingDirectory(
+                caption='Choose data root ...')
             settings.setValue("data/dataRoot", dirname)
             settings.sync()
 
         # initialize filter parameter
         filterOptionsP = FILTERDEFAULTS['P']
         filterOptionsS = FILTERDEFAULTS['S']
-        # print filterOptionsP, "\n", filterOptionsS
+
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
@@ -84,9 +86,9 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
-        # print self.filteroptions
         try:
-            self.startTime = min([tr.stats.starttime for tr in self.data.wfdata])
+            self.startTime = min(
+                [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
 
@@ -359,8 +361,8 @@ class MainWindow(QMainWindow):
         return self.filteroptions
 
     def setFilterOptions(self, filterOptions):
-        cases = {'P':self.filterOptionsP,
-                 'S':self.filterOptionsS}
+        cases = {'P': self.filterOptionsP,
+                 'S': self.filterOptionsS}
         cases[self.getSeismicPhase()] = filterOptions
         self.updateFilterOptions()
 
@@ -389,11 +391,13 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(message, 5000)
         if self.getData() is not None:
             if not self.getData().isNew():
-                self.setWindowTitle("PyLoT - processing event %s[*]" % self.getData().getID())
+                self.setWindowTitle(
+                    "PyLoT - processing event %s[*]" % self.getData().getID())
             elif self.getData().isNew():
                 self.setWindowTitle("PyLoT - New event [*]")
             else:
-                self.setWindowTitle("PyLoT - seismic processing the python way[*]")
+                self.setWindowTitle(
+                    "PyLoT - seismic processing the python way[*]")
         self.setWindowTitle("PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
@@ -422,7 +426,8 @@ class MainWindow(QMainWindow):
 
     def helpHelp(self):
         if checkurl():
-            form = HelpForm('https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+            form = HelpForm(
+                'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
             form = HelpForm(':/help.html')
         form.show()
@@ -444,6 +449,7 @@ def main():
     # Show main window and run the app
     pylot_form.show()
     pylot_app.exec_()
+
 
 if __name__ == "__main__":
     sys.exit(main())
