@@ -300,7 +300,7 @@ class MainWindow(QMainWindow):
         return True
 
     def getDispComponent(self):
-        return self
+        return self._compDisp
 
     def getData(self):
         return self.data
