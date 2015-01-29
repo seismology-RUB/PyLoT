@@ -267,16 +267,28 @@ class MainWindow(QMainWindow):
             evt = self.getData().getEvtData()
             if evt.picks:
                 for pick in evt.picks:
-                    if pick.waveform_id is not None:
-                        fname = pick.waveform_id.getSEEDstring()
-                        if fname not in self.fnames:
-                            self.fnames.append(fname)
+                    try:
+                        if pick.waveform_id is not None:
+                            fname = pick.waveform_id.getSEEDstring()
+                            if fname not in self.fnames:
+                                self.fnames.append(fname)
+                    except:
+                        continue
             else:
                 if self.dataStructure:
                     searchPath = self.dataStructure.expandDataPath()
-        except:
-            return None
-
+                    self.fnames = QFileDialog.getOpenFileNames(self,
+                                                               "Select waveform files:",
+                                                               dir=searchPath)
+                else:
+                    raise ValueError('dataStructure not specified')
+            return self.fnames
+        except ValueError:
+            props = PropertiesDlg(self)
+            if props.exec_() == QDialog.Accepted:
+                return self.getWFFnames()
+            else:
+                return
 
     def saveData(self):
         settings = QSettings()
@@ -307,6 +319,13 @@ class MainWindow(QMainWindow):
         if self.dirty:
             return self.saveData()
         return True
+
+    def openWaveformData(self):
+        if self.fnames and self.okToContinue():
+            self.dirty = True
+            self.data.wfdata = self.data.setWFData(self.fnames)
+        elif self.fnames is None and self.okToContinue():
+            self.data.setWFData(self.getWFFnames())
 
     def plotData(self):
         self.getData().plotData(self.getDataWidget())
