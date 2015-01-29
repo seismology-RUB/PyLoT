@@ -108,6 +108,10 @@ class Data(object):
     def filter(self, kwargs):
         self.getWFData().filter(**kwargs)
 
+    def setWFData(self, fnames):
+        for fname in fnames:
+            self.wfdata += read(fname)
+
     def getWFData(self):
         return self.wfdata
 
@@ -121,12 +125,13 @@ class GenericDataStructure(object):
     base working on.
     '''
 
-    def __init__(self, stexp=None, folderdepth=4, **kwargs):
+    def __init__(self, structexp='$R/$D/$E', folderdepth=2, **kwargs):
+        structureOptions = ('$R', '$D', '$E')
         structExpression = []
         depth = 0
-        while stexp is not os.path.sep:
+        while structexp is not os.path.sep:
             try:
-                [stexp, tlexp] = os.path.split(stexp)
+                [structexp, tlexp] = os.path.split(structexp)
             except AttributeError:
                 rootExpression = None
                 structExpression = None
@@ -139,8 +144,16 @@ class GenericDataStructure(object):
         structExpression.reverse()
 
         self.folderDepth = folderdepth
-        self.dataBaseDict = {}
+        self.__gdsFields = {'ROOT':rootExpression}
+        self.modifyFields(**kwargs)
 
+    def modifyFields(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            key = str(key).upper()
+            self.__gdsFields[key] = value
+
+    def getFields(self):
+        return self.__gdsFields
 
 class PilotDataStructure(object):
     '''
