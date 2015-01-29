@@ -92,8 +92,105 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-    def _getCurrentPlotType(self):
-        return 'TestType'
+    def setupUi(self):
+        self.setWindowIcon(QIcon(":/icon.ico"))
+
+        xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
+
+        _widget = QWidget()
+        _layout = QHBoxLayout()
+
+        # create central matplotlib figure widget
+        self.DataPlot = MPLWidget(parent=self,
+                                  xlabel=xlab,
+                                  ylabel=None,
+                                  title=plottitle)
+        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
+        _layout.addLayout(statsButtons)
+        _layout.addWidget(self.DataPlot)
+
+        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
+        saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
+        helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
+        newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
+        newEventAction = self.createAction("&New event ...",
+                                           self.createNewEvent,
+                                           QKeySequence.New, newIcon,
+                                           "Create a new event.")
+        openEventAction = self.createAction("&Open event ...", self.loadData,
+                                            QKeySequence.Open, openIcon,
+                                            "Open an event.")
+        openEventAction.setData(None)
+        saveEventAction = self.createAction("&Save event ...", self.saveData,
+                                            QKeySequence.Save, saveIcon,
+                                            "Save actual event data.")
+        openWFDataAction = self.createAction("Open &waveforms ...",
+                                             self.openWaveformData,
+                                             "Ctrl+W", QIcon(":/wfIcon.png"),
+                                             """Open waveform data (event will
+                                             be closed).""")
+
+        prefsEventAction = self.createAction("Preferences", self.PyLoTprefs,
+                                             QKeySequence.Preferences,
+                                             QIcon(None),
+                                             "Edit PyLoT app preferences.")
+        quitAction = self.createAction("&Quit",
+                                       QCoreApplication.instance().quit,
+                                       QKeySequence.Close, quitIcon,
+                                       "Close event and quit PyLoT")
+        filterAction = self.createAction("&Filter ...", self.filterData,
+                                         "Ctrl+F", QIcon(":/filter.png"),
+                                         """Toggle un-/filtered waveforms
+                                         to be displayed, according to the
+                                         desired seismic phase.""", True)
+        filterEditAction = self.createAction("&Filter parameter ...",
+                                             self.adjustFilterOptions,
+                                             "Alt+F", QIcon(None),
+                                             """Adjust filter parameters.""")
+        selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+                                          QIcon(":/picon.png"),
+                                          "Toggle P phase.", True)
+        selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+                                          QIcon(":/sicon.png"),
+                                          "Toggle S phase", True)
+        printAction = self.createAction("&Print event ...",
+                                        self.printEvent, QKeySequence.Print,
+                                        QIcon(":/printer.png"),
+                                        "Print waveform overview.")
+        helpAction = self.createAction("&Help ...", self.helpHelp,
+                                       QKeySequence.HelpContents, helpIcon,
+                                       """Show either the documentation
+                                       homepage (internet connection available),
+                                       or shipped documentation files.""")
+        self.fileMenu = self.menuBar().addMenu('&File')
+        self.fileMenuActions = (newEventAction, openEventAction,
+                                saveEventAction, openWFDataAction, None,
+                                prefsEventAction, quitAction)
+        self.fileMenu.aboutToShow.connect(self.updateFileMenu)
+        self.updateFileMenu()
+
+        self.editMenu = self.menuBar().addMenu('&Edit')
+        editActions = (filterAction, filterEditAction, None, selectPAction,
+                       selectSAction, None, printAction)
+        self.addMenuActions(self.editMenu, editActions)
+
+        self.helpMenu = self.menuBar().addMenu('&Help')
+        helpActions = (helpAction, )
+        self.addMenuActions(self.helpMenu, helpActions)
+
+        self.eventLabel = QLabel()
+        self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+        status = self.statusBar()
+        status.setSizeGripEnabled(False)
+        status.addPermanentWidget(self.eventLabel)
+        status.showMessage("Ready", 500)
+
+        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
+        _layout.addLayout(statsButtons)
+        _layout.addWidget(self.DataPlot)
+        _widget.setLayout(_layout)
+        self.setCentralWidget(_widget)
 
     def createAction(self, text, slot=None, shortcut=None, icon=None,
                      tip=None, checkable=False):
@@ -198,101 +295,6 @@ class MainWindow(QMainWindow):
 
     def getDataWidget(self):
         return self.DataPlot
-
-    def setupUi(self):
-        self.setWindowIcon(QIcon(":/icon.ico"))
-
-        xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
-        plottitle = self._getCurrentPlotType()
-
-        _widget = QWidget()
-        _layout = QHBoxLayout()
-
-        # create central matplotlib figure widget
-        self.DataPlot = MPLWidget(parent=self,
-                                  xlabel=xlab,
-                                  ylabel=None,
-                                  title=plottitle)
-        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
-        _layout.addLayout(statsButtons)
-        _layout.addWidget(self.DataPlot)
-
-        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
-        quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
-        saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
-        helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
-        newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
-        newEventAction = self.createAction("&New event ...",
-                                           self.createNewEvent,
-                                           QKeySequence.New, newIcon,
-                                           "Create a new event.")
-        openEventAction = self.createAction("&Open event ...", self.loadData,
-                                            QKeySequence.Open, openIcon,
-                                            "Open an event.")
-        openEventAction.setData(None)
-        saveEventAction = self.createAction("&Save event ...", self.saveData,
-                                            QKeySequence.Save, saveIcon,
-                                            "Save actual event data.")
-        prefsEventAction = self.createAction("Preferences", self.PyLoTprefs,
-                                               QKeySequence.Preferences,
-                                               QIcon(None),
-                                               "Edit PyLoT app preferences.")
-        quitAction = self.createAction("&Quit",
-                                       QCoreApplication.instance().quit,
-                                       QKeySequence.Close, quitIcon,
-                                       "Close event and quit PyLoT")
-        filterAction = self.createAction("&Filter ...", self.filterData,
-                                         "Ctrl+F", QIcon(":/filter.png"),
-                                         """Toggle un-/filtered waveforms 
-                                         to be displayed, according to the 
-                                         desired seismic phase.""", True)
-        filterEditAction = self.createAction("&Filter parameter ...",
-                                             self.adjustFilterOptions,
-                                             "Alt+F", QIcon(None),
-                                             """Adjust filter parameters.""")
-        selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
-                                          QIcon(":/picon.png"),
-                                          "Toggle P phase.", True)
-        selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
-                                          QIcon(":/sicon.png"),
-                                          "Toggle S phase", True)
-        printAction = self.createAction("&Print event ...",
-                                        self.printEvent, QKeySequence.Print,
-                                        QIcon(":/printer.png"),
-                                        "Print waveform overview.")
-        helpAction = self.createAction("&Help ...", self.helpHelp,
-                                       QKeySequence.HelpContents, helpIcon,
-                                       """Show either the documentation
-                                       homepage (internet connection available),
-                                       or shipped documentation files.""")
-        self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (newEventAction, openEventAction,
-                                saveEventAction, None,
-                                prefsEventAction, quitAction)
-        self.fileMenu.aboutToShow.connect(self.updateFileMenu)
-        self.updateFileMenu()
-
-        self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (filterAction, filterEditAction, None, selectPAction,
-                       selectSAction, None, printAction)
-        self.addMenuActions(self.editMenu, editActions)
-
-        self.helpMenu = self.menuBar().addMenu('&Help')
-        helpActions = (helpAction, )
-        self.addMenuActions(self.helpMenu, helpActions)
-
-        self.eventLabel = QLabel()
-        self.eventLabel.setFrameStyle(QFrame.StyledPanel|QFrame.Sunken)
-        status = self.statusBar()
-        status.setSizeGripEnabled(False)
-        status.addPermanentWidget(self.eventLabel)
-        status.showMessage("Ready", 500)
-
-        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
-        _layout.addLayout(statsButtons)
-        _layout.addWidget(self.DataPlot)
-        _widget.setLayout(_layout)
-        self.setCentralWidget(_widget)
 
     def addMenuActions(self, menu, actions):
         for action in actions:
