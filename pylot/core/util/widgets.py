@@ -53,10 +53,21 @@ class MPLWidget(FigureCanvas):
         self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
 
-        self.axes.set_xlabel(xlabel)
-        self.axes.set_ylabel(ylabel)
-        self.axes.set_title(title)
+        self.updateWidget(xlabel, ylabel, title)
 
+    def updateXLabel(self, text):
+        self.axes.set_xlabel(text)
+
+    def updateYLabel(self, text):
+        self.axes.set_ylabel(text)
+
+    def updateTitle(self, text):
+        self.axes.set_title(text)
+
+    def updateWidget(self, xlabel, ylabel, title):
+        self.updateXLabel(xlabel)
+        self.updateYLabel(ylabel)
+        self.updateTitle(title)
 
 class PickDlg(QDialog):
 
