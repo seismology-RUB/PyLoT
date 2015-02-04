@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))
+        self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
             dirname = QFileDialog().getExistingDirectory(
                 caption='Choose data root ...')
