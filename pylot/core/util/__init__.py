@@ -5,6 +5,8 @@ from pylot.core.util.errors import FormatError
 from pylot.core.util.layouts import layoutStationButtons
 from pylot.core.util.utils import fnConstructor
 from pylot.core.util.utils import createEvent
+from pylot.core.util.utils import getOwner
+from pylot.core.util.utils import createArrival
 from pylot.core.util.widgets import PickDlg
 from pylot.core.util.widgets import HelpForm
 from pylot.core.util.widgets import FilterOptionsDialog
