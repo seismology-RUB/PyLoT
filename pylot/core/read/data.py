@@ -4,7 +4,7 @@
 import os
 import numpy as np
 from PySide.QtGui import QMessageBox
-from obspy.core import (read, Stream)
+from obspy.core import (read, Stream, UTCDateTime)
 from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
 from pylot.core.util import fnConstructor
@@ -30,7 +30,10 @@ class Data(object):
     def __init__(self, parent=None, evtdata=None):
         try:
             if parent:
-                self.wfdata = read(parent.getWFFnames())
+                self.setWFData(parent.getWFFnames())
+                self.comp = parent.getComponent()
+            else:
+                self.comp = 'Z'
         except IOError, e:
             msg = 'An I/O error occured while loading data!'
             inform = 'Variable wfdata will be empty.'
@@ -50,15 +53,23 @@ class Data(object):
         self.newevent = False
         if evtdata is not None and isinstance(evtdata, Event):
             self.evtdata = evtdata
-        elif evtdata is not None and not evtdata.endswith('.mat'):
+        elif evtdata is not None and not isinstance(evtdata, dict):
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
         elif evtdata is not None:
-            cat = self.readMatPhases(evtdata)
+            cat = self.readPILOTEvent(**evtdata)
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
         self.orig = self.wfdata.copy()
+        min_start = UTCDateTime()
+        max_end = None
+        for trace in self.getWFData().select(component = self.getComp()):
+            if trace.stats.starttime < min_start:
+                min_start = trace.stats.starttime
+                if max_end is None or trace.stats.endtime > max_end:
+                    max_end = trace.stats.endtime
+        self.cuttimes = [min_start, max_end]
 
     def isNew(self):
         return self.newevent
@@ -94,10 +105,25 @@ class Data(object):
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
-        wfst = self.getWFData()
-        time_ax = np.arange(0, len(wfst[0].data) / wfst[0].stats.sampling_rate,
-                            wfst[0].stats.delta)
-        widget.axes.plot(time_ax, wfst[0].data)
+        wfst = self.getWFData().select(component = self.getComp())
+        for n, trace in enumerate(wfst):
+            stime = trace.stats.starttime - self.cuttimes[0]
+            etime = trace.stats.endtime - self.cuttimes[1]
+            srate = trace.stats.sampling_rate
+            nsamp = len(trace.data)
+            tincr = trace.stats.delta
+            time_ax = np.arange(stime, nsamp / srate, tincr)
+            trace.normalize()
+            widget.axes.plot(time_ax, trace.data + n, 'k')
+            xlabel = 'seconds since {0}'.format(self.cuttimes[0])
+            ylabel = ''
+            zne_text = {'Z':'vertical', 'N':'north-south', 'E':'east-west'}
+            title = 'overview: {0} components'.format(zne_text[self.getComp()])
+            widget.updateWidget(xlabel, ylabel, title)
+
+
+    def getComp(self):
+        return self.comp
 
     def getID(self):
         try:
@@ -109,6 +135,10 @@ class Data(object):
         self.getWFData().filter(**kwargs)
 
     def setWFData(self, fnames):
+        for fname in fnames:
+            self.wfdata += read(fname)
+
+    def appenWFData(self, fnames):
         for fname in fnames:
             self.wfdata += read(fname)
 

@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
         # initialize data
-        self.data = None
+        self.data = Data()
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
@@ -248,22 +248,23 @@ class MainWindow(QMainWindow):
 
     def loadData(self, fname=None):
         if fname is None:
-            action = self.sender()
-            if isinstance(action, QAction):
-                if action.data() is None:
-                    filt = """Supported event formats (*.mat *.qml *.xml *.kor
-                              *.evt)"""
-                    caption = 'Select event to open'
-                    self.fname = QFileDialog().getOpenFileName(self,
-                                                               caption=caption,
-                                                               filter=filt)
-                else:
-                    self.fname = unicode(action.data().toString())
+            try:
+                self.data = Data(evtdata=self.fname)
+            except AttributeError:
+                action = self.sender()
+                if isinstance(action, QAction):
+                    if action.data() is None:
+                        filt = """Supported event formats (*.mat *.qml *.xml
+                                  *.kor *.evt)"""
+                        caption = 'Select event to open'
+                        self.fname = QFileDialog().getOpenFileName(self,
+                                                           caption=caption,
+                                                           filter=filt)
+                    else:
+                        self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
                     return
-            else:
-                return
-        if fname:
+        else:
             self.fname = fname
             self.data = Data(evtdata=self.fname)
 
@@ -326,11 +327,16 @@ class MainWindow(QMainWindow):
         return True
 
     def openWaveformData(self):
-        if self.fnames and self.okToContinue():
-            self.dirty = True
-            self.data.wfdata = self.data.setWFData(self.fnames)
-        elif self.fnames is None and self.okToContinue():
-            self.data.setWFData(self.getWFFnames())
+        try:
+            if self.fnames and self.okToContinue():
+                self.dirty = True
+                self.data.wfdata = self.data.setWFData(self.fnames)
+            elif self.fnames is None and self.okToContinue():
+                self.data.setWFData(self.getWFFnames())
+        except AttributeError, e:
+            print (e)
+            self.getWFFnames()
+            self.openWaveformData()
 
     def plotData(self):
         self.getData().plotData(self.getDataWidget())
