@@ -103,6 +103,8 @@ class MainWindow(QMainWindow):
         _widget = QWidget()
         _layout = QHBoxLayout()
 
+        plottitle = "Overview: {0} components ".format(self.getComponent())
+
         # create central matplotlib figure widget
         self.DataPlot = MPLWidget(parent=self,
                                   xlabel=xlab,
@@ -302,8 +304,8 @@ class MainWindow(QMainWindow):
             return False
         return True
 
-    def getDispComponent(self):
-        return self._compDisp
+    def getComponent(self):
+        return self.dispComponent
 
     def getData(self):
         return self.data
