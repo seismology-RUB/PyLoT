@@ -115,6 +115,7 @@ def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
     event.creation_info = cinfo
     event.event_type = etype
     return event
+def createPick(picknum, picktime, eventnum, cinfo, phase, station, wfseedstr,
 
 
 def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
