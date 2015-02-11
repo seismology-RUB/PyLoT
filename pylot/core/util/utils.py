@@ -115,7 +115,6 @@ def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
     event.creation_info = cinfo
     event.event_type = etype
     return event
-def createPick(picknum, picktime, eventnum, cinfo, phase, station, wfseedstr,
 
 
 def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
@@ -211,20 +210,17 @@ def createMagnitude(originID, origintime, cinfo, authority_id=None):
     return magnitude
 
 
-def createAmplitude():
-    pass
-    amplID = 'corrampl/' + genID
-    amplresID = ResourceIdentifier(id=amplID)
-    amplresID.convertIDToQuakeMLURI(authority_id='BUG')
-    amplitude = Amplitude()
+def createAmplitude(pickID, amp, unit, category, origintime, cinfo,
+                    authority_id=None):
+    amplresID = createResourceID(origintime, 'ampl', authority_id)
+    amplitude = ope.Amplitude()
     amplitude.resource_id = amplresID
-    amplitude.creation_info = self.cinfo
-    amp = self.data[eventid][phase]['Amplitude'] * 1e-9
+    amplitude.creation_info = cinfo
     amplitude.generic_amplitude = amp
-    amplitude.unit = AmplitudeUnit('m/s')
-    amplitude.magnitude_hint = 'Ml'
-    amplitude.type = AmplitudeCategory('point')
-    amplitude.pick_id = pickresID
+    amplitude.unit = ope.AmplitudeUnit(unit)
+    amplitude.type = ope.AmplitudeCategory(category)
+    amplitude.pick_id = pickID
+    return amplitude
 
 
 def getOwner(fn):
