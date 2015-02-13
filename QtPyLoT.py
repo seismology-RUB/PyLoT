@@ -319,6 +319,9 @@ class MainWindow(QMainWindow):
             self.data.exportEvent(self.fname, exform)
         except FormatError:
             return False
+        except AttributeError:
+            fname, = QFileDialog.getSaveFileName(self, 'Save event')
+            self.data.exportEvent(fname, exform)
         return True
 
     def getComponent(self):
