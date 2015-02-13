@@ -85,11 +85,11 @@ class Data(object):
             raise FormatError(errmsg)
 
         if fnout is None:
-            ID = self.evtdata.getEventID()
-        else:
             ID = self.getID()
-        # handle forbidden filenames especially on windows systems
-        fnout = fnConstructor(ID)
+            # handle forbidden filenames especially on windows systems
+            fnout = fnConstructor(ID)
+        else:
+            fnout = fnConstructor(fnout)
 
         evtformat = evtformat.upper().strip()
 
