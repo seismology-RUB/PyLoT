@@ -30,7 +30,6 @@ class Data(object):
     def __init__(self, parent=None, evtdata=None):
         try:
             if parent:
-                self.setWFData(parent.getWFFnames())
                 self.comp = parent.getComponent()
             else:
                 self.comp = 'Z'
@@ -169,7 +168,7 @@ class GenericDataStructure(object):
             structExpression.append(tlexp)
             depth += 1
             if depth is folderdepth:
-                rootExpression = stexp
+                rootExpression = structexp
                 break
         structExpression.reverse()
 
