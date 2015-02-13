@@ -187,6 +187,9 @@ class GenericDataStructure(object):
     def getFields(self):
         return self.__gdsFields
 
+    def expandDataPath(self):
+        return os.path.join(*self.getFields().values())
+
 class PilotDataStructure(object):
     '''
     Object containing the data access information for the old PILOT data
