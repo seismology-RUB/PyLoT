@@ -100,7 +100,7 @@ class Data(object):
         try:
             cat.write(fnout + evtformat.lower(), format=evtformat)
         except KeyError, e:
-            raise KeyError('''{0} export format 
+            raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
