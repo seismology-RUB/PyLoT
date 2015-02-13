@@ -340,16 +340,12 @@ class MainWindow(QMainWindow):
         return True
 
     def openWaveformData(self):
-        try:
-            if self.fnames and self.okToContinue():
-                self.dirty = True
-                self.data.wfdata = self.data.setWFData(self.fnames)
-            elif self.fnames is None and self.okToContinue():
-                self.data.setWFData(self.getWFFnames())
-        except AttributeError, e:
-            print (e)
-            self.getWFFnames()
-            self.openWaveformData()
+        if self.fnames and self.okToContinue():
+            self.dirty = True
+            self.data.setWFData(self.fnames)
+        elif self.fnames is None and self.okToContinue():
+            self.data.setWFData(self.getWFFnames())
+        self.plotData()
 
     def plotData(self):
         self.getData().plotData(self.getDataWidget())
