@@ -134,8 +134,11 @@ class Data(object):
         self.getWFData().filter(**kwargs)
 
     def setWFData(self, fnames):
-        for fname in fnames:
-            self.wfdata += read(fname)
+        for fname in fnames[0]:
+            try:
+                self.wfdata += read(fname)
+            except TypeError:
+                self.wfdata += read(fname, format='GSE2')
 
     def appenWFData(self, fnames):
         for fname in fnames:
