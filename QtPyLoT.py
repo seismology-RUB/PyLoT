@@ -231,7 +231,7 @@ class MainWindow(QMainWindow):
             else:
                 self.fileMenu.addAction(action)
         try:
-            current = self.data.evtdata.getID()
+            current = self.data.getID()
         except AttributeError:
             current = None
         recentEvents = []
