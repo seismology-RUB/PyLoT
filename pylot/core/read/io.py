@@ -64,7 +64,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         minute = int(loc['mm'])
         second = int(loc['ss'])
 
-        if UTCDateTime(year=year + 2000) < UTCDateTime.utcnow():
+        if year + 2000 < UTCDateTime.utcnow().year:
             year += 2000
         else:
             year += 1900
@@ -83,13 +83,14 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
 
         origin = createOrigin(eventDate, loccinfo, lat, lon, dep, eventNum)
         for n, pick in enumerate(phases['Ptime']):
-            kwargs = {'year': int(pick[0]),
-                      'month': int(pick[1]),
-                      'day': int(pick[2]),
-                      'hour': int(pick[3]),
-                      'minute': int(pick[4]),
-                      'second': int(str(pick[5]).split('.')[0]),
-                      'microsecond': int(str(pick[5]).split('.')[1][0:6])}
+            if pick[0] > 0:
+                kwargs = {'year': int(pick[0]),
+                          'month': int(pick[1]),
+                          'day': int(pick[2]),
+                          'hour': int(pick[3]),
+                          'minute': int(pick[4]),
+                          'second': int(str(pick[5]).split('.')[0]),
+                          'microsecond': int(str(pick[5]).split('.')[1][0:6])}
             spick = phases['Stime'][n]
             if spick[0] > 0:
                 skwargs = {'year': int(spick[0]),
@@ -105,24 +106,24 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
             ppicktime = UTCDateTime(**kwargs)
 
             for picktime, phase in [(ppicktime, 'P'), (spicktime, 'S')]:
-                if phase == 'P':
-                    wffn = os.path.join([sdir, '{0}*{1}*'.format(stations[n],
-                                                                 'z')])
-                else:
-                    wffn = os.path.join([sdir, '{0}*{1}*'.format(stations[n],
-                                                                 '[ne]')])
+                if picktime is not None:
+                    if phase == 'P':
+                        wffn = os.path.join(sdir, '{0}*{1}*'.format(
+                            stations[n].strip(), 'z'))
+                    else:
+                        wffn = os.path.join(sdir, '{0}*{1}*'.format(
+                            stations[n].strip(), '[ne]'))
+                print wffn
                 pick = createPick(eventDate, np, picktime, eventNum, pickcinfo,
-                                  phase,
-                                  stat[n], wffn, authority_id)
+                                  phase, stations[n], wffn, authority_id)
                 event.picks.append(pick)
-                pickID = pick.get('resource_id')
-                arrival = createArrival(pickID, eventNum, pickcinfo, phase,
-                                        stat[n], authority_id)
+                pickID = pick.get('id')
+                arrival = createArrival(eventDate, pickID, eventNum, pickcinfo,
+                                        phase, stations[n], authority_id)
                 origin.arrivals.append(arrival)
                 np += 1
 
-        magnitude = createMagnitude(origin.get('resource_id'), eventDate,
-                                    loccinfo,
+        magnitude = createMagnitude(origin.get('id'), eventDate, loccinfo,
                                     authority_id)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
@@ -130,10 +131,10 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         event.picks.append(pick)
         event.origins.append(origin)
         event.magnitudes.append(magnitude)
+        return event
 
     except AttributeError, e:
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
-
 
 
