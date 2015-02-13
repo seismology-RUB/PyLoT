@@ -239,6 +239,10 @@ class MainWindow(QMainWindow):
             fname = fnConstructor(eventID)
             if eventID != current and QFile.exists(fname):
                 recentEvents.append(eventID)
+                recentEvents.reverse()
+                self.recentEvents = recentEvents[0:5]
+                settings = QSettings()
+                settings.setValue()
         if recentEvents:
             for i, eventID in enumerate(recentEvents):
                 fname = fnConstructor(eventID)
