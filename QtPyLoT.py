@@ -279,6 +279,9 @@ class MainWindow(QMainWindow):
             self.fname = fname
             self.data = Data(evtdata=self.fname)
 
+    def getLastEvent(self):
+        return self.recentEvents[0]
+
     def getWFFnames(self):
         try:
             evt = self.getData().getEvtData()
