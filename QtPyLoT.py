@@ -266,12 +266,11 @@ class MainWindow(QMainWindow):
                 action = self.sender()
                 if isinstance(action, QAction):
                     if action.data() is None:
-                        filt = """Supported event formats (*.mat *.qml *.xml
-                                  *.kor *.evt)"""
+                        filt = """Supported event formats (*.mat *.qml *.xml *.kor *.evt)"""
                         caption = 'Select event to open'
                         self.fname = QFileDialog().getOpenFileName(self,
-                                                           caption=caption,
-                                                           filter=filt)
+                                                                   caption=caption,
+                                                                   filter=filt)
                     else:
                         self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
@@ -295,9 +294,11 @@ class MainWindow(QMainWindow):
             else:
                 if self.dataStructure:
                     searchPath = self.dataStructure.expandDataPath()
-                    self.fnames = QFileDialog.getOpenFileNames(self,
-                                                               "Select waveform files:",
-                                                               dir=searchPath)
+                    fnames, = QFileDialog.getOpenFileNames(self,
+                                                           "Select waveform files:",
+                                                           dir=searchPath)
+                    self.fnames = fnames
+
                 else:
                     raise ValueError('dataStructure not specified')
             return self.fnames
