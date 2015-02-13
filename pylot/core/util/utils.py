@@ -153,8 +153,8 @@ def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
     return pick
 
 
-def createArrival(pickresID, eventnum, cinfo, phase, station, authority_id,
-                  azimuth=None, dist=None):
+def createArrival(origintime, pickresID, eventnum, cinfo, phase, station,
+                  authority_id, azimuth=None, dist=None):
     '''
     createArrival - function to create an Obspy Arrival
     :param pickresID: Resource identifier of the created pick
@@ -177,9 +177,7 @@ def createArrival(pickresID, eventnum, cinfo, phase, station, authority_id,
     :type dist: float or int, optional
     :return: An ObsPy :class: `~obspy.core.event.Arrival` object
     '''
-    arriID = 'arrival/' + eventnum + '/' + station + '/{0}'.format(phase)
-    arriresID = ope.ResourceIdentifier(id=arriID)
-    arriresID.convertIDToQuakeMLURI(authority_id=authority_id)
+    arriresID = createResourceID(origintime, 'arrival', authority_id, eventnum)
     arrival = ope.Arrival()
     arrival.resource_id = arriresID
     arrival.creation_info = cinfo
