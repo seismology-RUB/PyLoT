@@ -52,12 +52,12 @@ __version__ = _getVersionString()
 
 
 class MainWindow(QMainWindow):
-
     closing = Signal()
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        self.dirty = False
         settings = QSettings()
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
             settings.setValue("user/Login", os.getlogin())
             settings.sync()
         self.recentEvents = settings.value("data/recentEvents", [])
+        self.fnames = None
         self.dataStructure = DATASTRUCTURE[
             settings.value("data/Structure", None)]()
         self.setWindowTitle("PyLoT - do seismic processing the python way")
