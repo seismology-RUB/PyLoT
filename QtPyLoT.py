@@ -44,6 +44,7 @@ from pylot.core.util import (FilterOptionsDialog,
                              MPLWidget,
                              PropertiesDlg,
                              HelpForm)
+from pylot.core.util.structure import DATASTRUCTURE
 
 
 # Version information
@@ -64,7 +65,8 @@ class MainWindow(QMainWindow):
             settings.setValue("user/Login", os.getlogin())
             settings.sync()
         self.recentEvents = settings.value("data/recentEvents", [])
-        self.dataStructure = settings.value("data/structure", None)
+        self.dataStructure = DATASTRUCTURE[
+            settings.value("data/Structure", None)]()
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))

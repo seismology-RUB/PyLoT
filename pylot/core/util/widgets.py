@@ -162,15 +162,15 @@ class InputsTab(PropTab):
 
         from pylot.core.util.structure import DATASTRUCTURE
 
-        datastruct = DATASTRUCTURE.keys()
-        self.structureSelect.addItems(datastruct)
-        self.updateWidget(DATASTRUCTURE)
+        self.structureSelect.addItems(DATASTRUCTURE.keys())
 
         layout = QGridLayout()
         layout.addWidget(dataDirLabel, 0, 0)
         layout.addWidget(self.dataDirEdit, 0, 1)
         layout.addWidget(fullNameLabel, 1, 0)
         layout.addWidget(self.fullNameEdit, 1, 1)
+        layout.addWidget(structureLabel, 2, 0)
+        layout.addWidget(self.structureSelect, 2, 1)
 
         self.setLayout(layout)
 
@@ -178,14 +178,8 @@ class InputsTab(PropTab):
         values = {}
         values["data/dataRoot"] = self.dataDirEdit.text()
         values["user/FullName"] = self.fullNameEdit.text()
+        values["data/Structure"] = self.structureSelect.currentText()
         return values
-
-    def updateWidget(self, structure):
-        key = self.structureSelect.currentText()
-        structure = structure[key]
-        structure().getFields().keys()
-
-
 
 
 class OutputsTab(PropTab):
@@ -351,7 +345,7 @@ class FilterOptionsDialog(QDialog):
 
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|
                                           QDialogButtonBox.Cancel)
-        
+
         grid = QGridLayout()
         grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
         grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
@@ -392,7 +386,7 @@ class FilterOptionsDialog(QDialog):
             freq.append(self.freqmaxSpinBox.value())
         self.filterOptions.freq = freq
         self.filterOptions.order = self.orderSpinBox.value()
-        
+
     def getFilterOptions(self):
         return self.filterOptions
 
