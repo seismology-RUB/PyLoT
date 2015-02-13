@@ -85,7 +85,12 @@ class MainWindow(QMainWindow):
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
         # initialize data
-        self.data = Data()
+        if self.recentEvents:
+            lastEvent = self.getLastEvent()
+            self.data = Data(self, lastEvent)
+        else:
+            self.data = Data(self)
+        self.openWaveformData()
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
