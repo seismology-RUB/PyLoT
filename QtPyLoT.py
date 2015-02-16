@@ -110,10 +110,8 @@ class MainWindow(QMainWindow):
 
         plottitle = "Overview: {0} components ".format(self.getComponent())
 
-        # create central matplotlib figure widget
-        self.DataPlot = MPLWidget(parent=self,
-                                  xlabel=xlab,
-                                  ylabel=None,
+        # create central matplotlib figure canvas widget
+        self.DataPlot = MPLWidget(parent=self, xlabel=xlab, ylabel=None,
                                   title=plottitle)
         statsButtons = layoutStationButtons(self.getData(), self.getComponent())
         _layout.addLayout(statsButtons)
@@ -297,7 +295,8 @@ class MainWindow(QMainWindow):
                 if self.dataStructure:
                     searchPath = self.dataStructure.expandDataPath()
                     fnames, = QFileDialog.getOpenFileNames(self,
-                                                           "Select waveform files:",
+                                                           "Select waveform "
+                                                           "files:",
                                                            dir=searchPath)
                     self.fnames = fnames
 
