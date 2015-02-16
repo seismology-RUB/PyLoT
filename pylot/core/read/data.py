@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 import numpy as np
-from PySide.QtGui import QMessageBox
 from obspy.core import (read, Stream, UTCDateTime)
 from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
-from pylot.core.util import fnConstructor
-from pylot.core.util.errors import FormatError
+
+from pylot.core.read import readPILOTEvent
+
+from pylot.core.util import fnConstructor, createEvent, FormatError
 
 
 class Data(object):
@@ -28,26 +30,10 @@ class Data(object):
     '''
 
     def __init__(self, parent=None, evtdata=None):
-        try:
-            if parent:
-                self.comp = parent.getComponent()
-            else:
-                self.comp = 'Z'
-        except IOError, e:
-            msg = 'An I/O error occured while loading data!'
-            inform = 'Variable wfdata will be empty.'
-            details = '{0}'.format(e)
-            if parent is not None:
-                warnio = QMessageBox(parent=parent)
-                warnio.setText(msg)
-                warnio.setDetailedText(details)
-                warnio.setInformativeText(inform)
-                warnio.setStandarButtons(QMessageBox.Ok)
-                warnio.setIcon(QMessageBox.Warning)
-            else:
-                print msg, "\n", details
-            self.wfdata = Stream()
+        if parent:
+            self.comp = parent.getComponent()
         else:
+            self.comp = 'Z'
             self.wfdata = Stream()
         self.newevent = False
         if evtdata is not None and isinstance(evtdata, Event):
@@ -56,25 +42,31 @@ class Data(object):
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
         elif evtdata is not None:
-            cat = self.readPILOTEvent(**evtdata)
+            cat = readPILOTEvent(**evtdata)
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
-        self.orig = self.wfdata.copy()
+        self.wforiginal = None
+        self.cuttimes = None
+        self.dirty = False
+
+    def isNew(self):
+        return self.newevent
+
+    def getCutTimes(self):
+        if self.cuttimes is None:
+            self.updateCutTimes()
+        return self.cuttimes
+
+    def updateCutTimes(self):
         min_start = UTCDateTime()
         max_end = None
-        for trace in self.getWFData().select(component = self.getComp()):
+        for trace in self.getWFData().select(component=self.getComp()):
             if trace.stats.starttime < min_start:
                 min_start = trace.stats.starttime
                 if max_end is None or trace.stats.endtime > max_end:
                     max_end = trace.stats.endtime
         self.cuttimes = [min_start, max_end]
-
-    def isNew(self):
-        return self.newevent
-
-    def readMatPhases(self, fname):
-        pass
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
@@ -95,7 +87,7 @@ class Data(object):
 
         # establish catalog object (event object has no write method)
         cat = Catalog()
-        cat.append(self.event)
+        cat.append(self.getEvtData())
         # try exporting event via ObsPy
         try:
             cat.write(fnout + evtformat.lower(), format=evtformat)
@@ -104,22 +96,21 @@ class Data(object):
                               not implemented: {1}'''.format(evtformat, e))
 
     def plotData(self, widget):
-        wfst = self.getWFData().select(component = self.getComp())
+        wfst = self.getWFData().select(component=self.getComp())
         for n, trace in enumerate(wfst):
-            stime = trace.stats.starttime - self.cuttimes[0]
-            etime = trace.stats.endtime - self.cuttimes[1]
+            stime = trace.stats.starttime - self.getCutTimes()[0]
+            etime = trace.stats.endtime - self.getCutTimes()[1]
             srate = trace.stats.sampling_rate
             nsamp = len(trace.data)
             tincr = trace.stats.delta
             time_ax = np.arange(stime, nsamp / srate, tincr)
             trace.normalize()
             widget.axes.plot(time_ax, trace.data + n, 'k')
-            xlabel = 'seconds since {0}'.format(self.cuttimes[0])
+            xlabel = 'seconds since {0}'.format(self.getCutTimes()[0])
             ylabel = ''
-            zne_text = {'Z':'vertical', 'N':'north-south', 'E':'east-west'}
+            zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
             title = 'overview: {0} components'.format(zne_text[self.getComp()])
             widget.updateWidget(xlabel, ylabel, title)
-
 
     def getComp(self):
         return self.comp
@@ -132,20 +123,34 @@ class Data(object):
 
     def filter(self, kwargs):
         self.getWFData().filter(**kwargs)
+        self.dirty = True
 
     def setWFData(self, fnames):
-        for fname in fnames[0]:
+        self.wfdata = Stream()
+        self.wforiginal = None
+        if fnames is not None:
+            self.appendWFData(fnames)
+        self.orig = self.getWFData().copy()
+        self.dirty = False
+
+    def appendWFData(self, fnames):
+        if self.dirty is not False:
+            self.resetWFData()
+        for fname in fnames:
             try:
                 self.wfdata += read(fname)
             except TypeError:
                 self.wfdata += read(fname, format='GSE2')
 
-    def appenWFData(self, fnames):
-        for fname in fnames:
-            self.wfdata += read(fname)
-
     def getWFData(self):
         return self.wfdata
+
+    def getOriginalWFData(self):
+        return self.wforiginal
+
+    def resetWFData(self):
+        self.wfdata = self.getOriginalWFData().copy()
+        self.dirty = False
 
     def getEvtData(self):
         return self.evtdata
@@ -176,7 +181,7 @@ class GenericDataStructure(object):
         structExpression.reverse()
 
         self.folderDepth = folderdepth
-        self.__gdsFields = {'ROOT':rootExpression}
+        self.__gdsFields = {'ROOT': rootExpression}
         self.modifyFields(**kwargs)
 
     def modifyFields(self, **kwargs):
@@ -190,6 +195,7 @@ class GenericDataStructure(object):
     def expandDataPath(self):
         return os.path.join(*self.getFields().values())
 
+
 class PilotDataStructure(object):
     '''
     Object containing the data access information for the old PILOT data
@@ -201,8 +207,8 @@ class PilotDataStructure(object):
                  **kwargs):
         self.dataType = dataformat
         self.__pdsFields = {'ROOT': root,
-                          'DATABASE': database,
-                          'SUFFIX': fsuffix
+                            'DATABASE': database,
+                            'SUFFIX': fsuffix
         }
 
         self.modifiyFields(**kwargs)
@@ -239,6 +245,7 @@ class PilotDataStructure(object):
                                 self.getFields()['DATABASE'],
                                 "*{0}".format(self.getFields()['SUFFIX']))
         return datapath
+
 
 class SeiscompDataStructure(object):
     '''

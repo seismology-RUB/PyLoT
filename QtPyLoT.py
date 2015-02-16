@@ -258,23 +258,25 @@ class MainWindow(QMainWindow):
     def loadData(self, fname=None):
         if fname is None:
             try:
-                self.data = Data(evtdata=self.fname)
+                self.data = Data(self, evtdata=self.fname)
             except AttributeError:
                 action = self.sender()
                 if isinstance(action, QAction):
                     if action.data() is None:
-                        filt = """Supported event formats (*.mat *.qml *.xml *.kor *.evt)"""
+                        filt = "Supported event formats (*.mat *.qml *.xml " \
+                               "*.kor *.evt)"
                         caption = 'Select event to open'
-                        self.fname = QFileDialog().getOpenFileName(self,
-                                                                   caption=caption,
-                                                                   filter=filt)
+                        fname, = QFileDialog().getOpenFileName(self,
+                                                               caption=caption,
+                                                               filter=filt)
+                        self.fname = fname
                     else:
                         self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
                     return
         else:
             self.fname = fname
-            self.data = Data(evtdata=self.fname)
+            self.data = Data(self, evtdata=self.fname)
 
     def getLastEvent(self):
         return self.recentEvents[0]
