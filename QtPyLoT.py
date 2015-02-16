@@ -26,25 +26,18 @@ https://www.iconfinder.com/iconsets/flavour
 import os
 import sys
 
-from PySide.QtCore import *
-from PySide.QtGui import *
-from obspy.core import (UTCDateTime)
+from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, QFileInfo
+from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
+    QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
+    QDialog, QErrorMessage, QApplication
+from obspy.core import UTCDateTime
 
-from pylot.core.util import _getVersionString
-from pylot.core.read import (Data,
-                             FilterOptions)
-from pylot.core.util import FILTERDEFAULTS
-from pylot.core.util import fnConstructor
-from pylot.core.util import checkurl
-from pylot.core.util import FormatError
-from pylot.core.util import layoutStationButtons
-from pylot.core.util import (FilterOptionsDialog,
-                             NewEventDlg,
-                             createEvent,
-                             MPLWidget,
-                             PropertiesDlg,
-                             HelpForm)
+from pylot.core.read import Data, FilterOptions
+from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
+    checkurl, FormatError, layoutStationButtons, FilterOptionsDialog, \
+    NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm
 from pylot.core.util.structure import DATASTRUCTURE
+
 
 
 # Version information
