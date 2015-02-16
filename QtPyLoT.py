@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
                                                    QFileInfo(fname).fileName()),
                                  self)
                 action.setData(fname)
-                self.connect(action, SIGNAL("triggered()"),
+                self.connect(action, Signal("triggered()"),
                              self.loadData)
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
