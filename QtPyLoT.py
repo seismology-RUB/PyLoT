@@ -78,13 +78,18 @@ class MainWindow(QMainWindow):
         self.filterOptionsP = FilterOptions(**filterOptionsP)
         self.filterOptionsS = FilterOptions(**filterOptionsS)
 
-        # initialize data
+        # UI has to be set up before(!) children widgets are
+        self.setupUi()
+
+        # initialize event data
         if self.recentEvents:
             lastEvent = self.getLastEvent()
             self.data = Data(self, lastEvent)
         else:
             self.data = Data(self)
-        self.openWaveformData()
+
+        # load and display waveform data
+        self.loadWaveformData()
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
@@ -94,7 +99,6 @@ class MainWindow(QMainWindow):
         except:
             self.startTime = UTCDateTime()
 
-        self.setupUi()
 
     def setupUi(self):
         self.setWindowIcon(QIcon(":/icon.ico"))
