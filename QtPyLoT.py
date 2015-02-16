@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
                                             QKeySequence.Save, saveIcon,
                                             "Save actual event data.")
         openWFDataAction = self.createAction("Open &waveforms ...",
-                                             self.openWaveformData,
+                                             self.loadWaveformData,
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
                                              """Open waveform data (event will
                                              be closed).""")
@@ -342,7 +342,7 @@ class MainWindow(QMainWindow):
             return self.saveData()
         return True
 
-    def openWaveformData(self):
+    def loadWaveformData(self):
         if self.fnames and self.okToContinue():
             self.dirty = True
             self.data.setWFData(self.fnames)
