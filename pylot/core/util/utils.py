@@ -118,8 +118,7 @@ def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
 
 
 def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
-               wfseedstr,
-               authority_id):
+               wfseedstr, authority_id):
     '''
     createPick - function to create an ObsPy Pick
 

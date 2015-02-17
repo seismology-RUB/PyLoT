@@ -35,7 +35,8 @@ from obspy.core import UTCDateTime
 from pylot.core.read import Data, FilterOptions
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     checkurl, FormatError, layoutStationButtons, FilterOptionsDialog, \
-    NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm
+    NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
+    DatastructureError
 from pylot.core.util.structure import DATASTRUCTURE
 
 
@@ -93,14 +94,17 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
+
+
+
+    def setupUi(self):
+
         try:
             self.startTime = min(
                 [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
 
-
-    def setupUi(self):
         self.setWindowIcon(QIcon(":/icon.ico"))
 
         xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
@@ -113,8 +117,7 @@ class MainWindow(QMainWindow):
         # create central matplotlib figure canvas widget
         self.DataPlot = MPLWidget(parent=self, xlabel=xlab, ylabel=None,
                                   title=plottitle)
-        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
-        _layout.addLayout(statsButtons)
+
         _layout.addWidget(self.DataPlot)
 
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -147,7 +150,7 @@ class MainWindow(QMainWindow):
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
-        filterAction = self.createAction("&Filter ...", self.filterData,
+        filterAction = self.createAction("&Filter ...", self.filterWaveformData,
                                          "Ctrl+F", QIcon(":/filter.png"),
                                          """Toggle un-/filtered waveforms
                                          to be displayed, according to the
@@ -194,9 +197,6 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 500)
 
-        statsButtons = layoutStationButtons(self.getData(), self.getComponent())
-        _layout.addLayout(statsButtons)
-        _layout.addWidget(self.DataPlot)
         _widget.setLayout(_layout)
         self.setCentralWidget(_widget)
 
@@ -294,16 +294,17 @@ class MainWindow(QMainWindow):
             else:
                 if self.dataStructure:
                     searchPath = self.dataStructure.expandDataPath()
-                    fnames, = QFileDialog.getOpenFileNames(self,
+                    fnames = QFileDialog.getOpenFileNames(self,
                                                            "Select waveform "
                                                            "files:",
                                                            dir=searchPath)
                     self.fnames = fnames
 
                 else:
-                    raise ValueError('dataStructure not specified')
+                    raise DatastructureError('not specified')
             return self.fnames
-        except ValueError:
+        except DatastructureError, e:
+            print e
             props = PropertiesDlg(self)
             if props.exec_() == QDialog.Accepted:
                 return self.getWFFnames()
@@ -349,12 +350,12 @@ class MainWindow(QMainWindow):
             self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
             self.data.setWFData(self.getWFFnames())
-        self.plotData()
+        self.plotWaveformData()
 
-    def plotData(self):
+    def plotWaveformData(self):
         self.getData().plotData(self.getDataWidget())
 
-    def filterData(self):
+    def filterWaveformData(self):
         if self.getData():
             kwargs = {}
             freq = self.getFilterOptions().getFreq()

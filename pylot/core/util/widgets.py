@@ -110,9 +110,7 @@ class PropertiesDlg(QDialog):
     def accept(self, *args, **kwargs):
         self.apply()
         self.destroy()
-
-    def reject(self, *args, **kwargs):
-        self.destroy()
+        return self.accepted
 
     def apply(self):
         for widint in range(self.tabWidget.count()):

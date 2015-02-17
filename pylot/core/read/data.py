@@ -242,8 +242,7 @@ class PilotDataStructure(object):
 
     def expandDataPath(self):
         datapath = os.path.join(self.getFields()['ROOT'],
-                                self.getFields()['DATABASE'],
-                                "*{0}".format(self.getFields()['SUFFIX']))
+                                self.getFields()['DATABASE'])
         return datapath
 
 

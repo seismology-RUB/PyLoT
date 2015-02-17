@@ -11,3 +11,6 @@ class OptionsError(Exception):
 
 class FormatError(Exception):
     pass
+
+class DatastructureError(Exception):
+    pass
