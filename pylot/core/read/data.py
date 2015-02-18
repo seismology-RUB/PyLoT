@@ -104,7 +104,7 @@ class Data(object):
             nsamp = len(trace.data)
             tincr = trace.stats.delta
             time_ax = np.arange(stime, nsamp / srate, tincr)
-            trace.normalize()
+            trace.normalize(trace.data.max() * 2)
             widget.axes.plot(time_ax, trace.data + n, 'k')
             xlabel = 'seconds since {0}'.format(self.getCutTimes()[0])
             ylabel = ''
