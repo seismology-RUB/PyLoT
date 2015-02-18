@@ -357,16 +357,23 @@ class MainWindow(QMainWindow):
 
     def filterWaveformData(self):
         if self.getData():
+            def hasfreq(kwargs):
+                for key in kwargs.keys():
+                    if not key.startswith('freq'):
+                        return True
+                return False
             kwargs = {}
             freq = self.getFilterOptions().getFreq()
-            if len(freq) > 1:
+            if freq is not None and len(freq) > 1:
                 kwargs['freqmin'] = freq[0]
                 kwargs['freqmax'] = freq[1]
-            else:
+            elif freq is not None and len(freq) == 1:
                 kwargs['freq'] = freq
-            kwargs['type'] = self.getFilterOptions().getFilterType()
-            kwargs['corners'] = self.filteroptions.getOrder()
-            self.getData().filter(kwargs)
+
+            if hasfreq(kwargs):
+                kwargs['type'] = self.getFilterOptions().getFilterType()
+                kwargs['corners'] = self.getFilterOptions().getOrder()
+                self.getData().filter(kwargs)
 
     def adjustFilterOptions(self):
         filteroptions = None
