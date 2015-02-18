@@ -298,7 +298,10 @@ class MainWindow(QMainWindow):
                                                            "Select waveform "
                                                            "files:",
                                                            dir=searchPath)
-                    self.fnames = fnames
+                    if isinstance(fnames[0], list):
+                        self.fnames = fnames[0]
+                    else:
+                        self.fnames = fnames
 
                 else:
                     raise DatastructureError('not specified')
@@ -319,7 +322,7 @@ class MainWindow(QMainWindow):
         except FormatError:
             return False
         except AttributeError:
-            fname, = QFileDialog.getSaveFileName(self, 'Save event')
+            fname = QFileDialog.getSaveFileName(self, 'Save event')
             self.data.exportEvent(fname, exform)
         return True
 
