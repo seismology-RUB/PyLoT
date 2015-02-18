@@ -307,7 +307,7 @@ class FilterOptionsDialog(QDialog):
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
         self.freqminSpinBox.setSuffix(' Hz')
-        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq[0])
+        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
         self.freqmaxLabel = QLabel()
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
@@ -315,7 +315,7 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
         if self.filterOptions.filterType in ['bandpass', 'bandstop']:
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq[1])
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
 
         typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
