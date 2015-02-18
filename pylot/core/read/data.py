@@ -366,6 +366,5 @@ class SeiscompDataStructure(object):
                                 self.getFields()['NET'],
                                 self.getFields()['STA'],
                                 fullChan,
-                                '*{0}'.format(self.getFields()['DAY'])
-        )
+                                '*{0}'.format(self.getFields()['DAY']))
         return dataPath
