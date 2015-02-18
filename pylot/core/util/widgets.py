@@ -52,6 +52,7 @@ class MPLWidget(FigureCanvas):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
+        self.axes.autoscale(tight=True)
 
         self.updateWidget(xlabel, ylabel, title)
 
