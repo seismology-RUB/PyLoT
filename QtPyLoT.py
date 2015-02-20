@@ -322,8 +322,10 @@ class MainWindow(QMainWindow):
             self.data.exportEvent(self.fname, exform)
         except FormatError:
             return False
-        except AttributeError:
+        except AttributeError, e:
+            print 'warning: {0}'.format(e)
             fname = QFileDialog.getSaveFileName(self, 'Save event')
+            fname = fname[0]
             self.data.exportEvent(fname, exform)
         return True
 
