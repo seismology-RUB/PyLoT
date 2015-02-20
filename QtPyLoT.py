@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
-        filterAction = self.createAction("&Filter ...", self.filterWaveformData,
+        self.filterAction = self.createAction("&Filter ...", self.filterWaveformData,
                                          "Ctrl+F", QIcon(":/filter.png"),
                                          """Toggle un-/filtered waveforms
                                          to be displayed, according to the
@@ -159,10 +159,10 @@ class MainWindow(QMainWindow):
                                              self.adjustFilterOptions,
                                              "Alt+F", QIcon(None),
                                              """Adjust filter parameters.""")
-        selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+        self.selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
                                           QIcon(":/picon.png"),
                                           "Toggle P phase.", True)
-        selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+        self.selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
                                           QIcon(":/sicon.png"),
                                           "Toggle S phase", True)
         printAction = self.createAction("&Print event ...",
@@ -182,8 +182,9 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (filterAction, filterEditAction, None, selectPAction,
-                       selectSAction, None, printAction)
+        editActions = (self.filterAction, filterEditAction, None,
+                       self.selectPAction, self.selectSAction, None,
+                       printAction)
         self.addMenuActions(self.editMenu, editActions)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
