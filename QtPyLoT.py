@@ -365,20 +365,21 @@ class MainWindow(QMainWindow):
                     if not key.startswith('freq'):
                         return True
                 return False
-            kwargs = {}
-            freq = self.getFilterOptions().getFreq()
-            if freq is not None and len(freq) > 1:
-                kwargs['freqmin'] = freq[0]
-                kwargs['freqmax'] = freq[1]
-            elif freq is not None and len(freq) == 1:
-                kwargs['freq'] = freq
-
-            if hasfreq(kwargs):
-                kwargs['type'] = self.getFilterOptions().getFilterType()
-                kwargs['corners'] = self.getFilterOptions().getOrder()
-                self.getData().filter(kwargs)
+            if self.filterAction.isChecked():
+                kwargs = {}
+                freq = self.getFilterOptions().getFreq()
+                if freq is not None and len(freq) > 1:
+                    kwargs['freqmin'] = freq[0]
+                    kwargs['freqmax'] = freq[1]
+                elif freq is not None and len(freq) == 1:
+                    kwargs['freq'] = freq
+                if hasfreq(kwargs):
+                    kwargs['type'] = self.getFilterOptions().getFilterType()
+                    kwargs['corners'] = self.getFilterOptions().getOrder()
                     self.getData().filterWFData(kwargs)
+            else:
                 self.getData().resetWFData()
+        self.plotWaveformData()
 
     def adjustFilterOptions(self):
         filteroptions = None
@@ -412,6 +413,8 @@ class MainWindow(QMainWindow):
             emsg.showMessage('Error: {0}'.format(e))
         else:
             self.updateStatus('Filter loaded ...')
+        if self.filterAction.isChecked():
+            self.filterWaveformData()
 
     def getSeismicPhase(self):
         return self.seismicPhase

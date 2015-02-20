@@ -130,18 +130,15 @@ class Data(object):
         self.wforiginal = None
         if fnames is not None:
             self.appendWFData(fnames)
-        self.orig = self.getWFData().copy()
+        self.wforiginal = self.getWFData().copy()
         self.dirty = False
 
     def appendWFData(self, fnames):
-
-        if self.dirty is not False:
-            self.resetWFData()
-
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
-                                         "but is actually".format(type(
-            fnames))
+                                         "but is actually".format(type(fnames))
+        if self.dirty:
+            self.resetWFData()
 
         warnmsg = ''
         for fname in fnames:
@@ -155,7 +152,6 @@ class Data(object):
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print warnmsg
-
 
     def getWFData(self):
         return self.wfdata
