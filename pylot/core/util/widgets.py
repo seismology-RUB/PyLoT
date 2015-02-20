@@ -314,7 +314,7 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
-        if self.filterOptions.filterType in ['bandpass', 'bandstop']:
+        if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
             self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
 
         typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
@@ -369,10 +369,10 @@ class FilterOptionsDialog(QDialog):
             self.freqmaxLabel.setEnabled(True)
             self.freqmaxSpinBox.setEnabled(True)
 
-        self.filterOptions.filterType = self.selectTypeCombo.currentText()
+        self.getFilterOptions().setFilterType(self.selectTypeCombo.currentText())
         freq = []
         freq.append(self.freqminSpinBox.value())
-        if self.filterOptions.filterType in ['bandpass', 'bandstop']:
+        if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
             if self.freqminSpinBox.value() > self.freqmaxSpinBox.value():
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "
@@ -382,8 +382,8 @@ class FilterOptionsDialog(QDialog):
                 self.freqmaxSpinBox.setFocus()
                 return
             freq.append(self.freqmaxSpinBox.value())
-        self.filterOptions.freq = freq
-        self.filterOptions.order = self.orderSpinBox.value()
+        self.getFilterOptions().setFreq(freq)
+        self.getFilterOptions().setOrder(self.orderSpinBox.value())
 
     def getFilterOptions(self):
         return self.filterOptions
