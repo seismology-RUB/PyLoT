@@ -299,10 +299,7 @@ class MainWindow(QMainWindow):
                                                            "Select waveform "
                                                            "files:",
                                                            dir=searchPath)
-                    if isinstance(fnames[0], list):
-                        self.fnames = fnames[0]
-                    else:
-                        self.fnames = fnames
+                    self.fnames = fnames[0]
 
                 else:
                     raise DatastructureError('not specified')
