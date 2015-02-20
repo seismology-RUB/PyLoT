@@ -95,7 +95,7 @@ class Data(object):
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
 
-    def plotData(self, widget):
+    def plotWFData(self, widget):
         wfst = self.getWFData().select(component=self.getComp())
         for n, trace in enumerate(wfst):
             stime = trace.stats.starttime - self.getCutTimes()[0]
@@ -121,7 +121,7 @@ class Data(object):
         except:
             return 'smi:bug/pylot/1234'
 
-    def filter(self, kwargs):
+    def filterWFData(self, kwargs):
         self.getWFData().filter(**kwargs)
         self.dirty = True
 

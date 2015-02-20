@@ -357,7 +357,7 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
 
     def plotWaveformData(self):
-        self.getData().plotData(self.getDataWidget())
+        self.getData().plotWFData(self.getDataWidget())
 
     def filterWaveformData(self):
         if self.getData():
@@ -378,6 +378,8 @@ class MainWindow(QMainWindow):
                 kwargs['type'] = self.getFilterOptions().getFilterType()
                 kwargs['corners'] = self.getFilterOptions().getOrder()
                 self.getData().filter(kwargs)
+                    self.getData().filterWFData(kwargs)
+                self.getData().resetWFData()
 
     def adjustFilterOptions(self):
         filteroptions = None
