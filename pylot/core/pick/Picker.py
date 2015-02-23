@@ -16,7 +16,9 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from pylot.core.pick.CharFuns import CharacteristicFunction
+from  CharFuns import *
+#from pylot.core.pick.CharFuns import CharacteristicFunction
+import pdb
 
 class AutoPicking(object):
     '''
@@ -52,7 +54,6 @@ class AutoPicking(object):
         '''
 
         assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
-        #wie kann man hier isinstance benutzen?
 
         self.cf = cf.getCF()
         self.Tcf = cf.getTimeArray()
@@ -142,7 +143,7 @@ class AICPicker(AutoPicking):
  
         print 'Get onset time (pick) from AIC-CF ...'
 
-        self.Pick = -1
+        self.Pick = None
         #taper AIC-CF to get rid off side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
@@ -155,7 +156,7 @@ class AICPicker(AutoPicking):
            if aic[i - 1] >= aic[i]:
               self.Pick = self.Tcf[i]
               break
-        if self.Pick == -1:
+        if self.Pick == None:
            print 'AICPicker: Could not find minimum, picking window too short?'
   
         return self.Pick
@@ -170,7 +171,7 @@ class PragPicker(AutoPicking):
         if self.getpick1() is not None:
            print 'Get onset time (pick) from HOS- or AR-CF using pragmatic picking algorithm ...'
 
-           self.Pick = -1
+           self.Pick = None 
            #smooth CF
            ismooth = int(round(self.Tsmooth / self.dt))
            cfsmooth = np.zeros(len(self.cf))
@@ -238,7 +239,7 @@ class PragPicker(AutoPicking):
                  self.Pick = pick_r
 
         else: 
-           self.Pick = -1
+           self.Pick = None
            print 'PragPicker: No initial onset time given! Check input!'
            return
 
