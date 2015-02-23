@@ -436,10 +436,8 @@ class MainWindow(QMainWindow):
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
-        self.setWindowTitle("PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
-        self.statusBar().showMessage(message, 5000)
 
     def printEvent(self):
         pass
