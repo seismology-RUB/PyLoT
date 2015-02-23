@@ -17,12 +17,13 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 import numpy as np
 from obspy.core import Stream
+import pdb
 
 class CharacteristicFunction(object):
     '''
     SuperClass for different types of characteristic functions.
     '''
-    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=0.001):
+    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None):
         '''
         Initialize data type object with information from the original
         Seismogram.
@@ -117,12 +118,12 @@ class CharacteristicFunction(object):
 
     def getTimeArray(self):
         if self.getTime1():
-           incr = self.getARdetStep()[0]
-           self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] \
-                           + self.getTime1() + self.getTime2()  
+           shift = self.getTime2()
         else:
-           incr = self.getIncrement()
-           self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0]  
+           shift = 0
+        incr = self.getIncrement()
+        self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] \
+                         + shift
         return self.TimeArray
 
     def getFnoise(self):
@@ -133,6 +134,9 @@ class CharacteristicFunction(object):
 
     def getCF(self):
         return self.cf
+
+    def getXCF(self):
+        return self.xcf
 
     def getDataArray(self, cut=None):
         '''
@@ -226,9 +230,8 @@ class AICcf(CharacteristicFunction):
         cumsumcf = np.cumsum(np.power(xnp, 2))
         i = np.where(cumsumcf == 0)
         cumsumcf[i] = np.finfo(np.float64).eps
-        cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) *
-                 np.log((cumsumcf[datlen - 1] -
-                        cumsumcf[k - 1]) / (datlen - k + 1)))
+        cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) * \
+                 np.log((cumsumcf[datlen - 1] - cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
         inf = np.isinf(cf)
         ff = np.where(inf == True)
@@ -236,6 +239,7 @@ class AICcf(CharacteristicFunction):
             cf[ff] = 0
 
         self.cf = cf - np.mean(cf)
+        self.xcf = xnp
 
 
 class HOScf(CharacteristicFunction):
@@ -287,6 +291,7 @@ class HOScf(CharacteristicFunction):
         if len(nn) > 1:
            LTA[nn] = 0
         self.cf = LTA
+        self.xcf = xnp
 
 
 class ARZcf(CharacteristicFunction):
@@ -308,24 +313,24 @@ class ARZcf(CharacteristicFunction):
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
 
-        cf = []
+        cf = np.zeros(len(xnp))
         loopstep = self.getARdetStep()
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
-            #determination of AR coefficients
-            self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
+        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+            if i == arcalci:
+                #determination of AR coefficients
+                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
+                arcalci = arcalci + loopstep[1]
             #AR prediction of waveform using calculated AR coefficients
             self.arPredZ(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            err = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
-            cf.append(err)
-        
-        #convert list to numpy array
-        cf = np.asarray(cf)
+            cf[i] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
         self.cf = cf
-
+        self.xcf = xnp
 
     def arDetZ(self, data, order, rind, ldet):
         '''
@@ -430,23 +435,25 @@ class ARHcf(CharacteristicFunction):
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
-        cf = []
+        cf = np.zeros(tend - lpred + 1)
         loopstep = self.getARdetStep()
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
-            self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
+        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+            if i == arcalci:
+                #determination of AR coefficients
+                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
+                arcalci = arcalci + loopstep[1]
             #AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            err = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
+            cf[i] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
             + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (2 * lpred))
-            cf.append(err)
-
-        #convert list to numpy array
-        cf = np.asarray(cf)
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
         self.cf = cf
+        self.xcf = xnp
 
     def arDetH(self, data, order, rind, ldet):
         '''
@@ -560,24 +567,27 @@ class AR3Ccf(CharacteristicFunction):
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
-        cf = []
+        cf = np.zeros(tend - lpred + 1)
         loopstep = self.getARdetStep()
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1, loopstep[1]):
-            self.arDet3C(Xnoise, self.getOrder(), i-ldet, i)
+        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+            if i == arcalci:
+                #determination of AR coefficients
+                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDet3C(Xnoise, self.getOrder(), i-ldet, i)
+                arcalci = arcalci + loopstep[1]
+
             #AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            err = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
+            cf[i] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
             + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
             + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (3 * lpred))
-            cf.append(err)
-
-        #convert list to numpy array
-        cf = np.asarray(cf)
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
         self.cf = cf
+        self.xcf = xnp
 
     def arDet3C(self, data, order, rind, ldet):
         '''
