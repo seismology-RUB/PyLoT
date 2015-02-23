@@ -412,7 +412,8 @@ class MainWindow(QMainWindow):
             emsg = QErrorMessage(self)
             emsg.showMessage('Error: {0}'.format(e))
         else:
-            self.updateStatus('Filter loaded ...')
+            self.updateStatus('Filter loaded ... '
+                              '[{0}: {1} Hz]'.format(self.getFilterOptions().getFilterType(), self.getFilterOptions().getFreq()))
         if self.filterAction.isChecked():
             self.filterWaveformData()
 
@@ -424,6 +425,8 @@ class MainWindow(QMainWindow):
 
     def setSeismicPhase(self, phase):
         self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
+        self.updateStatus('Seismic phase changed to '
+                          '{0}'.format(self.getSeismicPhase()))
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
