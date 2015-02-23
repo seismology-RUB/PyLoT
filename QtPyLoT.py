@@ -265,10 +265,10 @@ class MainWindow(QMainWindow):
                         filt = "Supported event formats (*.mat *.qml *.xml " \
                                "*.kor *.evt)"
                         caption = 'Select event to open'
-                        fname, = QFileDialog().getOpenFileName(self,
+                        fname = QFileDialog().getOpenFileName(self,
                                                                caption=caption,
                                                                filter=filt)
-                        self.fname = fname
+                        self.fname = fname[0]
                     else:
                         self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
