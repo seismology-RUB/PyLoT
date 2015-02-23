@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
-        filterAction = self.createAction("&Filter ...", self.filterWaveformData,
+        self.filterAction = self.createAction("&Filter ...", self.filterWaveformData,
                                          "Ctrl+F", QIcon(":/filter.png"),
                                          """Toggle un-/filtered waveforms
                                          to be displayed, according to the
@@ -159,10 +159,10 @@ class MainWindow(QMainWindow):
                                              self.adjustFilterOptions,
                                              "Alt+F", QIcon(None),
                                              """Adjust filter parameters.""")
-        selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+        self.selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
                                           QIcon(":/picon.png"),
                                           "Toggle P phase.", True)
-        selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+        self.selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
                                           QIcon(":/sicon.png"),
                                           "Toggle S phase", True)
         printAction = self.createAction("&Print event ...",
@@ -182,13 +182,24 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (filterAction, filterEditAction, None, selectPAction,
-                       selectSAction, None, printAction)
-        self.addMenuActions(self.editMenu, editActions)
+        editActions = (self.filterAction, filterEditAction, None,
+                       self.selectPAction, self.selectSAction, None,
+                       printAction)
+        self.addActions(self.editMenu, editActions)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction, )
-        self.addMenuActions(self.helpMenu, helpActions)
+        self.addActions(self.helpMenu, helpActions)
+
+        fileToolBar = self.addToolBar("FileTools")
+        fileToolActions = (newEventAction, openEventAction, saveEventAction)
+        fileToolBar.setObjectName("FileTools")
+        self.addActions(fileToolBar, fileToolActions)
+
+        phaseToolBar = self.addToolBar("PhaseTools")
+        phaseToolActions = (self.selectPAction, self.selectSAction)
+        phaseToolBar.setObjectName("PhaseTools")
+        self.addActions(phaseToolBar, phaseToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -264,10 +275,10 @@ class MainWindow(QMainWindow):
                         filt = "Supported event formats (*.mat *.qml *.xml " \
                                "*.kor *.evt)"
                         caption = 'Select event to open'
-                        fname, = QFileDialog().getOpenFileName(self,
+                        fname = QFileDialog().getOpenFileName(self,
                                                                caption=caption,
                                                                filter=filt)
-                        self.fname = fname
+                        self.fname = fname[0]
                     else:
                         self.fname = unicode(action.data().toString())
                 if not self.okToContinue():
@@ -298,7 +309,7 @@ class MainWindow(QMainWindow):
                                                            "Select waveform "
                                                            "files:",
                                                            dir=searchPath)
-                    self.fnames = fnames
+                    self.fnames = fnames[0]
 
                 else:
                     raise DatastructureError('not specified')
@@ -318,8 +329,10 @@ class MainWindow(QMainWindow):
             self.data.exportEvent(self.fname, exform)
         except FormatError:
             return False
-        except AttributeError:
-            fname, = QFileDialog.getSaveFileName(self, 'Save event')
+        except AttributeError, e:
+            print 'warning: {0}'.format(e)
+            fname = QFileDialog.getSaveFileName(self, 'Save event')
+            fname = fname[0]
             self.data.exportEvent(fname, exform)
         return True
 
@@ -332,12 +345,12 @@ class MainWindow(QMainWindow):
     def getDataWidget(self):
         return self.DataPlot
 
-    def addMenuActions(self, menu, actions):
+    def addActions(self, target, actions):
         for action in actions:
             if action is None:
-                menu.addSeparator()
+                target.addSeparator()
             else:
-                menu.addAction(action)
+                target.addAction(action)
 
     def okToContinue(self):
         if self.dirty:
@@ -353,20 +366,30 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
 
     def plotWaveformData(self):
-        self.getData().plotData(self.getDataWidget())
+        self.getData().plotWFData(self.getDataWidget())
 
     def filterWaveformData(self):
         if self.getData():
-            kwargs = {}
-            freq = self.getFilterOptions().getFreq()
-            if len(freq) > 1:
-                kwargs['freqmin'] = freq[0]
-                kwargs['freqmax'] = freq[1]
+            def hasfreq(kwargs):
+                for key in kwargs.keys():
+                    if not key.startswith('freq'):
+                        return True
+                return False
+            if self.filterAction.isChecked():
+                kwargs = {}
+                freq = self.getFilterOptions().getFreq()
+                if freq is not None and len(freq) > 1:
+                    kwargs['freqmin'] = freq[0]
+                    kwargs['freqmax'] = freq[1]
+                elif freq is not None and len(freq) == 1:
+                    kwargs['freq'] = freq
+                if hasfreq(kwargs):
+                    kwargs['type'] = self.getFilterOptions().getFilterType()
+                    kwargs['corners'] = self.getFilterOptions().getOrder()
+                    self.getData().filterWFData(kwargs)
             else:
-                kwargs['freq'] = freq
-            kwargs['type'] = self.getFilterOptions().getFilterType()
-            kwargs['corners'] = self.filteroptions.getOrder()
-            self.getData().filter(kwargs)
+                self.getData().resetWFData()
+        self.plotWaveformData()
 
     def adjustFilterOptions(self):
         filteroptions = None
@@ -399,7 +422,10 @@ class MainWindow(QMainWindow):
             emsg = QErrorMessage(self)
             emsg.showMessage('Error: {0}'.format(e))
         else:
-            self.updateStatus('Filter loaded ...')
+            self.updateStatus('Filter loaded ... '
+                              '[{0}: {1} Hz]'.format(self.getFilterOptions().getFilterType(), self.getFilterOptions().getFreq()))
+        if self.filterAction.isChecked():
+            self.filterWaveformData()
 
     def getSeismicPhase(self):
         return self.seismicPhase
@@ -409,6 +435,8 @@ class MainWindow(QMainWindow):
 
     def setSeismicPhase(self, phase):
         self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
+        self.updateStatus('Seismic phase changed to '
+                          '{0}'.format(self.getSeismicPhase()))
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
@@ -421,10 +449,8 @@ class MainWindow(QMainWindow):
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
-        self.setWindowTitle("PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
-        self.statusBar().showMessage(message, 5000)
 
     def printEvent(self):
         pass

@@ -95,7 +95,7 @@ class Data(object):
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
 
-    def plotData(self, widget):
+    def plotWFData(self, widget):
         wfst = self.getWFData().select(component=self.getComp())
         for n, trace in enumerate(wfst):
             stime = trace.stats.starttime - self.getCutTimes()[0]
@@ -104,7 +104,7 @@ class Data(object):
             nsamp = len(trace.data)
             tincr = trace.stats.delta
             time_ax = np.arange(stime, nsamp / srate, tincr)
-            trace.normalize()
+            trace.normalize(trace.data.max() * 2)
             widget.axes.plot(time_ax, trace.data + n, 'k')
             xlabel = 'seconds since {0}'.format(self.getCutTimes()[0])
             ylabel = ''
@@ -121,7 +121,7 @@ class Data(object):
         except:
             return 'smi:bug/pylot/1234'
 
-    def filter(self, kwargs):
+    def filterWFData(self, kwargs):
         self.getWFData().filter(**kwargs)
         self.dirty = True
 
@@ -130,17 +130,28 @@ class Data(object):
         self.wforiginal = None
         if fnames is not None:
             self.appendWFData(fnames)
-        self.orig = self.getWFData().copy()
+        self.wforiginal = self.getWFData().copy()
         self.dirty = False
 
     def appendWFData(self, fnames):
-        if self.dirty is not False:
+        assert isinstance(fnames, list), "input parameter 'fnames' is " \
+                                         "supposed to be of type 'list' " \
+                                         "but is actually".format(type(fnames))
+        if self.dirty:
             self.resetWFData()
+
+        warnmsg = ''
         for fname in fnames:
             try:
                 self.wfdata += read(fname)
             except TypeError:
-                self.wfdata += read(fname, format='GSE2')
+                try:
+                    self.wfdata += read(fname, format='GSE2')
+                except Exception:
+                    warnmsg += '{0}\n'.format(fname)
+        if warnmsg:
+            warnmsg = 'WARNING: unable to read\n' + warnmsg
+            print warnmsg
 
     def getWFData(self):
         return self.wfdata
@@ -351,6 +362,5 @@ class SeiscompDataStructure(object):
                                 self.getFields()['NET'],
                                 self.getFields()['STA'],
                                 fullChan,
-                                '*{0}'.format(self.getFields()['DAY'])
-        )
+                                '*{0}'.format(self.getFields()['DAY']))
         return dataPath
