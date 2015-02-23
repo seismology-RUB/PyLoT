@@ -185,11 +185,21 @@ class MainWindow(QMainWindow):
         editActions = (self.filterAction, filterEditAction, None,
                        self.selectPAction, self.selectSAction, None,
                        printAction)
-        self.addMenuActions(self.editMenu, editActions)
+        self.addActions(self.editMenu, editActions)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction, )
-        self.addMenuActions(self.helpMenu, helpActions)
+        self.addActions(self.helpMenu, helpActions)
+
+        fileToolBar = self.addToolBar("FileTools")
+        fileToolActions = (newEventAction, openEventAction, saveEventAction)
+        fileToolBar.setObjectName("FileTools")
+        self.addActions(fileToolBar, fileToolActions)
+
+        phaseToolBar = self.addToolBar("PhaseTools")
+        phaseToolActions = (self.selectPAction, self.selectSAction)
+        phaseToolBar.setObjectName("PhaseTools")
+        self.addActions(phaseToolBar, phaseToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
