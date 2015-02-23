@@ -335,12 +335,12 @@ class MainWindow(QMainWindow):
     def getDataWidget(self):
         return self.DataPlot
 
-    def addMenuActions(self, menu, actions):
+    def addActions(self, target, actions):
         for action in actions:
             if action is None:
-                menu.addSeparator()
+                target.addSeparator()
             else:
-                menu.addAction(action)
+                target.addAction(action)
 
     def okToContinue(self):
         if self.dirty:
