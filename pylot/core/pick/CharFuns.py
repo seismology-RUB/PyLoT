@@ -18,6 +18,7 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 import numpy as np
 from obspy.core import Stream
 import pdb
+import matplotlib.pyplot as plt
 
 class CharacteristicFunction(object):
     '''
@@ -117,13 +118,8 @@ class CharacteristicFunction(object):
         return self.dt
 
     def getTimeArray(self):
-        if self.getTime1():
-           shift = self.getTime2()
-        else:
-           shift = 0
         incr = self.getIncrement()
-        self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] \
-                         + shift
+        self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] 
         return self.TimeArray
 
     def getFnoise(self):
@@ -316,7 +312,7 @@ class ARZcf(CharacteristicFunction):
         cf = np.zeros(len(xnp))
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+        for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -325,7 +321,7 @@ class ARZcf(CharacteristicFunction):
             #AR prediction of waveform using calculated AR coefficients
             self.arPredZ(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            cf[i] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
+            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
@@ -438,7 +434,7 @@ class ARHcf(CharacteristicFunction):
         cf = np.zeros(tend - lpred + 1)
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+        for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -447,7 +443,7 @@ class ARHcf(CharacteristicFunction):
             #AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            cf[i] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
+            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
             + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (2 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
@@ -570,7 +566,7 @@ class AR3Ccf(CharacteristicFunction):
         cf = np.zeros(tend - lpred + 1)
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
-        for i in range(ldet + self.getOrder() - 1, tend - lpred + 1):
+        for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -580,7 +576,7 @@ class AR3Ccf(CharacteristicFunction):
             #AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            cf[i] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
+            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
             + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
             + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (3 * lpred))
         nn = np.isnan(cf)
