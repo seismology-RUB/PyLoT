@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-   Script to run autoPyLoT-script "makeCF.py".
+   Script to run PyLoT modules CharFuns.py and Picker.py.
    Only for test purposes!
 """
 
 from obspy.core import read 
 import matplotlib.pyplot as plt  
 import numpy as np
-from CharFuns import *
-from Picker import *
+from pylot.core.pick.CharFuns import CharacteristicFunction
+from pylot.core.pick.Picker import AutoPicking
 import glob
 import argparse
 
@@ -18,7 +18,7 @@ def run_makeCF(project, database, event, iplot, station=None):
     #parameters for CF calculation
     t2 = 7              #length of moving window for HOS calculation [sec]
     p = 4               #order of statistics
-    cuttimes = [10, 40] #start and end time for CF calculation
+    cuttimes = [10, 50] #start and end time for CF calculation
     bpz = [2, 30]       #corner frequencies of bandpass filter, vertical component
     bph = [2, 15]       #corner frequencies of bandpass filter, horizontal components
     tdetz= 1.2          #length of AR-determination window [sec], vertical component
@@ -30,16 +30,16 @@ def run_makeCF(project, database, event, iplot, station=None):
     arhorder = 4        #chosen order of AR process, horizontal components
     #get waveform data
     if station:
-       dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*EHZ.msd' % (project, database, event, station)
-       dpe = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*EHE.msd' % (project, database, event, station)
-       dpn = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*EHN.msd' % (project, database, event, station)
+       dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*HZ.msd' % (project, database, event, station)
+       dpe = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*HE.msd' % (project, database, event, station)
+       dpn = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*HN.msd' % (project, database, event, station)
        #dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*_z.gse' % (project, database, event, station)
        #dpe = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*_e.gse' % (project, database, event, station)
        #dpn = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*_n.gse' % (project, database, event, station)
     else:
-       dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*EHZ.msd' % (project, database, event)
-       dpe = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*EHE.msd' % (project, database, event)
-       dpn = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*EHN.msd' % (project, database, event)
+       dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*HZ.msd' % (project, database, event)
+       dpe = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*HE.msd' % (project, database, event)
+       dpn = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/*HN.msd' % (project, database, event)
     wfzfiles = glob.glob(dpz)
     wfefiles = glob.glob(dpe)
     wfnfiles = glob.glob(dpn)
@@ -63,13 +63,15 @@ def run_makeCF(project, database, event, iplot, station=None):
           tr_aic = tr_filt.copy()
           tr_aic.data = hoscf.getCF()
           st_copy[0].data = tr_aic.data
-          aiccf = AICcf(st_copy, cuttimes, t2) #instance of AICcf
+          aiccf = AICcf(st_copy, cuttimes) #instance of AICcf
           ##############################################################
           #get prelimenary onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
-          aicpick = AICPicker(aiccf, 2, 70, [1, 0.5, 0.2], 3)
+          aicpick = AICPicker(aiccf, None, [5, 0.5, 1], 3, 10, None, 0.1)
           ##############################################################
           #get refined onset time from HOS-CF using class Picker
-          hospick = PragPicker(hoscf, 2, 70, [1, 0.5, 0.2], 2, 0.001, 0.2, aicpick.getpick())
+          hospick = PragPicker(hoscf, None, [5, 0.5, 1], 2, 10, 0.001, 0.2, aicpick.getpick())
+          #get earliest and latest possible picks
+          hosELpick = EarlLatePicker(hoscf, 1.5, [5, 0.5, 1], None, 10, None, None, hospick.getpick())
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           #get stream object of filtered data
@@ -84,10 +86,12 @@ def run_makeCF(project, database, event, iplot, station=None):
           araiccf = AICcf(st_copy, cuttimes, tpredz, 0, tdetz) #instance of AICcf
           ##############################################################
           #get onset time from AIC-ARZ-CF using subclass AICPicker of class AutoPicking
-          aicarzpick = AICPicker(araiccf,  2, 70, [1, 0.5, 0.2], 2)
+          aicarzpick = AICPicker(araiccf, 1.5, [5, 0.5, 2], 2, 10, None, 0.1)
           ##############################################################
           #get refined onset time from ARZ-CF using class Picker
-          arzpick = PragPicker(arzcf, 2, 70, [1, 0.5, 0.2], 2, 0, 0.2, aicarzpick.getpick())
+          arzpick = PragPicker(arzcf, 1.5, [5, 0.5, 2], 2.0, 10, 0.1, 0.05, aicarzpick.getpick())
+          #get earliest and latest possible picks
+          arzELpick = EarlLatePicker(arzcf, 1.5, [5, 0.5, 1], None, 10, None, None, arzpick.getpick())
     elif not wfzfiles:
        print 'No vertical component data found!'
 
@@ -109,6 +113,7 @@ def run_makeCF(project, database, event, iplot, station=None):
           trH2_filt.taper(max_percentage=0.05, type='hann')
           H_copy[0].data = trH1_filt.data
           H_copy[1].data = trH2_filt.data
+
           ##############################################################
           #calculate ARH-CF using subclass ARHcf of class CharcteristicFunction
           arhcf = ARHcf(H_copy, cuttimes, tpredh, arhorder, tdeth, addnoise) #instance of ARHcf
@@ -122,8 +127,13 @@ def run_makeCF(project, database, event, iplot, station=None):
           arhaiccf = AICcf(H_copy, cuttimes, tpredh, 0, tdeth) #instance of AICcf
           ##############################################################
           #get onset time from AIC-ARH-CF using subclass AICPicker of class AutoPicking
-          aicarhpick = AICPicker(arhaiccf,  2, 70, [1, 0.5, 0.2], 2)
+          aicarhpick = AICPicker(arhaiccf, 1.5, [5, 0.5, 2], 4, 10, None, 0.1)
           ###############################################################
+          #get refined onset time from ARH-CF using class Picker
+          arhpick = PragPicker(arhcf, 1.5, [5, 0.5, 2], 2.5, 10, 0.1, 0.05, aicarhpick.getpick())
+          #get earliest and latest possible picks
+          arhELpick = EarlLatePicker(arhcf, 1.5, [5, 0.5, 1], None, 10, None, None, arhpick.getpick())
+
           #create stream with 3 traces
           #merge streams
           AllC = read('%s' % wfefiles[i])
@@ -144,6 +154,8 @@ def run_makeCF(project, database, event, iplot, station=None):
           AllC[2].data = All3_filt.data
           #calculate AR3C-CF using subclass AR3Ccf of class CharacteristicFunction
           ar3ccf = AR3Ccf(AllC, cuttimes, tpredz, arhorder, tdetz, addnoise) #instance of AR3Ccf
+          #get earliest and latest possible pick from initial ARH-pick
+          ar3cELpick = EarlLatePicker(ar3ccf, 1.5, [5, 0.5, 1], None, 10, None, None, arhpick.getpick())
           ##############################################################
           if iplot:
              #plot vertical trace
@@ -158,16 +170,21 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'b--')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicpick.getpick()-0.5, aicpick.getpick()+0.5], [-1, -1], 'b')
-             plt.plot([hospick.getpick(), hospick.getpick()], [-1.3, 1.3], 'r--')
+             plt.plot([hospick.getpick(), hospick.getpick()], [-1.3, 1.3], 'r', linewidth=2)
              plt.plot([hospick.getpick()-0.5, hospick.getpick()+0.5], [1.3, 1.3], 'r')
              plt.plot([hospick.getpick()-0.5, hospick.getpick()+0.5], [-1.3, -1.3], 'r')
-             plt.plot([aicarzpick.getpick(), aicarzpick.getpick()], [-1.2, 1.2], 'y--')
+             plt.plot([hosELpick.getLpick(), hosELpick.getLpick()], [-1.1, 1.1], 'r--')
+             plt.plot([hosELpick.getEpick(), hosELpick.getEpick()], [-1.1, 1.1], 'r--')
+             plt.plot([aicarzpick.getpick(), aicarzpick.getpick()], [-1.2, 1.2], 'y', linewidth=2)
              plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [1.2, 1.2], 'y')
              plt.plot([aicarzpick.getpick()-0.5, aicarzpick.getpick()+0.5], [-1.2, -1.2], 'y')
-             plt.plot([arzpick.getpick(), arzpick.getpick()], [-1.4, 1.4], 'g--')
+             plt.plot([arzpick.getpick(), arzpick.getpick()], [-1.4, 1.4], 'g', linewidth=2)
              plt.plot([arzpick.getpick()-0.5, arzpick.getpick()+0.5], [1.4, 1.4], 'g')
              plt.plot([arzpick.getpick()-0.5, arzpick.getpick()+0.5], [-1.4, -1.4], 'g')
+             plt.plot([arzELpick.getLpick(), arzELpick.getLpick()], [-1.2, 1.2], 'g--')
+             plt.plot([arzELpick.getEpick(), arzELpick.getEpick()], [-1.2, 1.2], 'g--')
              plt.yticks([])
+             plt.ylim([-1.5, 1.5])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
              plt.title([tr.stats.station, tr.stats.channel])
@@ -183,45 +200,73 @@ def run_makeCF(project, database, event, iplot, station=None):
              p21, = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
              p22, = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
              p23, = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
-             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
+             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([arhpick.getpick(), arhpick.getpick()], [-1, 1], 'r')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [1, 1], 'r')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'r')
+             plt.plot([arhELpick.getLpick(), arhELpick.getLpick()], [-0.8, 0.8], 'r--')
+             plt.plot([arhELpick.getEpick(), arhELpick.getEpick()], [-0.8, 0.8], 'r--')
              plt.yticks([])
+             plt.ylim([-1.5, 1.5])
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
              plt.suptitle(trH1_filt.stats.starttime)
              plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF']) 
              plt.subplot(2,1,2)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
+             plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
              plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
-             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b--')
+             plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([arhpick.getpick(), arhpick.getpick()], [-1, 1], 'r')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [1, 1], 'r')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'r')
+             plt.plot([arhELpick.getLpick(), arhELpick.getLpick()], [-0.8, 0.8], 'r--')
+             plt.plot([arhELpick.getEpick(), arhELpick.getEpick()], [-0.8, 0.8], 'r--')
              plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
              plt.yticks([])
+             plt.ylim([-1.5, 1.5])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
              #plot 3-component window
              plt.figure(3)
-             tar3ccf = np.arange(0, len(ar3ccf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdetz +tpredz
              plt.subplot(3,1,1)
              p31, = plt.plot(tdata, tr_filt.data/max(tr_filt.data), 'k')
-             p32, = plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             p32, = plt.plot(ar3ccf.getTimeArray(), ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.plot([arhpick.getpick(), arhpick.getpick()], [-1, 1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [1, 1], 'b')
+             plt.plot([ar3cELpick.getLpick(), ar3cELpick.getLpick()], [-0.8, 0.8], 'b--')
+             plt.plot([ar3cELpick.getEpick(), ar3cELpick.getEpick()], [-0.8, 0.8], 'b--')
              plt.yticks([])
              plt.xticks([])
              plt.ylabel('Normalized Counts')
              plt.title([tr.stats.station, tr.stats.channel])
+             plt.suptitle(trH1_filt.stats.starttime)
              plt.legend([p31, p32], ['Data', 'AR3C-CF']) 
              plt.subplot(3,1,2)
              plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
-             plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.plot(ar3ccf.getTimeArray(), ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.plot([arhpick.getpick(), arhpick.getpick()], [-1, 1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [1, 1], 'b')
+             plt.plot([ar3cELpick.getLpick(), ar3cELpick.getLpick()], [-0.8, 0.8], 'b--')
+             plt.plot([ar3cELpick.getEpick(), ar3cELpick.getEpick()], [-0.8, 0.8], 'b--')
              plt.yticks([])
              plt.xticks([])
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
              plt.subplot(3,1,3)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
-             plt.plot(tar3ccf, ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.plot(ar3ccf.getTimeArray(), ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')
+             plt.plot([arhpick.getpick(), arhpick.getpick()], [-1, 1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'b')
+             plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [1, 1], 'b')
+             plt.plot([ar3cELpick.getLpick(), ar3cELpick.getLpick()], [-0.8, 0.8], 'b--')
+             plt.plot([ar3cELpick.getEpick(), ar3cELpick.getEpick()], [-0.8, 0.8], 'b--')
              plt.yticks([])
              plt.ylabel('Normalized Counts')
              plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
