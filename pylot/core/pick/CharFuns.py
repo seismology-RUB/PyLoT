@@ -17,8 +17,6 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 import numpy as np
 from obspy.core import Stream
-import pdb
-import matplotlib.pyplot as plt
 
 class CharacteristicFunction(object):
     '''
@@ -235,7 +233,7 @@ class AICcf(CharacteristicFunction):
             cf[ff] = 0
 
         self.cf = cf - np.mean(cf)
-        self.xcf = xnp
+        self.xcf = x
 
 
 class HOScf(CharacteristicFunction):
@@ -287,7 +285,7 @@ class HOScf(CharacteristicFunction):
         if len(nn) > 1:
            LTA[nn] = 0
         self.cf = LTA
-        self.xcf = xnp
+        self.xcf = x
 
 
 class ARZcf(CharacteristicFunction):
@@ -326,7 +324,7 @@ class ARZcf(CharacteristicFunction):
         if len(nn) > 1:
            cf[nn] = 0
         self.cf = cf
-        self.xcf = xnp
+        self.xcf = x
 
     def arDetZ(self, data, order, rind, ldet):
         '''
@@ -431,7 +429,7 @@ class ARHcf(CharacteristicFunction):
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
-        cf = np.zeros(tend - lpred + 1)
+        cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
         for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
@@ -563,7 +561,7 @@ class AR3Ccf(CharacteristicFunction):
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
               
-        cf = np.zeros(tend - lpred + 1)
+        cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
         for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
