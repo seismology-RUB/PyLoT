@@ -34,7 +34,7 @@ from obspy.core import UTCDateTime
 
 from pylot.core.read import Data, FilterOptions
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
-    checkurl, FormatError, layoutStationButtons, FilterOptionsDialog, \
+    checkurl, FormatError, FilterOptionsDialog, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
     DatastructureError
 from pylot.core.util.structure import DATASTRUCTURE
@@ -62,8 +62,6 @@ class MainWindow(QMainWindow):
         self.fnames = None
         self.dataStructure = DATASTRUCTURE[
             settings.value("data/Structure", None)]()
-        self.setWindowTitle("PyLoT - do seismic processing the python way")
-        self.setWindowIcon(QIcon(":/icon.ico"))
         self.seismicPhase = str(settings.value("phase", "P"))
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
@@ -72,14 +70,9 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
             settings.sync()
 
-        # initialize filter parameter
-        filterOptionsP = FILTERDEFAULTS['P']
-        filterOptionsS = FILTERDEFAULTS['S']
+        self.filteroptions = {}
 
-        self.filterOptionsP = FilterOptions(**filterOptionsP)
-        self.filterOptionsS = FilterOptions(**filterOptionsS)
-
-        # UI has to be set up before(!) children widgets are
+        # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
 
         # initialize event data
@@ -105,6 +98,7 @@ class MainWindow(QMainWindow):
         except:
             self.startTime = UTCDateTime()
 
+        self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
 
         xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
@@ -272,9 +266,8 @@ class MainWindow(QMainWindow):
                 action = self.sender()
                 if isinstance(action, QAction):
                     if action.data() is None:
-                        filt = "Supported event formats (*.mat *.qml *.xml " \
-                               "*.kor *.evt)"
-                        caption = 'Select event to open'
+                        filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
+                        caption = "Open an event file"
                         fname = QFileDialog().getOpenFileName(self,
                                                                caption=caption,
                                                                filter=filt)
@@ -399,24 +392,35 @@ class MainWindow(QMainWindow):
                                         filterOptions=self.getFilterOptions())
         if filterDlg.exec_():
             filteroptions = filterDlg.getFilterOptions()
-
         assert isinstance(filteroptions, FilterOptions)
         self.setFilterOptions(filteroptions)
 
     def getFilterOptions(self):
+        try:
+            return self.filteroptions[self.getSeismicPhase()]
+        except AttributeError, e:
+            print e
+            return FilterOptions(None, None, None)
+
+    def getFilters(self):
         return self.filteroptions
 
-    def setFilterOptions(self, filterOptions):
-        cases = {'P': self.filterOptionsP,
-                 'S': self.filterOptionsS}
-        cases[self.getSeismicPhase()] = filterOptions
-        self.updateFilterOptions()
+    def setFilterOptions(self, filterOptions, seismicPhase=None):
+        if seismicPhase is None:
+            self.getFilters()[self.getSeismicPhase()] = filterOptions
+        else:
+            self.getFilters()[seismicPhase] = filterOptions
+
 
     def updateFilterOptions(self):
         try:
-            self.filteroptions = [self.filterOptionsP
-                                  if not self.seismicPhase == 'S'
-                                  else self.filterOptionsS][0]
+            settings = QSettings()
+            if settings.value("filterdefaults", None) is None and not self.getFilters():
+                for key, value in FILTERDEFAULTS.iteritems():
+                    self.setFilterOptions(FilterOptions(**value), key)
+            elif settings.value("filterdefaults", None) is not None:
+                for key, value in settings.value("filterdefaults"):
+                    self.setFilterOptions(FilterOptions(**value), key)
         except Exception, e:
             self.updateStatus('Error ...')
             emsg = QErrorMessage(self)

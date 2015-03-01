@@ -174,9 +174,9 @@ class FilterOptions(object):
         Type:\t\t{ftype}\n
         Frequencies:\t{freq}\n
         Order:\t\t{order}\n
-        '''.format(ftype=self.getFilterType,
-                   freq=self.getFreq,
-                   order=self.getOrder)
+        '''.format(ftype=self.getFilterType(),
+                   freq=self.getFreq(),
+                   order=self.getOrder())
         return hrs
 
     def getFreq(self):

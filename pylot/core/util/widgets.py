@@ -296,10 +296,14 @@ class FilterOptionsDialog(QDialog):
         """
         super(FilterOptionsDialog, self).__init__()
 
-        if filterOptions is not None and parent.getSeismicPhase() != "P":
-            self.filterOptions = filterOptions
+        if parent is not None:
+            self.filterOptions = parent.getFilterOptions()
         else:
             self.filterOptions = FilterOptions()
+
+        _enable = True
+        if self.getFilterOptions().getFilterType() is None:
+            _enable = False
 
         self.freqminLabel = QLabel()
         self.freqminLabel.setText("minimum:")
@@ -307,22 +311,30 @@ class FilterOptionsDialog(QDialog):
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
         self.freqminSpinBox.setSuffix(' Hz')
-        self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
+        self.freqminSpinBox.setEnabled(_enable)
+
         self.freqmaxLabel = QLabel()
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
-        if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+        self.freqmaxSpinBox.setEnabled(_enable)
+        if _enable:
+            self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
+            if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
+                self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+        else:
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
+            self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
 
-        typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
+        typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
 
         self.orderLabel = QLabel()
         self.orderLabel.setText("Order:")
         self.orderSpinBox = QSpinBox()
         self.orderSpinBox.setRange(2, 10)
+        self.orderSpinBox.setEnabled(_enable)
         self.selectTypeLabel = QLabel()
         self.selectTypeLabel.setText("Select filter type:")
         self.selectTypeCombo = QComboBox()
@@ -357,6 +369,7 @@ class FilterOptionsDialog(QDialog):
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
+
 
     def updateUi(self):
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
