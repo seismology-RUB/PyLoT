@@ -70,6 +70,26 @@ class MPLWidget(FigureCanvas):
         self.updateYLabel(ylabel)
         self.updateTitle(title)
 
+
+class multiComponentPlot(FigureCanvas):
+
+    def __init__(self, parent=None, noc=3,  xlabel='x', ylabel='y', title='Title'):
+        super(multiComponentPlot, self).__init__(Figure())
+
+        self.setParent(parent)
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+
+        self.axeslist = []
+
+        for n in range(noc):
+            nsub = '{0}1{1}'.format(noc, n)
+            if n >= 1:
+                self.axeslist.insert(n, self.figure.add_subplot(nsub, sharex=self.axeslist[0], sharey=self.axeslist[0]))
+            else:
+                self.axeslist.insert(n, self.figure.add_subplot(nsub))
+
+
 class PickDlg(QDialog):
 
     def __init__(self, station=None, parent=None):
