@@ -213,11 +213,19 @@ class AICPicker(AutoPicking):
            #get slope window
            islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
                     & (self.Tcf >= self.Pick))
+           #find maximum within slope determination window
+           #'cause slope should be calculated up to first local minimum only!
+           imax = np.argmax(self.Data[0].data[islope])
+           islope = islope[0][0 :imax]
            dataslope = self.Data[0].data[islope]
-           #calculate slope as linear regression of order 1
+           #calculate slope as polynomal fit of order 1
            xslope = np.arange(0, len(dataslope), 1)
            P = np.polyfit(xslope, dataslope, 1)
            datafit = np.polyval(P, xslope)
+           if datafit[0] >= datafit[len(datafit) - 1]:
+              print 'AICPicker: Negative slope, bad onset skipped!'
+              return
+
            self.slope = 1 / tslope * datafit[len(dataslope) - 1] - datafit[0]
 
         else:
@@ -241,13 +249,17 @@ class AICPicker(AutoPicking):
               p11, = plt.plot(self.Tcf, x, 'k')
               p12, = plt.plot(self.Tcf[inoise], self.Data[0].data[inoise])
               p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
-              p14, = plt.plot(self.Tcf[islope], dataslope, 'g')
-              p15, = plt.plot(self.Tcf[islope], datafit, 'g--', linewidth=2)
-              plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'])
+              p14, = plt.plot(self.Tcf[islope], dataslope, 'g--')
+              p15, = plt.plot(self.Tcf[islope], datafit, 'g', linewidth=2)
+              plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'], \
+                         loc='best')
               plt.title('SNR and Slope, Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station, \
                         self.SNR, self.slope))
               plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
               plt.ylabel('Counts')
+              ax = plt.gca()
+              ax.set_ylim([-10, max(self.Data[0].data)])
+              ax.set_xlim([self.Tcf[inoise[0][0]] - 5, self.Tcf[isignal[0][len(isignal) - 1]] + 5])
 
            raw_input()
            plt.close(self.iplot)
