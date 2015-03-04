@@ -377,7 +377,7 @@ class FilterOptionsDialog(QDialog):
         if parent is not None:
             self.filterOptions = parent.getFilterOptions()
         else:
-            self.filterOptions = FilterOptions()
+            self.filterOptions = FilterOptions(filterOptions)
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -403,8 +403,13 @@ class FilterOptionsDialog(QDialog):
             if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
                 self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
         else:
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
-            self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
+            try:
+                self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
+                self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
+            except TypeError, e:
+                print e
+                self.freqmaxSpinBox.setValue(1.)
+                self.freqminSpinBox.setValue(.1)
 
         typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
 
@@ -450,20 +455,22 @@ class FilterOptionsDialog(QDialog):
 
 
     def updateUi(self):
+        _enable = False
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
             self.freqminLabel.setText("cutoff:")
-            self.freqmaxLabel.setEnabled(False)
-            self.freqmaxSpinBox.setEnabled(False)
             self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
         else:
+            _enable = True
             self.freqminLabel.setText("minimum:")
-            self.freqmaxLabel.setEnabled(True)
-            self.freqmaxSpinBox.setEnabled(True)
+
+        self.freqmaxLabel.setEnabled(_enable)
+        self.freqmaxSpinBox.setEnabled(_enable)
+
 
         self.getFilterOptions().setFilterType(self.selectTypeCombo.currentText())
         freq = []
         freq.append(self.freqminSpinBox.value())
-        if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
+        if _enable:
             if self.freqminSpinBox.value() > self.freqmaxSpinBox.value():
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "
