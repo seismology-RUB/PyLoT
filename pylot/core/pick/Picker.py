@@ -170,7 +170,7 @@ class AICPicker(AutoPicking):
         else:
            for i in range(1, len(aic)):
               if i > ismooth:
-                 ii1 = i - ismooth;
+                 ii1 = i - ismooth
                  aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
               else:
                  aicsmooth[i] = np.mean(aic[1 : i])
