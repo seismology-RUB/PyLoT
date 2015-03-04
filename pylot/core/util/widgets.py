@@ -43,6 +43,24 @@ from pylot.core.read import FilterOptions
 from pylot.core.util.defaults import OUTPUTFORMATS
 
 
+def createAction(parent, text, slot=None, shortcut=None, icon=None,
+                 tip=None, checkable=False):
+    """
+    :rtype : ~PySide.QtGui.QAction
+    """
+    action = QAction(text, parent)
+    if icon is not None:
+        action.setIcon(icon)
+    if shortcut is not None:
+        action.setShortcut(shortcut)
+    if tip is not None:
+        action.setToolTip(tip)
+    if slot is not None:
+        action.triggered.connect(slot)
+    if checkable:
+        action.setCheckable(True)
+    return action
+
 class MPLWidget(FigureCanvas):
 
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):

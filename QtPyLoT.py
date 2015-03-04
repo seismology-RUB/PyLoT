@@ -23,7 +23,6 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import os
 import sys
 
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, QFileInfo
@@ -36,7 +35,7 @@ from pylot.core.read import Data, FilterOptions
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     checkurl, FormatError, FilterOptionsDialog, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
-    DatastructureError
+    DatastructureError, createAction, getLogin
 from pylot.core.util.structure import DATASTRUCTURE
 
 
@@ -51,17 +50,19 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+
+        self.createAction = createAction
         self.dirty = False
         settings = QSettings()
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
-            settings.setValue("user/Login", os.getlogin())
+            settings.setValue("user/Login", getLogin())
             settings.sync()
         self.recentEvents = settings.value("data/recentEvents", [])
         self.fnames = None
         self.dataStructure = DATASTRUCTURE[
-            settings.value("data/Structure", None)]()
+            settings.value("data/Structure", "PILOT")]()
         self.seismicPhase = str(settings.value("phase", "P"))
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
@@ -87,7 +88,6 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
-
 
 
     def setupUi(self):
@@ -205,23 +205,6 @@ class MainWindow(QMainWindow):
         _widget.setLayout(_layout)
         self.setCentralWidget(_widget)
 
-    def createAction(self, text, slot=None, shortcut=None, icon=None,
-                     tip=None, checkable=False):
-        """
-        :rtype : ~PySide.QtGui.QAction
-        """
-        action = QAction(text, self)
-        if icon is not None:
-            action.setIcon(icon)
-        if shortcut is not None:
-            action.setShortcut(shortcut)
-        if tip is not None:
-            action.setToolTip(tip)
-        if slot is not None:
-            action.triggered.connect(slot)
-        if checkable:
-            action.setCheckable(True)
-        return action
 
     def updateFileMenu(self):
 
@@ -335,7 +318,7 @@ class MainWindow(QMainWindow):
     def getData(self):
         return self.data
 
-    def getDataWidget(self):
+    def getPlotWidget(self):
         return self.DataPlot
 
     def addActions(self, target, actions):
@@ -359,7 +342,7 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
 
     def plotWaveformData(self):
-        self.getData().plotWFData(self.getDataWidget())
+        self.getData().plotWFData(self.getPlotWidget())
 
     def filterWaveformData(self):
         if self.getData():

@@ -23,9 +23,11 @@ def fnConstructor(s):
     return fn
 
 
+def getLogin():
+    return pwd.getpwuid(os.getuid())[0]
+
 def getHash(time):
     '''
-
     :param time: time object for which a hash should be calculated
     :type time: :class: `~obspy.core.utcdatetime.UTCDateTime` object
     :return: str
