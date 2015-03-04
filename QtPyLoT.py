@@ -119,51 +119,51 @@ class MainWindow(QMainWindow):
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
-        newEventAction = self.createAction("&New event ...",
+        newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
                                            "Create a new event.")
-        openEventAction = self.createAction("&Open event ...", self.loadData,
+        openEventAction = self.createAction(self, "&Open event ...", self.loadData,
                                             QKeySequence.Open, openIcon,
                                             "Open an event.")
         openEventAction.setData(None)
-        saveEventAction = self.createAction("&Save event ...", self.saveData,
+        saveEventAction = self.createAction(self, "&Save event ...", self.saveData,
                                             QKeySequence.Save, saveIcon,
                                             "Save actual event data.")
-        openWFDataAction = self.createAction("Open &waveforms ...",
+        openWFDataAction = self.createAction(self, "Open &waveforms ...",
                                              self.loadWaveformData,
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
                                              """Open waveform data (event will
                                              be closed).""")
 
-        prefsEventAction = self.createAction("Preferences", self.PyLoTprefs,
+        prefsEventAction = self.createAction(self, "Preferences", self.PyLoTprefs,
                                              QKeySequence.Preferences,
                                              QIcon(None),
                                              "Edit PyLoT app preferences.")
-        quitAction = self.createAction("&Quit",
+        quitAction = self.createAction(self, "&Quit",
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
-        self.filterAction = self.createAction("&Filter ...", self.filterWaveformData,
+        self.filterAction = self.createAction(self, "&Filter ...", self.filterWaveformData,
                                          "Ctrl+F", QIcon(":/filter.png"),
                                          """Toggle un-/filtered waveforms
                                          to be displayed, according to the
                                          desired seismic phase.""", True)
-        filterEditAction = self.createAction("&Filter parameter ...",
+        filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
                                              "Alt+F", QIcon(None),
                                              """Adjust filter parameters.""")
-        self.selectPAction = self.createAction("&P", self.alterPhase, "Alt+P",
+        self.selectPAction = self.createAction(self, "&P", self.alterPhase, "Alt+P",
                                           QIcon(":/picon.png"),
                                           "Toggle P phase.", True)
-        self.selectSAction = self.createAction("&S", self.alterPhase, "Alt+S",
+        self.selectSAction = self.createAction(self, "&S", self.alterPhase, "Alt+S",
                                           QIcon(":/sicon.png"),
                                           "Toggle S phase", True)
-        printAction = self.createAction("&Print event ...",
+        printAction = self.createAction(self, "&Print event ...",
                                         self.printEvent, QKeySequence.Print,
                                         QIcon(":/printer.png"),
                                         "Print waveform overview.")
-        helpAction = self.createAction("&Help ...", self.helpHelp,
+        helpAction = self.createAction(self, "&Help ...", self.helpHelp,
                                        QKeySequence.HelpContents, helpIcon,
                                        """Show either the documentation
                                        homepage (internet connection available),
