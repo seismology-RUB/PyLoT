@@ -33,7 +33,7 @@ class AutoPicking(object):
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
 
         :param: nfac (noise factor), nfac times noise level to calculate latest possible pick
-         in EarlLatePick
+         in EarlLatePicker
         :type: int
 
         :param: TSNR, length of time windows around pick used to determine SNR [s]
@@ -121,6 +121,12 @@ class AutoPicking(object):
     def getpick(self):
         return self.Pick
 
+    def getSNR(self):
+        return self.SNR
+   
+    def getSlope(self):
+        return self.slope
+
     def getLpick(self):
         return self.LPick
 
@@ -151,7 +157,7 @@ class AICPicker(AutoPicking):
 
     def calcPick(self):
  
-        print 'Get onset time (pick) from AIC-CF ...'
+        print 'AICPicker: Get onset time (pick) from AIC-CF ...'
 
         self.Pick = None
         #find NaN's
@@ -187,6 +193,37 @@ class AICPicker(AutoPicking):
               self.Pick = self.Tcf[i]
               break
         
+        #quality assessment using SNR and slope from CF
+        if self.Pick is not None:
+           #some parameters needed:
+           tnoise = self.TSNR[0]  #noise window length for calculating noise level
+           tsignal = self.TSNR[2] #signal window length
+           tsafety = self.TSNR[1] #safety gap between signal onset and noise window
+           tslope = self.TSNR[3]  #slope determination window
+           #get noise window
+           inoise = np.where((self.Tcf <= max([self.Pick - tsafety, 0])) \
+                    & (self.Tcf >= max([self.Pick - tnoise - tsafety, 0])))    
+           #get signal window
+           isignal = np.where((self.Tcf <= min([self.Pick + tsignal + tsafety, len(self.Data[0].data)])) \
+                     & (self.Tcf >= self.Pick))
+           #calculate SNR from CF
+           self.SNR = max(abs(self.cf[isignal] - np.mean(self.cf[isignal]))) / max(abs(self.cf[inoise] \
+                      - np.mean(self.cf[inoise])))
+           #calculate slope from CF after initial pick
+           #get slope window
+           islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
+                    & (self.Tcf >= self.Pick))
+           dataslope = self.Data[0].data[islope]
+           #calculate slope as linear regression of order 1
+           xslope = np.arange(0, len(dataslope), 1)
+           P = np.polyfit(xslope, dataslope, 1)
+           datafit = np.polyval(P, xslope)
+           self.slope = 1 / tslope * datafit[len(dataslope) - 1] - datafit[0]
+
+        else:
+           self.SNR = None
+           self.slope = None
+
         if self.iplot is not None:
            plt.figure(self.iplot)
            x = self.Data[0].data
@@ -198,14 +235,26 @@ class AICPicker(AutoPicking):
            plt.yticks([])
            plt.title(self.Data[0].stats.station)
            plt.show()
+
+           if self.Pick is not None:
+              plt.figure(self.iplot + 1)
+              p11, = plt.plot(self.Tcf, x, 'k')
+              p12, = plt.plot(self.Tcf[inoise], self.Data[0].data[inoise])
+              p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
+              p14, = plt.plot(self.Tcf[islope], dataslope, 'g')
+              p15, = plt.plot(self.Tcf[islope], datafit, 'g--', linewidth=2)
+              plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'])
+              plt.title('SNR and Slope, Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station, \
+                        self.SNR, self.slope))
+              plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+              plt.ylabel('Counts')
+
            raw_input()
            plt.close(self.iplot)
 
         if self.Pick == None:
            print 'AICPicker: Could not find minimum, picking window too short?'
   
-        return self.Pick
-
 
 class PragPicker(AutoPicking):
     '''
@@ -215,9 +264,11 @@ class PragPicker(AutoPicking):
     def calcPick(self):
 
         if self.getpick1() is not None:
-           print 'Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...'
+           print 'PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...'
 
            self.Pick = None 
+           self.SNR = None
+           self.slope = None
            #smooth CF
            ismooth = int(round(self.Tsmooth / self.dt))
            cfsmooth = np.zeros(len(self.cf))
@@ -314,22 +365,26 @@ class EarlLatePicker(AutoPicking):
 
         self.LPick = None 
         self.EPick = None
+        self.SNR = None
+        self.slope = None
         if self.getpick1() is not None:
-           print 'Get earliest and latest possible pick relative to most likely pick ...'
+           print 'EarlLatePicker: Get earliest and latest possible pick relative to most likely pick ...'
 
            ti = self.getpick1()
            x = self.Data
            t = self.Tcf
-           #some parmaters needed:
+           #some parameters needed:
            tnoise = self.TSNR[0]  #noise window length for calculating noise level
            tsignal = self.TSNR[2] #signal window length
            tsafety = self.TSNR[1] #safety gap between signal onset and noise window
 
            #get latest possible pick
            #get noise window
-           inoise = np.where((self.Tcf <= ti - tsafety) & (self.Tcf >= ti - tnoise - tsafety))    
+           inoise = np.where((self.Tcf <= max([ti - tsafety, 0])) \
+                    & (self.Tcf >= max([ti - tnoise - tsafety, 0])))    
            #get signal window
-           isignal = np.where((self.Tcf <= ti + tsignal) & (self.Tcf >= ti))
+           isignal = np.where((self.Tcf <= min([ti + tsignal + tsafety, len(x[0].data)])) \
+                     & (self.Tcf >= ti))
            #calculate noise level
            if len(x) == 1:
               nlevel = max(abs(x[0].data[inoise])) * self.nfac
@@ -337,7 +392,7 @@ class EarlLatePicker(AutoPicking):
               ilup = np.where(x[0].data[isignal] > nlevel)
               ildown = np.where(x[0].data[isignal] < -nlevel)
               if len(ilup[0]) <= 1 and len(ildown[0]) <= 1:
-                 print 'EarlLatePick: Signal lower than noise level, misspick?'
+                 print 'EarlLatePicker: Signal lower than noise level, misspick?'
                  return
               il = min([ilup[0][0], ildown[0][0]])
               self.LPick = t[isignal][il]
@@ -351,7 +406,7 @@ class EarlLatePicker(AutoPicking):
               ilup = min([ilup1[0][0], ilup2[0][0]])
               ildown = min([ildown1[0][0], ildown2[0][0]])
               if np.size(ilup) < 1 and np.size(ildown) < 1:
-                 print 'EarlLatePick: Signal lower than noise level, misspick?'
+                 print 'EarlLatePicker: Signal lower than noise level, misspick?'
                  return
               il = min([ilup, ildown])
               self.LPick = t[isignal][il]
@@ -368,7 +423,7 @@ class EarlLatePicker(AutoPicking):
               ilup = min([ilup1[0][0], ilup2[0][0], ilup3[0][0]])
               ildown = min([ildown1[0][0], ildown2[0][0], ildown3[0][0]])
               if np.size(ilup) < 1 and np.size(ildown) < 1:
-                 print 'EarlLatePick: Signal lower than noise level, misspick?'
+                 print 'EarlLatePicker: Signal lower than noise level, misspick?'
                  return
               il = min([ilup, ildown])
               self.LPick = t[isignal][il]
@@ -527,6 +582,6 @@ class EarlLatePicker(AutoPicking):
               plt.close(self.iplot)
 
         elif self.getpick1() == None: 
-           print 'EarlLatePick: No initial onset time given! Check input!'
+           print 'EarlLatePicker: No initial onset time given! Check input!'
            return
 
