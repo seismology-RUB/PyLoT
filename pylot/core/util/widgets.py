@@ -91,30 +91,70 @@ class MPLWidget(FigureCanvas):
 
 class multiComponentPlot(FigureCanvas):
 
-    def __init__(self, parent=None, noc=3,  xlabel='x', ylabel='y', title='Title'):
+    def __init__(self, parent=None, components='ZNE',  xlabel='x', ylabel='y', title='Title'):
         super(multiComponentPlot, self).__init__(Figure())
 
         self.setParent(parent)
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
+        self.noc = len(components)
 
         self.axeslist = []
 
-        for n in range(noc):
-            nsub = '{0}1{1}'.format(noc, n)
+        for n, comp in enumerate(components):
+            nsub = '{0}1{1}'.format(self.noc, n)
             if n >= 1:
-                self.axeslist.insert(n, self.figure.add_subplot(nsub, sharex=self.axeslist[0], sharey=self.axeslist[0]))
+                self.axeslist.insert(n,
+                                     self.figure.add_subplot(nsub,
+                                                             sharex=self.axeslist[0],
+                                                             sharey=self.axeslist[0]))
             else:
                 self.axeslist.insert(n, self.figure.add_subplot(nsub))
 
 
 class PickDlg(QDialog):
 
-    def __init__(self, station=None, parent=None):
+    def __init__(self, parent=None, station=None, rotate=False):
         super(PickDlg, self).__init__(parent)
 
-        pass
+        self.station = station
+        self.rotate = rotate
+        self.components = 'ZNE'
+        self.data = parent.getData().getWFData().copy()
 
+
+        self.setupUi()
+
+    def setupUi(self):
+
+        # create actions
+        self.filterAction = createAction(parent=self, text='Filter',
+                                         slot=self.filterWFData,
+                                         icon=QIcon(':/filter.png'),
+                                         tip='Filter waveforms',
+                                         checkable=True)
+        self.selectPhase = QComboBox()
+        self.selectPhase.addItems(['Pn', 'Pg', 'P1', 'P2'])
+
+        # layout the outermost appearance of the Pick Dialog
+        _outerlayout = QVBoxLayout()
+        _dialtoolbar = QToolBar()
+
+        # fill toolbar with content
+
+        _dialtoolbar.addAction(self.filterAction)
+        _dialtoolbar.addWidget(self.selectPhase)
+
+        _innerlayout = QHBoxLayout()
+        _toolslayout = QVBoxLayout()
+
+    def filterWFData(self):
+        self.data.filterWFData()
+        self.plotData()
+
+    def plotData(self):
+        for comp in self.components:
+            self.getPlotWidget()
 
 class PropertiesDlg(QDialog):
 
