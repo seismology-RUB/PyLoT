@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   Script to run PyLoT modules CharFuns.py and Picker.py.
+   Script to run autoPyLoT-script "makeCF.py".
    Only for test purposes!
 """
 
@@ -10,24 +10,26 @@ from obspy.core import read
 import matplotlib.pyplot as plt  
 import numpy as np
 from pylot.core.pick.CharFuns import CharacteristicFunction
-from pylot.core.pick.Picker import AutoPicking
+from pylot.core.pick.Picker import Picker
 import glob
 import argparse
 
 def run_makeCF(project, database, event, iplot, station=None):
     #parameters for CF calculation
-    t2 = 7              #length of moving window for HOS calculation [sec]
-    p = 4               #order of statistics
-    cuttimes = [10, 50] #start and end time for CF calculation
-    bpz = [2, 30]       #corner frequencies of bandpass filter, vertical component
-    bph = [2, 15]       #corner frequencies of bandpass filter, horizontal components
-    tdetz= 1.2          #length of AR-determination window [sec], vertical component
-    tdeth= 0.8          #length of AR-determination window [sec], horizontal components
-    tpredz = 0.4        #length of AR-prediction window [sec], vertical component
-    tpredh = 0.4        #length of AR-prediction window [sec], horizontal components
-    addnoise = 0.001    #add noise to seismogram for stable AR prediction
-    arzorder = 2        #chosen order of AR process, vertical component
-    arhorder = 4        #chosen order of AR process, horizontal components
+    t2 = 7                   #length of moving window for HOS calculation [sec]
+    p = 4                    #order of HOS
+    cuttimes = [10, 50]      #start and end time for CF calculation
+    bpz = [2, 30]            #corner frequencies of bandpass filter, vertical component
+    bph = [2, 15]            #corner frequencies of bandpass filter, horizontal components
+    tdetz= 1.2               #length of AR-determination window [sec], vertical component
+    tdeth= 0.8               #length of AR-determination window [sec], horizontal components
+    tpredz = 0.4             #length of AR-prediction window [sec], vertical component
+    tpredh = 0.4             #length of AR-prediction window [sec], horizontal components
+    addnoise = 0.001         #add noise to seismogram for stable AR prediction
+    arzorder = 2             #chosen order of AR process, vertical component
+    arhorder = 4             #chosen order of AR process, horizontal components
+    TSNR = [5, 0.5, 1, 0.03]  #window lengths [s] for calculating SNR for earliest/latest pick and quality assessment
+                             #[noise window, safety gap, signal window, slope determination window]
     #get waveform data
     if station:
        dpz = '/DATA/%s/EVENT_DATA/LOCAL/%s/%s/%s*HZ.msd' % (project, database, event, station)
@@ -66,12 +68,12 @@ def run_makeCF(project, database, event, iplot, station=None):
           aiccf = AICcf(st_copy, cuttimes) #instance of AICcf
           ##############################################################
           #get prelimenary onset time from AIC-HOS-CF using subclass AICPicker of class AutoPicking
-          aicpick = AICPicker(aiccf, None, [5, 0.5, 1], 3, 10, None, 0.1)
+          aicpick = AICPicker(aiccf, None, TSNR, 3, 10, None, 0.1)
           ##############################################################
           #get refined onset time from HOS-CF using class Picker
-          hospick = PragPicker(hoscf, None, [5, 0.5, 1], 2, 10, 0.001, 0.2, aicpick.getpick())
+          hospick = PragPicker(hoscf, None, TSNR, 2, 10, 0.001, 0.2, aicpick.getpick())
           #get earliest and latest possible picks
-          hosELpick = EarlLatePicker(hoscf, 1.5, [5, 0.5, 1], None, 10, None, None, hospick.getpick())
+          hosELpick = EarlLatePicker(hoscf, 1.5, TSNR, None, 10, None, None, hospick.getpick())
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           #get stream object of filtered data
@@ -86,12 +88,12 @@ def run_makeCF(project, database, event, iplot, station=None):
           araiccf = AICcf(st_copy, cuttimes, tpredz, 0, tdetz) #instance of AICcf
           ##############################################################
           #get onset time from AIC-ARZ-CF using subclass AICPicker of class AutoPicking
-          aicarzpick = AICPicker(araiccf, 1.5, [5, 0.5, 2], 2, 10, None, 0.1)
+          aicarzpick = AICPicker(araiccf, 1.5, TSNR, 2, 10, None, 0.1)
           ##############################################################
           #get refined onset time from ARZ-CF using class Picker
-          arzpick = PragPicker(arzcf, 1.5, [5, 0.5, 2], 2.0, 10, 0.1, 0.05, aicarzpick.getpick())
+          arzpick = PragPicker(arzcf, 1.5, TSNR, 2.0, 10, 0.1, 0.05, aicarzpick.getpick())
           #get earliest and latest possible picks
-          arzELpick = EarlLatePicker(arzcf, 1.5, [5, 0.5, 1], None, 10, None, None, arzpick.getpick())
+          arzELpick = EarlLatePicker(arzcf, 1.5, TSNR, None, 10, None, None, arzpick.getpick())
     elif not wfzfiles:
        print 'No vertical component data found!'
 
@@ -127,12 +129,12 @@ def run_makeCF(project, database, event, iplot, station=None):
           arhaiccf = AICcf(H_copy, cuttimes, tpredh, 0, tdeth) #instance of AICcf
           ##############################################################
           #get onset time from AIC-ARH-CF using subclass AICPicker of class AutoPicking
-          aicarhpick = AICPicker(arhaiccf, 1.5, [5, 0.5, 2], 4, 10, None, 0.1)
+          aicarhpick = AICPicker(arhaiccf, 1.5, TSNR, 4, 10, None, 0.1)
           ###############################################################
           #get refined onset time from ARH-CF using class Picker
-          arhpick = PragPicker(arhcf, 1.5, [5, 0.5, 2], 2.5, 10, 0.1, 0.05, aicarhpick.getpick())
+          arhpick = PragPicker(arhcf, 1.5, TSNR, 2.5, 10, 0.1, 0.05, aicarhpick.getpick())
           #get earliest and latest possible picks
-          arhELpick = EarlLatePicker(arhcf, 1.5, [5, 0.5, 1], None, 10, None, None, arhpick.getpick())
+          arhELpick = EarlLatePicker(arhcf, 1.5, TSNR, None, 10, None, None, arhpick.getpick())
 
           #create stream with 3 traces
           #merge streams
@@ -155,7 +157,7 @@ def run_makeCF(project, database, event, iplot, station=None):
           #calculate AR3C-CF using subclass AR3Ccf of class CharacteristicFunction
           ar3ccf = AR3Ccf(AllC, cuttimes, tpredz, arhorder, tdetz, addnoise) #instance of AR3Ccf
           #get earliest and latest possible pick from initial ARH-pick
-          ar3cELpick = EarlLatePicker(ar3ccf, 1.5, [5, 0.5, 1], None, 10, None, None, arhpick.getpick())
+          ar3cELpick = EarlLatePicker(ar3ccf, 1.5, TSNR, None, 10, None, None, arhpick.getpick())
           ##############################################################
           if iplot:
              #plot vertical trace
@@ -187,7 +189,8 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.ylim([-1.5, 1.5])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
-             plt.title([tr.stats.station, tr.stats.channel])
+             plt.title('%s, %s, AIC-SNR=%7.2f, AIC-Slope=%12.2f' % (tr.stats.station, \
+                        tr.stats.channel, aicpick.getSNR(), aicpick.getSlope()))
              plt.suptitle(tr.stats.starttime)
              plt.legend([p1, p2, p3, p4, p5], ['Data', 'HOS-CF', 'HOSAIC-CF', 'ARZ-CF', 'ARZAIC-CF']) 
              #plot horizontal traces
