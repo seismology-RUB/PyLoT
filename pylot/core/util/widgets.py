@@ -326,11 +326,10 @@ class NewEventDlg(QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
     def getValues(self):
-        if self.accepted():
-            return {'origintime' : self.eventTimeEdit.dateTime().toPyDateTime(),
-                    'latitude' : self.latEdit.text(),
-                    'longitude' : self.lonEdit.text(),
-                    'depth' : self.depEdit.text()}
+        return {'origintime' : self.eventTimeEdit.dateTime().toPython(),
+                'latitude' : self.latEdit.text(),
+                'longitude' : self.lonEdit.text(),
+                'depth' : self.depEdit.text()}
 
     def setupUI(self):
 
@@ -376,8 +375,10 @@ class FilterOptionsDialog(QDialog):
 
         if parent is not None:
             self.filterOptions = parent.getFilterOptions()
-        else:
+        elif filterOptions is not None:
             self.filterOptions = FilterOptions(filterOptions)
+        else:
+            self.filterOptions = FilterOptions()
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -397,7 +398,7 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
-        self.freqmaxSpinBox.setEnabled(_enable)
+
         if _enable:
             self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
             if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
@@ -435,6 +436,8 @@ class FilterOptionsDialog(QDialog):
         self.freqGroupLayout.addWidget(self.freqmaxLabel, 1, 0)
         self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
         self.freqGroupBox.setLayout(self.freqGroupLayout)
+
+        self.freqmaxSpinBox.setEnabled(_enable)
 
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|
                                           QDialogButtonBox.Cancel)

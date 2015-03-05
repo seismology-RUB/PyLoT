@@ -375,8 +375,7 @@ class MainWindow(QMainWindow):
                                         filterOptions=self.getFilterOptions())
         if filterDlg.exec_():
             filteroptions = filterDlg.getFilterOptions()
-        assert isinstance(filteroptions, FilterOptions)
-        self.setFilterOptions(filteroptions)
+            self.setFilterOptions(filteroptions)
 
     def getFilterOptions(self):
         try:
@@ -447,6 +446,7 @@ class MainWindow(QMainWindow):
             new = NewEventDlg()
             if new.exec_() != QDialog.Rejected:
                 evtpar = new.getValues()
+
                 self.data = Data(self, evtdata=createEvent(**evtpar))
                 self.dirty = True
 
