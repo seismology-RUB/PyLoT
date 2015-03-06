@@ -109,7 +109,26 @@ class multiComponentPlot(FigureCanvas):
                                                              sharex=self.axeslist[0],
                                                              sharey=self.axeslist[0]))
             else:
-                self.axeslist.insert(n, self.figure.add_subplot(nsub))
+                subax = self.figure.add_subplot(nsub)
+            subax.autoscale(tight=True)
+            self.axeslist.insert(n, subax)
+            self.updateYLabel(n, ylabel[n])
+            if n == noc:
+                self.updateXLabel(noc, xlabel)
+            else:
+                self.updateXLabel(n, '')
+
+    def insertLabel(self, pos, text):
+        subax = self.axeslist[pos]
+        axann = subax.annotate(text, xy=(.03, .97), xycoords='axes fraction')
+        axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+
+    def updateXLabel(self, pos, text):
+        self.axeslist[pos].set_xlabel(text)
+
+    def updateYLabel(self, pos, text):
+        self.axeslist[pos].set_ylabel(text)
+
 
 
 class PickDlg(QDialog):
@@ -122,6 +141,9 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.data = parent.getData().getWFData().copy()
 
+        multicompfig = multiComponentPlot()
+        _layout.addWidget()
+    def plotData(self, data):
 
         self.setupUi()
 
