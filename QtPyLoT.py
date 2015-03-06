@@ -35,7 +35,7 @@ from pylot.core.read import Data, FilterOptions
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     checkurl, FormatError, FilterOptionsDialog, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
-    DatastructureError, createAction, getLogin
+    DatastructureError, createAction, getLogin, createCreationInfo
 from pylot.core.util.structure import DATASTRUCTURE
 
 
@@ -58,7 +58,8 @@ class MainWindow(QMainWindow):
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
             settings.setValue("user/Login", getLogin())
-            settings.sync()
+        if settings.value("agency_id", None) is None:
+            agency = QInputDialog.getText(self, "Enter authority name (e.g. BUG):", "Authority")
         self.recentEvents = settings.value("data/recentEvents", [])
         self.fnames = None
         self.dataStructure = DATASTRUCTURE[
@@ -69,7 +70,7 @@ class MainWindow(QMainWindow):
             dirname = QFileDialog().getExistingDirectory(
                 caption='Choose data root ...')
             settings.setValue("data/dataRoot", dirname)
-            settings.sync()
+        settings.sync()
 
         self.filteroptions = {}
 
@@ -446,7 +447,8 @@ class MainWindow(QMainWindow):
             new = NewEventDlg()
             if new.exec_() != QDialog.Rejected:
                 evtpar = new.getValues()
-
+                cinfo = createCreationInfo(agency_id=self.agency)
+                event = createEvent(evtpar['origintime'])
                 self.data = Data(self, evtdata=createEvent(**evtpar))
                 self.dirty = True
 
