@@ -73,7 +73,7 @@ class MPLWidget(FigureCanvas):
 
 class multiComponentPlot(FigureCanvas):
 
-    def __init__(self, parent=None, noc=3,  xlabel='x', ylabel='y', title='Title'):
+    def __init__(self, parent=None, noc=3,  xlabel='time in seconds', ylabel=None, title='Title'):
         super(multiComponentPlot, self).__init__(Figure())
 
         self.setParent(parent)
@@ -82,21 +82,55 @@ class multiComponentPlot(FigureCanvas):
 
         self.axeslist = []
 
+        if ylabel is None:
+            ylabel = [str(n) for n in range(3)]
+
         for n in range(noc):
             nsub = '{0}1{1}'.format(noc, n)
             if n >= 1:
-                self.axeslist.insert(n, self.figure.add_subplot(nsub, sharex=self.axeslist[0], sharey=self.axeslist[0]))
+                subax = self.figure.add_subplot(nsub,
+                                                sharex=self.axeslist[0],
+                                                sharey=self.axeslist[0])
             else:
-                self.axeslist.insert(n, self.figure.add_subplot(nsub))
+                subax = self.figure.add_subplot(nsub)
+            subax.autoscale(tight=True)
+            self.axeslist.insert(n, subax)
+            self.updateYLabel(n, ylabel[n])
+            if n == noc:
+                self.updateXLabel(noc, xlabel)
+            else:
+                self.updateXLabel(n, '')
+
+    def insertLabel(self, pos, text):
+        subax = self.axeslist[pos]
+        axann = subax.annotate(text, xy=(.03, .97), xycoords='axes fraction')
+        axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+
+    def updateXLabel(self, pos, text):
+        self.axeslist[pos].set_xlabel(text)
+
+    def updateYLabel(self, pos, text):
+        self.axeslist[pos].set_ylabel(text)
+
 
 
 class PickDlg(QDialog):
 
-    def __init__(self, station=None, parent=None):
+    def __init__(self, parent=None, station=None, rotate=False):
         super(PickDlg, self).__init__(parent)
 
-        pass
+        self.station = station
+        self.rotate = rotate
+        _toplayout = QVBoxLayout()
+        _layout = QHBoxLayout()
 
+        multicompfig = multiComponentPlot()
+        _layout.addWidget()
+
+    def plotData(self, data):
+        data.select(station=self.station)
+        if self.rotate:
+            data.rotate
 
 class PropertiesDlg(QDialog):
 
