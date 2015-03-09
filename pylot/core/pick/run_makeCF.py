@@ -191,7 +191,7 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.ylim([-1.5, 1.5])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
-             plt.title('%s, %s, AIC-SNR=%7.2f, AIC-Slope=%12.2f' % (tr.stats.station, \
+             plt.title('%s, %s, CF-SNR=%7.2f, CF-Slope=%12.2f' % (tr.stats.station, \
                         tr.stats.channel, aicpick.getSNR(), aicpick.getSlope()))
              plt.suptitle(tr.stats.starttime)
              plt.legend([p1, p2, p3, p4, p5], ['Data', 'HOS-CF', 'HOSAIC-CF', 'ARZ-CF', 'ARZAIC-CF']) 
@@ -213,6 +213,10 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'r')
              plt.plot([arhELpick.getLpick(), arhELpick.getLpick()], [-0.8, 0.8], 'r--')
              plt.plot([arhELpick.getEpick(), arhELpick.getEpick()], [-0.8, 0.8], 'r--')
+             plt.plot([arhpick.getpick() + arhELpick.getPickError(), arhpick.getpick() + arhELpick.getPickError()], \
+                       [-0.2, 0.2], 'r--')
+             plt.plot([arhpick.getpick() - arhELpick.getPickError(), arhpick.getpick() - arhELpick.getPickError()], \
+                       [-0.2, 0.2], 'r--')
              plt.yticks([])
              plt.ylim([-1.5, 1.5])
              plt.ylabel('Normalized Counts')
@@ -231,6 +235,10 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.plot([arhpick.getpick()-0.5, arhpick.getpick()+0.5], [-1, -1], 'r')
              plt.plot([arhELpick.getLpick(), arhELpick.getLpick()], [-0.8, 0.8], 'r--')
              plt.plot([arhELpick.getEpick(), arhELpick.getEpick()], [-0.8, 0.8], 'r--')
+             plt.plot([arhpick.getpick() + arhELpick.getPickError(), arhpick.getpick() + arhELpick.getPickError()], \
+                       [-0.2, 0.2], 'r--')
+             plt.plot([arhpick.getpick() - arhELpick.getPickError(), arhpick.getpick() - arhELpick.getPickError()], \
+                       [-0.2, 0.2], 'r--')
              plt.title([trH2_filt.stats.station, trH2_filt.stats.channel])
              plt.yticks([])
              plt.ylim([-1.5, 1.5])
