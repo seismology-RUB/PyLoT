@@ -36,8 +36,8 @@ from PySide.QtGui import (QAction,
 from PySide.QtCore import (QSettings,
                            Qt,
                            QUrl,
-                           SIGNAL,
-                           SLOT)
+                           Signal,
+                           Slot)
 from PySide.QtWebKit import QWebView
 from pylot.core.read import FilterOptions
 from pylot.core.util.defaults import OUTPUTFORMATS
@@ -66,13 +66,34 @@ class MPLWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
         super(MPLWidget, self).__init__(Figure())
 
+        self._parent = None
         self.setParent(parent)
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.mpl_connect('button_press_event', self.emitSelection)
         self.axes = self.figure.add_subplot(111)
         self.axes.autoscale(tight=True)
+        self._statID = None
 
         self.updateWidget(xlabel, ylabel, title)
+
+    def emitSelection(self, event):
+
+        self._statID = round(event.ydata)
+        if self.getParent():
+            self.getParent().pickOnStation()
+
+    def getStatID(self):
+        if self._statID is None:
+            return
+        else:
+            return self._statID
+
+    def getParent(self):
+        return self._parent
+
+    def setParent(self, parent):
+        self._parent = parent
 
     def updateXLabel(self, text):
         self.axes.set_xlabel(text)
@@ -91,7 +112,7 @@ class MPLWidget(FigureCanvas):
 
 class multiComponentPlot(FigureCanvas):
 
-    def __init__(self, parent=None, components='ZNE',  xlabel='x', ylabel='y', title='Title'):
+    def __init__(self, parent=None, components='ZNE'):
         super(multiComponentPlot, self).__init__(Figure())
 
         self.setParent(parent)
@@ -101,20 +122,27 @@ class multiComponentPlot(FigureCanvas):
 
         self.axeslist = []
 
+    def plotData(self, components, data):
+        if self.axeslist:
+            self.axeslist = []
+            self.figure.clf()
+        xlabel = 'time since {0} [s]'.format(data[0].stats.starttime)
         for n, comp in enumerate(components):
             nsub = '{0}1{1}'.format(self.noc, n)
             if n >= 1:
-                self.axeslist.insert(n,
-                                     self.figure.add_subplot(nsub,
-                                                             sharex=self.axeslist[0],
-                                                             sharey=self.axeslist[0]))
+                self.axeslist.insert(
+                    n,
+                    self.figure.add_subplot(nsub,
+                                            sharex=self.axeslist[0],
+                                            sharey=self.axeslist[0])
+                )
             else:
                 subax = self.figure.add_subplot(nsub)
             subax.autoscale(tight=True)
             self.axeslist.insert(n, subax)
-            self.updateYLabel(n, ylabel[n])
-            if n == noc:
-                self.updateXLabel(noc, xlabel)
+            self.updateYLabel(n, comp)
+            if n == self.noc:
+                self.updateXLabel(self.noc, xlabel)
             else:
                 self.updateXLabel(n, '')
 
@@ -133,19 +161,26 @@ class multiComponentPlot(FigureCanvas):
 
 class PickDlg(QDialog):
 
-    def __init__(self, parent=None, station=None, rotate=False):
+    def __init__(self, parent=None, data=None, station=None, rotate=False):
         super(PickDlg, self).__init__(parent)
 
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
-        self.data = parent.getData().getWFData().copy()
-
-        multicompfig = multiComponentPlot()
-        _layout.addWidget()
-    def plotData(self, data):
+        if data is None:
+            try:
+                data = parent.getData().getWFData().copy()
+                self.data = data.select(station=station)
+            except AttributeError, e:
+                errmsg = 'You either have to put in a data or an appropriate ' \
+                         'parent (PyLoT MainWindow) object: {0}'.format(e)
+                raise Exception()
+        else:
+            self.data = data
 
         self.setupUi()
+        self.multicompfig = multiComponentPlot(parent=self,
+                                               components=self.getComponents())
 
     def setupUi(self):
 
@@ -168,15 +203,33 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(self.selectPhase)
 
         _innerlayout = QHBoxLayout()
+
         _toolslayout = QVBoxLayout()
+        _toolslabel = QLabel('Place for Tools')
+        _toolslayout.addWidget(_toolslabel)
+
+        _innerlayout.addLayout(_toolslayout)
+        _innerlayout.addWidget(self.multicompfig)
+
+        _outerlayout.addWidget(_dialtoolbar)
+        _outerlayout.addLayout(_innerlayout)
+
+
+    def getComponents(self):
+        return self.components
+
+    def getPlotWidget(self):
+        return self.multicompfig
+
+    def getWFData(self):
+        return self.data
 
     def filterWFData(self):
         self.data.filterWFData()
         self.plotData()
 
     def plotData(self):
-        for comp in self.components:
-            self.getPlotWidget()
+        self.getPlotWidget().plotData(self.getComponents(), self.getWFData())
 
 class PropertiesDlg(QDialog):
 
@@ -201,12 +254,12 @@ class PropertiesDlg(QDialog):
         layout.addWidget(self.buttonBox)
         self.setLayout(layout)
 
-        self.connect(self.buttonBox, SIGNAL("accepted()"), self,
-                     SLOT("accept()"))
+        self.connect(self.buttonBox, Signal("accepted()"), self,
+                     Slot("accept()"))
         self.connect(self.buttonBox.button(QDialogButtonBox.Apply),
-                     SIGNAL("clicked()"), self.apply)
-        self.connect(self.buttonBox, SIGNAL("rejected()"),
-                     self, SLOT("reject()"))
+                     Signal("clicked()"), self.apply)
+        self.connect(self.buttonBox, Signal("rejected()"),
+                     self, Slot("reject()"))
 
     def accept(self, *args, **kwargs):
         self.apply()
@@ -549,11 +602,11 @@ class HelpForm(QDialog):
         layout.addWidget(self.webBrowser, 1)
         self.setLayout(layout)
 
-        self.connect(backAction, SIGNAL("triggered()"),
-                     self.webBrowser, SLOT("backward()"))
-        self.connect(homeAction, SIGNAL("triggered()"),
-                     self.webBrowser, SLOT("home()"))
-        self.connect(self.webBrowser, SIGNAL("sourceChanged(QUrl)"),
+        self.connect(backAction, Signal("triggered()"),
+                     self.webBrowser, Slot("backward()"))
+        self.connect(homeAction, Signal("triggered()"),
+                     self.webBrowser, Slot("home()"))
+        self.connect(self.webBrowser, Signal("sourceChanged(QUrl)"),
                      self.updatePageTitle)
 
         self.resize(400, 600)

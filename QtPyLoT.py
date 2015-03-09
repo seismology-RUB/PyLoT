@@ -35,7 +35,7 @@ from pylot.core.read import Data, FilterOptions
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     checkurl, FormatError, FilterOptionsDialog, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
-    DatastructureError, createAction, getLogin, createCreationInfo
+    DatastructureError, createAction, getLogin, createCreationInfo, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
 
 
@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
         settings.sync()
 
         self.filteroptions = {}
+        self.pickDlgs = {}
 
         # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
@@ -322,6 +323,9 @@ class MainWindow(QMainWindow):
     def getPlotWidget(self):
         return self.DataPlot
 
+    def getWFID(self):
+        return self.getPlotWidget().getStatID()
+
     def addActions(self, target, actions):
         for action in actions:
             if action is None:
@@ -417,6 +421,10 @@ class MainWindow(QMainWindow):
     def getSeismicPhase(self):
         return self.seismicPhase
 
+    def getStationName(self, wfID):
+        data = self.getData().copy().select(component=self.getComponent())
+        return data[wfID].stats.station
+
     def alterPhase(self):
         pass
 
@@ -424,6 +432,15 @@ class MainWindow(QMainWindow):
         self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
         self.updateStatus('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
+
+    def pickOnStation(self):
+
+        wfID = self.getWFID()
+
+        station = self.getStationName(wfID)
+        self.pickDlgs[wfID] = PickDlg(self,
+                                      self.getData().select(station=station),
+                                      station)
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
