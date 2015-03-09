@@ -133,6 +133,9 @@ class AutoPicking(object):
     def getEpick(self):
         return self.EPick
 
+    def getPickError(self):
+        return self.PickError
+
     def getiplot(self):
         return self.iplot
 
@@ -151,15 +154,18 @@ class AutoPicking(object):
 
 class AICPicker(AutoPicking):
     '''
-    Method to derive onset time of arriving phase based on CF
-    derived from AIC.
+    Method to derive the onset time of an arriving phase based on CF
+    derived from AIC. In order to get an impression of the quality of this inital pick,
+    a quality assessment is applied based on SNR and slope determination derived from the CF, 
+    from which the AIC has been calculated.
     '''
 
     def calcPick(self):
  
-        print 'AICPicker: Get onset time (pick) from AIC-CF ...'
+        print 'AICPicker: Get initial onset time (pick) from AIC-CF ...'
 
         self.Pick = None
+        self.PickError = None
         #find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -279,6 +285,7 @@ class PragPicker(AutoPicking):
            print 'PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...'
 
            self.Pick = None 
+           self.PickError = None
            self.SNR = None
            self.slope = None
            #smooth CF
@@ -377,6 +384,7 @@ class EarlLatePicker(AutoPicking):
 
         self.LPick = None 
         self.EPick = None
+        self.PickError = None
         self.SNR = None
         self.slope = None
         if self.getpick1() is not None:
@@ -509,6 +517,12 @@ class EarlLatePicker(AutoPicking):
            #Ts/4 is assumed as time difference between most likely and earliest possible pick!
            self.EPick = ti - Ts/4
 
+           #get symmetric pick error as mean from earliest and latest possible pick
+           #by weighting latest possible pick tow times earliest possible pick
+           diffti_tl = self.LPick - ti
+           diffti_te = ti - self.EPick
+           self.PickError = (diffti_te + 2 * diffti_tl)  / 3
+
            if self.iplot is not None:
               plt.figure(self.iplot)
               if len(x) == 1:
@@ -517,14 +531,19 @@ class EarlLatePicker(AutoPicking):
                  p3, = plt.plot(t[isignal], x[0].data[isignal], 'r')
                  p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k') 
                  p5, = plt.plot(zc, [0, 0, 0], '*g', markersize=14)
-                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'])
+                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'], \
+                             loc='best')
                  plt.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k') 
                  plt.plot([ti, ti], [max(x[0].data), -max(x[0].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                  plt.yticks([])
-                 plt.title('Earliest-/Latest Possible and Most Likely Pick, %s' % self.Data[0].stats.station)
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
+                 plt.title('Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' % self.Data[0].stats.station)
               elif len(x) == 2:
                  plt.subplot(2,1,1)
                  p1, = plt.plot(t, x[0].data, 'k')
@@ -532,14 +551,19 @@ class EarlLatePicker(AutoPicking):
                  p3, = plt.plot(t[isignal], x[0].data[isignal], 'r')
                  p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k') 
                  p5, = plt.plot(zc1[0:3], [0, 0, 0], '*g', markersize=14)
-                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'])
+                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'], \
+                             loc='best')
                  plt.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k') 
                  plt.plot([ti, ti], [max(x[0].data), -max(x[0].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.plot(zc1[0:3], [0, 0, 0], '*g')
                  plt.yticks([])
-                 plt.title('Earliest-/Latest Possible and Most Likely Pick, %s' % self.Data[0].stats.station)
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
+                 plt.title('Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' % self.Data[0].stats.station)
                  plt.subplot(2,1,2)
                  plt.plot(t, x[1].data, 'k')
                  plt.plot(t[inoise], x[1].data[inoise])
@@ -549,8 +573,12 @@ class EarlLatePicker(AutoPicking):
                  plt.plot([ti, ti], [max(x[1].data), -max(x[1].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[1].data)/2, -max(x[1].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[1].data)/2, -max(x[1].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.plot(zc2[0:3], [0, 0, 0], '*g', markersize=14)
                  plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
                  plt.yticks([])
               elif len(x) == 3:
                  plt.subplot(3,1,1)
@@ -559,13 +587,18 @@ class EarlLatePicker(AutoPicking):
                  p3, = plt.plot(t[isignal], x[0].data[isignal], 'r')
                  p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k') 
                  p5, = plt.plot(zc1[0:3], [0, 0, 0], '*g', markersize=14)
-                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'])
+                 plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'], \
+                             loc='best')
                  plt.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k') 
                  plt.plot([ti, ti], [max(x[0].data), -max(x[0].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[0].data)/2, -max(x[0].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.yticks([])
-                 plt.title('Earliest-/Latest Possible and Most Likely Pick, %s' % self.Data[0].stats.station)
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
+                 plt.title('Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' % self.Data[0].stats.station)
                  plt.subplot(3,1,2)
                  plt.plot(t, x[1].data, 'k')
                  plt.plot(t[inoise], x[1].data[inoise])
@@ -575,8 +608,12 @@ class EarlLatePicker(AutoPicking):
                  plt.plot([ti, ti], [max(x[1].data), -max(x[1].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[1].data)/2, -max(x[1].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[1].data)/2, -max(x[1].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.plot(zc2[0:3], [0, 0, 0], '*g', markersize=14)
                  plt.yticks([])
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
                  plt.subplot(3,1,3)
                  plt.plot(t, x[2].data, 'k')
                  plt.plot(t[inoise], x[2].data[inoise])
@@ -586,9 +623,13 @@ class EarlLatePicker(AutoPicking):
                  plt.plot([ti, ti], [max(x[2].data), -max(x[2].data)], 'b', linewidth=2)
                  plt.plot([self.LPick, self.LPick], [max(x[2].data)/2, -max(x[2].data)/2], '--k')
                  plt.plot([self.EPick, self.EPick], [max(x[2].data)/2, -max(x[2].data)/2], '--k')
+                 plt.plot([ti + self.PickError, ti + self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
+                 plt.plot([ti - self.PickError, ti - self.PickError], [max(x[0].data)/2, -max(x[0].data)/2], 'r--')
                  plt.plot(zc3[0:3], [0, 0, 0], '*g', markersize=14)
                  plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                  plt.yticks([])
+                 ax = plt.gca()
+                 ax.set_xlim([self.Tcf[inoise[0][0]] - 2, self.Tcf[isignal[0][len(isignal) - 1]] + 3])
               plt.show()
               raw_input()
               plt.close(self.iplot)
