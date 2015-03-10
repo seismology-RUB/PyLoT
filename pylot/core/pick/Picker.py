@@ -189,7 +189,7 @@ class AICPicker(AutoPicking):
         #remove offset
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
-        #get maximum of 1st derivative of CF (more stable!) as starting point
+        #get maximum of 1st derivative of AIC-CF (more stable!) as starting point
         diffcf = np.diff(aicsmooth)
         #find NaN's
         nn = np.isnan(diffcf)
@@ -200,12 +200,19 @@ class AICPicker(AutoPicking):
         diffcf = tap * diffcf * max(abs(aicsmooth))
         icfmax = np.argmax(diffcf)
         
-        #find minimum in front of maximum
+        #find minimum in AIC-CF front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
         for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1): 
            if aicsmooth[i - 1] >= aicsmooth[i]:
               self.Pick = self.Tcf[i]
               break
+        #if no minimum could be found:
+        #search in 1st derivative of AIC-CF
+        if self.Pick is None:
+           for i in range(icfmax -1, max([icfmax -lpickwindow, 2]), -1):
+              if diffcf[i -1] >= diffcf[i]:
+                 self.Pick = self.Tcf[i]
+                 break
         
         #quality assessment using SNR and slope from CF
         if self.Pick is not None:
@@ -233,7 +240,6 @@ class AICPicker(AutoPicking):
            if imax == 0:
               print 'AICPicker: Maximum for slope determination right at the beginning of the window!'
               print 'Choose longer slope determination window!'
-              pdb.set_trace()
               return
            islope = islope[0][0 :imax]
            dataslope = self.Data[0].data[islope]
