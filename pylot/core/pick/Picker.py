@@ -52,7 +52,7 @@ class AutoPicking(object):
         :type: float
 
         :param: Pick1, initial (prelimenary) onset time, starting point for PragPicker and
-         EarlLatePick
+         EarlLatePicker
         :type: float
 
         '''
@@ -189,8 +189,16 @@ class AICPicker(AutoPicking):
         #remove offset
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
-        #get maximum of CF as starting point
-        icfmax = np.argmax(aic)
+        #get maximum of 1st derivative of CF (more stable!) as starting point
+        diffcf = np.diff(aicsmooth)
+        #find NaN's
+        nn = np.isnan(diffcf)
+        if len(nn) > 1:
+           diffcf[nn] = 0
+        #taper CF to get rid off side maxima
+        tap = np.hanning(len(diffcf))
+        diffcf = tap * diffcf * max(abs(aicsmooth))
+        icfmax = np.argmax(diffcf)
         
         #find minimum in front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
@@ -222,6 +230,11 @@ class AICPicker(AutoPicking):
            #find maximum within slope determination window
            #'cause slope should be calculated up to first local minimum only!
            imax = np.argmax(self.Data[0].data[islope])
+           if imax == 0:
+              print 'AICPicker: Maximum for slope determination right at the beginning of the window!'
+              print 'Choose longer slope determination window!'
+              pdb.set_trace()
+              return
            islope = islope[0][0 :imax]
            dataslope = self.Data[0].data[islope]
            #calculate slope as polynomal fit of order 1
