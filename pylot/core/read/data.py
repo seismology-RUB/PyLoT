@@ -97,6 +97,7 @@ class Data(object):
 
     def plotWFData(self, widget):
         wfst = self.getWFData().select(component=self.getComp())
+        widget.axes.cla()
         for n, trace in enumerate(wfst):
             stime = trace.stats.starttime - self.getCutTimes()[0]
             etime = trace.stats.endtime - self.getCutTimes()[1]

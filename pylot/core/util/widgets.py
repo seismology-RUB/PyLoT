@@ -13,6 +13,7 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.widgets import MultiCursor
 from PySide.QtGui import (QAction,
                           QApplication,
                           QComboBox,
@@ -70,24 +71,12 @@ class MPLWidget(FigureCanvas):
         self.setParent(parent)
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.mpl_connect('button_press_event', self.emitSelection)
         self.axes = self.figure.add_subplot(111)
         self.axes.autoscale(tight=True)
         self._statID = None
-
+        self.multiCursor = MultiCursor(self.canvas, (self.axes,), horizOn=True,
+                                       color='m', lw=1)
         self.updateWidget(xlabel, ylabel, title)
-
-    def emitSelection(self, event):
-
-        self._statID = round(event.ydata)
-        if self.getParent():
-            self.getParent().pickOnStation()
-
-    def getStatID(self):
-        if self._statID is None:
-            return
-        else:
-            return self._statID
 
     def getParent(self):
         return self._parent
@@ -119,7 +108,6 @@ class multiComponentPlot(FigureCanvas):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.noc = len(components)
-
         self.axeslist = []
 
     def plotData(self, components, data):
@@ -145,6 +133,7 @@ class multiComponentPlot(FigureCanvas):
                 self.updateXLabel(self.noc, xlabel)
             else:
                 self.updateXLabel(n, '')
+        self.multiCursor = MultiCursor(self.canvas, tuple(self.axeslist))
 
     def insertLabel(self, pos, text):
         subax = self.axeslist[pos]

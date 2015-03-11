@@ -25,7 +25,8 @@ https://www.iconfinder.com/iconsets/flavour
 
 import sys
 
-from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, QFileInfo
+from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
+    QFileInfo, Qt
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication
@@ -37,8 +38,7 @@ from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
     DatastructureError, createAction, getLogin, createCreationInfo, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
-
-
+import qrc_resources
 
 # Version information
 __version__ = _getVersionString()
@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
             settings.setValue("user/Login", getLogin())
         if settings.value("agency_id", None) is None:
             agency = QInputDialog.getText(self, "Enter authority name (e.g. BUG):", "Authority")
+            settings.setValue("agency_id", agency)
         self.recentEvents = settings.value("data/recentEvents", [])
         self.fnames = None
         self.dataStructure = DATASTRUCTURE[
@@ -106,6 +107,7 @@ class MainWindow(QMainWindow):
         xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
 
         _widget = QWidget()
+        _widget.setCursor(Qt.CrossCursor)
         _layout = QHBoxLayout()
 
         plottitle = "Overview: {0} components ".format(self.getComponent())
@@ -121,24 +123,29 @@ class MainWindow(QMainWindow):
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
+        pickIcon = QIcon(':/pick.png')
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
                                            "Create a new event.")
-        openEventAction = self.createAction(self, "&Open event ...", self.loadData,
-                                            QKeySequence.Open, openIcon,
-                                            "Open an event.")
+        openEventAction = self.createAction(self, "&Open event ...",
+                                            self.loadData, QKeySequence.Open,
+                                            openIcon, "Open an event.")
         openEventAction.setData(None)
-        saveEventAction = self.createAction(self, "&Save event ...", self.saveData,
-                                            QKeySequence.Save, saveIcon,
-                                            "Save actual event data.")
+        saveEventAction = self.createAction(self, "&Save event ...",
+                                            self.saveData, QKeySequence.Save,
+                                            saveIcon, "Save actual event data.")
         openWFDataAction = self.createAction(self, "Open &waveforms ...",
                                              self.loadWaveformData,
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
                                              """Open waveform data (event will
                                              be closed).""")
-
-        prefsEventAction = self.createAction(self, "Preferences", self.PyLoTprefs,
+        selectStation = self.createAction(self, "Select station",
+                                          self.pickOnStation, "Alt+P", pickIcon,
+                                          "Select a station from overview "
+                                          "plot for picking")
+        prefsEventAction = self.createAction(self, "Preferences",
+                                             self.PyLoTprefs,
                                              QKeySequence.Preferences,
                                              QIcon(None),
                                              "Edit PyLoT app preferences.")
@@ -197,6 +204,11 @@ class MainWindow(QMainWindow):
         phaseToolBar.setObjectName("PhaseTools")
         self.addActions(phaseToolBar, phaseToolActions)
 
+        pickToolBar = self.addToolBar("PickTools")
+        pickToolActions = (selectStation, )
+        pickToolBar.setObjectName("PickTools")
+        self.addActions(pickToolBar, pickToolActions)
+
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         status = self.statusBar()
@@ -205,8 +217,9 @@ class MainWindow(QMainWindow):
         status.showMessage("Ready", 500)
 
         _widget.setLayout(_layout)
-        self.setCentralWidget(_widget)
+        _widget.showFullScreen()
 
+        self.setCentralWidget(_widget)
 
     def updateFileMenu(self):
 
@@ -323,8 +336,13 @@ class MainWindow(QMainWindow):
     def getPlotWidget(self):
         return self.DataPlot
 
-    def getWFID(self):
-        return self.getPlotWidget().getStatID()
+    def getWFID(self, event):
+
+        ycoord = event.ydata
+
+        statID = round(ycoord)
+
+        return statID
 
     def addActions(self, target, actions):
         for action in actions:
@@ -433,9 +451,9 @@ class MainWindow(QMainWindow):
         self.updateStatus('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
 
-    def pickOnStation(self):
+    def pickOnStation(self, event):
 
-        wfID = self.getWFID()
+        wfID = self.getWFID(event)
 
         station = self.getStationName(wfID)
         self.pickDlgs[wfID] = PickDlg(self,
