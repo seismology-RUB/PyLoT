@@ -262,8 +262,11 @@ class AICPicker(AutoPicking):
            x = self.Data[0].data
            p1, = plt.plot(self.Tcf, x / max(x), 'k')
            p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
-           p3, = plt.plot([self.Pick, self.Pick], [-1 , 1], 'b', linewidth=2)
-           plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
+           if self.Pick is not None:
+              p3, = plt.plot([self.Pick, self.Pick], [-1 , 1], 'b', linewidth=2)
+              plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
+           else:
+              plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
            plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
            plt.yticks([])
            plt.title(self.Data[0].stats.station)
@@ -442,9 +445,24 @@ class EarlLatePicker(AutoPicking):
               ilup2 = np.where(x[1].data[isignal] > nlevel)
               ildown1 = np.where(x[0].data[isignal] < -nlevel)
               ildown2 = np.where(x[1].data[isignal] < -nlevel)
-              ilup = min([ilup1[0][0], ilup2[0][0]])
-              ildown = min([ildown1[0][0], ildown2[0][0]])
-              if np.size(ilup) < 1 and np.size(ildown) < 1:
+              if np.size(ilup1) < 1 and np.size(ilup2) > 1:
+                 ilup = ilup2
+              elif np.size(ilup1) > 1 and np.size(ilup2) < 1:
+                 ilup = ilup1
+              elif np.size(ilup1) < 1 and np.size(ilup2) < 1:
+                 ilup = None
+              else:
+                 ilup = min([ilup1[0][0], ilup2[0][0]])
+ 
+              if np.size(ildown1) < 1 and np.size(ildown2) > 1:
+                 ildown = ildown2
+              elif np.size(ildown1) > 1 and np.size(ildown2) < 1:
+                 ildown = ildown1
+              elif np.size(ildown1) < 1 and np.size(ildown2) < 1:
+                 ildown = None
+              else:
+                 ildown = min([ildown1[0][0], ildown2[0][0]])
+              if ilup == None  and ildown == None:
                  print 'EarlLatePicker: Signal lower than noise level, misspick?'
                  return
               il = min([ilup, ildown])
@@ -459,9 +477,36 @@ class EarlLatePicker(AutoPicking):
               ildown1 = np.where(x[0].data[isignal] < -nlevel)
               ildown2 = np.where(x[1].data[isignal] < -nlevel)
               ildown3 = np.where(x[2].data[isignal] < -nlevel)
-              ilup = min([ilup1[0][0], ilup2[0][0], ilup3[0][0]])
-              ildown = min([ildown1[0][0], ildown2[0][0], ildown3[0][0]])
-              if np.size(ilup) < 1 and np.size(ildown) < 1:
+              if np.size(ilup1) > 1 and np.size(ilup2) < 1 and np.size(ilup3) < 1:
+                 ilup = ilup1
+              elif np.size(ilup1) > 1 and np.size(ilup2) > 1 and np.size(ilup3) < 1:
+                 ilup = min([ilup1[0][0], ilup2[0][0]])
+              elif np.size(ilup1) > 1 and np.size(ilup2) > 1 and np.size(ilup3) > 1: 
+                 ilup = min([ilup1[0][0], ilup2[0][0], ilup3[0][0]])
+              elif np.size(ilup1) < 1 and np.size(ilup2) > 1 and np.size(ilup3) > 1:
+                 ilup = min([ilup2[0][0], ilup3[0][0]])
+              elif np.size(ilup1) > 1 and np.size(ilup2) < 1 and np.size(ilup3) > 1:
+                 ilup = min([ilup1[0][0], ilup3[0][0]])
+              elif np.size(ilup1) < 1 and np.size(ilup2) < 1 and np.size(ilup3) < 1:
+                 ilup = None
+              else:
+                 ilup = min([ilup1[0][0], ilup2[0][0], ilup3[0][0]])
+
+              if np.size(ildown1) > 1 and np.size(ildown2) < 1 and np.size(ildown3) < 1:
+                 ildown = ildown1
+              elif np.size(ildown1) > 1 and np.size(ildown2) > 1 and np.size(ildown3) < 1:
+                 ildown = min([ildown1[0][0], ildown2[0][0]])
+              elif np.size(ildown1) > 1 and np.size(ildown2) > 1 and np.size(ildown3) > 1: 
+                 ildown = min([ildown1[0][0], ildown2[0][0], ildown3[0][0]])
+              elif np.size(ildown1) < 1 and np.size(ildown2) > 1 and np.size(ildown3) > 1:
+                 ildown = min([ildown2[0][0], ildown3[0][0]])
+              elif np.size(ildown1) > 1 and np.size(ildown2) < 1 and np.size(ildown3) > 1:
+                 ildown = min([ildown1[0][0], ildown3[0][0]])
+              elif np.size(ildown1) < 1 and np.size(ildown2) < 1 and np.size(ildown3) < 1:
+                 ildown = None
+              else:
+                 ildown = min([ildown1[0][0], ildown2[0][0], ildown3[0][0]])
+              if ilup == None and ildown == None:
                  print 'EarlLatePicker: Signal lower than noise level, misspick?'
                  return
               il = min([ilup, ildown])
