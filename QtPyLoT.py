@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         # create central matplotlib figure canvas widget
         self.DataPlot = MPLWidget(parent=self, xlabel=xlab, ylabel=None,
                                   title=plottitle)
-
+        self.DataPlot.mpl_connect('button_press_event', self.pickOnStation)
         _layout.addWidget(self.DataPlot)
 
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
 
         ycoord = event.ydata
 
-        statID = round(ycoord)
+        statID = int(round(ycoord))
 
         return statID
 
@@ -440,8 +440,7 @@ class MainWindow(QMainWindow):
         return self.seismicPhase
 
     def getStationName(self, wfID):
-        data = self.getData().copy().select(component=self.getComponent())
-        return data[wfID].stats.station
+        return self.getPlotWidget().getPlotDict()[wfID]
 
     def alterPhase(self):
         pass
@@ -456,9 +455,11 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(event)
 
         station = self.getStationName(wfID)
-        self.pickDlgs[wfID] = PickDlg(self,
-                                      self.getData().select(station=station),
-                                      station)
+        data = self.getData().getWFData()
+        pickDlg = PickDlg(self, data.select(station=station), station)
+        print 'picking on station {0}'.format(station)
+        pickDlg.exec_()
+
 
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)

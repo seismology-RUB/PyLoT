@@ -30,7 +30,8 @@ class Data(object):
     '''
 
     def __init__(self, parent=None, evtdata=None):
-        if parent:
+        self._parent = parent
+        if self.getParent():
             self.comp = parent.getComponent()
         else:
             self.comp = 'Z'
@@ -49,6 +50,9 @@ class Data(object):
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
+
+    def getParent(self):
+        return self._parent
 
     def isNew(self):
         return self.newevent
@@ -104,6 +108,7 @@ class Data(object):
             srate = trace.stats.sampling_rate
             nsamp = len(trace.data)
             tincr = trace.stats.delta
+            station = trace.stats.station
             time_ax = np.arange(stime, nsamp / srate, tincr)
             trace.normalize(trace.data.max() * 2)
             widget.axes.plot(time_ax, trace.data + n, 'k')
@@ -112,6 +117,10 @@ class Data(object):
             zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
             title = 'overview: {0} components'.format(zne_text[self.getComp()])
             widget.updateWidget(xlabel, ylabel, title)
+            widget.setPlotDict(n, station)
+
+        widget.axes.autoscale(tight=True)
+
 
     def getComp(self):
         return self.comp

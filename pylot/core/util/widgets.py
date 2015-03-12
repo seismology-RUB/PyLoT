@@ -6,13 +6,14 @@ Created on Wed Mar 19 11:27:35 2014
 """
 
 import datetime
+import numpy as np
 import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import FigureCanvas
 from matplotlib.widgets import MultiCursor
 from PySide.QtGui import (QAction,
                           QApplication,
@@ -65,18 +66,24 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
 class MPLWidget(FigureCanvas):
 
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
-        super(MPLWidget, self).__init__(Figure())
 
         self._parent = None
         self.setParent(parent)
         self.figure = Figure()
-        self.canvas = FigureCanvas(self.figure)
+        self.plotdict = dict()
+
         self.axes = self.figure.add_subplot(111)
-        self.axes.autoscale(tight=True)
         self._statID = None
-        self.multiCursor = MultiCursor(self.canvas, (self.axes,), horizOn=True,
+        FigureCanvas.__init__(self, self.figure)
+        self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,), horizOn=True,
                                        color='m', lw=1)
         self.updateWidget(xlabel, ylabel, title)
+
+    def getPlotDict(self):
+        return self.plotdict
+
+    def setPlotDict(self, key, value):
+        self.plotdict[key] = value
 
     def getParent(self):
         return self._parent
@@ -101,51 +108,100 @@ class MPLWidget(FigureCanvas):
 
 class multiComponentPlot(FigureCanvas):
 
-    def __init__(self, parent=None, components='ZNE'):
-        super(multiComponentPlot, self).__init__(Figure())
+    def __init__(self, data, parent=None, components='ZNE'):
 
-        self.setParent(parent)
+        self.data = data
+        self._parent = parent
+        self.components = components
+
         self.figure = Figure()
-        self.canvas = FigureCanvas(self.figure)
-        self.noc = len(components)
-        self.axeslist = []
 
-    def plotData(self, components, data):
-        if self.axeslist:
-            self.axeslist = []
-            self.figure.clf()
-        xlabel = 'time since {0} [s]'.format(data[0].stats.starttime)
+        self.noc = len(components)
+        FigureCanvas.__init__(self, self.figure)
+        self.multiCursor = None
+        self.resetPlot(components, data)
+
+    def getData(self):
+        return self.data
+
+    def setData(self, data):
+        self.data = data
+
+    def getParent(self):
+        return self._parent
+
+    def setParent(self, parent):
+        self._parent = parent
+
+    def getComponents(self):
+        return self.components
+
+    def setComponents(self, components):
+        self.components = components
+
+    def getNoC(self):
+        return self.noc
+
+    def setNoC(self, noc):
+        self.noc = noc
+
+    def resetPlot(self, components=None, data=None):
+
+        # clear figure
+        self.figure.clf()
+
+        # delete multiCursor if existing
+        if self.multiCursor is not None:
+            self.multiCursor = None
+
+        # set new attribute values
+        if data is not None:
+            self.setData(data)
+        if components is not None:
+            self.setComponents(components)
+            noc = len(self.getComponents())
+            if self.getNoC() != noc:
+                self.setNoC(noc)
+        self.axesdict = dict()
+
+        # prepare variables for plotting
+        trace = data[0]
+        stime = trace.stats.starttime
+        srate = trace.stats.sampling_rate
+        npts = trace.stats.npts
+        tincr = trace.stats.delta
+        time_ax = np.arange(0, npts / srate, tincr)
+        xlabel = 'time since {0} [s]'.format(stime)
+
+        # plot individual component traces in separate subplots
         for n, comp in enumerate(components):
-            nsub = '{0}1{1}'.format(self.noc, n)
+            nsub = '{0}1{1}'.format(self.noc, n+1)
             if n >= 1:
-                self.axeslist.insert(
-                    n,
-                    self.figure.add_subplot(nsub,
-                                            sharex=self.axeslist[0],
-                                            sharey=self.axeslist[0])
-                )
+                subax = self.figure.add_subplot(nsub, sharex=self.axesdict[0])
             else:
                 subax = self.figure.add_subplot(nsub)
-            subax.autoscale(tight=True)
-            self.axeslist.insert(n, subax)
+                subax.autoscale(tight=True)
+            subset = data.copy().select(component=comp)[0].data
+            subax.plot(time_ax, subset)
+            self.axesdict[n] = subax
             self.updateYLabel(n, comp)
             if n == self.noc:
                 self.updateXLabel(self.noc, xlabel)
             else:
                 self.updateXLabel(n, '')
-        self.multiCursor = MultiCursor(self.canvas, tuple(self.axeslist))
+
+        self.multiCursor = MultiCursor(self.figure.canvas, tuple(self.axesdict.values()), color='r', lw=1)
 
     def insertLabel(self, pos, text):
-        subax = self.axeslist[pos]
+        subax = self.axesdict[pos]
         axann = subax.annotate(text, xy=(.03, .97), xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
     def updateXLabel(self, pos, text):
-        self.axeslist[pos].set_xlabel(text)
+        self.axesdict[pos].set_xlabel(text)
 
     def updateYLabel(self, pos, text):
-        self.axeslist[pos].set_ylabel(text)
-
+        self.axesdict[pos].set_ylabel(text)
 
 
 class PickDlg(QDialog):
@@ -153,9 +209,11 @@ class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, rotate=False):
         super(PickDlg, self).__init__(parent)
 
+        # initialize attributes
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+
         if data is None:
             try:
                 data = parent.getData().getWFData().copy()
@@ -163,13 +221,13 @@ class PickDlg(QDialog):
             except AttributeError, e:
                 errmsg = 'You either have to put in a data or an appropriate ' \
                          'parent (PyLoT MainWindow) object: {0}'.format(e)
-                raise Exception()
+                raise Exception(errmsg)
         else:
             self.data = data
 
-        self.setupUi()
-        self.multicompfig = multiComponentPlot(parent=self,
+        self.multicompfig = multiComponentPlot(data=data, parent=self,
                                                components=self.getComponents())
+        self.setupUi()
 
     def setupUi(self):
 
@@ -202,6 +260,7 @@ class PickDlg(QDialog):
 
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
+        self.setLayout(_outerlayout)
 
 
     def getComponents(self):
@@ -214,11 +273,9 @@ class PickDlg(QDialog):
         return self.data
 
     def filterWFData(self):
-        self.data.filterWFData()
-        self.plotData()
+        self.data.filter(type='bandpass', freqmin=.5, freqmax=15.)
+        self.getPlotWidget().resetPlot(self.getComponents(), self.getWFData())
 
-    def plotData(self):
-        self.getPlotWidget().plotData(self.getComponents(), self.getWFData())
 
 class PropertiesDlg(QDialog):
 
