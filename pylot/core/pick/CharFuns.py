@@ -218,12 +218,13 @@ class AICcf(CharacteristicFunction):
         nn = np.isnan(xnp)
         if len(nn) > 1:
            xnp[nn] = 0
+        i0 = np.where(xnp == 0)
+        i = np.where(xnp > 0)
+        xnp[i0] = xnp[i[0][0]]
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
         cumsumcf = np.cumsum(np.power(xnp, 2))
-        i = np.where(cumsumcf == 0)
-        cumsumcf[i] = np.finfo(np.float64).eps
         cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) * \
                  np.log((cumsumcf[datlen - 1] - cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
