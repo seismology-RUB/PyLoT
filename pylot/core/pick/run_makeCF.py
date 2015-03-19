@@ -12,6 +12,7 @@ import numpy as np
 from pylot.core.pick.CharFuns import CharacteristicFunction
 from pylot.core.pick.Picker import AutoPicking
 from earllatepicker import earllatepicker
+from fmpicker import fmpicker
 import glob
 import argparse
 
@@ -77,7 +78,11 @@ def run_makeCF(project, database, event, iplot, station=None):
           hospick = PragPicker(hoscf, TSNRhos, 2, 10, 0.001, 0.2, aicpick.getpick())
           #############################################################
           #get earliest and latest possible picks
-          [lpickhos, epickhos, pickerrhos] = earllatepicker(st, 1.5, TSNRhos, hospick.getpick(), 10)
+          st_copy[0].data = tr_filt.data
+          [lpickhos, epickhos, pickerrhos] = earllatepicker(st_copy, 1.5, TSNRhos, hospick.getpick(), 10)
+          #############################################################
+          #get first motion of onset
+          hosfm = fmpicker(st, st_copy, 0.2, hospick.getpick(), 11)
           ##############################################################
           #calculate ARZ-CF using subclass ARZcf of class CharcteristicFunction
           arzcf = ARZcf(st, cuttimes, tpredz, arzorder, tdetz, addnoise) #instance of ARZcf
@@ -95,7 +100,8 @@ def run_makeCF(project, database, event, iplot, station=None):
           #get refined onset time from ARZ-CF using class Picker
           arzpick = PragPicker(arzcf, TSNRarz, 2.0, 10, 0.1, 0.05, aicarzpick.getpick())
           #get earliest and latest possible picks
-          [lpickarz, epickarz, pickerrarz] = earllatepicker(st, 1.5, TSNRarz, arzpick.getpick(), 10)
+          st_copy[0].data = tr_filt.data
+          [lpickarz, epickarz, pickerrarz] = earllatepicker(st_copy, 1.5, TSNRarz, arzpick.getpick(), 10)
     elif not wfzfiles:
        print 'No vertical component data found!'
 
