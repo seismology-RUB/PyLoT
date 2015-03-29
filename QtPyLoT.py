@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(QIcon(":/icon.ico"))
 
-        xlab = self.startTime.strftime('seconds since %d %b %Y %H:%M:%S (%Z)')
+        xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
 
         _widget = QWidget()
         _widget.setCursor(Qt.CrossCursor)
@@ -365,7 +365,11 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
 
     def plotWaveformData(self):
-        self.getData().plotWFData(self.getPlotWidget())
+        zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
+        comp = self.getComponent()
+        title = 'overview: {0} components'.format(zne_text[comp])
+        wfst = self.getData().getWFData().select(component=comp)
+        self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
 
     def filterWaveformData(self):
         if self.getData():
@@ -455,10 +459,14 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(event)
 
         station = self.getStationName(wfID)
-        data = self.getData().getWFData()
-        pickDlg = PickDlg(self, data.select(station=station), station)
         print 'picking on station {0}'.format(station)
-        pickDlg.exec_()
+        data = self.getData().getWFData()
+        pickDlg = PickDlg(self, data=data.select(station=station),
+                          station=station)
+        if pickDlg.exec_():
+            print 'picks accepted'
+        else:
+            print 'picks not saved and closed dialog'
 
 
     def updateStatus(self, message):

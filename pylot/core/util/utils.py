@@ -6,6 +6,7 @@ import os
 import pwd
 import re
 import hashlib
+import numpy as np
 from obspy.core import UTCDateTime
 import obspy.core.event as ope
 
@@ -224,5 +225,30 @@ def createAmplitude(pickID, amp, unit, category, origintime, cinfo,
 def getOwner(fn):
     return pwd.getpwuid(os.stat(fn).st_uid).pw_name
 
+def prepTimeAxis(stime, trace):
+    nsamp = trace.stats.npts
+    srate = trace.stats.sampling_rate
+    tincr = trace.stats.delta
+    etime = stime + nsamp / srate
+    time_ax = np.arange(stime, etime, tincr)
+    if len(time_ax) < nsamp:
+        print 'elongate time axes by one datum'
+        time_ax = np.arange(stime, etime + tincr, tincr)
+    elif len(time_ax) > nsamp:
+        print 'shorten time axes by one datum'
+        time_ax = np.arange(stime, etime - tincr, tincr)
+    if len(time_ax) != nsamp:
+        raise ValueError('{0} samples of data \n '
+                         '{1} length of time vector \n'
+                         'delta: {2}'.format(nsamp, len(time_ax), tincr))
+    return time_ax
 
-
+def getGlobalTimes(stream):
+    min_start = UTCDateTime()
+    max_end = None
+    for trace in stream:
+        if trace.stats.starttime < min_start:
+            min_start = trace.stats.starttime
+            if max_end is None or trace.stats.endtime > max_end:
+                max_end = trace.stats.endtime
+    return [min_start, max_end]

@@ -10,7 +10,8 @@ from obspy.core.event import (Event, Catalog)
 
 from pylot.core.read import readPILOTEvent
 
-from pylot.core.util import fnConstructor, createEvent, FormatError
+from pylot.core.util import fnConstructor, createEvent, FormatError, \
+    prepTimeAxis, getGlobalTimes
 
 
 class Data(object):
@@ -63,14 +64,7 @@ class Data(object):
         return self.cuttimes
 
     def updateCutTimes(self):
-        min_start = UTCDateTime()
-        max_end = None
-        for trace in self.getWFData().select(component=self.getComp()):
-            if trace.stats.starttime < min_start:
-                min_start = trace.stats.starttime
-                if max_end is None or trace.stats.endtime > max_end:
-                    max_end = trace.stats.endtime
-        self.cuttimes = [min_start, max_end]
+        self.cuttimes = getGlobalTimes(self.getWFData())
 
     def exportEvent(self, fnout=None, evtformat='QUAKEML'):
 
@@ -99,29 +93,6 @@ class Data(object):
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
 
-    def plotWFData(self, widget):
-        wfst = self.getWFData().select(component=self.getComp())
-        widget.axes.cla()
-        for n, trace in enumerate(wfst):
-            stime = trace.stats.starttime - self.getCutTimes()[0]
-            etime = trace.stats.endtime - self.getCutTimes()[1]
-            srate = trace.stats.sampling_rate
-            nsamp = len(trace.data)
-            tincr = trace.stats.delta
-            station = trace.stats.station
-            time_ax = np.arange(stime, nsamp / srate, tincr)
-            trace.normalize(trace.data.max() * 2)
-            widget.axes.plot(time_ax, trace.data + n, 'k')
-            xlabel = 'seconds since {0}'.format(self.getCutTimes()[0])
-            ylabel = ''
-            zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
-            title = 'overview: {0} components'.format(zne_text[self.getComp()])
-            widget.updateWidget(xlabel, ylabel, title)
-            widget.setPlotDict(n, station)
-
-        widget.axes.autoscale(tight=True)
-
-
     def getComp(self):
         return self.comp
 
@@ -146,7 +117,8 @@ class Data(object):
     def appendWFData(self, fnames):
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
-                                         "but is actually".format(type(fnames))
+                                         "but is actually {0}".format(type(
+                                                                        fnames))
         if self.dirty:
             self.resetWFData()
 

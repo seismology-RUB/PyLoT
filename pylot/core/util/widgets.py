@@ -43,6 +43,7 @@ from PySide.QtCore import (QSettings,
 from PySide.QtWebKit import QWebView
 from pylot.core.read import FilterOptions
 from pylot.core.util.defaults import OUTPUTFORMATS
+from pylot.core.util import prepTimeAxis, getGlobalTimes
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -70,13 +71,18 @@ class MPLWidget(FigureCanvas):
         self._parent = None
         self.setParent(parent)
         self.figure = Figure()
+        # attribute plotdict is an dictionary connecting position and a name
         self.plotdict = dict()
-
+        # create axes
         self.axes = self.figure.add_subplot(111)
-        self._statID = None
+        # clear axes each time plot is called
+        self.axes.hold(True)
+        # initialize super class
         FigureCanvas.__init__(self, self.figure)
+        # add an cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,), horizOn=True,
                                        color='m', lw=1)
+        # update labels of the entire widget
         self.updateWidget(xlabel, ylabel, title)
 
     def getPlotDict(self):
@@ -91,6 +97,25 @@ class MPLWidget(FigureCanvas):
     def setParent(self, parent):
         self._parent = parent
 
+    def plotWFData(self, wfdata, title = None):
+        self.axes.lines = []
+        wfstart = getGlobalTimes(wfdata)[0]
+        for n, trace in enumerate(wfdata):
+            station = trace.stats.station
+            print('plotting station: %s' % station)
+            stime = trace.stats.starttime - wfstart
+            time_ax = prepTimeAxis(stime, trace)
+            trace.detrend()
+            trace.detrend('demean')
+            trace.normalize(trace.data.max() * 2)
+            self.axes.plot(time_ax, trace.data + n, 'k')
+            self.axes.hold(True)
+            xlabel = 'seconds since {0}'.format(wfstart)
+            ylabel = ''
+            self.updateWidget(xlabel, ylabel, title)
+            self.setPlotDict(n, station)
+        self.axes.autoscale(tight=True)
+
     def updateXLabel(self, text):
         self.axes.set_xlabel(text)
 
@@ -104,6 +129,11 @@ class MPLWidget(FigureCanvas):
         self.updateXLabel(xlabel)
         self.updateYLabel(ylabel)
         self.updateTitle(title)
+
+    def insertLabel(self, pos, text):
+        pos = pos / max(self.axes.ylim)
+        axann = self.axes.annotate(text, xy=(.03, pos), xycoords='axes fraction')
+        axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
 
 class multiComponentPlot(FigureCanvas):
@@ -165,12 +195,8 @@ class multiComponentPlot(FigureCanvas):
         self.axesdict = dict()
 
         # prepare variables for plotting
-        trace = data[0]
-        stime = trace.stats.starttime
-        srate = trace.stats.sampling_rate
-        npts = trace.stats.npts
-        tincr = trace.stats.delta
-        time_ax = np.arange(0, npts / srate, tincr)
+        stime = getGlobalTimes(self.getData())[0]
+
         xlabel = 'time since {0} [s]'.format(stime)
 
         # plot individual component traces in separate subplots
@@ -181,8 +207,9 @@ class multiComponentPlot(FigureCanvas):
             else:
                 subax = self.figure.add_subplot(nsub)
                 subax.autoscale(tight=True)
-            subset = data.copy().select(component=comp)[0].data
-            subax.plot(time_ax, subset)
+            subset = data.copy().select(component=comp)[0]
+            time_ax = prepTimeAxis(subset.stats.starttime - stime, subset)
+            subax.plot(time_ax, subset.data)
             self.axesdict[n] = subax
             self.updateYLabel(n, comp)
             if n == self.noc:
@@ -190,12 +217,9 @@ class multiComponentPlot(FigureCanvas):
             else:
                 self.updateXLabel(n, '')
 
-        self.multiCursor = MultiCursor(self.figure.canvas, tuple(self.axesdict.values()), color='r', lw=1)
-
-    def insertLabel(self, pos, text):
-        subax = self.axesdict[pos]
-        axann = subax.annotate(text, xy=(.03, .97), xycoords='axes fraction')
-        axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+        self.multiCursor = MultiCursor(self.figure.canvas,
+                                       tuple(self.axesdict.values()),
+                                       color='r', lw=1)
 
     def updateXLabel(self, pos, text):
         self.axesdict[pos].set_xlabel(text)
@@ -214,6 +238,7 @@ class PickDlg(QDialog):
         self.rotate = rotate
         self.components = 'ZNE'
 
+        # set attribute holding data
         if data is None:
             try:
                 data = parent.getData().getWFData().copy()
@@ -225,9 +250,15 @@ class PickDlg(QDialog):
         else:
             self.data = data
 
-        self.multicompfig = multiComponentPlot(data=data, parent=self,
-                                               components=self.getComponents())
+        # initialize plotting widget
+        self.multicompfig = MPLWidget(self)
+
+        # setup ui
         self.setupUi()
+
+        # plot data
+        self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
+                                        title=self.getStation())
 
     def setupUi(self):
 
@@ -266,6 +297,9 @@ class PickDlg(QDialog):
     def getComponents(self):
         return self.components
 
+    def getStation(self):
+        return self.station
+
     def getPlotWidget(self):
         return self.multicompfig
 
@@ -273,8 +307,9 @@ class PickDlg(QDialog):
         return self.data
 
     def filterWFData(self):
-        self.data.filter(type='bandpass', freqmin=.5, freqmax=15.)
-        self.getPlotWidget().resetPlot(self.getComponents(), self.getWFData())
+        data = self.getWFData().copy().filter(type='bandpass', freqmin=.5, freqmax=15.)
+        title = self.getStation() + ' (filtered)'
+        self.getPlotWidget().plotWFData(wfdata=data, title=title)
 
 
 class PropertiesDlg(QDialog):
@@ -300,12 +335,9 @@ class PropertiesDlg(QDialog):
         layout.addWidget(self.buttonBox)
         self.setLayout(layout)
 
-        self.connect(self.buttonBox, Signal("accepted()"), self,
-                     Slot("accept()"))
-        self.connect(self.buttonBox.button(QDialogButtonBox.Apply),
-                     Signal("clicked()"), self.apply)
-        self.connect(self.buttonBox, Signal("rejected()"),
-                     self, Slot("reject()"))
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
 
     def accept(self, *args, **kwargs):
         self.apply()
