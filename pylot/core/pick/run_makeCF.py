@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   Script to run autoPyLoT-script "makeCF.py".
+   Script to run autoPyLoT-script "run_makeCF.py".
    Only for test purposes!
 """
 
@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.CharFuns import CharacteristicFunction
 from pylot.core.pick.Picker import AutoPicking
-from earllatepicker import earllatepicker
-from fmpicker import fmpicker
+from pylot.core.pick.utils import *
 import glob
 import argparse
 
@@ -81,6 +80,10 @@ def run_makeCF(project, database, event, iplot, station=None):
           st_copy[0].data = tr_filt.data
           [lpickhos, epickhos, pickerrhos] = earllatepicker(st_copy, 1.5, TSNRhos, hospick.getpick(), 10)
           #############################################################
+          #get SNR
+          [SNR, SNRdB] = getSNR(st_copy, TSNRhos, hospick.getpick())
+          print 'SNR:', SNR, 'SNR[dB]:', SNRdB
+          ##########################################################
           #get first motion of onset
           hosfm = fmpicker(st, st_copy, 0.2, hospick.getpick(), 11)
           ##############################################################
