@@ -20,6 +20,7 @@ calculated after Diehl & Kissling (2009).
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from pylot.core.pick.utils import *
 from pylot.core.pick.CharFuns import CharacteristicFunction
 
 class AutoPicking(object):
@@ -194,22 +195,16 @@ class AICPicker(AutoPicking):
         
         #quality assessment using SNR and slope from CF
         if self.Pick is not None:
-           #some parameters needed:
-           tnoise = self.TSNR[0]  #noise window length for calculating noise level
-           tsignal = self.TSNR[2] #signal window length
-           tsafety = self.TSNR[1] #safety gap between signal onset and noise window
-           tslope = self.TSNR[3]  #slope determination window
            #get noise window
-           inoise = np.where((self.Tcf <= max([self.Pick - tsafety, 0])) \
-                    & (self.Tcf >= max([self.Pick - tnoise - tsafety, 0])))    
+           inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
            #get signal window
-           isignal = np.where((self.Tcf <= min([self.Pick + tsignal + tsafety, len(self.Data[0].data)])) \
-                     & (self.Tcf >= self.Pick))
+           isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
            #calculate SNR from CF
            self.SNR = max(abs(self.cf[isignal] - np.mean(self.cf[isignal]))) / max(abs(self.cf[inoise] \
                       - np.mean(self.cf[inoise])))
            #calculate slope from CF after initial pick
            #get slope window
+           tslope = self.TSNR[3]  #slope determination window
            islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
                     & (self.Tcf >= self.Pick))
            #find maximum within slope determination window
