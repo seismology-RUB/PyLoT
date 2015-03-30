@@ -46,18 +46,11 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate, X[0].stats.delta)
-    #some parameters needed:
-    tnoise = TSNR[0]  #noise window length for calculating noise level
-    tsignal = TSNR[2] #signal window length
-    tsafety = TSNR[1] #safety gap between signal onset and noise window
-
     #get latest possible pick
     #get noise window
-    inoise = np.where((t <= max([Pick1 - tsafety, 0])) \
-             & (t >= max([Pick1 - tnoise - tsafety, 0])))    
+    inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
     #get signal window
-    isignal = np.where((t <= min([Pick1 + tsignal + tsafety, len(x)])) \
-              & (t >= Pick1))
+    isignal = getsignalwin(t, Pick1, TSNR[2])
     #calculate noise level
     nlevel = max(abs(x[inoise])) * nfac
     #get time where signal exceeds nlevel
@@ -325,16 +318,10 @@ def getSNR(X, TSNR, t1):
     SNRdB = None
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate, X[0].stats.delta)
-    #some parameters needed:
-    tnoise = TSNR[0]  #noise window length for calculating noise level
-    tsignal = TSNR[2] #signal window length
-    tsafety = TSNR[1] #safety gap between signal onset and noise window
     #get noise window
-    inoise = np.where((t <= max([t1 - tsafety, 0])) \
-             & (t >= max([t1 - tnoise - tsafety, 0])))
+    inoise = getnoisewin(t, t1, TSNR[0], TSNR[1])
     #get signal window
-    isignal = np.where((t <= min([t1 + tsignal + tsafety, len(x)])) \
-              & (t >= t1))
+    isignal = getsignalwin(t, t1, TSNR[2])
     if np.size(inoise) < 1:
        print 'getSNR: Empty array inoise, check noise window!'
        return
@@ -357,3 +344,72 @@ if __name__ == "__main__":
    args = parser.parse_args()
    getSNR(args.X, args.TSNR, args.t1)
 
+
+def getnoisewin(t, t1, tnoise, tgap):
+    '''
+    Function to extract indeces of data out of time series for noise calculation.
+    Returns an array of indeces.
+
+    :param: t, array of time stamps
+    :type:  numpy array
+ 
+    :param: t1, time from which relativ to it noise window is extracted
+    :type: float
+
+    :param: tnoise, length of time window [s] for noise part extraction
+    :type: float
+
+    :param: tgap, safety gap between t1 (onset) and noise window to
+            ensure, that noise window contains no signal
+    :type: float 
+    '''
+   
+    inoise = None
+    #get noise window
+    inoise = np.where((t <= max([t1 - tgap, 0])) \
+             & (t >= max([t1 - tnoise - tgap, 0])))
+    if np.size(inoise) < 1:
+       print 'getnoisewin: Empty array inoise, check noise window!'
+    
+    return inoise
+
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--t', type=array, help='numpy array of time stamps')
+   parser.add_argument('--t1', type=float, help='time from which relativ to it noise window is extracted')
+   parser.add_argument('--tnoise', type=float, help='length of time window [s] for noise part extraction')
+   parser.add_argument('--tgap', type=float, help='safety gap between signal (t1=onset) and noise') 
+   args = parser.parse_args()
+   getnoisewin(args.t, args.t1, args.tnoise, args.tgap)
+
+def getsignalwin(t, t1, tsignal):
+    '''
+    Function to extract data out of time series for signal level calculation.
+    Returns an array of indeces.
+
+    :param: t, array of time stamps
+    :type:  numpy array
+ 
+    :param: t1, time from which relativ to it signal window is extracted
+    :type: float
+
+    :param: tsignal, length of time window [s] for signal level calculation
+    :type: float
+    '''
+   
+    inoise = None
+    #get signal window
+    isignal = np.where((t <= min([t1 + tsignal, len(t)])) \
+              & (t >= t1))
+    if np.size(isignal) < 1:
+       print 'getsignalwin: Empty array isignal, check signal window!'
+    
+    return isignal
+    
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--t', type=array, help='numpy array of time stamps')
+   parser.add_argument('--t1', type=float, help='time from which relativ to it signal window is extracted')
+   parser.add_argument('--tsignal', type=float, help='length of time window [s] for signal part extraction')
+   args = parser.parse_args()
+   getsignalwin(args.t, args.t1, args.tsignal)
