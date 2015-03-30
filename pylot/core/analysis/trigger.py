@@ -4,7 +4,8 @@
 from obspy.signal.trigger import recSTALTA, triggerOnset
 
 
-def createSingleTriggerlist(st, station='ZV01', trigcomp='Z', stalta=[1, 10], trigonoff=[6, 1]):
+def createSingleTriggerlist(st, station='ZV01', trigcomp='Z', stalta=(1, 10),
+                            trigonoff=(6, 1)):
     '''
     uses a single-station trigger to create a triggerlist for this station
     :param st:
