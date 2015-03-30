@@ -4,10 +4,10 @@
    Created Mar 2015
    Transcription of the rezipe of Diehl et al. (2009) for consistent phase
    picking. For a given inital (the most likely) pick, the corresponding earliest
-   and latest possible picks are calculated based on noise measurements in front of
+   and latest possible pick is calculated based on noise measurements in front of
    the most likely pick and signal wavelength derived from zero crossings.
 
-   :author: MAGS2 EP3 working group / Ludger Kueperkoch	
+   :author: Ludger Kueperkoch / MAGS2 EP3 working group 	
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,21 +19,23 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009) 
     as reasonable uncertainties. Latest possible pick is based on noise level,
     earliest possible pick is half a signal wavelength in front of most likely 
-    pick given by PragPicker. Most likely pick (initial pick) must be given. 
+    pick given by PragPicker or manually set by analyst. Most likely pick
+    (initial pick Pick1) must be given. 
     
-    :param: x, time series (seismogram)
+    :param: X, time series (seismogram)
     :type:  `~obspy.core.stream.Stream`
    
     :param: nfac (noise factor), nfac times noise level to calculate latest possible pick
-            in EarlLatePicker
     :type: int
 
     :param: TSNR, length of time windows around pick used to determine SNR [s]
     :type: tuple (T_noise, T_gap, T_signal)
  
-    :param: Pick1, initial (prelimenary) onset time, starting point for EarlLatePicker
+    :param: Pick1, initial (most likely) onset time, starting point for earllatepicker
     :type: float
 
+    :param: iplot, if given, results are plotted in figure(iplot)
+    :type: int
     '''
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
@@ -71,7 +73,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
        #get earliest possible pick
        #get next 2 zero crossings after most likely pick
-       #if there is one trace in stream
+       #initial onset is assumed to be the first zero crossing
        zc = []
        zc.append(Pick1)
        i = 0
@@ -89,7 +91,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
        EPick = Pick1 - Ts/4
 
        #get symmetric pick error as mean from earliest and latest possible pick
-       #by weighting latest possible pick tow times earliest possible pick
+       #by weighting latest possible pick two times earliest possible pick
        diffti_tl = LPick -Pick1 
        diffti_te = Pick1 - EPick
        PickError = (diffti_te + 2 * diffti_tl)  / 3
@@ -134,5 +136,3 @@ if __name__ == "__main__":
    parser.add_argument('--iplot', type=int, help='if set, figure no. iplot occurs')
    args = parser.parse_args()
    earllatepicker(args.X, args.nfac, args.TSNR, args.Pick1, args.iplot)
-
-#earllatepicker(X, nfac, TSNR, Pick1, iplot)
