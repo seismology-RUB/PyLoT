@@ -1,0 +1,359 @@
+#!/usr/bin/env python
+#
+# -*- coding: utf-8 -*-
+"""
+   Created Mar/Apr 2015
+   Collection of helpful functions for manual and automatic picking.
+
+   :author: Ludger Kueperkoch / MAGS2 EP3 working group
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from obspy.core import Stream
+import argparse
+
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
+    '''
+    Function to derive earliest and latest possible pick after Diehl & Kissling (2009) 
+    as reasonable uncertainties. Latest possible pick is based on noise level,
+    earliest possible pick is half a signal wavelength in front of most likely 
+    pick given by PragPicker or manually set by analyst. Most likely pick
+    (initial pick Pick1) must be given. 
+    
+    :param: X, time series (seismogram)
+    :type:  `~obspy.core.stream.Stream`
+   
+    :param: nfac (noise factor), nfac times noise level to calculate latest possible pick
+    :type: int
+
+    :param: TSNR, length of time windows around pick used to determine SNR [s]
+    :type: tuple (T_noise, T_gap, T_signal)
+ 
+    :param: Pick1, initial (most likely) onset time, starting point for earllatepicker
+    :type: float
+
+    :param: iplot, if given, results are plotted in figure(iplot)
+    :type: int
+    '''
+
+    assert isinstance(X, Stream), "%s is not a stream object" % str(X)
+
+    LPick = None 
+    EPick = None
+    PickError = None
+    print 'earllatepicker: Get earliest and latest possible pick relative to most likely pick ...'
+
+    x = X[0].data
+    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate, X[0].stats.delta)
+    #some parameters needed:
+    tnoise = TSNR[0]  #noise window length for calculating noise level
+    tsignal = TSNR[2] #signal window length
+    tsafety = TSNR[1] #safety gap between signal onset and noise window
+
+    #get latest possible pick
+    #get noise window
+    inoise = np.where((t <= max([Pick1 - tsafety, 0])) \
+             & (t >= max([Pick1 - tnoise - tsafety, 0])))    
+    #get signal window
+    isignal = np.where((t <= min([Pick1 + tsignal + tsafety, len(x)])) \
+              & (t >= Pick1))
+    #calculate noise level
+    nlevel = max(abs(x[inoise])) * nfac
+    #get time where signal exceeds nlevel
+    ilup = np.where(x[isignal] > nlevel)
+    ildown = np.where(x[isignal] < -nlevel)
+    if len(ilup[0]) <= 1 and len(ildown[0]) <= 1:
+       print 'earllatepicker: Signal lower than noise level, misspick?'
+       return
+    il = min([ilup[0][0], ildown[0][0]])
+    LPick = t[isignal][il]
+
+    #get earliest possible pick
+    #get next 2 zero crossings after most likely pick
+    #initial onset is assumed to be the first zero crossing
+    zc = []
+    zc.append(Pick1)
+    i = 0
+    for j in range(isignal[0][1],isignal[0][len(t[isignal]) - 1]):
+        i = i+ 1
+        if x[j-1] <= 0 and x[j] >= 0:
+           zc.append(t[isignal][i])
+        elif x[j-1] > 0 and x[j] <= 0:
+             zc.append(t[isignal][i])
+        if len(zc) == 3:
+            break
+    #calculate maximum period T0 of signal out of zero crossings
+    T0 = max(np.diff(zc)) #this is half wave length!
+    #T0/4 is assumed as time difference between most likely and earliest possible pick!
+    EPick = Pick1 - T0/2
+
+    #get symmetric pick error as mean from earliest and latest possible pick
+    #by weighting latest possible pick two times earliest possible pick
+    diffti_tl = LPick - Pick1 
+    diffti_te = Pick1 - EPick
+    PickError = (diffti_te + 2 * diffti_tl)  / 3
+
+    if iplot is not None:
+       plt.figure(iplot)
+       p1, = plt.plot(t, x, 'k')
+       p2, = plt.plot(t[inoise], x[inoise])
+       p3, = plt.plot(t[isignal], x[isignal], 'r')
+       p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k') 
+       p5, = plt.plot(zc, [0, 0, 0], '*g', markersize=14)
+       plt.legend([p1, p2, p3, p4, p5], ['Data', 'Noise Window', 'Signal Window', 'Noise Level', 'Zero Crossings'], \
+                   loc='best')
+       plt.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k') 
+       plt.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2)
+       plt.plot([LPick, LPick], [max(x)/2, -max(x)/2], '--k')
+       plt.plot([EPick, EPick], [max(x)/2, -max(x)/2], '--k')
+       plt.plot([Pick1 + PickError, Pick1 + PickError], [max(x)/2, -max(x)/2], 'r--')
+       plt.plot([Pick1 - PickError, Pick1 - PickError], [max(x)/2, -max(x)/2], 'r--')
+       plt.xlabel('Time [s] since %s' % X[0].stats.starttime)
+       plt.yticks([])
+       ax = plt.gca()
+       ax.set_xlim([t[inoise[0][0]] - 2, t[isignal[0][len(isignal) - 1]] + 3])
+       plt.title('Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' % X[0].stats.station)
+       plt.show()
+       raw_input()
+       plt.close(iplot)
+
+    return EPick, LPick, PickError
+
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--X', type=~obspy.core.stream.Stream, help='time series (seismogram) read with obspy module read')
+   parser.add_argument('--nfac', type=int, help='(noise factor), nfac times noise level to calculate latest possible pick')
+   parser.add_argument('--TSNR', type=tuple, help='length of time windows around pick used to determine SNR \
+                       [s] (Tnoise, Tgap, Tsignal)')
+   parser.add_argument('--Pick1', type=float, help='Onset time of most likely pick')
+   parser.add_argument('--iplot', type=int, help='if set, figure no. iplot occurs')
+   args = parser.parse_args()
+   earllatepicker(args.X, args.nfac, args.TSNR, args.Pick1, args.iplot)
+
+
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
+    '''
+    Function to derive first motion (polarity) of given phase onset Pick.
+    Calculation is based on zero crossings determined within time window pickwin
+    after given onset time. 
+    
+    :param: Xraw, unfiltered time series (seismogram)
+    :type:  `~obspy.core.stream.Stream`
+   
+    :param: Xfilt, filtered time series (seismogram)
+    :type:  `~obspy.core.stream.Stream`
+
+    :param: pickwin, time window after onset Pick within zero crossings are calculated
+    :type: float
+
+    :param: Pick, initial (most likely) onset time, starting point for fmpicker
+    :type: float
+
+    :param: iplot, if given, results are plotted in figure(iplot)
+    :type: int
+    '''
+
+    assert isinstance(Xraw, Stream), "%s is not a stream object" % str(Xraw)
+    assert isinstance(Xfilt, Stream), "%s is not a stream object" % str(Xfilt)
+
+    FM = None
+    if Pick is not None:
+       print 'fmpicker: Get first motion (polarity) of onset using unfiltered seismogram...'
+
+       xraw = Xraw[0].data
+       xfilt = Xfilt[0].data
+       t = np.arange(0, Xraw[0].stats.npts / Xraw[0].stats.sampling_rate, Xraw[0].stats.delta)
+       #get pick window
+       ipick = np.where((t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
+       #remove mean
+       xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
+       xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
+
+       #get next zero crossing after most likely pick
+       #initial onset is assumed to be the first zero crossing
+       #first from unfiltered trace
+       zc1 = []
+       zc1.append(Pick)
+       index1 = []
+       i = 0
+       for j in range(ipick[0][1],ipick[0][len(t[ipick]) - 1]):
+           i = i+ 1
+           if xraw[j-1] <= 0 and xraw[j] >= 0:
+              zc1.append(t[ipick][i])
+              index1.append(i)
+           elif xraw[j-1] > 0 and xraw[j] <= 0:
+              zc1.append(t[ipick][i])
+              index1.append(i)
+           if len(zc1) == 3:
+               break
+
+       #if time difference betweeen 1st and 2cnd zero crossing
+       #is too short, get time difference between 1st and 3rd
+       #to derive maximum 
+       if zc1[1] - zc1[0] <= Xraw[0].stats.delta:
+          li1 = index1[1]
+       else:
+          li1 = index1[0]
+       if np.size(xraw[ipick[0][1]:ipick[0][li1]]) == 0:
+          print 'earllatepicker: Onset on unfiltered trace too emergent for first motion determination!'
+          P1 = None
+       else: 
+          imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][li1]]))
+          islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
+          #calculate slope as polynomal fit of order 1
+          xslope1 = np.arange(0, len(xraw[islope1]), 1)
+          P1 = np.polyfit(xslope1, xraw[islope1], 1)
+          datafit1 = np.polyval(P1, xslope1)
+
+       #now using filterd trace
+       #next zero crossing after most likely pick
+       zc2 = []
+       zc2.append(Pick)
+       index2 = []
+       i = 0
+       for j in range(ipick[0][1],ipick[0][len(t[ipick]) - 1]):
+           i = i+ 1
+           if xfilt[j-1] <= 0 and xfilt[j] >= 0:
+              zc2.append(t[ipick][i])
+              index2.append(i)
+           elif xfilt[j-1] > 0 and xfilt[j] <= 0:
+              zc2.append(t[ipick][i])
+              index2.append(i)
+           if len(zc2) == 3:
+               break
+
+       #if time difference betweeen 1st and 2cnd zero crossing
+       #is too short, get time difference between 1st and 3rd
+       #to derive maximum 
+       if zc2[1] - zc2[0] <= Xfilt[0].stats.delta:
+          li2 = index2[1]
+       else:
+          li2 = index2[0]
+       if np.size(xfilt[ipick[0][1]:ipick[0][li2]]) == 0:
+          print 'earllatepicker: Onset on filtered trace too emergent for first motion determination!'
+          P2 = None
+       else: 
+          imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
+          islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
+          #calculate slope as polynomal fit of order 1
+          xslope2 = np.arange(0, len(xfilt[islope2]), 1)
+          P2 = np.polyfit(xslope2, xfilt[islope2], 1)
+          datafit2 = np.polyval(P2, xslope2)
+       
+       #compare results
+       if P1 is not None and P2 is not None:
+          if P1[0] < 0 and P2[0] < 0:
+             FM = 'D'
+          elif P1[0] >= 0 and P2[0] < 0:
+             FM = '-'
+          elif P1[0] < 0 and P2[0]>= 0:
+             FM = '-'
+          elif P1[0] > 0 and P2[0] > 0:
+             FM = 'U'
+          elif P1[0] <= 0 and P2[0] > 0:
+             FM = '+'
+          elif P1[0] > 0 and P2[0] <= 0:
+             FM = '+'
+
+    if iplot is not None:
+       plt.figure(iplot)
+       plt.subplot(2,1,1)
+       plt.plot(t, xraw, 'k')
+       p1, = plt.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2)
+       if P1 is not None:
+          p2, = plt.plot(t[islope1], xraw[islope1])
+          p3, = plt.plot(zc1, np.zeros(len(zc1)), '*g', markersize=14)
+          p4, = plt.plot(t[islope1], datafit1, '--g', linewidth=2) 
+          plt.legend([p1, p2, p3, p4], ['Pick', 'Slope Window', 'Zero Crossings', 'Slope'], \
+                      loc='best')
+          plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14) 
+          ax = plt.gca()
+          ax.set_xlim([t[islope1[0][0]] - 0.1, t[islope1[0][len(islope1) - 1]] + 0.3])
+       plt.yticks([])
+       plt.title('First-Motion Determination, %s, Unfiltered Data' % Xraw[0].stats.station)
+
+       plt.subplot(2,1,2)
+       plt.title('First-Motion Determination, Filtered Data')
+       plt.plot(t, xfilt, 'k')
+       p1, = plt.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b', linewidth=2)
+       if P2 is not None:
+          p2, = plt.plot(t[islope2], xfilt[islope2])
+          p3, = plt.plot(zc2, np.zeros(len(zc2)), '*g', markersize=14)
+          p4, = plt.plot(t[islope2], datafit2, '--g', linewidth=2) 
+          plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14) 
+          ax = plt.gca()
+          ax.set_xlim([t[islope2[0][0]] - 0.1, t[islope2[0][len(islope2) - 1]] + 0.3])
+       plt.xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
+       plt.yticks([])
+       plt.show()
+       raw_input()
+       plt.close(iplot)
+
+    return FM
+
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--Xraw', type=~obspy.core.stream.Stream, help='unfiltered time series (seismogram) read with obspy module read')
+   parser.add_argument('--Xfilt', type=~obspy.core.stream.Stream, help='filtered time series (seismogram) read with obspy module read')
+   parser.add_argument('--pickwin', type=float, help='length of pick window [s] for first motion determination')
+   parser.add_argument('--Pick', type=float, help='Onset time of most likely pick')
+   parser.add_argument('--iplot', type=int, help='if set, figure no. iplot occurs')
+   args = parser.parse_args()
+   earllatepicker(args.Xraw, args.Xfilt, args.pickwin, args.Pick, args.iplot)
+
+
+def getSNR(X, TSNR, t1):
+    '''
+    Function to calculate SNR of certain part of seismogram relative to
+    given time (onset) out of given noise and signal windows. A safety gap
+    between noise and signal part can be set. Returns SNR and SNR [dB].
+
+    :param: X, time series (seismogram)
+    :type:  `~obspy.core.stream.Stream`
+
+    :param: TSNR, length of time windows [s] around t1 (onset) used to determine SNR
+    :type: tuple (T_noise, T_gap, T_signal)
+
+    :param: t1, initial time (onset) from which noise and signal windows are calculated
+    :type: float
+    '''
+
+    assert isinstance(X, Stream), "%s is not a stream object" % str(X)
+
+    SNR = None
+    SNRdB = None
+    x = X[0].data
+    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate, X[0].stats.delta)
+    #some parameters needed:
+    tnoise = TSNR[0]  #noise window length for calculating noise level
+    tsignal = TSNR[2] #signal window length
+    tsafety = TSNR[1] #safety gap between signal onset and noise window
+    #get noise window
+    inoise = np.where((t <= max([t1 - tsafety, 0])) \
+             & (t >= max([t1 - tnoise - tsafety, 0])))
+    #get signal window
+    isignal = np.where((t <= min([t1 + tsignal + tsafety, len(x)])) \
+              & (t >= t1))
+    if np.size(inoise) < 1:
+       print 'getSNR: Empty array inoise, check noise window!'
+       return
+    elif np.size(isignal) < 1:
+       print 'getSNR: Empty array isignal, check signal window!'
+       return
+
+    #calculate ratios
+    SNR = max(abs(x[isignal])) / np.mean(abs(x[inoise]))
+    SNRdB = 20 * np.log10(SNR)
+    
+    return SNR, SNRdB
+
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--X', type=~obspy.core.stream.Stream, help='time series (seismogram) read with obspy module read')
+   parser.add_argument('--TSNR', type=tuple, help='length of time windows around pick used to determine SNR \
+                       [s] (Tnoise, Tgap, Tsignal)')
+   parser.add_argument('--t1', type=float, help='initial time from which noise and signal windows are calculated')
+   args = parser.parse_args()
+   getSNR(args.X, args.TSNR, args.t1)
+
