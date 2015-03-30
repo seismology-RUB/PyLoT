@@ -23,8 +23,10 @@ def fnConstructor(s):
         fn = '_' + fn
     return fn
 
+
 def getLogin():
     return pwd.getpwuid(os.getuid())[0]
+
 
 def getHash(time):
     '''
@@ -36,6 +38,41 @@ def getHash(time):
     hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f'))
     return hg.hexdigest()
 
+
+def getOwner(fn):
+    return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+
+
+def prepTimeAxis(stime, trace):
+    nsamp = trace.stats.npts
+    srate = trace.stats.sampling_rate
+    tincr = trace.stats.delta
+    etime = stime + nsamp / srate
+    time_ax = np.arange(stime, etime, tincr)
+    if len(time_ax) < nsamp:
+        print 'elongate time axes by one datum'
+        time_ax = np.arange(stime, etime + tincr, tincr)
+    elif len(time_ax) > nsamp:
+        print 'shorten time axes by one datum'
+        time_ax = np.arange(stime, etime - tincr, tincr)
+    if len(time_ax) != nsamp:
+        raise ValueError('{0} samples of data \n '
+                         '{1} length of time vector \n'
+                         'delta: {2}'.format(nsamp, len(time_ax), tincr))
+    return time_ax
+
+
+def getGlobalTimes(stream):
+    min_start = UTCDateTime()
+    max_end = None
+    for trace in stream:
+        if trace.stats.starttime < min_start:
+            min_start = trace.stats.starttime
+            if max_end is None or trace.stats.endtime > max_end:
+                max_end = trace.stats.endtime
+    return [min_start, max_end]
+
+
 def createCreationInfo(agency_id=None, creation_time=None, author=None):
     if author is None:
         author = getLogin()
@@ -43,6 +80,7 @@ def createCreationInfo(agency_id=None, creation_time=None, author=None):
         creation_time = UTCDateTime()
     return ope.CreationInfo(agency_id=agency_id, author=author,
                             creation_time=creation_time)
+
 
 def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
@@ -64,6 +102,7 @@ def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
     if authority_id is not None:
         resID.convertIDToQuakeMLURI(authority_id=authority_id)
     return resID
+
 
 def createOrigin(origintime, cinfo, latitude, longitude, depth, resID=None,
                  authority_id=None):
@@ -94,6 +133,7 @@ def createOrigin(origintime, cinfo, latitude, longitude, depth, resID=None,
     origin.depth = depth
     return origin
 
+
 def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
     '''
     createEvent - funtion to create an ObsPy Event
@@ -122,6 +162,7 @@ def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
     event.creation_info = cinfo
     event.event_type = etype
     return event
+
 
 def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
                wfseedstr, authority_id):
@@ -156,6 +197,7 @@ def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
     pick.phase_hint = phase
     pick.waveform_id = ope.ResourceIdentifier(id=wfseedstr, prefix='file:/')
     return pick
+
 
 def createArrival(origintime, pickresID, eventnum, cinfo, phase, station,
                   authority_id, azimuth=None, dist=None):
@@ -194,6 +236,7 @@ def createArrival(origintime, pickresID, eventnum, cinfo, phase, station,
     arrival.distance = None
     return arrival
 
+
 def createMagnitude(originID, origintime, cinfo, authority_id=None):
     '''
     createMagnitude - function to create an ObsPy Magnitude object
@@ -210,6 +253,7 @@ def createMagnitude(originID, origintime, cinfo, authority_id=None):
     magnitude.origin_id = originID
     return magnitude
 
+
 def createAmplitude(pickID, amp, unit, category, origintime, cinfo,
                     authority_id=None):
     amplresID = createResourceID(origintime, 'ampl', authority_id)
@@ -221,34 +265,3 @@ def createAmplitude(pickID, amp, unit, category, origintime, cinfo,
     amplitude.type = ope.AmplitudeCategory(category)
     amplitude.pick_id = pickID
     return amplitude
-
-def getOwner(fn):
-    return pwd.getpwuid(os.stat(fn).st_uid).pw_name
-
-def prepTimeAxis(stime, trace):
-    nsamp = trace.stats.npts
-    srate = trace.stats.sampling_rate
-    tincr = trace.stats.delta
-    etime = stime + nsamp / srate
-    time_ax = np.arange(stime, etime, tincr)
-    if len(time_ax) < nsamp:
-        print 'elongate time axes by one datum'
-        time_ax = np.arange(stime, etime + tincr, tincr)
-    elif len(time_ax) > nsamp:
-        print 'shorten time axes by one datum'
-        time_ax = np.arange(stime, etime - tincr, tincr)
-    if len(time_ax) != nsamp:
-        raise ValueError('{0} samples of data \n '
-                         '{1} length of time vector \n'
-                         'delta: {2}'.format(nsamp, len(time_ax), tincr))
-    return time_ax
-
-def getGlobalTimes(stream):
-    min_start = UTCDateTime()
-    max_end = None
-    for trace in stream:
-        if trace.stats.starttime < min_start:
-            min_start = trace.stats.starttime
-            if max_end is None or trace.stats.endtime > max_end:
-                max_end = trace.stats.endtime
-    return [min_start, max_end]
