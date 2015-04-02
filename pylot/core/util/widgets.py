@@ -262,10 +262,14 @@ class PickDlg(QDialog):
 
     def setupUi(self):
 
+        # create icons
+        filter_icon = QIcon()
+        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
                                          slot=self.filterWFData,
-                                         icon=QIcon(':/filter.png'),
+                                         icon=filter_icon,
                                          tip='Filter waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
