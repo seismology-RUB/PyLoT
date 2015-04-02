@@ -150,10 +150,6 @@ class MainWindow(QMainWindow):
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
                                              """Open waveform data (event will
                                              be closed).""")
-        selectStation = self.createAction(self, "Select station",
-                                          self.pickOnStation, "Alt+P", pickIcon,
-                                          "Select a station from overview "
-                                          "plot for picking")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
                                              QKeySequence.Preferences,
@@ -214,10 +210,10 @@ class MainWindow(QMainWindow):
         phaseToolBar.setObjectName("PhaseTools")
         self.addActions(phaseToolBar, phaseToolActions)
 
-        pickToolBar = self.addToolBar("PickTools")
-        pickToolActions = (selectStation, )
-        pickToolBar.setObjectName("PickTools")
-        self.addActions(pickToolBar, pickToolActions)
+        # pickToolBar = self.addToolBar("PickTools")
+        # pickToolActions = (selectStation, )
+        # pickToolBar.setObjectName("PickTools")
+        # self.addActions(pickToolBar, pickToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -346,9 +342,9 @@ class MainWindow(QMainWindow):
     def getPlotWidget(self):
         return self.DataPlot
 
-    def getWFID(self, event):
+    def getWFID(self, gui_event):
 
-        ycoord = event.ydata
+        ycoord = gui_event.ydata
 
         statID = int(round(ycoord))
 
@@ -380,6 +376,9 @@ class MainWindow(QMainWindow):
         title = 'overview: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
+        pos = self.getPlotWidget().getPlotDict().keys()
+        labels = [int(act) for act in pos]
+        self.getPlotWidget().setYTickLabels(pos, labels)
 
     def filterWaveformData(self):
         if self.getData():
@@ -454,7 +453,7 @@ class MainWindow(QMainWindow):
         return self.seismicPhase
 
     def getStationName(self, wfID):
-        return self.getPlotWidget().getPlotDict()[wfID]
+        return self.getPlotWidget().getPlotDict()[wfID][0]
 
     def alterPhase(self):
         pass
@@ -464,9 +463,9 @@ class MainWindow(QMainWindow):
         self.updateStatus('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
 
-    def pickOnStation(self, event):
+    def pickOnStation(self, gui_event):
 
-        wfID = self.getWFID(event)
+        wfID = self.getWFID(gui_event)
 
         station = self.getStationName(wfID)
         print 'picking on station {0}'.format(station)

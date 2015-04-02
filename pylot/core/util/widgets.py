@@ -15,33 +15,16 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
 from matplotlib.widgets import MultiCursor
-from PySide.QtGui import (QAction,
-                          QApplication,
-                          QComboBox,
-                          QDateTimeEdit,
-                          QDialog,
-                          QDialogButtonBox,
-                          QDoubleSpinBox,
-                          QGroupBox,
-                          QGridLayout,
-                          QHBoxLayout,
-                          QIcon,
-                          QKeySequence,
-                          QLabel,
-                          QLineEdit,
-                          QMessageBox,
-                          QSpinBox,
-                          QTabWidget,
-                          QToolBar,
-                          QVBoxLayout,
-                          QWidget)
-from PySide.QtCore import (QSettings,
-                           Qt,
-                           QUrl,
-                           Signal,
-                           Slot)
+from PySide.QtGui import QAction, QApplication,QComboBox, QDateTimeEdit,\
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout,\
+    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox,\
+    QTabWidget, QToolBar, QVBoxLayout, QWidget
+from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
+from obspy import Stream, UTCDateTime
+from obspy.core.event import Pick
 from pylot.core.read import FilterOptions
+from pylot.core.pick.utils import getSNR
 from pylot.core.util.defaults import OUTPUTFORMATS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -91,39 +74,58 @@ class MPLWidget(FigureCanvas):
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
 
+    def clearPlotDict(self):
+        self.plotdict = dict()
+
     def getParent(self):
         return self._parent
 
     def setParent(self, parent):
         self._parent = parent
 
-    def plotWFData(self, wfdata, title = None):
-        self.axes.lines = []
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None):
+        self.axes.cla()
+        self.clearPlotDict()
         wfstart = getGlobalTimes(wfdata)[0]
         for n, trace in enumerate(wfdata):
+            channel = trace.stats.channel
             station = trace.stats.station
-            print('plotting station: %s' % station)
+            msg = 'plotting %s channel of station %s' % (channel, station)
+            print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             trace.detrend()
             trace.detrend('demean')
             trace.normalize(trace.data.max() * 2)
             self.axes.plot(time_ax, trace.data + n, 'k')
-            self.axes.hold(True)
             xlabel = 'seconds since {0}'.format(wfstart)
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
-            self.setPlotDict(n, station)
+            self.setPlotDict(n, (station, channel))
         self.axes.autoscale(tight=True)
+        if zoomx:
+            self.axes.set_xlim(zoomx)
+        if zoomy:
+            self.axes.set_ylim(zoomy)
+        self.draw()
+
+    def setYTickLabels(self, pos, labels):
+        self.axes.set_yticks(pos)
+        self.axes.set_yticklabels(labels)
+        self.draw()
 
     def updateXLabel(self, text):
         self.axes.set_xlabel(text)
+        self.draw()
+
 
     def updateYLabel(self, text):
         self.axes.set_ylabel(text)
+        self.draw()
 
     def updateTitle(self, text):
         self.axes.set_title(text)
+        self.draw()
 
     def updateWidget(self, xlabel, ylabel, title):
         self.updateXLabel(xlabel)
@@ -237,6 +239,7 @@ class PickDlg(QDialog):
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+        self.picks = {}
 
         # set attribute holding data
         if data is None:
@@ -259,6 +262,12 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
+
+        # set plot labels
+        self.setPlotLabels()
+
+        # connect button press event to an action
+        self.cid = self.getPlotWidget().mpl_connect('button_press_event', self.setPick)
 
     def setupUi(self):
 
@@ -284,19 +293,22 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
 
-        _innerlayout = QHBoxLayout()
+        _innerlayout = QVBoxLayout()
 
-        _toolslayout = QVBoxLayout()
-        _toolslabel = QLabel('Place for Tools')
-        _toolslayout.addWidget(_toolslabel)
-
-        _innerlayout.addLayout(_toolslayout)
         _innerlayout.addWidget(self.multicompfig)
+        _buttonbox = QDialogButtonBox(QDialogButtonBox.Apply |
+                                      QDialogButtonBox.Ok |
+                                      QDialogButtonBox.Cancel)
+
+        _innerlayout.addWidget(_buttonbox)
 
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
         self.setLayout(_outerlayout)
 
+    def reconnect(self, event_name, slot):
+        self.getPlotWidget().mpl_disconnect(self.cid)
+        self.cid = self.getPlotWidget().mpl_connect(event_name, slot)
 
     def getComponents(self):
         return self.components
@@ -307,14 +319,118 @@ class PickDlg(QDialog):
     def getPlotWidget(self):
         return self.multicompfig
 
+    def getChannelID(self, key):
+        return self.getPlotWidget().getPlotDict()[int(key)][1]
+
     def getWFData(self):
         return self.data
+
+    def selectWFData(self, channel):
+        component = channel[-1].upper()
+        wfdata = Stream()
+        def selectTrace(trace, components):
+            if trace.stats.channel[-1].upper() in components:
+                return trace
+
+        if component == 'E' or component == 'N':
+            for trace in self.getWFData():
+                trace = selectTrace(trace, 'NE')
+                if trace:
+                    wfdata.append(trace)
+        elif component == 'Z':
+            wfdata = self.getWFData().select(component=component)
+        return wfdata
+
+    def getPicks(self):
+        return self.picks
+
+    def setPick(self, gui_event):
+        channel = self.getChannelID(round(gui_event.ydata))
+        wfdata = self.selectWFData(channel)
+
+        ini_pick = gui_event.xdata
+
+        # calculate the resolution window width from SNR
+        #       SNR >= 3    ->  2 sec    HRW
+        #   3 > SNR >= 2    ->  5 sec    MRW
+        #   2 > SNR >= 1.5  -> 10 sec    LRW
+        # 1.5 > SNR         -> 15 sec   VLRW
+
+        res_wins = {
+            'HRW' : 2.,
+            'MRW' : 5.,
+            'LRW' : 10.,
+            'VLRW' : 15.
+        }
+
+        result = getSNR(wfdata, (5,.5,1), ini_pick)
+
+        snr = result[0]
+        noiselevel = result[2] * 1.5
+
+        if snr < 1.5:
+            x_res = res_wins['VLRW']
+        elif snr < 2.:
+            x_res = res_wins['LRW']
+        elif snr < 3.:
+            x_res = res_wins['MRW']
+        else:
+            x_res = res_wins['HRW']
+        x_res /= 2
+
+        zoomx = [ini_pick - x_res, ini_pick + x_res]
+        zoomy = [noiselevel * 1.5, -noiselevel * 1.5]
+        self.getPlotWidget().plotWFData(wfdata=wfdata,
+                                        title=self.getStation() +
+                                              ' picking mode',
+                                        zoomx=zoomx,
+                                        zoomy=zoomy)
+
+        self.getPlotWidget().axes.plot()
+
+        # reset labels
+        self.setPlotLabels()
+
+        self.reconnect('button_press_event', self.plotPick)
+
+    def plotPick(self, gui_event):
+        pick = gui_event.xdata
+        ax = self.getPlotWidget().axes
+
+        ylims = ax.get_ylim()
+
+        ax.plot([pick, pick], ylims, 'r--')
+        self.getPlotWidget().draw()
 
     def filterWFData(self):
         data = self.getWFData().copy().filter(type='bandpass', freqmin=.5, freqmax=15.)
         title = self.getStation() + ' (filtered)'
         self.getPlotWidget().plotWFData(wfdata=data, title=title)
+        self.setPlotLabels()
 
+    def setPlotLabels(self):
+
+        # get channel labels
+        pos = self.getPlotWidget().getPlotDict().keys()
+        labels = [self.getPlotWidget().getPlotDict()[key][1] for key in pos]
+
+        # set channel labels
+        self.getPlotWidget().setYTickLabels(pos, labels)
+
+    def apply(self):
+        if self.getPicks():
+            for phase, time in self.getPicks().iteritems():
+                ope_pick = Pick()
+                ope_pick.time = time
+                ope_pick.phase_hint = phase
+                print ope_pick
+
+    def reject(self):
+        QDialog.reject(self)
+
+    def accept(self):
+        self.apply()
+        QDialog.accept(self)
 
 class PropertiesDlg(QDialog):
 
