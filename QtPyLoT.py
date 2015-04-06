@@ -376,6 +376,7 @@ class MainWindow(QMainWindow):
         title = 'overview: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
+        self.getPlotWidget().draw()
         pos = self.getPlotWidget().getPlotDict().keys()
         labels = [int(act) for act in pos]
         self.getPlotWidget().setYTickLabels(pos, labels)

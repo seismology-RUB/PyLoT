@@ -22,7 +22,7 @@ from PySide.QtGui import QAction, QApplication,QComboBox, QDateTimeEdit,\
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from obspy.core.event import Pick
+from obspy.core.event import Pick, WaveformStreamID
 from pylot.core.read import FilterOptions
 from pylot.core.pick.utils import getSNR
 from pylot.core.util.defaults import OUTPUTFORMATS
@@ -262,12 +262,13 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
+        self.apd = self.getWFData()
 
         # set plot labels
         self.setPlotLabels()
 
         # connect button press event to an action
-        self.cid = self.getPlotWidget().mpl_connect('button_press_event', self.setPick)
+        self.cid = self.getPlotWidget().mpl_connect('button_press_event', self.setIniPick)
 
     def setupUi(self):
 
@@ -279,7 +280,8 @@ class PickDlg(QDialog):
         self.filterAction = createAction(parent=self, text='Filter',
                                          slot=self.filterWFData,
                                          icon=filter_icon,
-                                         tip='Filter waveforms',
+                                         tip='Toggle filtered/original'
+                                             ' waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
         self.selectPhase.addItems(['Pn', 'Pg', 'P1', 'P2'])
@@ -344,7 +346,13 @@ class PickDlg(QDialog):
     def getPicks(self):
         return self.picks
 
-    def setPick(self, gui_event):
+    def getAPD(self):
+        return self.apd
+
+    def updateAPD(self, wfdata):
+        self.apd = wfdata
+
+    def setIniPick(self, gui_event):
         channel = self.getChannelID(round(gui_event.ydata))
         wfdata = self.selectWFData(channel)
 
@@ -363,7 +371,7 @@ class PickDlg(QDialog):
             'VLRW' : 15.
         }
 
-        result = getSNR(wfdata, (5,.5,1), ini_pick)
+        result = getSNR(wfdata, (5, .5, 1), ini_pick)
 
         snr = result[0]
         noiselevel = result[2] * 1.5
@@ -385,15 +393,16 @@ class PickDlg(QDialog):
                                               ' picking mode',
                                         zoomx=zoomx,
                                         zoomy=zoomy)
+        self.updateAPD(wfdata)
 
         self.getPlotWidget().axes.plot()
 
         # reset labels
         self.setPlotLabels()
 
-        self.reconnect('button_press_event', self.plotPick)
+        self.reconnect('button_press_event', self.setPick)
 
-    def plotPick(self, gui_event):
+    def setPick(self, gui_event):
         pick = gui_event.xdata
         ax = self.getPlotWidget().axes
 
@@ -403,9 +412,18 @@ class PickDlg(QDialog):
         self.getPlotWidget().draw()
 
     def filterWFData(self):
-        data = self.getWFData().copy().filter(type='bandpass', freqmin=.5, freqmax=15.)
-        title = self.getStation() + ' (filtered)'
-        self.getPlotWidget().plotWFData(wfdata=data, title=title)
+        ax = self.getPlotWidget().axes
+        ylims = ax.get_ylim()
+        xlims = ax.get_xlim()
+        if self.filterAction.isChecked():
+            data = self.getAPD().copy()
+            data.filter(type='bandpass', freqmin=.5, freqmax=15.)
+            title = self.getStation() + ' (filtered)'
+        else:
+            data = self.getAPD().copy()
+            title = self.getStation()
+        self.getPlotWidget().plotWFData(wfdata=data, title=title, zoomx=xlims,
+                                        zoomy=ylims)
         self.setPlotLabels()
 
     def setPlotLabels(self):
@@ -418,12 +436,9 @@ class PickDlg(QDialog):
         self.getPlotWidget().setYTickLabels(pos, labels)
 
     def apply(self):
-        if self.getPicks():
-            for phase, time in self.getPicks().iteritems():
-                ope_pick = Pick()
-                ope_pick.time = time
-                ope_pick.phase_hint = phase
-                print ope_pick
+        picks = self.getPicks()
+        for pick in picks:
+            print pick
 
     def reject(self):
         QDialog.reject(self)
