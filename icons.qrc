@@ -6,6 +6,7 @@
 		<file>icons/sicon.png</file>
 		<file>icons/pick.png</file>
         <file>icons/filter.png</file>
+        <file>icons/zoom.png</file>
     </qresource>
     <qresource prefix="/help">
         <file>help/index.html</file>

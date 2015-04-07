@@ -14,6 +14,7 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication,QComboBox, QDateTimeEdit,\
     QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout,\
@@ -54,6 +55,7 @@ class MPLWidget(FigureCanvas):
         self._parent = None
         self.setParent(parent)
         self.figure = Figure()
+        self.figure.set_facecolor((.92, .92, .92))
         # attribute plotdict is an dictionary connecting position and a name
         self.plotdict = dict()
         # create axes
@@ -262,19 +264,31 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
+        self.limits = {'xlims' : self.getPlotWidget().axes.get_xlim(),
+                       'ylims' : self.getPlotWidget().axes.get_ylim()}
         self.apd = self.getWFData()
 
         # set plot labels
         self.setPlotLabels()
 
         # connect button press event to an action
-        self.cid = self.getPlotWidget().mpl_connect('button_press_event', self.setIniPick)
+        self.cidpress = self.connectPressEvent(self.setIniPick)
+        self.cidscroll = self.getPlotWidget().mpl_connect('scroll_event',
+                                                          self.scrollZoom)
 
     def setupUi(self):
+
+        # create matplotlib toolbar to inherit functionality
+        self.figToolBar = NavigationToolbar2QTAgg(self.getPlotWidget(), self)
+        self.figToolBar.hide()
 
         # create icons
         filter_icon = QIcon()
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+
+        zoom_icon = QIcon()
+        zoom_icon.addPixmap(QPixmap(':/icons/zoom.png'))
+
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
@@ -284,7 +298,14 @@ class PickDlg(QDialog):
                                              ' waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
-        self.selectPhase.addItems(['Pn', 'Pg', 'P1', 'P2'])
+        self.selectPhase.addItems([None, 'Pn', 'Pg', 'P1', 'P2'])
+
+
+
+        self.zoomAction = createAction(parent=self, text='Zoom',
+                                       slot=self.zoom, icon=zoom_icon,
+                                       tip='Zoom into waveform',
+                                       checkable=True)
 
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -294,6 +315,7 @@ class PickDlg(QDialog):
 
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
+        #_dialtoolbar.addAction(self.zoomAction)
 
         _innerlayout = QVBoxLayout()
 
@@ -308,9 +330,16 @@ class PickDlg(QDialog):
         _outerlayout.addLayout(_innerlayout)
         self.setLayout(_outerlayout)
 
-    def reconnect(self, event_name, slot):
-        self.getPlotWidget().mpl_disconnect(self.cid)
-        self.cid = self.getPlotWidget().mpl_connect(event_name, slot)
+    def disconnectPressEvent(self):
+        self.getPlotWidget().mpl_disconnect(self.cidpress)
+
+    def connectPressEvent(self, slot):
+        widget = self.getPlotWidget()
+        self.cidpress = widget.mpl_connect('button_press_event', slot)
+
+    def reconnectPressEvent(self, slot):
+        self.disconnectPressEvent()
+        self.cidpress = self.connectPressEvent(slot)
 
     def getComponents(self):
         return self.components
@@ -356,6 +385,8 @@ class PickDlg(QDialog):
         channel = self.getChannelID(round(gui_event.ydata))
         wfdata = self.selectWFData(channel)
 
+        self.getPlotWidget().mpl_disconnect(self.cidscroll)
+
         ini_pick = gui_event.xdata
 
         # calculate the resolution window width from SNR
@@ -371,7 +402,7 @@ class PickDlg(QDialog):
             'VLRW' : 15.
         }
 
-        result = getSNR(wfdata, (5, .5, 1), ini_pick)
+        result = getSNR(wfdata, (10., 2., 1.5), ini_pick)
 
         snr = result[0]
         noiselevel = result[2] * 1.5
@@ -400,7 +431,7 @@ class PickDlg(QDialog):
         # reset labels
         self.setPlotLabels()
 
-        self.reconnect('button_press_event', self.setPick)
+        self.reconnectPressEvent(self.setPick)
 
     def setPick(self, gui_event):
         pick = gui_event.xdata
@@ -434,6 +465,45 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.getPlotWidget().setYTickLabels(pos, labels)
+
+    def zoom(self):
+        if self.zoomAction.isChecked():
+            self.disconnectPressEvent()
+            self.figToolBar.zoom()
+        else:
+            self.connectPressEvent(self.setIniPick)
+
+    def scrollZoom(self, gui_event, factor=1.2):
+
+        widget = self.getPlotWidget()
+
+        curr_xlim = widget.axes.get_xlim()
+        curr_ylim = widget.axes.get_ylim()
+
+        if gui_event.button == 'up':
+            scale_factor = 1/factor
+        elif gui_event.button == 'down':
+            # deal with zoom out
+            scale_factor = factor
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            print gui_event.button
+
+        act_width = (curr_xlim[1]-curr_xlim[0])*.5
+        act_height = (curr_ylim[1]-curr_ylim[0])*.5
+
+        new_width = act_width*scale_factor
+        new_height= act_height*scale_factor
+
+        new_xlim = [max(gui_event.xdata - new_width, self.limits['xlims'][0]),
+                    min(gui_event.xdata + new_width, self.limits['xlims'][1])]
+        new_ylim = [max(gui_event.ydata - new_height, self.limits['ylims'][0]),
+                    min(gui_event.ydata + new_height, self.limits['ylims'][1])]
+
+        widget.axes.set_xlim(new_xlim)
+        widget.axes.set_ylim(new_ylim)
+        widget.draw()
 
     def apply(self):
         picks = self.getPicks()
