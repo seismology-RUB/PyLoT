@@ -243,6 +243,11 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.picks = {}
 
+        # initialize panning attributes
+        self.press = None
+        self.xpress = None
+        self.ypress = None
+
         # set attribute holding data
         if data is None:
             try:
@@ -269,12 +274,14 @@ class PickDlg(QDialog):
         self.apd = self.getWFData()
 
         # set plot labels
+
         self.setPlotLabels()
 
         # connect button press event to an action
-        self.cidpress = self.connectPressEvent(self.setIniPick)
-        self.cidscroll = self.getPlotWidget().mpl_connect('scroll_event',
-                                                          self.scrollZoom)
+        self.cidpress = self.connectPressEvent(self.panPress)
+        self.cidmotion = self.connectMotionEvent()
+        self.cidrelease = self.connectReleaseEvent()
+        self.cidscroll = self.connectScrollEvent()
 
     def setupUi(self):
 
@@ -315,7 +322,6 @@ class PickDlg(QDialog):
 
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
-        #_dialtoolbar.addAction(self.zoomAction)
 
         _innerlayout = QVBoxLayout()
 
@@ -328,6 +334,9 @@ class PickDlg(QDialog):
 
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
+
+        self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
+
         self.setLayout(_outerlayout)
 
     def disconnectPressEvent(self):
@@ -335,11 +344,43 @@ class PickDlg(QDialog):
 
     def connectPressEvent(self, slot):
         widget = self.getPlotWidget()
-        self.cidpress = widget.mpl_connect('button_press_event', slot)
+        return widget.mpl_connect('button_press_event', slot)
 
     def reconnectPressEvent(self, slot):
         self.disconnectPressEvent()
-        self.cidpress = self.connectPressEvent(slot)
+        return self.connectPressEvent(slot)
+
+    def disconnectScrollEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidscroll)
+
+    def connectScrollEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('scroll_event', self.scrollZoom)
+
+    def disconnectMotionEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidmotion)
+
+    def connectMotionEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('motion_notify_event', self.panMotion)
+
+    def disconnectReleaseEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidrelease)
+
+    def connectReleaseEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('button_release_event', self.panRelease)
+
+    def verifyPhaseSelection(self):
+        phase = self.selectPhase.currentText()
+        if phase:
+            self.disconnectReleaseEvent()
+            self.disconnectScrollEvent()
+            self.disconnectMotionEvent()
+            self.reconnectPressEvent(self.setIniPick)
 
     def getComponents(self):
         return self.components
@@ -385,7 +426,9 @@ class PickDlg(QDialog):
         channel = self.getChannelID(round(gui_event.ydata))
         wfdata = self.selectWFData(channel)
 
-        self.getPlotWidget().mpl_disconnect(self.cidscroll)
+        self.disconnectScrollEvent()
+
+        self.cidpress = self.reconnectPressEvent(self.setPick)
 
         ini_pick = gui_event.xdata
 
@@ -394,6 +437,7 @@ class PickDlg(QDialog):
         #   3 > SNR >= 2    ->  5 sec    MRW
         #   2 > SNR >= 1.5  -> 10 sec    LRW
         # 1.5 > SNR         -> 15 sec   VLRW
+        # see also Diehl et al. 2009
 
         res_wins = {
             'HRW' : 2.,
@@ -426,12 +470,8 @@ class PickDlg(QDialog):
                                         zoomy=zoomy)
         self.updateAPD(wfdata)
 
-        self.getPlotWidget().axes.plot()
-
         # reset labels
         self.setPlotLabels()
-
-        self.reconnectPressEvent(self.setPick)
 
     def setPick(self, gui_event):
         pick = gui_event.xdata
@@ -441,6 +481,32 @@ class PickDlg(QDialog):
 
         ax.plot([pick, pick], ylims, 'r--')
         self.getPlotWidget().draw()
+
+    def panPress(self, gui_event):
+        ax = self.getPlotWidget().axes
+        if gui_event.inaxes != ax: return
+        self.cur_xlim = ax.get_xlim()
+        self.cur_ylim = ax.get_ylim()
+        self.press = gui_event.xdata, gui_event.ydata
+        self.xpress, self.ypress = self.press
+
+    def panRelease(self, gui_event):
+        ax = self.getPlotWidget().axes
+        self.press = None
+        ax.figure.canvas.draw()
+
+    def panMotion(self, gui_event):
+        ax = self.getPlotWidget().axes
+        if self.press is None: return
+        if gui_event.inaxes != ax: return
+        dx = gui_event.xdata - self.xpress
+        dy = gui_event.ydata - self.ypress
+        self.cur_xlim -= dx
+        self.cur_ylim -= dy
+        ax.set_xlim(self.cur_xlim)
+        ax.set_ylim(self.cur_ylim)
+
+        ax.figure.canvas.draw()
 
     def filterWFData(self):
         ax = self.getPlotWidget().axes
@@ -473,7 +539,7 @@ class PickDlg(QDialog):
         else:
             self.connectPressEvent(self.setIniPick)
 
-    def scrollZoom(self, gui_event, factor=1.2):
+    def scrollZoom(self, gui_event, factor=2.):
 
         widget = self.getPlotWidget()
 
@@ -490,16 +556,15 @@ class PickDlg(QDialog):
             scale_factor = 1
             print gui_event.button
 
-        act_width = (curr_xlim[1]-curr_xlim[0])*.5
-        act_height = (curr_ylim[1]-curr_ylim[0])*.5
+        new_xlim = gui_event.xdata - scale_factor * (gui_event.xdata - curr_xlim)
+        new_ylim = gui_event.ydata - scale_factor * (gui_event.ydata - curr_ylim)
 
-        new_width = act_width*scale_factor
-        new_height= act_height*scale_factor
-
-        new_xlim = [max(gui_event.xdata - new_width, self.limits['xlims'][0]),
-                    min(gui_event.xdata + new_width, self.limits['xlims'][1])]
-        new_ylim = [max(gui_event.ydata - new_height, self.limits['ylims'][0]),
-                    min(gui_event.ydata + new_height, self.limits['ylims'][1])]
+        new_xlim.sort()
+        new_xlim[0] = max(new_xlim[0], self.limits['xlims'][0])
+        new_xlim[1] = min(new_xlim[1], self.limits['xlims'][1])
+        new_ylim.sort()
+        new_ylim[0] = max(new_ylim[0], self.limits['ylims'][0])
+        new_ylim[1] = min(new_ylim[1], self.limits['ylims'][1])
 
         widget.axes.set_xlim(new_xlim)
         widget.axes.set_ylim(new_ylim)
