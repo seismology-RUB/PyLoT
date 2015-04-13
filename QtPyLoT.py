@@ -29,7 +29,7 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication
+    QDialog, QErrorMessage, QApplication, QPixmap
 from obspy.core import UTCDateTime
 
 from pylot.core.read import Data, FilterOptions
@@ -38,11 +38,10 @@ from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
     DatastructureError, createAction, getLogin, createCreationInfo, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
-import qrc_resources
+import icons_rc
 
 # Version information
 __version__ = _getVersionString()
-
 
 class MainWindow(QMainWindow):
     closing = Signal()
@@ -101,8 +100,11 @@ class MainWindow(QMainWindow):
         except:
             self.startTime = UTCDateTime()
 
+        pylot_icon = QIcon()
+        pylot_icon.addPixmap(QPixmap(':/icons/pylot.ico'))
+
         self.setWindowTitle("PyLoT - do seismic processing the python way")
-        self.setWindowIcon(QIcon(":/icon.ico"))
+        self.setWindowIcon(pylot_icon)
 
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
 
@@ -123,7 +125,15 @@ class MainWindow(QMainWindow):
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
-        pickIcon = QIcon(':/pick.png')
+
+        # create resource icons
+        p_icon = QIcon()
+        p_icon.addPixmap(QPixmap(':/icons/picon.png'))
+        s_icon = QIcon()
+        s_icon.addPixmap(QPixmap(':/icons/sicon.png'))
+        print_icon = QIcon()
+        print_icon.addPixmap(QPixmap(':/icons/printer.png'))
+
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
@@ -140,10 +150,6 @@ class MainWindow(QMainWindow):
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
                                              """Open waveform data (event will
                                              be closed).""")
-        selectStation = self.createAction(self, "Select station",
-                                          self.pickOnStation, "Alt+P", pickIcon,
-                                          "Select a station from overview "
-                                          "plot for picking")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
                                              QKeySequence.Preferences,
@@ -163,14 +169,14 @@ class MainWindow(QMainWindow):
                                              "Alt+F", QIcon(None),
                                              """Adjust filter parameters.""")
         self.selectPAction = self.createAction(self, "&P", self.alterPhase, "Alt+P",
-                                          QIcon(":/picon.png"),
+                                          p_icon,
                                           "Toggle P phase.", True)
         self.selectSAction = self.createAction(self, "&S", self.alterPhase, "Alt+S",
-                                          QIcon(":/sicon.png"),
+                                          s_icon,
                                           "Toggle S phase", True)
         printAction = self.createAction(self, "&Print event ...",
                                         self.printEvent, QKeySequence.Print,
-                                        QIcon(":/printer.png"),
+                                        print_icon,
                                         "Print waveform overview.")
         helpAction = self.createAction(self, "&Help ...", self.helpHelp,
                                        QKeySequence.HelpContents, helpIcon,
@@ -204,10 +210,10 @@ class MainWindow(QMainWindow):
         phaseToolBar.setObjectName("PhaseTools")
         self.addActions(phaseToolBar, phaseToolActions)
 
-        pickToolBar = self.addToolBar("PickTools")
-        pickToolActions = (selectStation, )
-        pickToolBar.setObjectName("PickTools")
-        self.addActions(pickToolBar, pickToolActions)
+        # pickToolBar = self.addToolBar("PickTools")
+        # pickToolActions = (selectStation, )
+        # pickToolBar.setObjectName("PickTools")
+        # self.addActions(pickToolBar, pickToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -336,9 +342,9 @@ class MainWindow(QMainWindow):
     def getPlotWidget(self):
         return self.DataPlot
 
-    def getWFID(self, event):
+    def getWFID(self, gui_event):
 
-        ycoord = event.ydata
+        ycoord = gui_event.ydata
 
         statID = int(round(ycoord))
 
@@ -370,6 +376,10 @@ class MainWindow(QMainWindow):
         title = 'overview: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
+        self.getPlotWidget().draw()
+        pos = self.getPlotWidget().getPlotDict().keys()
+        labels = [int(act) for act in pos]
+        self.getPlotWidget().setYTickLabels(pos, labels)
 
     def filterWaveformData(self):
         if self.getData():
@@ -444,7 +454,7 @@ class MainWindow(QMainWindow):
         return self.seismicPhase
 
     def getStationName(self, wfID):
-        return self.getPlotWidget().getPlotDict()[wfID]
+        return self.getPlotWidget().getPlotDict()[wfID][0]
 
     def alterPhase(self):
         pass
@@ -454,9 +464,9 @@ class MainWindow(QMainWindow):
         self.updateStatus('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
 
-    def pickOnStation(self, event):
+    def pickOnStation(self, gui_event):
 
-        wfID = self.getWFID(event)
+        wfID = self.getWFID(gui_event)
 
         station = self.getStationName(wfID)
         print 'picking on station {0}'.format(station)
@@ -517,13 +527,16 @@ class MainWindow(QMainWindow):
 
 def main():
     # create the Qt application
-    pylot_app = QApplication(sys.argv[0])
+    pylot_app = QApplication(sys.argv)
+
+    app_icon = QIcon()
+    app_icon.addPixmap(QPixmap(':/icons/pick.png'))
 
     # set Application Information
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
     pylot_app.setOrganizationDomain("rub.de")
     pylot_app.setApplicationName("PyLoT")
-    pylot_app.setWindowIcon(QIcon(":/icon.ico"))
+    pylot_app.setWindowIcon(app_icon)
 
     # create the main window
     pylot_form = MainWindow()

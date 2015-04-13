@@ -14,34 +14,18 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.widgets import MultiCursor
-from PySide.QtGui import (QAction,
-                          QApplication,
-                          QComboBox,
-                          QDateTimeEdit,
-                          QDialog,
-                          QDialogButtonBox,
-                          QDoubleSpinBox,
-                          QGroupBox,
-                          QGridLayout,
-                          QHBoxLayout,
-                          QIcon,
-                          QKeySequence,
-                          QLabel,
-                          QLineEdit,
-                          QMessageBox,
-                          QSpinBox,
-                          QTabWidget,
-                          QToolBar,
-                          QVBoxLayout,
-                          QWidget)
-from PySide.QtCore import (QSettings,
-                           Qt,
-                           QUrl,
-                           Signal,
-                           Slot)
+from PySide.QtGui import QAction, QApplication,QComboBox, QDateTimeEdit,\
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout,\
+    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox,\
+    QTabWidget, QToolBar, QVBoxLayout, QWidget
+from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
+from obspy import Stream, UTCDateTime
+from obspy.core.event import Pick, WaveformStreamID
 from pylot.core.read import FilterOptions
+from pylot.core.pick.utils import getSNR
 from pylot.core.util.defaults import OUTPUTFORMATS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -71,6 +55,7 @@ class MPLWidget(FigureCanvas):
         self._parent = None
         self.setParent(parent)
         self.figure = Figure()
+        self.figure.set_facecolor((.92, .92, .92))
         # attribute plotdict is an dictionary connecting position and a name
         self.plotdict = dict()
         # create axes
@@ -91,39 +76,58 @@ class MPLWidget(FigureCanvas):
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
 
+    def clearPlotDict(self):
+        self.plotdict = dict()
+
     def getParent(self):
         return self._parent
 
     def setParent(self, parent):
         self._parent = parent
 
-    def plotWFData(self, wfdata, title = None):
-        self.axes.lines = []
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None):
+        self.axes.cla()
+        self.clearPlotDict()
         wfstart = getGlobalTimes(wfdata)[0]
         for n, trace in enumerate(wfdata):
+            channel = trace.stats.channel
             station = trace.stats.station
-            print('plotting station: %s' % station)
+            msg = 'plotting %s channel of station %s' % (channel, station)
+            print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             trace.detrend()
             trace.detrend('demean')
             trace.normalize(trace.data.max() * 2)
             self.axes.plot(time_ax, trace.data + n, 'k')
-            self.axes.hold(True)
             xlabel = 'seconds since {0}'.format(wfstart)
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
-            self.setPlotDict(n, station)
+            self.setPlotDict(n, (station, channel))
         self.axes.autoscale(tight=True)
+        if zoomx:
+            self.axes.set_xlim(zoomx)
+        if zoomy:
+            self.axes.set_ylim(zoomy)
+        self.draw()
+
+    def setYTickLabels(self, pos, labels):
+        self.axes.set_yticks(pos)
+        self.axes.set_yticklabels(labels)
+        self.draw()
 
     def updateXLabel(self, text):
         self.axes.set_xlabel(text)
+        self.draw()
+
 
     def updateYLabel(self, text):
         self.axes.set_ylabel(text)
+        self.draw()
 
     def updateTitle(self, text):
         self.axes.set_title(text)
+        self.draw()
 
     def updateWidget(self, xlabel, ylabel, title):
         self.updateXLabel(xlabel)
@@ -237,6 +241,12 @@ class PickDlg(QDialog):
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+        self.picks = {}
+
+        # initialize panning attributes
+        self.press = None
+        self.xpress = None
+        self.ypress = None
 
         # set attribute holding data
         if data is None:
@@ -259,17 +269,50 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
+        self.limits = {'xlims' : self.getPlotWidget().axes.get_xlim(),
+                       'ylims' : self.getPlotWidget().axes.get_ylim()}
+        self.apd = self.getWFData()
+
+        # set plot labels
+
+        self.setPlotLabels()
+
+        # connect button press event to an action
+        self.cidpress = self.connectPressEvent(self.panPress)
+        self.cidmotion = self.connectMotionEvent()
+        self.cidrelease = self.connectReleaseEvent()
+        self.cidscroll = self.connectScrollEvent()
 
     def setupUi(self):
+
+        # create matplotlib toolbar to inherit functionality
+        self.figToolBar = NavigationToolbar2QTAgg(self.getPlotWidget(), self)
+        self.figToolBar.hide()
+
+        # create icons
+        filter_icon = QIcon()
+        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+
+        zoom_icon = QIcon()
+        zoom_icon.addPixmap(QPixmap(':/icons/zoom.png'))
+
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
                                          slot=self.filterWFData,
-                                         icon=QIcon(':/filter.png'),
-                                         tip='Filter waveforms',
+                                         icon=filter_icon,
+                                         tip='Toggle filtered/original'
+                                             ' waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
-        self.selectPhase.addItems(['Pn', 'Pg', 'P1', 'P2'])
+        self.selectPhase.addItems([None, 'Pn', 'Pg', 'P1', 'P2'])
+
+
+
+        self.zoomAction = createAction(parent=self, text='Zoom',
+                                       slot=self.zoom, icon=zoom_icon,
+                                       tip='Zoom into waveform',
+                                       checkable=True)
 
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -280,19 +323,64 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
 
-        _innerlayout = QHBoxLayout()
+        _innerlayout = QVBoxLayout()
 
-        _toolslayout = QVBoxLayout()
-        _toolslabel = QLabel('Place for Tools')
-        _toolslayout.addWidget(_toolslabel)
-
-        _innerlayout.addLayout(_toolslayout)
         _innerlayout.addWidget(self.multicompfig)
+        _buttonbox = QDialogButtonBox(QDialogButtonBox.Apply |
+                                      QDialogButtonBox.Ok |
+                                      QDialogButtonBox.Cancel)
+
+        _innerlayout.addWidget(_buttonbox)
 
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
+
+        self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
+
         self.setLayout(_outerlayout)
 
+    def disconnectPressEvent(self):
+        self.getPlotWidget().mpl_disconnect(self.cidpress)
+
+    def connectPressEvent(self, slot):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('button_press_event', slot)
+
+    def reconnectPressEvent(self, slot):
+        self.disconnectPressEvent()
+        return self.connectPressEvent(slot)
+
+    def disconnectScrollEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidscroll)
+
+    def connectScrollEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('scroll_event', self.scrollZoom)
+
+    def disconnectMotionEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidmotion)
+
+    def connectMotionEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('motion_notify_event', self.panMotion)
+
+    def disconnectReleaseEvent(self):
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidrelease)
+
+    def connectReleaseEvent(self):
+        widget = self.getPlotWidget()
+        return widget.mpl_connect('button_release_event', self.panRelease)
+
+    def verifyPhaseSelection(self):
+        phase = self.selectPhase.currentText()
+        if phase:
+            self.disconnectReleaseEvent()
+            self.disconnectScrollEvent()
+            self.disconnectMotionEvent()
+            self.reconnectPressEvent(self.setIniPick)
 
     def getComponents(self):
         return self.components
@@ -303,14 +391,196 @@ class PickDlg(QDialog):
     def getPlotWidget(self):
         return self.multicompfig
 
+    def getChannelID(self, key):
+        return self.getPlotWidget().getPlotDict()[int(key)][1]
+
     def getWFData(self):
         return self.data
 
-    def filterWFData(self):
-        data = self.getWFData().copy().filter(type='bandpass', freqmin=.5, freqmax=15.)
-        title = self.getStation() + ' (filtered)'
-        self.getPlotWidget().plotWFData(wfdata=data, title=title)
+    def selectWFData(self, channel):
+        component = channel[-1].upper()
+        wfdata = Stream()
+        def selectTrace(trace, components):
+            if trace.stats.channel[-1].upper() in components:
+                return trace
 
+        if component == 'E' or component == 'N':
+            for trace in self.getWFData():
+                trace = selectTrace(trace, 'NE')
+                if trace:
+                    wfdata.append(trace)
+        elif component == 'Z':
+            wfdata = self.getWFData().select(component=component)
+        return wfdata
+
+    def getPicks(self):
+        return self.picks
+
+    def getAPD(self):
+        return self.apd
+
+    def updateAPD(self, wfdata):
+        self.apd = wfdata
+
+    def setIniPick(self, gui_event):
+        channel = self.getChannelID(round(gui_event.ydata))
+        wfdata = self.selectWFData(channel)
+
+        self.disconnectScrollEvent()
+
+        self.cidpress = self.reconnectPressEvent(self.setPick)
+
+        ini_pick = gui_event.xdata
+
+        # calculate the resolution window width from SNR
+        #       SNR >= 3    ->  2 sec    HRW
+        #   3 > SNR >= 2    ->  5 sec    MRW
+        #   2 > SNR >= 1.5  -> 10 sec    LRW
+        # 1.5 > SNR         -> 15 sec   VLRW
+        # see also Diehl et al. 2009
+
+        res_wins = {
+            'HRW' : 2.,
+            'MRW' : 5.,
+            'LRW' : 10.,
+            'VLRW' : 15.
+        }
+
+        result = getSNR(wfdata, (10., 2., 1.5), ini_pick)
+
+        snr = result[0]
+        noiselevel = result[2] * 1.5
+
+        if snr < 1.5:
+            x_res = res_wins['VLRW']
+        elif snr < 2.:
+            x_res = res_wins['LRW']
+        elif snr < 3.:
+            x_res = res_wins['MRW']
+        else:
+            x_res = res_wins['HRW']
+        x_res /= 2
+
+        zoomx = [ini_pick - x_res, ini_pick + x_res]
+        zoomy = [noiselevel * 1.5, -noiselevel * 1.5]
+        self.getPlotWidget().plotWFData(wfdata=wfdata,
+                                        title=self.getStation() +
+                                              ' picking mode',
+                                        zoomx=zoomx,
+                                        zoomy=zoomy)
+        self.updateAPD(wfdata)
+
+        # reset labels
+        self.setPlotLabels()
+
+    def setPick(self, gui_event):
+        pick = gui_event.xdata
+        ax = self.getPlotWidget().axes
+
+        ylims = ax.get_ylim()
+
+        ax.plot([pick, pick], ylims, 'r--')
+        self.getPlotWidget().draw()
+
+    def panPress(self, gui_event):
+        ax = self.getPlotWidget().axes
+        if gui_event.inaxes != ax: return
+        self.cur_xlim = ax.get_xlim()
+        self.cur_ylim = ax.get_ylim()
+        self.press = gui_event.xdata, gui_event.ydata
+        self.xpress, self.ypress = self.press
+
+    def panRelease(self, gui_event):
+        ax = self.getPlotWidget().axes
+        self.press = None
+        ax.figure.canvas.draw()
+
+    def panMotion(self, gui_event):
+        ax = self.getPlotWidget().axes
+        if self.press is None: return
+        if gui_event.inaxes != ax: return
+        dx = gui_event.xdata - self.xpress
+        dy = gui_event.ydata - self.ypress
+        self.cur_xlim -= dx
+        self.cur_ylim -= dy
+        ax.set_xlim(self.cur_xlim)
+        ax.set_ylim(self.cur_ylim)
+
+        ax.figure.canvas.draw()
+
+    def filterWFData(self):
+        ax = self.getPlotWidget().axes
+        ylims = ax.get_ylim()
+        xlims = ax.get_xlim()
+        if self.filterAction.isChecked():
+            data = self.getAPD().copy()
+            data.filter(type='bandpass', freqmin=.5, freqmax=15.)
+            title = self.getStation() + ' (filtered)'
+        else:
+            data = self.getAPD().copy()
+            title = self.getStation()
+        self.getPlotWidget().plotWFData(wfdata=data, title=title, zoomx=xlims,
+                                        zoomy=ylims)
+        self.setPlotLabels()
+
+    def setPlotLabels(self):
+
+        # get channel labels
+        pos = self.getPlotWidget().getPlotDict().keys()
+        labels = [self.getPlotWidget().getPlotDict()[key][1] for key in pos]
+
+        # set channel labels
+        self.getPlotWidget().setYTickLabels(pos, labels)
+
+    def zoom(self):
+        if self.zoomAction.isChecked():
+            self.disconnectPressEvent()
+            self.figToolBar.zoom()
+        else:
+            self.connectPressEvent(self.setIniPick)
+
+    def scrollZoom(self, gui_event, factor=2.):
+
+        widget = self.getPlotWidget()
+
+        curr_xlim = widget.axes.get_xlim()
+        curr_ylim = widget.axes.get_ylim()
+
+        if gui_event.button == 'up':
+            scale_factor = 1/factor
+        elif gui_event.button == 'down':
+            # deal with zoom out
+            scale_factor = factor
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            print gui_event.button
+
+        new_xlim = gui_event.xdata - scale_factor * (gui_event.xdata - curr_xlim)
+        new_ylim = gui_event.ydata - scale_factor * (gui_event.ydata - curr_ylim)
+
+        new_xlim.sort()
+        new_xlim[0] = max(new_xlim[0], self.limits['xlims'][0])
+        new_xlim[1] = min(new_xlim[1], self.limits['xlims'][1])
+        new_ylim.sort()
+        new_ylim[0] = max(new_ylim[0], self.limits['ylims'][0])
+        new_ylim[1] = min(new_ylim[1], self.limits['ylims'][1])
+
+        widget.axes.set_xlim(new_xlim)
+        widget.axes.set_ylim(new_ylim)
+        widget.draw()
+
+    def apply(self):
+        picks = self.getPicks()
+        for pick in picks:
+            print pick
+
+    def reject(self):
+        QDialog.reject(self)
+
+    def accept(self):
+        self.apply()
+        QDialog.accept(self)
 
 class PropertiesDlg(QDialog):
 
