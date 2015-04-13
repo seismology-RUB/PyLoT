@@ -493,7 +493,7 @@ class PickDlg(QDialog):
 
         wfdata = self.getAPD().copy().select(channel=channel)
         # get earliest and latest possible pick
-        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 1.), pick, 1)
+        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 1.), pick)
 
         # plotting picks
         ax = self.getPlotWidget().axes
