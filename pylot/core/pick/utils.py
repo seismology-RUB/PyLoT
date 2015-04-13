@@ -293,7 +293,8 @@ def getSNR(X, TSNR, t1):
     '''
     Function to calculate SNR of certain part of seismogram relative to
     given time (onset) out of given noise and signal windows. A safety gap
-    between noise and signal part can be set. Returns SNR and SNR [dB].
+    between noise and signal part can be set. Returns SNR and SNR [dB] and
+    noiselevel.
 
     :param: X, time series (seismogram)
     :type:  `~obspy.core.stream.Stream`
@@ -324,9 +325,10 @@ def getSNR(X, TSNR, t1):
         return
 
     #calculate ratios
-    noiselevel = np.mean(abs(x[inoise]))
-    SNR = max(abs(x[isignal])) / noiselevel
-    SNRdB = 20 * np.log10(SNR)
+    noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
+    signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+    SNR = signallevel / noiselevel
+    SNRdB = 10 * np.log10(SNR)
 
     return SNR, SNRdB, noiselevel
 

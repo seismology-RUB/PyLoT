@@ -25,7 +25,7 @@ from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from obspy.core.event import Pick, WaveformStreamID
 from pylot.core.read import FilterOptions
-from pylot.core.pick.utils import getSNR
+from pylot.core.pick.utils import getSNR, earllatepicker
 from pylot.core.util.defaults import OUTPUTFORMATS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -85,7 +85,8 @@ class MPLWidget(FigureCanvas):
     def setParent(self, parent):
         self._parent = parent
 
-    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None):
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+                   noiselevel=None):
         self.axes.cla()
         self.clearPlotDict()
         wfstart = getGlobalTimes(wfdata)[0]
@@ -100,6 +101,11 @@ class MPLWidget(FigureCanvas):
             trace.detrend('demean')
             trace.normalize(trace.data.max() * 2)
             self.axes.plot(time_ax, trace.data + n, 'k')
+            if noiselevel is not None:
+                self.axes.plot([time_ax[0], time_ax[-1]],
+                               [noiselevel, noiselevel], '--k')
+                self.axes.plot([time_ax[0], time_ax[-1]],
+                               [-noiselevel, -noiselevel], '--k')
             xlabel = 'seconds since {0}'.format(wfstart)
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
@@ -381,6 +387,11 @@ class PickDlg(QDialog):
             self.disconnectScrollEvent()
             self.disconnectMotionEvent()
             self.reconnectPressEvent(self.setIniPick)
+        else:
+            self.cidpress = self.connectPressEvent(self.panPress)
+            self.cidmotion = self.connectMotionEvent()
+            self.cidrelease = self.connectReleaseEvent()
+            self.cidscroll = self.connectScrollEvent()
 
     def getComponents(self):
         return self.components
@@ -446,7 +457,7 @@ class PickDlg(QDialog):
             'VLRW' : 15.
         }
 
-        result = getSNR(wfdata, (10., 2., 1.5), ini_pick)
+        result = getSNR(wfdata, (5., .5, 1.), ini_pick)
 
         snr = result[0]
         noiselevel = result[2] * 1.5
@@ -467,19 +478,32 @@ class PickDlg(QDialog):
                                         title=self.getStation() +
                                               ' picking mode',
                                         zoomx=zoomx,
-                                        zoomy=zoomy)
+                                        zoomy=zoomy,
+                                        noiselevel=noiselevel)
+
         self.updateAPD(wfdata)
 
         # reset labels
         self.setPlotLabels()
 
     def setPick(self, gui_event):
-        pick = gui_event.xdata
+        # setting pick
+        pick = gui_event.xdata # get pick time relative to the traces timeaxis not to the global
+        channel = self.getChannelID(round(gui_event.ydata))
+
+        wfdata = self.getAPD().copy().select(channel=channel)
+        # get earliest and latest possible pick
+        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 1.), pick, 1)
+
+        # plotting picks
         ax = self.getPlotWidget().axes
 
         ylims = ax.get_ylim()
 
         ax.plot([pick, pick], ylims, 'r--')
+        ax.plot([epp, epp], ylims, 'c--')
+        ax.plot([lpp, lpp], ylims, 'm--')
+
         self.getPlotWidget().draw()
 
     def panPress(self, gui_event):
