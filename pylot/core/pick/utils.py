@@ -53,32 +53,22 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     #get signal window
     isignal = getsignalwin(t, Pick1, TSNR[2])
     #calculate noise level
-    nlevel = max(abs(x[inoise])) * nfac
+    nlevel = np.sqrt(np.mean(np.square(x[inoise]))) * nfac
     #get time where signal exceeds nlevel
-    ilup = np.where(x[isignal] > nlevel)
-    ildown = np.where(x[isignal] < -nlevel)
-    if len(ilup[0]) <= 1 and len(ildown[0]) <= 1:
-        print 'earllatepicker: Signal lower than noise level, misspick?'
-        return
-    il = min([ilup[0][0], ildown[0][0]])
+    ilup, = np.where(x[isignal] > nlevel)
+    ildown, = np.where(x[isignal] < -nlevel)
+    if not ilup.size and not ildown.size:
+        raise ValueError('earllatepicker: Signal lower than noise level')
+    il = min(np.min(ilup) if ilup.size else float('inf'),
+             np.min(ildown) if ildown.size else float('inf'))
     LPick = t[isignal][il]
 
     #get earliest possible pick
-    #get next 2 zero crossings after most likely pick
-    #initial onset is assumed to be the first zero crossing
-    zc = []
-    zc.append(Pick1)
-    i = 0
-    for j in range(isignal[0][1], isignal[0][len(t[isignal]) - 1]):
-        i = i + 1
-        if x[j - 1] <= 0 and x[j] >= 0:
-            zc.append(t[isignal][i])
-        elif x[j - 1] > 0 and x[j] <= 0:
-            zc.append(t[isignal][i])
-        if len(zc) == 3:
-            break
-    #calculate maximum period T0 of signal out of zero crossings
-    T0 = max(np.diff(zc))  #this is half wave length!
+
+    #determine all zero crossings in signal window
+    zc = crossings_nonzero_all(x[isignal])
+    #calculate mean half period T0 of signal as the average of the
+    T0 = np.mean(np.diff(zc)) * X[0].stats.delta  #this is half wave length!
     #T0/4 is assumed as time difference between most likely and earliest possible pick!
     EPick = Pick1 - T0 / 2
 
@@ -288,6 +278,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
 
     return FM
 
+def crossings_nonzero_all(data):
+    pos = data > 0
+    npos = ~pos
+    return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
 def getSNR(X, TSNR, t1):
     '''
