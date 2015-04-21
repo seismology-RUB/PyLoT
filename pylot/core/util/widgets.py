@@ -478,7 +478,7 @@ class PickDlg(QDialog):
         x_res /= 2
 
         zoomx = [ini_pick - x_res, ini_pick + x_res]
-        zoomy = [noiselevel * 1.5, -noiselevel * 1.5]
+        zoomy = [-noiselevel * 1.5, noiselevel * 1.5]
         self.getPlotWidget().plotWFData(wfdata=wfdata,
                                         title=self.getStation() +
                                               ' picking mode',
