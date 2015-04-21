@@ -285,9 +285,9 @@ class PickDlg(QDialog):
 
         # connect button press event to an action
         self.cidpress = self.connectPressEvent(self.panPress)
-        self.cidmotion = self.connectMotionEvent()
-        self.cidrelease = self.connectReleaseEvent()
-        self.cidscroll = self.connectScrollEvent()
+        self.cidmotion = self.connectMotionEvent(self.panMotion)
+        self.cidrelease = self.connectReleaseEvent(self.panRelease)
+        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def setupUi(self):
 
@@ -328,6 +328,7 @@ class PickDlg(QDialog):
 
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
+        _dialtoolbar.addAction(self.zoomAction)
 
         _innerlayout = QVBoxLayout()
 
@@ -346,39 +347,40 @@ class PickDlg(QDialog):
         self.setLayout(_outerlayout)
 
     def disconnectPressEvent(self):
-        self.getPlotWidget().mpl_disconnect(self.cidpress)
+        widget = self.getPlotWidget()
+        widget.mpl_disconnect(self.cidpress)
+        self.cidpress = None
 
     def connectPressEvent(self, slot):
         widget = self.getPlotWidget()
         return widget.mpl_connect('button_press_event', slot)
 
-    def reconnectPressEvent(self, slot):
-        self.disconnectPressEvent()
-        return self.connectPressEvent(slot)
-
     def disconnectScrollEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidscroll)
+        self.cidscroll = None
 
-    def connectScrollEvent(self):
+    def connectScrollEvent(self, slot):
         widget = self.getPlotWidget()
-        return widget.mpl_connect('scroll_event', self.scrollZoom)
+        return widget.mpl_connect('scroll_event', slot)
 
     def disconnectMotionEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidmotion)
+        self.cidmotion = None
 
-    def connectMotionEvent(self):
+    def connectMotionEvent(self, slot):
         widget = self.getPlotWidget()
-        return widget.mpl_connect('motion_notify_event', self.panMotion)
+        return widget.mpl_connect('motion_notify_event', slot)
 
     def disconnectReleaseEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidrelease)
+        self.cidrelease = None
 
-    def connectReleaseEvent(self):
+    def connectReleaseEvent(self, slot):
         widget = self.getPlotWidget()
-        return widget.mpl_connect('button_release_event', self.panRelease)
+        return widget.mpl_connect('button_release_event', slot)
 
     def verifyPhaseSelection(self):
         phase = self.selectPhase.currentText()
@@ -386,12 +388,13 @@ class PickDlg(QDialog):
             self.disconnectReleaseEvent()
             self.disconnectScrollEvent()
             self.disconnectMotionEvent()
-            self.reconnectPressEvent(self.setIniPick)
+            self.disconnectPressEvent()
+            self.cidpress = self.connectPressEvent(self.setIniPick)
         else:
             self.cidpress = self.connectPressEvent(self.panPress)
-            self.cidmotion = self.connectMotionEvent()
-            self.cidrelease = self.connectReleaseEvent()
-            self.cidscroll = self.connectScrollEvent()
+            self.cidmotion = self.connectMotionEvent(self.panMotion)
+            self.cidrelease = self.connectReleaseEvent(self.panRelease)
+            self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def getComponents(self):
         return self.components
@@ -438,8 +441,10 @@ class PickDlg(QDialog):
         wfdata = self.selectWFData(channel)
 
         self.disconnectScrollEvent()
-
-        self.cidpress = self.reconnectPressEvent(self.setPick)
+        self.disconnectPressEvent()
+        self.disconnectReleaseEvent()
+        self.disconnectMotionEvent()
+        self.cidpress = self.connectPressEvent(self.setPick)
 
         ini_pick = gui_event.xdata
 
@@ -457,7 +462,7 @@ class PickDlg(QDialog):
             'VLRW' : 15.
         }
 
-        result = getSNR(wfdata, (5., .5, 1.), ini_pick)
+        result = getSNR(wfdata, (5., .5, 2.), ini_pick)
 
         snr = result[0]
         noiselevel = result[2] * 1.5
@@ -493,7 +498,7 @@ class PickDlg(QDialog):
 
         wfdata = self.getAPD().copy().select(channel=channel)
         # get earliest and latest possible pick
-        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 1.), pick)
+        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
 
         # plotting picks
         ax = self.getPlotWidget().axes
@@ -559,9 +564,11 @@ class PickDlg(QDialog):
     def zoom(self):
         if self.zoomAction.isChecked():
             self.disconnectPressEvent()
+            self.disconnectMotionEvent()
+            self.disconnectReleaseEvent()
             self.figToolBar.zoom()
         else:
-            self.connectPressEvent(self.setIniPick)
+            self.cidpress = self.connectPressEvent(self.setIniPick)
 
     def scrollZoom(self, gui_event, factor=2.):
 
