@@ -5,7 +5,7 @@
 class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write
-    parameter ASCII and binary files.
+    parameter ASCII.
 
     :param fn str: Filename of the input file
 
@@ -50,27 +50,32 @@ class AutoPickParameter(object):
                 for line in lines:
                     parspl = line.split('\t')[:2]
                     parFileCont[parspl[0].strip()] = parspl[1]
-                for key, value in parFileCont.iteritems():
-                    try:
-                        val = int(value)
-                    except:
-                        try:
-                            val = float(value)
-                        except:
-                            if value.find(';') > 0:
-                                vallist = value.strip().split(';')
-                                val = []
-                                for val0 in vallist:
-                                    val0 = float(val0)
-                                    val.append(val0)
-                            else:
-                                val = str(value.strip())
-                    parFileCont[key] = val
             else:
                 parFileCont = {}
         except Exception, e:
             self._printParameterError(e)
-            parFileCont = {}
+            inputFile.seek(0)
+            lines = inputFile.readlines()
+            for line in lines:
+                if not line.startswith(('#', '%', '\n', ' ')):
+                    parspl = line.split('#')[:2]
+                    parFileCont[parspl[1].strip()] = parspl[0].strip()
+        for key, value in parFileCont.iteritems():
+            try:
+                val = int(value)
+            except:
+                try:
+                    val = float(value)
+                except:
+                    if len(value.split(' ')) > 1:
+                        vallist = value.strip().split(' ')
+                        val = []
+                        for val0 in vallist:
+                            val0 = float(val0)
+                            val.append(val0)
+                    else:
+                        val = str(value.strip())
+            parFileCont[key] = val
         self.__parameter = parFileCont
 
     # Human-readable string representation of the object
@@ -129,7 +134,7 @@ class AutoPickParameter(object):
         print self
 
     def _printParameterError(self, errmsg):
-        print 'ParameterError:\n non-existent parameter %s' % errmsg
+        print 'ParameterReadError:\n non-existent parameter %s' % errmsg
 
 
 class FilterOptions(object):
