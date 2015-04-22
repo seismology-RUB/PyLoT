@@ -3,15 +3,13 @@
 
 import os
 
-import numpy as np
 from obspy.core import (read, Stream, UTCDateTime)
 from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
 
 from pylot.core.read import readPILOTEvent
-
-from pylot.core.util import fnConstructor, createEvent, FormatError, \
-    prepTimeAxis, getGlobalTimes
+from pylot.core.util import fnConstructor, FormatError, \
+    getGlobalTimes
 
 
 class Data(object):
@@ -129,8 +127,8 @@ class Data(object):
             except TypeError:
                 try:
                     self.wfdata += read(fname, format='GSE2')
-                except Exception:
-                    warnmsg += '{0}\n'.format(fname)
+                except Exception, e:
+                    warnmsg += '{0}\n{1}\n'.format(fname, e)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print warnmsg
