@@ -41,6 +41,10 @@ def autoPyLoT(fnames, inputfile):
     if parameter.hasParam('datastructure'):
         datastructure = DATASTRUCTURE[parameter.getParam('datastructure')]()
 
+    dsfields = {'root':parameter.rootpath} #see TODO: in data.py
+
+    datastructure.modifyFields(dsfields)
+
     def expandSDS(datastructure):
         return datastructure.expandDataPath()
 
@@ -50,6 +54,8 @@ def autoPyLoT(fnames, inputfile):
     dsem = {'PDS':expandPDS, 'SDS':expandSDS}
 
     expandMethod = dsem[datastructure.getName()]
+
+
 
 if __name__ == "__main__":
     # parse arguments
