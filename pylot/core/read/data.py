@@ -155,6 +155,7 @@ class GenericDataStructure(object):
 
     def __init__(self, structexp='$R/$D/$E', folderdepth=2, **kwargs):
         structureOptions = ('$R', '$D', '$E')
+        self.__name = 'GDS'
         structExpression = []
         depth = 0
         while structexp is not os.path.sep:
@@ -180,6 +181,9 @@ class GenericDataStructure(object):
             key = str(key).upper()
             self.__gdsFields[key] = value
 
+    def getName(self):
+        return self.__name
+
     def getFields(self):
         return self.__gdsFields
 
@@ -196,7 +200,9 @@ class PilotDataStructure(object):
     def __init__(self, dataformat='GSE2', fsuffix='gse',
                  root='/data/Egelados/EVENT_DATA/LOCAL/', database='2006.01',
                  **kwargs):
-        self.dataType = dataformat
+        self.__name = 'PDS'
+        self.dataFormat = dataformat
+        self.dataType = 'waveform'
         self.__pdsFields = {'ROOT': root,
                             'DATABASE': database,
                             'SUFFIX': fsuffix
@@ -231,6 +237,9 @@ class PilotDataStructure(object):
     def getFields(self):
         return self.__pdsFields
 
+    def getName(self):
+        return self.__name
+
     def expandDataPath(self):
         datapath = os.path.join(self.getFields()['ROOT'],
                                 self.getFields()['DATABASE'])
@@ -258,8 +267,8 @@ class SeiscompDataStructure(object):
     }
 
     def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
-        # imports
-        from obspy.core import UTCDateTime
+
+        self.__name = 'SDS'
 
         def checkDate(date):
             if not isinstance(date, UTCDateTime):
@@ -334,6 +343,9 @@ class SeiscompDataStructure(object):
 
     def getFields(self):
         return self.__sdsFields
+
+    def getName(self):
+        return self.__name
 
     def expandDataPath(self):
         fullChan = '{0}.{1}'.format(self.getFields()['CHAN'], self.getType())

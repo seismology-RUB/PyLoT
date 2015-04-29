@@ -7,22 +7,49 @@ import argparse
 
 from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
+from pylot.core.pick.CharFuns import HOScf, AICcf
+from pylot.core.util.structure import DATASTRUCTURE
 
 
 __version__ = _getVersionString()
 
+METHOD = {'HOS':HOScf, 'AIC':AICcf}
 
 def autoPyLoT(fnames, inputfile):
+    '''
+    Determine phase onsets automatically utilizing the automatic picking
+    algorithm by Kueperkoch et al. 2011.
+
+    :param fnames: list of strings containing the paths or urls to the
+    waveform data to be picked
+    :type fnames: list
+    :param inputfile: path to the input file containing all parameter
+    information for automatic picking (for formatting details, see.
+    `~pylot.core.read.input.AutoPickParameter`
+    :type inputfile: str
+    :return:
+
+    .. rubric:: Example
+
+    '''
     parameter = AutoPickParameter(inputfile)
+
     data = Data()
-    data.setWFData(fnames)
 
-    print parameter.getParam('algoP')
+    cfP = METHOD[parameter.getParam('algoP')]()
 
-    print(parameter)
+    if parameter.hasParam('datastructure'):
+        datastructure = DATASTRUCTURE[parameter.getParam('datastructure')]()
 
-    print(data)
+    def expandSDS(datastructure):
+        return datastructure.expandDataPath()
 
+    def expandPDS(datastructure):
+        return os.path.join(datastructure.expandDataPath(),'*')
+
+    dsem = {'PDS':expandPDS, 'SDS':expandSDS}
+
+    expandMethod = dsem[datastructure.getName()]
 
 if __name__ == "__main__":
     # parse arguments
