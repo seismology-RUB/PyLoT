@@ -3,15 +3,13 @@
 
 import os
 
-import numpy as np
 from obspy.core import (read, Stream, UTCDateTime)
 from obspy import readEvents
 from obspy.core.event import (Event, Catalog)
 
 from pylot.core.read import readPILOTEvent
-
-from pylot.core.util import fnConstructor, createEvent, FormatError, \
-    prepTimeAxis, getGlobalTimes
+from pylot.core.util import fnConstructor, FormatError, \
+    getGlobalTimes
 
 
 class Data(object):
@@ -129,8 +127,8 @@ class Data(object):
             except TypeError:
                 try:
                     self.wfdata += read(fname, format='GSE2')
-                except Exception:
-                    warnmsg += '{0}\n'.format(fname)
+                except Exception, e:
+                    warnmsg += '{0}\n{1}\n'.format(fname, e)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print warnmsg
@@ -148,6 +146,7 @@ class Data(object):
     def getEvtData(self):
         return self.evtdata
 
+#TODO: write superclass DataStructure instead of three fully featured individual classes
 
 class GenericDataStructure(object):
     '''
@@ -157,6 +156,7 @@ class GenericDataStructure(object):
 
     def __init__(self, structexp='$R/$D/$E', folderdepth=2, **kwargs):
         structureOptions = ('$R', '$D', '$E')
+        self.__name = 'GDS'
         structExpression = []
         depth = 0
         while structexp is not os.path.sep:
@@ -182,6 +182,9 @@ class GenericDataStructure(object):
             key = str(key).upper()
             self.__gdsFields[key] = value
 
+    def getName(self):
+        return self.__name
+
     def getFields(self):
         return self.__gdsFields
 
@@ -198,7 +201,9 @@ class PilotDataStructure(object):
     def __init__(self, dataformat='GSE2', fsuffix='gse',
                  root='/data/Egelados/EVENT_DATA/LOCAL/', database='2006.01',
                  **kwargs):
-        self.dataType = dataformat
+        self.__name = 'PDS'
+        self.dataFormat = dataformat
+        self.dataType = 'waveform'
         self.__pdsFields = {'ROOT': root,
                             'DATABASE': database,
                             'SUFFIX': fsuffix
@@ -233,6 +238,9 @@ class PilotDataStructure(object):
     def getFields(self):
         return self.__pdsFields
 
+    def getName(self):
+        return self.__name
+
     def expandDataPath(self):
         datapath = os.path.join(self.getFields()['ROOT'],
                                 self.getFields()['DATABASE'])
@@ -260,8 +268,8 @@ class SeiscompDataStructure(object):
     }
 
     def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
-        # imports
-        from obspy.core import UTCDateTime
+
+        self.__name = 'SDS'
 
         def checkDate(date):
             if not isinstance(date, UTCDateTime):
@@ -336,6 +344,9 @@ class SeiscompDataStructure(object):
 
     def getFields(self):
         return self.__sdsFields
+
+    def getName(self):
+        return self.__name
 
     def expandDataPath(self):
         fullChan = '{0}.{1}'.format(self.getFields()['CHAN'], self.getType())
