@@ -36,26 +36,34 @@ def autoPyLoT(fnames, inputfile):
 
     data = Data()
 
-    cfP = METHOD[parameter.getParam('algoP')]()
+    meth = parameter.getParam('algoP')
+    tsnr1 = parameter.getParam('tsnr1')
+    tsnr2 = parameter.getParam('tsnr2')
+    tnoise = parameter.getParam('pnoiselen')
+    tsignal = parameter.getParam('tlim')
+    order = parameter.getParam('hosorder')
+    thosmw = parameter.getParam('tlta')
 
     if parameter.hasParam('datastructure'):
         datastructure = DATASTRUCTURE[parameter.getParam('datastructure')]()
+        dsfields = {'root':parameter.getParam('rootpath')} #see TODO: in data.py
+        datastructure.modifyFields(dsfields)
 
-    dsfields = {'root':parameter.rootpath} #see TODO: in data.py
+        def expandSDS(datastructure):
+            return datastructure.expandDataPath()
 
-    datastructure.modifyFields(dsfields)
+        def expandPDS(datastructure):
+            return os.path.join(datastructure.expandDataPath(),'*')
 
-    def expandSDS(datastructure):
-        return datastructure.expandDataPath()
+        dsem = {'PDS':expandPDS, 'SDS':expandSDS}
 
-    def expandPDS(datastructure):
-        return os.path.join(datastructure.expandDataPath(),'*')
+        expandMethod = dsem[datastructure.getName()]
 
-    dsem = {'PDS':expandPDS, 'SDS':expandSDS}
+        data.setWFData(expandMethod())
+    else:
+        data.setWFData()
 
-    expandMethod = dsem[datastructure.getName()]
-
-
+    cfP = METHOD[meth](data.getWFData(), (tnoise, tsignal), thosmw, order)
 
 if __name__ == "__main__":
     # parse arguments
@@ -70,8 +78,8 @@ if __name__ == "__main__":
                         action='store',
                         help='''full path to the file containing the input
                         parameters for autoPyLoT''',
-                        default=os.path.join([os.path.expanduser('~'),
-                                              'autoPyLoT.in'])
+                        default=os.path.join(os.path.expanduser('~'), '.pylot',
+                                             'autoPyLoT.in')
                         )
     parser.add_argument('-v', '-V', '--version', action='version',
                         version='autoPyLoT ' + __version__,
@@ -79,4 +87,4 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
 
-    autoPyLoT(cla.data, cla.input)
+    autoPyLoT(cla.data, str(cla.inputfile))
