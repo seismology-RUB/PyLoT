@@ -34,24 +34,29 @@ class AutoPickParameter(object):
     ==========  ==========  =======================================
     '''
 
-    def __init__(self, fn=None):
+    def __init__(self, fnin=None, fnout=None, **kwargs):
         '''
         Initialize parameter object:
 
         read content of an ASCII file an form a type consistent dictionary
         contain all parameters.
         '''
-        self.__filename = fn
+
+        self.__filename = fnin
         parFileCont = {}
-        try:
-            if self.__filename is not None:
+        # read from parsed arguments alternatively
+        for key, val in kwargs.iteritems():
+            parFileCont[key] = val
+
+        if self.__filename is not None:
                 inputFile = open(self.__filename, 'r')
-                lines = inputFile.readlines()
-                for line in lines:
-                    parspl = line.split('\t')[:2]
-                    parFileCont[parspl[0].strip()] = parspl[1]
-            else:
-                parFileCont = {}
+        else:
+            return
+        try:
+            lines = inputFile.readlines()
+            for line in lines:
+                parspl = line.split('\t')[:2]
+                parFileCont[parspl[0].strip()] = parspl[1]
         except Exception, e:
             self._printParameterError(e)
             inputFile.seek(0)
@@ -78,12 +83,15 @@ class AutoPickParameter(object):
             parFileCont[key] = val
         self.__parameter = parFileCont
 
+        if fnout:
+            self.export2File(fnout)
+
     # Human-readable string representation of the object
     def __str__(self):
         string = ''
         string += 'Automated picking parameter:\n\n'
         if self.__parameter:
-            for key, value in self.__parameter.iteritems():
+            for key, value in self.iteritems():
                 string += '%s:\t\t%s\n' % (key, value)
         else:
             string += 'Empty parameter dictionary.'
@@ -112,6 +120,25 @@ class AutoPickParameter(object):
     def __len__(self):
         return len(self.__parameter.keys())
 
+    def iteritems(self):
+        for key, value in self.__parameter.iteritems():
+            yield key, value
+
+    def hasParam(self, *args):
+
+        def test(param):
+            try:
+                self.__parameter[param]
+                return True
+            except KeyError:
+                return False
+
+        try:
+            for param in args:
+                test(param)
+        except TypeError:
+            test(args)
+
     def getParam(self, *args):
         try:
             for param in args:
@@ -127,14 +154,18 @@ class AutoPickParameter(object):
 
     def setParam(self, **kwargs):
         for param, value in kwargs.iteritems():
-            try:
-                self.__setitem__(param, value)
-            except KeyError, e:
-                self._printParameterError(e)
+            self.__setitem__(param, value)
         print self
 
     def _printParameterError(self, errmsg):
-        print 'ParameterReadError:\n non-existent parameter %s' % errmsg
+        print 'ParameterError:\n non-existent parameter %s' % errmsg
+
+    def export2File(self, fnout):
+        fid_out = open(fnout, 'w')
+        lines = []
+        for key, value in self.iteritems():
+            lines.append('{key}\t{value}'.format(key=key, value=value))
+        fid_out.writelines(lines)
 
 
 class FilterOptions(object):
