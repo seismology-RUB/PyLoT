@@ -154,42 +154,61 @@ class GenericDataStructure(object):
     base working on.
     '''
 
-    def __init__(self, structexp='$R/$D/$E', folderdepth=2, **kwargs):
-        structureOptions = ('$R', '$D', '$E')
-        self.__name = 'GDS'
-        structExpression = []
-        depth = 0
-        while structexp is not os.path.sep:
-            try:
-                [structexp, tlexp] = os.path.split(structexp)
-            except AttributeError:
-                rootExpression = None
-                structExpression = None
-                break
-            structExpression.append(tlexp)
-            depth += 1
-            if depth is folderdepth:
-                rootExpression = structexp
-                break
-        structExpression.reverse()
+    def __init__(self, rootpath='/data', dataformat=None, filesuffix=None,
+                 **kwargs):
+        self.__allowExtraFields = True
+        self.__expandFields = ['root']
+        self.__dsFields = {'root': rootpath}
 
-        self.folderDepth = folderdepth
-        self.__gdsFields = {'ROOT': rootExpression}
         self.modifyFields(**kwargs)
 
     def modifyFields(self, **kwargs):
-        for key, value in kwargs.iteritems():
-            key = str(key).upper()
-            self.__gdsFields[key] = value
 
-    def getName(self):
-        return self.__name
+        assert isinstance(kwargs, dict), 'dictionary type object expected'
+
+        for key, value in kwargs.iteritems():
+            key = str(key).lower()
+            if type(value) not in (str, int, float):
+                for n, val in enumerate(value):
+                    value[n] = str(val)
+            else:
+                value = str(value)
+            try:
+                self.setFieldValue(key, value)
+            except KeyError, e:
+                errmsg = ''
+                errmsg += 'WARNING:\n'
+                errmsg += 'unable to set values for datastructure fields\n'
+                errmsg += '%s; desired value was: %s\n' % (e, value)
+                print errmsg
+
+    def isField(self, key):
+        return key in self.getFields().keys()
+
+    def getFieldValue(self, key):
+        if self.isField(key):
+            return self.getFields()[key]
+        else:
+            return
+
+    def setFieldValue(self, key, value):
+        if self.isField(key):
+            self.getFields()[key] = value
+        else:
+            print('Warning: trying to set value of non-existent field '
+                  '{field}'.format(field=key))
 
     def getFields(self):
-        return self.__gdsFields
+        return self.__dsFields
+
+    def getExpandFields(self):
+        return self.__expandFields
 
     def expandDataPath(self):
-        return os.path.join(*self.getFields().values())
+        expandList = []
+        for item in self.getExpandFields():
+            expandList.append(self.getFieldValue(item))
+        return os.path.join(*self.getExpandFields())
 
 
 class PilotDataStructure(object):
@@ -204,14 +223,14 @@ class PilotDataStructure(object):
         self.__name = 'PDS'
         self.dataFormat = dataformat
         self.dataType = 'waveform'
-        self.__pdsFields = {'ROOT': root,
-                            'DATABASE': database,
-                            'SUFFIX': fsuffix
+        self.__pdsFields = {'root': root,
+                            'database': database,
+                            'suffix': fsuffix
         }
 
-        self.modifiyFields(**kwargs)
+        self.modifyFields(**kwargs)
 
-    def modifiyFields(self, **kwargs):
+    def modifyFields(self, **kwargs):
         if kwargs and isinstance(kwargs, dict):
             for key, value in kwargs.iteritems():
                 key = str(key)
@@ -247,7 +266,7 @@ class PilotDataStructure(object):
         return datapath
 
 
-class SeiscompDataStructure(object):
+class SeiscompDataStructure(GenericDataStructure):
     '''
     Dictionary containing the data access information for an SDS data archive:
 
@@ -257,35 +276,16 @@ class SeiscompDataStructure(object):
     :type sdate, edate: str or UTCDateTime or None
     '''
 
-    # Data type options
-    __typeOptions = {'waveform': 'D',  # Waveform data
-                     'detect': 'E',  # Detection data
-                     'log': 'L',  # Log data
-                     'timing': 'T',  # Timing data
-                     'calib': 'C',  # Calibration data
-                     'resp': 'R',  # Response data
-                     'opaque': 'O'  # Opaque data
-    }
+    def __init__(self, rootpath='/data/SDS', dataformat='MSEED',
+                 filesuffix=None, **kwargs):
+        super(GenericDataStructure, self).__init__(rootpath, dataformat,
+                                                   filesuffix, **kwargs)
 
-    def __init__(self, dataType='waveform', sdate=None, edate=None, **kwargs):
 
-        self.__name = 'SDS'
-
-        def checkDate(date):
-            if not isinstance(date, UTCDateTime):
-                return True
-            return False
-
-        try:
-            if checkDate(sdate):
-                sdate = UTCDateTime(sdate)
-            if checkDate(edate):
-                edate = UTCDateTime(edate)
-        except TypeError:
-            edate = UTCDateTime()
-            halfyear = UTCDateTime('1970-07-01')
-            sdate = UTCDateTime(edate - halfyear)
-            del halfyear
+        edate = UTCDateTime()
+        halfyear = UTCDateTime('1970-07-01')
+        sdate = UTCDateTime(edate - halfyear)
+        del halfyear
 
         year = ''
         if not edate.year == sdate.year:
@@ -295,13 +295,6 @@ class SeiscompDataStructure(object):
             year = '{' + year[:-1] + '}'
         else:
             year = '{0:04d}'.format(sdate.year)
-
-        if dataType in self.__typeOptions.keys():
-            self.dataType = dataType
-        else:
-            self.dataType = 'waveform'  # default value for dataType
-            print '''Warning: Selected datatype ('%s') not available.\n
-                     Using 'waveform' instead!'''.format(dataType)
 
         # SDS fields' default values
         # definitions from
@@ -328,10 +321,7 @@ class SeiscompDataStructure(object):
                 else:
                     value = str(value)
                 try:
-                    if key in self.getFields().keys():
-                        self.getFields()[key] = value
-                    else:
-                        raise KeyError('unknown SDS wildcard: %s.' % key)
+                    self.setField(key, value)
                 except KeyError, e:
                     errmsg = ''
                     errmsg += 'WARNING:\n'
@@ -341,6 +331,22 @@ class SeiscompDataStructure(object):
 
     def getType(self):
         return self.__typeOptions[self.dataType]
+
+    def isField(self, key):
+        return key in self.getFields().keys()
+
+    def getFieldValue(self, key):
+        if self.isField(key):
+            return self.getFields()[key]
+        else:
+            return
+
+    def setFieldValue(self, key, value):
+        if self.isField(key):
+            self.getFields()[key] = value
+        else:
+            print('Warning: trying to set value of non-existent field '
+                  '{field}'.format(field=key))
 
     def getFields(self):
         return self.__sdsFields
