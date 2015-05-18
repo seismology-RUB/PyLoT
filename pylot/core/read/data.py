@@ -154,11 +154,11 @@ class GenericDataStructure(object):
     base working on.
     '''
 
-    def __init__(self, rootpath='/data', dataformat=None, filesuffix=None,
-                 **kwargs):
-        self.__allowExtraFields = True
-        self.__expandFields = ['root']
-        self.__dsFields = {'root': rootpath}
+    def __init__(self, **kwargs):
+
+        self.allowedFields = []
+        self.expandFields = ['root']
+        self.dsFields = {}
 
         self.modifyFields(**kwargs)
 
@@ -166,13 +166,17 @@ class GenericDataStructure(object):
 
         assert isinstance(kwargs, dict), 'dictionary type object expected'
 
+        if not self.extraAllowed():
+            kwargs = self.updateNotAllowed(kwargs)
+
         for key, value in kwargs.iteritems():
             key = str(key).lower()
-            if type(value) not in (str, int, float):
-                for n, val in enumerate(value):
-                    value[n] = str(val)
-            else:
-                value = str(value)
+            if value is not None:
+                if type(value) not in (str, int, float):
+                    for n, val in enumerate(value):
+                        value[n] = str(val)
+                else:
+                    value = str(value)
             try:
                 self.setFieldValue(key, value)
             except KeyError, e:
@@ -192,78 +196,73 @@ class GenericDataStructure(object):
             return
 
     def setFieldValue(self, key, value):
-        if self.isField(key):
-            self.getFields()[key] = value
+        if not self.extraAllowed() and key not in self.getAllowed():
+            raise KeyError
         else:
-            print('Warning: trying to set value of non-existent field '
-                  '{field}'.format(field=key))
+            if not self.isField(key):
+                print 'creating new field "%s"' % key
+            self.getFields()[key] = value
 
     def getFields(self):
-        return self.__dsFields
+        return self.dsFields
 
     def getExpandFields(self):
-        return self.__expandFields
+        return self.expandFields
+
+    def setExpandFields(self, keys):
+        expandFields = []
+        for key in keys:
+            if self.isField(key):
+                expandFields.append(key)
+        self.expandFields = expandFields
+
+    def getAllowed(self):
+        return self.allowedFields
+
+    def extraAllowed(self):
+        return not self.allowedFields
+
+    def updateNotAllowed(self, kwargs):
+        for key in kwargs:
+            if key not in self.getAllowed():
+                kwargs.__delitem__(key)
+        return kwargs
+
+    def hasSuffix(self):
+        try:
+            self.getFieldValue('suffix')
+        except KeyError:
+            return False
+        else:
+            if self.getFieldValue('suffix'):
+                return True
+        return False
 
     def expandDataPath(self):
         expandList = []
         for item in self.getExpandFields():
             expandList.append(self.getFieldValue(item))
-        return os.path.join(*self.getExpandFields())
+        if self.hasSuffix():
+            expandList.append('*%s' % self.getFieldValue('suffix'))
+        return os.path.join(*expandList)
 
 
-class PilotDataStructure(object):
+class PilotDataStructure(GenericDataStructure):
     '''
     Object containing the data access information for the old PILOT data
     structure.
     '''
 
-    def __init__(self, dataformat='GSE2', fsuffix='gse',
-                 root='/data/Egelados/EVENT_DATA/LOCAL/', database='2006.01',
-                 **kwargs):
-        self.__name = 'PDS'
-        self.dataFormat = dataformat
-        self.dataType = 'waveform'
-        self.__pdsFields = {'root': root,
-                            'database': database,
-                            'suffix': fsuffix
-        }
+    def __init__(self, **fields):
 
-        self.modifyFields(**kwargs)
+        if not fields:
+            fields = {'database':'2006.01',
+                      'root':'/data/Egelados/EVENT_DATA/LOCAL', 'suffix':'gse',
+                      'format':'GSE2'}
 
-    def modifyFields(self, **kwargs):
-        if kwargs and isinstance(kwargs, dict):
-            for key, value in kwargs.iteritems():
-                key = str(key)
-                if type(value) not in (str, int, float):
-                    for n, val in enumerate(value):
-                        value[n] = str(val)
-                else:
-                    value = str(value)
-                try:
-                    if key in self.getFields().keys():
-                        self.getFields()[key] = value
-                    else:
-                        raise KeyError('unknown PDS wildcard: %s.' % key)
-                except KeyError, e:
-                    errmsg = ''
-                    errmsg += 'WARNING:\n'
-                    errmsg += 'unable to set values for PDS fields\n'
-                    errmsg += '%s; desired value was: %s\n' % (e, value)
-                    print errmsg
+        GenericDataStructure.__init__(self, **fields)
 
-    def getType(self):
-        return self.dataType
-
-    def getFields(self):
-        return self.__pdsFields
-
-    def getName(self):
-        return self.__name
-
-    def expandDataPath(self):
-        datapath = os.path.join(self.getFields()['ROOT'],
-                                self.getFields()['DATABASE'])
-        return datapath
+        self.setExpandFields(['root','database'])
 
 
 class SeiscompDataStructure(GenericDataStructure):
@@ -278,8 +277,7 @@ class SeiscompDataStructure(GenericDataStructure):
 
     def __init__(self, rootpath='/data/SDS', dataformat='MSEED',
                  filesuffix=None, **kwargs):
-        super(GenericDataStructure, self).__init__(rootpath, dataformat,
-                                                   filesuffix, **kwargs)
+        super(GenericDataStructure, self).__init__()
 
 
         edate = UTCDateTime()
@@ -300,14 +298,9 @@ class SeiscompDataStructure(GenericDataStructure):
         # definitions from
         # http://www.seiscomp3.org/wiki/doc/applications/slarchive/SDS
 
-        self.__sdsFields = {'SDSdir': '/data/SDS',  # base directory
-                            'YEAR': year,  # 4 digits
-                            'NET': '??',  # up to 8 characters
-                            'STA': '????',  # up to 8 characters
-                            'CHAN': 'HH?',  # up to 8 characters
-                            'TYPE': self.getType(),  # 1 character
-                            'LOC': '',  # up to 8 characters
-                            'DAY': '{0:03d}'.format(sdate.julday)  # 3 digits
+        self.dsFields = {'root': '/data/SDS', 'YEAR': year, 'NET': '??',
+                           'STA': '????', 'CHAN': 'HH?', 'TYPE': 'D', 'LOC': '',
+                           'DAY': '{0:03d}'.format(sdate.julday)
         }
         self.modifiyFields(**kwargs)
 
@@ -328,18 +321,6 @@ class SeiscompDataStructure(GenericDataStructure):
                     errmsg += 'unable to set values for SDS fields\n'
                     errmsg += '%s; desired value was: %s\n' % (e, value)
                     print errmsg
-
-    def getType(self):
-        return self.__typeOptions[self.dataType]
-
-    def isField(self, key):
-        return key in self.getFields().keys()
-
-    def getFieldValue(self, key):
-        if self.isField(key):
-            return self.getFields()[key]
-        else:
-            return
 
     def setFieldValue(self, key, value):
         if self.isField(key):
