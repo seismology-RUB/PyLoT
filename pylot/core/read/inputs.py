@@ -135,9 +135,9 @@ class AutoPickParameter(object):
 
         try:
             for param in args:
-                test(param)
+                return test(param)
         except TypeError:
-            test(args)
+            return test(args)
 
     def getParam(self, *args):
         try:
