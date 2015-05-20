@@ -260,8 +260,7 @@ class PilotDataStructure(GenericDataStructure):
 
         if not fields:
             fields = {'database':'2006.01',
-                      'root':'/data/Egelados/EVENT_DATA/LOCAL', 'suffix':'gse',
-                      'format':'GSE2'}
+                      'root':'/data/Egelados/EVENT_DATA/LOCAL'}
 
         GenericDataStructure.__init__(self, **fields)
 
