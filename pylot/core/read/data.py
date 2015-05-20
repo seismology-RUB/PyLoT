@@ -51,7 +51,7 @@ class Data(object):
         self.dirty = False
 
     def __str__(self):
-        return str(self.evtdata), '\n', str(self.wfdata)
+        return str(self.wfdata)
 
     def getParent(self):
         return self._parent
