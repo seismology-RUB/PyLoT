@@ -4,6 +4,7 @@
 
 import os
 import argparse
+import glob
 
 from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
@@ -32,9 +33,14 @@ def autoPyLoT(fnames, inputfile):
     .. rubric:: Example
 
     '''
+
+    # reading parameter file
+
     parameter = AutoPickParameter(inputfile)
 
     data = Data()
+
+    # declaring parameter variables (only for convenience)
 
     meth = parameter.getParam('algoP')
     tsnr1 = parameter.getParam('tsnr1')
@@ -44,26 +50,25 @@ def autoPyLoT(fnames, inputfile):
     order = parameter.getParam('hosorder')
     thosmw = parameter.getParam('tlta')
 
+    # getting information on data structure
+
     if parameter.hasParam('datastructure'):
         datastructure = DATASTRUCTURE[parameter.getParam('datastructure')]()
-        dsfields = {'root':parameter.getParam('rootpath')} #see TODO: in data.py
-        datastructure.modifyFields(dsfields)
+        dsfields = {'root':parameter.getParam('rootpath'),
+                    'dpath':parameter.getParam('datapath'),
+                    'dbase':parameter.getParam('database')}
 
-        def expandSDS(datastructure):
-            return datastructure.expandDataPath()
+        datastructure.modifyFields(**dsfields)
 
-        def expandPDS(datastructure):
-            return os.path.join(datastructure.expandDataPath(),'*')
+        datastructure.setExpandFields(['root', 'dpath', 'dbase'])
 
-        dsem = {'PDS':expandPDS, 'SDS':expandSDS}
+        # process each event in database
+        datapath = datastructure.expandDataPath()
+        for event in glob.glob(datapath):
+            data.setWFData(os.path.join(datapath, event, '*'))
+            print data
 
-        expandMethod = dsem[datastructure.getName()]
-
-        data.setWFData(expandMethod())
-    else:
-        data.setWFData()
-
-    cfP = METHOD[meth](data.getWFData(), (tnoise, tsignal), thosmw, order)
+            cfP = METHOD[meth](data.getWFData(), (tnoise, tsignal), thosmw, order)
 
 if __name__ == "__main__":
     # parse arguments

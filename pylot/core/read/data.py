@@ -50,6 +50,9 @@ class Data(object):
         self.cuttimes = None
         self.dirty = False
 
+    def __str__(self):
+        return str(self.evtdata), '\n', str(self.wfdata)
+
     def getParent(self):
         return self._parent
 
