@@ -55,15 +55,23 @@ def autoPyLoT(inputfile):
                     'dpath':parameter.getParam('datapath'),
                     'dbase':parameter.getParam('database')}
 
+        exf = ['root', 'dpath', 'dbase']
+
+        if parameter.hasParam('eventID'):
+            dsfields['eventID'] = parameter.getParam('eventID')
+            exf.append('eventID')
         datastructure.modifyFields(**dsfields)
 
-        datastructure.setExpandFields(['root', 'dpath', 'dbase'])
+        datastructure.setExpandFields(exf)
 
         # process each event in database
         datapath = datastructure.expandDataPath()
-        for event in glob.glob(datapath):
-            data.setWFData(os.path.join(datapath, event, '*'))
-            print data
+        if not parameter.hasParam('eventID'):
+            for event in glob.glob(datapath):
+                data.setWFData(os.path.join(datapath, event, '*'))
+                print data
+        else:
+            data.setWFData(os.path.join(datapath, '*'))
 
             cfP = METHOD[meth](data.getWFData(), (tnoise, tsignal), thosmw, order)
 
