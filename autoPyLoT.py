@@ -65,19 +65,21 @@ def autoPyLoT(inputfile):
         datastructure.setExpandFields(exf)
 
         # process each event in database
+        # process each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
             for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
-                data.setWFData(os.path.join(datapath, event, '*'))
+                data.setWFData([os.path.join(datapath, event, '*')])
                 print data
         else:
-            data.setWFData(os.path.join(datapath, '*'))
+            data.setWFData([os.path.join(datapath, '*')])
+            print data
 
 
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
-        description='''This program visualizes Probabilistic Power Spectral Densities.''')
+        description='''This program ''')
 
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
