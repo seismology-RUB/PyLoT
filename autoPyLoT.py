@@ -67,23 +67,18 @@ def autoPyLoT(inputfile):
         # process each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
-            for event in glob.glob(datapath):
+            for event in glob.glob(os.path.join(datapath, '*')):
                 data.setWFData(os.path.join(datapath, event, '*'))
                 print data
         else:
             data.setWFData(os.path.join(datapath, '*'))
 
-            cfP = METHOD[meth](data.getWFData(), (tnoise, tsignal), thosmw, order)
 
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
         description='''This program visualizes Probabilistic Power Spectral Densities.''')
 
-    parser.add_argument('-d', '-D', '--data', type=str, action='store',
-                        help='''path or url to the data to be picked''',
-                        default='http://examples.obspy.org/BW.KW1..EHZ.D.2011.037'
-                        )
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
                         help='''full path to the file containing the input
@@ -97,4 +92,4 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
 
-    autoPyLoT(cla.data, str(cla.inputfile))
+    autoPyLoT(str(cla.inputfile))
