@@ -16,14 +16,11 @@ __version__ = _getVersionString()
 
 METHOD = {'HOS':HOScf, 'AIC':AICcf}
 
-def autoPyLoT(fnames, inputfile):
+def autoPyLoT(inputfile):
     '''
     Determine phase onsets automatically utilizing the automatic picking
     algorithm by Kueperkoch et al. 2011.
 
-    :param fnames: list of strings containing the paths or urls to the
-    waveform data to be picked
-    :type fnames: list
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
     `~pylot.core.read.input.AutoPickParameter`
