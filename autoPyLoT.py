@@ -68,11 +68,15 @@ def autoPyLoT(inputfile):
         # process each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
-            for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
+            for event in [events for events in
+                          glob.glob(os.path.join(datapath, '*'))
+                          if os.path.isdir(events)]:
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
                 print data
         else:
-            data.setWFData(glob.glob(os.path.join(datapath, '*')))
+            data.setWFData(glob.glob(os.path.join(datapath,
+                                                  parameter.getParam('eventID'),
+                                                  '*')))
             print data
 
 
