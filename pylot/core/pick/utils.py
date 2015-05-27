@@ -11,6 +11,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream
+import pdb
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
@@ -84,7 +85,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
         p2, = plt.plot(t[inoise], x[inoise])
         p3, = plt.plot(t[isignal], x[isignal], 'r')
         p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k')
-        p5, = plt.plot(zc, [0, 0, 0], '*g', markersize=14)
+        p5, = plt.plot(t[isignal[0][zc]], np.zeros(len(zc)), '*g', markersize=14)
         plt.legend([p1, p2, p3, p4, p5],
                    ['Data', 'Noise Window', 'Signal Window', 'Noise Level',
                     'Zero Crossings'], \
