@@ -344,6 +344,10 @@ class PickDlg(QDialog):
 
         self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
 
+        _buttonbox.accepted.connect(self.accept)
+        _buttonbox.rejected.connect(self.reject)
+        _buttonbox.clicked(QDialogButtonBox.Apply).connect(self.apply)
+
         self.setLayout(_outerlayout)
 
     def disconnectPressEvent(self):
@@ -486,6 +490,8 @@ class PickDlg(QDialog):
                                         zoomy=zoomy,
                                         noiselevel=noiselevel)
 
+        self.zoomAction.enabled = False
+
         self.updateAPD(wfdata)
 
         # reset labels
@@ -500,12 +506,66 @@ class PickDlg(QDialog):
         # get earliest and latest possible pick
         [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
 
+        # get name of phase actually picked
+        phase = self.selectPhase.currentText()
+
+        # save pick times for actual phase
+        phasepicks = {}
+
+        phasepicks['epp'] = epp
+        phasepicks['lpp'] = lpp
+        phasepicks['mpp'] = pick
+        phasepicks['spe'] = pickerror
+
+        try:
+            oldphasepick = self.picks[phase]
+        except KeyError:
+            self.picks[phase] = phasepicks
+        else:
+            self.picks[phase] = phasepicks
+            oepp = oldphasepick['epp']
+            ompp = oldphasepick['mpp']
+            olpp = oldphasepick['lpp']
+            msg = """Warning old phase information for phase {phase} has been
+                     altered.\n
+                     New phase times:\n
+                     earliest possible pick: {epp}\n
+                     most probable pick: {mpp}\n
+                     latest possible pick: {lpp}\n
+                     \n
+                     Old phase times (overwritten):\n
+                     earliest possible pick: {oepp}\n
+                     most probable pick: {ompp}\n
+                     latest possible pick: {olpp}\n""".format(phase=phase,
+                                                              epp=epp,
+                                                              mpp=pick,
+                                                              lpp=lpp,
+                                                              oepp=oepp,
+                                                              ompp=ompp,
+                                                              olpp=olpp)
+        self.drawPicks(phase)
+        self.disconnectPressEvent()
+        self.selectPhase.setCurrentIndex(-1)
+
+        self.cidpress = self.connectPressEvent(self.panPress)
+        self.cidmotion = self.connectMotionEvent(self.panMotion)
+        self.cidrelease = self.connectReleaseEvent(self.panRelease)
+        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+
+
+    def drawPicks(self, phase):
         # plotting picks
         ax = self.getPlotWidget().axes
 
         ylims = ax.get_ylim()
 
-        ax.plot([pick, pick], ylims, 'r--')
+        picks = self.getPicks()
+
+        mpp = picks['mpp']
+        epp = picks['lpp']
+        lpp = picks['epp']
+
+        ax.plot([mpp, mpp], ylims, 'r--')
         ax.plot([epp, epp], ylims, 'c--')
         ax.plot([lpp, lpp], ylims, 'm--')
 
@@ -605,9 +665,6 @@ class PickDlg(QDialog):
         picks = self.getPicks()
         for pick in picks:
             print pick
-
-    def reject(self):
-        QDialog.reject(self)
 
     def accept(self):
         self.apply()
