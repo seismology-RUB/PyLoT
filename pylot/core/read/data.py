@@ -149,8 +149,6 @@ class Data(object):
     def getEvtData(self):
         return self.evtdata
 
-#TODO: write superclass DataStructure instead of three fully featured individual classes
-
 class GenericDataStructure(object):
     '''
     GenericDataBase type holds all information about the current data-
