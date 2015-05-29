@@ -11,7 +11,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream
-import pdb
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
@@ -79,8 +78,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     diffti_te = Pick1 - EPick
     PickError = (diffti_te + 2 * diffti_tl) / 3
 
-    if iplot is not None:
-        plt.figure(iplot)
+    if iplot > 1:
+        p = plt.figure(iplot)
         p1, = plt.plot(t, x, 'k')
         p2, = plt.plot(t[inoise], x[inoise])
         p3, = plt.plot(t[isignal], x[isignal], 'r')
@@ -107,7 +106,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
             X[0].stats.station)
         plt.show()
         raw_input()
-        plt.close(iplot)
+        plt.close(p)
 
     return EPick, LPick, PickError
 
@@ -238,7 +237,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             elif P1[0] > 0 and P2[0] <= 0:
                 FM = '+'
 
-    if iplot is not None:
+    if iplot > 1:
         plt.figure(iplot)
         plt.subplot(2, 1, 1)
         plt.plot(t, xraw, 'k')
