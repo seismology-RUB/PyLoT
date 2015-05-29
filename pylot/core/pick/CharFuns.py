@@ -218,13 +218,12 @@ class AICcf(CharacteristicFunction):
         nn = np.isnan(xnp)
         if len(nn) > 1:
            xnp[nn] = 0
-        i0 = np.where(xnp == 0)
-        i = np.where(xnp > 0)
-        xnp[i0] = xnp[i[0][0]]
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
         cumsumcf = np.cumsum(np.power(xnp, 2))
+        i = np.where(cumsumcf == 0)
+        cumsumcf[i] = np.finfo(np.float64).eps
         cf[k] = ((k - 1) * np.log(cumsumcf[k] / k) + (datlen - k + 1) * \
                  np.log((cumsumcf[datlen - 1] - cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
@@ -235,7 +234,6 @@ class AICcf(CharacteristicFunction):
 
         self.cf = cf - np.mean(cf)
         self.xcf = x
-
 
 class HOScf(CharacteristicFunction):
     '''
@@ -310,8 +308,8 @@ class ARZcf(CharacteristicFunction):
 
         cf = np.zeros(len(xnp))
         loopstep = self.getARdetStep()
-        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
-        for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
+        arcalci = ldet + self.getOrder() #AR-calculation index
+	for i in range(ldet + self.getOrder(), tend - lpred - 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -320,10 +318,17 @@ class ARZcf(CharacteristicFunction):
             #AR prediction of waveform using calculated AR coefficients
             self.arPredZ(xnp, self.arpara, i + 1, lpred)
             #prediction error = CF
-            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred] - xnp[i:i + lpred], 2)) / lpred)
+            cf[i + lpred-1] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred-1] - xnp[i:i + lpred-1], 2)) / lpred)
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
+        #remove zeros and artefacts
+        tap = np.hanning(len(cf))
+        cf = tap * cf
+        io = np.where(cf == 0)
+        ino = np.where(cf > 0)
+        cf[io] = cf[ino[0][0]]
+
         self.cf = cf
         self.xcf = x
 
@@ -350,17 +355,18 @@ class ARZcf(CharacteristicFunction):
         #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
-            for i in range(rind, ldet):
-                rhs[k] = rhs[k] + data[i] * data[i - k]
+            for i in range(rind, ldet+1):
+		ki = k + 1
+                rhs[k] = rhs[k] + data[i] * data[i - ki]
 
         #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
-        A = np.zeros((2,2))
+        A = np.zeros((self.getOrder(),self.getOrder()))
         for k in range(1, self.getOrder() + 1):
             for j in range(1, k + 1):
-                for i in range(rind, ldet):
+                for i in range(rind, ldet+1):
                     ki = k - 1
                     ji = j - 1
-                    A[ki,ji] = A[ki,ji] + data[i - ji] * data[i - ki]
+                    A[ki,ji] = A[ki,ji] + data[i - j] * data[i - k]
 
                 A[ji,ki] = A[ki,ji]
 
@@ -387,20 +393,20 @@ class ARZcf(CharacteristicFunction):
         Output: predicted waveform z
         '''
         #be sure of the summation indeces
-        if rind < len(arpara) + 1:
-            rind = len(arpara) + 1
-        if rind > len(data) - lpred + 1:
-            rind = len(data) - lpred + 1
+        if rind < len(arpara):
+            rind = len(arpara) 
+        if rind > len(data) - lpred :
+            rind = len(data) - lpred 
         if lpred < 1:
             lpred = 1
-        if lpred > len(data) - 1:
-            lpred = len(data) - 1
+        if lpred > len(data) - 2:
+            lpred = len(data) - 2
 
         z = np.append(data[0:rind], np.zeros(lpred))
         for i in range(rind, rind + lpred):
             for j in range(1, len(arpara) + 1):
                 ji = j - 1
-                z[i] = z[i] + arpara[ji] * z[i - ji]
+                z[i] = z[i] + arpara[ji] * z[i - j]
 
         self.xpred = z
 
@@ -432,8 +438,9 @@ class ARHcf(CharacteristicFunction):
               
         cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
-        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
-        for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
+        arcalci = lpred + self.getOrder() - 1 #AR-calculation index
+        #arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        for i in range(lpred + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -447,6 +454,13 @@ class ARHcf(CharacteristicFunction):
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
+        #remove zeros and artefacts
+        tap = np.hanning(len(cf))
+        cf = tap * cf
+        io = np.where(cf == 0)
+        ino = np.where(cf > 0)
+        cf[io] = cf[ino[0][0]]
+
         self.cf = cf
         self.xcf = xnp
 
@@ -581,6 +595,13 @@ class AR3Ccf(CharacteristicFunction):
         nn = np.isnan(cf)
         if len(nn) > 1:
            cf[nn] = 0
+        #remove zeros and artefacts
+        tap = np.hanning(len(cf))
+        cf = tap * cf
+        io = np.where(cf == 0)
+        ino = np.where(cf > 0)
+        cf[io] = cf[ino[0][0]]
+
         self.cf = cf
         self.xcf = xnp
 
