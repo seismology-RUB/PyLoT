@@ -17,8 +17,6 @@ from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
 from pylot.core.pick import utils
 
-import pdb
-
 def run_autopicking(wfstream, pickparam):
 
     '''
@@ -185,7 +183,7 @@ def run_autopicking(wfstream, pickparam):
        
         else:
            print 'Bad initial (AIC) P-pick, skip this onset!'
-           print 'AIC-SNR=%f, AIC-Slope=%f' % (aicpick.getSNR(), aicpick.getSlope())
+           print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope()
            Pweight = 4
            Sweight = 4
            FM = 'N'
@@ -199,7 +197,7 @@ def run_autopicking(wfstream, pickparam):
        print 'run_autopicking: No vertical component data available, skipping station!'
        return
 
-    if edat is not None and ndat is not None and Pweight < 4:
+    if edat is not None and ndat is not None and len(edat) > 0 and len(ndat) > 0 and Pweight < 4:
         print 'Go on picking S onset ...' 
         print '##################################################'
         print 'Working on S onset of station %s' % edat[0].stats.station
@@ -349,14 +347,14 @@ def run_autopicking(wfstream, pickparam):
 
         else:
            print 'Bad initial (AIC) S-pick, skip this onset!'
-           print 'AIC-SNR=%f, AIC-Slope=%f' % (aicarhpick.getSNR(), aicarhpick.getSlope())
+           print 'AIC-SNR=', aicarhpick.getSNR(), 'AIC-Slope=', aicarhpick.getSlope()
            Sweight = 4
            SNRS = None
            SNRSdB = None
            aicSflag = 0
  
     else:
-       print 'run_autopicking: No horizontal component data available, skipping S picking!'
+       print 'run_autopicking: No horizontal component data available or bad P onset, skipping S picking!'
        return
 
     ##############################################################
