@@ -12,7 +12,6 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
-import pdb
 
 
 __version__ = _getVersionString()
@@ -53,8 +52,8 @@ def autoPyLoT(inputfile):
         if parameter.hasParam('eventID'):
             dsfields['eventID'] = parameter.getParam('eventID')
             exf.append('eventID')
-            datastructure.modifyFields(**dsfields)
 
+        datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
         # get streams
@@ -62,26 +61,41 @@ def autoPyLoT(inputfile):
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
             for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
-                print 'Reading %s' %event 
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
+                print 'Working on event %s' %event 
+                print data
+
+                wfdat = data.getWFData() # all available streams
+                ##########################################################
+                # !automated picking starts here!   
+                procstats = []
+                for i in range(len(wfdat)):
+                    stationID = wfdat[i].stats.station
+                    #check if station has already been processed
+                    if stationID not in procstats:
+                        procstats.append(stationID)
+                        #find corresponding streams
+                        statdat = wfdat.select(station=stationID)
+                        run_autopicking(statdat, parameter)
+
         #for single event processing
         else:
             data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
+            print 'Working on event ', parameter.getParam('eventID')
             print data
        
-        wfdat = data.getWFData() # all available streams
-
-        ##########################################################
-        # !automated picking starts here!   
-        procstats = []
-        for i in range(len(wfdat)):
-            stationID = wfdat[i].stats.station
-            #check if station has already been processed
-            if stationID not in procstats:
-                procstats.append(stationID)
-                #find corresponding streams
-                statdat = wfdat.select(station=stationID)
-                run_autopicking(statdat, parameter)
+            wfdat = data.getWFData() # all available streams
+            ##########################################################
+            # !automated picking starts here!   
+            procstats = []
+            for i in range(len(wfdat)):
+                stationID = wfdat[i].stats.station
+                #check if station has already been processed
+                if stationID not in procstats:
+                    procstats.append(stationID)
+                    #find corresponding streams
+                    statdat = wfdat.select(station=stationID)
+                    run_autopicking(statdat, parameter)
             
 
 if __name__ == "__main__":
