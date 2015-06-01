@@ -12,6 +12,7 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
+import pdb
 
 
 __version__ = _getVersionString()
@@ -72,11 +73,15 @@ def autoPyLoT(inputfile):
 
         ##########################################################
         # !automated picking starts here!   
-        for i in range(len(wfdat) - 2):
+        procstats = []
+        for i in range(len(wfdat)):
             stationID = wfdat[i].stats.station
-            #find corresponding streams
-            statdat = wfdat.select(station=stationID)
-            run_autopicking(statdat, parameter)
+            #check if station has already been processed
+            if stationID not in procstats:
+                procstats.append(stationID)
+                #find corresponding streams
+                statdat = wfdat.select(station=stationID)
+                run_autopicking(statdat, parameter)
             
 
 if __name__ == "__main__":
