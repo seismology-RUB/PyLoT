@@ -9,7 +9,7 @@ EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %certain evnt ID for processing
 PILOT				    #datastructure#  %choose data structure
-2                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
+0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
 AUTOLOC_AIC_HOS4_ARH                #locfile#      %name of autoPILOT output location file 
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
@@ -71,13 +71,17 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 0.2                                 #pepsS#        %for AR-picker, artificial uplift of samples of CF (S) 
 0.4                                 #ausS#         %for HOS/AR, artificial uplift of samples (aus) of CF (S)
 1.5                                 #nfacS#        %for AR-picker, noise factor for noise level determination (S)
+%first-motion picker%
+1                                   #minfmweight#  %minimum required p weight for first-motion determination
+2                                   #minFMSNR#     %miniumum required SNR for first-motion determination
+0.2                                 #fmpickwin#    %pick window around P onset for calculating zero crossings
 %quality assessment%
 #inital AIC onset#
 0.01 0.02 0.04 0.08                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-200                                 #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+80                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
-100                                 #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
+50                                  #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
 1.5                                 #prepickwin#   %pre-signal window length [s] for noise level estimation 
