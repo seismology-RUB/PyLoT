@@ -17,6 +17,7 @@ from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
 from pylot.core.pick import utils
 
+
 def run_autopicking(wfstream, pickparam):
 
     '''
@@ -83,7 +84,11 @@ def run_autopicking(wfstream, pickparam):
     # split components
     zdat = wfstream.select(component="Z")
     edat = wfstream.select(component="E")
+    if len(edat) == 0: #check for other components
+        edat = wfstream.select(component="2")
     ndat = wfstream.select(component="N")
+    if len(ndat) == 0: #check for other components
+        ndat = wfstream.select(component="1")
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         print '##########################################'
