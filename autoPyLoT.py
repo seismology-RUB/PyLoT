@@ -12,7 +12,6 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
-import pdb
 
 
 __version__ = _getVersionString()
@@ -84,7 +83,7 @@ def autoPyLoT(inputfile):
 
         #for single event processing
         else:
-            data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), 'ROTT*')))
+            data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
             print 'Working on event ', parameter.getParam('eventID')
             print data
        
