@@ -12,6 +12,7 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
+import pdb
 
 
 __version__ = _getVersionString()
@@ -77,10 +78,13 @@ def autoPyLoT(inputfile):
                         #find corresponding streams
                         statdat = wfdat.select(station=stationID)
                         run_autopicking(statdat, parameter)
+                print '------------------------------------------'
+                print '-----Finished event %s!-----' % event
+                print '------------------------------------------'
 
         #for single event processing
         else:
-            data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
+            data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), 'ROTT*')))
             print 'Working on event ', parameter.getParam('eventID')
             print data
        
@@ -96,6 +100,9 @@ def autoPyLoT(inputfile):
                     #find corresponding streams
                     statdat = wfdat.select(station=stationID)
                     run_autopicking(statdat, parameter)
+            print '------------------------------------------'
+            print '-------Finished event %s!-------' % parameter.getParam('eventID')
+            print '------------------------------------------'
             
 
 if __name__ == "__main__":
