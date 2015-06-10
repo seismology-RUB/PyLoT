@@ -149,6 +149,21 @@ class Data(object):
     def getEvtData(self):
         return self.evtdata
 
+    def applyEVTData(self, data, type='pick'):
+
+        def applyPicks(picks):
+            pass
+        def applyArrivals(arrivals):
+            pass
+        def applyEvent(event):
+            pass
+
+        applydata = {'pick':applyPicks,
+                     'arrival':applyArrivals,
+                     'event':applyEvent}
+
+        applydata[type](data)
+
 class GenericDataStructure(object):
     '''
     GenericDataBase type holds all information about the current data-
