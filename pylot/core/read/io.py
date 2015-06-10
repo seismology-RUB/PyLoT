@@ -118,13 +118,11 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
                                   phase, stations[n], wffn, authority_id)
                 event.picks.append(pick)
                 pickID = pick.get('id')
-                arrival = createArrival(eventDate, pickID, eventNum, pickcinfo,
-                                        phase, stations[n], authority_id)
+                arrival = createArrival(pickID, pickcinfo, phase)
                 origin.arrivals.append(arrival)
                 np += 1
 
-        magnitude = createMagnitude(origin.get('id'), eventDate, loccinfo,
-                                    authority_id)
+        magnitude = createMagnitude(origin.get('id'), loccinfo)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
 
