@@ -475,6 +475,7 @@ class MainWindow(QMainWindow):
                           station=station)
         if pickDlg.exec_():
             print 'picks accepted'
+            self.getData().applyEVTData(pickDlg.getPicks())
         else:
             print 'picks not saved and closed dialog'
 
