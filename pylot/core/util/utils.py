@@ -12,7 +12,10 @@ import obspy.core.event as ope
 
 
 def fnConstructor(s):
-    s = s.split('/')[-1]
+    if type(s) is str:
+        s = s.split('/')[-1]
+    else:
+        s = getHash(UTCDateTime())
 
     badchars = re.compile(r'[^A-Za-z0-9_. ]+|^\.|\.$|^ | $|^$')
     badsuffix = re.compile(r'(aux|com[1-9]|con|lpt[1-9]|prn)(\.|$)')
