@@ -145,6 +145,8 @@ class AICPicker(AutoPicking):
         print 'AICPicker: Get initial onset time (pick) from AIC-CF ...'
 
         self.Pick = None
+        self.slope = None
+        self.SNR = None
         #find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -173,7 +175,7 @@ class AICPicker(AutoPicking):
         #find NaN's
         nn = np.isnan(diffcf)
         if len(nn) > 1:
-           diffcf[nn] = 0
+           diffcf[nn] = 0 
         #taper CF to get rid off side maxima
         tap = np.hanning(len(diffcf))
         diffcf = tap * diffcf * max(abs(aicsmooth))
@@ -197,11 +199,15 @@ class AICPicker(AutoPicking):
         if self.Pick is not None:
            #get noise window
            inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
+           #check, if these are counts or m/s, important for slope estimation!
+           #this is quick and dirty, better solution?
+           if max(self.Data[0].data < 1e-3):
+              self.Data[0].data = self.Data[0].data * 1000000
            #get signal window
            isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
            #calculate SNR from CF
-           self.SNR = max(abs(self.cf[isignal] - np.mean(self.cf[isignal]))) / max(abs(self.cf[inoise] \
-                      - np.mean(self.cf[inoise])))
+           self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / max(abs(aic[inoise] \
+                      - np.mean(aic[inoise])))
            #calculate slope from CF after initial pick
            #get slope window
            tslope = self.TSNR[3]  #slope determination window
@@ -230,8 +236,8 @@ class AICPicker(AutoPicking):
            self.SNR = None
            self.slope = None
 
-        if self.iplot is not None:
-           plt.figure(self.iplot)
+        if self.iplot > 1:
+           p = plt.figure(self.iplot)
            x = self.Data[0].data
            p1, = plt.plot(self.Tcf, x / max(x), 'k')
            p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
@@ -243,7 +249,6 @@ class AICPicker(AutoPicking):
            plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
            plt.yticks([])
            plt.title(self.Data[0].stats.station)
-           plt.show()
 
            if self.Pick is not None:
               plt.figure(self.iplot + 1)
@@ -259,11 +264,12 @@ class AICPicker(AutoPicking):
               plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
               plt.ylabel('Counts')
               ax = plt.gca()
-              ax.set_ylim([-10, max(self.Data[0].data)])
+              plt.yticks([])
               ax.set_xlim([self.Tcf[inoise[0][0]] - 5, self.Tcf[isignal[0][len(isignal) - 1]] + 5])
 
+           plt.show()
            raw_input()
-           plt.close(self.iplot)
+           plt.close(p)
 
         if self.Pick == None:
            print 'AICPicker: Could not find minimum, picking window too short?'
@@ -347,8 +353,8 @@ class PragPicker(AutoPicking):
            elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
               self.Pick = pick_r
 
-           if self.getiplot() is not None:
-              plt.figure(self.getiplot())
+           if self.getiplot() > 1:
+              p = plt.figure(self.getiplot())
               p1, = plt.plot(Tcfpick,cfipick, 'k')
               p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
               p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
@@ -358,7 +364,7 @@ class PragPicker(AutoPicking):
               plt.title(self.Data[0].stats.station)
               plt.show()
               raw_input()
-              plt.close(self.getiplot())
+              plt.close(p)
 
         else: 
            self.Pick = None

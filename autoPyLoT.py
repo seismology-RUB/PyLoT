@@ -6,15 +6,17 @@ import os
 import argparse
 import glob
 
+import matplotlib.pyplot as plt
+from obspy.core import read
 from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
-from pylot.core.pick.CharFuns import HOScf, AICcf
+from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
 
 
 __version__ = _getVersionString()
 
-METHOD = {'HOS':HOScf, 'AIC':AICcf}
+#METHOD = {'HOS':HOScf, 'AIC':AICcf}
 
 def autoPyLoT(inputfile):
     '''
@@ -37,16 +39,6 @@ def autoPyLoT(inputfile):
 
     data = Data()
 
-    # declaring parameter variables (only for convenience)
-
-    meth = parameter.getParam('algoP')
-    tsnr1 = parameter.getParam('tsnr1')
-    tsnr2 = parameter.getParam('tsnr2')
-    tnoise = parameter.getParam('pnoiselen')
-    tsignal = parameter.getParam('tlim')
-    order = parameter.getParam('hosorder')
-    thosmw = parameter.getParam('tlta')
-
     # getting information on data structure
 
     if parameter.hasParam('datastructure'):
@@ -60,30 +52,63 @@ def autoPyLoT(inputfile):
         if parameter.hasParam('eventID'):
             dsfields['eventID'] = parameter.getParam('eventID')
             exf.append('eventID')
-        datastructure.modifyFields(**dsfields)
 
+        datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
-        # process each event in database
-        # process each event in database
+        # get streams
+        # read each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
-            for event in [events for events in
-                          glob.glob(os.path.join(datapath, '*'))
-                          if os.path.isdir(events)]:
+            for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
+                print 'Working on event %s' %event 
                 print data
-        else:
-            data.setWFData(glob.glob(os.path.join(datapath,
-                                                  parameter.getParam('eventID'),
-                                                  '*')))
-            print data
 
+                wfdat = data.getWFData() # all available streams
+                ##########################################################
+                # !automated picking starts here!   
+                procstats = []
+                for i in range(len(wfdat)):
+                    stationID = wfdat[i].stats.station
+                    #check if station has already been processed
+                    if stationID not in procstats:
+                        procstats.append(stationID)
+                        #find corresponding streams
+                        statdat = wfdat.select(station=stationID)
+                        run_autopicking(statdat, parameter)
+                print '------------------------------------------'
+                print '-----Finished event %s!-----' % event
+                print '------------------------------------------'
+
+        #for single event processing
+        else:
+            data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
+            print 'Working on event ', parameter.getParam('eventID')
+            print data
+       
+            wfdat = data.getWFData() # all available streams
+            ##########################################################
+            # !automated picking starts here!   
+            procstats = []
+            for i in range(len(wfdat)):
+                stationID = wfdat[i].stats.station
+                #check if station has already been processed
+                if stationID not in procstats:
+                    procstats.append(stationID)
+                    #find corresponding streams
+                    statdat = wfdat.select(station=stationID)
+                    run_autopicking(statdat, parameter)
+            print '------------------------------------------'
+            print '-------Finished event %s!-------' % parameter.getParam('eventID')
+            print '------------------------------------------'
+            
 
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
-        description='''This program ''')
+        description='''autoPyLoT automatically picks phase onset times using higher order statistics, 
+                       autoregressive prediction and AIC''')
 
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
