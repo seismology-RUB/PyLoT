@@ -67,7 +67,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     #get earliest possible pick
 
     #determine all zero crossings in signal window
-    zc = crossings_nonzero_all(x[isignal])
+    # remove mean from signal window
+    signal = x[isignal] - x[isignal].mean()
+    zc = crossings_nonzero_all(signal)
     #calculate mean half period T0 of signal as the average of the
     T0 = np.mean(np.diff(zc)) * X[0].stats.delta  #this is half wave length!
     #T0/4 is assumed as time difference between most likely and earliest possible pick!
