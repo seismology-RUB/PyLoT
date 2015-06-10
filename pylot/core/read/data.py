@@ -101,7 +101,7 @@ class Data(object):
         try:
             return self.evtdata.get('resource_id').id
         except:
-            return 'smi:bug/pylot/1234'
+            return None
 
     def filterWFData(self, kwargs):
         self.getWFData().filter(**kwargs)
