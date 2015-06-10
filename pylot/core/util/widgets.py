@@ -312,6 +312,7 @@ class PickDlg(QDialog):
                                          checkable=True)
         self.selectPhase = QComboBox()
         self.selectPhase.addItems([None, 'Pn', 'Pg', 'P1', 'P2'])
+        self.selectPhase.setEditable(True)
 
 
 
@@ -346,7 +347,7 @@ class PickDlg(QDialog):
 
         _buttonbox.accepted.connect(self.accept)
         _buttonbox.rejected.connect(self.reject)
-        _buttonbox.clicked(QDialogButtonBox.Apply).connect(self.apply)
+        _buttonbox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
 
         self.setLayout(_outerlayout)
 
@@ -395,10 +396,14 @@ class PickDlg(QDialog):
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
         else:
+            self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
             self.cidmotion = self.connectMotionEvent(self.panMotion)
             self.cidrelease = self.connectReleaseEvent(self.panRelease)
             self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+            self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
+                                            title=self.getStation())
+            self.drawPicks()
 
     def getComponents(self):
         return self.components
@@ -490,7 +495,7 @@ class PickDlg(QDialog):
                                         zoomy=zoomy,
                                         noiselevel=noiselevel)
 
-        self.zoomAction.enabled = False
+        self.zoomAction.setEnabled(False)
 
         self.updateAPD(wfdata)
 
@@ -503,8 +508,8 @@ class PickDlg(QDialog):
         channel = self.getChannelID(round(gui_event.ydata))
 
         wfdata = self.getAPD().copy().select(channel=channel)
-        # get earliest and latest possible pick
-        [epp, lpp, pickerror] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
+        # get earliest and latest possible pick and symmetric pick error
+        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
 
         # get name of phase actually picked
         phase = self.selectPhase.currentText()
@@ -515,7 +520,7 @@ class PickDlg(QDialog):
         phasepicks['epp'] = epp
         phasepicks['lpp'] = lpp
         phasepicks['mpp'] = pick
-        phasepicks['spe'] = pickerror
+        phasepicks['spe'] = spe
 
         try:
             oldphasepick = self.picks[phase]
@@ -545,29 +550,33 @@ class PickDlg(QDialog):
                                                               olpp=olpp)
         self.drawPicks(phase)
         self.disconnectPressEvent()
+        self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
 
-        self.cidpress = self.connectPressEvent(self.panPress)
-        self.cidmotion = self.connectMotionEvent(self.panMotion)
-        self.cidrelease = self.connectReleaseEvent(self.panRelease)
-        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
-
-
-    def drawPicks(self, phase):
+    def drawPicks(self, phase=None):
         # plotting picks
         ax = self.getPlotWidget().axes
 
         ylims = ax.get_ylim()
-
-        picks = self.getPicks()
+        if self.getPicks():
+            if phase is not None:
+                picks = self.getPicks()[phase]
+            else:
+                for phase in self.getPicks():
+                    self.drawPicks(phase)
+                return
+        else:
+            return
 
         mpp = picks['mpp']
-        epp = picks['lpp']
-        lpp = picks['epp']
+        epp = picks['epp']
+        lpp = picks['lpp']
+        spe = picks['spe']
 
-        ax.plot([mpp, mpp], ylims, 'r--')
-        ax.plot([epp, epp], ylims, 'c--')
-        ax.plot([lpp, lpp], ylims, 'm--')
+        ax.fill_between([epp, lpp],ylims[0], ylims[1], alpha=.5, color='c')
+        ax.plot([mpp-spe, mpp-spe], ylims, 'c--',
+                [mpp, mpp], ylims, 'b-',
+                [mpp+spe, mpp+spe], ylims, 'c--')
 
         self.getPlotWidget().draw()
 
@@ -585,8 +594,8 @@ class PickDlg(QDialog):
         ax.figure.canvas.draw()
 
     def panMotion(self, gui_event):
-        ax = self.getPlotWidget().axes
         if self.press is None: return
+        ax = self.getPlotWidget().axes
         if gui_event.inaxes != ax: return
         dx = gui_event.xdata - self.xpress
         dy = gui_event.ydata - self.ypress
@@ -626,9 +635,13 @@ class PickDlg(QDialog):
             self.disconnectPressEvent()
             self.disconnectMotionEvent()
             self.disconnectReleaseEvent()
+            self.disconnectScrollEvent()
             self.figToolBar.zoom()
         else:
-            self.cidpress = self.connectPressEvent(self.setIniPick)
+            self.connectPressEvent(self.panPress)
+            self.connectMotionEvent(self.panMotion)
+            self.connectReleaseEvent(self.panRelease)
+            self.connectScrollEvent(self.scrollZoom)
 
     def scrollZoom(self, gui_event, factor=2.):
 
@@ -647,8 +660,10 @@ class PickDlg(QDialog):
             scale_factor = 1
             print gui_event.button
 
-        new_xlim = gui_event.xdata - scale_factor * (gui_event.xdata - curr_xlim)
-        new_ylim = gui_event.ydata - scale_factor * (gui_event.ydata - curr_ylim)
+        new_xlim = gui_event.xdata - \
+                   scale_factor * (gui_event.xdata - curr_xlim)
+        new_ylim = gui_event.ydata - \
+                   scale_factor * (gui_event.ydata - curr_ylim)
 
         new_xlim.sort()
         new_xlim[0] = max(new_xlim[0], self.limits['xlims'][0])
@@ -664,7 +679,7 @@ class PickDlg(QDialog):
     def apply(self):
         picks = self.getPicks()
         for pick in picks:
-            print pick
+            print pick, picks[pick]
 
     def accept(self):
         self.apply()
@@ -705,7 +720,8 @@ class PropertiesDlg(QDialog):
         for widint in range(self.tabWidget.count()):
             curwid = self.tabWidget.widget(widint)
             values = curwid.getValues()
-            if values is not None: self.setValues(values)
+            if values is not None:
+                self.setValues(values)
 
     def setValues(self, tabValues):
         settings = QSettings()
