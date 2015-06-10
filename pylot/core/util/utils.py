@@ -191,7 +191,7 @@ def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
     :type authority_id: str
     :return: An ObsPy :class: `~obspy.core.event.Pick` object
     '''
-    pickID = eventnum + '_' + station + '/{0:3d}'.format(picknum)
+    pickID = eventnum + '_' + station.strip() + '/{0:03d}'.format(picknum)
     pickresID = createResourceID(origintime, 'pick', authority_id, pickID)
     pick = ope.Pick()
     pick.resource_id = pickresID
@@ -202,8 +202,7 @@ def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
     return pick
 
 
-def createArrival(origintime, pickresID, eventnum, cinfo, phase, station,
-                  authority_id, azimuth=None, dist=None):
+def createArrival(pickresID, cinfo, phase, azimuth=None, dist=None):
     '''
     createArrival - function to create an Obspy Arrival
     :param pickresID: Resource identifier of the created pick
@@ -226,42 +225,34 @@ def createArrival(origintime, pickresID, eventnum, cinfo, phase, station,
     :type dist: float or int, optional
     :return: An ObsPy :class: `~obspy.core.event.Arrival` object
     '''
-    arriresID = createResourceID(origintime, 'arrival', authority_id, eventnum)
     arrival = ope.Arrival()
-    arrival.resource_id = arriresID
     arrival.creation_info = cinfo
     arrival.pick_id = pickresID
     arrival.phase = phase
     if azimuth is not None:
-        arrival.azimuth = float(azimuth) if azimuth > -180 else azimuth + 360
+        arrival.azimuth = float(azimuth) if azimuth > -180 else azimuth + 360.
     else:
         arrival.azimuth = azimuth
-    arrival.distance = None
+    arrival.distance = dist
     return arrival
 
 
-def createMagnitude(originID, origintime, cinfo, authority_id=None):
+def createMagnitude(originID, cinfo):
     '''
     createMagnitude - function to create an ObsPy Magnitude object
     :param originID:
-    :param origintime:
     :param cinfo:
     :param authority_id:
     :return:
     '''
-    magnresID = createResourceID(origintime, 'mag', authority_id)
     magnitude = ope.Magnitude()
-    magnitude.resource_id = magnresID
     magnitude.creation_info = cinfo
     magnitude.origin_id = originID
     return magnitude
 
 
-def createAmplitude(pickID, amp, unit, category, origintime, cinfo,
-                    authority_id=None):
-    amplresID = createResourceID(origintime, 'ampl', authority_id)
+def createAmplitude(pickID, amp, unit, category, cinfo):
     amplitude = ope.Amplitude()
-    amplitude.resource_id = amplresID
     amplitude.creation_info = cinfo
     amplitude.generic_amplitude = amp
     amplitude.unit = ope.AmplitudeUnit(unit)
