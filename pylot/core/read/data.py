@@ -247,6 +247,9 @@ class GenericDataStructure(object):
             expandList.append('*%s' % self.getFieldValue('suffix'))
         return os.path.join(*expandList)
 
+    def getCatalogName(self):
+        return os.path.join(self.getFieldValue('root'), 'catalog.qml')
+
 
 class PilotDataStructure(GenericDataStructure):
     '''
