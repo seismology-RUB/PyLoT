@@ -107,8 +107,7 @@ def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
     return resID
 
 
-def createOrigin(origintime, cinfo, latitude, longitude, depth, resID=None,
-                 authority_id=None):
+def createOrigin(origintime, cinfo, latitude, longitude, depth):
     '''
     createOrigin - function to create an ObsPy Origin
     :param origintime: the origins time of occurence
@@ -121,15 +120,14 @@ def createOrigin(origintime, cinfo, latitude, longitude, depth, resID=None,
     :type depth: float
     :return: An ObsPy :class: `~obspy.core.event.Origin` object
     '''
-    if resID is None:
-        resID = createResourceID(origintime, 'orig', authority_id=authority_id)
-    elif isinstance(resID, str):
-        resID = createResourceID(origintime, 'orig', authority_id=authority_id,
-                                 hrstr=resID)
+
+    assert isinstance(origintime, UTCDateTime), "origintime has to be " \
+                                                "a UTCDateTime object, but " \
+                                                "actually is of type " \
+                                                "'%s'" % type(origintime)
 
     origin = ope.Origin()
-    origin.resource_id = resID
-    origin.time = UTCDateTime(origintime)
+    origin.time = origintime
     origin.creation_info = cinfo
     origin.latitude = latitude
     origin.longitude = longitude
@@ -137,33 +135,48 @@ def createOrigin(origintime, cinfo, latitude, longitude, depth, resID=None,
     return origin
 
 
-def createEvent(origintime, cinfo, etype, resID=None, authority_id=None):
+def createEvent(origintime, cinfo, originloc=None, etype=None, resID=None,
+                authority_id=None):
     '''
     createEvent - funtion to create an ObsPy Event
+
     :param origintime: the events origintime
     :type origintime: :class: `~obspy.core.utcdatetime.UTCDateTime` object
     :param cinfo: An ObsPy :class: `~obspy.core.event.CreationInfo` object
         holding information on the creation of the returned object
     :type cinfo: :class: `~obspy.core.event.CreationInfo` object
+    :param originloc: tuple containing the location of the origin
+        (LAT, LON, DEP) affiliated with the event which is created
+    :type originloc: tuple, list
     :param etype: Event type str object. converted via ObsPy to a valid event
         type string.
     :type etype: str
     :param resID: Resource identifier of the created event
-    :type resID: :class: `~obspy.core.event.ResourceIdentifier` object
+    :type resID: :class: `~obspy.core.event.ResourceIdentifier` object, str
     :param authority_id: name of the institution carrying out the processing
     :type authority_id: str
     :return: An ObsPy :class: `~obspy.core.event.Event` object
     '''
     etype = ope.EventType(etype)
+    if originloc is not None:
+        o = createOrigin(origintime, cinfo,
+                         originloc[0], originloc[1], originloc[2])
+    else:
+        o = None
     if etype is None:
         etype = ope.EventType('earthquake')  # defaults to 'earthquake'
-    if resID is None:
+    if not resID:
         resID = createResourceID(origintime, etype, authority_id)
     elif isinstance(resID, str):
         resID = createResourceID(origintime, etype, authority_id, resID)
+    elif not isinstance(resID, ope.ResourceIdentifier):
+        raise TypeError("unsupported type(resID) for resource identifier "
+                        "generation: %s" % type(resID))
     event = ope.Event(resource_id=resID)
     event.creation_info = cinfo
     event.event_type = etype
+    if o:
+        event.origins = [o]
     return event
 
 

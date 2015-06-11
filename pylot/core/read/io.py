@@ -74,14 +74,14 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
 
         stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = createEvent(eventDate, loccinfo, 'earthquake', eventNum,
+        event = createEvent(eventDate, loccinfo, None, 'earthquake', eventNum,
                             authority_id)
 
         lat = float(loc['LAT'])
         lon = float(loc['LON'])
         dep = float(loc['DEP'])
 
-        origin = createOrigin(eventDate, loccinfo, lat, lon, dep, eventNum)
+        origin = createOrigin(eventDate, loccinfo, lat, lon, dep)
         for n, pick in enumerate(phases['Ptime']):
             if pick[0] > 0:
                 kwargs = {'year': int(pick[0]),

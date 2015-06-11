@@ -509,8 +509,8 @@ class MainWindow(QMainWindow):
             if new.exec_() != QDialog.Rejected:
                 evtpar = new.getValues()
                 cinfo = createCreationInfo(agency_id=self.agency)
-                event = createEvent(evtpar['origintime'])
-                self.data = Data(self, evtdata=createEvent(**evtpar))
+                event = createEvent(evtpar['origintime'], cinfo)
+                self.data = Data(self, evtdata=event)
                 self.dirty = True
 
     def closeEvent(self, event):
