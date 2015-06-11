@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-'''
+"""
 makePyLoT -- build and install PyLoT
 
 makePyLoT is a python make file in order to establish the folder structure and
@@ -11,16 +11,16 @@ It defines
 :method main:
 
 :author:     Sebastian Wehling-Benatelli
-        
+
 :copyright:  2014 MAGS2 EP3 Working Group. All rights reserved.
-        
+
 :license:    GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
 
 :contact:    sebastian.wehling@rub.de
 
 updated: Updated
-'''
+"""
 
 import glob
 import os
@@ -38,19 +38,24 @@ DEBUG = 0
 TESTRUN = 0
 PROFILE = 0
 
+
 class CLIError(Exception):
-    '''Generic exception to raise and log different fatal errors.'''
+    """Generic exception to raise and log different fatal errors."""
+
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
         self.msg = "E: %s" % msg
+
     def __str__(self):
         return self.msg
+
     def __unicode__(self):
         return self.msg
 
-def main(argv=None): # IGNORE:C0111
+
+def main(argv=None):  # IGNORE:C0111
     '''Command line options.'''
-    
+
     if argv is None:
         argv = sys.argv
     else:
@@ -59,16 +64,17 @@ def main(argv=None): # IGNORE:C0111
     program_name = os.path.basename(sys.argv[0])
     program_version = "v%s" % __version__
     program_build_date = str(__updated__)
-    program_version_message = '%makePyLoT %s (%s)' % (program_version, program_build_date)
+    program_version_message = 'makePyLoT %s (%s)' % (
+        program_version, program_build_date)
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
     program_license = '''%s
 
   Created by Sebastian Wehling-Benatelli on %s.
   Copyright 2014 MAGS2 EP3 Working Group. All rights reserved.
-  
+
   GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
-  
+
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
 
@@ -77,21 +83,28 @@ USAGE
 
     try:
         # Setup argument parser
-        parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-b", "--build", dest="build", action="store_true", help="build PyLoT")
-        parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level")
-        parser.add_argument("-i", "--install", dest="install", action="store_true", help="install PyLoT on the system")
-        parser.add_argument("-d", "--directory", dest="directory", help="installation directory", metavar="RE" )
-        parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        
+        parser = ArgumentParser(description=program_license,
+                                formatter_class=RawDescriptionHelpFormatter)
+        parser.add_argument("-b", "--build", dest="build", action="store_true",
+                            help="build PyLoT")
+        parser.add_argument("-v", "--verbose", dest="verbose", action="count",
+                            help="set verbosity level")
+        parser.add_argument("-i", "--install", dest="install",
+                            action="store_true",
+                            help="install PyLoT on the system")
+        parser.add_argument("-d", "--directory", dest="directory",
+                            help="installation directory", metavar="RE")
+        parser.add_argument('-V', '--version', action='version',
+                            version=program_version_message)
+
         # Process arguments
         args = parser.parse_args()
-        
+
         verbose = args.verbose
         build = args.build
         install = args.install
         directory = args.directory
-        
+
         if verbose > 0:
             print("Verbose mode on")
             if install and not directory:
@@ -112,11 +125,12 @@ USAGE
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
-            raise(e)
+            raise e
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")
         return 2
+
 
 def buildPyLoT(verbosity=None):
     system = sys.platform
@@ -124,10 +138,11 @@ def buildPyLoT(verbosity=None):
         msg = ("... on system: {0}\n"
                "\n"
                "              Current working directory: {1}\n"
-        ).format(system, os.getcwd())
-        print msg  
+               ).format(system, os.getcwd())
+        print msg
     if system.startswith(('win', 'microsoft')):
-        raise CLIError("building on Windows system not tested yet; implementation pending")
+        raise CLIError(
+            "building on Windows system not tested yet; implementation pending")
     elif system == 'darwin':
         # create a symbolic link to the desired python interpreter in order to
         # display the right application name
@@ -136,13 +151,15 @@ def buildPyLoT(verbosity=None):
             if found:
                 os.symlink(found, './PyLoT')
                 break
-    
+
 
 def installPyLoT(verbosity=None):
     pass
 
+
 def cleanUp(verbosity=None):
     pass
+
 
 if __name__ == "__main__":
     if DEBUG:
@@ -150,10 +167,12 @@ if __name__ == "__main__":
         sys.argv.append("-v")
     if TESTRUN:
         import doctest
+
         doctest.testmod()
     if PROFILE:
         import cProfile
         import pstats
+
         profile_filename = 'makePyLoT_profile.txt'
         cProfile.run('main()', profile_filename)
         statsfile = open("profile_stats.txt", "wb")

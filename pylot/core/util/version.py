@@ -31,7 +31,7 @@
 #
 #   include RELEASE-VERSION
 
-__all__ = ("get_git_version")
+__all__ = "get_git_version"
 
 # NO IMPORTS FROM PYLOT IN THIS FILE! (file gets used at installation time)
 import os

@@ -43,12 +43,12 @@ import icons_rc
 # Version information
 __version__ = _getVersionString()
 
+
 class MainWindow(QMainWindow):
     closing = Signal()
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-
 
         self.createAction = createAction
         self.dirty = False
@@ -58,7 +58,9 @@ class MainWindow(QMainWindow):
             settings.setValue("user/FullName", fulluser)
             settings.setValue("user/Login", getLogin())
         if settings.value("agency_id", None) is None:
-            agency = QInputDialog.getText(self, "Enter authority name (e.g. BUG):", "Authority")
+            agency = QInputDialog.getText(self,
+                                          "Enter authority name (e.g. BUG):",
+                                          "Authority")
             settings.setValue("agency_id", agency)
         self.recentEvents = settings.value("data/recentEvents", [])
         self.fnames = None
@@ -90,7 +92,6 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.loadData()
         self.updateFilterOptions()
-
 
     def setupUi(self):
 
@@ -159,21 +160,24 @@ class MainWindow(QMainWindow):
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
-        self.filterAction = self.createAction(self, "&Filter ...", self.filterWaveformData,
-                                         "Ctrl+F", QIcon(":/filter.png"),
-                                         """Toggle un-/filtered waveforms
+        self.filterAction = self.createAction(self, "&Filter ...",
+                                              self.filterWaveformData,
+                                              "Ctrl+F", QIcon(":/filter.png"),
+                                              """Toggle un-/filtered waveforms
                                          to be displayed, according to the
                                          desired seismic phase.""", True)
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
                                              "Alt+F", QIcon(None),
                                              """Adjust filter parameters.""")
-        self.selectPAction = self.createAction(self, "&P", self.alterPhase, "Alt+P",
-                                          p_icon,
-                                          "Toggle P phase.", True)
-        self.selectSAction = self.createAction(self, "&S", self.alterPhase, "Alt+S",
-                                          s_icon,
-                                          "Toggle S phase", True)
+        self.selectPAction = self.createAction(self, "&P", self.alterPhase,
+                                               "Alt+P",
+                                               p_icon,
+                                               "Toggle P phase.", True)
+        self.selectSAction = self.createAction(self, "&S", self.alterPhase,
+                                               "Alt+S",
+                                               s_icon,
+                                               "Toggle S phase", True)
         printAction = self.createAction(self, "&Print event ...",
                                         self.printEvent, QKeySequence.Print,
                                         print_icon,
@@ -197,7 +201,7 @@ class MainWindow(QMainWindow):
         self.addActions(self.editMenu, editActions)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
-        helpActions = (helpAction, )
+        helpActions = (helpAction,)
         self.addActions(self.helpMenu, helpActions)
 
         fileToolBar = self.addToolBar("FileTools")
@@ -273,8 +277,8 @@ class MainWindow(QMainWindow):
                         filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
                         caption = "Open an event file"
                         fname = QFileDialog().getOpenFileName(self,
-                                                               caption=caption,
-                                                               filter=filt)
+                                                              caption=caption,
+                                                              filter=filt)
                         self.fname = fname[0]
                     else:
                         self.fname = unicode(action.data().toString())
@@ -303,9 +307,9 @@ class MainWindow(QMainWindow):
                 if self.dataStructure:
                     searchPath = self.dataStructure.expandDataPath()
                     fnames = QFileDialog.getOpenFileNames(self,
-                                                           "Select waveform "
-                                                           "files:",
-                                                           dir=searchPath)
+                                                          "Select waveform "
+                                                          "files:",
+                                                          dir=searchPath)
                     self.fnames = fnames[0]
 
                 else:
@@ -342,7 +346,8 @@ class MainWindow(QMainWindow):
     def getPlotWidget(self):
         return self.DataPlot
 
-    def getWFID(self, gui_event):
+    @staticmethod
+    def getWFID(gui_event):
 
         ycoord = gui_event.ydata
 
@@ -383,11 +388,12 @@ class MainWindow(QMainWindow):
 
     def filterWaveformData(self):
         if self.getData():
-            def hasfreq(kwargs):
-                for key in kwargs.keys():
+            def hasfreq(kwdict):
+                for key in kwdict.keys():
                     if not key.startswith('freq'):
                         return True
                 return False
+
             if self.filterAction.isChecked():
                 kwargs = {}
                 freq = self.getFilterOptions().getFreq()
@@ -430,11 +436,11 @@ class MainWindow(QMainWindow):
         else:
             self.getFilters()[seismicPhase] = filterOptions
 
-
     def updateFilterOptions(self):
         try:
             settings = QSettings()
-            if settings.value("filterdefaults", None) is None and not self.getFilters():
+            if settings.value("filterdefaults",
+                              None) is None and not self.getFilters():
                 for key, value in FILTERDEFAULTS.iteritems():
                     self.setFilterOptions(FilterOptions(**value), key)
             elif settings.value("filterdefaults", None) is not None:
@@ -446,7 +452,9 @@ class MainWindow(QMainWindow):
             emsg.showMessage('Error: {0}'.format(e))
         else:
             self.updateStatus('Filter loaded ... '
-                              '[{0}: {1} Hz]'.format(self.getFilterOptions().getFilterType(), self.getFilterOptions().getFreq()))
+                              '[{0}: {1} Hz]'.format(
+                self.getFilterOptions().getFilterType(),
+                self.getFilterOptions().getFreq()))
         if self.filterAction.isChecked():
             self.filterWaveformData()
 
@@ -479,7 +487,6 @@ class MainWindow(QMainWindow):
         else:
             print 'picks not saved and closed dialog'
 
-
     def updateStatus(self, message):
         self.statusBar().showMessage(message, 5000)
         if self.getData() is not None:
@@ -492,7 +499,6 @@ class MainWindow(QMainWindow):
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
-
 
     def printEvent(self):
         pass

@@ -16,9 +16,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.widgets import MultiCursor
-from PySide.QtGui import QAction, QApplication,QComboBox, QDateTimeEdit,\
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout,\
-    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox,\
+from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
+    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
     QTabWidget, QToolBar, QVBoxLayout, QWidget
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
@@ -48,8 +48,8 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
         action.setCheckable(True)
     return action
 
-class MPLWidget(FigureCanvas):
 
+class MPLWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
 
         self._parent = None
@@ -65,7 +65,8 @@ class MPLWidget(FigureCanvas):
         # initialize super class
         FigureCanvas.__init__(self, self.figure)
         # add an cursor for station selection
-        self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,), horizOn=True,
+        self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
+                                       horizOn=True,
                                        color='m', lw=1)
         # update labels of the entire widget
         self.updateWidget(xlabel, ylabel, title)
@@ -126,7 +127,6 @@ class MPLWidget(FigureCanvas):
         self.axes.set_xlabel(text)
         self.draw()
 
-
     def updateYLabel(self, text):
         self.axes.set_ylabel(text)
         self.draw()
@@ -142,12 +142,12 @@ class MPLWidget(FigureCanvas):
 
     def insertLabel(self, pos, text):
         pos = pos / max(self.axes.ylim)
-        axann = self.axes.annotate(text, xy=(.03, pos), xycoords='axes fraction')
+        axann = self.axes.annotate(text, xy=(.03, pos),
+                                   xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
 
 class multiComponentPlot(FigureCanvas):
-
     def __init__(self, data, parent=None, components='ZNE'):
 
         self.data = data
@@ -211,7 +211,7 @@ class multiComponentPlot(FigureCanvas):
 
         # plot individual component traces in separate subplots
         for n, comp in enumerate(components):
-            nsub = '{0}1{1}'.format(self.noc, n+1)
+            nsub = '{0}1{1}'.format(self.noc, n + 1)
             if n >= 1:
                 subax = self.figure.add_subplot(nsub, sharex=self.axesdict[0])
             else:
@@ -239,7 +239,6 @@ class multiComponentPlot(FigureCanvas):
 
 
 class PickDlg(QDialog):
-
     def __init__(self, parent=None, data=None, station=None, rotate=False):
         super(PickDlg, self).__init__(parent)
 
@@ -275,8 +274,8 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
-        self.limits = {'xlims' : self.getPlotWidget().axes.get_xlim(),
-                       'ylims' : self.getPlotWidget().axes.get_ylim()}
+        self.limits = {'xlims': self.getPlotWidget().axes.get_xlim(),
+                       'ylims': self.getPlotWidget().axes.get_ylim()}
         self.apd = self.getWFData()
 
         # set plot labels
@@ -420,9 +419,10 @@ class PickDlg(QDialog):
     def selectWFData(self, channel):
         component = channel[-1].upper()
         wfdata = Stream()
-        def selectTrace(trace, components):
-            if trace.stats.channel[-1].upper() in components:
-                return trace
+
+        def selectTrace(tr, components):
+            if tr.stats.channel[-1].upper() in components:
+                return tr
 
         if component == 'E' or component == 'N':
             for trace in self.getWFData():
@@ -462,10 +462,10 @@ class PickDlg(QDialog):
         # see also Diehl et al. 2009
 
         res_wins = {
-            'HRW' : 2.,
-            'MRW' : 5.,
-            'LRW' : 10.,
-            'VLRW' : 15.
+            'HRW': 2.,
+            'MRW': 5.,
+            'LRW': 10.,
+            'VLRW': 15.
         }
 
         result = getSNR(wfdata, (5., .5, 2.), ini_pick)
@@ -501,7 +501,7 @@ class PickDlg(QDialog):
 
     def setPick(self, gui_event):
         # setting pick
-        pick = gui_event.xdata # get pick time relative to the traces timeaxis not to the global
+        pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
 
         wfdata = self.getAPD().copy().select(channel=channel)
@@ -512,12 +512,7 @@ class PickDlg(QDialog):
         phase = self.selectPhase.currentText()
 
         # save pick times for actual phase
-        phasepicks = {}
-
-        phasepicks['epp'] = epp
-        phasepicks['lpp'] = lpp
-        phasepicks['mpp'] = pick
-        phasepicks['spe'] = spe
+        phasepicks = {'epp': epp, 'lpp': lpp, 'mpp': pick, 'spe': spe}
 
         try:
             oldphasepick = self.picks[phase]
@@ -570,10 +565,10 @@ class PickDlg(QDialog):
         lpp = picks['lpp']
         spe = picks['spe']
 
-        ax.fill_between([epp, lpp],ylims[0], ylims[1], alpha=.5, color='c')
-        ax.plot([mpp-spe, mpp-spe], ylims, 'c--',
+        ax.fill_between([epp, lpp], ylims[0], ylims[1], alpha=.5, color='c')
+        ax.plot([mpp - spe, mpp - spe], ylims, 'c--',
                 [mpp, mpp], ylims, 'b-',
-                [mpp+spe, mpp+spe], ylims, 'c--')
+                [mpp + spe, mpp + spe], ylims, 'c--')
 
         self.getPlotWidget().draw()
 
@@ -648,7 +643,7 @@ class PickDlg(QDialog):
         curr_ylim = widget.axes.get_ylim()
 
         if gui_event.button == 'up':
-            scale_factor = 1/factor
+            scale_factor = 1 / factor
         elif gui_event.button == 'down':
             # deal with zoom out
             scale_factor = factor
@@ -682,8 +677,8 @@ class PickDlg(QDialog):
         self.apply()
         QDialog.accept(self)
 
-class PropertiesDlg(QDialog):
 
+class PropertiesDlg(QDialog):
     def __init__(self, parent=None):
         super(PropertiesDlg, self).__init__(parent)
 
@@ -707,7 +702,8 @@ class PropertiesDlg(QDialog):
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(
+            self.apply)
 
     def accept(self, *args, **kwargs):
         self.apply()
@@ -728,7 +724,6 @@ class PropertiesDlg(QDialog):
 
 
 class PropTab(QWidget):
-
     def __init__(self, parent=None):
         super(PropTab, self).__init__(parent)
 
@@ -737,7 +732,6 @@ class PropTab(QWidget):
 
 
 class InputsTab(PropTab):
-
     def __init__(self, parent):
         super(InputsTab, self).__init__(parent)
 
@@ -775,15 +769,13 @@ class InputsTab(PropTab):
         self.setLayout(layout)
 
     def getValues(self):
-        values = {}
-        values["data/dataRoot"] = self.dataDirEdit.text()
-        values["user/FullName"] = self.fullNameEdit.text()
-        values["data/Structure"] = self.structureSelect.currentText()
+        values = {"data/dataRoot": self.dataDirEdit.text(),
+                  "user/FullName": self.fullNameEdit.text(),
+                  "data/Structure": self.structureSelect.currentText()}
         return values
 
 
 class OutputsTab(PropTab):
-
     def __init__(self, parent=None):
         super(OutputsTab, self).__init__(parent)
 
@@ -808,12 +800,11 @@ class OutputsTab(PropTab):
         self.setLayout(layout)
 
     def getValues(self):
-        values = {}
-        values["output/Format"] = self.eventOutputComboBox.currentText()
+        values = {"output/Format": self.eventOutputComboBox.currentText()}
         return values
 
-class PhasesTab(PropTab):
 
+class PhasesTab(PropTab):
     def __init__(self, parent=None):
         super(PhasesTab, self).__init__(parent)
 
@@ -821,7 +812,6 @@ class PhasesTab(PropTab):
 
 
 class GraphicsTab(PropTab):
-
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
 
@@ -850,13 +840,12 @@ class NewEventDlg(QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
     def getValues(self):
-        return {'origintime' : self.eventTimeEdit.dateTime().toPython(),
-                'latitude' : self.latEdit.text(),
-                'longitude' : self.lonEdit.text(),
-                'depth' : self.depEdit.text()}
+        return {'origintime': self.eventTimeEdit.dateTime().toPython(),
+                'latitude': self.latEdit.text(),
+                'longitude': self.lonEdit.text(),
+                'depth': self.depEdit.text()}
 
     def setupUI(self):
-
         # create widget objects
         timeLabel = QLabel()
         timeLabel.setText("Select time: ")
@@ -887,8 +876,8 @@ class NewEventDlg(QDialog):
 
         self.setLayout(grid)
 
-class FilterOptionsDialog(QDialog):
 
+class FilterOptionsDialog(QDialog):
     def __init__(self, parent=None, titleString="Filter options",
                  filterOptions=None):
         """
@@ -925,8 +914,10 @@ class FilterOptionsDialog(QDialog):
 
         if _enable:
             self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
-            if self.getFilterOptions().getFilterType() in ['bandpass', 'bandstop']:
-                self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+            if self.getFilterOptions().getFilterType() in ['bandpass',
+                                                           'bandstop']:
+                self.freqmaxSpinBox.setValue(
+                    self.getFilterOptions().getFreq()[1])
         else:
             try:
                 self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
@@ -963,7 +954,7 @@ class FilterOptionsDialog(QDialog):
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
@@ -980,7 +971,6 @@ class FilterOptionsDialog(QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
-
     def updateUi(self):
         _enable = False
         if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
@@ -993,10 +983,9 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxLabel.setEnabled(_enable)
         self.freqmaxSpinBox.setEnabled(_enable)
 
-
-        self.getFilterOptions().setFilterType(self.selectTypeCombo.currentText())
-        freq = []
-        freq.append(self.freqminSpinBox.value())
+        self.getFilterOptions().setFilterType(
+            self.selectTypeCombo.currentText())
+        freq = [self.freqminSpinBox.value()]
         if _enable:
             if self.freqminSpinBox.value() > self.freqmaxSpinBox.value():
                 QMessageBox.warning(self, "Value error",
@@ -1019,7 +1008,6 @@ class FilterOptionsDialog(QDialog):
 
 
 class LoadDataDlg(QDialog):
-
     def __init__(self, parent=None):
         super(LoadDataDlg, self).__init__(parent)
 
@@ -1027,8 +1015,8 @@ class LoadDataDlg(QDialog):
 
 
 class HelpForm(QDialog):
-
-    def __init__(self, page=QUrl('https://ariadne.geophysik.rub.de/trac/PyLoT'), parent=None):
+    def __init__(self, page=QUrl('https://ariadne.geophysik.rub.de/trac/PyLoT'),
+                 parent=None):
         super(HelpForm, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)

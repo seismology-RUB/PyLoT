@@ -9,8 +9,10 @@ Created on Thu Mar 20 09:47:04 2014
 class OptionsError(Exception):
     pass
 
+
 class FormatError(Exception):
     pass
+
 
 class DatastructureError(Exception):
     pass

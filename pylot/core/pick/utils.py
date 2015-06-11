@@ -161,7 +161,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         index1 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
-            i = i + 1
+            i += 1
             if xraw[j - 1] <= 0 and xraw[j] >= 0:
                 zc1.append(t[ipick][i])
                 index1.append(i)
@@ -196,7 +196,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         index2 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
-            i = i + 1
+            i += 1
             if xfilt[j - 1] <= 0 and xfilt[j] >= 0:
                 zc2.append(t[ipick][i])
                 index2.append(i)

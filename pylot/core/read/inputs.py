@@ -124,20 +124,10 @@ class AutoPickParameter(object):
         for key, value in self.__parameter.iteritems():
             yield key, value
 
-    def hasParam(self, *args):
-
-        def test(param):
-            try:
-                self.__parameter[param]
-                return True
-            except KeyError:
-                return False
-
-        try:
-            for param in args:
-                return test(param)
-        except TypeError:
-            return test(args)
+    def hasParam(self, parameter):
+        if self.__parameter.has_key(parameter):
+            return True
+        return False
 
     def getParam(self, *args):
         try:
@@ -157,7 +147,8 @@ class AutoPickParameter(object):
             self.__setitem__(param, value)
         print self
 
-    def _printParameterError(self, errmsg):
+    @staticmethod
+    def _printParameterError(errmsg):
         print 'ParameterError:\n non-existent parameter %s' % errmsg
 
     def export2File(self, fnout):
