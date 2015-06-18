@@ -555,7 +555,5 @@ def run_autopicking(wfstream, pickparam):
         plt.ylabel('Normalized Counts')
         plt.title(trH2_filt.stats.channel)
         plt.show()
-
-
-raw_input()
-plt.close()
+        raw_input()
+        plt.close()
