@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 
@@ -13,15 +13,13 @@ from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
 
-
 __version__ = _getVersionString()
 
-#METHOD = {'HOS':HOScf, 'AIC':AICcf}
 
 def autoPyLoT(inputfile):
     '''
     Determine phase onsets automatically utilizing the automatic picking
-    algorithm by Kueperkoch et al. 2011.
+    algorithms by Kueperkoch et al. 2010/2012.
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
@@ -56,7 +54,7 @@ def autoPyLoT(inputfile):
         datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
-        # get streams
+        # multiple event processing 
         # read each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
@@ -71,17 +69,23 @@ def autoPyLoT(inputfile):
                 procstats = []
                 for i in range(len(wfdat)):
                     stationID = wfdat[i].stats.station
-                    #check if station has already been processed
+                    # check if station has already been processed
                     if stationID not in procstats:
                         procstats.append(stationID)
-                        #find corresponding streams
+                        # find corresponding streams
                         statdat = wfdat.select(station=stationID)
-                        run_autopicking(statdat, parameter)
+                        # get onset times and corresponding picking errors
+                        picks = run_autopicking(statdat, parameter)
+
+                # quality control
+                # check S-P times (Wadati) 
+                # jackknife on P onset times
+                # jackknife on S onset times
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
                 print '------------------------------------------'
 
-        #for single event processing
+        # single event processing
         else:
             data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
             print 'Working on event ', parameter.getParam('eventID')
@@ -91,6 +95,10 @@ def autoPyLoT(inputfile):
             ##########################################################
             # !automated picking starts here!   
             procstats = []
+            # initialize dictionary for onsets
+            picks = None
+            station = wfdat[0].stats.station
+            allonsets = {station: picks}
             for i in range(len(wfdat)):
                 stationID = wfdat[i].stats.station
                 #check if station has already been processed
@@ -98,7 +106,15 @@ def autoPyLoT(inputfile):
                     procstats.append(stationID)
                     #find corresponding streams
                     statdat = wfdat.select(station=stationID)
-                    run_autopicking(statdat, parameter)
+                    # get onset times and corresponding picking errors
+                    picks = run_autopicking(statdat, parameter)
+                    station = stationID
+                    # add station and corresponding onsets to dictionary
+                    allonsets[station] = picks
+            #quality control
+            #check S-P times (Wadati) 
+            #jackknife on P onset times
+            #jackknife on S onset times
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
