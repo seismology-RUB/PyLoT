@@ -11,7 +11,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
-
+import warnings
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
@@ -132,6 +132,8 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
     :param: iplot, if given, results are plotted in figure(iplot)
     :type: int
     '''
+
+    warnings.simplefilter('ignore', np.RankWarning)
 
     assert isinstance(Xraw, Stream), "%s is not a stream object" % str(Xraw)
     assert isinstance(Xfilt, Stream), "%s is not a stream object" % str(Xfilt)
@@ -440,10 +442,10 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
-                    # mark onset and downgrade S-weight to 4 
+                    # mark onset and downgrade S-weight to 9 
                     # (not used anymore)
                     marker = 'badWadatiCheck'
-                    pickdic[key]['S']['weight'] = 4
+                    pickdic[key]['S']['weight'] = 9
                 else:
                     marker = 'goodWadatiCheck'
                     checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp']) - \
@@ -475,7 +477,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
         wfitflag = 1
 
     # plot results
-    iplot = 2
     if iplot > 1:
     	f = plt.figure(iplot)
     	f1, = plt.plot(Ppicks, SPtimes, 'ro')
