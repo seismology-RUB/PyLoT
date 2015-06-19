@@ -76,6 +76,26 @@ def run_autopicking(wfstream, pickparam):
     fmpickwin = pickparam.getParam('fmpickwin')
     minfmweight = pickparam.getParam('minfmweight')
 
+    # initialize output 
+    Pweight = 4   # weight for P onset 
+    Sweight = 4   # weight for S onset
+    FM = 'N'      # first motion (polarity)
+    SNRP = None   # signal-to-noise ratio of P onset
+    SNRPdB = None # signal-to-noise ratio of P onset [dB]
+    SNRS = None   # signal-to-noise ratio of S onset
+    SNRSdB = None # signal-to-noise ratio of S onset [dB]
+    mpickP = None # most likely P onset
+    lpickP = None # latest possible P onset
+    epickP = None # earliest possible P onset
+    mpickS = None # most likely S onset
+    lpickS = None # latest possible S onset
+    epickS = None # earliest possible S onset
+    Perror = None # symmetrized picking error P onset
+    Serror = None # symmetrized picking error S onset
+
+    aicSflag = 0
+    aicPflag = 0
+
     # split components
     zdat = wfstream.select(component="Z")
     edat = wfstream.select(component="E")
@@ -167,15 +187,14 @@ def run_autopicking(wfstream, pickparam):
             # get refined onset time from CF2 using class Picker
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
                                   aicpick.getpick())
+            mpickP = refPpick.getpick()
             #############################################################
             # quality assessment
             # get earliest and latest possible pick and symmetrized uncertainty
-            [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
-                                                      refPpick.getpick(), iplot)
+            [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz, mpickP, iplot)
 
             # get SNR
-            [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz,
-                                                 refPpick.getpick())
+            [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
 
             # weight P-onset using symmetric error
             if Perror <= timeerrorsP[0]:
@@ -193,8 +212,7 @@ def run_autopicking(wfstream, pickparam):
             # get first motion of P onset
             # certain quality required
             if Pweight <= minfmweight and SNRP >= minFMSNR:
-                FM = fmpicker(zdat, z_copy, fmpickwin, refPpick.getpick(),
-                              iplot)
+                FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
             else:
                 FM = 'N'
 
@@ -204,19 +222,10 @@ def run_autopicking(wfstream, pickparam):
         else:
             print 'Bad initial (AIC) P-pick, skip this onset!'
             print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope()
-            Pweight = 4
-            Sweight = 4
-            FM = 'N'
-            SNRP = None
-            SNRPdB = None
-            SNRS = None
-            SNRSdB = None
-            aicSflag = 0
-            aicPflag = 0
+
     else:
         print 'run_autopicking: No vertical component data available, ' \
               'skipping station!'
-        return
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
@@ -226,10 +235,8 @@ def run_autopicking(wfstream, pickparam):
         print 'Filtering horizontal traces ...'
 
         # determine time window for calculating CF after P onset
-        # cuttimesh = [round(refPpick.getpick() + sstart),
-        # round(refPpick.getpick() + sstop)]
-        cuttimesh = [round(max([refPpick.getpick() + sstart, 0])),
-                     round(min([refPpick.getpick() + sstop, Lwf]))]
+        cuttimesh = [round(max([mpickP + sstart, 0])),
+                     round(min([mpickP + sstop, Lwf]))]
 
         if algoS == 'ARH':
             print edat, ndat
@@ -349,17 +356,16 @@ def run_autopicking(wfstream, pickparam):
             # get refined onset time from CF2 using class Picker
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
                                   tsmoothS, aicarhpick.getpick())
+            mpickS = refSpick.getpick()
             #############################################################
             # quality assessment
             # get earliest and latest possible pick and symmetrized uncertainty
             h_copy[0].data = trH1_filt.data
             [lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS, tsnrh,
-                                                         refSpick.getpick(),
-                                                         iplot)
+                                                         mpickS, iplot)
             h_copy[0].data = trH2_filt.data
             [lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS, tsnrh,
-                                                         refSpick.getpick(),
-                                                         iplot)
+                                                         mpickS, iplot)
             if algoS == 'ARH':
                 # get earliest pick of both earliest possible picks
                 epick = [epickS1, epickS2]
@@ -369,8 +375,7 @@ def run_autopicking(wfstream, pickparam):
             elif algoS == 'AR3':
                 [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
-                                                             refSpick.getpick(),
-                                                             iplot)
+                                                             mpickS, iplot)
                 # get earliest pick of all three picks
                 epick = [epickS1, epickS2, epickS3]
                 lpick = [lpickS1, lpickS2, lpickS3]
@@ -381,8 +386,7 @@ def run_autopicking(wfstream, pickparam):
             Serror = pickerr[ipick]
 
             # get SNR
-            [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh,
-                                                 refSpick.getpick())
+            [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
 
             # weight S-onset using symmetric error
             if Serror <= timeerrorsS[0]:
@@ -403,15 +407,10 @@ def run_autopicking(wfstream, pickparam):
             print 'Bad initial (AIC) S-pick, skip this onset!'
             print 'AIC-SNR=', aicarhpick.getSNR(), \
                   'AIC-Slope=', aicarhpick.getSlope()
-            Sweight = 4
-            SNRS = None
-            SNRSdB = None
-            aicSflag = 0
 
     else:
         print 'run_autopicking: No horizontal component data available or ' \
               'bad P onset, skipping S picking!'
-        return
 
     ##############################################################
     if iplot > 0:
@@ -557,3 +556,19 @@ def run_autopicking(wfstream, pickparam):
         plt.show()
         raw_input()
         plt.close()
+    ##########################################################################
+    # create dictionary
+    # for P phase
+    phase = 'P'
+    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror, \
+                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
+    picks = {phase: phasepick}
+    #stationID = tr_filt.stats.station
+    #onsets = {stationID: picks}	
+    # add S phase
+    phase = 'S'
+    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror, \
+                 'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
+    picks[phase] = phasepick
+    
+    return picks
