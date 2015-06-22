@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
 
+
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -65,8 +66,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
     #get earliest possible pick
 
-    #determine all zero crossings in signal window (demeaned)
-    zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
+    #determine all zero crossings in signal window
+    zc = crossings_nonzero_all(x[isignal])
     #calculate mean half period T0 of signal as the average of the
     T0 = np.mean(np.diff(zc)) * X[0].stats.delta  #this is half wave length!
     #T0/4 is assumed as time difference between most likely and earliest possible pick!
@@ -385,13 +386,13 @@ def getsignalwin(t, t1, tsignal):
 def wadaticheck(pickdic, dttolerance, iplot):
     '''
     Function to calculate Wadati-diagram from given P and S onsets in order
-    to detect S pick outliers. If a certain S-P time deviates from regression
-    of S-P time the S pick is marked and down graded.
+    to detect S pick outliers. If a certain S-P time deviates by dttolerance
+    from regression of S-P time the S pick is marked and down graded.
 
     : param: pickdic, dictionary containing picks and quality parameters
     : type:  dictionary
-
-    : param: dttolerance, maximum adjusted deviation of S-P time from
+    
+    : param: dttolerance, maximum adjusted deviation of S-P time from 
              S-P time regression
     : type:  float
 
@@ -405,7 +406,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
     Ppicks = []
     Spicks = []
     SPtimes = []
-    vpvs = []
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
            # calculate S-P time
@@ -413,65 +413,60 @@ def wadaticheck(pickdic, dttolerance, iplot):
            # add S-P time to dictionary
            pickdic[key]['SPt'] = spt
            # add P onsets and corresponding S-P times to list
-           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp']) - UTCDateTime(1970,1,1,0,0,0)
-           UTCSpick = UTCDateTime(pickdic[key]['S']['mpp']) - UTCDateTime(1970,1,1,0,0,0)
-           Ppicks.append(UTCPpick)
-           Spicks.append(UTCSpick)
+           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+           UTCSpick = UTCDateTime(pickdic[key]['S']['mpp'])
+           Ppicks.append(UTCPpick.timestamp)
+           Spicks.append(UTCSpick.timestamp)
            SPtimes.append(spt)
-           vpvs.append(UTCPpick/UTCSpick)
 
 
     if len(SPtimes) >= 3:
-    	# calculate slope
+    	# calculate slope 
     	p1 = np.polyfit(Ppicks, SPtimes, 1)
     	wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
-
-        # calculate average vp/vs ratio before check
+     
+        # calculate vp/vs ratio before check
         vpvsr = p1[0] + 1
         print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
  
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
-        checkedvpvs = []
         # calculate deviations from Wadati regression
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
                 ii = 0
-            	wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
+            	wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])    	
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
-                    # mark onset and downgrade S-weight to 9
+                    # mark onset and downgrade S-weight to 9 
                     # (not used anymore)
                     marker = 'badWadatiCheck'
                     pickdic[key]['S']['weight'] = 9
                 else:
                     marker = 'goodWadatiCheck'
-                    checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp']) - \
-                                                 UTCDateTime(1970,1,1,0,0,0)
-                    checkedPpicks.append(checkedPpick)
-                    checkedSpick = UTCDateTime(pickdic[key]['S']['mpp']) - \
-                                                 UTCDateTime(1970,1,1,0,0,0)
-                    checkedSpicks.append(checkedSpick)
+                    checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp'])
+                    checkedPpicks.append(checkedPpick.timestamp)
+                    checkedSpick = UTCDateTime(pickdic[key]['S']['mpp'])
+                    checkedSpicks.append(checkedSpick.timestamp)
                     checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
-                    checkedvpvs.append(checkedPpick/checkedSpick)
 
                 pickdic[key]['S']['marked'] = marker
 
 
-    	# calculate new slope
+    	# calculate new slope 
     	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
     	wdfit2 = np.polyval(p2, checkedPpicks)
 
-        # calculate average vp/vs ratio after check
+        # calculate vp/vs ratio after check
         cvpvsr = p2[0] + 1
         print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
 
         checkedonsets = pickdic
-
+ 
     else:
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
@@ -487,7 +482,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 f4, = plt.plot(checkedPpicks, wdfit2, 'g')
         plt.ylabel('S-P Times [s]')
         plt.xlabel('P Times [s]')
-        plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(old)=%5.2f, Vp/Vs(checked)=%5.2f' \
+        plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f, Vp/Vs(checked)=%5.2f' \
                                                      % (len(SPtimes), vpvsr, cvpvsr))
         plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', 'Reliable S-Picks', \
                                        'Wadati 2'], loc='best')
