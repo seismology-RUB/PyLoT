@@ -206,6 +206,19 @@ class FilterOptions(object):
                    order=self.getOrder())
         return hrs
 
+    def parseFilterOptions(self):
+        if self.getFilterType():
+            robject = {'type':self.getFilterType()}
+            robject['order'] = self.getOrder()
+            if len(self.getFreq()) > 1:
+                robject['freqmin'] = self.getFreq()[0]
+                robject['freqmax'] = self.getFreq()[1]
+            else:
+                robject['freq'] = self.getFreq() if type(self.getFreq()) is \
+                                                    float else self.getFreq()[0]
+            return robject
+        return None
+
     def getFreq(self):
         return self.__getattribute__('_freq')
 
