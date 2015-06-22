@@ -482,12 +482,16 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	f2, = plt.plot(Ppicks, wdfit, 'k')
                 f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
                 f4, = plt.plot(checkedPpicks, wdfit2, 'g')
+                plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f, \
+                           Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
+                plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', \
+                           'Reliable S-Picks', 'Wadati 2'], loc='best')
+        else:
+        	f1, = plt.plot(Ppicks, 'k') 
+        	plt.title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
+
         plt.ylabel('S-P Times [s]')
         plt.xlabel('P Times [s]')
-        plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f, Vp/Vs(checked)=%5.2f' \
-                                                     % (len(SPtimes), vpvsr, cvpvsr))
-        plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', 'Reliable S-Picks', \
-                                       'Wadati 2'], loc='best')
         plt.show()
         raw_input()
         plt.close(iplot)
