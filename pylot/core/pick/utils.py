@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
 
-
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -258,8 +257,6 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
                        loc='best')
             plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
             ax = plt.gca()
-            ax.set_xlim(
-                [t[islope1[0][0]] - 0.1, t[islope1[0][len(islope1) - 1]] + 0.3])
         plt.yticks([])
         plt.title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
             0].stats.station)
@@ -275,8 +272,6 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             p4, = plt.plot(t[islope2], datafit2, '--g', linewidth=2)
             plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
             ax = plt.gca()
-            ax.set_xlim(
-                [t[islope2[0][0]] - 0.1, t[islope2[0][len(islope2) - 1]] + 0.3])
         plt.xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
         plt.yticks([])
         plt.show()
