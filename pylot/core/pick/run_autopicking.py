@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
-
+import pdb
 def run_autopicking(wfstream, pickparam):
     """
     :param: wfstream
@@ -189,36 +189,37 @@ def run_autopicking(wfstream, pickparam):
                                   aicpick.getpick())
             mpickP = refPpick.getpick()
             #############################################################
-            # quality assessment
-            # get earliest and latest possible pick and symmetrized uncertainty
-            [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz, mpickP, iplot)
+            if mpickP is not None:
+            	# quality assessment
+            	# get earliest and latest possible pick and symmetrized uncertainty
+            	[lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz, mpickP, iplot)
 
-            # get SNR
-            [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
+            	# get SNR
+            	[SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
 
-            # weight P-onset using symmetric error
-            if Perror <= timeerrorsP[0]:
-                Pweight = 0
-            elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
-                Pweight = 1
-            elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
-                Pweight = 2
-            elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
-                Pweight = 3
-            elif Perror > timeerrorsP[3]:
-                Pweight = 4
+            	# weight P-onset using symmetric error
+            	if Perror <= timeerrorsP[0]:
+                	Pweight = 0
+            	elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
+                	Pweight = 1
+            	elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
+                	Pweight = 2
+            	elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
+                	Pweight = 3
+            	elif Perror > timeerrorsP[3]:
+                	Pweight = 4
 
-            ##############################################################
-            # get first motion of P onset
-            # certain quality required
-            if Pweight <= minfmweight and SNRP >= minFMSNR:
-                FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
-            else:
-                FM = 'N'
+            	##############################################################
+            	# get first motion of P onset
+            	# certain quality required
+            	if Pweight <= minfmweight and SNRP >= minFMSNR:
+                	FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+            	else:
+                	FM = 'N'
 
-            print 'run_autopicking: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
-                  'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
-            Sflag = 1
+            	print 'run_autopicking: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
+                  	'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
+            	Sflag = 1
 
         else:
             print 'Bad initial (AIC) P-pick, skip this onset!'
@@ -360,50 +361,51 @@ def run_autopicking(wfstream, pickparam):
                                   tsmoothS, aicarhpick.getpick())
             mpickS = refSpick.getpick()
             #############################################################
-            # quality assessment
-            # get earliest and latest possible pick and symmetrized uncertainty
-            h_copy[0].data = trH1_filt.data
-            [lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS, tsnrh,
+            if mpickS is not None:
+            	# quality assessment
+            	# get earliest and latest possible pick and symmetrized uncertainty
+            	h_copy[0].data = trH1_filt.data
+            	[lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS, tsnrh,
+               	                                          mpickS, iplot)
+            	h_copy[0].data = trH2_filt.data
+            	[lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS, tsnrh,
                                                          mpickS, iplot)
-            h_copy[0].data = trH2_filt.data
-            [lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS, tsnrh,
-                                                         mpickS, iplot)
-            if algoS == 'ARH':
-                # get earliest pick of both earliest possible picks
-                epick = [epickS1, epickS2]
-                lpick = [lpickS1, lpickS2]
-                pickerr = [Serror1, Serror2]
-                ipick = np.argmin([epickS1, epickS2])
-            elif algoS == 'AR3':
-                [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
+            	if algoS == 'ARH':
+              		# get earliest pick of both earliest possible picks
+                	epick = [epickS1, epickS2]
+                	lpick = [lpickS1, lpickS2]
+                	pickerr = [Serror1, Serror2]
+                	ipick = np.argmin([epickS1, epickS2])
+            	elif algoS == 'AR3':
+                	[lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
-                # get earliest pick of all three picks
-                epick = [epickS1, epickS2, epickS3]
-                lpick = [lpickS1, lpickS2, lpickS3]
-                pickerr = [Serror1, Serror2, Serror3]
-                ipick = np.argmin([epickS1, epickS2, epickS3])
-            epickS = epick[ipick]
-            lpickS = lpick[ipick]
-            Serror = pickerr[ipick]
+                	# get earliest pick of all three picks
+                	epick = [epickS1, epickS2, epickS3]
+                	lpick = [lpickS1, lpickS2, lpickS3]
+                	pickerr = [Serror1, Serror2, Serror3]
+                	ipick = np.argmin([epickS1, epickS2, epickS3])
+            	epickS = epick[ipick]
+            	lpickS = lpick[ipick]
+            	Serror = pickerr[ipick]
 
-            # get SNR
-            [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
+            	# get SNR
+            	[SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
 
-            # weight S-onset using symmetric error
-            if Serror <= timeerrorsS[0]:
-                Sweight = 0
-            elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
-                Sweight = 1
-            elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
-                Sweight = 2
-            elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
-                Sweight = 3
-            elif Serror > timeerrorsS[3]:
-                Sweight = 4
+            	# weight S-onset using symmetric error
+            	if Serror <= timeerrorsS[0]:
+                	Sweight = 0
+            	elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
+                	Sweight = 1
+            	elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
+                	Sweight = 2
+            	elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
+                	Sweight = 3
+            	elif Serror > timeerrorsS[3]:
+                	Sweight = 4
 
-            print 'run_autopicking: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
-                Sweight, SNRS, SNRSdB)
+            	print 'run_autopicking: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
+                	Sweight, SNRS, SNRSdB)
 
         else:
             print 'Bad initial (AIC) S-pick, skip this onset!'
