@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
 
+
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -48,13 +49,13 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
                   X[0].stats.delta)
     # get latest possible pick
-    #get noise window
+    # get noise window
     inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
-    #get signal window
+    # get signal window
     isignal = getsignalwin(t, Pick1, TSNR[2])
-    #calculate noise level
+    # calculate noise level
     nlevel = np.sqrt(np.mean(np.square(x[inoise]))) * nfac
-    #get time where signal exceeds nlevel
+    # get time where signal exceeds nlevel
     ilup, = np.where(x[isignal] > nlevel)
     ildown, = np.where(x[isignal] < -nlevel)
     if not ilup.size and not ildown.size:
@@ -63,17 +64,17 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
              np.min(ildown) if ildown.size else float('inf'))
     LPick = t[isignal][il]
 
-    #get earliest possible pick
+    # get earliest possible pick
 
-    #determine all zero crossings in signal window (demeaned)
+    # determine all zero crossings in signal window (demeaned)
     zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
-    #calculate mean half period T0 of signal as the average of the
-    T0 = np.mean(np.diff(zc)) * X[0].stats.delta  #this is half wave length!
-    #T0/4 is assumed as time difference between most likely and earliest possible pick!
+    # calculate mean half period T0 of signal as the average of the
+    T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
+    # T0/4 is assumed as time difference between most likely and earliest possible pick!
     EPick = Pick1 - T0 / 2
 
-    #get symmetric pick error as mean from earliest and latest possible pick
-    #by weighting latest possible pick two times earliest possible pick
+    # get symmetric pick error as mean from earliest and latest possible pick
+    # by weighting latest possible pick two times earliest possible pick
     diffti_tl = LPick - Pick1
     diffti_te = Pick1 - EPick
     PickError = (diffti_te + 2 * diffti_tl) / 3
@@ -84,7 +85,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
         p2, = plt.plot(t[inoise], x[inoise])
         p3, = plt.plot(t[isignal], x[isignal], 'r')
         p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k')
-        p5, = plt.plot(t[isignal[0][zc]], np.zeros(len(zc)), '*g', markersize=14)
+        p5, = plt.plot(t[isignal[0][zc]], np.zeros(len(zc)), '*g',
+                       markersize=14)
         plt.legend([p1, p2, p3, p4, p5],
                    ['Data', 'Noise Window', 'Signal Window', 'Noise Level',
                     'Zero Crossings'], \
@@ -149,13 +151,13 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         # get pick window
         ipick = np.where(
             (t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
-        #remove mean
+        # remove mean
         xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
         xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
 
-        #get next zero crossing after most likely pick
-        #initial onset is assumed to be the first zero crossing
-        #first from unfiltered trace
+        # get next zero crossing after most likely pick
+        # initial onset is assumed to be the first zero crossing
+        # first from unfiltered trace
         zc1 = []
         zc1.append(Pick)
         index1 = []
@@ -171,9 +173,9 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             if len(zc1) == 3:
                 break
 
-        #if time difference betweeen 1st and 2cnd zero crossing
-        #is too short, get time difference between 1st and 3rd
-        #to derive maximum
+        # if time difference betweeen 1st and 2cnd zero crossing
+        # is too short, get time difference between 1st and 3rd
+        # to derive maximum
         if zc1[1] - zc1[0] <= Xraw[0].stats.delta:
             li1 = index1[1]
         else:
@@ -184,13 +186,13 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][li1]]))
             islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
-            #calculate slope as polynomal fit of order 1
+            # calculate slope as polynomal fit of order 1
             xslope1 = np.arange(0, len(xraw[islope1]), 1)
             P1 = np.polyfit(xslope1, xraw[islope1], 1)
             datafit1 = np.polyval(P1, xslope1)
 
-        #now using filterd trace
-        #next zero crossing after most likely pick
+        # now using filterd trace
+        # next zero crossing after most likely pick
         zc2 = []
         zc2.append(Pick)
         index2 = []
@@ -206,9 +208,9 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             if len(zc2) == 3:
                 break
 
-        #if time difference betweeen 1st and 2cnd zero crossing
-        #is too short, get time difference between 1st and 3rd
-        #to derive maximum
+        # if time difference betweeen 1st and 2cnd zero crossing
+        # is too short, get time difference between 1st and 3rd
+        # to derive maximum
         if zc2[1] - zc2[0] <= Xfilt[0].stats.delta:
             li2 = index2[1]
         else:
@@ -219,12 +221,12 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
             islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
-            #calculate slope as polynomal fit of order 1
+            # calculate slope as polynomal fit of order 1
             xslope2 = np.arange(0, len(xfilt[islope2]), 1)
             P2 = np.polyfit(xslope2, xfilt[islope2], 1)
             datafit2 = np.polyval(P2, xslope2)
 
-        #compare results
+        # compare results
         if P1 is not None and P2 is not None:
             if P1[0] < 0 and P2[0] < 0:
                 FM = 'D'
@@ -280,10 +282,12 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
 
     return FM
 
+
 def crossings_nonzero_all(data):
     pos = data > 0
     npos = ~pos
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+
 
 def getSNR(X, TSNR, t1):
     '''
@@ -311,7 +315,7 @@ def getSNR(X, TSNR, t1):
     # get noise window
     inoise = getnoisewin(t, t1, TSNR[0], TSNR[1])
 
-    #get signal window
+    # get signal window
     isignal = getsignalwin(t, t1, TSNR[2])
     if np.size(inoise) < 1:
         print 'getSNR: Empty array inoise, check noise window!'
@@ -320,7 +324,7 @@ def getSNR(X, TSNR, t1):
         print 'getSNR: Empty array isignal, check signal window!'
         return
 
-    #calculate ratios
+    # calculate ratios
     noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
     signallevel = np.sqrt(np.mean(np.square(x[isignal])))
     SNR = signallevel / noiselevel
@@ -382,6 +386,7 @@ def getsignalwin(t, t1, tsignal):
 
     return isignal
 
+
 def wadaticheck(pickdic, dttolerance, iplot):
     '''
     Function to calculate Wadati-diagram from given P and S onsets in order
@@ -408,29 +413,34 @@ def wadaticheck(pickdic, dttolerance, iplot):
     vpvs = []
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
-           # calculate S-P time
-           spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
-           # add S-P time to dictionary
-           pickdic[key]['SPt'] = spt
-           # add P onsets and corresponding S-P times to list
-           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp']) - UTCDateTime(1970,1,1,0,0,0)
-           UTCSpick = UTCDateTime(pickdic[key]['S']['mpp']) - UTCDateTime(1970,1,1,0,0,0)
-           Ppicks.append(UTCPpick)
-           Spicks.append(UTCSpick)
-           SPtimes.append(spt)
-           vpvs.append(UTCPpick/UTCSpick)
-
+            # calculate S-P time
+            spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
+            # add S-P time to dictionary
+            pickdic[key]['SPt'] = spt
+            # add P onsets and corresponding S-P times to list
+            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp']) - UTCDateTime(1970,
+                                                                           1, 1,
+                                                                           0, 0,
+                                                                           0)
+            UTCSpick = UTCDateTime(pickdic[key]['S']['mpp']) - UTCDateTime(1970,
+                                                                           1, 1,
+                                                                           0, 0,
+                                                                           0)
+            Ppicks.append(UTCPpick)
+            Spicks.append(UTCSpick)
+            SPtimes.append(spt)
+            vpvs.append(UTCPpick / UTCSpick)
 
     if len(SPtimes) >= 3:
-    	# calculate slope
-    	p1 = np.polyfit(Ppicks, SPtimes, 1)
-    	wdfit = np.polyval(p1, Ppicks)
+        # calculate slope
+        p1 = np.polyfit(Ppicks, SPtimes, 1)
+        wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
 
         # calculate average vp/vs ratio before check
         vpvsr = p1[0] + 1
         print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
- 
+
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
@@ -439,7 +449,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
                 ii = 0
-            	wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
+                wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
@@ -449,22 +459,23 @@ def wadaticheck(pickdic, dttolerance, iplot):
                     pickdic[key]['S']['weight'] = 9
                 else:
                     marker = 'goodWadatiCheck'
-                    checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp']) - \
-                                                 UTCDateTime(1970,1,1,0,0,0)
+                    checkedPpick = UTCDateTime(pickdic[key]['P']['mpp']) - \
+                                   UTCDateTime(1970, 1, 1, 0, 0, 0)
                     checkedPpicks.append(checkedPpick)
                     checkedSpick = UTCDateTime(pickdic[key]['S']['mpp']) - \
-                                                 UTCDateTime(1970,1,1,0,0,0)
+                                   UTCDateTime(1970, 1, 1, 0, 0, 0)
                     checkedSpicks.append(checkedSpick)
-                    checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
+                    checkedSPtime = pickdic[key]['S']['mpp'] - \
+                                    pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
-                    checkedvpvs.append(checkedPpick/checkedSpick)
+                    checkedvpvs.append(checkedPpick / checkedSpick)
 
                 pickdic[key]['S']['marked'] = marker
 
 
-    	# calculate new slope
-    	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
-    	wdfit2 = np.polyval(p2, checkedPpicks)
+        # calculate new slope
+        p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
+        wdfit2 = np.polyval(p2, checkedPpicks)
 
         # calculate average vp/vs ratio after check
         cvpvsr = p2[0] + 1
@@ -473,24 +484,26 @@ def wadaticheck(pickdic, dttolerance, iplot):
         checkedonsets = pickdic
 
     else:
-    	print 'wadaticheck: Not enough S-P times available for reliable regression!'
+        print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
 
     # plot results
     if iplot > 1:
-    	plt.figure(iplot)
-    	f1, = plt.plot(Ppicks, SPtimes, 'ro')
+        plt.figure(iplot)
+        f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
-        	f2, = plt.plot(Ppicks, wdfit, 'k')
-                f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
-                f4, = plt.plot(checkedPpicks, wdfit2, 'g')
+            f2, = plt.plot(Ppicks, wdfit, 'k')
+            f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
+            f4, = plt.plot(checkedPpicks, wdfit2, 'g')
         plt.ylabel('S-P Times [s]')
         plt.xlabel('P Times [s]')
-        plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(old)=%5.2f, Vp/Vs(checked)=%5.2f' \
-                                                     % (len(SPtimes), vpvsr, cvpvsr))
-        plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', 'Reliable S-Picks', \
-                                       'Wadati 2'], loc='best')
+        plt.title(
+            'Wadati-Diagram, %d S-P Times, Vp/Vs(old)=%5.2f, Vp/Vs(checked)=%5.2f' \
+            % (len(SPtimes), vpvsr, cvpvsr))
+        plt.legend([f1, f2, f3, f4],
+                   ['Skipped S-Picks', 'Wadati 1', 'Reliable S-Picks', \
+                    'Wadati 2'], loc='best')
         plt.show()
         raw_input()
         plt.close(iplot)
