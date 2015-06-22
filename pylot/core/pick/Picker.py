@@ -292,6 +292,7 @@ class PragPicker(AutoPicking):
            self.Pick = None 
            self.SNR = None
            self.slope = None
+           pickflag = 0
            #smooth CF
            ismooth = int(round(self.Tsmooth / self.dt))
            cfsmooth = np.zeros(len(self.cf))
@@ -354,15 +355,22 @@ class PragPicker(AutoPicking):
            #now decide which pick: left or right?
            if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= cfpick_r:
               self.Pick = pick_l
+              pickflag = 1
            elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
               self.Pick = pick_r
+              pickflag = 1
+           else:
+              print 'PragPicker: Could not find reliable onset!'
+              self.Pick = None
+              pickflag = 0
 
            if self.getiplot() > 1:
               p = plt.figure(self.getiplot())
               p1, = plt.plot(Tcfpick,cfipick, 'k')
               p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
-              p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
-              plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick']) 
+              if pickflag > 0:
+              	p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
+              	plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick']) 
               plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
               plt.yticks([])
               plt.title(self.Data[0].stats.station)
@@ -371,6 +379,6 @@ class PragPicker(AutoPicking):
               plt.close(p)
 
         else: 
-           self.Pick = None
            print 'PragPicker: No initial onset time given! Check input!'
+           self.Pick = None
            return
