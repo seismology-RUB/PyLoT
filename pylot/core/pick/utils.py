@@ -409,7 +409,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
            # calculate S-P time
-           spt = UTCDateTime(pickdic[key]['S']['mpp']) - UTCDateTime(pickdic[key]['P']['mpp'])
+           spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
            # add S-P time to dictionary
            pickdic[key]['SPt'] = spt
            # add P onsets and corresponding S-P times to list
@@ -420,15 +420,16 @@ def wadaticheck(pickdic, dttolerance, iplot):
            SPtimes.append(spt)
            vpvs.append(UTCPpick/UTCSpick)
 
-    # calculate average vp/vs ratio before check
-    vpvsr = np.mean(vpvs)
-    print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
 
     if len(SPtimes) >= 3:
     	# calculate slope 
     	p1 = np.polyfit(Ppicks, SPtimes, 1)
     	wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
+     
+        # calculate average vp/vs ratio before check
+        vpvsr = p1[0] + 1
+        print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
  
         checkedPpicks = []
         checkedSpicks = []
@@ -454,20 +455,20 @@ def wadaticheck(pickdic, dttolerance, iplot):
                     checkedSpick = UTCDateTime(pickdic[key]['S']['mpp']) - \
                                                  UTCDateTime(1970,1,1,0,0,0)
                     checkedSpicks.append(checkedSpick)
-                    checkedSPtime = UTCDateTime(pickdic[key]['S']['mpp']) - \
-                                                 UTCDateTime(pickdic[key]['P']['mpp'])
+                    checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
                     checkedvpvs.append(checkedPpick/checkedSpick)
 
                 pickdic[key]['S']['marked'] = marker
 
-        # calculate average vp/vs ratio after check
-        cvpvsr = np.mean(checkedvpvs)
-        print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
 
     	# calculate new slope 
     	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
     	wdfit2 = np.polyval(p2, checkedPpicks)
+
+        # calculate average vp/vs ratio after check
+        cvpvsr = p2[0] + 1
+        print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
 
         checkedonsets = pickdic
  
@@ -478,7 +479,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     # plot results
     if iplot > 1:
-    	f = plt.figure(iplot)
+    	plt.figure(iplot)
     	f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
         	f2, = plt.plot(Ppicks, wdfit, 'k')
@@ -492,6 +493,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
                                        'Wadati 2'], loc='best')
         plt.show()
         raw_input()
-        plt.close(f)
+        plt.close(iplot)
 
     return checkedonsets
