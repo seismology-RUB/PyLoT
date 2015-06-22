@@ -3,12 +3,34 @@
 # -*- coding: utf-8 -*-
 
 import os
+import subprocess
 import pwd
 import re
 import hashlib
 import numpy as np
 from obspy.core import UTCDateTime
 import obspy.core.event as ope
+
+def runProgram(cmd, parameter=None):
+    """
+    run an external program specified by cmd with parameters input returning the
+    stdout output
+
+    :param cmd: name of the command to run
+    :type cmd: str
+    :param parameter: filename of parameter file  or parameter string
+    :type parameter: str
+    :return: stdout output
+    :rtype: str
+    """
+
+    if parameter:
+        cmd.strip()
+        cmd += ' %s 2>&1' % parameter
+
+    output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
+                                     shell = True)
+
 
 
 def fnConstructor(s):
