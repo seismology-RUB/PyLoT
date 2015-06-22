@@ -65,8 +65,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
     #get earliest possible pick
 
-    #determine all zero crossings in signal window
-    zc = crossings_nonzero_all(x[isignal])
+    #determine all zero crossings in signal window (demeaned)
+    zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
     #calculate mean half period T0 of signal as the average of the
     T0 = np.mean(np.diff(zc)) * X[0].stats.delta  #this is half wave length!
     #T0/4 is assumed as time difference between most likely and earliest possible pick!
@@ -390,8 +390,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     : param: pickdic, dictionary containing picks and quality parameters
     : type:  dictionary
-    
-    : param: dttolerance, maximum adjusted deviation of S-P time from 
+
+    : param: dttolerance, maximum adjusted deviation of S-P time from
              S-P time regression
     : type:  float
 
@@ -425,11 +425,11 @@ def wadaticheck(pickdic, dttolerance, iplot):
     print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
 
     if len(SPtimes) >= 3:
-    	# calculate slope 
+    	# calculate slope
     	p1 = np.polyfit(Ppicks, SPtimes, 1)
     	wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
- 
+
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
@@ -438,11 +438,11 @@ def wadaticheck(pickdic, dttolerance, iplot):
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
                 ii = 0
-            	wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])    	
+            	wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
-                    # mark onset and downgrade S-weight to 9 
+                    # mark onset and downgrade S-weight to 9
                     # (not used anymore)
                     marker = 'badWadatiCheck'
                     pickdic[key]['S']['weight'] = 9
@@ -465,12 +465,12 @@ def wadaticheck(pickdic, dttolerance, iplot):
         cvpvsr = np.mean(checkedvpvs)
         print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
 
-    	# calculate new slope 
+    	# calculate new slope
     	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
     	wdfit2 = np.polyval(p2, checkedPpicks)
 
         checkedonsets = pickdic
- 
+
     else:
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
