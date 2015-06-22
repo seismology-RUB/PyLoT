@@ -487,7 +487,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', \
                            'Reliable S-Picks', 'Wadati 2'], loc='best')
         else:
-        	f1, = plt.plot(Ppicks, 'k') 
         	plt.title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
 
         plt.ylabel('S-P Times [s]')
