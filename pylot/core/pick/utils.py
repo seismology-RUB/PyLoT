@@ -493,7 +493,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
         wfitflag = 1
 
     # plot results
-    iplot=2
     if iplot > 1:
     	plt.figure(iplot)
     	f1, = plt.plot(Ppicks, SPtimes, 'ro')
