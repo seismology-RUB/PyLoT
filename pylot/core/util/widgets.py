@@ -411,10 +411,17 @@ class PickDlg(QDialog):
             'VLRW': 15.
         }
 
-        result = getSNR(wfdata, (5., .5, 2.), ini_pick)
+        settings = QSettings()
+
+        nfac = settings.value('picking/nfac', 1.5)
+        noise_win = settings.value('picking/noise_win', 5.)
+        gap_win = settings.value('picking/gap_win', .5)
+        signal_win = settings.value('picking/signal_win', 1.5)
+
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
 
         snr = result[0]
-        noiselevel = result[2] * 1.5
+        noiselevel = result[2] * nfac
 
         if snr < 1.5:
             x_res = res_wins['VLRW']
