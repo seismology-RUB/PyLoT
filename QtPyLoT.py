@@ -64,8 +64,8 @@ class MainWindow(QMainWindow):
             settings.setValue("agency_id", agency)
         self.recentEvents = settings.value("data/recentEvents", [])
         self.fnames = None
-        self.dataStructure = DATASTRUCTURE[
-            settings.value("data/Structure", "PILOT")]()
+        structure_setting = settings.value("data/Structure", "PILOT")
+        self.dataStructure = DATASTRUCTURE[structure_setting]()
         self.seismicPhase = str(settings.value("phase", "P"))
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
