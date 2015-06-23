@@ -183,10 +183,17 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             li1 = index1[0]
         if np.size(xraw[ipick[0][1]:ipick[0][li1]]) == 0:
-            print 'earllatepicker: Onset on unfiltered trace too emergent for first motion determination!'
+            print 'fmpicker: Onset on unfiltered trace too emergent for first motion determination!'
             P1 = None
         else:
             imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][li1]]))
+            if imax1 == 0:
+            	imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][index1[1]]]))
+                if imax1 == 0:
+                	print 'fmpicker: Zero crossings too close!'
+                        print 'Skip first motion determination!'
+                        return FM
+
             islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
             # calculate slope as polynomal fit of order 1
             xslope1 = np.arange(0, len(xraw[islope1]), 1)
@@ -218,10 +225,17 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             li2 = index2[0]
         if np.size(xfilt[ipick[0][1]:ipick[0][li2]]) == 0:
-            print 'earllatepicker: Onset on filtered trace too emergent for first motion determination!'
+            print 'fmpicker: Onset on filtered trace too emergent for first motion determination!'
             P2 = None
         else:
             imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
+            if imax2 == 0:
+            	imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][index2[1]]]))
+                if imax1 == 0:
+                	print 'fmpicker: Zero crossings too close!'
+                        print 'Skip first motion determination!'
+                        return FM
+
             islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
             # calculate slope as polynomal fit of order 1
             xslope2 = np.arange(0, len(xfilt[islope2]), 1)
@@ -459,14 +473,17 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
                 pickdic[key]['S']['marked'] = marker
 
+        if len(checkedPpicks) >= 3:
+    		# calculate new slope
+    		p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
+    		wdfit2 = np.polyval(p2, checkedPpicks)
 
-    	# calculate new slope
-    	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
-    	wdfit2 = np.polyval(p2, checkedPpicks)
-
-        # calculate vp/vs ratio after check
-        cvpvsr = p2[0] + 1
-        print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
+        	# calculate vp/vs ratio after check
+        	cvpvsr = p2[0] + 1
+        	print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
+        else:
+        	print 'wadatacheck: Not enough checked S-P times available!'
+                print 'Skip Wadati check!' 
 
         checkedonsets = pickdic
 
@@ -476,6 +493,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         wfitflag = 1
 
     # plot results
+    iplot=2
     if iplot > 1:
     	plt.figure(iplot)
     	f1, = plt.plot(Ppicks, SPtimes, 'ro')
