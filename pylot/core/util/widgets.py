@@ -433,9 +433,15 @@ class PickDlg(QDialog):
             x_res = res_wins['HRW']
         x_res /= 2
 
-        zoomx = [ini_pick - x_res, ini_pick + x_res]
-        zoomy = [-noiselevel * 1.5, noiselevel * 1.5]
-        self.getPlotWidget().plotWFData(wfdata=wfdata,
+        # demean data before plotting
+        data = self.getWFData().copy()
+        starttime = getGlobalTimes(data)[0]
+        for tr in data:
+            stime = tr.stats.starttime - starttime
+            t = prepTimeAxis(stime, tr)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            tr.data -= tr.data[inoise].mean()
+
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
