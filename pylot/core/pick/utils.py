@@ -353,9 +353,8 @@ def getnoisewin(t, t1, tnoise, tgap):
     :type: float
     '''
 
-    inoise = None
     # get noise window
-    inoise = np.where((t <= max([t1 - tgap, 0])) \
+    inoise, = np.where((t <= max([t1 - tgap, 0])) \
                       & (t >= max([t1 - tnoise - tgap, 0])))
     if np.size(inoise) < 1:
         print 'getnoisewin: Empty array inoise, check noise window!'
@@ -378,9 +377,8 @@ def getsignalwin(t, t1, tsignal):
     :type: float
     '''
 
-    inoise = None
     # get signal window
-    isignal = np.where((t <= min([t1 + tsignal, len(t)])) \
+    isignal, = np.where((t <= min([t1 + tsignal, len(t)])) \
                        & (t >= t1))
     if np.size(isignal) < 1:
         print 'getsignalwin: Empty array isignal, check signal window!'
