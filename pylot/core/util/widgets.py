@@ -320,6 +320,7 @@ class PickDlg(QDialog):
             self.disconnectMotionEvent()
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
+            self.filterWFData(phase)
         else:
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
