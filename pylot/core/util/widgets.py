@@ -88,7 +88,7 @@ class MPLWidget(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None):
-        self.axes.cla()
+        self.getAxes().cla()
         self.clearPlotDict()
         wfstart = getGlobalTimes(wfdata)[0]
         for n, trace in enumerate(wfdata):
@@ -98,41 +98,54 @@ class MPLWidget(FigureCanvas):
             print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
-            trace.detrend()
-            trace.detrend('demean')
-            trace.normalize(trace.data.max() * 2)
-            self.axes.plot(time_ax, trace.data + n, 'k')
+            trace.normalize(np.max(np.abs(trace.data)) * 2)
+            self.getAxes().plot(time_ax, trace.data + n, 'k')
             if noiselevel is not None:
-                self.axes.plot([time_ax[0], time_ax[-1]],
-                               [noiselevel, noiselevel], '--k')
-                self.axes.plot([time_ax[0], time_ax[-1]],
-                               [-noiselevel, -noiselevel], '--k')
+                self.getAxes().plot([time_ax[0], time_ax[-1]],
+                               [noiselevel[0], noiselevel[0]], '--k')
+                self.getAxes().plot([time_ax[0], time_ax[-1]],
+                               [noiselevel[1], noiselevel[1]], '--k')
             xlabel = 'seconds since {0}'.format(wfstart)
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
             self.setPlotDict(n, (station, channel))
         self.axes.autoscale(tight=True)
-        if zoomx:
-            self.axes.set_xlim(zoomx)
-        if zoomy:
-            self.axes.set_ylim(zoomy)
+        if zoomx is not None:
+            self.setXLims(zoomx)
+        if zoomy is not None:
+            self.setYLims(zoomy)
         self.draw()
 
+    def getAxes(self):
+        return self.axes
+
+    def getXLims(self):
+        return self.getAxes().get_xlim()
+
+    def getYLims(self):
+        return self.getAxes().get_ylim()
+
+    def setXLims(self, lims):
+        self.getAxes().set_xlim(lims)
+
+    def setYLims(self, lims):
+        self.getAxes().set_ylim(lims)
+
     def setYTickLabels(self, pos, labels):
-        self.axes.set_yticks(pos)
-        self.axes.set_yticklabels(labels)
+        self.getAxes().set_yticks(pos)
+        self.getAxes().set_yticklabels(labels)
         self.draw()
 
     def updateXLabel(self, text):
-        self.axes.set_xlabel(text)
+        self.getAxes().set_xlabel(text)
         self.draw()
 
     def updateYLabel(self, text):
-        self.axes.set_ylabel(text)
+        self.getAxes().set_ylabel(text)
         self.draw()
 
     def updateTitle(self, text):
-        self.axes.set_title(text)
+        self.getAxes().set_title(text)
         self.draw()
 
     def updateWidget(self, xlabel, ylabel, title):
@@ -141,8 +154,8 @@ class MPLWidget(FigureCanvas):
         self.updateTitle(title)
 
     def insertLabel(self, pos, text):
-        pos = pos / max(self.axes.ylim)
-        axann = self.axes.annotate(text, xy=(.03, pos),
+        pos = pos / max(self.getAxes().ylim)
+        axann = self.getAxes().annotate(text, xy=(.03, pos),
                                    xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
@@ -160,6 +173,8 @@ class PickDlg(QDialog):
         self.press = None
         self.xpress = None
         self.ypress = None
+        self.cur_xlim = None
+        self.cur_ylim = None
 
         # set attribute holding data
         if data is None:
@@ -182,9 +197,14 @@ class PickDlg(QDialog):
         # plot data
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
-        self.limits = {'xlims': self.getPlotWidget().axes.get_xlim(),
-                       'ylims': self.getPlotWidget().axes.get_ylim()}
-        self.apd = self.getWFData()
+
+        xlims = self.getPlotWidget().getXLims()
+        ylims = self.getPlotWidget().getYLims()
+
+        self.limits = {'x': xlims,
+                       'y': ylims}
+
+        self.updateCurrentLimits()
 
         # set plot labels
 
@@ -293,6 +313,7 @@ class PickDlg(QDialog):
 
     def verifyPhaseSelection(self):
         phase = self.selectPhase.currentText()
+        self.updateCurrentLimits()
         if phase:
             self.disconnectReleaseEvent()
             self.disconnectScrollEvent()
@@ -320,6 +341,25 @@ class PickDlg(QDialog):
 
     def getChannelID(self, key):
         return self.getPlotWidget().getPlotDict()[int(key)][1]
+
+    def getXLims(self):
+        return self.cur_xlim
+
+    def getYLims(self):
+        return self.cur_ylim
+
+    def setXLims(self, limits):
+        self.cur_xlim = limits
+
+    def setYLims(self, limits):
+        self.cur_ylim = limits
+
+    def getGlobalLimits(self, axis):
+        return self.limits[axis]
+
+    def updateCurrentLimits(self):
+        self.setXLims(self.getPlotWidget().getXLims())
+        self.setYLims(self.getPlotWidget().getYLims())
 
     def getWFData(self):
         return self.data
@@ -394,11 +434,16 @@ class PickDlg(QDialog):
         zoomx = [ini_pick - x_res, ini_pick + x_res]
         zoomy = [-noiselevel * 1.5, noiselevel * 1.5]
         self.getPlotWidget().plotWFData(wfdata=wfdata,
+        self.setXLims([ini_pick - x_res, ini_pick + x_res])
+        self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
+                      trace_number)
                                         title=self.getStation() +
                                               ' picking mode',
                                         zoomx=zoomx,
                                         zoomy=zoomy,
                                         noiselevel=noiselevel)
+                                        zoomx=self.getXLims(),
+                                        zoomy=self.getYLims(),
 
         self.zoomAction.setEnabled(False)
 
@@ -408,6 +453,10 @@ class PickDlg(QDialog):
         self.setPlotLabels()
 
     def setPick(self, gui_event):
+
+        # get axes limits
+        self.updateCurrentLimits()
+
         # setting pick
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
@@ -452,12 +501,15 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
+        self.getPlotWidget().setXLims(self.getXLims())
+        self.getPlotWidget().setYLims(self.getYLims())
 
     def drawPicks(self, phase=None):
         # plotting picks
         ax = self.getPlotWidget().axes
 
         ylims = ax.get_ylim()
+        ylims = self.getGlobalLimits('y')
         if self.getPicks():
             if phase is not None:
                 picks = self.getPicks()[phase]
@@ -529,6 +581,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.getPlotWidget().setYTickLabels(pos, labels)
+        self.getPlotWidget().setXLims(self.getXLims())
+        self.getPlotWidget().setYLims(self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked():
@@ -545,10 +599,7 @@ class PickDlg(QDialog):
 
     def scrollZoom(self, gui_event, factor=2.):
 
-        widget = self.getPlotWidget()
-
-        curr_xlim = widget.axes.get_xlim()
-        curr_ylim = widget.axes.get_ylim()
+        self.updateCurrentLimits()
 
         if gui_event.button == 'up':
             scale_factor = 1 / factor
@@ -561,20 +612,25 @@ class PickDlg(QDialog):
             print gui_event.button
 
         new_xlim = gui_event.xdata - \
-                   scale_factor * (gui_event.xdata - curr_xlim)
+                   scale_factor * (gui_event.xdata - self.getXLims())
         new_ylim = gui_event.ydata - \
-                   scale_factor * (gui_event.ydata - curr_ylim)
+                   scale_factor * (gui_event.ydata - self.getYLims())
 
         new_xlim.sort()
-        new_xlim[0] = max(new_xlim[0], self.limits['xlims'][0])
-        new_xlim[1] = min(new_xlim[1], self.limits['xlims'][1])
+        global_x = self.getGlobalLimits('x')
+        global_y = self.getGlobalLimits('y')
+        new_xlim[0] = max(new_xlim[0], global_x[0])
+        new_xlim[1] = min(new_xlim[1], global_x[1])
         new_ylim.sort()
-        new_ylim[0] = max(new_ylim[0], self.limits['ylims'][0])
-        new_ylim[1] = min(new_ylim[1], self.limits['ylims'][1])
+        new_ylim[0] = max(new_ylim[0], global_y[0])
+        new_ylim[1] = min(new_ylim[1], global_y[1])
 
-        widget.axes.set_xlim(new_xlim)
-        widget.axes.set_ylim(new_ylim)
-        widget.draw()
+        self.getPlotWidget().setXLims(new_xlim)
+        self.getPlotWidget().setYLims(new_ylim)
+        self.draw()
+
+    def draw(self):
+        self.getPlotWidget().draw()
 
     def apply(self):
         picks = self.getPicks()
