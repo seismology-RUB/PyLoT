@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
-import pdb
+
 def run_autopicking(wfstream, pickparam):
     """
     :param: wfstream
@@ -482,8 +482,8 @@ def run_autopicking(wfstream, pickparam):
         plt.ylim([-1.5, 1.5])
         plt.ylabel('Normalized Counts')
         plt.suptitle(tr_filt.stats.starttime)
-
-        if len(edat) > 1 and len(ndat) > 1 and Sflag == 1:
+        
+        if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
             # plot horizontal traces
             plt.subplot(3, 1, 2)
             th1data = np.arange(0,
