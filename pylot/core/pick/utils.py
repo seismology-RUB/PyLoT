@@ -89,7 +89,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
         p2, = plt.plot(t[inoise], x[inoise])
         p3, = plt.plot(t[isignal], x[isignal], 'r')
         p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k')
-        p5, = plt.plot(t[isignal[0][zc]], np.zeros(len(zc)), '*g',
+        p5, = plt.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
                        markersize=14)
         plt.legend([p1, p2, p3, p4, p5],
                    ['Data', 'Noise Window', 'Signal Window', 'Noise Level',
@@ -105,8 +105,6 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
                  [max(x) / 2, -max(x) / 2], 'r--')
         plt.xlabel('Time [s] since %s' % X[0].stats.starttime)
         plt.yticks([])
-        ax = plt.gca()
-        ax.set_xlim([t[inoise[0][0]] - 2, t[isignal[0][len(isignal) - 1]] + 3])
         plt.title(
             'Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' %
             X[0].stats.station)
