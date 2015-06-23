@@ -25,7 +25,7 @@ from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from obspy.core.event import Pick, WaveformStreamID
 from pylot.core.read import FilterOptions
-from pylot.core.pick.utils import getSNR, earllatepicker
+from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin
 from pylot.core.util.defaults import OUTPUTFORMATS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -457,6 +457,8 @@ class PickDlg(QDialog):
 
         # reset labels
         self.setPlotLabels()
+        self.draw()
+
 
     def setPick(self, gui_event):
 
@@ -507,7 +509,6 @@ class PickDlg(QDialog):
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
         self.drawPicks(phase)
-        self.setPlotLabels()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
@@ -517,8 +518,6 @@ class PickDlg(QDialog):
     def drawPicks(self, phase=None):
         # plotting picks
         ax = self.getPlotWidget().axes
-
-        ylims = ax.get_ylim()
         ylims = self.getGlobalLimits('y')
         if self.getPicks():
             if phase is not None:
@@ -539,8 +538,6 @@ class PickDlg(QDialog):
         ax.plot([mpp - spe, mpp - spe], ylims, 'c--',
                 [mpp, mpp], ylims, 'b-',
                 [mpp + spe, mpp + spe], ylims, 'c--')
-
-        self.getPlotWidget().draw()
 
     def panPress(self, gui_event):
         ax = self.getPlotWidget().axes
