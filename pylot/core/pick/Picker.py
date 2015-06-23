@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from pylot.core.pick.utils import *
 from pylot.core.pick.CharFuns import CharacteristicFunction
 import warnings
-import pdb
+
 class AutoPicking(object):
     '''
     Superclass of different, automated picking algorithms applied on a CF determined
@@ -327,40 +327,44 @@ class PragPicker(AutoPicking):
            #at first we look to the right until the end of the pick window is reached
            flagpick_r = 0
            flagpick_l = 0
-           flagpick = 0
+           cfpick_r = 0
+           cfpick_l = 0
            lpickwindow = int(round(self.PickWindow / self.dt))
            for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
               if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
                  if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
                     if cfpick1 >= self.cf[i]:     
-                       pick_r = self.Tcf[i]
-                       self.Pick = pick_r
-                       flagpick_l = 1
-                       cfpick_r = self.cf[i]
-                       break
+                    	pick_r = self.Tcf[i]
+                    	self.Pick = pick_r
+                    	flagpick_l = 1
+                    	cfpick_r = self.cf[i]
+                    	break
 
-           #now we look to the left
+           # now we look to the left
            for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
               if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
                  if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
                     if cfpick1 >= self.cf[i]:     
-                       pick_l = self.Tcf[i]
-                       self.Pick = pick_l
-                       flagpick_r = 1
-                       cfpick_l = self.cf[i]
-                       break
+                    	pick_l = self.Tcf[i]
+                    	self.Pick = pick_l
+                    	flagpick_r = 1
+                    	cfpick_l = self.cf[i]
+                    	break
 
-           #now decide which pick: left or right?
+           # now decide which pick: left or right?
            if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= cfpick_r:
-              self.Pick = pick_l
-              pickflag = 1
+           	self.Pick = pick_l
+           	pickflag = 1
            elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
-              self.Pick = pick_r
-              pickflag = 1
+           	self.Pick = pick_r
+           	pickflag = 1
+           elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
+                self.Pick = pick_l
+                pickflag = 1 
            else:
-              print 'PragPicker: Could not find reliable onset!'
-              self.Pick = None
-              pickflag = 0
+           	print 'PragPicker: Could not find reliable onset!'
+           	self.Pick = None
+           	pickflag = 0
 
            if self.getiplot() > 1:
               p = plt.figure(self.getiplot())
