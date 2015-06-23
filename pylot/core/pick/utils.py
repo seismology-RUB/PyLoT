@@ -393,8 +393,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     : param: pickdic, dictionary containing picks and quality parameters
     : type:  dictionary
-    
-    : param: dttolerance, maximum adjusted deviation of S-P time from 
+
+    : param: dttolerance, maximum adjusted deviation of S-P time from
              S-P time regression
     : type:  float
 
@@ -423,15 +423,15 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
 
     if len(SPtimes) >= 3:
-    	# calculate slope 
+    	# calculate slope
     	p1 = np.polyfit(Ppicks, SPtimes, 1)
     	wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
-     
+
         # calculate vp/vs ratio before check
         vpvsr = p1[0] + 1
         print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
- 
+
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
@@ -443,7 +443,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
-                    # mark onset and downgrade S-weight to 9 
+                    # mark onset and downgrade S-weight to 9
                     # (not used anymore)
                     marker = 'badWadatiCheck'
                     pickdic[key]['S']['weight'] = 9
@@ -459,7 +459,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 pickdic[key]['S']['marked'] = marker
 
 
-    	# calculate new slope 
+    	# calculate new slope
     	p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
     	wdfit2 = np.polyval(p2, checkedPpicks)
 
@@ -468,7 +468,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
 
         checkedonsets = pickdic
- 
+
     else:
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
