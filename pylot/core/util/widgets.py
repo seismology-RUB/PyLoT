@@ -554,12 +554,25 @@ class PickDlg(QDialog):
 
         ax.figure.canvas.draw()
 
-    def filterWFData(self):
-        ax = self.getPlotWidget().axes
-        ylims = ax.get_ylim()
-        xlims = ax.get_xlim()
+    def filterWFData(self, phase):
+        self.updateCurrentLimits()
+        data = self.getWFData().copy()
+        old_title = self.getPlotWidget().getAxes().get_title()
+        title = None
         if self.filterAction.isChecked():
+            filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+            data.filter(**filteroptions)
+            if old_title.endswith(')'):
+                title = old_title[:-1] + ', filtered)'
+            else:
+                title = old_title + ' (filtered)'
+        if not title:
+            title = old_title
+        self.getPlotWidget().plotWFData(wfdata=data, title=title,
+                                        zoomx=self.getXLims(),
+                                        zoomy=self.getYLims())
         self.setPlotLabels()
+        self.draw()
 
     def setPlotLabels(self):
 
