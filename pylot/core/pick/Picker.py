@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from pylot.core.pick.utils import *
 from pylot.core.pick.CharFuns import CharacteristicFunction
 import warnings
-
+import pdb
 class AutoPicking(object):
     '''
     Superclass of different, automated picking algorithms applied on a CF determined
@@ -267,9 +267,7 @@ class AICPicker(AutoPicking):
                         self.SNR, self.slope))
               plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
               plt.ylabel('Counts')
-              ax = plt.gca()
               plt.yticks([])
-              ax.set_xlim([self.Tcf[inoise[0][0]] - 5, self.Tcf[isignal[0][len(isignal) - 1]] + 5])
 
            plt.show()
            raw_input()
