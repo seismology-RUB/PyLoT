@@ -61,7 +61,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     ilup, = np.where(x[isignal] > nlevel)
     ildown, = np.where(x[isignal] < -nlevel)
     if not ilup.size and not ildown.size:
-        raise ValueError('earllatepicker: Signal lower than noise level')
+    	print 'earllatepicker: Signal lower than noise level!'
+        print 'Skip this trace!'
+        return LPick, EPick, PickError
     il = min(np.min(ilup) if ilup.size else float('inf'),
              np.min(ildown) if ildown.size else float('inf'))
     LPick = t[isignal][il]
