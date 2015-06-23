@@ -384,11 +384,7 @@ class PickDlg(QDialog):
     def getPicks(self):
         return self.picks
 
-    def getAPD(self):
-        return self.apd
 
-    def updateAPD(self, wfdata):
-        self.apd = wfdata
 
     def setIniPick(self, gui_event):
         channel = self.getChannelID(round(gui_event.ydata))
@@ -447,8 +443,6 @@ class PickDlg(QDialog):
 
         self.zoomAction.setEnabled(False)
 
-        self.updateAPD(wfdata)
-
         # reset labels
         self.setPlotLabels()
 
@@ -461,7 +455,7 @@ class PickDlg(QDialog):
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
 
-        wfdata = self.getAPD().copy().select(channel=channel)
+        wfdata = self.getWFData().copy().select(channel=channel)
         # get earliest and latest possible pick and symmetric pick error
         [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
 
@@ -497,7 +491,11 @@ class PickDlg(QDialog):
                                                               oepp=oepp,
                                                               ompp=ompp,
                                                               olpp=olpp)
+
+        self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
+                                        title=self.getStation())
         self.drawPicks(phase)
+        self.setPlotLabels()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
@@ -563,14 +561,6 @@ class PickDlg(QDialog):
         ylims = ax.get_ylim()
         xlims = ax.get_xlim()
         if self.filterAction.isChecked():
-            data = self.getAPD().copy()
-            data.filter(type='bandpass', freqmin=.5, freqmax=15.)
-            title = self.getStation() + ' (filtered)'
-        else:
-            data = self.getAPD().copy()
-            title = self.getStation()
-        self.getPlotWidget().plotWFData(wfdata=data, title=title, zoomx=xlims,
-                                        zoomy=ylims)
         self.setPlotLabels()
 
     def setPlotLabels(self):
