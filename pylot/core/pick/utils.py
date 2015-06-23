@@ -322,6 +322,9 @@ def getSNR(X, TSNR, t1):
         print 'getSNR: Empty array isignal, check signal window!'
         return
 
+    # demean over entire snr window
+    x -= x[inoise[0][0]:isignal[0][-1]].mean()
+
     # calculate ratios
     noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
     signallevel = np.sqrt(np.mean(np.square(x[isignal])))
