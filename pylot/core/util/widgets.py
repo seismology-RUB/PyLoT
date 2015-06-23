@@ -238,7 +238,7 @@ class PickDlg(QDialog):
                                              ' waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
-        self.selectPhase.addItems([None, 'Pn', 'Pg', 'P1', 'P2'])
+        self.selectPhase.addItems([None, 'Pn', 'Pg', 'Sn', 'Sg'])
 
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
