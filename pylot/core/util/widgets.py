@@ -326,9 +326,6 @@ class PickDlg(QDialog):
             self.cidmotion = self.connectMotionEvent(self.panMotion)
             self.cidrelease = self.connectReleaseEvent(self.panRelease)
             self.cidscroll = self.connectScrollEvent(self.scrollZoom)
-            self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
-                                            title=self.getStation())
-            self.drawPicks()
 
     def getComponents(self):
         return self.components
