@@ -375,7 +375,12 @@ def run_autopicking(wfstream, pickparam):
                 	epick = [epickS1, epickS2]
                 	lpick = [lpickS1, lpickS2]
                 	pickerr = [Serror1, Serror2]
-                	ipick = np.argmin([epickS1, epickS2])
+                        if epickS1 == None and epickS2 is not None:
+                        	ipick = 1
+                        elif epickS1 is not None and epickS2 == None:
+                        	ipick = 0
+                        elif epickS1 is not None and epickS is not None:
+                		ipick = np.argmin([epickS1, epickS2])
             	elif algoS == 'AR3':
                 	[lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
@@ -384,7 +389,18 @@ def run_autopicking(wfstream, pickparam):
                 	epick = [epickS1, epickS2, epickS3]
                 	lpick = [lpickS1, lpickS2, lpickS3]
                 	pickerr = [Serror1, Serror2, Serror3]
-                	ipick = np.argmin([epickS1, epickS2, epickS3])
+                        if epickS1 == None and epickS2 is not None \
+                                       and epickS3 is not None:
+                		ipick = np.argmin([epickS2, epickS3])
+                        elif epickS1 is not None and epickS2 == None \
+                                       and epickS3 is not None:
+                		ipick = np.argmin([epickS2, epickS3])
+                        elif epickS1 is not None and epickS2 is not None \
+                                       and epickS3 == None:
+                		ipick = np.argmin([epickS1, epickS2])
+                        elif epickS1 is not None and epickS2 is not None \
+                                       and epickS3 is not None:
+                		ipick = np.argmin([epickS1, epickS2, epickS3])
             	epickS = epick[ipick]
             	lpickS = lpick[ipick]
             	Serror = pickerr[ipick]
