@@ -379,7 +379,7 @@ def run_autopicking(wfstream, pickparam):
                         	ipick = 1
                         elif epickS1 is not None and epickS2 == None:
                         	ipick = 0
-                        elif epickS1 is not None and epickS is not None:
+                        elif epickS1 is not None and epickS2 is not None:
                 		ipick = np.argmin([epickS1, epickS2])
             	elif algoS == 'AR3':
                 	[lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
