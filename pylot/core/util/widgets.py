@@ -381,10 +381,11 @@ class PickDlg(QDialog):
     def getPicks(self):
         return self.picks
 
-
-
     def setIniPick(self, gui_event):
-        channel = self.getChannelID(round(gui_event.ydata))
+
+        trace_number = round(gui_event.ydata)
+
+        channel = self.getChannelID(trace_number)
         wfdata = self.selectWFData(channel)
 
         self.disconnectScrollEvent()
@@ -430,13 +431,13 @@ class PickDlg(QDialog):
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
+        self.getPlotWidget().plotWFData(wfdata=data,
                                         title=self.getStation() +
                                               ' picking mode',
-                                        zoomx=zoomx,
-                                        zoomy=zoomy,
-                                        noiselevel=noiselevel)
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
+                                        noiselevel=(trace_number + noiselevel,
+                                                    trace_number - noiselevel))
 
         self.zoomAction.setEnabled(False)
 
