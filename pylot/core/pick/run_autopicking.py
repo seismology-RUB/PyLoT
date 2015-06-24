@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
-
+import pdb
 def run_autopicking(wfstream, pickparam):
     """
     :param: wfstream
@@ -157,10 +157,11 @@ def run_autopicking(wfstream, pickparam):
         # of class AutoPicking
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP)
         ##############################################################
-        # check signal length to detect spuriously picked noise peaks
-        z_copy[0].data = tr_filt.data
-        Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz, minsiglength, \
-                                          nfacsl, minpercent, iplot)
+        if aicpick.getpick() is not None:
+        	# check signal length to detect spuriously picked noise peaks
+        	z_copy[0].data = tr_filt.data
+        	Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz, minsiglength, \
+                	                          nfacsl, minpercent, iplot)
         ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
@@ -320,7 +321,8 @@ def run_autopicking(wfstream, pickparam):
         ###############################################################
         # go on with processing if AIC onset passes quality control
         if (aicarhpick.getSlope() >= minAICSslope and
-                aicarhpick.getSNR() >= minAICSSNR):
+                aicarhpick.getSNR() >= minAICSSNR and
+                aicarhpick.getpick() is not None):
             aicSflag = 1
             print 'AIC S-pick passes quality control: Slope: %f, SNR: %f' \
                   % (aicarhpick.getSlope(), aicarhpick.getSNR())
