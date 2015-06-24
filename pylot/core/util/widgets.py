@@ -978,6 +978,13 @@ class FilterOptionsDialog(QDialog):
     def getFilterOptions(self):
         return self.filterOptions
 
+    @staticmethod
+    def getFilterObject():
+        dlg = FilterOptionsDialog()
+        if dlg.exec_():
+            return dlg.getFilterOptions()
+        return None
+
     def accept(self):
         self.updateUi()
         QDialog.accept(self)
