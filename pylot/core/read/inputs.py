@@ -209,7 +209,7 @@ class FilterOptions(object):
     def parseFilterOptions(self):
         if self.getFilterType():
             robject = {'type':self.getFilterType()}
-            robject['order'] = self.getOrder()
+            robject['corners'] = self.getOrder()
             if len(self.getFreq()) > 1:
                 robject['freqmin'] = self.getFreq()[0]
                 robject['freqmax'] = self.getFreq()[1]
