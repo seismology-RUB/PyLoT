@@ -1,6 +1,7 @@
 %This is a parameter input file for autoPyLoT.
 %All main and special settings regarding data handling
 %and picking are to be set here!
+%Parameters are optimized for local data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #main settings#

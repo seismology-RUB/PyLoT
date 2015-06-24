@@ -13,6 +13,7 @@ from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.utils import wadaticheck
+import pdb
 __version__ = _getVersionString()
 
 
@@ -30,6 +31,18 @@ def autoPyLoT(inputfile):
     .. rubric:: Example
 
     '''
+    print '************************************'
+    print '*********autoPyLoT starting*********'
+    print 'The Python picking and Location Tool'
+    print '      Version ', _getVersionString(), '2015'
+    print '**Authors:'
+    print '**S. Wehling-Benatelli'
+    print '** Ruhr-University Bochum'
+    print '**L. Kueperkoch'
+    print '** BESTEC GmbH'
+    print '**K. Olbert'
+    print '** Christian-Albrechts University Kiel'
+    print '************************************'
 
     # reading parameter file
 
@@ -115,7 +128,6 @@ def autoPyLoT(inputfile):
             station = wfdat[0].stats.station
             allonsets = {station: picks}
             for i in range(len(wfdat)):
-            #for i in range(0,5):
                 stationID = wfdat[i].stats.station
                 #check if station has already been processed
                 if stationID not in procstats:
@@ -139,6 +151,10 @@ def autoPyLoT(inputfile):
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
             
+    print '************************************'
+    print '*********autoPyLoT terminates*******'
+    print 'The Python picking and Location Tool'
+    print '************************************'
 
 if __name__ == "__main__":
     # parse arguments

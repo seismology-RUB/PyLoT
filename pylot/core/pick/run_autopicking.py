@@ -74,6 +74,10 @@ def run_autopicking(wfstream, pickparam):
     minFMSNR = pickparam.getParam('minFMSNR')
     fmpickwin = pickparam.getParam('fmpickwin')
     minfmweight = pickparam.getParam('minfmweight')
+    # parameters for checking signal length
+    minsiglength = pickparam.getParam('minsiglength')
+    minpercent = pickparam.getParam('minpercent')
+    nfacsl = pickparam.getParam('noisefactor')
 
     # initialize output 
     Pweight = 4   # weight for P onset 
@@ -94,6 +98,7 @@ def run_autopicking(wfstream, pickparam):
 
     aicSflag = 0
     aicPflag = 0
+    Pflag = 0
     Sflag = 0
 
     # split components
@@ -152,9 +157,15 @@ def run_autopicking(wfstream, pickparam):
         # of class AutoPicking
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP)
         ##############################################################
+        # check signal length to detect spuriously picked noise peaks
+        z_copy[0].data = tr_filt.data
+        Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz, minsiglength, \
+                                          nfacsl, minpercent, iplot)
+        ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
-                aicpick.getSNR() >= minAICPSNR):
+                aicpick.getSNR() >= minAICPSNR and
+                Pflag == 1):
             aicPflag = 1
             print 'AIC P-pick passes quality control: Slope: %f, SNR: %f' % \
                   (aicpick.getSlope(), aicpick.getSNR())
@@ -190,7 +201,7 @@ def run_autopicking(wfstream, pickparam):
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
-            	# quality assessment
+           	# quality assessment
             	# get earliest and latest possible pick and symmetrized uncertainty
             	[lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz, mpickP, iplot)
 
@@ -227,8 +238,8 @@ def run_autopicking(wfstream, pickparam):
             Sflag = 0
 
     else:
-        print 'run_autopicking: No vertical component data available, ' \
-              'skipping station!'
+        print 'run_autopicking: No vertical component data availabler!, ' \
+              'Skip station!'
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
