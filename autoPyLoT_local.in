@@ -10,7 +10,7 @@ EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %event ID for single event processing
 PILOT				    #datastructure#  %choose data structure
-2                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
+0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
 AUTOLOC_AIC_HOS4_ARH                #locfile#      %name of autoPILOT output location file 
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
@@ -85,11 +85,9 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 50                                  #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
-1.5                                 #prepickwin#   %pre-signal window length [s] for noise level estimation 
-0.7                                 #minsiglength# %minimum required length of signal [s]
-0.2                                 #sgap#         %safety gap between noise and signal window [s]
-2                                   #noisefactor#  %noiselevel*noisefactor=threshold
-60                                  #minpercent#   %per cent of samples required higher than threshold
+2.5                                 #minsiglength# %minimum required length of signal [s]
+3                                   #noisefactor#  %noiselevel*noisefactor=threshold
+70                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
 3.0                                 #zfac#         %P-amplitude must exceed zfac times RMS-S amplitude 
 #jackknife-processing for P-picks#
