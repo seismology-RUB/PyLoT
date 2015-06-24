@@ -449,11 +449,11 @@ def wadaticheck(pickdic, dttolerance, iplot):
         checkedSpicks = []
         checkedSPtimes = []
         # calculate deviations from Wadati regression
+        ii = 0
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
-                ii = 0
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
-                ii += 1
+                ii += 1 
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
                     # mark onset and downgrade S-weight to 9
@@ -489,7 +489,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-
+    iplot=2
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -498,8 +498,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	f2, = plt.plot(Ppicks, wdfit, 'k')
                 f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
                 f4, = plt.plot(checkedPpicks, wdfit2, 'g')
-                plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f, \
-                           Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
+                plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
+                          'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
                 plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', \
                            'Reliable S-Picks', 'Wadati 2'], loc='best')
         else:
