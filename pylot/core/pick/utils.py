@@ -9,6 +9,7 @@
 """
 
 import numpy as np
+import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
@@ -511,3 +512,88 @@ def wadaticheck(pickdic, dttolerance, iplot):
         plt.close(iplot)
 
     return checkedonsets
+
+
+def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
+    '''
+    Function to detect spuriously picked noise peaks.
+    Uses envelope to determine, how many samples [per cent] after
+    P onset are below certain threshold, calculated from noise 
+    level times noise factor.
+
+    : param: X, time series (seismogram)
+    : type:  `~obspy.core.stream.Stream`
+
+    : param: pick, initial (AIC) P onset time
+    : type:  float 
+
+    : param: TSNR, length of time windows around initial pick [s]
+    : type:  tuple (T_noise, T_gap, T_signal)
+
+    : param: minsiglength, minium required signal length [s] to
+             declare pick as P onset
+    : type:  float
+
+    : param: nfac, noise factor (nfac * noise level = threshold)
+    : type:  float
+
+    : param: minpercent, minimum required percentage of samples
+             above calculated threshold
+    : type:  float
+
+    : param: iplot, if iplot > 1, results are shown in figure
+    : type:  int
+    '''
+    
+    assert isinstance(X, Stream), "%s is not a stream object" % str(X)
+
+    print 'Checking signal length ...'
+
+    x = X[0].data
+    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
+                  X[0].stats.delta)
+
+    # generate envelope function from Hilbert transform
+    y = np.imag(sc.signal.hilbert(x))
+    e = np.sqrt(np.power(x, 2) + np.power(y, 2))
+    # get noise window
+    inoise = getnoisewin(t, pick, TSNR[0], TSNR[1])
+    # get signal window
+    isignal = getsignalwin(t, pick, TSNR[2])
+    # calculate minimum adjusted signal level
+    minsiglevel = max(e[inoise]) * nfac
+    # minimum adjusted number of samples over minimum signal level
+    minnum = len(isignal) * minpercent/100
+    # get number of samples above minimum adjusted signal level
+    numoverthr = len(np.where(e[isignal] >= minsiglevel)[0]) 
+
+    if numoverthr >= minnum:
+    	print 'checksignallength: Signal reached required length.'
+        returnflag = 1
+    else:
+        print 'checksignallength: Signal shorter than required minimum signal length!'
+        print 'Presumably picked picked noise peak, pick is rejected!'
+        returnflag = 0
+ 
+    if iplot == 2:
+        plt.figure(iplot)
+    	p1, = plt.plot(t,x, 'k')
+        p2, = plt.plot(t[inoise], e[inoise])
+        p3, = plt.plot(t[isignal],e[isignal], 'r') 
+        p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
+                        [minsiglevel, minsiglevel], 'g')
+        p5, = plt.plot([pick, pick], [min(x), max(x)], 'c')
+        plt.legend([p1, p2, p3, p4, p5], ['Data', 'Envelope Noise Window', \
+                    'Envelope Signal Window', 'Minimum Signal Level', \
+                    'Onset'], loc='best')
+        plt.xlabel('Time [s] since %s' % X[0].stats.starttime)
+        plt.ylabel('Counts')
+        plt.title('Check for Signal Length, Station %s' % X[0].stats.station)
+        plt.yticks([])
+        plt.show()
+        raw_input()
+        plt.close(iplot)
+
+    return returnflag
+
+
