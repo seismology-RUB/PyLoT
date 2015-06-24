@@ -93,9 +93,9 @@ def getGlobalTimes(stream):
     for trace in stream:
         if trace.stats.starttime < min_start:
             min_start = trace.stats.starttime
-            if max_end is None or trace.stats.endtime > max_end:
-                max_end = trace.stats.endtime
-    return [min_start, max_end]
+        if max_end is None or trace.stats.endtime > max_end:
+            max_end = trace.stats.endtime
+    return min_start, max_end
 
 
 def createCreationInfo(agency_id=None, creation_time=None, author=None):
