@@ -489,7 +489,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-    iplot=2
+    
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
