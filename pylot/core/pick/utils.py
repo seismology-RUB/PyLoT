@@ -47,14 +47,11 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
                   X[0].stats.delta)
-    # get latest possible pick
-    # get noise window
     inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
     # get signal window
     isignal = getsignalwin(t, Pick1, TSNR[2])
     # remove mean
-    meanwin = np.hstack((inoise, isignal))
-    x = x - np.mean(x[meanwin])
+    x = x - np.mean(x[inoise])
     # calculate noise level
     nlevel = np.sqrt(np.mean(np.square(x[inoise]))) * nfac
     # get time where signal exceeds nlevel
@@ -337,7 +334,7 @@ def getSNR(X, TSNR, t1):
         return
 
     # demean over entire snr window
-    x -= x[inoise[0]:isignal[-1]].mean()
+    x = x - np.mean(x[np.hstack([inoise, isignal])])
 
     # calculate ratios
     noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
