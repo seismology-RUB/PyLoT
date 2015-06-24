@@ -23,10 +23,9 @@ from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from obspy.core.event import Pick, WaveformStreamID
 from pylot.core.read import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin
-from pylot.core.util.defaults import OUTPUTFORMATS
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
 
@@ -90,7 +89,7 @@ class MPLWidget(FigureCanvas):
                    noiselevel=None):
         self.getAxes().cla()
         self.clearPlotDict()
-        wfstart = getGlobalTimes(wfdata)[0]
+        wfstart, wfend = getGlobalTimes(wfdata)
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
             station = trace.stats.station
@@ -109,7 +108,8 @@ class MPLWidget(FigureCanvas):
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
             self.setPlotDict(n, (station, channel))
-        self.axes.autoscale(tight=True)
+        self.setXLims([0, wfend - wfstart])
+        self.setYLims([-0.5, n + 0.5])
         if zoomx is not None:
             self.setXLims(zoomx)
         if zoomy is not None:
@@ -168,6 +168,7 @@ class PickDlg(QDialog):
         self.rotate = rotate
         self.components = 'ZNE'
         self.picks = {}
+        self.filteroptions = FILTERDEFAULTS
 
         # initialize panning attributes
         self.press = None
@@ -238,7 +239,8 @@ class PickDlg(QDialog):
                                              ' waveforms',
                                          checkable=True)
         self.selectPhase = QComboBox()
-        self.selectPhase.addItems([None, 'Pn', 'Pg', 'Sn', 'Sg'])
+        phaseitems = [None] + FILTERDEFAULTS.keys()
+        self.selectPhase.addItems(phaseitems)
 
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
@@ -320,7 +322,7 @@ class PickDlg(QDialog):
             self.disconnectMotionEvent()
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
-            self.filterWFData(phase)
+            self.filterWFData()
         else:
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
@@ -339,6 +341,10 @@ class PickDlg(QDialog):
 
     def getChannelID(self, key):
         return self.getPlotWidget().getPlotDict()[int(key)][1]
+
+    def getFilterOptions(self, phase):
+        options = self.filteroptions[phase]
+        return FilterOptions(**options)
 
     def getXLims(self):
         return self.cur_xlim
@@ -565,19 +571,28 @@ class PickDlg(QDialog):
 
         ax.figure.canvas.draw()
 
-    def filterWFData(self, phase):
+    def filterWFData(self):
         self.updateCurrentLimits()
         data = self.getWFData().copy()
         old_title = self.getPlotWidget().getAxes().get_title()
         title = None
+        phase = self.selectPhase.currentText()
         if self.filterAction.isChecked():
-            filteroptions = self.getFilterOptions(phase).parseFilterOptions()
-            data.filter(**filteroptions)
-            if old_title.endswith(')'):
-                title = old_title[:-1] + ', filtered)'
+            if phase:
+                filtoptions = self.getFilterOptions(phase).parseFilterOptions()
             else:
-                title = old_title + ' (filtered)'
-        if not title:
+                filtoptions = FilterOptionsDialog.getFilterObject()
+                filtoptions = filtoptions.parseFilterOptions()
+            if filtoptions is not None:
+                data.filter(**filtoptions)
+                if old_title.endswith(')'):
+                    title = old_title[:-1] + ', filtered)'
+                else:
+                    title = old_title + ' (filtered)'
+            else:
+                if old_title.endswith(' (filtered)'):
+                    title = old_title.replace(' (filtered)', '')
+        if title is None:
             title = old_title
         self.getPlotWidget().plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
