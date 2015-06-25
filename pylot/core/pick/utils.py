@@ -398,6 +398,43 @@ def getsignalwin(t, t1, tsignal):
     return isignal
 
 
+def getResolutionWindow(snr):
+    """
+    Number -> Float
+    produce the half of the time resolution window width from given SNR
+    value
+          SNR >= 3    ->  2 sec    HRW
+      3 > SNR >= 2    ->  5 sec    MRW
+      2 > SNR >= 1.5  -> 10 sec    LRW
+    1.5 > SNR         -> 15 sec   VLRW
+    see also Diehl et al. 2009
+
+    >>> getResolutionWindow(0.5)
+    7.5
+    >>> getResolutionWindow(1.8)
+    5.0
+    >>> getResolutionWindow(2.3)
+    2.5
+    >>> getResolutionWindow(4)
+    1.0
+    >>> getResolutionWindow(2)
+    2.5
+    """
+
+    res_wins = {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.}
+
+    if snr < 1.5:
+        time_resolution = res_wins['VLRW']
+    elif snr < 2.:
+        time_resolution = res_wins['LRW']
+    elif snr < 3.:
+        time_resolution = res_wins['MRW']
+    else:
+        time_resolution = res_wins['HRW']
+
+    return time_resolution/2
+
+
 def wadaticheck(pickdic, dttolerance, iplot):
     '''
     Function to calculate Wadati-diagram from given P and S onsets in order
@@ -453,7 +490,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
-                ii += 1 
+                ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff >= dttolerance:
                     # mark onset and downgrade S-weight to 9
@@ -481,7 +518,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
         else:
         	print 'wadatacheck: Not enough checked S-P times available!'
-                print 'Skip Wadati check!' 
+                print 'Skip Wadati check!'
 
         checkedonsets = pickdic
 
@@ -489,7 +526,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-    
+
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -518,14 +555,14 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     '''
     Function to detect spuriously picked noise peaks.
     Uses envelope to determine, how many samples [per cent] after
-    P onset are below certain threshold, calculated from noise 
+    P onset are below certain threshold, calculated from noise
     level times noise factor.
 
     : param: X, time series (seismogram)
     : type:  `~obspy.core.stream.Stream`
 
     : param: pick, initial (AIC) P onset time
-    : type:  float 
+    : type:  float
 
     : param: TSNR, length of time windows around initial pick [s]
     : type:  tuple (T_noise, T_gap, T_signal)
@@ -544,7 +581,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     : param: iplot, if iplot > 1, results are shown in figure
     : type:  int
     '''
-    
+
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
     print 'Checking signal length ...'
@@ -565,7 +602,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     # minimum adjusted number of samples over minimum signal level
     minnum = len(isignal) * minpercent/100
     # get number of samples above minimum adjusted signal level
-    numoverthr = len(np.where(e[isignal] >= minsiglevel)[0]) 
+    numoverthr = len(np.where(e[isignal] >= minsiglevel)[0])
 
     if numoverthr >= minnum:
     	print 'checksignallength: Signal reached required length.'
@@ -574,12 +611,17 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         print 'checksignallength: Signal shorter than required minimum signal length!'
         print 'Presumably picked picked noise peak, pick is rejected!'
         returnflag = 0
- 
+
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
+<<<<<<< HEAD
         p2, = plt.plot(t[inoise], e[inoise], 'c')
         p3, = plt.plot(t[isignal],e[isignal], 'r') 
+=======
+        p2, = plt.plot(t[inoise], e[inoise])
+        p3, = plt.plot(t[isignal],e[isignal], 'r')
+>>>>>>> e542aa70d9341893b874499586f7ee8cc5be18bc
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
                         [minsiglevel, minsiglevel], 'g')
         p5, = plt.plot([pick, pick], [min(x), max(x)], linewidth=2)
@@ -596,4 +638,6 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
 
     return returnflag
 
-
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

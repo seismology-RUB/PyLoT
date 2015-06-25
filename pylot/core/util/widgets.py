@@ -24,7 +24,8 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.read import FilterOptions
-from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin
+from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
+    getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -389,6 +390,12 @@ class PickDlg(QDialog):
         return self.picks
 
     def setIniPick(self, gui_event):
+        if self.selectPhase.currentText().upper().startswith('P'):
+            self.setIniPickP(gui_event)
+        elif self.selectPhase.currentText().upper().startswith('S'):
+            self.setIniPickS(gui_event)
+
+    def setIniPickP(self, gui_event):
 
         trace_number = round(gui_event.ydata)
 
@@ -403,20 +410,6 @@ class PickDlg(QDialog):
 
         ini_pick = gui_event.xdata
 
-        # calculate the resolution window width from SNR
-        #       SNR >= 3    ->  2 sec    HRW
-        #   3 > SNR >= 2    ->  5 sec    MRW
-        #   2 > SNR >= 1.5  -> 10 sec    LRW
-        # 1.5 > SNR         -> 15 sec   VLRW
-        # see also Diehl et al. 2009
-
-        res_wins = {
-            'HRW': 2.,
-            'MRW': 5.,
-            'LRW': 10.,
-            'VLRW': 15.
-        }
-
         settings = QSettings()
 
         nfac = settings.value('picking/nfac', 1.5)
@@ -429,15 +422,7 @@ class PickDlg(QDialog):
         snr = result[0]
         noiselevel = result[2] * nfac
 
-        if snr < 1.5:
-            x_res = res_wins['VLRW']
-        elif snr < 2.:
-            x_res = res_wins['LRW']
-        elif snr < 3.:
-            x_res = res_wins['MRW']
-        else:
-            x_res = res_wins['HRW']
-        x_res /= 2
+        x_res = getResolutionWindow(snr)
 
         # demean data before plotting
         data = self.getWFData().copy()
@@ -465,6 +450,8 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
+    def setIniPickS(self, gui_event):
+        pass
 
     def setPick(self, gui_event):
 
@@ -518,16 +505,18 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
-        self.getPlotWidget().setXLims(self.getXLims())
-        self.getPlotWidget().setYLims(self.getYLims())
+        self.setPlotLabels()
 
     def drawPicks(self, phase=None):
         # plotting picks
         ax = self.getPlotWidget().axes
         ylims = self.getGlobalLimits('y')
+        phase_col = {'P': ('c', 'c--', 'b-'),
+                     'S': ('m', 'm--', 'r-')}
         if self.getPicks():
             if phase is not None:
                 picks = self.getPicks()[phase]
+                colors = phase_col[phase[0].upper()]
             else:
                 for phase in self.getPicks():
                     self.drawPicks(phase)
@@ -540,10 +529,11 @@ class PickDlg(QDialog):
         lpp = picks['lpp']
         spe = picks['spe']
 
-        ax.fill_between([epp, lpp], ylims[0], ylims[1], alpha=.5, color='c')
-        ax.plot([mpp - spe, mpp - spe], ylims, 'c--',
-                [mpp, mpp], ylims, 'b-',
-                [mpp + spe, mpp + spe], ylims, 'c--')
+        ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                        alpha=.5, color=colors[0])
+        ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                [mpp, mpp], ylims, colors[2],
+                [mpp + spe, mpp + spe], ylims, colors[1])
 
     def panPress(self, gui_event):
         ax = self.getPlotWidget().axes
@@ -619,10 +609,11 @@ class PickDlg(QDialog):
             self.disconnectScrollEvent()
             self.figToolBar.zoom()
         else:
-            self.connectPressEvent(self.panPress)
-            self.connectMotionEvent(self.panMotion)
-            self.connectReleaseEvent(self.panRelease)
-            self.connectScrollEvent(self.scrollZoom)
+            self.figToolBar.zoom()
+            self.cidpress = self.connectPressEvent(self.panPress)
+            self.cidmotion = self.connectMotionEvent(self.panMotion)
+            self.cidrelease = self.connectReleaseEvent(self.panRelease)
+            self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def scrollZoom(self, gui_event, factor=2.):
 
@@ -1049,3 +1040,7 @@ class HelpForm(QDialog):
 
     def updatePageTitle(self):
         self.pageLabel.setText(self.webBrowser.documentTitle())
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
