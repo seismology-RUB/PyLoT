@@ -609,10 +609,11 @@ class PickDlg(QDialog):
             self.disconnectScrollEvent()
             self.figToolBar.zoom()
         else:
-            self.connectPressEvent(self.panPress)
-            self.connectMotionEvent(self.panMotion)
-            self.connectReleaseEvent(self.panRelease)
-            self.connectScrollEvent(self.scrollZoom)
+            self.figToolBar.zoom()
+            self.cidpress = self.connectPressEvent(self.panPress)
+            self.cidmotion = self.connectMotionEvent(self.panMotion)
+            self.cidrelease = self.connectReleaseEvent(self.panRelease)
+            self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def scrollZoom(self, gui_event, factor=2.):
 
