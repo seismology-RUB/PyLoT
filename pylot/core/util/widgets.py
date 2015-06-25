@@ -24,7 +24,8 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.read import FilterOptions
-from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin
+from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
+    getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util import prepTimeAxis, getGlobalTimes
 
@@ -403,20 +404,6 @@ class PickDlg(QDialog):
 
         ini_pick = gui_event.xdata
 
-        # calculate the resolution window width from SNR
-        #       SNR >= 3    ->  2 sec    HRW
-        #   3 > SNR >= 2    ->  5 sec    MRW
-        #   2 > SNR >= 1.5  -> 10 sec    LRW
-        # 1.5 > SNR         -> 15 sec   VLRW
-        # see also Diehl et al. 2009
-
-        res_wins = {
-            'HRW': 2.,
-            'MRW': 5.,
-            'LRW': 10.,
-            'VLRW': 15.
-        }
-
         settings = QSettings()
 
         nfac = settings.value('picking/nfac', 1.5)
@@ -429,15 +416,7 @@ class PickDlg(QDialog):
         snr = result[0]
         noiselevel = result[2] * nfac
 
-        if snr < 1.5:
-            x_res = res_wins['VLRW']
-        elif snr < 2.:
-            x_res = res_wins['LRW']
-        elif snr < 3.:
-            x_res = res_wins['MRW']
-        else:
-            x_res = res_wins['HRW']
-        x_res /= 2
+        x_res = getResolutionWindow(snr)
 
         # demean data before plotting
         data = self.getWFData().copy()
