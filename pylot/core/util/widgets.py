@@ -505,8 +505,7 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
-        self.getPlotWidget().setXLims(self.getXLims())
-        self.getPlotWidget().setYLims(self.getYLims())
+        self.setPlotLabels()
 
     def drawPicks(self, phase=None):
         # plotting picks
