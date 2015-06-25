@@ -1040,3 +1040,7 @@ class HelpForm(QDialog):
 
     def updatePageTitle(self):
         self.pageLabel.setText(self.webBrowser.documentTitle())
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
