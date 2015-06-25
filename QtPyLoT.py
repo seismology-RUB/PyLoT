@@ -549,7 +549,7 @@ def main():
     pylot_form = MainWindow()
 
     # Show main window and run the app
-    pylot_form.show()
+    pylot_form.showMaximized()
     pylot_app.exec_()
 
 
