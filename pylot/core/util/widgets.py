@@ -390,6 +390,12 @@ class PickDlg(QDialog):
         return self.picks
 
     def setIniPick(self, gui_event):
+        if self.selectPhase.currentText().upper().startswith('P'):
+            self.setIniPickP(gui_event)
+        elif self.selectPhase.currentText().upper().startswith('S'):
+            self.setIniPickS(gui_event)
+
+    def setIniPickP(self, gui_event):
 
         trace_number = round(gui_event.ydata)
 
@@ -444,6 +450,8 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
+    def setIniPickS(self, gui_event):
+        pass
 
     def setPick(self, gui_event):
 
