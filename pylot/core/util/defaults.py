@@ -10,7 +10,7 @@ FILTERDEFAULTS = {'P': {'filtertype': None,
                         'order': None,
                         'freq': None},
                   'S': {'filtertype': 'bandpass',
-                        'order': '4',
+                        'order': 4,
                         'freq': [.5, 5]}}
 
 OUTPUTFORMATS = {'QuakeML':'QUAKEML', 'VelEst':'VELEST'}
