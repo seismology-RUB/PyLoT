@@ -511,9 +511,12 @@ class PickDlg(QDialog):
         # plotting picks
         ax = self.getPlotWidget().axes
         ylims = self.getGlobalLimits('y')
+        phase_col = {'P': ('c', 'c--', 'b-'),
+                     'S': ('m', 'm--', 'r-')}
         if self.getPicks():
             if phase is not None:
                 picks = self.getPicks()[phase]
+                colors = phase_col[phase[0].upper()]
             else:
                 for phase in self.getPicks():
                     self.drawPicks(phase)
@@ -526,10 +529,11 @@ class PickDlg(QDialog):
         lpp = picks['lpp']
         spe = picks['spe']
 
-        ax.fill_between([epp, lpp], ylims[0], ylims[1], alpha=.5, color='c')
-        ax.plot([mpp - spe, mpp - spe], ylims, 'c--',
-                [mpp, mpp], ylims, 'b-',
-                [mpp + spe, mpp + spe], ylims, 'c--')
+        ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                        alpha=.5, color=colors[0])
+        ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                [mpp, mpp], ylims, colors[2],
+                [mpp + spe, mpp + spe], ylims, colors[1])
 
     def panPress(self, gui_event):
         ax = self.getPlotWidget().axes
