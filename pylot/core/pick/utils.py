@@ -155,7 +155,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
         xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
 
-        # get next zero crossing after most likely pick
+        # get zero crossings after most likely pick
         # initial onset is assumed to be the first zero crossing
         # first from unfiltered trace
         zc1 = []
@@ -199,7 +199,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             datafit1 = np.polyval(P1, xslope1)
 
         # now using filterd trace
-        # next zero crossing after most likely pick
+        # next zero crossings after most likely pick
         zc2 = []
         zc2.append(Pick)
         index2 = []
@@ -578,11 +578,11 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
-        p2, = plt.plot(t[inoise], e[inoise])
+        p2, = plt.plot(t[inoise], e[inoise], 'c')
         p3, = plt.plot(t[isignal],e[isignal], 'r') 
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
                         [minsiglevel, minsiglevel], 'g')
-        p5, = plt.plot([pick, pick], [min(x), max(x)], 'c')
+        p5, = plt.plot([pick, pick], [min(x), max(x)], linewidth=2)
         plt.legend([p1, p2, p3, p4, p5], ['Data', 'Envelope Noise Window', \
                     'Envelope Signal Window', 'Minimum Signal Level', \
                     'Onset'], loc='best')
