@@ -13,7 +13,7 @@ import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
-
+import pdb
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -657,11 +657,13 @@ def checkPonsets(pickdic, dttolerance, iplot):
 
     # search for good quality P picks
     Ppicks = []
+    stations = []
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4:
            # add P onsets to list
            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
            Ppicks.append(UTCPpick.timestamp)
+           stations.append(key)
 
     # apply jackknife bootstrapping on variance of P onsets
     print 'checkPonsets: Apply jackknife bootstrapping on P-onset times ...'
@@ -669,15 +671,60 @@ def checkPonsets(pickdic, dttolerance, iplot):
     # get pseudo variances smaller than average variances
     # these picks passed jackknife test
     ij = np.where(PHI_pseudo <= xjack)
-    #ij = np.array(ij).tolist()
-    #jkpicks = Ppicks[ij]
+    # these picks did not pass jackknife test
+    badjk = np.where(PHI_pseudo > xjack)
+    badjkstations = np.array(stations)[badjk]
 
     # calculate median from these picks
-    #pmedian = np.median(jkpicks)
-    # find picks that deviate more than dttolerance from median
-    #ibad = np.where(abs(jkpicks - pmedian) > dttolerance)
-    #pdb.set_trace()
+    pmedian = np.median(np.array(Ppicks)[ij])
+    # find picks that deviate less than dttolerance from median
+    ii = np.where(abs(np.array(Ppicks)[ij] - pmedian) <= dttolerance)
+    jj = np.where(abs(np.array(Ppicks)[ij] - pmedian) > dttolerance)
+    igood = ij[0][ii]
+    ibad = ij[0][jj]
+    goodstations = np.array(stations)[igood]
+    badstations = np.array(stations)[ibad]
 
+    print 'checkPonset: Skipped %d P onsets out of %d' % (len(badstations) \
+            + len(badjkstations), len(stations))
+
+    goodmarker = 'goodPonsetcheck'
+    badmarker = 'badPonsetcheck'
+    badjkmarker = 'badjkcheck'
+    for i in range(0, len(goodstations)):
+        # mark P onset as checked and keep P weight
+    	pickdic[goodstations[i]]['P']['marked'] = goodmarker
+    for i in range(0, len(badstations)):
+       	# mark P onset and downgrade P weight to 9
+       	# (not used anymore)
+    	pickdic[badstations[i]]['P']['marked'] = badmarker
+      	pickdic[badstations[i]]['P']['weight'] = 9
+    for i in range(0, len(badjkstations)):
+       	# mark P onset and downgrade P weight to 9
+       	# (not used anymore)
+    	pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
+      	pickdic[badjkstations[i]]['P']['weight'] = 9
+
+    checkedonsets = pickdic
+
+    iplot = 2
+    if iplot > 1:
+    	p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
+        p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
+        p3, = plt.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g', \
+                        linewidth=2)
+        for i in range(0, len(Ppicks)):
+        	plt.text(i, Ppicks[i] + 0.2, stations[i])
+
+        plt.xlabel('Number of P Picks') 
+        plt.ylabel('Onset Time [s] from 1.1.1970')
+        plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'], \
+                    loc='best')
+        plt.title('Check P Onsets')
+        plt.show()
+        raw_input()
+
+    return checkedonsets
 
 def jackknife(X, phi, h):
     '''
