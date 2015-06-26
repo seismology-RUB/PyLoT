@@ -36,7 +36,7 @@ HYPOSAT                             #locrt#        %location routine used ("HYPO
 3 10                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
 3 12                                #bpz2#         %lower/upper corner freq. of second band pass filter Z-comp. [Hz]
 3 8                                 #bph1#         %lower/upper corner freq. of first band pass filter H-comp. [Hz]
-3 6                                 #bph2#         %lower/upper corner freq. of second band pass filter z-comp. [Hz]
+3 6                                 #bph2#         %lower/upper corner freq. of second band pass filter H-comp. [Hz]
 #special settings for calculating CF#
 %!!Be careful when editing the following!!
 #Z-component#
@@ -49,10 +49,10 @@ HOS                                 #algoP#        %choose algorithm for P-onset
 0.6                                 #tdet2z#       %for AR-picker, length of AR determination window [s] for Z-component, 2nd pick
 0.2                                 #tpred2z#      %for AR-picker, length of AR prediction window [s] for Z-component, 2nd pick
 0.001                               #addnoise#     %add noise to seismogram for stable AR prediction
-4 0.2 2.0 1.5                       #tsnrz#        %for HOS/AR, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
-4                                   #pickwinP#     %for initial AIC and refined pick, length of P-pick window [s]
+5 0.2 3.0 1.5                       #tsnrz#        %for HOS/AR, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
+3                                   #pickwinP#     %for initial AIC and refined pick, length of P-pick window [s]
 8                                   #Precalcwin#   %for HOS/AR, window length [s] for recalculation of CF (relative to 1st pick)
-3.0                                 #aictsmooth#   %for HOS/AR, take average of samples for smoothing of AIC-function [s]
+1.0                                 #aictsmooth#   %for HOS/AR, take average of samples for smoothing of AIC-function [s]
 0.3                                 #tsmoothP#     %for HOS/AR, take average of samples for smoothing CF [s]
 0.3                                 #ausP#         %for HOS/AR, artificial uplift of samples (aus) of CF (P)
 1.3                                 #nfacP#        %for HOS/AR, noise factor for noise level determination (P)
@@ -88,10 +88,8 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 60                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
 3.0                                 #zfac#         %P-amplitude must exceed zfac times RMS-S amplitude 
-#jackknife-processing for P-picks#
-3                                   #thresholdweight#%minimum required weight of picks
-3                                   #dttolerance#  %maximum allowed deviation of P picks from median [s]
-4                                   #minstats#     %minimum number of stations with reliable P picks
+#check statistics of P onsets#
+35                                  #mdttolerance#  %maximum allowed deviation of P picks from median [s]
 #wadati check#
-1.5                                 #wdttolerance# %maximum allowed deviation from Wadati-diagram
+2.0                                 #wdttolerance# %maximum allowed deviation from Wadati-diagram
 
