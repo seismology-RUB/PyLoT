@@ -492,7 +492,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
-                if wddiff >= dttolerance:
+                if wddiff > dttolerance:
                     # mark onset and downgrade S-weight to 9
                     # (not used anymore)
                     marker = 'badWadatiCheck'
@@ -526,7 +526,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-
+    iplot=2
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -615,16 +615,13 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
-<<<<<<< HEAD
         p2, = plt.plot(t[inoise], e[inoise], 'c')
         p3, = plt.plot(t[isignal],e[isignal], 'r') 
-=======
         p2, = plt.plot(t[inoise], e[inoise])
         p3, = plt.plot(t[isignal],e[isignal], 'r')
->>>>>>> e542aa70d9341893b874499586f7ee8cc5be18bc
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
                         [minsiglevel, minsiglevel], 'g')
-        p5, = plt.plot([pick, pick], [min(x), max(x)], linewidth=2)
+        p5, = plt.plot([pick, pick], [min(x), max(x)], 'b', linewidth=2)
         plt.legend([p1, p2, p3, p4, p5], ['Data', 'Envelope Noise Window', \
                     'Envelope Signal Window', 'Minimum Signal Level', \
                     'Onset'], loc='best')
@@ -637,6 +634,115 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         plt.close(iplot)
 
     return returnflag
+
+
+def checkPonsets(pickdic, dttolerance, iplot):
+    '''
+    Function to check statistics of P-onset times: Control deviation from 
+    median (maximum adjusted deviation = dttolerance) and apply pseudo-
+    bootstrapping jackknife.
+
+    : param: pickdic, dictionary containing picks and quality parameters
+    : type:  dictionary
+
+    : param: dttolerance, maximum adjusted deviation of P-onset time from
+             median of all P onsets
+    : type:  float
+
+    : param: iplot, if iplot > 1, Wadati diagram is shown
+    : type:  int
+    '''
+
+    checkedonsets = pickdic
+
+    # search for good quality P picks
+    Ppicks = []
+    for key in pickdic:
+        if pickdic[key]['P']['weight'] < 4:
+           # add P onsets to list
+           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+           Ppicks.append(UTCPpick.timestamp)
+
+    # apply jackknife bootstrapping on variance of P onsets
+    print 'checkPonsets: Apply jackknife bootstrapping on P-onset times ...'
+    [xjack,PHI_pseudo,PHI_sub] = jackknife(Ppicks, 'VAR', 1)
+    # get pseudo variances smaller than average variances
+    # these picks passed jackknife test
+    ij = np.where(PHI_pseudo <= xjack)
+    #ij = np.array(ij).tolist()
+    #jkpicks = Ppicks[ij]
+
+    # calculate median from these picks
+    #pmedian = np.median(jkpicks)
+    # find picks that deviate more than dttolerance from median
+    #ibad = np.where(abs(jkpicks - pmedian) > dttolerance)
+    #pdb.set_trace()
+
+
+def jackknife(X, phi, h):
+    '''
+    Function to calculate the Jackknife Estimator for a given quantity,
+    special type of boot strapping. Returns the jackknife estimator PHI_jack
+    the pseudo values PHI_pseudo and the subgroup parameters PHI_sub.
+
+    : param: X, given quantity
+    : type:  list
+
+    : param: phi, chosen estimator, choose between:
+             "MED" for median
+             "MEA" for arithmetic mean
+             "VAR" for variance
+    : type:  string
+
+    : param: h, size of subgroups, optinal, default = 1
+    : type:  integer
+    '''
+    
+    PHI_jack = None
+    PHI_pseudo = None
+    PHI_sub = None
+
+    # determine number of subgroups
+    g = len(X) / h
+
+    if type(g) is not int:
+    	print 'jackknife: Cannot divide quantity X in equal sized subgroups!'
+        print 'Choose another size for subgroups!'
+        return PHI_jack, PHI_pseudo, PHI_sub
+    else:
+    	# estimator of undisturbed spot check
+    	if phi == 'MEA':
+        	phi_sc = np.mean(X)
+        elif phi == 'VAR':
+        	phi_sc = np.var(X)
+        elif phi == 'MED':
+        	phi_sc = np.median(X)
+
+    	# estimators of subgroups
+        PHI_pseudo = []
+        PHI_sub = []
+        for i in range(0, g - 1):
+        	# subgroup i, remove i-th sample
+                xx = X[:]
+                del xx[i]
+                # calculate estimators of disturbed spot check
+        	if phi == 'MEA':
+                	phi_sub = np.mean(xx)
+                elif phi == 'VAR':
+                	phi_sub = np.var(xx)
+                elif phi == 'MED':
+                	phi_sub = np.median(xx)
+               
+                PHI_sub.append(phi_sub)
+                # pseudo values
+                phi_pseudo = g * phi_sc - ((g - 1) * phi_sub)
+                PHI_pseudo.append(phi_pseudo)
+        # jackknife estimator
+        PHI_jack = np.mean(PHI_pseudo)
+
+    return PHI_jack, PHI_pseudo, PHI_sub
+
+
 
 if __name__ == '__main__':
     import doctest
