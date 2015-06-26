@@ -12,7 +12,7 @@ from pylot.core.util import _getVersionString
 from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.pick.utils import wadaticheck
+from pylot.core.pick.utils import wadaticheck, checkPonsets
 import pdb
 __version__ = _getVersionString()
 
@@ -51,6 +51,7 @@ def autoPyLoT(inputfile):
     # get some parameters for quality control from 
     # parameter input file (usually autoPyLoT.in).
     wdttolerance = parameter.getParam('wdttolerance')
+    mdttolerance = parameter.getParam('mdttolerance')
     iplot = parameter.getParam('iplot')
 
     data = Data()
@@ -105,10 +106,11 @@ def autoPyLoT(inputfile):
                         allonsets[station] = picks
 
                 # quality control
-                # jackknife on P onset times
+                # median check and jackknife on P onset times
+                checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
                 # check S-P times (Wadati) 
-                checkedonsets = wadaticheck(allonsets, wdttolerance, iplot)
-                # jackknife on S onset times
+                checkedonsetwd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
+
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
                 print '------------------------------------------'
@@ -128,11 +130,12 @@ def autoPyLoT(inputfile):
             station = wfdat[0].stats.station
             allonsets = {station: picks}
             for i in range(len(wfdat)):
+            #for i in range(0,10):
                 stationID = wfdat[i].stats.station
                 #check if station has already been processed
                 if stationID not in procstats:
                     procstats.append(stationID)
-                    #find corresponding streams
+                    # find corresponding streams
                     statdat = wfdat.select(station=stationID)
                     ######################################################
                     # get onset times and corresponding picking parameters
@@ -142,11 +145,12 @@ def autoPyLoT(inputfile):
                     station = stationID
                     allonsets[station] = picks
 
-            #quality control
-            #jackknife on P onset times
-            #check S-P times (Wadati) 
-            checkedonsets = wadaticheck(allonsets, wdttolerance, iplot)
-            #jackknife on S onset times
+            # quality control
+            # median check and jackknife on P onset times
+            checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
+            # check S-P times (Wadati) 
+            checkedonsetswd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
+
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
