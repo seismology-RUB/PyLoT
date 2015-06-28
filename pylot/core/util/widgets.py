@@ -567,21 +567,22 @@ class PickDlg(QDialog):
         old_title = self.getPlotWidget().getAxes().get_title()
         title = None
         phase = self.selectPhase.currentText()
+        filtoptions = None
+        if phase:
+            filtoptions = self.getFilterOptions(phase).parseFilterOptions()
         if self.filterAction.isChecked():
-            if phase:
-                filtoptions = self.getFilterOptions(phase).parseFilterOptions()
-            else:
+            if not phase:
                 filtoptions = FilterOptionsDialog.getFilterObject()
                 filtoptions = filtoptions.parseFilterOptions()
-            if filtoptions is not None:
-                data.filter(**filtoptions)
-                if old_title.endswith(')'):
-                    title = old_title[:-1] + ', filtered)'
-                else:
-                    title = old_title + ' (filtered)'
+        if filtoptions is not None:
+            data.filter(**filtoptions)
+            if old_title.endswith(')'):
+                title = old_title[:-1] + ', filtered)'
             else:
-                if old_title.endswith(' (filtered)'):
-                    title = old_title.replace(' (filtered)', '')
+                title = old_title + ' (filtered)'
+        else:
+            if old_title.endswith(' (filtered)'):
+                title = old_title.replace(' (filtered)', '')
         if title is None:
             title = old_title
         self.getPlotWidget().plotWFData(wfdata=data, title=title,
