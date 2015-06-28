@@ -13,7 +13,7 @@ import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
-
+import pdb
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -155,7 +155,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
         xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
 
-        # get next zero crossing after most likely pick
+        # get zero crossings after most likely pick
         # initial onset is assumed to be the first zero crossing
         # first from unfiltered trace
         zc1 = []
@@ -199,7 +199,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             datafit1 = np.polyval(P1, xslope1)
 
         # now using filterd trace
-        # next zero crossing after most likely pick
+        # next zero crossings after most likely pick
         zc2 = []
         zc2.append(Pick)
         index2 = []
@@ -492,7 +492,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
-                if wddiff >= dttolerance:
+                if wddiff > dttolerance:
                     # mark onset and downgrade S-weight to 9
                     # (not used anymore)
                     marker = 'badWadatiCheck'
@@ -526,7 +526,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-
+    iplot=2
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -615,11 +615,13 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
+        p2, = plt.plot(t[inoise], e[inoise], 'c')
+        p3, = plt.plot(t[isignal],e[isignal], 'r') 
         p2, = plt.plot(t[inoise], e[inoise])
         p3, = plt.plot(t[isignal],e[isignal], 'r')
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
                         [minsiglevel, minsiglevel], 'g')
-        p5, = plt.plot([pick, pick], [min(x), max(x)], 'c')
+        p5, = plt.plot([pick, pick], [min(x), max(x)], 'b', linewidth=2)
         plt.legend([p1, p2, p3, p4, p5], ['Data', 'Envelope Noise Window', \
                     'Envelope Signal Window', 'Minimum Signal Level', \
                     'Onset'], loc='best')
@@ -632,6 +634,162 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         plt.close(iplot)
 
     return returnflag
+
+
+def checkPonsets(pickdic, dttolerance, iplot):
+    '''
+    Function to check statistics of P-onset times: Control deviation from 
+    median (maximum adjusted deviation = dttolerance) and apply pseudo-
+    bootstrapping jackknife.
+
+    : param: pickdic, dictionary containing picks and quality parameters
+    : type:  dictionary
+
+    : param: dttolerance, maximum adjusted deviation of P-onset time from
+             median of all P onsets
+    : type:  float
+
+    : param: iplot, if iplot > 1, Wadati diagram is shown
+    : type:  int
+    '''
+
+    checkedonsets = pickdic
+
+    # search for good quality P picks
+    Ppicks = []
+    stations = []
+    for key in pickdic:
+        if pickdic[key]['P']['weight'] < 4:
+           # add P onsets to list
+           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+           Ppicks.append(UTCPpick.timestamp)
+           stations.append(key)
+
+    # apply jackknife bootstrapping on variance of P onsets
+    print 'checkPonsets: Apply jackknife bootstrapping on P-onset times ...'
+    [xjack,PHI_pseudo,PHI_sub] = jackknife(Ppicks, 'VAR', 1)
+    # get pseudo variances smaller than average variances
+    # these picks passed jackknife test
+    ij = np.where(PHI_pseudo <= xjack)
+    # these picks did not pass jackknife test
+    badjk = np.where(PHI_pseudo > xjack)
+    badjkstations = np.array(stations)[badjk]
+
+    # calculate median from these picks
+    pmedian = np.median(np.array(Ppicks)[ij])
+    # find picks that deviate less than dttolerance from median
+    ii = np.where(abs(np.array(Ppicks)[ij] - pmedian) <= dttolerance)
+    jj = np.where(abs(np.array(Ppicks)[ij] - pmedian) > dttolerance)
+    igood = ij[0][ii]
+    ibad = ij[0][jj]
+    goodstations = np.array(stations)[igood]
+    badstations = np.array(stations)[ibad]
+
+    print 'checkPonset: Skipped %d P onsets out of %d' % (len(badstations) \
+            + len(badjkstations), len(stations))
+
+    goodmarker = 'goodPonsetcheck'
+    badmarker = 'badPonsetcheck'
+    badjkmarker = 'badjkcheck'
+    for i in range(0, len(goodstations)):
+        # mark P onset as checked and keep P weight
+    	pickdic[goodstations[i]]['P']['marked'] = goodmarker
+    for i in range(0, len(badstations)):
+       	# mark P onset and downgrade P weight to 9
+       	# (not used anymore)
+    	pickdic[badstations[i]]['P']['marked'] = badmarker
+      	pickdic[badstations[i]]['P']['weight'] = 9
+    for i in range(0, len(badjkstations)):
+       	# mark P onset and downgrade P weight to 9
+       	# (not used anymore)
+    	pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
+      	pickdic[badjkstations[i]]['P']['weight'] = 9
+
+    checkedonsets = pickdic
+
+    iplot = 2
+    if iplot > 1:
+    	p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
+        p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
+        p3, = plt.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g', \
+                        linewidth=2)
+        for i in range(0, len(Ppicks)):
+        	plt.text(i, Ppicks[i] + 0.2, stations[i])
+
+        plt.xlabel('Number of P Picks') 
+        plt.ylabel('Onset Time [s] from 1.1.1970')
+        plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'], \
+                    loc='best')
+        plt.title('Check P Onsets')
+        plt.show()
+        raw_input()
+
+    return checkedonsets
+
+def jackknife(X, phi, h):
+    '''
+    Function to calculate the Jackknife Estimator for a given quantity,
+    special type of boot strapping. Returns the jackknife estimator PHI_jack
+    the pseudo values PHI_pseudo and the subgroup parameters PHI_sub.
+
+    : param: X, given quantity
+    : type:  list
+
+    : param: phi, chosen estimator, choose between:
+             "MED" for median
+             "MEA" for arithmetic mean
+             "VAR" for variance
+    : type:  string
+
+    : param: h, size of subgroups, optinal, default = 1
+    : type:  integer
+    '''
+    
+    PHI_jack = None
+    PHI_pseudo = None
+    PHI_sub = None
+
+    # determine number of subgroups
+    g = len(X) / h
+
+    if type(g) is not int:
+    	print 'jackknife: Cannot divide quantity X in equal sized subgroups!'
+        print 'Choose another size for subgroups!'
+        return PHI_jack, PHI_pseudo, PHI_sub
+    else:
+    	# estimator of undisturbed spot check
+    	if phi == 'MEA':
+        	phi_sc = np.mean(X)
+        elif phi == 'VAR':
+        	phi_sc = np.var(X)
+        elif phi == 'MED':
+        	phi_sc = np.median(X)
+
+    	# estimators of subgroups
+        PHI_pseudo = []
+        PHI_sub = []
+        for i in range(0, g - 1):
+        	# subgroup i, remove i-th sample
+                xx = X[:]
+                del xx[i]
+                # calculate estimators of disturbed spot check
+        	if phi == 'MEA':
+                	phi_sub = np.mean(xx)
+                elif phi == 'VAR':
+                	phi_sub = np.var(xx)
+                elif phi == 'MED':
+                	phi_sub = np.median(xx)
+               
+                PHI_sub.append(phi_sub)
+                # pseudo values
+                phi_pseudo = g * phi_sc - ((g - 1) * phi_sub)
+                PHI_pseudo.append(phi_pseudo)
+        # jackknife estimator
+        PHI_jack = np.mean(PHI_pseudo)
+
+    return PHI_jack, PHI_pseudo, PHI_sub
+
+
 
 if __name__ == '__main__':
     import doctest
