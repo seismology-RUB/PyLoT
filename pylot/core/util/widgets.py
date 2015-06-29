@@ -436,10 +436,10 @@ class PickDlg(QDialog):
 
         settings = QSettings()
 
-        nfac = settings.value('picking/nfac', 1.5)
-        noise_win = settings.value('picking/noise_win', 5.)
-        gap_win = settings.value('picking/gap_win', .5)
-        signal_win = settings.value('picking/signal_win', 1.5)
+        nfac = settings.value('picking/nfac_P', 1.3)
+        noise_win = settings.value('picking/noise_win_P', 5.)
+        gap_win = settings.value('picking/gap_win_P', .2)
+        signal_win = settings.value('picking/signal_win_P', 3.)
 
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
 
@@ -469,6 +469,12 @@ class PickDlg(QDialog):
         self.draw()
 
     def setIniPickS(self, gui_event):
+        settings = QSettings()
+
+        nfac = settings.value('picking/nfac_P', 1.5)
+        noise_win = settings.value('picking/noise_win_P', 5.)
+        gap_win = settings.value('picking/gap_win_P', .2)
+        signal_win = settings.value('picking/signal_win_P', 3.)
         pass
 
     def setPick(self, gui_event):
