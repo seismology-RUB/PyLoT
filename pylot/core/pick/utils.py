@@ -301,48 +301,71 @@ def crossings_nonzero_all(data):
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
 
-def getSNR(X, TSNR, t1):
-    '''
-    Function to calculate SNR of certain part of seismogram relative to
-    given time (onset) out of given noise and signal windows. A safety gap
-    between noise and signal part can be set. Returns SNR and SNR [dB] and
-    noiselevel.
+def getSNR(st, TSNR, t0):
+    """
+    returns the maximum signal to noise ratio SNR (also in dB) and the
+    corresponding noise level for a given data stream ST ,initial time T0 and
+    time window parameter tuple TSNR
 
-    :param: X, time series (seismogram)
+    :param: st, time series (seismogram)
     :type:  `~obspy.core.stream.Stream`
-
-    :param: TSNR, length of time windows [s] around t1 (onset) used to determine SNR
+    :param: TSNR, length of time windows [s] around t0 (onset) used to determine
+     SNR
     :type: tuple (T_noise, T_gap, T_signal)
-
-    :param: t1, initial time (onset) from which noise and signal windows are calculated
+    :param: t0, initial time (onset) from which noise and signal windows are calculated
     :type: float
-    '''
+    :return: SNR, SNRdB, noiselevel
 
-    assert isinstance(X, Stream), "%s is not a stream object" % str(X)
+    ..examples:
 
-    x = X[0].data
-    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
-                  X[0].stats.delta)
+    >>> from obspy.core import read
+    >>> st = read()
+    >>> result = getSNR(st, (6., .3, 3.), 4.67)
+    >>> print result
+    (5.1267717641040758, 7.0984398375666435, 132.89370192191919)
+    >>> result = getSNR(st, (8., .2, 5.), 4.67)
+    >>> print result
+    (4.645441835797703, 6.6702702677384131, 133.03562794665109)
+    """
 
-    # get noise window
-    inoise = getnoisewin(t, t1, TSNR[0], TSNR[1])
+    assert isinstance(st, Stream), "%s is not a stream object" % str(st)
 
-    # get signal window
-    isignal = getsignalwin(t, t1, TSNR[2])
-    if np.size(inoise) < 1:
-        print 'getSNR: Empty array inoise, check noise window!'
-        return
-    elif np.size(isignal) < 1:
-        print 'getSNR: Empty array isignal, check signal window!'
-        return
+    SNR = None
+    noiselevel = None
 
-    # demean over entire waveform
-    x = x - np.mean(x[inoise])
+    for tr in st:
+        x = tr.data
+        t = np.arange(0, tr.stats.npts / tr.stats.sampling_rate,
+                      tr.stats.delta)
 
-    # calculate ratios
-    noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
-    signallevel = np.sqrt(np.mean(np.square(x[isignal])))
-    SNR = signallevel / noiselevel
+        # get noise window
+        inoise = getnoisewin(t, t0, TSNR[0], TSNR[1])
+
+        # get signal window
+        isignal = getsignalwin(t, t0, TSNR[2])
+        if np.size(inoise) < 1:
+            print 'getSNR: Empty array inoise, check noise window!'
+            return
+        elif np.size(isignal) < 1:
+            print 'getSNR: Empty array isignal, check signal window!'
+            return
+
+        # demean over entire waveform
+        x = x - np.mean(x[inoise])
+
+        # calculate ratios
+        new_noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
+        signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+        newSNR = signallevel / new_noiselevel
+        if not SNR or newSNR > SNR:
+            SNR = newSNR
+            noiselevel = new_noiselevel
+
+    if not SNR or not noiselevel:
+        raise ValueError('signal to noise ratio could not be calculated:\n'
+                         'noiselevel: {0}\n'
+                         'SNR: {1}'.format(noiselevel, SNR))
+
     SNRdB = 10 * np.log10(SNR)
 
     return SNR, SNRdB, noiselevel
