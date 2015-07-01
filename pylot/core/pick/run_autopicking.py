@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
-import pdb
+
 def run_autopicking(wfstream, pickparam):
     """
     :param: wfstream
