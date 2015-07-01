@@ -528,7 +528,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-    iplot=2
+    
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -709,7 +709,7 @@ def checkPonsets(pickdic, dttolerance, iplot):
 
     checkedonsets = pickdic
 
-    iplot = 2
+    
     if iplot > 1:
     	p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
         p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
