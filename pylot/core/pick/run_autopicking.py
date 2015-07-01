@@ -78,6 +78,8 @@ def run_autopicking(wfstream, pickparam):
     minsiglength = pickparam.getParam('minsiglength')
     minpercent = pickparam.getParam('minpercent')
     nfacsl = pickparam.getParam('noisefactor')
+    # parameter to check for spuriously picked S onset
+    zfac = pickparam.getParam('zfac')
 
     # initialize output 
     Pweight = 4   # weight for P onset 
@@ -162,6 +164,27 @@ def run_autopicking(wfstream, pickparam):
         	z_copy[0].data = tr_filt.data
         	Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz, minsiglength, \
                 	                          nfacsl, minpercent, iplot)
+                if Pflag == 1:
+                	# check for spuriously picked S onset
+                        # both horizontal traces needed
+                	if len(ndat) == 0 or len(edat) == 0:
+                		print 'One or more horizontal components missing!'
+                		print 'Skip control function checkZ4S.'
+                	else:
+                                # filter and taper horizontal traces
+                                trH1_filt = edat.copy()
+                                trH2_filt = ndat.copy()
+                                trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1], \
+                                                  zerophase=False)
+                                trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1], \
+                                                  zerophase=False)
+                                trH1_filt.taper(max_percentage=0.05, type='hann')
+                                trH2_filt.taper(max_percentage=0.05, type='hann')
+                                zne = z_copy
+                                zne += trH1_filt
+                                zne += trH2_filt
+                		Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
+                                                  tsnrz[3], iplot)
         ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
@@ -272,7 +295,7 @@ def run_autopicking(wfstream, pickparam):
             h_copy[1].data = trH2_filt.data
         elif algoS == 'AR3':
             print zdat, edat, ndat
-            # re-create stream object including both horizontal components
+            # re-create stream object including all components
             hdat = zdat.copy()
             hdat += edat
             hdat += ndat
