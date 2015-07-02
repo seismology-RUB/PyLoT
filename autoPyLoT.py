@@ -35,13 +35,14 @@ def autoPyLoT(inputfile):
     print '*********autoPyLoT starting*********'
     print 'The Python picking and Location Tool'
     print '      Version ', _getVersionString(), '2015'
-    print '**Authors:'
-    print '**S. Wehling-Benatelli'
-    print '** Ruhr-University Bochum'
-    print '**L. Kueperkoch'
-    print '** BESTEC GmbH'
-    print '**K. Olbert'
-    print '** Christian-Albrechts University Kiel'
+    print ' '
+    print 'Authors:'
+    print 'S. Wehling-Benatelli'
+    print '   Ruhr-Universität Bochum'
+    print 'L. Küperkoch'
+    print '   BESTEC GmbH, Landau (Pfalz)'
+    print 'K. Olbert'
+    print '   Christian-Albrechts Universität Kiel'
     print '************************************'
 
     # reading parameter file
@@ -106,7 +107,7 @@ def autoPyLoT(inputfile):
                         allonsets[station] = picks
 
                 # quality control
-                # median check and jackknife on P onset times
+                # median check and jackknife on P-onset times
                 checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
                 # check S-P times (Wadati) 
                 checkedonsetwd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
@@ -146,7 +147,7 @@ def autoPyLoT(inputfile):
                     allonsets[station] = picks
 
             # quality control
-            # median check and jackknife on P onset times
+            # median check and jackknife on P-onset times
             checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
             # check S-P times (Wadati) 
             checkedonsetswd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
@@ -155,6 +156,7 @@ def autoPyLoT(inputfile):
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
             
+    print '####################################'
     print '************************************'
     print '*********autoPyLoT terminates*******'
     print 'The Python picking and Location Tool'
