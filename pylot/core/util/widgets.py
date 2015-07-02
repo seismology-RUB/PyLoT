@@ -345,6 +345,16 @@ class PickDlg(QDialog):
     def getChannelID(self, key):
         return self.getPlotWidget().getPlotDict()[int(key)][1]
 
+    def getTraceID(self, channels):
+        plotDict = self.getPlotWidget().getPlotDict()
+        traceIDs = []
+        for channel in channels:
+            channel = channel.upper()
+            for traceID, channelID in plotDict.iteritems():
+                if channelID[1].upper().endswith(channel):
+                    traceIDs.append(traceID)
+        return traceIDs
+
     def getFilterOptions(self, phase):
         options = self.filteroptions[phase]
         return FilterOptions(**options)
