@@ -88,7 +88,7 @@ class MPLWidget(FigureCanvas):
         self._parent = parent
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None):
+                   noiselevel=None, scaleddata=False):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = getGlobalTimes(wfdata)
@@ -99,13 +99,13 @@ class MPLWidget(FigureCanvas):
             print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
-            trace.normalize(np.max(np.abs(trace.data)) * 2)
+            if not scaleddata:
+                trace.normalize(np.max(np.abs(trace.data)) * 2)
             self.getAxes().plot(time_ax, trace.data + n, 'k')
             if noiselevel is not None:
-                self.getAxes().plot([time_ax[0], time_ax[-1]],
-                               [noiselevel[0], noiselevel[0]], '--k')
-                self.getAxes().plot([time_ax[0], time_ax[-1]],
-                               [noiselevel[1], noiselevel[1]], '--k')
+                for level in noiselevel:
+                    self.getAxes().plot([time_ax[0], time_ax[-1]],
+                                        [level, level], '--k')
             xlabel = 'seconds since {0}'.format(wfstart)
             ylabel = ''
             self.updateWidget(xlabel, ylabel, title)
