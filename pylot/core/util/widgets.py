@@ -210,7 +210,6 @@ class PickDlg(QDialog):
         self.updateCurrentLimits()
 
         # set plot labels
-
         self.setPlotLabels()
 
         # connect button press event to an action
@@ -228,10 +227,8 @@ class PickDlg(QDialog):
         # create icons
         filter_icon = QIcon()
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
-
         zoom_icon = QIcon()
         zoom_icon.addPixmap(QPixmap(':/icons/zoom.png'))
-
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
@@ -240,43 +237,47 @@ class PickDlg(QDialog):
                                          tip='Toggle filtered/original'
                                              ' waveforms',
                                          checkable=True)
-        self.selectPhase = QComboBox()
-        phaseitems = [None] + FILTERDEFAULTS.keys()
-        self.selectPhase.addItems(phaseitems)
-
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
+
+        # create other widget elements
+        self.selectPhase = QComboBox()
+        phaseitems = [None] + FILTERDEFAULTS.keys()
+        self.selectPhase.addItems(phaseitems)
 
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
         _dialtoolbar = QToolBar()
 
         # fill toolbar with content
-
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
         _dialtoolbar.addAction(self.zoomAction)
 
+        # layout the innermost widget
         _innerlayout = QVBoxLayout()
-
         _innerlayout.addWidget(self.multicompfig)
+
+        # add button box to the dialog
         _buttonbox = QDialogButtonBox(QDialogButtonBox.Apply |
                                       QDialogButtonBox.Ok |
                                       QDialogButtonBox.Cancel)
 
+        # merge widgets and layouts to establish the dialog
         _innerlayout.addWidget(_buttonbox)
-
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
 
+        # connect widget element signals with slots (methods to the dialog
+        # object
         self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
-
         _buttonbox.accepted.connect(self.accept)
         _buttonbox.rejected.connect(self.reject)
         _buttonbox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
 
+        # finally layout the entire dialog
         self.setLayout(_outerlayout)
 
     def disconnectPressEvent(self):
