@@ -506,10 +506,9 @@ class PickDlg(QDialog):
                                                               oepp=oepp,
                                                               ompp=ompp,
                                                               olpp=olpp)
-
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
-        self.drawPicks(phase)
+        self.drawPicks()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.selectPhase.setCurrentIndex(-1)
