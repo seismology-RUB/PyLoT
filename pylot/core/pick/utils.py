@@ -611,9 +611,9 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         returnflag = 1
     else:
         print 'checksignallength: Signal shorter than required minimum signal length!'
-        print 'Presumably picked picked noise peak, pick is rejected!'
+        print 'Presumably picked noise peak, pick is rejected!'
         returnflag = 0
-
+    
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
@@ -709,7 +709,6 @@ def checkPonsets(pickdic, dttolerance, iplot):
 
     checkedonsets = pickdic
 
-    
     if iplot > 1:
     	p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
         p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
