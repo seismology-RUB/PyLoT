@@ -416,6 +416,19 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
+        if self.selectPhase.currentText().upper().startswith('P'):
+            self.setIniPickP(gui_event, wfdata, trace_number)
+        elif self.selectPhase.currentText().upper().startswith('S'):
+            self.setIniPickS(gui_event, wfdata)
+
+        self.zoomAction.setEnabled(False)
+
+        # reset labels
+        self.setPlotLabels()
+        self.draw()
+
+    def setIniPickP(self, gui_event, wfdata, trace_number):
+
         ini_pick = gui_event.xdata
 
         settings = QSettings()
@@ -446,20 +459,51 @@ class PickDlg(QDialog):
                                         noiselevel=(trace_number + noiselevel,
                                                     trace_number - noiselevel))
 
-        self.zoomAction.setEnabled(False)
+    def setIniPickS(self, gui_event, wfdata):
 
-        # reset labels
-        self.setPlotLabels()
-        self.draw()
+        ini_pick = gui_event.xdata
 
-    def setIniPickS(self, gui_event):
         settings = QSettings()
 
         nfac = settings.value('picking/nfac_P', 1.5)
         noise_win = settings.value('picking/noise_win_P', 5.)
         gap_win = settings.value('picking/gap_win_P', .2)
         signal_win = settings.value('picking/signal_win_P', 3.)
-        pass
+
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+
+        snr = result[0]
+        noiselevel = result[2] * nfac
+
+        data = self.getWFData().copy()
+
+        phase = self.selectPhase.currentText()
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        data.filter(**filteroptions)
+
+        data = demeanWFData(data=data, t0=ini_pick, win=noise_win, gap=gap_win)
+
+        horiz_comp = ('n', 'e')
+
+        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+
+        x_res = getResolutionWindow(snr)
+
+        self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
+        traces = self.getTraceID(horiz_comp)
+        traces.sort()
+        self.setYLims(tuple(np.array([-0.5, +0.5]) +
+                      np.array(traces)))
+        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] +\
+                      [trace - 1 / (2.5 * 2) for trace in traces]
+
+        self.getPlotWidget().plotWFData(wfdata=data,
+                                        title=self.getStation() +
+                                              ' picking mode',
+                                        zoomx=self.getXLims(),
+                                        zoomy=self.getYLims(),
+                                        noiselevel=noiselevels,
+                                        scaleddata=True)
 
     def setPick(self, gui_event):
 
