@@ -102,6 +102,7 @@ def run_autopicking(wfstream, pickparam):
     aicPflag = 0
     Pflag = 0
     Sflag = 0
+    Pmarker = []
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -185,6 +186,12 @@ def run_autopicking(wfstream, pickparam):
                                 zne += trH2_filt
                 		Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
                                                   tsnrz[3], iplot)
+                                if Pflag == 0:
+                                	Pmarker = 'SinsteadP'
+                                        Pweight = 9
+                else:
+                	Pmarker = 'shortsignallength'
+                        Pweight = 9
         ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
@@ -631,10 +638,12 @@ def run_autopicking(wfstream, pickparam):
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror, \
                  'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
     picks = {phase: phasepick}
+    # add P marker
+    picks[phase]['marked'] = Pmarker
     # add S phase
     phase = 'S'
     phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror, \
                  'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
     picks[phase] = phasepick
-    
+
     return picks
