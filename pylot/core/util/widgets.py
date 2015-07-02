@@ -320,6 +320,8 @@ class PickDlg(QDialog):
         phase = self.selectPhase.currentText()
         self.updateCurrentLimits()
         if phase:
+            if self.zoomAction.isChecked():
+                self.zoomAction.toggle()
             self.disconnectReleaseEvent()
             self.disconnectScrollEvent()
             self.disconnectMotionEvent()
