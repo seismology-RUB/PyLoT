@@ -27,7 +27,8 @@ from pylot.core.read import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
-from pylot.core.util import prepTimeAxis, getGlobalTimes
+from pylot.core.util import prepTimeAxis, getGlobalTimes, scaleWFData, \
+    demeanWFData
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -386,40 +387,10 @@ class PickDlg(QDialog):
             wfdata = self.getWFData().select(component=component)
         return wfdata
 
-    @staticmethod
-    def demeanWFData(data, t0, win, gap):
-        """
-        returns the DATA where each trace is demean by the average value within
-        a desired time window WIN before T0 and a GAP
-        :param data: waveform stream object
-        :type data: `~obspy.core.stream.Stream`
-        :param t0: time before which the noise
-        :type t0: float
-        :param win: time window for average calculation
-        :type win: tuple
-        :param gap: gap window to avoid polluting the average
-        :type gap: float
-        :return: data
-        :rtype: `~obspy.core.stream.Stream`
-        """
-        starttime = getGlobalTimes(data)[0]
-        for tr in data:
-            stime = tr.stats.starttime - starttime
-            t = prepTimeAxis(stime, tr)
-            inoise = getnoisewin(t, t0, win, gap)
-            tr.data -= tr.data[inoise].mean()
-        return data
-
     def getPicks(self):
         return self.picks
 
     def setIniPick(self, gui_event):
-        if self.selectPhase.currentText().upper().startswith('P'):
-            self.setIniPickP(gui_event)
-        elif self.selectPhase.currentText().upper().startswith('S'):
-            self.setIniPickS(gui_event)
-
-    def setIniPickP(self, gui_event):
 
         trace_number = round(gui_event.ydata)
 
@@ -448,7 +419,7 @@ class PickDlg(QDialog):
 
         x_res = getResolutionWindow(snr)
 
-        data = self.demeanWFData(data=self.getWFData().copy(), t0=ini_pick,
+        data = demeanWFData(data=self.getWFData().copy(), t0=ini_pick,
                                  win=noise_win, gap=gap_win)
 
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
