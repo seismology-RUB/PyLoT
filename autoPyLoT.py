@@ -13,7 +13,7 @@ from pylot.core.read import Data, AutoPickParameter
 from pylot.core.pick.run_autopicking import run_autopicking
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.utils import wadaticheck, checkPonsets
-import pdb
+
 __version__ = _getVersionString()
 
 
