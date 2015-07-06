@@ -4,7 +4,7 @@
 import os
 
 from obspy.core import (read, Stream, UTCDateTime)
-from obspy import readEvents
+from obspy import readEvents, read_inventory
 from obspy.core.event import (Event, Catalog)
 
 from pylot.core.read import readPILOTEvent
@@ -145,6 +145,13 @@ class Data(object):
     def resetWFData(self):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
+
+    def restituteWFData(self, fninventory):
+        st = self.getWFData()
+        inv = read_inventory(fninventory)
+        st.attach_response(inv)
+        pre_filt = (0.005, 0.006, 30.0, 35.0) # set in autoPyLoT.in
+        st.remove_response(output='VEL', pre_filt=pre_filt)
 
     def getEvtData(self):
         return self.evtdata
