@@ -14,6 +14,7 @@ import numpy as np
 from pylot.core.pick.Picker import *
 from pylot.core.pick.CharFuns import *
 
+
 def run_autopicking(wfstream, pickparam):
     """
     :param: wfstream
@@ -81,22 +82,22 @@ def run_autopicking(wfstream, pickparam):
     # parameter to check for spuriously picked S onset
     zfac = pickparam.getParam('zfac')
 
-    # initialize output 
-    Pweight = 4   # weight for P onset 
-    Sweight = 4   # weight for S onset
-    FM = 'N'      # first motion (polarity)
-    SNRP = None   # signal-to-noise ratio of P onset
-    SNRPdB = None # signal-to-noise ratio of P onset [dB]
-    SNRS = None   # signal-to-noise ratio of S onset
-    SNRSdB = None # signal-to-noise ratio of S onset [dB]
-    mpickP = None # most likely P onset
-    lpickP = None # latest possible P onset
-    epickP = None # earliest possible P onset
-    mpickS = None # most likely S onset
-    lpickS = None # latest possible S onset
-    epickS = None # earliest possible S onset
-    Perror = None # symmetrized picking error P onset
-    Serror = None # symmetrized picking error S onset
+    # initialize output
+    Pweight = 4  # weight for P onset
+    Sweight = 4  # weight for S onset
+    FM = 'N'  # first motion (polarity)
+    SNRP = None  # signal-to-noise ratio of P onset
+    SNRPdB = None  # signal-to-noise ratio of P onset [dB]
+    SNRS = None  # signal-to-noise ratio of S onset
+    SNRSdB = None  # signal-to-noise ratio of S onset [dB]
+    mpickP = None  # most likely P onset
+    lpickP = None  # latest possible P onset
+    epickP = None  # earliest possible P onset
+    mpickS = None  # most likely S onset
+    lpickS = None  # latest possible S onset
+    epickS = None  # earliest possible S onset
+    Perror = None  # symmetrized picking error P onset
+    Serror = None  # symmetrized picking error S onset
 
     aicSflag = 0
     aicPflag = 0
@@ -161,42 +162,45 @@ def run_autopicking(wfstream, pickparam):
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP)
         ##############################################################
         if aicpick.getpick() is not None:
-        	# check signal length to detect spuriously picked noise peaks
-        	z_copy[0].data = tr_filt.data
-        	Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz, minsiglength, \
-                	                          nfacsl, minpercent, iplot)
-                if Pflag == 1:
-                	# check for spuriously picked S onset
-                        # both horizontal traces needed
-                	if len(ndat) == 0 or len(edat) == 0:
-                		print 'One or more horizontal components missing!'
-                		print 'Skip control function checkZ4S.'
-                	else:
-                                # filter and taper horizontal traces
-                                trH1_filt = edat.copy()
-                                trH2_filt = ndat.copy()
-                                trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1], \
-                                                  zerophase=False)
-                                trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1], \
-                                                  zerophase=False)
-                                trH1_filt.taper(max_percentage=0.05, type='hann')
-                                trH2_filt.taper(max_percentage=0.05, type='hann')
-                                zne = z_copy
-                                zne += trH1_filt
-                                zne += trH2_filt
-                		Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
-                                                  tsnrz[3], iplot)
-                                if Pflag == 0:
-                                	Pmarker = 'SinsteadP'
-                                        Pweight = 9
+            # check signal length to detect spuriously picked noise peaks
+            z_copy[0].data = tr_filt.data
+            Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz,
+                                      minsiglength, \
+                                      nfacsl, minpercent, iplot)
+            if Pflag == 1:
+                # check for spuriously picked S onset
+                # both horizontal traces needed
+                if len(ndat) == 0 or len(edat) == 0:
+                    print 'One or more horizontal components missing!'
+                    print 'Skip control function checkZ4S.'
                 else:
-                	Pmarker = 'shortsignallength'
+                    # filter and taper horizontal traces
+                    trH1_filt = edat.copy()
+                    trH2_filt = ndat.copy()
+                    trH1_filt.filter('bandpass', freqmin=bph1[0],
+                                     freqmax=bph1[1], \
+                                     zerophase=False)
+                    trH2_filt.filter('bandpass', freqmin=bph1[0],
+                                     freqmax=bph1[1], \
+                                     zerophase=False)
+                    trH1_filt.taper(max_percentage=0.05, type='hann')
+                    trH2_filt.taper(max_percentage=0.05, type='hann')
+                    zne = z_copy
+                    zne += trH1_filt
+                    zne += trH2_filt
+                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
+                                     tsnrz[3], iplot)
+                    if Pflag == 0:
+                        Pmarker = 'SinsteadP'
                         Pweight = 9
+            else:
+                Pmarker = 'shortsignallength'
+                Pweight = 9
         ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
-                aicpick.getSNR() >= minAICPSNR and
-                Pflag == 1):
+                    aicpick.getSNR() >= minAICPSNR and
+                    Pflag == 1):
             aicPflag = 1
             print 'AIC P-pick passes quality control: Slope: %f, SNR: %f' % \
                   (aicpick.getSlope(), aicpick.getSNR())
@@ -232,36 +236,37 @@ def run_autopicking(wfstream, pickparam):
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
-           	# quality assessment
-            	# get earliest and latest possible pick and symmetrized uncertainty
-            	[lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz, mpickP, iplot)
+                # quality assessment
+                # get earliest and latest possible pick and symmetrized uncertainty
+                [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
+                                                          mpickP, iplot)
 
-            	# get SNR
-            	[SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
+                # get SNR
+                [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
 
-            	# weight P-onset using symmetric error
-            	if Perror <= timeerrorsP[0]:
-                	Pweight = 0
-            	elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
-                	Pweight = 1
-            	elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
-                	Pweight = 2
-            	elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
-                	Pweight = 3
-            	elif Perror > timeerrorsP[3]:
-                	Pweight = 4
+                # weight P-onset using symmetric error
+                if Perror <= timeerrorsP[0]:
+                    Pweight = 0
+                elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
+                    Pweight = 1
+                elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
+                    Pweight = 2
+                elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
+                    Pweight = 3
+                elif Perror > timeerrorsP[3]:
+                    Pweight = 4
 
-            	##############################################################
-            	# get first motion of P onset
-            	# certain quality required
-            	if Pweight <= minfmweight and SNRP >= minFMSNR:
-                	FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
-            	else:
-                	FM = 'N'
+                ##############################################################
+                # get first motion of P onset
+                # certain quality required
+                if Pweight <= minfmweight and SNRP >= minFMSNR:
+                    FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+                else:
+                    FM = 'N'
 
-            	print 'run_autopicking: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
-                  	'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
-            	Sflag = 1
+                print 'run_autopicking: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
+                      'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
+                Sflag = 1
 
         else:
             print 'Bad initial (AIC) P-pick, skip this onset!'
@@ -340,7 +345,7 @@ def run_autopicking(wfstream, pickparam):
         # class needs stream object => build it
         tr_arhaic = trH1_filt.copy()
         tr_arhaic.data = arhcf1.getCF()
-	h_copy[0].data = tr_arhaic.data
+        h_copy[0].data = tr_arhaic.data
         # calculate ARH-AIC-CF
         haiccf = AICcf(h_copy, cuttimesh)  # instance of AICcf
         ##############################################################
@@ -351,8 +356,8 @@ def run_autopicking(wfstream, pickparam):
         ###############################################################
         # go on with processing if AIC onset passes quality control
         if (aicarhpick.getSlope() >= minAICSslope and
-                aicarhpick.getSNR() >= minAICSSNR and
-                aicarhpick.getpick() is not None):
+                    aicarhpick.getSNR() >= minAICSSNR and
+                    aicarhpick.getpick() is not None):
             aicSflag = 1
             print 'AIC S-pick passes quality control: Slope: %f, SNR: %f' \
                   % (aicarhpick.getSlope(), aicarhpick.getSNR())
@@ -405,71 +410,73 @@ def run_autopicking(wfstream, pickparam):
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:
-            	# quality assessment
-            	# get earliest and latest possible pick and symmetrized uncertainty
-            	h_copy[0].data = trH1_filt.data
-            	[lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS, tsnrh,
-               	                                          mpickS, iplot)
-            	h_copy[0].data = trH2_filt.data
-            	[lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS, tsnrh,
-                                                         mpickS, iplot)
-            	if algoS == 'ARH':
-              		# get earliest pick of both earliest possible picks
-                	epick = [epickS1, epickS2]
-                	lpick = [lpickS1, lpickS2]
-                	pickerr = [Serror1, Serror2]
-                        if epickS1 == None and epickS2 is not None:
-                        	ipick = 1
-                        elif epickS1 is not None and epickS2 == None:
-                        	ipick = 0
-                        elif epickS1 is not None and epickS2 is not None:
-                		ipick = np.argmin([epickS1, epickS2])
-            	elif algoS == 'AR3':
-                	[lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
+                # quality assessment
+                # get earliest and latest possible pick and symmetrized uncertainty
+                h_copy[0].data = trH1_filt.data
+                [lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
-                	# get earliest pick of all three picks
-                	epick = [epickS1, epickS2, epickS3]
-                	lpick = [lpickS1, lpickS2, lpickS3]
-                	pickerr = [Serror1, Serror2, Serror3]
-                        if epickS1 == None and epickS2 is not None \
-                                       and epickS3 is not None:
-                		ipick = np.argmin([epickS2, epickS3])
-                        elif epickS1 is not None and epickS2 == None \
-                                       and epickS3 is not None:
-                		ipick = np.argmin([epickS2, epickS3])
-                        elif epickS1 is not None and epickS2 is not None \
-                                       and epickS3 == None:
-                		ipick = np.argmin([epickS1, epickS2])
-                        elif epickS1 is not None and epickS2 is not None \
-                                       and epickS3 is not None:
-                		ipick = np.argmin([epickS1, epickS2, epickS3])
-            	epickS = epick[ipick]
-            	lpickS = lpick[ipick]
-            	Serror = pickerr[ipick]
+                h_copy[0].data = trH2_filt.data
+                [lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS,
+                                                             tsnrh,
+                                                             mpickS, iplot)
+                if algoS == 'ARH':
+                    # get earliest pick of both earliest possible picks
+                    epick = [epickS1, epickS2]
+                    lpick = [lpickS1, lpickS2]
+                    pickerr = [Serror1, Serror2]
+                    if epickS1 == None and epickS2 is not None:
+                        ipick = 1
+                    elif epickS1 is not None and epickS2 == None:
+                        ipick = 0
+                    elif epickS1 is not None and epickS2 is not None:
+                        ipick = np.argmin([epickS1, epickS2])
+                elif algoS == 'AR3':
+                    [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
+                                                                 tsnrh,
+                                                                 mpickS, iplot)
+                    # get earliest pick of all three picks
+                    epick = [epickS1, epickS2, epickS3]
+                    lpick = [lpickS1, lpickS2, lpickS3]
+                    pickerr = [Serror1, Serror2, Serror3]
+                    if epickS1 == None and epickS2 is not None \
+                            and epickS3 is not None:
+                        ipick = np.argmin([epickS2, epickS3])
+                    elif epickS1 is not None and epickS2 == None \
+                            and epickS3 is not None:
+                        ipick = np.argmin([epickS2, epickS3])
+                    elif epickS1 is not None and epickS2 is not None \
+                            and epickS3 == None:
+                        ipick = np.argmin([epickS1, epickS2])
+                    elif epickS1 is not None and epickS2 is not None \
+                            and epickS3 is not None:
+                        ipick = np.argmin([epickS1, epickS2, epickS3])
+                epickS = epick[ipick]
+                lpickS = lpick[ipick]
+                Serror = pickerr[ipick]
 
-            	# get SNR
-            	[SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
+                # get SNR
+                [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
 
-            	# weight S-onset using symmetric error
-            	if Serror <= timeerrorsS[0]:
-                	Sweight = 0
-            	elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
-                	Sweight = 1
-            	elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
-                	Sweight = 2
-            	elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
-                	Sweight = 3
-            	elif Serror > timeerrorsS[3]:
-                	Sweight = 4
+                # weight S-onset using symmetric error
+                if Serror <= timeerrorsS[0]:
+                    Sweight = 0
+                elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
+                    Sweight = 1
+                elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
+                    Sweight = 2
+                elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
+                    Sweight = 3
+                elif Serror > timeerrorsS[3]:
+                    Sweight = 4
 
-            	print 'run_autopicking: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
-                	Sweight, SNRS, SNRSdB)
+                print 'run_autopicking: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
+                    Sweight, SNRS, SNRSdB)
 
         else:
             print 'Bad initial (AIC) S-pick, skip this onset!'
             print 'AIC-SNR=', aicarhpick.getSNR(), \
-                  'AIC-Slope=', aicarhpick.getSlope()
+                'AIC-Slope=', aicarhpick.getSlope()
 
     else:
         print 'run_autopicking: No horizontal component data available or ' \
@@ -525,7 +532,7 @@ def run_autopicking(wfstream, pickparam):
         plt.ylim([-1.5, 1.5])
         plt.ylabel('Normalized Counts')
         plt.suptitle(tr_filt.stats.starttime)
-        
+
         if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
             # plot horizontal traces
             plt.subplot(3, 1, 2)
@@ -544,20 +551,25 @@ def run_autopicking(wfstream, pickparam):
                 if aicSflag == 1:
                     p23, = plt.plot(arhcf2.getTimeArray(),
                                     arhcf2.getCF() / max(arhcf2.getCF()), 'm')
-                    p24, = plt.plot([aicarhpick.getpick(), aicarhpick.getpick()],
-                                    [-1, 1], 'g')
+                    p24, = plt.plot(
+                        [aicarhpick.getpick(), aicarhpick.getpick()],
+                        [-1, 1], 'g')
                     plt.plot(
-                        [aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5],
+                        [aicarhpick.getpick() - 0.5,
+                         aicarhpick.getpick() + 0.5],
                         [1, 1], 'g')
                     plt.plot(
-                        [aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5],
+                        [aicarhpick.getpick() - 0.5,
+                         aicarhpick.getpick() + 0.5],
                         [-1, -1], 'g')
                     p25, = plt.plot([refSpick.getpick(), refSpick.getpick()],
                                     [-1.3, 1.3], 'g', linewidth=2)
-                    plt.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                             [1.3, 1.3], 'g', linewidth=2)
-                    plt.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                             [-1.3, -1.3], 'g', linewidth=2)
+                    plt.plot(
+                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                        [1.3, 1.3], 'g', linewidth=2)
+                    plt.plot(
+                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                        [-1.3, -1.3], 'g', linewidth=2)
                     plt.plot([lpickS, lpickS], [-1.1, 1.1], 'g--')
                     plt.plot([epickS, epickS], [-1.1, 1.1], 'g--')
                     plt.legend([p21, p22, p23, p24, p25],
@@ -591,20 +603,25 @@ def run_autopicking(wfstream, pickparam):
                 if aicSflag == 1:
                     p23, = plt.plot(arhcf2.getTimeArray(),
                                     arhcf2.getCF() / max(arhcf2.getCF()), 'm')
-                    p24, = plt.plot([aicarhpick.getpick(), aicarhpick.getpick()],
-                                    [-1, 1], 'g')
+                    p24, = plt.plot(
+                        [aicarhpick.getpick(), aicarhpick.getpick()],
+                        [-1, 1], 'g')
                     plt.plot(
-                        [aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5],
+                        [aicarhpick.getpick() - 0.5,
+                         aicarhpick.getpick() + 0.5],
                         [1, 1], 'g')
                     plt.plot(
-                        [aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5],
+                        [aicarhpick.getpick() - 0.5,
+                         aicarhpick.getpick() + 0.5],
                         [-1, -1], 'g')
                     p25, = plt.plot([refSpick.getpick(), refSpick.getpick()],
-                             [-1.3, 1.3], 'g', linewidth=2)
-                    plt.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                             [1.3, 1.3], 'g', linewidth=2)
-                    plt.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                             [-1.3, -1.3], 'g', linewidth=2)
+                                    [-1.3, 1.3], 'g', linewidth=2)
+                    plt.plot(
+                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                        [1.3, 1.3], 'g', linewidth=2)
+                    plt.plot(
+                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                        [-1.3, -1.3], 'g', linewidth=2)
                     plt.plot([lpickS, lpickS], [-1.1, 1.1], 'g--')
                     plt.plot([epickS, epickS], [-1.1, 1.1], 'g--')
                     plt.legend([p21, p22, p23, p24, p25],
@@ -623,15 +640,15 @@ def run_autopicking(wfstream, pickparam):
     ##########################################################################
     # calculate "real" onset times
     if mpickP is not None:
-    	lpickP = zdat[0].stats.starttime + lpickP
-    	epickP = zdat[0].stats.starttime + epickP
-    	mpickP = zdat[0].stats.starttime + mpickP
+        lpickP = zdat[0].stats.starttime + lpickP
+        epickP = zdat[0].stats.starttime + epickP
+        mpickP = zdat[0].stats.starttime + mpickP
 
     if mpickS is not None:
-    	lpickS = edat[0].stats.starttime + lpickS
-    	epickS = edat[0].stats.starttime + epickS
-    	mpickS = edat[0].stats.starttime + mpickS
-    
+        lpickS = edat[0].stats.starttime + lpickS
+        epickS = edat[0].stats.starttime + epickS
+        mpickS = edat[0].stats.starttime + mpickS
+
     # create dictionary
     # for P phase
     phase = 'P'
