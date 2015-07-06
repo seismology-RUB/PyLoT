@@ -24,6 +24,10 @@ https://www.iconfinder.com/iconsets/flavour
 """
 
 import sys
+import matplotlib
+
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt

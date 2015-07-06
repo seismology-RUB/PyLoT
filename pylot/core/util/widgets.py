@@ -7,10 +7,6 @@ Created on Wed Mar 19 11:27:35 2014
 
 import datetime
 import numpy as np
-import matplotlib
-
-matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
