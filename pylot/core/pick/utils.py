@@ -13,7 +13,7 @@ import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
-
+import pdb
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -482,6 +482,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
         # calculate vp/vs ratio before check
         vpvsr = p1[0] + 1
+        print '###############################################'
         print 'wadaticheck: Average Vp/Vs ratio before check:', vpvsr
 
         checkedPpicks = []
@@ -519,6 +520,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	cvpvsr = p2[0] + 1
         	print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
         else:
+                print '###############################################'
         	print 'wadatacheck: Not enough checked S-P times available!'
                 print 'Skip Wadati check!'
 
@@ -528,7 +530,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-    
+    iplot=2
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -668,14 +670,16 @@ def checkPonsets(pickdic, dttolerance, iplot):
            stations.append(key)
 
     # apply jackknife bootstrapping on variance of P onsets
+    print '###############################################'
     print 'checkPonsets: Apply jackknife bootstrapping on P-onset times ...'
     [xjack,PHI_pseudo,PHI_sub] = jackknife(Ppicks, 'VAR', 1)
     # get pseudo variances smaller than average variances
-    # these picks passed jackknife test
-    ij = np.where(PHI_pseudo <= xjack)
+    # (times safety factor), these picks passed jackknife test
+    ij = np.where(PHI_pseudo <= 2 * xjack)
     # these picks did not pass jackknife test
-    badjk = np.where(PHI_pseudo > xjack)
+    badjk = np.where(PHI_pseudo > 2 * xjack)
     badjkstations = np.array(stations)[badjk]
+    print 'checkPonsets: %d picks did not pass jackknife test!' % len(badjkstations)
 
     # calculate median from these picks
     pmedian = np.median(np.array(Ppicks)[ij])
@@ -687,7 +691,8 @@ def checkPonsets(pickdic, dttolerance, iplot):
     goodstations = np.array(stations)[igood]
     badstations = np.array(stations)[ibad]
 
-    print 'checkPonset: Skipped %d P onsets out of %d' % (len(badstations) \
+    print 'checkPonsets: %d picks deviate too much from median!' % len(ibad)
+    print 'checkPonsets: Skipped %d P onsets out of %d' % (len(badstations) \
             + len(badjkstations), len(stations))
 
     goodmarker = 'goodPonsetcheck'
@@ -867,7 +872,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     if zcodalevel < minsiglevel:
     	print 'checkZ4S: Maybe S onset? Skip this P pick!'
     else:
-        print 'checkZ4S: P onset passed checkZ4S test!'
+        print 'checkZ4S: P onset passes checkZ4S test!'
         returnflag = 1      
 
     if iplot > 1:
