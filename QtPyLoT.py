@@ -371,6 +371,13 @@ class MainWindow(QMainWindow):
 
         return statID
 
+    def getStationID(self, station):
+        for wfID in self.getPlotWidget().getPlotDict().keys():
+            actual_station = self.getPlotWidget().getPlotDict()[wfID][0]
+            if station == actual_station:
+                return wfID
+        return None
+
     def addActions(self, target, actions):
         for action in actions:
             if action is None:
@@ -528,6 +535,38 @@ class MainWindow(QMainWindow):
                 raise Exception('FATAL: Should never occur!')
         self.getPicks()[station] = stat_picks
 
+    def drawPicks(self, station=None):
+        # if picks to draw not specified, draw all picks available
+        if not station:
+            for station in self.getPicks():
+                self.drawPicks(station)
+            return
+        # plotting picks
+        plotID = self.getStationID(station)
+        ax = self.getPlotWidget().axes
+        ylims = np.array([-.5, +.5]) + plotID
+        phase_col = {'P': ('c', 'c--', 'b-'),
+                     'S': ('m', 'm--', 'r-')}
+
+        stat_picks = self.getPicks()[station]
+
+        for phase in stat_picks:
+
+            picks = stat_picks[phase]
+            colors = phase_col[phase[0].upper()]
+
+            mpp = picks['mpp']
+            epp = picks['epp']
+            lpp = picks['lpp']
+            spe = picks['spe']
+
+            ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                            alpha=.5, color=colors[0])
+            ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                    [mpp, mpp], ylims, colors[2],
+                    [mpp + spe, mpp + spe], ylims, colors[1])
+        self.draw()
+
     def updateStatus(self, message, duration=5000):
         self.statusBar().showMessage(message, duration)
         if self.getData() is not None:
@@ -553,6 +592,9 @@ class MainWindow(QMainWindow):
                 event = createEvent(evtpar['origintime'], cinfo)
                 self.data = Data(self, evtdata=event)
                 self.dirty = True
+
+    def draw(self):
+        self.getPlotWidget().draw()
 
     def closeEvent(self, event):
         if self.okToContinue():
