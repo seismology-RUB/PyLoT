@@ -33,7 +33,8 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen
+    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
+    QActionGroup
 import numpy as np
 from obspy.core import UTCDateTime
 
@@ -145,6 +146,12 @@ class MainWindow(QMainWindow):
         print_icon.addPixmap(QPixmap(':/icons/printer.png'))
         filter_icon = QIcon()
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        z_icon = QIcon()
+        z_icon.addPixmap((QPixmap(':/icons/key_Z.png')))
+        n_icon = QIcon()
+        n_icon.addPixmap((QPixmap(':/icons/key_N.png')))
+        e_icon = QIcon()
+        e_icon.addPixmap((QPixmap(':/icons/key_E.png')))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -224,6 +231,35 @@ class MainWindow(QMainWindow):
         phaseToolActions = (self.selectPAction, self.selectSAction)
         phaseToolBar.setObjectName("PhaseTools")
         self.addActions(phaseToolBar, phaseToolActions)
+
+        # create button group for component selection
+
+        componentGroup = QActionGroup(self)
+        componentGroup.setExclusive(True)
+
+        z_action = self.createAction(parent=componentGroup, text='Z',
+                                     slot=self.plotZ, shortcut='Alt+Z',
+                                     icon=z_icon, tip='Display the vertical (Z)'
+                                                      ' component.',
+                                     checkable=True)
+        z_action.setChecked(True)
+
+        n_action = self.createAction(parent=componentGroup, text='N',
+                                     slot=self.plotN, shortcut='Alt+N',
+                                     icon=n_icon,
+                                     tip='Display the north-south (N) '
+                                         'component.', checkable=True)
+
+        e_action = self.createAction(parent=componentGroup, text='E',
+                                     slot=self.plotE, shortcut='Alt+E',
+                                     icon=e_icon,
+                                     tip='Display the east-west (E) component.',
+                                     checkable=True)
+
+        componentToolBar = self.addToolBar("ComponentSelection")
+        componentActions = (z_action, n_action, e_action)
+        componentToolBar.setObjectName("PhaseTools")
+        self.addActions(componentToolBar, componentActions)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -351,6 +387,9 @@ class MainWindow(QMainWindow):
     def getComponent(self):
         return self.dispComponent
 
+    def setComponent(self, component):
+        self.dispComponent = component
+
     def getData(self):
         return self.data
 
@@ -408,10 +447,25 @@ class MainWindow(QMainWindow):
         title = 'overview: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
-        self.getPlotWidget().draw()
+        self.draw()
         pos = self.getPlotWidget().getPlotDict().keys()
         labels = [int(act) for act in pos]
         self.getPlotWidget().setYTickLabels(pos, labels)
+
+    def plotZ(self):
+        self.setComponent('Z')
+        self.plotWaveformData()
+        self.drawPicks()
+
+    def plotN(self):
+        self.setComponent('N')
+        self.plotWaveformData()
+        self.drawPicks()
+
+    def plotE(self):
+        self.setComponent('E')
+        self.plotWaveformData()
+        self.drawPicks()
 
     def filterWaveformData(self):
         if self.getData():
