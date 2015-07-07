@@ -10,7 +10,7 @@ import numpy as np
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
     QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
@@ -217,7 +217,7 @@ class PickDlg(QDialog):
     def setupUi(self):
 
         # create matplotlib toolbar to inherit functionality
-        self.figToolBar = NavigationToolbar2QTAgg(self.getPlotWidget(), self)
+        self.figToolBar = NavigationToolbar2QT(self.getPlotWidget(), self)
         self.figToolBar.hide()
 
         # create icons
