@@ -264,8 +264,7 @@ class PickDlg(QDialog):
         _innerlayout.addWidget(self.multicompfig)
 
         # add button box to the dialog
-        _buttonbox = QDialogButtonBox(QDialogButtonBox.Apply |
-                                      QDialogButtonBox.Ok |
+        _buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
                                       QDialogButtonBox.Cancel)
 
         # merge widgets and layouts to establish the dialog
@@ -278,7 +277,6 @@ class PickDlg(QDialog):
         self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
         _buttonbox.accepted.connect(self.accept)
         _buttonbox.rejected.connect(self.reject)
-        _buttonbox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
 
         # finally layout the entire dialog
         self.setLayout(_outerlayout)
