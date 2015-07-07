@@ -503,8 +503,33 @@ class MainWindow(QMainWindow):
         else:
             print 'picks not saved and closed dialog'
 
-    def updateStatus(self, message):
-        self.statusBar().showMessage(message, 5000)
+    def addPicks(self, station, picks):
+        stat_picks = self.getPicksOnStation(station)
+        if not stat_picks:
+            stat_picks = picks
+        else:
+            msgBox = QMessageBox()
+            msgBox.setText("The picks for station {0} have been "
+                           "changed.".format(station))
+            msgBox.setDetailedText("Old picks:\n"
+                                "{old_picks}\n\n"
+                                "New picks:\n"
+                                "{new_picks}".format(old_picks=stat_picks,
+                                                     new_picks=picks))
+            msgBox.setInformativeText("Do you want to save your changes?")
+            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+            msgBox.setDefaultButton(QMessageBox.Save)
+            ret = msgBox.exec_()
+            if ret == QMessageBox.Save:
+                stat_picks = picks
+            elif ret == QMessageBox.Cancel:
+                pass
+            else:
+                raise Exception('FATAL: Should never occur!')
+        self.getPicks()[station] = stat_picks
+
+    def updateStatus(self, message, duration=5000):
+        self.statusBar().showMessage(message, duration)
         if self.getData() is not None:
             if not self.getData().isNew():
                 self.setWindowTitle(
