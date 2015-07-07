@@ -507,7 +507,8 @@ class MainWindow(QMainWindow):
         self.updateStatus('picking on station {0}'.format(station))
         data = self.getData().getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
-                          station=station)
+                          station=station,
+                          picks=self.getPicksOnStation(station))
         if pickDlg.exec_():
             self.updateStatus('picks accepted ({0})'.format(station))
             self.addPicks(station, pickDlg.getPicks())

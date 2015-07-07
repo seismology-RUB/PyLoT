@@ -158,14 +158,18 @@ class MPLWidget(FigureCanvas):
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
 class PickDlg(QDialog):
-    def __init__(self, parent=None, data=None, station=None, rotate=False):
+    def __init__(self, parent=None, data=None, station=None, picks=None,
+                 rotate=False):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
-        self.picks = {}
+        if picks:
+            self.picks = picks
+        else:
+            self.picks = {}
         self.filteroptions = FILTERDEFAULTS
 
         # initialize panning attributes
