@@ -438,11 +438,11 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
 
     def adjustFilterOptions(self):
-        filteroptions = None
+        filteroptions = self.getFilterOptions()
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self,
-                                        filterOptions=self.getFilterOptions())
+                                        filterOptions=filteroptions)
         if filterDlg.exec_():
             filteroptions = filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
