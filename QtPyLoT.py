@@ -501,15 +501,15 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(gui_event)
 
         station = self.getStationName(wfID)
-        print 'picking on station {0}'.format(station)
+        self.updateStatus('picking on station {0}'.format(station))
         data = self.getData().getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
                           station=station)
         if pickDlg.exec_():
-            print 'picks accepted'
-            self.getData().applyEVTData(pickDlg.getPicks())
+            self.updateStatus('picks accepted ({0})'.format(station))
+            self.addPicks(station, pickDlg.getPicks())
         else:
-            print 'picks not saved and closed dialog'
+            self.updateStatus('picks discarded ({0})'.format(station))
 
     def addPicks(self, station, picks):
         stat_picks = self.getPicksOnStation(station)
