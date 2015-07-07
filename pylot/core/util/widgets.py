@@ -212,6 +212,9 @@ class PickDlg(QDialog):
         # set plot labels
         self.setPlotLabels()
 
+        # draw picks if present
+        self.drawPicks()
+
         # connect button press event to an action
         self.cidpress = self.connectPressEvent(self.panPress)
         self.cidmotion = self.connectMotionEvent(self.panMotion)
