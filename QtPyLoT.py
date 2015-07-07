@@ -33,7 +33,8 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication, QPixmap
+    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox
+import numpy as np
 from obspy.core import UTCDateTime
 
 from pylot.core.read import Data, FilterOptions
