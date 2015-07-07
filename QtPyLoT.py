@@ -133,11 +133,13 @@ class MainWindow(QMainWindow):
 
         # create resource icons
         p_icon = QIcon()
-        p_icon.addPixmap(QPixmap(':/icons/picon.png'))
+        p_icon.addPixmap(QPixmap(':/icons/key_P.png'))
         s_icon = QIcon()
-        s_icon.addPixmap(QPixmap(':/icons/sicon.png'))
+        s_icon.addPixmap(QPixmap(':/icons/key_S.png'))
         print_icon = QIcon()
         print_icon.addPixmap(QPixmap(':/icons/printer.png'))
+        filter_icon = QIcon()
+        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -166,7 +168,7 @@ class MainWindow(QMainWindow):
                                        "Close event and quit PyLoT")
         self.filterAction = self.createAction(self, "&Filter ...",
                                               self.filterWaveformData,
-                                              "Ctrl+F", QIcon(":/filter.png"),
+                                              "Ctrl+F", filter_icon,
                                               """Toggle un-/filtered waveforms
                                          to be displayed, according to the
                                          desired seismic phase.""", True)
@@ -259,7 +261,7 @@ class MainWindow(QMainWindow):
         if recentEvents:
             for i, eventID in enumerate(recentEvents):
                 fname = fnConstructor(eventID)
-                action = QAction(QIcon(":/icon.png"),
+                action = QAction(self.windowIcon(),
                                  "&{0} {1}".format(i + 1,
                                                    QFileInfo(fname).fileName()),
                                  self)

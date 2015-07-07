@@ -224,7 +224,7 @@ class PickDlg(QDialog):
         filter_icon = QIcon()
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
         zoom_icon = QIcon()
-        zoom_icon.addPixmap(QPixmap(':/icons/zoom.png'))
+        zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',

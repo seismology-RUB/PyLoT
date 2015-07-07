@@ -2,11 +2,21 @@
     <qresource>
 		<file>icons/pylot.ico</file>
 		<file>icons/printer.png</file>
-		<file>icons/picon.png</file>
-		<file>icons/sicon.png</file>
+		<file>icons/key_E.png</file>
+        <file>icons/key_N.png</file>
+        <file>icons/key_P.png</file>
+        <file>icons/key_Q.png</file>
+        <file>icons/key_R.png</file>
+        <file>icons/key_S.png</file>
+        <file>icons/key_T.png</file>
+        <file>icons/key_U.png</file>
+        <file>icons/key_V.png</file>
+        <file>icons/key_W.png</file>
+		<file>icons/key_Z.png</file>
 		<file>icons/pick.png</file>
         <file>icons/filter.png</file>
-        <file>icons/zoom.png</file>
+        <file>icons/zoom_in.png</file>
+        <file>icons/zoom_out.png</file>
     </qresource>
     <qresource prefix="/help">
         <file>help/index.html</file>
