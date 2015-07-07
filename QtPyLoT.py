@@ -124,7 +124,10 @@ class MainWindow(QMainWindow):
         # create central matplotlib figure canvas widget
         self.DataPlot = MPLWidget(parent=self, xlabel=xlab, ylabel=None,
                                   title=plottitle)
-        self.DataPlot.mpl_connect('button_press_event', self.pickOnStation)
+        self.DataPlot.mpl_connect('button_press_event',
+                                  self.pickOnStation)
+        self.DataPlot.mpl_connect('axes_enter_event',
+                                  lambda event: self.tutorUser())
         _layout.addWidget(self.DataPlot)
 
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -580,6 +583,9 @@ class MainWindow(QMainWindow):
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
+
+    def tutorUser(self):
+        self.updateStatus('select trace to pick on station ...', 10000)
 
     def printEvent(self):
         pass
