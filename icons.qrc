@@ -1,7 +1,8 @@
 <RCC>
     <qresource>
 		<file>icons/pylot.ico</file>
-		<file>icons/printer.png</file>
+		<file>icons/pylot.png</file>
+        <file>icons/printer.png</file>
 		<file>icons/key_E.png</file>
         <file>icons/key_N.png</file>
         <file>icons/key_P.png</file>
@@ -13,7 +14,6 @@
         <file>icons/key_V.png</file>
         <file>icons/key_W.png</file>
 		<file>icons/key_Z.png</file>
-		<file>icons/pick.png</file>
         <file>icons/filter.png</file>
         <file>icons/zoom_in.png</file>
         <file>icons/zoom_out.png</file>

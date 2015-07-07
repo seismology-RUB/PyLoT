@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
             self.startTime = UTCDateTime()
 
         pylot_icon = QIcon()
-        pylot_icon.addPixmap(QPixmap(':/icons/pylot.ico'))
+        pylot_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(pylot_icon)
@@ -629,7 +629,7 @@ def main():
     pylot_app = QApplication(sys.argv)
 
     app_icon = QIcon()
-    app_icon.addPixmap(QPixmap(':/icons/pick.png'))
+    app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
     # set Application Information
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
