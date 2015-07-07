@@ -511,6 +511,7 @@ class MainWindow(QMainWindow):
         if pickDlg.exec_():
             self.updateStatus('picks accepted ({0})'.format(station))
             self.addPicks(station, pickDlg.getPicks())
+            self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
 
