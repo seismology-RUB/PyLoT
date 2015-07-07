@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
 
         self.filteroptions = {}
         self.pickDlgs = {}
+        self.picks = {}
 
         # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
@@ -348,6 +349,15 @@ class MainWindow(QMainWindow):
 
     def getData(self):
         return self.data
+
+    def getPicks(self):
+        return self.picks
+
+    def getPicksOnStation(self, station):
+        try:
+            return self.getPicks()[station]
+        except KeyError:
+            return None
 
     def getPlotWidget(self):
         return self.DataPlot
