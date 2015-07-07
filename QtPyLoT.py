@@ -692,6 +692,7 @@ def main():
     pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
     pylot_app.setOrganizationDomain("rub.de")
     pylot_app.setApplicationName("PyLoT")
+    pylot_app.setApplicationVersion(__version__)
     pylot_app.setWindowIcon(app_icon)
 
     # create the main window
