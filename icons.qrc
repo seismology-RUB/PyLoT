@@ -17,6 +17,7 @@
         <file>icons/filter.png</file>
         <file>icons/zoom_in.png</file>
         <file>icons/zoom_out.png</file>
+        <file>splash/splash.png</file>
     </qresource>
     <qresource prefix="/help">
         <file>help/index.html</file>

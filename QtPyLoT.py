@@ -33,7 +33,7 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox
+    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen
 import numpy as np
 from obspy.core import UTCDateTime
 
@@ -627,6 +627,9 @@ class MainWindow(QMainWindow):
 def main():
     # create the Qt application
     pylot_app = QApplication(sys.argv)
+    pixmap = QPixmap(":/splash/splash.png")
+    splash = QSplashScreen(pixmap)
+    splash.show()
 
     app_icon = QIcon()
     app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
@@ -639,9 +642,12 @@ def main():
 
     # create the main window
     pylot_form = MainWindow()
+    splash.showMessage('Loading. Please wait ...')
+    pylot_app.processEvents()
 
     # Show main window and run the app
     pylot_form.showMaximized()
+    splash.finish(pylot_form)
     pylot_app.exec_()
 
 
