@@ -36,7 +36,7 @@ def runProgram(cmd, parameter=None):
 
 def fnConstructor(s):
     if type(s) is str:
-        s = s.split('/')[-1]
+        s = s.split(':')[-1]
     else:
         s = getHash(UTCDateTime())
 
