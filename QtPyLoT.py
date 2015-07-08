@@ -381,7 +381,7 @@ class MainWindow(QMainWindow):
             print 'warning: {0}'.format(e)
             fname = QFileDialog.getSaveFileName(self, 'Save event')
             fname = fname[0]
-            self.data.exportEvent(fname, exform)
+            self.getData().exportEvent(fname, exform)
         return True
 
     def getComponent(self):
