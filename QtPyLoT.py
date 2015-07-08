@@ -372,7 +372,7 @@ class MainWindow(QMainWindow):
 
     def saveData(self):
         settings = QSettings()
-        exform = settings.value('data/exportFormat', 'None')
+        exform = settings.value('data/exportFormat', 'QUAKEML')
         try:
             self.data.exportEvent(self.fname, exform)
         except FormatError:
