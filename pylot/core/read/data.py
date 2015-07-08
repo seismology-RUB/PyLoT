@@ -78,9 +78,9 @@ class Data(object):
         if fnout is None:
             ID = self.getID()
             # handle forbidden filenames especially on windows systems
-            fnout = fnConstructor(ID)
+            fnout = fnConstructor(str(ID))
         else:
-            fnout = fnConstructor(fnout)
+            fnout = fnConstructor(str(fnout))
 
         evtformat = evtformat.upper().strip()
 
