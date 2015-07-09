@@ -490,6 +490,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         checkedSPtimes = []
         # calculate deviations from Wadati regression
         ii = 0
+        ibad = 0
         for key in pickdic:
             if pickdic[key].has_key('SPt'):
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
@@ -500,6 +501,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                     # (not used anymore)
                     marker = 'badWadatiCheck'
                     pickdic[key]['S']['weight'] = 9
+                    ibad += 1
                 else:
                     marker = 'goodWadatiCheck'
                     checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp'])
@@ -519,6 +521,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	# calculate vp/vs ratio after check
         	cvpvsr = p2[0] + 1
         	print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
+                print 'wadatacheck: Skipped %d S pick(s).' % ibad 
         else:
                 print '###############################################'
         	print 'wadatacheck: Not enough checked S-P times available!'
@@ -679,7 +682,7 @@ def checkPonsets(pickdic, dttolerance, iplot):
     # these picks did not pass jackknife test
     badjk = np.where(PHI_pseudo > 2 * xjack)
     badjkstations = np.array(stations)[badjk]
-    print 'checkPonsets: %d picks did not pass jackknife test!' % len(badjkstations)
+    print 'checkPonsets: %d pick(s) did not pass jackknife test!' % len(badjkstations)
 
     # calculate median from these picks
     pmedian = np.median(np.array(Ppicks)[ij])
@@ -691,8 +694,8 @@ def checkPonsets(pickdic, dttolerance, iplot):
     goodstations = np.array(stations)[igood]
     badstations = np.array(stations)[ibad]
 
-    print 'checkPonsets: %d picks deviate too much from median!' % len(ibad)
-    print 'checkPonsets: Skipped %d P onsets out of %d' % (len(badstations) \
+    print 'checkPonsets: %d pick(s) deviate too much from median!' % len(ibad)
+    print 'checkPonsets: Skipped %d P pick(s) out of %d' % (len(badstations) \
             + len(badjkstations), len(stations))
 
     goodmarker = 'goodPonsetcheck'
