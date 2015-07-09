@@ -34,15 +34,16 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup
+    QActionGroup, QListWidget
 import numpy as np
 from obspy.core import UTCDateTime
 
-from pylot.core.read import Data, FilterOptions
+from pylot.core.read import Data, FilterOptions, AutoPickParameter
 from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
     checkurl, FormatError, FilterOptionsDialog, \
     NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
     DatastructureError, createAction, getLogin, createCreationInfo, PickDlg
+from pylot.core.util.thread import WorkerThread
 from pylot.core.util.structure import DATASTRUCTURE
 import icons_rc
 
@@ -147,11 +148,13 @@ class MainWindow(QMainWindow):
         filter_icon = QIcon()
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
         z_icon = QIcon()
-        z_icon.addPixmap((QPixmap(':/icons/key_Z.png')))
+        z_icon.addPixmap(QPixmap(':/icons/key_Z.png'))
         n_icon = QIcon()
-        n_icon.addPixmap((QPixmap(':/icons/key_N.png')))
+        n_icon.addPixmap(QPixmap(':/icons/key_N.png'))
         e_icon = QIcon()
-        e_icon.addPixmap((QPixmap(':/icons/key_E.png')))
+        e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
+        auto_icon = QIcon()
+        auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -260,6 +263,17 @@ class MainWindow(QMainWindow):
         componentActions = (z_action, n_action, e_action)
         componentToolBar.setObjectName("PhaseTools")
         self.addActions(componentToolBar, componentActions)
+
+        auto_pick = self.createAction(parent=self, text='autoPick',
+                                      slot=self.autoPick, shortcut='Alt+Ctrl+A',
+                                      icon=auto_icon, tip='Automatically pick'
+                                                          ' the entire dataset'
+                                                          ' displayed!',
+                                      checkable=False)
+
+        autoPickToolBar = self.addToolBar("autoPyLoT")
+        autoPickActions = (auto_pick,)
+        self.addActions(autoPickToolBar, autoPickActions)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -569,6 +583,20 @@ class MainWindow(QMainWindow):
             self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
+
+    def autoPick(self):
+        list = QListWidget()
+        autopick_parameter = AutoPickParameter('autoPyLoT_local.in')
+        list.addItem(str(autopick_parameter))
+
+        # Create the worker thread and run it
+        self.thread = WorkerThread(parent=self,
+                                   func=autopickevent,
+                                   data=self.getData().getWFData(),
+                                   param=autopick_parameter)
+        self.thread.message.connect(list.addItem)
+        self.thread.start()
+
 
     def addPicks(self, station, picks):
         stat_picks = self.getPicksOnStation(station)

@@ -12,8 +12,25 @@ import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
+from pylot.core.pick.run_autopicking import run_autopicking
 import warnings
 import pdb
+
+def autopickevent(data, param):
+    stations = []
+
+    for n in len(data):
+        station = data[n].stats.station
+        if station not in stations:
+            stations.append(station)
+        else:
+            continue
+
+    for station in stations:
+        topick = data.select(station=station)
+
+        stat_picks = run_autopicking(topick, param)
+
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -254,7 +271,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
                 FM = '+'
             elif P1[0] > 0 and P2[0] <= 0:
                 FM = '+'
-           
+
         print 'fmpicker: Found polarity %s' % FM
 
     if iplot > 1:
@@ -530,7 +547,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     	print 'wadaticheck: Not enough S-P times available for reliable regression!'
         print 'Skip wadati check!'
         wfitflag = 1
-    
+
     # plot results
     if iplot > 1:
     	plt.figure(iplot)
@@ -615,12 +632,12 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         print 'checksignallength: Signal shorter than required minimum signal length!'
         print 'Presumably picked noise peak, pick is rejected!'
         returnflag = 0
-    
+
     if iplot == 2:
         plt.figure(iplot)
     	p1, = plt.plot(t,x, 'k')
         p2, = plt.plot(t[inoise], e[inoise], 'c')
-        p3, = plt.plot(t[isignal],e[isignal], 'r') 
+        p3, = plt.plot(t[isignal],e[isignal], 'r')
         p2, = plt.plot(t[inoise], e[inoise])
         p3, = plt.plot(t[isignal],e[isignal], 'r')
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
@@ -642,7 +659,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
 
 def checkPonsets(pickdic, dttolerance, iplot):
     '''
-    Function to check statistics of P-onset times: Control deviation from 
+    Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
     bootstrapping jackknife.
 
@@ -722,7 +739,7 @@ def checkPonsets(pickdic, dttolerance, iplot):
         for i in range(0, len(Ppicks)):
         	plt.text(i, Ppicks[i] + 0.2, stations[i])
 
-        plt.xlabel('Number of P Picks') 
+        plt.xlabel('Number of P Picks')
         plt.ylabel('Onset Time [s] from 1.1.1970')
         plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'], \
                     loc='best')
@@ -751,7 +768,7 @@ def jackknife(X, phi, h):
     : param: h, size of subgroups, optinal, default = 1
     : type:  integer
     '''
-    
+
     PHI_jack = None
     PHI_pseudo = None
     PHI_sub = None
@@ -786,7 +803,7 @@ def jackknife(X, phi, h):
                 	phi_sub = np.var(xx)
                 elif phi == 'MED':
                 	phi_sub = np.median(xx)
-               
+
                 PHI_sub.append(phi_sub)
                 # pseudo values
                 phi_pseudo = g * phi_sc - ((g - 1) * phi_sub)
@@ -799,21 +816,21 @@ def jackknife(X, phi, h):
 
 def checkZ4S(X, pick, zfac, checkwin, iplot):
     '''
-    Function to compare energy content of vertical trace with 
-    energy content of horizontal traces to detect spuriously 
+    Function to compare energy content of vertical trace with
+    energy content of horizontal traces to detect spuriously
     picked S onsets instead of P onsets. Usually, P coda shows
     larger longitudal energy on vertical trace than on horizontal
     traces, where the transversal energy is larger within S coda.
-    Be careful: there are special circumstances, where this is not 
+    Be careful: there are special circumstances, where this is not
     the case!
 
     : param: X, fitered(!) time series, three traces
-    : type:  `~obspy.core.stream.Stream` 
+    : type:  `~obspy.core.stream.Stream`
 
     : param: pick, initial (AIC) P onset time
     : type:  float
-    
-    : param: zfac, factor for threshold determination, 
+
+    : param: zfac, factor for threshold determination,
              vertical energy must exceed coda level times zfac
              to declare a pick as P onset
     : type:  float
@@ -841,7 +858,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     ndat = X.select(component="N")
     if len(ndat) == 0:  # check for other components
         ndat = X.select(component="1")
-    
+
 
     z = zdat[0].data
     tz = np.arange(0, zdat[0].stats.npts / zdat[0].stats.sampling_rate,
@@ -863,7 +880,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     # calculate energy levels
     zcodalevel = max(absz[isignal])
     encodalevel = max(absen[isignal])
-    
+
     # calculate threshold
     minsiglevel = encodalevel * zfac
 
@@ -873,7 +890,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     	print 'checkZ4S: Maybe S onset? Skip this P pick!'
     else:
         print 'checkZ4S: P onset passes checkZ4S test!'
-        returnflag = 1      
+        returnflag = 1
 
     if iplot > 1:
     	te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
