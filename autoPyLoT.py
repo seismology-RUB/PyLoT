@@ -9,10 +9,10 @@ import glob
 import matplotlib.pyplot as plt
 from obspy.core import read
 from pylot.core.util import _getVersionString
-from pylot.core.read import Data, AutoPickParameter
-from pylot.core.pick.run_autopicking import run_autopicking
+from pylot.core.read.data import Data
+from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.pick.utils import wadaticheck, checkPonsets
+from pylot.core.pick.autopick import autopickevent
 
 __version__ = _getVersionString()
 
@@ -49,12 +49,6 @@ def autoPyLoT(inputfile):
 
     parameter = AutoPickParameter(inputfile)
 
-    # get some parameters for quality control from 
-    # parameter input file (usually autoPyLoT.in).
-    wdttolerance = parameter.getParam('wdttolerance')
-    mdttolerance = parameter.getParam('mdttolerance')
-    iplot = parameter.getParam('iplot')
-
     data = Data()
 
     # getting information on data structure
@@ -74,43 +68,19 @@ def autoPyLoT(inputfile):
         datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
-        # multiple event processing 
+        # multiple event processing
         # read each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
             for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
-                print 'Working on event %s' %event 
+                print 'Working on event %s' %event
                 print data
 
                 wfdat = data.getWFData() # all available streams
                 ##########################################################
-                # !automated picking starts here!   
-                procstats = []
-                # initialize dictionary for onsets
-                picks = None
-                station = wfdat[0].stats.station
-                allonsets = {station: picks}
-                for i in range(len(wfdat)):
-                    stationID = wfdat[i].stats.station
-                    # check if station has already been processed
-                    if stationID not in procstats:
-                        procstats.append(stationID)
-                        # find corresponding streams
-                        statdat = wfdat.select(station=stationID)
-                        ######################################################
-                        # get onset times and corresponding picking errors
-                        picks = run_autopicking(statdat, parameter)
-                        ######################################################
-                        # add station and corresponding onsets to dictionary
-                        station = stationID
-                        allonsets[station] = picks
-
-                # quality control
-                # median check and jackknife on P-onset times
-                checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
-                # check S-P times (Wadati) 
-                checkedonsetwd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
+                # !automated picking starts here!
+                picks = autopickevent(wfdat, parameter)
 
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
@@ -121,41 +91,16 @@ def autoPyLoT(inputfile):
             data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
             print 'Working on event ', parameter.getParam('eventID')
             print data
-       
+
             wfdat = data.getWFData() # all available streams
             ##########################################################
-            # !automated picking starts here!   
-            procstats = []
-            # initialize dictionary for onsets
-            picks = None
-            station = wfdat[0].stats.station
-            allonsets = {station: picks}
-            for i in range(len(wfdat)):
-            #for i in range(0,10):
-                stationID = wfdat[i].stats.station
-                #check if station has already been processed
-                if stationID not in procstats:
-                    procstats.append(stationID)
-                    # find corresponding streams
-                    statdat = wfdat.select(station=stationID)
-                    ######################################################
-                    # get onset times and corresponding picking parameters
-                    picks = run_autopicking(statdat, parameter)
-                    ######################################################
-                    # add station and corresponding onsets to dictionary
-                    station = stationID
-                    allonsets[station] = picks
-
-            # quality control
-            # median check and jackknife on P-onset times
-            checkedonsetsjk = checkPonsets(allonsets, mdttolerance, iplot)
-            # check S-P times (Wadati) 
-            checkedonsetswd = wadaticheck(checkedonsetsjk, wdttolerance, iplot)
+            # !automated picking starts here!
+            picks = autopickevent(wfdat, parameter)
 
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
-            
+
     print '####################################'
     print '************************************'
     print '*********autoPyLoT terminates*******'
@@ -165,7 +110,7 @@ def autoPyLoT(inputfile):
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
-        description='''autoPyLoT automatically picks phase onset times using higher order statistics, 
+        description='''autoPyLoT automatically picks phase onset times using higher order statistics,
                        autoregressive prediction and AIC''')
 
     parser.add_argument('-i', '-I', '--inputfile', type=str,

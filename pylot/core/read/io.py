@@ -7,9 +7,8 @@ import scipy.io as sio
 import obspy.core.event as ope
 from obspy.core import UTCDateTime
 
-from pylot.core.util import getOwner, createPick, createArrival, createEvent, \
-    createOrigin, createMagnitude
-
+from pylot.core.util.utils import getOwner, createPick, createArrival,\
+    createEvent, createOrigin, createMagnitude
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """

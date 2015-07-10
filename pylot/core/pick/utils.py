@@ -12,24 +12,9 @@ import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
-from pylot.core.pick.run_autopicking import run_autopicking
 import warnings
 import pdb
 
-def autopickevent(data, param):
-    stations = []
-
-    for n in len(data):
-        station = data[n].stats.station
-        if station not in stations:
-            stations.append(station)
-        else:
-            continue
-
-    for station in stations:
-        topick = data.select(station=station)
-
-        stat_picks = run_autopicking(topick, param)
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     '''
@@ -538,7 +523,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         	# calculate vp/vs ratio after check
         	cvpvsr = p2[0] + 1
         	print 'wadaticheck: Average Vp/Vs ratio after check:', cvpvsr
-                print 'wadatacheck: Skipped %d S pick(s).' % ibad 
+                print 'wadatacheck: Skipped %d S pick(s).' % ibad
         else:
                 print '###############################################'
         	print 'wadatacheck: Not enough checked S-P times available!'

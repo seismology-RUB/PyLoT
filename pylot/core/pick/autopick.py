@@ -11,9 +11,37 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pylot.core.pick.Picker import *
-from pylot.core.pick.CharFuns import *
+from pylot.core.pick.Picker import AICPicker, PragPicker
+from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
+from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
+    getSNR, fmpicker, checkPonsets, wadaticheck
 
+def autopickevent(data, param):
+    stations = []
+    all_onsets = {}
+
+    # get some parameters for quality control from
+    # parameter input file (usually autoPyLoT.in).
+    wdttolerance = param.getParam('wdttolerance')
+    mdttolerance = param.getParam('mdttolerance')
+    iplot = param.getParam('iplot')
+
+    for n in range(len(data)):
+        station = data[n].stats.station
+        if station not in stations:
+            stations.append(station)
+        else:
+            continue
+
+    for station in stations:
+        topick = data.select(station=station)
+        all_onsets[station] = run_autopicking(topick, param)
+
+    # quality control
+    # median check and jackknife on P-onset times
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
+    # check S-P times (Wadati)
+    return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
 
 def run_autopicking(wfstream, pickparam):
     """

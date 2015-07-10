@@ -19,12 +19,12 @@ from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from pylot.core.read import FilterOptions
+from pylot.core.read.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
-from pylot.core.util import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanWFData
+from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
+    demeanTrace
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -191,6 +191,8 @@ class PickDlg(QDialog):
         else:
             self.data = data
 
+        self.stime, self.etime = getGlobalTimes(self.getWFData())
+
         # initialize plotting widget
         self.multicompfig = MPLWidget(self)
 
@@ -336,6 +338,12 @@ class PickDlg(QDialog):
             self.cidrelease = self.connectReleaseEvent(self.panRelease)
             self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
+    def getStartTime(self):
+        return self.stime
+
+    def getEndTime(self):
+        return self.etime
+
     def getComponents(self):
         return self.components
 
@@ -446,13 +454,16 @@ class PickDlg(QDialog):
 
         x_res = getResolutionWindow(snr)
 
-        data = demeanWFData(data=self.getWFData().copy(), t0=ini_pick,
-                                 win=noise_win, gap=gap_win)
+        # remove mean noise level from waveforms
+        for trace in wfdata:
+            t = prepTimeAxis(self.getStartTime(), trace)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            trace = demeanTrace(trace=trace, window=inoise)
 
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
-        self.getPlotWidget().plotWFData(wfdata=data,
+        self.getPlotWidget().plotWFData(wfdata=wfdata,
                                         title=self.getStation() +
                                               ' picking mode',
                                         zoomx=self.getXLims(),
@@ -482,7 +493,10 @@ class PickDlg(QDialog):
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         data.filter(**filteroptions)
 
-        data = demeanWFData(data=data, t0=ini_pick, win=noise_win, gap=gap_win)
+        for trace in data:
+            t = prepTimeAxis(self.getStartTime(), trace)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            trace = demeanTrace(trace, inoise)
 
         horiz_comp = ('n', 'e')
 
@@ -576,9 +590,9 @@ class PickDlg(QDialog):
         else:
             return
 
-        mpp = picks['mpp']
-        epp = picks['epp']
-        lpp = picks['lpp']
+        mpp = picks['mpp'] - self.getStartTime()
+        epp = picks['epp'] - self.getStartTime()
+        lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
         ax.fill_between([epp, lpp], ylims[0], ylims[1],

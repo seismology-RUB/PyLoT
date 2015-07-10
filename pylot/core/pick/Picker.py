@@ -16,11 +16,11 @@ The picks with the above described algorithms are assumed to be the most likely 
 For each most likely pick the corresponding earliest and latest possible picks are
 calculated after Diehl & Kissling (2009).
 
-:author: MAGS2 EP3 working group / Ludger Kueperkoch	
+:author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from pylot.core.pick.utils import *
+from pylot.core.pick.utils import getnoisewin, getsignalwin
 from pylot.core.pick.CharFuns import CharacteristicFunction
 import warnings
 
@@ -28,7 +28,7 @@ class AutoPicking(object):
     '''
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
-    ''' 
+    '''
 
     warnings.simplefilter('ignore')
 
@@ -84,9 +84,9 @@ class AutoPicking(object):
                    PickWindow=self.getPickWindow(),
                    aus=self.getaus(),
                    Tsmooth=self.getTsmooth(),
-                   Pick1=self.getpick1())     
+                   Pick1=self.getpick1())
 
- 
+
     def getTSNR(self):
         return self.TSNR
 
@@ -116,7 +116,7 @@ class AutoPicking(object):
 
     def getSNR(self):
         return self.SNR
-   
+
     def getSlope(self):
         return self.slope
 
@@ -140,12 +140,12 @@ class AICPicker(AutoPicking):
     '''
     Method to derive the onset time of an arriving phase based on CF
     derived from AIC. In order to get an impression of the quality of this inital pick,
-    a quality assessment is applied based on SNR and slope determination derived from the CF, 
+    a quality assessment is applied based on SNR and slope determination derived from the CF,
     from which the AIC has been calculated.
     '''
 
     def calcPick(self):
- 
+
         print 'AICPicker: Get initial onset time (pick) from AIC-CF ...'
 
         self.Pick = None
@@ -179,15 +179,15 @@ class AICPicker(AutoPicking):
         #find NaN's
         nn = np.isnan(diffcf)
         if len(nn) > 1:
-           diffcf[nn] = 0 
+           diffcf[nn] = 0
         #taper CF to get rid off side maxima
         tap = np.hanning(len(diffcf))
         diffcf = tap * diffcf * max(abs(aicsmooth))
         icfmax = np.argmax(diffcf)
-        
+
         #find minimum in AIC-CF front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
-        for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1): 
+        for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
            if aicsmooth[i - 1] >= aicsmooth[i]:
               self.Pick = self.Tcf[i]
               break
@@ -198,7 +198,7 @@ class AICPicker(AutoPicking):
               if diffcf[i -1] >= diffcf[i]:
                  self.Pick = self.Tcf[i]
                  break
-        
+
         # quality assessment using SNR and slope from CF
         if self.Pick is not None:
            # get noise window
@@ -275,7 +275,7 @@ class AICPicker(AutoPicking):
 
         if self.Pick == None:
            print 'AICPicker: Could not find minimum, picking window too short?'
-  
+
 
 class PragPicker(AutoPicking):
     '''
@@ -287,7 +287,7 @@ class PragPicker(AutoPicking):
         if self.getpick1() is not None:
            print 'PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...'
 
-           self.Pick = None 
+           self.Pick = None
            self.SNR = None
            self.slope = None
            pickflag = 0
@@ -333,7 +333,7 @@ class PragPicker(AutoPicking):
            for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
               if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
                  if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                    if cfpick1 >= self.cf[i]:     
+                    if cfpick1 >= self.cf[i]:
                     	pick_r = self.Tcf[i]
                     	self.Pick = pick_r
                     	flagpick_l = 1
@@ -344,7 +344,7 @@ class PragPicker(AutoPicking):
            for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
               if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
                  if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                    if cfpick1 >= self.cf[i]:     
+                    if cfpick1 >= self.cf[i]:
                     	pick_l = self.Tcf[i]
                     	self.Pick = pick_l
                     	flagpick_r = 1
@@ -360,7 +360,7 @@ class PragPicker(AutoPicking):
            	pickflag = 1
            elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
                 self.Pick = pick_l
-                pickflag = 1 
+                pickflag = 1
            else:
            	print 'PragPicker: Could not find reliable onset!'
            	self.Pick = None
@@ -372,7 +372,7 @@ class PragPicker(AutoPicking):
               p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
               if pickflag > 0:
               	p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
-              	plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick']) 
+              	plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick'])
               plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
               plt.yticks([])
               plt.title(self.Data[0].stats.station)
@@ -380,7 +380,7 @@ class PragPicker(AutoPicking):
               raw_input()
               plt.close(p)
 
-        else: 
+        else:
            print 'PragPicker: No initial onset time given! Check input!'
            self.Pick = None
            return

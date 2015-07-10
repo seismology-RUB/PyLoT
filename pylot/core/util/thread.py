@@ -17,7 +17,8 @@ class WorkerThread(QThread):
         picks = self.func(self.data, self.param)
 
         try:
-            self.parent().addPicks(picks)
+            for station in picks:
+                self.parent().addPicks(station, picks[station])
         except AttributeError:
             print picks
 

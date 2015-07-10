@@ -7,9 +7,9 @@ from obspy.core import (read, Stream, UTCDateTime)
 from obspy import readEvents, read_inventory
 from obspy.core.event import (Event, Catalog)
 
-from pylot.core.read import readPILOTEvent
-from pylot.core.util import fnConstructor, FormatError, \
-    getGlobalTimes
+from pylot.core.read.io import readPILOTEvent
+from pylot.core.util.utils import fnConstructor, getGlobalTimes
+from pylot.core.util.errors import FormatError
 
 
 class Data(object):

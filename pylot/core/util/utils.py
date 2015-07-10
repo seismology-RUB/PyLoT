@@ -10,7 +10,6 @@ import hashlib
 import numpy as np
 from obspy.core import UTCDateTime
 import obspy.core.event as ope
-from pylot.core.pick.utils import getnoisewin
 
 def runProgram(cmd, parameter=None):
     """
@@ -119,28 +118,20 @@ def scaleWFData(data, factor=None, components='all'):
 
     return data
 
-def demeanWFData(data, t0, win, gap):
+def demeanTrace(trace, window):
     """
     returns the DATA where each trace is demean by the average value within
-    a desired time window WIN before T0 and a GAP
-    :param data: waveform stream object
-    :type data: `~obspy.core.stream.Stream`
-    :param t0: time before which the noise
-    :type t0: float
-    :param win: time window for average calculation
-    :type win: tuple
-    :param gap: gap window to avoid polluting the average
-    :type gap: float
-    :return: data
-    :rtype: `~obspy.core.stream.Stream`
+    WINDOW
+    :param trace: waveform trace object
+    :type trace: `~obspy.core.stream.Trace`
+    :param inoise: range of indices of DATA within the WINDOW
+    :type window: tuple
+    :return: trace
+    :rtype: `~obspy.core.stream.Trace`
     """
-    starttime = getGlobalTimes(data)[0]
-    for tr in data:
-        stime = tr.stats.starttime - starttime
-        t = prepTimeAxis(stime, tr)
-        inoise = getnoisewin(t, t0, win, gap)
-        tr.data -= tr.data[inoise].mean()
-    return data
+    trace.data -= trace.data[window].mean()
+    return trace
+
 
 def getGlobalTimes(stream):
     min_start = UTCDateTime()

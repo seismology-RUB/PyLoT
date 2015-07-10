@@ -34,17 +34,23 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget
+    QActionGroup, QListWidget, QDockWidget
 import numpy as np
 from obspy.core import UTCDateTime
 
-from pylot.core.read import Data, FilterOptions, AutoPickParameter
-from pylot.core.util import _getVersionString, FILTERDEFAULTS, fnConstructor, \
-    checkurl, FormatError, FilterOptionsDialog, \
-    NewEventDlg, createEvent, MPLWidget, PropertiesDlg, HelpForm, \
-    DatastructureError, createAction, getLogin, createCreationInfo, PickDlg
-from pylot.core.util.thread import WorkerThread
+from pylot.core.read.data import Data
+from pylot.core.read.inputs import FilterOptions, AutoPickParameter
+from pylot.core.pick.autopick import autopickevent
+from pylot.core.util.defaults import FILTERDEFAULTS
+from pylot.core.util.errors import FormatError, DatastructureError
+from pylot.core.util.connection import checkurl
+from pylot.core.util.utils import fnConstructor, createEvent, getLogin,\
+    createCreationInfo
+from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg,\
+    MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
+from pylot.core.util.thread import WorkerThread
+from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
 # Version information
@@ -586,6 +592,13 @@ class MainWindow(QMainWindow):
 
     def autoPick(self):
         list = QListWidget()
+        logDockWidget = QDockWidget("AutoPickLog", self)
+        logDockWidget.setObjectName("LogDockWidget")
+        logDockWidget.setAllowedAreas(Qt.LeftDockWidgetArea)
+        logDockWidget.setWidget(list)
+        logDockWidget.show()
+        logDockWidget.setFloating(False)
+        list.addItem('loading default values for local data ...')
         autopick_parameter = AutoPickParameter('autoPyLoT_local.in')
         list.addItem(str(autopick_parameter))
 
@@ -596,6 +609,8 @@ class MainWindow(QMainWindow):
                                    param=autopick_parameter)
         self.thread.message.connect(list.addItem)
         self.thread.start()
+
+        self.drawPicks()
 
 
     def addPicks(self, station, picks):
