@@ -324,7 +324,7 @@ class PickDlg(QDialog):
         self.updateCurrentLimits()
         if phase:
             if self.zoomAction.isChecked():
-                self.zoomAction.toggle()
+                self.zoomAction.trigger()
             self.disconnectReleaseEvent()
             self.disconnectScrollEvent()
             self.disconnectMotionEvent()
