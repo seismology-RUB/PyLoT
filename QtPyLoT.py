@@ -468,10 +468,9 @@ class MainWindow(QMainWindow):
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
         self.draw()
-        pos = self.getPlotWidget().getPlotDict().keys()
-        labels = []
-        for i in range(0, len(wfst)):
-        	labels.append(wfst[i].stats.station)
+        plotDict = self.getPlotWidget().getPlotDict()
+        pos = plotDict.keys()
+        labels = [plotDict[n][0] for n in pos]
         self.getPlotWidget().setYTickLabels(pos, labels)
 
     def plotZ(self):
