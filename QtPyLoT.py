@@ -45,7 +45,7 @@ from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.utils import fnConstructor, createEvent, getLogin,\
-    createCreationInfo
+    createCreationInfo, getGlobalTimes
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg,\
     MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
@@ -659,9 +659,11 @@ class MainWindow(QMainWindow):
             picks = stat_picks[phase]
             colors = phase_col[phase[0].upper()]
 
-            mpp = picks['mpp']
-            epp = picks['epp']
-            lpp = picks['lpp']
+            stime = getGlobalTimes(self.getData().getWFData())[0]
+
+            mpp = picks['mpp'] - stime
+            epp = picks['epp'] - stime
+            lpp = picks['lpp'] - stime
             spe = picks['spe']
 
             ax.fill_between([epp, lpp], ylims[0], ylims[1],

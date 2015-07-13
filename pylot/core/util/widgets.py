@@ -455,8 +455,9 @@ class PickDlg(QDialog):
         x_res = getResolutionWindow(snr)
 
         # remove mean noise level from waveforms
+        wfdata = self.getWFData().copy()
         for trace in wfdata:
-            t = prepTimeAxis(self.getStartTime(), trace)
+            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
@@ -494,7 +495,7 @@ class PickDlg(QDialog):
         data.filter(**filteroptions)
 
         for trace in data:
-            t = prepTimeAxis(self.getStartTime(), trace)
+            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
@@ -530,14 +531,20 @@ class PickDlg(QDialog):
         channel = self.getChannelID(round(gui_event.ydata))
 
         wfdata = self.getWFData().copy().select(channel=channel)
+        stime = self.getStartTime()
         # get earliest and latest possible pick and symmetric pick error
         [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
 
         # get name of phase actually picked
         phase = self.selectPhase.currentText()
 
+        # return absolute time values for phases
+        epp = stime + epp
+        mpp = stime + pick
+        lpp = stime + lpp
+
         # save pick times for actual phase
-        phasepicks = {'epp': epp, 'lpp': lpp, 'mpp': pick, 'spe': spe}
+        phasepicks = {'epp': epp, 'lpp': lpp, 'mpp': mpp, 'spe': spe}
 
         try:
             oldphasepick = self.picks[phase]
