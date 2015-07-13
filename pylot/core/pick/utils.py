@@ -231,7 +231,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
             imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
             if imax2 == 0:
             	imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][index2[1]]]))
-                if imax1 == 0:
+                if imax2 == 0:
                 	print 'fmpicker: Zero crossings too close!'
                         print 'Skip first motion determination!'
                         return FM
