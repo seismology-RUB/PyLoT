@@ -35,7 +35,7 @@ def autopickevent(data, param):
 
     for station in stations:
         topick = data.select(station=station)
-        all_onsets[station] = run_autopicking(topick, param)
+        all_onsets[station] = autopickstation(topick, param)
 
     # quality control
     # median check and jackknife on P-onset times
@@ -43,7 +43,7 @@ def autopickevent(data, param):
     # check S-P times (Wadati)
     return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
 
-def run_autopicking(wfstream, pickparam):
+def autopickstation(wfstream, pickparam):
     """
     :param: wfstream
     :type: `~obspy.core.stream.Stream`
@@ -144,7 +144,7 @@ def run_autopicking(wfstream, pickparam):
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         print '##########################################'
-        print 'run_autopicking: Working on P onset of station %s' % zdat[
+        print 'autopickstation: Working on P onset of station %s' % zdat[
             0].stats.station
         print 'Filtering vertical trace ...'
         print zdat
@@ -161,7 +161,7 @@ def run_autopicking(wfstream, pickparam):
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         Ldiff = Lwf - Lc
         if Ldiff < 0:
-            print 'run_autopicking: Cutting times are too large for actual ' \
+            print 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!'
             print 'Use entire waveform instead!'
             pstart = 0
@@ -234,7 +234,7 @@ def run_autopicking(wfstream, pickparam):
                   (aicpick.getSlope(), aicpick.getSNR())
             print 'Go on with refined picking ...'
             # re-filter waveform with larger bandpass
-            print 'run_autopicking: re-filtering vertical trace ...'
+            print 'autopickstation: re-filtering vertical trace ...'
             z_copy = zdat.copy()
             tr_filt = zdat[0].copy()
             tr_filt.filter('bandpass', freqmin=bpz2[0], freqmax=bpz2[1],
@@ -292,7 +292,7 @@ def run_autopicking(wfstream, pickparam):
                 else:
                     FM = 'N'
 
-                print 'run_autopicking: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
+                print 'autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
                       'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
                 Sflag = 1
 
@@ -302,7 +302,7 @@ def run_autopicking(wfstream, pickparam):
             Sflag = 0
 
     else:
-        print 'run_autopicking: No vertical component data availabler!, ' \
+        print 'autopickstation: No vertical component data availabler!, ' \
               'Skip station!'
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
@@ -395,7 +395,7 @@ def run_autopicking(wfstream, pickparam):
             cuttimesh2 = [round(aicarhpick.getpick() - Srecalcwin),
                           round(aicarhpick.getpick() + Srecalcwin)]
             # re-filter waveform with larger bandpass
-            print 'run_autopicking: re-filtering horizontal traces...'
+            print 'autopickstation: re-filtering horizontal traces...'
             h_copy = hdat.copy()
             # filter and taper data
             if algoS == 'ARH':
@@ -498,7 +498,7 @@ def run_autopicking(wfstream, pickparam):
                 elif Serror > timeerrorsS[3]:
                     Sweight = 4
 
-                print 'run_autopicking: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
+                print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
                     Sweight, SNRS, SNRSdB)
 
         else:
@@ -507,7 +507,7 @@ def run_autopicking(wfstream, pickparam):
                 'AIC-Slope=', aicarhpick.getSlope()
 
     else:
-        print 'run_autopicking: No horizontal component data available or ' \
+        print 'autopickstation: No horizontal component data available or ' \
               'bad P onset, skipping S picking!'
 
     ##############################################################
