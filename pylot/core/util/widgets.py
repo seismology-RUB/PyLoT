@@ -9,7 +9,10 @@ import datetime
 import numpy as np
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvas
+try:
+    from matplotlib.backends.backend_qt4agg import FigureCanvas
+except ImportError:
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
