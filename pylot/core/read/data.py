@@ -3,9 +3,9 @@
 
 import os
 
-from obspy.core import (read, Stream, UTCDateTime)
+from obspy.core import read, Stream, UTCDateTime
 from obspy import readEvents, read_inventory
-from obspy.core.event import (Event, Catalog)
+from obspy.core.event import Event, Catalog, ResourceIdentifier
 
 from pylot.core.read.io import readPILOTEvent
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
@@ -156,10 +156,20 @@ class Data(object):
     def getEvtData(self):
         return self.evtdata
 
-    def applyEVTData(self, data, type='pick'):
+    def applyEVTData(self, data, type='pick', authority_id='rub'):
 
         def applyPicks(picks):
-            pass
+            firstonset = None
+            for phase in picks:
+                onset = picks[phase]['epp']
+                if firstonset is None or firstonset > onset:
+                    firstonset = onset
+
+            if 'smi:local' in self.getID():
+                fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
+                ID = ResourceIdentifier(fonset_str)
+                ID.convertIDToQuakeMLURI(authority_id=authority_id)
+
         def applyArrivals(arrivals):
             pass
         def applyEvent(event):
