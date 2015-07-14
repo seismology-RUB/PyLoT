@@ -1,11 +1,11 @@
 import sys
 from PySide.QtCore import QThread, Signal
 
-class WorkerThread(QThread):
+class AutoPickThread(QThread):
     message = Signal(str)
 
     def __init__(self, parent, func, data, param):
-        super(WorkerThread, self).__init__()
+        super(AutoPickThread, self).__init__()
         self.setParent(parent)
         self.func = func
         self.data = data
