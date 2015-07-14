@@ -49,7 +49,7 @@ from pylot.core.util.utils import fnConstructor, createEvent, getLogin,\
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg,\
     MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.thread import WorkerThread
+from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
@@ -604,7 +604,7 @@ class MainWindow(QMainWindow):
         list.addItem(str(autopick_parameter))
 
         # Create the worker thread and run it
-        self.thread = WorkerThread(parent=self,
+        self.thread = AutoPickThread(parent=self,
                                    func=autopickevent,
                                    data=self.getData().getWFData(),
                                    param=autopick_parameter)
