@@ -13,6 +13,6 @@ FILTERDEFAULTS = {'P': {'filtertype': None,
                         'order': 4,
                         'freq': [.5, 5]}}
 
-OUTPUTFORMATS = {'QuakeML':'QUAKEML',
-                 'VelEst':'CNV',
-                 'NonLinLoc':'NLLOC_OBS'}
+OUTPUTFORMATS = {'.xml':'QUAKEML',
+                 '.cnv':'CNV',
+                 '.obs':'NLLOC_OBS'}
