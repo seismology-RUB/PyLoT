@@ -5,7 +5,7 @@ import os
 
 from obspy.core import read, Stream, UTCDateTime
 from obspy import readEvents, read_inventory
-from obspy.core.event import Event, Catalog, ResourceIdentifier
+from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
 from pylot.core.read.io import readPILOTEvent
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
@@ -46,6 +46,7 @@ class Data(object):
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
+            self.getEvtData().picks = []
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
@@ -160,26 +161,46 @@ class Data(object):
 
         def applyPicks(picks):
             firstonset = None
-            for phase in picks:
-                onset = picks[phase]['epp']
-                if firstonset is None or firstonset > onset:
-                    firstonset = onset
+            for station, onsets in picks.items():
+                print 'Reading picks on station %s' % station
+                for label, phase in onsets.items():
+                    onset = phase['mpp']
+                    epp = phase['epp']
+                    lpp = phase['lpp']
+                    error = phase['spe']
+                    pick = Pick()
+                    pick.time = onset
+                    pick.time_errors.lower_uncertainty = onset - epp
+                    pick.time_errors.upper_uncertainty = lpp - onset
+                    pick.time_errors.uncertainty = error
+                    pick.phase_hint = label
+                    pick.waveform_id = WaveformStreamID(station_code=station)
+                    self.getEvtData().picks.append(pick)
+                    try:
+                        polarity = phase['fm']
+                    except KeyError, e:
+                        print 'No polarity information found for %s' % phase
+                    if firstonset is None or firstonset > onset:
+                        firstonset = onset
 
             if 'smi:local' in self.getID():
                 fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
-                ID = ResourceIdentifier(fonset_str)
+                ID = ResourceIdentifier('event/' + fonset_str)
                 ID.convertIDToQuakeMLURI(authority_id=authority_id)
+                self.getEvtData().resource_id = ID
 
         def applyArrivals(arrivals):
             pass
+
         def applyEvent(event):
             pass
 
-        applydata = {'pick':applyPicks,
-                     'arrival':applyArrivals,
-                     'event':applyEvent}
+        applydata = {'pick': applyPicks,
+                     'arrival': applyArrivals,
+                     'event': applyEvent}
 
         applydata[type](data)
+
 
 class GenericDataStructure(object):
     '''
