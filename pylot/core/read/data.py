@@ -3,9 +3,9 @@
 
 import os
 
-from obspy.core import (read, Stream, UTCDateTime)
+from obspy.core import read, Stream, UTCDateTime
 from obspy import readEvents, read_inventory
-from obspy.core.event import (Event, Catalog)
+from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
 from pylot.core.read.io import readPILOTEvent
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
@@ -46,6 +46,7 @@ class Data(object):
         else:  # create an empty Event object
             self.newevent = True
             self.evtdata = Event()
+            self.getEvtData().picks = []
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
@@ -67,29 +68,25 @@ class Data(object):
     def updateCutTimes(self):
         self.cuttimes = getGlobalTimes(self.getWFData())
 
-    def exportEvent(self, fnout=None, evtformat='QUAKEML'):
+    def getEventFileName(self):
+        ID = self.getID()
+        # handle forbidden filenames especially on windows systems
+        return fnConstructor(str(ID))
+
+    def exportEvent(self, fnout, fnext='.xml'):
 
         from pylot.core.util.defaults import OUTPUTFORMATS
 
-        if evtformat.strip() not in OUTPUTFORMATS.values():
-            errmsg = 'selected format {0} not available'.format(evtformat)
+        try:
+            evtformat = OUTPUTFORMATS[fnext]
+        except KeyError, e:
+            errmsg = '{0}; selected file extension {1} not ' \
+                     'supported'.format(e, fnext)
             raise FormatError(errmsg)
 
-        if fnout is None:
-            ID = self.getID()
-            # handle forbidden filenames especially on windows systems
-            fnout = fnConstructor(str(ID))
-        else:
-            fnout = fnConstructor(str(fnout))
-
-        evtformat = evtformat.upper().strip()
-
-        # establish catalog object (event object has no write method)
-        cat = Catalog()
-        cat.append(self.getEvtData())
         # try exporting event via ObsPy
         try:
-            cat.write(fnout + evtformat.lower(), format=evtformat)
+            self.getEvtData().write(fnout + fnext, format=evtformat)
         except KeyError, e:
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
@@ -119,7 +116,7 @@ class Data(object):
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
                                          "but is actually {0}".format(type(
-                                                                        fnames))
+            fnames))
         if self.dirty:
             self.resetWFData()
 
@@ -150,26 +147,56 @@ class Data(object):
         st = self.getWFData()
         inv = read_inventory(fninventory)
         st.attach_response(inv)
-        pre_filt = (0.005, 0.006, 30.0, 35.0) # set in autoPyLoT.in
+        pre_filt = (0.005, 0.006, 30.0, 35.0)  # set in autoPyLoT.in
         st.remove_response(output='VEL', pre_filt=pre_filt)
 
     def getEvtData(self):
         return self.evtdata
 
-    def applyEVTData(self, data, type='pick'):
+    def applyEVTData(self, data, type='pick', authority_id='rub'):
 
         def applyPicks(picks):
-            pass
+            firstonset = None
+            for station, onsets in picks.items():
+                print 'Reading picks on station %s' % station
+                for label, phase in onsets.items():
+                    onset = phase['mpp']
+                    epp = phase['epp']
+                    lpp = phase['lpp']
+                    error = phase['spe']
+                    pick = Pick()
+                    pick.time = onset
+                    pick.time_errors.lower_uncertainty = onset - epp
+                    pick.time_errors.upper_uncertainty = lpp - onset
+                    pick.time_errors.uncertainty = error
+                    pick.phase_hint = label
+                    pick.waveform_id = WaveformStreamID(station_code=station)
+                    self.getEvtData().picks.append(pick)
+                    try:
+                        polarity = phase['fm']
+                    except KeyError, e:
+                        print 'No polarity information found for %s' % phase
+                    if firstonset is None or firstonset > onset:
+                        firstonset = onset
+
+            if 'smi:local' in self.getID():
+                fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
+                ID = ResourceIdentifier('event/' + fonset_str)
+                ID.convertIDToQuakeMLURI(authority_id=authority_id)
+                self.getEvtData().resource_id = ID
+
         def applyArrivals(arrivals):
             pass
+
         def applyEvent(event):
             pass
 
-        applydata = {'pick':applyPicks,
-                     'arrival':applyArrivals,
-                     'event':applyEvent}
+        applydata = {'pick': applyPicks,
+                     'arrival': applyArrivals,
+                     'event': applyEvent}
 
         applydata[type](data)
+
 
 class GenericDataStructure(object):
     '''
@@ -280,14 +307,13 @@ class PilotDataStructure(GenericDataStructure):
     '''
 
     def __init__(self, **fields):
-
         if not fields:
-            fields = {'database':'2006.01',
-                      'root':'/data/Egelados/EVENT_DATA/LOCAL'}
+            fields = {'database': '2006.01',
+                      'root': '/data/Egelados/EVENT_DATA/LOCAL'}
 
         GenericDataStructure.__init__(self, **fields)
 
-        self.setExpandFields(['root','database'])
+        self.setExpandFields(['root', 'database'])
 
 
 class SeiscompDataStructure(GenericDataStructure):
@@ -303,7 +329,6 @@ class SeiscompDataStructure(GenericDataStructure):
     def __init__(self, rootpath='/data/SDS', dataformat='MSEED',
                  filesuffix=None, **kwargs):
         super(GenericDataStructure, self).__init__()
-
 
         edate = UTCDateTime()
         halfyear = UTCDateTime('1970-07-01')
@@ -324,9 +349,9 @@ class SeiscompDataStructure(GenericDataStructure):
         # http://www.seiscomp3.org/wiki/doc/applications/slarchive/SDS
 
         self.dsFields = {'root': '/data/SDS', 'YEAR': year, 'NET': '??',
-                           'STA': '????', 'CHAN': 'HH?', 'TYPE': 'D', 'LOC': '',
-                           'DAY': '{0:03d}'.format(sdate.julday)
-        }
+                         'STA': '????', 'CHAN': 'HH?', 'TYPE': 'D', 'LOC': '',
+                         'DAY': '{0:03d}'.format(sdate.julday)
+                         }
         self.modifiyFields(**kwargs)
 
     def modifiyFields(self, **kwargs):
