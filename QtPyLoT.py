@@ -23,7 +23,7 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import sys
+import os, sys
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -64,7 +64,6 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
 
         self.createAction = createAction
-        self.dirty = False
         settings = QSettings()
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
@@ -102,8 +101,8 @@ class MainWindow(QMainWindow):
             self.data = Data(self)
 
         # load and display waveform data
-        self.loadWaveformData()
         self.dirty = False
+        self.loadWaveformData()
         self.loadData()
         self.updateFilterOptions()
 
@@ -333,6 +332,10 @@ class MainWindow(QMainWindow):
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
 
+    def getRoot(self):
+        settings = QSettings()
+        return settings.value("data/dataRoot")
+
     def loadData(self, fname=None):
         if fname is None:
             try:
@@ -390,18 +393,27 @@ class MainWindow(QMainWindow):
             else:
                 return
 
+    def getEventFileName(self):
+        return self.getData().getEventFileName()
+
     def saveData(self):
         settings = QSettings()
         exform = settings.value('data/exportFormat', 'QUAKEML')
+        self.getData().applyEVTData(self.getPicks())
         try:
-            self.data.exportEvent(self.fname, exform)
+            self.getData().exportEvent(self.fname, exform)
         except FormatError:
             return False
         except AttributeError, e:
             print 'warning: {0}'.format(e)
-            fname = QFileDialog.getSaveFileName(self, 'Save event')
-            fname = fname[0]
-            self.getData().exportEvent(fname, exform)
+            directory = os.path.join(self.getRoot(), self.getEventFileName())
+            file_filter = "Seismic observation files (*.cnv *.obs *.xml)"
+            fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
+                                                directory, file_filter)
+            fbasename, exform = os.path.splitext(fname[0])
+            if not fbasename:
+                return False
+            self.getData().exportEvent(fbasename, exform)
         return True
 
     def getComponent(self):
@@ -455,7 +467,7 @@ class MainWindow(QMainWindow):
 
     def loadWaveformData(self):
         if self.fnames and self.okToContinue():
-            self.dirty = True
+            self.setDirty(True)
             self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
             self.data.setWFData(self.getWFFnames())
@@ -585,6 +597,7 @@ class MainWindow(QMainWindow):
                           station=station,
                           picks=self.getPicksOnStation(station))
         if pickDlg.exec_():
+            self.setDirty(True)
             self.updateStatus('picks accepted ({0})'.format(station))
             self.addPicks(station, pickDlg.getPicks())
             self.drawPicks(station)
@@ -593,6 +606,7 @@ class MainWindow(QMainWindow):
 
     def autoPick(self):
         list = QListWidget()
+        self.setDirty(True)
         logDockWidget = QDockWidget("AutoPickLog", self)
         logDockWidget.setObjectName("LogDockWidget")
         logDockWidget.setAllowedAreas(Qt.LeftDockWidgetArea)
@@ -700,10 +714,13 @@ class MainWindow(QMainWindow):
                 cinfo = createCreationInfo(agency_id=self.agency)
                 event = createEvent(evtpar['origintime'], cinfo)
                 self.data = Data(self, evtdata=event)
-                self.dirty = True
+                self.setDirty(True)
 
     def draw(self):
         self.getPlotWidget().draw()
+
+    def setDirty(self, value):
+        self.dirty = value
 
     def closeEvent(self, event):
         if self.okToContinue():

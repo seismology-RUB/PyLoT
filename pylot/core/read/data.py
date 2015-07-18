@@ -68,29 +68,25 @@ class Data(object):
     def updateCutTimes(self):
         self.cuttimes = getGlobalTimes(self.getWFData())
 
-    def exportEvent(self, fnout=None, evtformat='QUAKEML'):
+    def getEventFileName(self):
+        ID = self.getID()
+        # handle forbidden filenames especially on windows systems
+        return fnConstructor(str(ID))
+
+    def exportEvent(self, fnout, fnext='.xml'):
 
         from pylot.core.util.defaults import OUTPUTFORMATS
 
-        if evtformat.strip() not in OUTPUTFORMATS.values():
-            errmsg = 'selected format {0} not available'.format(evtformat)
+        try:
+            evtformat = OUTPUTFORMATS[fnext]
+        except KeyError, e:
+            errmsg = '{0}; selected file extension {1} not ' \
+                     'supported'.format(e, fnext)
             raise FormatError(errmsg)
 
-        if fnout is None:
-            ID = self.getID()
-            # handle forbidden filenames especially on windows systems
-            fnout = fnConstructor(str(ID))
-        else:
-            fnout = fnConstructor(str(fnout))
-
-        evtformat = evtformat.upper().strip()
-
-        # establish catalog object (event object has no write method)
-        cat = Catalog()
-        cat.append(self.getEvtData())
         # try exporting event via ObsPy
         try:
-            cat.write(fnout + evtformat.lower(), format=evtformat)
+            self.getEvtData().write(fnout + fnext, format=evtformat)
         except KeyError, e:
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
