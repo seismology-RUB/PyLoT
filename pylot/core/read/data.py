@@ -116,7 +116,7 @@ class Data(object):
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
                                          "but is actually {0}".format(type(
-                                                                        fnames))
+            fnames))
         if self.dirty:
             self.resetWFData()
 
@@ -147,7 +147,7 @@ class Data(object):
         st = self.getWFData()
         inv = read_inventory(fninventory)
         st.attach_response(inv)
-        pre_filt = (0.005, 0.006, 30.0, 35.0) # set in autoPyLoT.in
+        pre_filt = (0.005, 0.006, 30.0, 35.0)  # set in autoPyLoT.in
         st.remove_response(output='VEL', pre_filt=pre_filt)
 
     def getEvtData(self):
@@ -307,14 +307,13 @@ class PilotDataStructure(GenericDataStructure):
     '''
 
     def __init__(self, **fields):
-
         if not fields:
-            fields = {'database':'2006.01',
-                      'root':'/data/Egelados/EVENT_DATA/LOCAL'}
+            fields = {'database': '2006.01',
+                      'root': '/data/Egelados/EVENT_DATA/LOCAL'}
 
         GenericDataStructure.__init__(self, **fields)
 
-        self.setExpandFields(['root','database'])
+        self.setExpandFields(['root', 'database'])
 
 
 class SeiscompDataStructure(GenericDataStructure):
@@ -330,7 +329,6 @@ class SeiscompDataStructure(GenericDataStructure):
     def __init__(self, rootpath='/data/SDS', dataformat='MSEED',
                  filesuffix=None, **kwargs):
         super(GenericDataStructure, self).__init__()
-
 
         edate = UTCDateTime()
         halfyear = UTCDateTime('1970-07-01')
@@ -351,9 +349,9 @@ class SeiscompDataStructure(GenericDataStructure):
         # http://www.seiscomp3.org/wiki/doc/applications/slarchive/SDS
 
         self.dsFields = {'root': '/data/SDS', 'YEAR': year, 'NET': '??',
-                           'STA': '????', 'CHAN': 'HH?', 'TYPE': 'D', 'LOC': '',
-                           'DAY': '{0:03d}'.format(sdate.julday)
-        }
+                         'STA': '????', 'CHAN': 'HH?', 'TYPE': 'D', 'LOC': '',
+                         'DAY': '{0:03d}'.format(sdate.julday)
+                         }
         self.modifiyFields(**kwargs)
 
     def modifiyFields(self, **kwargs):
