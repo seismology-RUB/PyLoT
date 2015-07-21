@@ -237,6 +237,8 @@ class PickDlg(QDialog):
         filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
         zoom_icon = QIcon()
         zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
+        home_icon = QIcon()
+        home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
@@ -249,6 +251,9 @@ class PickDlg(QDialog):
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
+        self.resetAction = createAction(parent=self, text='Home',
+                                        slot=self.resetZoom, icon=home_icon,
+                                        tip='Reset zoom to original limits')
 
         # create other widget elements
         self.selectPhase = QComboBox()
@@ -263,6 +268,8 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.filterAction)
         _dialtoolbar.addWidget(self.selectPhase)
         _dialtoolbar.addAction(self.zoomAction)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addAction(self.resetAction)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -722,6 +729,11 @@ class PickDlg(QDialog):
 
         self.getPlotWidget().setXLims(new_xlim)
         self.getPlotWidget().setYLims(new_ylim)
+        self.draw()
+
+    def resetZoom(self):
+        self.getPlotWidget().setXLims(self.getGlobalLimits('x'))
+        self.getPlotWidget().setYLims(self.getGlobalLimits('y'))
         self.draw()
 
     def draw(self):
