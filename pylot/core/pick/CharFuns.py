@@ -15,6 +15,8 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 
 :author: MAGS2 EP3 working group
 """
+
+import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 
@@ -162,10 +164,12 @@ class CharacteristicFunction(object):
                    stop = min([len(self.orig_data[0]), len(self.orig_data[1])])
                 elif self.cut[0] == 0 and self.cut[1] is not 0:
                    start = 0
-                   stop = self.cut[1] / self.dt
+                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]), \
+                              len(self.orig_data[1])])
                 else:
-                   start = self.cut[0] / self.dt
-                   stop = self.cut[1] / self.dt
+                   start = max([0, self.cut[0] / self.dt])
+                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]), \
+                              len(self.orig_data[1])])
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
@@ -176,13 +180,15 @@ class CharacteristicFunction(object):
             elif len(self.orig_data) == 3:
                 if self.cut[0] == 0 and self.cut[1] == 0:
                    start = 0
-                   stop = min([len(self.orig_data[0]), len(self.orig_data[1]), len(self.orig_data[2])])
+                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]), \
+                              len(self.orig_data[1]), len(self.orig_data[2])])
                 elif self.cut[0] == 0 and self.cut[1] is not 0:
                    start = 0
                    stop = self.cut[1] / self.dt
                 else:
-                   start = self.cut[0] / self.dt
-                   stop = self.cut[1] / self.dt
+                   start = max([0, self.cut[0] / self.dt])
+                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]), \
+                              len(self.orig_data[1]), len(self.orig_data[2])])
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
