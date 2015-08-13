@@ -223,6 +223,18 @@ class AICPicker(AutoPicking):
            if imax == 0:
               print 'AICPicker: Maximum for slope determination right at the beginning of the window!'
               print 'Choose longer slope determination window!'
+              if self.iplot > 1:
+              	p = plt.figure(self.iplot)
+                x = self.Data[0].data
+                p1, = plt.plot(self.Tcf, x / max(x), 'k')
+                p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
+               	plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
+                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                plt.yticks([])
+                plt.title(self.Data[0].stats.station)
+                plt.show()
+                raw_input()
+                plt.close(p)
               return
            islope = islope[0][0 :imax]
            dataslope = self.Data[0].data[islope]
