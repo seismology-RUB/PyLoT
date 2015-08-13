@@ -299,7 +299,7 @@ def autopickstation(wfstream, pickparam):
         else:
             print 'Bad initial (AIC) P-pick, skip this onset!'
             print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope(), 'counts/s'
-            print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, ')'
+            print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, 'counts/s)'
             Sflag = 0
 
     else:
@@ -507,7 +507,7 @@ def autopickstation(wfstream, pickparam):
             print 'AIC-SNR=', aicarhpick.getSNR(), \
                 'AIC-Slope=', aicarhpick.getSlope(), 'counts/s'
             print '(min. AIC-SNR=', minAICSSNR, ', min. AIC-Slope=', \
-                    minAICSslope, ')'
+                    minAICSslope, 'counts/s)'
 
     else:
         print 'autopickstation: No horizontal component data available or ' \
