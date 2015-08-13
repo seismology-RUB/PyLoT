@@ -618,6 +618,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     else:
         print 'checksignallength: Signal shorter than required minimum signal length!'
         print 'Presumably picked noise peak, pick is rejected!'
+        print '(min. signal length required:', minsiglength, 's)' 
         returnflag = 0
 
     if iplot == 2:
