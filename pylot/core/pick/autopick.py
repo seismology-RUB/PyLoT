@@ -39,9 +39,9 @@ def autopickevent(data, param):
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, 2)
     # check S-P times (Wadati)
-    return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
+    return wadaticheck(jk_checked_onsets, wdttolerance, 2)
 
 def autopickstation(wfstream, pickparam):
     """
@@ -230,7 +230,7 @@ def autopickstation(wfstream, pickparam):
                     aicpick.getSNR() >= minAICPSNR and
                     Pflag == 1):
             aicPflag = 1
-            print 'AIC P-pick passes quality control: Slope: %f, SNR: %f' % \
+            print 'AIC P-pick passes quality control: Slope: %f counts/s, SNR: %f' % \
                   (aicpick.getSlope(), aicpick.getSNR())
             print 'Go on with refined picking ...'
             # re-filter waveform with larger bandpass
@@ -298,7 +298,8 @@ def autopickstation(wfstream, pickparam):
 
         else:
             print 'Bad initial (AIC) P-pick, skip this onset!'
-            print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope()
+            print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope(), 'counts/s'
+            print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, ')'
             Sflag = 0
 
     else:
@@ -387,7 +388,7 @@ def autopickstation(wfstream, pickparam):
                     aicarhpick.getSNR() >= minAICSSNR and
                     aicarhpick.getpick() is not None):
             aicSflag = 1
-            print 'AIC S-pick passes quality control: Slope: %f, SNR: %f' \
+            print 'AIC S-pick passes quality control: Slope: %f counts/s, SNR: %f' \
                   % (aicarhpick.getSlope(), aicarhpick.getSNR())
             print 'Go on with refined picking ...'
             # re-calculate CF from re-filtered trace in vicinity of initial
@@ -504,7 +505,9 @@ def autopickstation(wfstream, pickparam):
         else:
             print 'Bad initial (AIC) S-pick, skip this onset!'
             print 'AIC-SNR=', aicarhpick.getSNR(), \
-                'AIC-Slope=', aicarhpick.getSlope()
+                'AIC-Slope=', aicarhpick.getSlope(), 'counts/s'
+            print '(min. AIC-SNR=', minAICSSNR, ', min. AIC-Slope=', \
+                    minAICSslope, ')'
 
     else:
         print 'autopickstation: No horizontal component data available or ' \
