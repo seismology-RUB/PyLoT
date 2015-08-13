@@ -13,7 +13,6 @@ import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
-import pdb
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
