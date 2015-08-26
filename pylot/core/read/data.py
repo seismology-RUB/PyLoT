@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import os
-
+import glob
+import matplotlib.pyplot as plt
+from obspy.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
 from obspy import readEvents, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
@@ -143,13 +146,50 @@ class Data(object):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
-    def restituteWFData(self, fninventory):
+    def restituteWFData(self, invdlpath, prefilt):
         st = self.getWFData()
-        inv = read_inventory(fninventory)
-        st.attach_response(inv)
-        pre_filt = (0.005, 0.006, 30.0, 35.0)  # set in autoPyLoT.in
-        st.remove_response(output='VEL', pre_filt=pre_filt)
+        for tr in st:
+            if tr.stats.station[3] == '_': # this is for some ugly station naming
+               tr.stats.station = tr.stats.station[0:3]
+        dlp = '%s/*.dataless' % invdlpath
+        invp = '%s/*.inv' % invdlpath
+        respp = '%s/*.resp' % invdlpath
+        dlfile = glob.glob(dlp)
+        invfile = glob.glob(invp)
+        respfile = glob.glob(respp)
 
+        if len(dlfile) >= 1:
+            print "Found dataless-SEED file!"
+            print "Reading meta data information ..."
+            print dlfile[0]
+            parser = Parser('%s' % dlfile[0])
+
+            try:
+            	print "Correcting for instrument response ..."
+            	st.simulate(pre_filt=prefilt, seedresp={'filename': parser, \
+                        'date': st[0].stats.starttime, 'units': "VEL"})
+            except ValueError, e:
+                vmsg = '{0}'.format(e)
+                print vmsg
+
+        elif len(invfile) >= 1:
+            print "Found inventory-xml file!"
+            print "Reading meta data information ..."
+            inv = read_inventory(invfile, format="STATIONXML")
+            print "Applying instrument correction ..."
+            st.attach_response(inv)
+            st.remove_response(output='VEL', pre_filt=prefilt)
+        elif len(respfile) >= 1:
+            print "Found response file!"
+            print respfile
+            seedresp={'filename': respfile[0], 'date': st[0].stats.starttime, \
+                      'units': "VEL"}
+            st.simulate(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+        else:
+            print "No dataless-SEED file,inventory-xml file nor RESP-file found!"
+            print "Go on processing data without source parameter determination!"
+
+        return st
     def getEvtData(self):
         return self.evtdata
 
