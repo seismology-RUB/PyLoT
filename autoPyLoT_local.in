@@ -9,6 +9,8 @@
 EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %event ID for single event processing
+/DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
+0.5 0.9 190.0 195.0                 #prefilt#      %corner frequencies for pre-filtering traces before restitution
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
@@ -29,8 +31,8 @@ HYPOSAT                             #locrt#        %location routine used ("HYPO
 300                                 #Qp#           %quality factor for P waves
 100                                 #Qs#           %quality factor for S waves
 #common settings picker#
-15                                  #pstart#       %start time [s] for calculating CF for P-picking
-40                                  #pstop#        %end time [s] for calculating CF for P-picking
+20                                  #pstart#       %start time [s] for calculating CF for P-picking
+80                                  #pstop#        %end time [s] for calculating CF for P-picking
 -1.0                                #sstart#       %start time [s] after or before(-) P-onset for calculating CF for S-picking
 7                                   #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 2 20                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
@@ -49,7 +51,7 @@ HOS                                 #algoP#        %choose algorithm for P-onset
 0.6                                 #tdet2z#       %for AR-picker, length of AR determination window [s] for Z-component, 2nd pick
 0.2                                 #tpred2z#      %for AR-picker, length of AR prediction window [s] for Z-component, 2nd pick
 0.001                               #addnoise#     %add noise to seismogram for stable AR prediction
-3 0.1 0.5 0.1                       #tsnrz#        %for HOS/AR, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
+3 0.1 0.5 0.5                       #tsnrz#        %for HOS/AR, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
 3                                   #pickwinP#     %for initial AIC pick, length of P-pick window [s]
 8                                   #Precalcwin#   %for HOS/AR, window length [s] for recalculation of CF (relative to 1st pick)
 0                                   #peps4aic#     %for HOS/AR, artificial uplift of samples of AIC-function (P)
@@ -80,9 +82,9 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 #inital AIC onset#
 0.01 0.02 0.04 0.08                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-80                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+50                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
-50                                  #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
+6                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
 2.5                                 #minsiglength# %minimum required length of signal [s]
