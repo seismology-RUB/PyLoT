@@ -68,6 +68,11 @@ def autoPyLoT(inputfile):
         datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
+        # get path to inventory or dataless-seed file with station meta data
+        invdir = parameter.getParam('invdir')
+        # get corner frequencies for pre-filtering traces
+        prefilt = parameter.getParam('prefilt')
+
         # multiple event processing
         # read each event in database
         datapath = datastructure.expandDataPath()
@@ -78,6 +83,8 @@ def autoPyLoT(inputfile):
                 print data
 
                 wfdat = data.getWFData() # all available streams
+                # restitute waveform data getting responses from inventory-file
+                wfdat = data.restituteWFData(invdir, prefilt)
                 ##########################################################
                 # !automated picking starts here!
                 picks = autopickevent(wfdat, parameter)
@@ -93,6 +100,8 @@ def autoPyLoT(inputfile):
             print data
 
             wfdat = data.getWFData() # all available streams
+            # restitute waveform data getting responses from inventory-file
+            wfdat = data.restituteWFData(invdir, prefilt)
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
