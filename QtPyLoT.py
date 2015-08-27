@@ -42,7 +42,8 @@ from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.util.defaults import FILTERDEFAULTS
-from pylot.core.util.errors import FormatError, DatastructureError
+from pylot.core.util.errors import FormatError, DatastructureError,\
+    OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.utils import fnConstructor, createEvent, getLogin,\
     createCreationInfo, getGlobalTimes
@@ -399,7 +400,18 @@ class MainWindow(QMainWindow):
     def saveData(self):
         settings = QSettings()
         exform = settings.value('data/exportFormat', 'QUAKEML')
-        self.getData().applyEVTData(self.getPicks())
+        try:
+            self.getData().applyEVTData(self.getPicks())
+        except OverwriteError:
+            msgBox = QMessageBox()
+            msgBox.setText("Picks have been modified!")
+            msgBox.setInformativeText("Do you want to overwrite the picks and save?")
+            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard |
+                                      QMessageBox.Cancel)
+            msgBox.setDefaultButton(QMessageBox.Save)
+            ret = msgBox.exec_()
+            if ret == QMessageBox.Save:
+                print('Overwrite and Save')
         try:
             self.getData().exportEvent(self.fname, exform)
         except FormatError:
@@ -407,7 +419,7 @@ class MainWindow(QMainWindow):
         except AttributeError, e:
             print 'warning: {0}'.format(e)
             directory = os.path.join(self.getRoot(), self.getEventFileName())
-            file_filter = "Seismic observation files (*.cnv *.obs *.xml)"
+            file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
             fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
                                                 directory, file_filter)
             fbasename, exform = os.path.splitext(fname[0])
