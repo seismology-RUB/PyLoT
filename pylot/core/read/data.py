@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pdb
 import os
 import glob
 import matplotlib.pyplot as plt
@@ -146,53 +145,117 @@ class Data(object):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
-    def resetPicks(self):
+def resetPicks(self):
         self.getEvtData().picks = []
 
-    def restituteWFData(self, invdlpath, prefilt):
-        st = self.getWFData()
+    def restituteWFData(self, invdlpath, streams=None):
+        if streams == None:
+            st = self.getWFData()
+        else:
+            st = streams
+
         for tr in st:
-            if tr.stats.station[3] == '_': # this is for some ugly station naming
+            # remove underscores
+            if tr.stats.station[3] == '_': 
                tr.stats.station = tr.stats.station[0:3]
-        dlp = '%s/*.dataless' % invdlpath
-        invp = '%s/*.inv' % invdlpath
+        dlp = '%s/*.dless' % invdlpath
+        invp = '%s/*.xml' % invdlpath
         respp = '%s/*.resp' % invdlpath
         dlfile = glob.glob(dlp)
         invfile = glob.glob(invp)
         respfile = glob.glob(respp)
 
+        # check for dataless-SEED file
         if len(dlfile) >= 1:
-            print "Found dataless-SEED file!"
+            print "Found dataless-SEED file(s)!"
             print "Reading meta data information ..."
-            print dlfile[0]
-            parser = Parser('%s' % dlfile[0])
-
+            for j in range(len(dlfile)):
+                print "Found dataless-SEED file %s" % dlfile[j]
+            	parser = Parser('%s' % dlfile[j])
+            	for i in range(len(st)):
+                    # check, whether this trace has already been corrected
+                    try:
+                        st[i].stats.processing
+                    except:
+                    	try:
+            	    	    print "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel)
+                            # get corner frequencies for pre-filtering
+                            fny = st[i].stats.sampling_rate / 2
+                            fc21 = fny - (fny * 0.05)
+                            fc22 = fny - (fny * 0.02)
+                            prefilt = [0.5, 0.9, fc21, fc22]
+                            # instrument correction
+            	    	    st[i].simulate(pre_filt=prefilt, seedresp={'filename': parser, \
+                       	 	           'date': st[i].stats.starttime, 'units': "VEL"})
+                    	except ValueError, e:
+                    	    vmsg = '{0}'.format(e)
+                    	    print vmsg
+                    else:
+                        print "Trace has already been corrected!" 
+        # check for inventory-xml file
+        if len(invfile) >= 1:
+            print "Found inventory-xml file(s)!"
+            print "Reading meta data information ..."
+            for j in range(len(invfile)):
+                print "Found inventory-xml file %s" % invfile[j]
+                inv = read_inventory(invfile[j], format="STATIONXML")
+            	for i in range(len(st)):
+                    # check, whether this trace has already been corrected
+                    try:
+                        st[i].stats.processing
+                    except:
             try:
-            	print "Correcting for instrument response ..."
-            	st.simulate(pre_filt=prefilt, seedresp={'filename': parser, \
-                        'date': st[0].stats.starttime, 'units': "VEL"})
+            	    	    print "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel)
+                            # get corner frequencies for pre-filtering
+                            fny = st[i].stats.sampling_rate / 2
+                            fc21 = fny - (fny * 0.05)
+                            fc22 = fny - (fny * 0.02)
+                            prefilt = [0.5, 0.9, fc21, fc22]
+                            # instrument correction
+                            st[i].attach_response(inv)
+                            st[i].remove_response(output='VEL', pre_filt=prefilt)
             except ValueError, e:
                 vmsg = '{0}'.format(e)
                 print vmsg
-
-        elif len(invfile) >= 1:
-            print "Found inventory-xml file!"
+                    else:
+                        print "Trace has already been corrected!" 
+        # check for RESP-file
+        if len(respfile) >= 1:
+            print "Found response file(s)!"
             print "Reading meta data information ..."
-            inv = read_inventory(invfile, format="STATIONXML")
-            print "Applying instrument correction ..."
-            st.attach_response(inv)
-            st.remove_response(output='VEL', pre_filt=prefilt)
-        elif len(respfile) >= 1:
-            print "Found response file!"
-            print respfile
+            for j in range(len(respfile)):
+                print "Found RESP-file %s" % respfile[j]
+            	for i in range(len(st)):
+                    # check, whether this trace has already been corrected
+                    try:
+                        st[i].stats.processing
+                    except:
+                    	try:
+            	    	    print "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel)
+                            # get corner frequencies for pre-filtering
+                            fny = st[i].stats.sampling_rate / 2
+                            fc21 = fny - (fny * 0.05)
+                            fc22 = fny - (fny * 0.02)
+                            prefilt = [0.5, 0.9, fc21, fc22]
+                            # instrument correction
             seedresp={'filename': respfile[0], 'date': st[0].stats.starttime, \
                       'units': "VEL"}
-            st.simulate(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+                            st[i].simulate(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+                    	except ValueError, e:
+                    	    vmsg = '{0}'.format(e)
+                    	    print vmsg
         else:
+                        print "Trace has already been corrected!" 
+
+        if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
             print "No dataless-SEED file,inventory-xml file nor RESP-file found!"
             print "Go on processing data without source parameter determination!"
 
         return st
+
     def getEvtData(self):
         return self.evtdata
 

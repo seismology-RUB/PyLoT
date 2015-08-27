@@ -163,7 +163,7 @@ def autopickstation(wfstream, pickparam):
         if Ldiff < 0:
             print 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!'
-            print 'Use entire waveform instead!'
+            print 'Using entire waveform instead!'
             pstart = 0
             pstop = len(zdat[0].data) * zdat[0].stats.delta
         cuttimes = [pstart, pstop]
@@ -200,7 +200,7 @@ def autopickstation(wfstream, pickparam):
                 # both horizontal traces needed
                 if len(ndat) == 0 or len(edat) == 0:
                     print 'One or more horizontal components missing!'
-                    print 'Skip control function checkZ4S.'
+                    print 'Skipping control function checkZ4S.'
                 else:
                     # filter and taper horizontal traces
                     trH1_filt = edat.copy()
@@ -297,14 +297,14 @@ def autopickstation(wfstream, pickparam):
                 Sflag = 1
 
         else:
-            print 'Bad initial (AIC) P-pick, skip this onset!'
+            print 'Bad initial (AIC) P-pick, skipping this onset!'
             print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope(), 'counts/s'
             print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, 'counts/s)'
             Sflag = 0
 
     else:
-        print 'autopickstation: No vertical component data availabler!, ' \
-              'Skip station!'
+        print 'autopickstation: No vertical component data available!, ' \
+              'Skipping station!'
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
@@ -503,7 +503,7 @@ def autopickstation(wfstream, pickparam):
                     Sweight, SNRS, SNRSdB)
 
         else:
-            print 'Bad initial (AIC) S-pick, skip this onset!'
+            print 'Bad initial (AIC) S-pick, skipping this onset!'
             print 'AIC-SNR=', aicarhpick.getSNR(), \
                 'AIC-Slope=', aicarhpick.getSlope(), 'counts/s'
             print '(min. AIC-SNR=', minAICSSNR, ', min. AIC-Slope=', \
