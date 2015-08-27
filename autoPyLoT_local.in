@@ -10,7 +10,6 @@ EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
-0.5 0.9 190.0 195.0                 #prefilt#      %corner frequencies for pre-filtering traces before restitution
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
