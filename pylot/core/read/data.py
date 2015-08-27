@@ -9,7 +9,7 @@ from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
 from pylot.core.read.io import readPILOTEvent
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
-from pylot.core.util.errors import FormatError
+from pylot.core.util.errors import FormatError, OverwriteError
 
 
 class Data(object):
@@ -143,6 +143,9 @@ class Data(object):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
+    def resetPicks(self):
+        self.getEvtData().picks = []
+
     def restituteWFData(self, fninventory):
         st = self.getWFData()
         inv = read_inventory(fninventory)
@@ -157,6 +160,8 @@ class Data(object):
 
         def applyPicks(picks):
             firstonset = None
+            if self.getEvtData().picks:
+                raise OverwriteError('Actual picks would be overwritten!')
             for station, onsets in picks.items():
                 print 'Reading picks on station %s' % station
                 for label, phase in onsets.items():
