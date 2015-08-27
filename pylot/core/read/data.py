@@ -145,7 +145,7 @@ class Data(object):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
-def resetPicks(self):
+    def resetPicks(self):
         self.getEvtData().picks = []
 
     def restituteWFData(self, invdlpath, streams=None):
@@ -156,7 +156,7 @@ def resetPicks(self):
 
         for tr in st:
             # remove underscores
-            if tr.stats.station[3] == '_': 
+            if tr.stats.station[3] == '_':
                tr.stats.station = tr.stats.station[0:3]
         dlp = '%s/*.dless' % invdlpath
         invp = '%s/*.xml' % invdlpath
@@ -192,7 +192,7 @@ def resetPicks(self):
                     	    vmsg = '{0}'.format(e)
                     	    print vmsg
                     else:
-                        print "Trace has already been corrected!" 
+                        print "Trace has already been corrected!"
         # check for inventory-xml file
         if len(invfile) >= 1:
             print "Found inventory-xml file(s)!"
@@ -220,7 +220,7 @@ def resetPicks(self):
                 vmsg = '{0}'.format(e)
                 print vmsg
                     else:
-                        print "Trace has already been corrected!" 
+                        print "Trace has already been corrected!"
         # check for RESP-file
         if len(respfile) >= 1:
             print "Found response file(s)!"
@@ -248,7 +248,7 @@ def resetPicks(self):
                     	    vmsg = '{0}'.format(e)
                     	    print vmsg
         else:
-                        print "Trace has already been corrected!" 
+                        print "Trace has already been corrected!"
 
         if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
             print "No dataless-SEED file,inventory-xml file nor RESP-file found!"
