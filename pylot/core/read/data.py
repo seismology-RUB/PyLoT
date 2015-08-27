@@ -146,8 +146,12 @@ class Data(object):
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
-    def restituteWFData(self, invdlpath):
-        st = self.getWFData()
+    def restituteWFData(self, invdlpath, streams=None):
+        if streams == None:
+            st = self.getWFData()
+        else:
+            st = streams
+
         for tr in st:
             # remove underscores
             if tr.stats.station[3] == '_': 
@@ -164,7 +168,7 @@ class Data(object):
             print "Found dataless-SEED file(s)!"
             print "Reading meta data information ..."
             for j in range(len(dlfile)):
-                print dlfile[j]
+                print "Found dataless-SEED file %s" % dlfile[j]
             	parser = Parser('%s' % dlfile[j])
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
@@ -192,7 +196,7 @@ class Data(object):
             print "Found inventory-xml file(s)!"
             print "Reading meta data information ..."
             for j in range(len(invfile)):
-                print invfile[j]
+                print "Found inventory-xml file %s" % invfile[j]
                 inv = read_inventory(invfile[j], format="STATIONXML")
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
@@ -220,7 +224,7 @@ class Data(object):
             print "Found response file(s)!"
             print "Reading meta data information ..."
             for j in range(len(respfile)):
-                print respfile[j]
+                print "Found RESP-file %s" % respfile[j]
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
                     try:
