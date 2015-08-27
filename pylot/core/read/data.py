@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import os
 import glob
 import matplotlib.pyplot as plt
@@ -151,8 +152,8 @@ class Data(object):
             # remove underscores
             if tr.stats.station[3] == '_': 
                tr.stats.station = tr.stats.station[0:3]
-        dlp = '%s/*.dataless' % invdlpath
-        invp = '%s/*.inv' % invdlpath
+        dlp = '%s/*.dless' % invdlpath
+        invp = '%s/*.xml' % invdlpath
         respp = '%s/*.resp' % invdlpath
         dlfile = glob.glob(dlp)
         invfile = glob.glob(invp)
@@ -167,7 +168,9 @@ class Data(object):
             	parser = Parser('%s' % dlfile[j])
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
-                    if len(st[i].stats) < 13:
+                    try:
+                        st[i].stats.processing
+                    except:
                     	try:
             	    	    print "Correcting %s, %s for instrument response ..." \
                             % (st[i].stats.station, st[i].stats.channel)
@@ -184,7 +187,6 @@ class Data(object):
                     	    print vmsg
                     else:
                         print "Trace has already been corrected!" 
-
         # check for inventory-xml file
         if len(invfile) >= 1:
             print "Found inventory-xml file(s)!"
@@ -194,7 +196,9 @@ class Data(object):
                 inv = read_inventory(invfile[j], format="STATIONXML")
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
-                    if len(st[i].stats) < 13:
+                    try:
+                        st[i].stats.processing
+                    except:
                     	try:
             	    	    print "Correcting %s, %s for instrument response ..." \
                             % (st[i].stats.station, st[i].stats.channel)
@@ -209,6 +213,8 @@ class Data(object):
                     	except ValueError, e:
                     	    vmsg = '{0}'.format(e)
                     	    print vmsg
+                    else:
+                        print "Trace has already been corrected!" 
         # check for RESP-file
         if len(respfile) >= 1:
             print "Found response file(s)!"
@@ -217,7 +223,9 @@ class Data(object):
                 print respfile[j]
             	for i in range(len(st)):
                     # check, whether this trace has already been corrected
-                    if len(st[i].stats) < 13:
+                    try:
+                        st[i].stats.processing
+                    except:
                     	try:
             	    	    print "Correcting %s, %s for instrument response ..." \
                             % (st[i].stats.station, st[i].stats.channel)
@@ -233,6 +241,8 @@ class Data(object):
                     	except ValueError, e:
                     	    vmsg = '{0}'.format(e)
                     	    print vmsg
+                    else:
+                        print "Trace has already been corrected!" 
 
         if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
             print "No dataless-SEED file,inventory-xml file nor RESP-file found!"
