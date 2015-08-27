@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pdb
 import os
 import glob
 import matplotlib.pyplot as plt
