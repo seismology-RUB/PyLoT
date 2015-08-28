@@ -507,19 +507,20 @@ def autopickstation(wfstream, pickparam):
                 print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
                     Sweight, SNRS, SNRSdB)
                 ##################################################################
-                # get Wood-Anderson peak-to-peak amplitude
-                print "################################################"
-                # initialize Data object
-                data = Data()
-                # re-create stream object including both horizontal components
-                hdat = edat.copy()
-                hdat += ndat
-                h_copy = hdat.copy()
-                cordat = data.restituteWFData(invdir, h_copy)
-                # calculate WA-peak-to-peak amplitude 
-                # using subclass WApp of superclass Magnitude
-                wapp = WApp(cordat, mpickS, 10, iplot)
-                Ao = wapp.getwapp()
+                if Sweight < 4:
+                    # get Wood-Anderson peak-to-peak amplitude
+                    print "################################################"
+                    # initialize Data object
+                    data = Data()
+                    # re-create stream object including both horizontal components
+                    hdat = edat.copy()
+                    hdat += ndat
+                    h_copy = hdat.copy()
+                    cordat = data.restituteWFData(invdir, h_copy)
+                    # calculate WA-peak-to-peak amplitude 
+                    # using subclass WApp of superclass Magnitude
+                    wapp = WApp(cordat, mpickS, 10, iplot)
+                    Ao = wapp.getwapp()
 
         else:
             print 'Bad initial (AIC) S-pick, skipping this onset!'
