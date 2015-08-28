@@ -15,6 +15,8 @@ from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
     getSNR, fmpicker, checkPonsets, wadaticheck
+from pylot.core.read.data import Data
+from pylot.core.analysis.magnitude import WApp
 
 def autopickevent(data, param):
     stations = []
@@ -109,6 +111,8 @@ def autopickstation(wfstream, pickparam):
     nfacsl = pickparam.getParam('noisefactor')
     # parameter to check for spuriously picked S onset
     zfac = pickparam.getParam('zfac')
+    # path to inventory-, dataless- or resp-files
+    invdir = pickparam.getParam('invdir')
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -132,6 +136,7 @@ def autopickstation(wfstream, pickparam):
     Pflag = 0
     Sflag = 0
     Pmarker = []
+    Ao = None
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -501,6 +506,20 @@ def autopickstation(wfstream, pickparam):
 
                 print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
                     Sweight, SNRS, SNRSdB)
+                ##################################################################
+                # get Wood-Anderson peak-to-peak amplitude
+                print "################################################"
+                # initialize Data object
+                data = Data()
+                # re-create stream object including both horizontal components
+                hdat = edat.copy()
+                hdat += ndat
+                h_copy = hdat.copy()
+                cordat = data.restituteWFData(invdir, h_copy)
+                # calculate WA-peak-to-peak amplitude 
+                # using subclass WApp of superclass Magnitude
+                wapp = WApp(cordat, mpickS, 10, iplot)
+                Ao = wapp.getwapp()
 
         else:
             print 'Bad initial (AIC) S-pick, skipping this onset!'
@@ -508,6 +527,21 @@ def autopickstation(wfstream, pickparam):
                 'AIC-Slope=', aicarhpick.getSlope(), 'counts/s'
             print '(min. AIC-SNR=', minAICSSNR, ', min. AIC-Slope=', \
                     minAICSslope, 'counts/s)'
+
+            ############################################################
+            # get Wood-Anderson peak-to-peak amplitude
+            print "################################################"
+            # initialize Data object
+            data = Data()
+            # re-create stream object including both horizontal components
+            hdat = edat.copy()
+            hdat += ndat
+            h_copy = hdat.copy()
+            cordat = data.restituteWFData(invdir, h_copy)
+            # calculate WA-peak-to-peak amplitude 
+            # using subclass WApp of superclass Magnitude
+            wapp = WApp(cordat, mpickP, 20, iplot)
+            Ao = wapp.getwapp()
 
     else:
         print 'autopickstation: No horizontal component data available or ' \
@@ -693,5 +727,7 @@ def autopickstation(wfstream, pickparam):
     phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror, \
                  'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
     picks[phase] = phasepick
+    # add Wood-Anderson amplitude
+    picks[phase]['Ao'] = Ao
 
     return picks
