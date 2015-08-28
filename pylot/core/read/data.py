@@ -3,7 +3,6 @@
 
 import os
 import glob
-import matplotlib.pyplot as plt
 from obspy.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
 from obspy import readEvents, read_inventory
@@ -57,31 +56,61 @@ class Data(object):
         return str(self.wfdata)
 
     def getParent(self):
+        """
+
+
+        :return:
+        """
         return self._parent
 
     def isNew(self):
+        """
+
+
+        :return:
+        """
         return self.newevent
 
     def getCutTimes(self):
+        """
+
+
+        :return:
+        """
         if self.cuttimes is None:
             self.updateCutTimes()
         return self.cuttimes
 
     def updateCutTimes(self):
+        """
+
+
+        """
         self.cuttimes = getGlobalTimes(self.getWFData())
 
     def getEventFileName(self):
+        """
+
+
+        :return:
+        """
         ID = self.getID()
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
     def exportEvent(self, fnout, fnext='.xml'):
 
+        """
+
+        :param fnout:
+        :param fnext:
+        :raise KeyError:
+        """
         from pylot.core.util.defaults import OUTPUTFORMATS
 
         try:
             evtformat = OUTPUTFORMATS[fnext]
-        except KeyError, e:
+        except KeyError as e:
             errmsg = '{0}; selected file extension {1} not ' \
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
@@ -89,24 +118,42 @@ class Data(object):
         # try exporting event via ObsPy
         try:
             self.getEvtData().write(fnout + fnext, format=evtformat)
-        except KeyError, e:
+        except KeyError as e:
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
 
     def getComp(self):
+        """
+
+
+        :return:
+        """
         return self.comp
 
     def getID(self):
+        """
+
+
+        :return:
+        """
         try:
             return self.evtdata.get('resource_id').id
         except:
             return None
 
     def filterWFData(self, kwargs):
+        """
+
+        :param kwargs:
+        """
         self.getWFData().filter(**kwargs)
         self.dirty = True
 
     def setWFData(self, fnames):
+        """
+
+        :param fnames:
+        """
         self.wfdata = Stream()
         self.wforiginal = None
         if fnames is not None:
@@ -115,6 +162,10 @@ class Data(object):
         self.dirty = False
 
     def appendWFData(self, fnames):
+        """
+
+        :param fnames:
+        """
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
                                          "but is actually {0}".format(type(
@@ -129,27 +180,51 @@ class Data(object):
             except TypeError:
                 try:
                     self.wfdata += read(fname, format='GSE2')
-                except Exception, e:
+                except Exception as e:
                     warnmsg += '{0}\n{1}\n'.format(fname, e)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
-            print warnmsg
+            print(warnmsg)
 
     def getWFData(self):
+        """
+
+
+        :return:
+        """
         return self.wfdata
 
     def getOriginalWFData(self):
+        """
+
+
+        :return:
+        """
         return self.wforiginal
 
     def resetWFData(self):
+        """
+
+
+        """
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
     def resetPicks(self):
+        """
+
+
+        """
         self.getEvtData().picks = []
 
     def restituteWFData(self, invdlpath, streams=None):
-        if streams == None:
+        """
+
+        :param invdlpath:
+        :param streams:
+        :return:
+        """
+        if streams is None:
             st = self.getWFData()
         else:
             st = streams
@@ -157,7 +232,7 @@ class Data(object):
         for tr in st:
             # remove underscores
             if tr.stats.station[3] == '_':
-               tr.stats.station = tr.stats.station[0:3]
+                tr.stats.station = tr.stats.station[0:3]
         dlp = '%s/*.dless' % invdlpath
         invp = '%s/*.xml' % invdlpath
         respp = '%s/*.resp' % invdlpath
@@ -167,47 +242,52 @@ class Data(object):
 
         # check for dataless-SEED file
         if len(dlfile) >= 1:
-            print "Found dataless-SEED file(s)!"
-            print "Reading meta data information ..."
+            print("Found dataless-SEED file(s)!")
+            print("Reading meta data information ...")
             for j in range(len(dlfile)):
-                print "Found dataless-SEED file %s" % dlfile[j]
-            	parser = Parser('%s' % dlfile[j])
-            	for i in range(len(st)):
+                print("Found dataless-SEED file %s" % dlfile[j])
+                parser = Parser('%s' % dlfile[j])
+                for i in range(len(st)):
                     # check, whether this trace has already been corrected
                     try:
                         st[i].stats.processing
                     except:
-                    	try:
-            	    	    print "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel)
+                        try:
+                            print(
+                            "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
                             fc22 = fny - (fny * 0.02)
                             prefilt = [0.5, 0.9, fc21, fc22]
                             # instrument correction
-            	    	    st[i].simulate(pre_filt=prefilt, seedresp={'filename': parser, \
-                       	 	           'date': st[i].stats.starttime, 'units': "VEL"})
-                    	except ValueError, e:
-                    	    vmsg = '{0}'.format(e)
-                    	    print vmsg
+                            st[i].simulate(pre_filt=prefilt,
+                                           seedresp={'filename': parser, \
+                                                     'date': st[
+                                                         i].stats.starttime,
+                                                     'units': "VEL"})
+                        except ValueError as e:
+                            vmsg = '{0}'.format(e)
+                            print(vmsg)
                     else:
-                        print "Trace has already been corrected!"
+                        print("Trace has already been corrected!")
         # check for inventory-xml file
         if len(invfile) >= 1:
-            print "Found inventory-xml file(s)!"
-            print "Reading meta data information ..."
+            print("Found inventory-xml file(s)!")
+            print("Reading meta data information ...")
             for j in range(len(invfile)):
-                print "Found inventory-xml file %s" % invfile[j]
+                print("Found inventory-xml file %s" % invfile[j])
                 inv = read_inventory(invfile[j], format="STATIONXML")
-            	for i in range(len(st)):
+                for i in range(len(st)):
                     # check, whether this trace has already been corrected
                     try:
                         st[i].stats.processing
                     except:
-            try:
-            	    	    print "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel)
+                        try:
+                            print(
+                            "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
@@ -216,57 +296,78 @@ class Data(object):
                             # instrument correction
                             st[i].attach_response(inv)
                             st[i].remove_response(output='VEL', pre_filt=prefilt)
-            except ValueError, e:
-                vmsg = '{0}'.format(e)
-                print vmsg
-                    else:
-                        print "Trace has already been corrected!"
+                        except ValueError as e:
+                            vmsg = '{0}'.format(e)
+                            print(vmsg)
+                        else:
+                            print("Trace has already been corrected!")
         # check for RESP-file
         if len(respfile) >= 1:
-            print "Found response file(s)!"
-            print "Reading meta data information ..."
+            print("Found response file(s)!")
+            print("Reading meta data information ...")
             for j in range(len(respfile)):
-                print "Found RESP-file %s" % respfile[j]
-            	for i in range(len(st)):
+                print("Found RESP-file %s" % respfile[j])
+                for i in range(len(st)):
                     # check, whether this trace has already been corrected
                     try:
                         st[i].stats.processing
                     except:
-                    	try:
-            	    	    print "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel)
+                        try:
+                            print(
+                            "Correcting %s, %s for instrument response ..." \
+                            % (st[i].stats.station, st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
                             fc22 = fny - (fny * 0.02)
                             prefilt = [0.5, 0.9, fc21, fc22]
                             # instrument correction
-            seedresp={'filename': respfile[0], 'date': st[0].stats.starttime, \
-                      'units': "VEL"}
+                            seedresp={'filename': respfile[0], 'date': st[0].stats.starttime, \
+                                      'units': "VEL"}
                             st[i].simulate(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
-                    	except ValueError, e:
-                    	    vmsg = '{0}'.format(e)
-                    	    print vmsg
-        else:
-                        print "Trace has already been corrected!"
+                        except ValueError as e:
+                            vmsg = '{0}'.format(e)
+                            print(vmsg)
+                    else:
+                        print("Trace has already been corrected!")
 
         if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
-            print "No dataless-SEED file,inventory-xml file nor RESP-file found!"
-            print "Go on processing data without source parameter determination!"
+            print(
+            "No dataless-SEED file,inventory-xml file nor RESP-file found!")
+            print(
+            "Go on processing data without source parameter determination!")
 
         return st
 
     def getEvtData(self):
+        """
+
+
+        :return:
+        """
         return self.evtdata
 
     def applyEVTData(self, data, type='pick', authority_id='rub'):
 
+        """
+
+        :param data:
+        :param type:
+        :param authority_id:
+        :raise OverwriteError:
+        """
+
         def applyPicks(picks):
+            """
+
+            :param picks:
+            :raise OverwriteError:
+            """
             firstonset = None
             if self.getEvtData().picks:
                 raise OverwriteError('Actual picks would be overwritten!')
             for station, onsets in picks.items():
-                print 'Reading picks on station %s' % station
+                print('Reading picks on station %s' % station)
                 for label, phase in onsets.items():
                     onset = phase['mpp']
                     epp = phase['epp']
@@ -282,8 +383,8 @@ class Data(object):
                     self.getEvtData().picks.append(pick)
                     try:
                         polarity = phase['fm']
-                    except KeyError, e:
-                        print 'No polarity information found for %s' % phase
+                    except KeyError as e:
+                        print('No polarity information found for %s' % phase)
                     if firstonset is None or firstonset > onset:
                         firstonset = onset
 
@@ -294,9 +395,17 @@ class Data(object):
                 self.getEvtData().resource_id = ID
 
         def applyArrivals(arrivals):
+            """
+
+            :param arrivals:
+            """
             pass
 
         def applyEvent(event):
+            """
+
+            :param event:
+            """
             pass
 
         applydata = {'pick': applyPicks,
@@ -322,6 +431,10 @@ class GenericDataStructure(object):
 
     def modifyFields(self, **kwargs):
 
+        """
+
+        :param kwargs:
+        """
         assert isinstance(kwargs, dict), 'dictionary type object expected'
 
         if not self.extraAllowed():
@@ -337,37 +450,67 @@ class GenericDataStructure(object):
                     value = str(value)
             try:
                 self.setFieldValue(key, value)
-            except KeyError, e:
+            except KeyError as e:
                 errmsg = ''
                 errmsg += 'WARNING:\n'
                 errmsg += 'unable to set values for datastructure fields\n'
                 errmsg += '%s; desired value was: %s\n' % (e, value)
-                print errmsg
+                print(errmsg)
 
     def isField(self, key):
+        """
+
+        :param key:
+        :return:
+        """
         return key in self.getFields().keys()
 
     def getFieldValue(self, key):
+        """
+
+        :param key:
+        :return:
+        """
         if self.isField(key):
             return self.getFields()[key]
         else:
             return
 
     def setFieldValue(self, key, value):
+        """
+
+        :param key:
+        :param value:
+        :raise KeyError:
+        """
         if not self.extraAllowed() and key not in self.getAllowed():
             raise KeyError
         else:
             if not self.isField(key):
-                print 'creating new field "%s"' % key
+                print('creating new field "%s"' % key)
             self.getFields()[key] = value
 
     def getFields(self):
+        """
+
+
+        :return:
+        """
         return self.dsFields
 
     def getExpandFields(self):
+        """
+
+
+        :return:
+        """
         return self.expandFields
 
     def setExpandFields(self, keys):
+        """
+
+        :param keys:
+        """
         expandFields = []
         for key in keys:
             if self.isField(key):
@@ -375,18 +518,38 @@ class GenericDataStructure(object):
         self.expandFields = expandFields
 
     def getAllowed(self):
+        """
+
+
+        :return:
+        """
         return self.allowedFields
 
     def extraAllowed(self):
+        """
+
+
+        :return:
+        """
         return not self.allowedFields
 
     def updateNotAllowed(self, kwargs):
+        """
+
+        :param kwargs:
+        :return:
+        """
         for key in kwargs:
             if key not in self.getAllowed():
                 kwargs.__delitem__(key)
         return kwargs
 
     def hasSuffix(self):
+        """
+
+
+        :return:
+        """
         try:
             self.getFieldValue('suffix')
         except KeyError:
@@ -397,6 +560,11 @@ class GenericDataStructure(object):
         return False
 
     def expandDataPath(self):
+        """
+
+
+        :return:
+        """
         expandList = []
         for item in self.getExpandFields():
             expandList.append(self.getFieldValue(item))
@@ -405,6 +573,11 @@ class GenericDataStructure(object):
         return os.path.join(*expandList)
 
     def getCatalogName(self):
+        """
+
+
+        :return:
+        """
         return os.path.join(self.getFieldValue('root'), 'catalog.qml')
 
 
@@ -463,6 +636,10 @@ class SeiscompDataStructure(GenericDataStructure):
         self.modifiyFields(**kwargs)
 
     def modifiyFields(self, **kwargs):
+        """
+
+        :param kwargs:
+        """
         if kwargs and isinstance(kwargs, dict):
             for key, value in kwargs.iteritems():
                 key = str(key)
@@ -473,14 +650,19 @@ class SeiscompDataStructure(GenericDataStructure):
                     value = str(value)
                 try:
                     self.setField(key, value)
-                except KeyError, e:
+                except KeyError as e:
                     errmsg = ''
                     errmsg += 'WARNING:\n'
                     errmsg += 'unable to set values for SDS fields\n'
                     errmsg += '%s; desired value was: %s\n' % (e, value)
-                    print errmsg
+                    print(errmsg)
 
     def setFieldValue(self, key, value):
+        """
+
+        :param key:
+        :param value:
+        """
         if self.isField(key):
             self.getFields()[key] = value
         else:
@@ -488,12 +670,27 @@ class SeiscompDataStructure(GenericDataStructure):
                   '{field}'.format(field=key))
 
     def getFields(self):
+        """
+
+
+        :return:
+        """
         return self.__sdsFields
 
     def getName(self):
+        """
+
+
+        :return:
+        """
         return self.__name
 
     def expandDataPath(self):
+        """
+
+
+        :return:
+        """
         fullChan = '{0}.{1}'.format(self.getFields()['CHAN'], self.getType())
         dataPath = os.path.join(self.getFields()['SDSdir'],
                                 self.getFields()['YEAR'],
