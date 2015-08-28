@@ -14,20 +14,17 @@ from pylot.core.util.errors import FormatError, OverwriteError
 
 
 class Data(object):
-    '''
+    """
     Data container with attributes wfdata holding ~obspy.core.stream.
 
     :type parent: PySide.QtGui.QWidget object, optional
     :param parent: A PySide.QtGui.QWidget object utilized when
     called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
     to standard out.
-    :type wfdata: ~obspy.core.stream.Stream object, optional
-    :param wfdata: ~obspy.core.stream.Stream object containing all available
-    waveform data for the actual event
     :type evtdata: ~obspy.core.event.Event object, optional
     :param evtdata ~obspy.core.event.Event object containing all derived or
     loaded event. Container object holding, e.g. phase arrivals, etc.
-    '''
+    """
 
     def __init__(self, parent=None, evtdata=None):
         self._parent = parent
@@ -168,8 +165,8 @@ class Data(object):
         """
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
-                                         "but is actually {0}".format(type(
-            fnames))
+                                         "but is actually" \
+                                         " {0}".format(type(fnames))
         if self.dirty:
             self.resetWFData()
 
@@ -254,8 +251,9 @@ class Data(object):
                     except:
                         try:
                             print(
-                            "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel))
+                                "Correcting %s, %s for instrument response "
+                                "..." % (st[i].stats.station,
+                                         st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
@@ -263,7 +261,7 @@ class Data(object):
                             prefilt = [0.5, 0.9, fc21, fc22]
                             # instrument correction
                             st[i].simulate(pre_filt=prefilt,
-                                           seedresp={'filename': parser, \
+                                           seedresp={'filename': parser,
                                                      'date': st[
                                                          i].stats.starttime,
                                                      'units': "VEL"})
@@ -285,9 +283,9 @@ class Data(object):
                         st[i].stats.processing
                     except:
                         try:
-                            print(
-                            "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel))
+                            print("Correcting %s, %s for instrument response "
+                                  "..." % (st[i].stats.station,
+                                           st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
@@ -295,7 +293,8 @@ class Data(object):
                             prefilt = [0.5, 0.9, fc21, fc22]
                             # instrument correction
                             st[i].attach_response(inv)
-                            st[i].remove_response(output='VEL', pre_filt=prefilt)
+                            st[i].remove_response(output='VEL',
+                                                  pre_filt=prefilt)
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
@@ -313,18 +312,20 @@ class Data(object):
                         st[i].stats.processing
                     except:
                         try:
-                            print(
-                            "Correcting %s, %s for instrument response ..." \
-                            % (st[i].stats.station, st[i].stats.channel))
+                            print("Correcting %s, %s for instrument response "
+                                  "..." % (st[i].stats.station,
+                                           st[i].stats.channel))
                             # get corner frequencies for pre-filtering
                             fny = st[i].stats.sampling_rate / 2
                             fc21 = fny - (fny * 0.05)
                             fc22 = fny - (fny * 0.02)
                             prefilt = [0.5, 0.9, fc21, fc22]
                             # instrument correction
-                            seedresp={'filename': respfile[0], 'date': st[0].stats.starttime, \
-                                      'units': "VEL"}
-                            st[i].simulate(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+                            seedresp = {'filename': respfile[0],
+                                        'date': st[0].stats.starttime,
+                                        'units': "VEL"}
+                            st[i].simulate(paz_remove=None, pre_filt=prefilt,
+                                           seedresp=seedresp)
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
@@ -332,10 +333,10 @@ class Data(object):
                         print("Trace has already been corrected!")
 
         if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
-            print(
-            "No dataless-SEED file,inventory-xml file nor RESP-file found!")
-            print(
-            "Go on processing data without source parameter determination!")
+            print("No dataless-SEED file,inventory-xml file nor RESP-file "
+                  "found!")
+            print("Go on processing data without source parameter "
+                  "determination!")
 
         return st
 
@@ -416,10 +417,10 @@ class Data(object):
 
 
 class GenericDataStructure(object):
-    '''
+    """
     GenericDataBase type holds all information about the current data-
     base working on.
-    '''
+    """
 
     def __init__(self, **kwargs):
 
@@ -582,10 +583,10 @@ class GenericDataStructure(object):
 
 
 class PilotDataStructure(GenericDataStructure):
-    '''
+    """
     Object containing the data access information for the old PILOT data
     structure.
-    '''
+    """
 
     def __init__(self, **fields):
         if not fields:
@@ -598,14 +599,14 @@ class PilotDataStructure(GenericDataStructure):
 
 
 class SeiscompDataStructure(GenericDataStructure):
-    '''
+    """
     Dictionary containing the data access information for an SDS data archive:
 
     :param str dataType: Desired data type. Default: ``'waveform'``
     :param sdate, edate: Either date string or an instance of
          :class:`obspy.core.utcdatetime.UTCDateTime. Default: ``None``
     :type sdate, edate: str or UTCDateTime or None
-    '''
+    """
 
     def __init__(self, rootpath='/data/SDS', dataformat='MSEED',
                  filesuffix=None, **kwargs):
@@ -649,7 +650,7 @@ class SeiscompDataStructure(GenericDataStructure):
                 else:
                     value = str(value)
                 try:
-                    self.setField(key, value)
+                    self.setFieldValue(key, value)
                 except KeyError as e:
                     errmsg = ''
                     errmsg += 'WARNING:\n'
@@ -668,22 +669,6 @@ class SeiscompDataStructure(GenericDataStructure):
         else:
             print('Warning: trying to set value of non-existent field '
                   '{field}'.format(field=key))
-
-    def getFields(self):
-        """
-
-
-        :return:
-        """
-        return self.__sdsFields
-
-    def getName(self):
-        """
-
-
-        :return:
-        """
-        return self.__name
 
     def expandDataPath(self):
         """
