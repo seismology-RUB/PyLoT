@@ -519,7 +519,7 @@ def autopickstation(wfstream, pickparam):
                     cordat = data.restituteWFData(invdir, h_copy)
                     # calculate WA-peak-to-peak amplitude 
                     # using subclass WApp of superclass Magnitude
-                    wapp = WApp(cordat, mpickS, 10, iplot)
+                    wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
                     Ao = wapp.getwapp()
 
         else:
@@ -541,7 +541,7 @@ def autopickstation(wfstream, pickparam):
             cordat = data.restituteWFData(invdir, h_copy)
             # calculate WA-peak-to-peak amplitude 
             # using subclass WApp of superclass Magnitude
-            wapp = WApp(cordat, mpickP, 20, iplot)
+            wapp = WApp(cordat, mpickP, mpickP + sstop, iplot)
             Ao = wapp.getwapp()
 
     else:
