@@ -305,8 +305,8 @@ class Data(object):
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
-                        else:
-                            print("Trace has already been corrected!")
+                    else:
+                        print("Trace has already been corrected!")
         # check for RESP-file
         if len(respfile) >= 1:
             print("Found response file(s)!")
