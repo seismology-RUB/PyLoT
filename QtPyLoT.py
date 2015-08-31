@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
                                           "Authority")
             settings.setValue("agency_id", agency)
         self.recentEvents = settings.value("data/recentEvents", [])
+        self.fname = None
         self.fnames = None
         structure_setting = settings.value("data/Structure", "PILOT")
         self.dataStructure = DATASTRUCTURE[structure_setting]()
@@ -103,8 +104,8 @@ class MainWindow(QMainWindow):
 
         # load and display waveform data
         self.dirty = False
-        self.loadWaveformData()
         self.loadData()
+        self.loadWaveformData()
         self.updateFilterOptions()
 
     def setupUi(self):
@@ -362,6 +363,9 @@ class MainWindow(QMainWindow):
     def getLastEvent(self):
         return self.recentEvents[0]
 
+    def addRecentEvent(self, event):
+        self.recentEvents.insert(0, event)
+
     def getWFFnames(self):
         try:
             evt = self.getData().getEvtData()
@@ -394,11 +398,36 @@ class MainWindow(QMainWindow):
             else:
                 return
 
+    def getFileName(self):
+        return self.fname
+
+    def setFileName(self, fname):
+        if self.getFileName() is not None:
+            self.addRecentEvent(self.getFileName())
+        self.fname = fname
+
     def getEventFileName(self):
-        return self.getData().getEventFileName()
+        if self.getFileName() is None:
+            self.setFileName(self.getData().getEventFileName())
+        return self.getFileName()
 
     def saveData(self):
+
+        def getSavePath(e):
+            print 'warning: {0}'.format(e)
+            directory = os.path.join(self.getRoot(), self.getEventFileName())
+            file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
+            fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
+                                                directory, file_filter)
+
+            fbasename, exform = os.path.splitext(fname[0])
+
+            if not exform:
+                exform = file_filter[0].split('*')[1][:-1]
+            return fbasename, exform
+
         settings = QSettings()
+        fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
         try:
             self.getData().applyEVTData(self.getPicks())
@@ -413,19 +442,16 @@ class MainWindow(QMainWindow):
             if ret == QMessageBox.Save:
                 print('Overwrite and Save')
         try:
-            self.getData().exportEvent(self.fname, exform)
-        except FormatError:
-            return False
-        except AttributeError, e:
-            print 'warning: {0}'.format(e)
-            directory = os.path.join(self.getRoot(), self.getEventFileName())
-            file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
-            fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
-                                                directory, file_filter)
-            fbasename, exform = os.path.splitext(fname[0])
-            if not fbasename:
-                return False
             self.getData().exportEvent(fbasename, exform)
+        except FormatError as e:
+            fbasename, exform = getSavePath(e)
+        except AttributeError as e:
+            fbasename, exform = getSavePath(e)
+        if not fbasename:
+            return False
+        self.getData().exportEvent(fbasename, exform)
+        self.setDirty(False)
+        self.updateStatus('Event saved as %s' % (fbasename + exform))
         return True
 
     def getComponent(self):
