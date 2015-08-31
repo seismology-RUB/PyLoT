@@ -16,3 +16,7 @@ class FormatError(Exception):
 
 class DatastructureError(Exception):
     pass
+
+
+class OverwriteError(IOError):
+    pass
