@@ -434,13 +434,16 @@ class MainWindow(QMainWindow):
         except OverwriteError:
             msgBox = QMessageBox()
             msgBox.setText("Picks have been modified!")
-            msgBox.setInformativeText("Do you want to overwrite the picks and save?")
-            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard |
-                                      QMessageBox.Cancel)
+            msgBox.setInformativeText("Do you want to save the changes and overwrite the picks?")
+            msgBox.setDetailedText(self.getData().getPicksStr())
+            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
             msgBox.setDefaultButton(QMessageBox.Save)
             ret = msgBox.exec_()
             if ret == QMessageBox.Save:
-                print('Overwrite and Save')
+                self.getData().resetPicks()
+                self.saveData()
+            elif ret == QMessageBox.Cancel:
+                return False
         try:
             self.getData().exportEvent(fbasename, exform)
         except FormatError as e:

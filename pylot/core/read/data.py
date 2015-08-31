@@ -52,6 +52,13 @@ class Data(object):
     def __str__(self):
         return str(self.wfdata)
 
+    def getPicksStr(self):
+        picks_str = ''
+        for pick in self.getEvtData().picks:
+            picks_str += str(pick) + '\n'
+        return picks_str
+
+
     def getParent(self):
         """
 
@@ -222,7 +229,8 @@ class Data(object):
         :return:
         """
         if streams is None:
-            st = self.getWFData()
+            st_raw = self.getWFData()
+            st = st_raw.copy()
         else:
             st = streams
 
@@ -360,9 +368,11 @@ class Data(object):
 
         def applyPicks(picks):
             """
-
+            Creates ObsPy pick objects and append it to the picks list from the
+            PyLoT dictionary contain all picks.
             :param picks:
-            :raise OverwriteError:
+            :raise OverwriteError: raises an OverwriteError if the picks list is
+             not empty. The GUI will then ask for a decision.
             """
             firstonset = None
             if self.getEvtData().picks:
