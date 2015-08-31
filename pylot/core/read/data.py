@@ -229,7 +229,8 @@ class Data(object):
         :return:
         """
         if streams is None:
-            st = self.getWFData()
+            st_raw = self.getWFData()
+            st = st_raw.copy()
         else:
             st = streams
 
