@@ -72,6 +72,10 @@ class Magnitude(object):
     def calcwapp(self):
         self.wapp = None
 
+
+    def calcsourcespec(self):
+        self.sourcespek = None
+
 class WApp(Magnitude):
     '''
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
@@ -79,8 +83,8 @@ class WApp(Magnitude):
     '''
 
     def calcwapp(self):
-        print "Getting Wood-Anderson peak-to-peak amplitude ..."
-        print "Simulating Wood-Anderson seismograph ..."
+        print ("Getting Wood-Anderson peak-to-peak amplitude ...")
+        print ("Simulating Wood-Anderson seismograph ...")
 
         self.wapp = None
         stream = self.getwfstream()
@@ -105,7 +109,7 @@ class WApp(Magnitude):
         # get maximum peak within pick window
         iwin = getsignalwin(th, self.getTo(), self.getpwin())
         self.wapp = np.max(sqH[iwin])
-        print "Determined Wood-Anderson peak-to-peak amplitude: %f mm" % self.wapp
+        print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
         if self.getiplot() > 1:
             stream.plot()
             f = plt.figure(2)
@@ -121,4 +125,13 @@ class WApp(Magnitude):
             plt.close(f)
 
     
+class DCfc(Magnitude):
+    '''
+    Method to calculate the source spectrum and to derive from that the plateau 
+    (the so-called DC-value) and the corner frequency assuming Aki's omega-square 
+    source model. Has to be derived from corrected traces!
+    '''
+
+    def calcsourcespec(self):
+    	print ("Calculating source spectrum ....")
 
