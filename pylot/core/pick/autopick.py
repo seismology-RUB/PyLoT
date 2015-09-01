@@ -520,13 +520,13 @@ def autopickstation(wfstream, pickparam):
                 # using subclass WApp of superclass Magnitude
                 if Sweight < 4:
                     wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
-                    Ao = wapp.getwapp()
                 else:
                     # use larger window for getting peak-to-peak amplitude
                     # as the S pick is quite unsure
                     wapp = WApp(cordat, mpickP, mpickP + sstop + \
                                (0.5 * (mpickP + sstop)), iplot)
-                    Ao = wapp.getwapp()
+
+                Ao = wapp.getwapp()
 
         else:
             print 'Bad initial (AIC) S-pick, skipping this onset!'
