@@ -507,19 +507,25 @@ def autopickstation(wfstream, pickparam):
                 print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
                     Sweight, SNRS, SNRSdB)
                 ##################################################################
+                # get Wood-Anderson peak-to-peak amplitude
+                print "################################################"
+                # initialize Data object
+                data = Data()
+                # re-create stream object including both horizontal components
+                hdat = edat.copy()
+                hdat += ndat
+                h_copy = hdat.copy()
+                cordat = data.restituteWFData(invdir, h_copy)
+                # calculate WA-peak-to-peak amplitude 
+                # using subclass WApp of superclass Magnitude
                 if Sweight < 4:
-                    # get Wood-Anderson peak-to-peak amplitude
-                    print "################################################"
-                    # initialize Data object
-                    data = Data()
-                    # re-create stream object including both horizontal components
-                    hdat = edat.copy()
-                    hdat += ndat
-                    h_copy = hdat.copy()
-                    cordat = data.restituteWFData(invdir, h_copy)
-                    # calculate WA-peak-to-peak amplitude 
-                    # using subclass WApp of superclass Magnitude
                     wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
+                    Ao = wapp.getwapp()
+                else:
+                    # use larger window for getting peak-to-peak amplitude
+                    # as the S pick is quite unsure
+                    wapp = WApp(cordat, mpickP, mpickP + sstop + \
+                               (0.5 * (mpickP + sstop)), iplot)
                     Ao = wapp.getwapp()
 
         else:
@@ -541,7 +547,8 @@ def autopickstation(wfstream, pickparam):
             cordat = data.restituteWFData(invdir, h_copy)
             # calculate WA-peak-to-peak amplitude 
             # using subclass WApp of superclass Magnitude
-            wapp = WApp(cordat, mpickP, mpickP + sstop, iplot)
+            wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP \
+                        + sstop)), iplot)
             Ao = wapp.getwapp()
 
     else:
