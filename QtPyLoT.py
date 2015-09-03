@@ -36,7 +36,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget
 import numpy as np
-from obspy.core import UTCDateTime
+from obspy import UTCDateTime, readEvents
 
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
@@ -339,26 +339,25 @@ class MainWindow(QMainWindow):
         return settings.value("data/dataRoot")
 
     def loadData(self, fname=None):
+        if not self.okToContinue():
+                return
         if fname is None:
-            try:
-                self.data = Data(self, evtdata=self.fname)
-            except AttributeError:
-                action = self.sender()
-                if isinstance(action, QAction):
-                    if action.data() is None:
-                        filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
-                        caption = "Open an event file"
-                        fname = QFileDialog().getOpenFileName(self,
-                                                              caption=caption,
-                                                              filter=filt)
-                        self.fname = fname[0]
-                    else:
-                        self.fname = unicode(action.data().toString())
-                if not self.okToContinue():
-                    return
-        else:
-            self.fname = fname
-            self.data = Data(self, evtdata=self.fname)
+            action = self.sender()
+            if isinstance(action, QAction):
+                if action.data() is None:
+                    filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
+                    caption = "Open an event file"
+                    fname = QFileDialog().getOpenFileName(self,
+                                                          caption=caption,
+                                                          filter=filt)
+                    fname = fname[0]
+                else:
+                    fname = unicode(action.data().toString())
+        event = readEvents(fname)[0]
+        self.setFileName(fname)
+        self.getData().applyEVTData(event, type='event')
+        self.convertPicks4PyLoT()
+        self.drawPicks()
 
     def getLastEvent(self):
         return self.recentEvents[0]
@@ -693,6 +692,11 @@ class MainWindow(QMainWindow):
             else:
                 raise Exception('FATAL: Should never occur!')
         self.getPicks()[station] = stat_picks
+
+    def convertPicks4PyLoT(self):
+        evt = self.getData().getEvtData()
+        for pick in evt.picks:
+            station = pick.waveform_id.getSEEDstring()
 
     def drawPicks(self, station=None):
         # if picks to draw not specified, draw all picks available

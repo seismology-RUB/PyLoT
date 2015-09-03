@@ -105,10 +105,10 @@ class MPLWidget(FigureCanvas):
                 for level in noiselevel:
                     self.getAxes().plot([time_ax[0], time_ax[-1]],
                                         [level, level], '--k')
-            xlabel = 'seconds since {0}'.format(wfstart)
-            ylabel = ''
-            self.updateWidget(xlabel, ylabel, title)
             self.setPlotDict(n, (station, channel))
+        xlabel = 'seconds since {0}'.format(wfstart)
+        ylabel = ''
+        self.updateWidget(xlabel, ylabel, title)
         self.setXLims([0, wfend - wfstart])
         self.setYLims([-0.5, n + 0.5])
         if zoomx is not None:

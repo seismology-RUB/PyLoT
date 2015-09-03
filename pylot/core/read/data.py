@@ -417,7 +417,10 @@ class Data(object):
 
             :param event:
             """
-            pass
+            if not self.evtdata:
+                self.evtdata = event
+            else:
+                raise OverwriteError('Acutal event would be overwritten!')
 
         applydata = {'pick': applyPicks,
                      'arrival': applyArrivals,
