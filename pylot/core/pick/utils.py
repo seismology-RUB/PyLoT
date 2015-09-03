@@ -7,6 +7,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
+
 import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
@@ -483,7 +484,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         # calculate vp/vs ratio before check
         vpvsr = p1[0] + 1
         print ("###############################################")
-        print ("wadaticheck: Average Vp/Vs ratio before check:", vpvsr)
+        print ("wadaticheck: Average Vp/Vs ratio before check: %f" % vpvsr)
 
         checkedPpicks = []
         checkedSpicks = []
@@ -520,8 +521,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
         	# calculate vp/vs ratio after check
         	cvpvsr = p2[0] + 1
-        	print ("wadaticheck: Average Vp/Vs ratio after check:", cvpvsr)
-                print ("wadatacheck: Skipped %d S pick(s)." % ibad)
+        	print ("wadaticheck: Average Vp/Vs ratio after check: %f" % cvpvsr)
+                print ("wadatacheck: Skipped %d S pick(s)" % ibad)
         else:
                 print ("###############################################")
         	print ("wadatacheck: Not enough checked S-P times available!")
@@ -617,7 +618,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     else:
         print ("checksignallength: Signal shorter than required minimum signal length!")
         print ("Presumably picked noise peak, pick is rejected!")
-        print ("(min. signal length required:', minsiglength, 's)'")
+        print ("(min. signal length required: %s s)" % minsiglength)
         returnflag = 0
 
     if iplot == 2:
