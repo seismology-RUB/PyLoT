@@ -7,7 +7,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
-import pdb
+
 import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
