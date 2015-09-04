@@ -41,9 +41,9 @@ def autopickevent(data, param):
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, 2)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
     # check S-P times (Wadati)
-    return wadaticheck(jk_checked_onsets, wdttolerance, 2)
+    return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
 
 def autopickstation(wfstream, pickparam):
     """
@@ -196,10 +196,36 @@ def autopickstation(wfstream, pickparam):
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
+            # use all available components to avoid skipping correct picks
+            # on vertical traces with weak P coda
             z_copy[0].data = tr_filt.data
-            Pflag = checksignallength(z_copy, aicpick.getpick(), tsnrz,
-                                      minsiglength, \
-                                      nfacsl, minpercent, iplot)
+            zne = z_copy
+            if len(ndat) == 0 or len(edat) == 0:
+                print ("One or more horizontal components missing!")
+                print ("Signal length only checked on vertical component!")
+                print ("Decreasing minsiglengh from %f to %f" \
+                        % (minsiglength, minsiglength / 2))
+                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                          minsiglength / 2, \
+                                          nfacsl, minpercent, iplot)
+            else:
+                # filter and taper horizontal traces
+                trH1_filt = edat.copy()
+                trH2_filt = ndat.copy()
+                trH1_filt.filter('bandpass', freqmin=bph1[0],
+                                  freqmax=bph1[1], \
+                                  zerophase=False)
+                trH2_filt.filter('bandpass', freqmin=bph1[0],
+                                  freqmax=bph1[1], \
+                                  zerophase=False)
+                trH1_filt.taper(max_percentage=0.05, type='hann')
+                trH2_filt.taper(max_percentage=0.05, type='hann')
+                zne += trH1_filt
+                zne += trH2_filt
+                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                          minsiglength, \
+                                          nfacsl, minpercent, iplot)
+
             if Pflag == 1:
                 # check for spuriously picked S onset
                 # both horizontal traces needed
@@ -207,20 +233,6 @@ def autopickstation(wfstream, pickparam):
                     print 'One or more horizontal components missing!'
                     print 'Skipping control function checkZ4S.'
                 else:
-                    # filter and taper horizontal traces
-                    trH1_filt = edat.copy()
-                    trH2_filt = ndat.copy()
-                    trH1_filt.filter('bandpass', freqmin=bph1[0],
-                                     freqmax=bph1[1], \
-                                     zerophase=False)
-                    trH2_filt.filter('bandpass', freqmin=bph1[0],
-                                     freqmax=bph1[1], \
-                                     zerophase=False)
-                    trH1_filt.taper(max_percentage=0.05, type='hann')
-                    trH2_filt.taper(max_percentage=0.05, type='hann')
-                    zne = z_copy
-                    zne += trH1_filt
-                    zne += trH2_filt
                     Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
                                      tsnrz[3], iplot)
                     if Pflag == 0:
@@ -515,18 +527,19 @@ def autopickstation(wfstream, pickparam):
                 hdat = edat.copy()
                 hdat += ndat
                 h_copy = hdat.copy()
-                cordat = data.restituteWFData(invdir, h_copy)
+                [cordat, restflag] = data.restituteWFData(invdir, h_copy)
                 # calculate WA-peak-to-peak amplitude 
                 # using subclass WApp of superclass Magnitude
-                if Sweight < 4:
-                    wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
-                else:
-                    # use larger window for getting peak-to-peak amplitude
-                    # as the S pick is quite unsure
-                    wapp = WApp(cordat, mpickP, mpickP + sstop + \
-                               (0.5 * (mpickP + sstop)), iplot)
+                if restflag == 1:
+                    if Sweight < 4:
+                        wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
+                    else:
+                        # use larger window for getting peak-to-peak amplitude
+                        # as the S pick is quite unsure
+                        wapp = WApp(cordat, mpickP, mpickP + sstop + \
+                                   (0.5 * (mpickP + sstop)), iplot)
 
-                Ao = wapp.getwapp()
+                    Ao = wapp.getwapp()
 
         else:
             print 'Bad initial (AIC) S-pick, skipping this onset!'
@@ -544,12 +557,13 @@ def autopickstation(wfstream, pickparam):
             hdat = edat.copy()
             hdat += ndat
             h_copy = hdat.copy()
-            cordat = data.restituteWFData(invdir, h_copy)
-            # calculate WA-peak-to-peak amplitude 
-            # using subclass WApp of superclass Magnitude
-            wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP \
-                        + sstop)), iplot)
-            Ao = wapp.getwapp()
+            [cordat, restflag] = data.restituteWFData(invdir, h_copy)
+            if restflag == 1:
+                # calculate WA-peak-to-peak amplitude 
+                # using subclass WApp of superclass Magnitude
+                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP \
+                            + sstop)), iplot)
+                Ao = wapp.getwapp()
 
     else:
         print 'autopickstation: No horizontal component data available or ' \
