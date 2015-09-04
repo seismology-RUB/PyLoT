@@ -33,7 +33,7 @@ class Data(object):
         else:
             self.comp = 'Z'
             self.wfdata = Stream()
-        self.newevent = False
+        self._new = False
         if evtdata is not None and isinstance(evtdata, Event):
             self.evtdata = evtdata
         elif evtdata is not None and not isinstance(evtdata, dict):
@@ -41,8 +41,9 @@ class Data(object):
             self.evtdata = cat[0]
         elif evtdata is not None:
             cat = readPILOTEvent(**evtdata)
+            self.evtdata = cat[0]
         else:  # create an empty Event object
-            self.newevent = True
+            self._new = True
             self.evtdata = Event()
             self.getEvtData().picks = []
         self.wforiginal = None
@@ -73,7 +74,7 @@ class Data(object):
 
         :return:
         """
-        return self.newevent
+        return self._new
 
     def getCutTimes(self):
         """
@@ -356,6 +357,9 @@ class Data(object):
         """
         return self.evtdata
 
+    def setEvtData(self, event):
+        self.evtdata = event
+
     def applyEVTData(self, data, type='pick', authority_id='rub'):
 
         """
@@ -417,8 +421,8 @@ class Data(object):
 
             :param event:
             """
-            if not self.evtdata:
-                self.evtdata = event
+            if not self.isNew():
+                self.setEvtData(event)
             else:
                 raise OverwriteError('Acutal event would be overwritten!')
 

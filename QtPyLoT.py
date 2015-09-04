@@ -695,8 +695,22 @@ class MainWindow(QMainWindow):
 
     def convertPicks4PyLoT(self):
         evt = self.getData().getEvtData()
+        picks = {}
+        onsets = {}
         for pick in evt.picks:
-            station = pick.waveform_id.getSEEDstring()
+            phase = {}
+            station = pick.waveform_id.station_code
+            mpp = pick.time
+            lpp = mpp + pick.time.upper_uncertainty
+            epp = mpp - pick.time.lower_uncertainty
+            spe = pick.time.uncertainty
+            phase['mpp'] = mpp
+            phase['epp'] = epp
+            phase['lpp'] = lpp
+            phase['spe'] = spe
+
+            onsets[pick.phase_hint] = phase
+            picks[station] = onsets
 
     def drawPicks(self, station=None):
         # if picks to draw not specified, draw all picks available
