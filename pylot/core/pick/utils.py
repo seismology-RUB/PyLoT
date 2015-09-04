@@ -9,7 +9,6 @@
 """
 
 import numpy as np
-import scipy as sc
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
 import warnings
