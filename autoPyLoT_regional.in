@@ -9,6 +9,7 @@
 EVENT_DATA/LOCAL		    #datapath#     %data path
 2006.01_Nisyros                     #database#     %name of data base
 e1412.008.06                        #eventID#      %event ID for single event processing
+/DATA/Egelados/STAT_INFO            #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
@@ -83,8 +84,8 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 8                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
-6                                   #minsiglength# %minimum required length of signal [s]
-1.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
+30                                  #minsiglength# %minimum required length of signal [s]
+2.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
 60                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
 1.5                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
