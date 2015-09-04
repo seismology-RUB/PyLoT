@@ -31,7 +31,7 @@ HYPOSAT                             #locrt#        %location routine used ("HYPO
 100                                 #Qs#           %quality factor for S waves
 #common settings picker#
 20                                  #pstart#       %start time [s] for calculating CF for P-picking
-160                                 #pstop#        %end time [s] for calculating CF for P-picking
+100                                 #pstop#        %end time [s] for calculating CF for P-picking
 3.0                                 #sstart#       %start time [s] after or before(-) P-onset for calculating CF for S-picking
 100                                 #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 3 10                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
@@ -79,9 +79,9 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 #inital AIC onset#
 0.04 0.08 0.16 0.32                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-5                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+3                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
-8                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
+3                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
 30                                  #minsiglength# %minimum required length of signal [s]
