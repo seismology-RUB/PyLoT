@@ -7,8 +7,8 @@
 #main settings#
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
-2015.08_Insheim                     #database#     %name of data base
-e0013.241.15                        #eventID#      %event ID for single event processing
+2013.02_Insheim                     #database#     %name of data base
+e0019.048.13                        #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
