@@ -9,6 +9,7 @@
 EVENT_DATA/LOCAL		    #datapath#     %data path
 2006.01_Nisyros                     #database#     %name of data base
 e1412.008.06                        #eventID#      %event ID for single event processing
+/DATA/Egelados/STAT_INFO            #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
@@ -30,8 +31,8 @@ HYPOSAT                             #locrt#        %location routine used ("HYPO
 100                                 #Qs#           %quality factor for S waves
 #common settings picker#
 20                                  #pstart#       %start time [s] for calculating CF for P-picking
-160                                 #pstop#        %end time [s] for calculating CF for P-picking
-3.0                                 #sstart#       %start time [s] after or before(-) P-onset for calculating CF for S-picking
+100                                 #pstop#        %end time [s] for calculating CF for P-picking
+1.0                                 #sstart#       %start time [s] after or before(-) P-onset for calculating CF for S-picking
 100                                 #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 3 10                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
 3 12                                #bpz2#         %lower/upper corner freq. of second band pass filter Z-comp. [Hz]
@@ -64,11 +65,11 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 0.3                                 #tpred2h#      %for HOS/AR, length of AR-prediction window [s], H-components, 2nd pick
 4                                   #Sarorder#     %for AR-picker, order of AR process of H-components
 10                                  #Srecalcwin#   %for AR-picker, window length [s] for recalculation of CF (2nd pick) (H)
-6                                   #pickwinS#     %for initial AIC and refined pick, length of S-pick window [s]
+25                                  #pickwinS#     %for initial AIC and refined pick, length of S-pick window [s]
 5 0.2 3.0 3.0                       #tsnrh#        %for ARH/AR3, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
-3.0                                 #aictsmoothS#  %for AIC-picker, take average of samples for smoothing of AIC-function [s]
+3.5                                 #aictsmoothS#  %for AIC-picker, take average of samples for smoothing of AIC-function [s]
 1.0                                 #tsmoothS#     %for AR-picker, take average of samples for smoothing CF [s] (S)
-0.4                                 #ausS#         %for HOS/AR, artificial uplift of samples (aus) of CF (S)
+0.2                                 #ausS#         %for HOS/AR, artificial uplift of samples (aus) of CF (S)
 1.5                                 #nfacS#        %for AR-picker, noise factor for noise level determination (S)
 %first-motion picker%
 1                                   #minfmweight#  %minimum required p weight for first-motion determination
@@ -78,18 +79,18 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 #inital AIC onset#
 0.04 0.08 0.16 0.32                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-5                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+3                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
-8                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
-1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
+5                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
+2.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
-6                                   #minsiglength# %minimum required length of signal [s]
-1.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
+30                                  #minsiglength# %minimum required length of signal [s]
+2.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
 60                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
-1.5                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
+1.0                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
 #check statistics of P onsets#
-35                                  #mdttolerance#  %maximum allowed deviation of P picks from median [s]
+45                                  #mdttolerance#  %maximum allowed deviation of P picks from median [s]
 #wadati check#
-2.0                                 #wdttolerance# %maximum allowed deviation from Wadati-diagram
+3.0                                 #wdttolerance# %maximum allowed deviation from Wadati-diagram
 

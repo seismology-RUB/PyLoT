@@ -228,6 +228,9 @@ class Data(object):
         :param streams:
         :return:
         """
+
+        restflag = 0
+
         if streams is None:
             st_raw = self.getWFData()
             st = st_raw.copy()
@@ -236,7 +239,7 @@ class Data(object):
 
         for tr in st:
             # remove underscores
-            if tr.stats.station[3] == '_':
+            if len(tr.stats.station) > 3 and tr.stats.station[3] == '_':
                 tr.stats.station = tr.stats.station[0:3]
         dlp = '%s/*.dless' % invdlpath
         invp = '%s/*.xml' % invdlpath
@@ -273,6 +276,7 @@ class Data(object):
                                                      'date': st[
                                                          i].stats.starttime,
                                                      'units': "VEL"})
+                            restflag = 1
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
@@ -303,6 +307,7 @@ class Data(object):
                             st[i].attach_response(inv)
                             st[i].remove_response(output='VEL',
                                                   pre_filt=prefilt)
+                            restflag = 1
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
@@ -334,6 +339,7 @@ class Data(object):
                                         'units': "VEL"}
                             st[i].simulate(paz_remove=None, pre_filt=prefilt,
                                            seedresp=seedresp)
+                            restflag = 1
                         except ValueError as e:
                             vmsg = '{0}'.format(e)
                             print(vmsg)
@@ -346,7 +352,7 @@ class Data(object):
             print("Go on processing data without source parameter "
                   "determination!")
 
-        return st
+        return st, restflag
 
     def getEvtData(self):
         """
