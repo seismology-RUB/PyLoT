@@ -18,6 +18,7 @@ calculated after Diehl & Kissling (2009).
 
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pylot.core.pick.utils import getnoisewin, getsignalwin
@@ -245,8 +246,7 @@ class AICPicker(AutoPicking):
            if datafit[0] >= datafit[len(datafit) - 1]:
               print 'AICPicker: Negative slope, bad onset skipped!'
               return
-
-           self.slope = 1 / tslope * datafit[len(dataslope) - 1] - datafit[0]
+           self.slope = 1 / tslope * (datafit[len(dataslope) - 1] - datafit[0])
 
         else:
            self.SNR = None

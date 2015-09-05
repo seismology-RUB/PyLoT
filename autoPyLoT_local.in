@@ -30,8 +30,8 @@ HYPOSAT                             #locrt#        %location routine used ("HYPO
 300                                 #Qp#           %quality factor for P waves
 100                                 #Qs#           %quality factor for S waves
 #common settings picker#
-20                                  #pstart#       %start time [s] for calculating CF for P-picking
-80                                  #pstop#        %end time [s] for calculating CF for P-picking
+15                                  #pstart#       %start time [s] for calculating CF for P-picking
+60                                  #pstop#        %end time [s] for calculating CF for P-picking
 -1.0                                #sstart#       %start time [s] after or before(-) P-onset for calculating CF for S-picking
 7                                   #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 2 20                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
@@ -81,14 +81,14 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 #inital AIC onset#
 0.01 0.02 0.04 0.08                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-50                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+10                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
 6                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
-2.5                                 #minsiglength# %minimum required length of signal [s]
-3                                   #noisefactor#  %noiselevel*noisefactor=threshold
-70                                  #minpercent#   %required percentage of samples higher than threshold
+5                                   #minsiglength# %minimum required length of signal [s]
+1.8                                 #noisefactor#  %noiselevel*noisefactor=threshold
+50                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
 2.0                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
 #check statistics of P onsets#
