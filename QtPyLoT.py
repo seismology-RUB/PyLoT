@@ -389,8 +389,8 @@ class MainWindow(QMainWindow):
                 else:
                     raise DatastructureError('not specified')
             return self.fnames
-        except DatastructureError, e:
-            print e
+        except DatastructureError as e:
+            print(e)
             props = PropertiesDlg(self)
             if props.exec_() == QDialog.Accepted:
                 return self.getWFFnames()
