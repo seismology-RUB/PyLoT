@@ -340,25 +340,24 @@ class MainWindow(QMainWindow):
 
     def loadData(self, fname=None):
         if fname is None:
-            try:
-                self.data = Data(self, evtdata=self.fname)
-            except AttributeError:
-                action = self.sender()
-                if isinstance(action, QAction):
-                    if action.data() is None:
-                        filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
-                        caption = "Open an event file"
-                        fname = QFileDialog().getOpenFileName(self,
-                                                              caption=caption,
-                                                              filter=filt)
-                        self.fname = fname[0]
-                    else:
-                        self.fname = unicode(action.data().toString())
-                if not self.okToContinue():
-                    return
+            action = self.sender()
+            if isinstance(action, QAction):
+                if action.data() is None:
+                    filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
+                    caption = "Open an event file"
+                    fname = QFileDialog().getOpenFileName(self,
+                                                          caption=caption,
+                                                          filter=filt)
+                    self.setFileName(fname[0])
+                else:
+                    self.setFileName(unicode(action.data().toString()))
+            if not self.okToContinue():
+                return
         else:
-            self.fname = fname
-            self.data = Data(self, evtdata=self.fname)
+            self.setFileName(fname)
+        self.data += Data(self, evtdata=self.getFileName())
+        self.updatePicks()
+        self.updateStatus('Event data loaded ...')
 
     def getLastEvent(self):
         return self.recentEvents[0]
@@ -468,6 +467,9 @@ class MainWindow(QMainWindow):
 
     def getPicks(self):
         return self.picks
+
+    def updatePicks(self):
+        pass
 
     def getPicksOnStation(self, station):
         try:

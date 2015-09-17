@@ -33,16 +33,16 @@ class Data(object):
         else:
             self.comp = 'Z'
             self.wfdata = Stream()
-        self.newevent = False
-        if evtdata is not None and isinstance(evtdata, Event):
+        self._new = False
+        if isinstance(evtdata, Event):
             self.evtdata = evtdata
-        elif evtdata is not None and not isinstance(evtdata, dict):
+        elif isinstance(evtdata, dict):
+            cat = readPILOTEvent(**evtdata)
+        elif evtdata:
             cat = readEvents(evtdata)
             self.evtdata = cat[0]
-        elif evtdata is not None:
-            cat = readPILOTEvent(**evtdata)
         else:  # create an empty Event object
-            self.newevent = True
+            self.setNew()
             self.evtdata = Event()
             self.getEvtData().picks = []
         self.wforiginal = None
@@ -51,6 +51,27 @@ class Data(object):
 
     def __str__(self):
         return str(self.wfdata)
+
+    def __add__(self, other):
+        assert isinstance(other, Data), "operands must be of same type 'Data'"
+        if other.isNew() and not self.isNew():
+            picks_to_add = other.getEvtData().picks
+            old_picks = self.getEvtData().picks
+            for pick in picks_to_add:
+                if pick not in old_picks:
+                    old_picks.append(pick)
+        elif not other.isNew() and self.isNew():
+            new = other + self
+            self.evtdata = new.getEvtData()
+        elif self.isNew() and other.isNew():
+            pass
+        elif self.getEvtData().get('id') == other.getEvtData().get('id'):
+            other.setNew()
+            return self + other
+        else:
+            raise ValueError("both Data objects have differing "
+                             "unique Event identifiers")
+        return self
 
     def getPicksStr(self):
         picks_str = ''
@@ -73,7 +94,10 @@ class Data(object):
 
         :return:
         """
-        return self.newevent
+        return self._new
+
+    def setNew(self):
+        self._new = True
 
     def getCutTimes(self):
         """
