@@ -36,7 +36,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget
 import numpy as np
-from obspy.core import UTCDateTime
+from obspy import UTCDateTime, readEvents
 
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
@@ -339,6 +339,8 @@ class MainWindow(QMainWindow):
         return settings.value("data/dataRoot")
 
     def loadData(self, fname=None):
+        if not self.okToContinue():
+                return
         if fname is None:
             action = self.sender()
             if isinstance(action, QAction):
@@ -348,16 +350,13 @@ class MainWindow(QMainWindow):
                     fname = QFileDialog().getOpenFileName(self,
                                                           caption=caption,
                                                           filter=filt)
-                    self.setFileName(fname[0])
+                    fname = fname[0]
                 else:
-                    self.setFileName(unicode(action.data().toString()))
-            if not self.okToContinue():
-                return
-        else:
-            self.setFileName(fname)
+                    fname = unicode(action.data().toString())
+        self.setFileName(fname)
         self.data += Data(self, evtdata=self.getFileName())
-        self.updatePicks()
-        self.updateStatus('Event data loaded ...')
+        self.convertPicks4PyLoT()
+        self.drawPicks()
 
     def getLastEvent(self):
         return self.recentEvents[0]
@@ -467,9 +466,6 @@ class MainWindow(QMainWindow):
 
     def getPicks(self):
         return self.picks
-
-    def updatePicks(self):
-        pass
 
     def getPicksOnStation(self, station):
         try:
@@ -695,6 +691,25 @@ class MainWindow(QMainWindow):
             else:
                 raise Exception('FATAL: Should never occur!')
         self.getPicks()[station] = stat_picks
+
+    def convertPicks4PyLoT(self):
+        evt = self.getData().getEvtData()
+        picks = {}
+        onsets = {}
+        for pick in evt.picks:
+            phase = {}
+            station = pick.waveform_id.station_code
+            mpp = pick.time
+            lpp = mpp + pick.time.upper_uncertainty
+            epp = mpp - pick.time.lower_uncertainty
+            spe = pick.time.uncertainty
+            phase['mpp'] = mpp
+            phase['epp'] = epp
+            phase['lpp'] = lpp
+            phase['spe'] = spe
+
+            onsets[pick.phase_hint] = phase
+            picks[station] = onsets
 
     def drawPicks(self, station=None):
         # if picks to draw not specified, draw all picks available

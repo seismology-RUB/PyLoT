@@ -218,7 +218,7 @@ class AICcf(CharacteristicFunction):
 
     def calcCF(self, data):
 
-        print 'Calculating AIC ...'
+        #print 'Calculating AIC ...'  ## MP MP output suppressed
         x = self.getDataArray()
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -260,7 +260,7 @@ class HOScf(CharacteristicFunction):
             y = np.power(xnp, 3)
             y1 = np.power(xnp, 2)
         elif self.getOrder() == 4:  # this is kurtosis
-            print 'Calculating kurtosis ...'
+            #print 'Calculating kurtosis ...'  ## MP MP output suppressed
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 

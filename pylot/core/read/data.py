@@ -386,6 +386,9 @@ class Data(object):
         """
         return self.evtdata
 
+    def setEvtData(self, event):
+        self.evtdata = event
+
     def applyEVTData(self, data, type='pick', authority_id='rub'):
 
         """
@@ -447,7 +450,10 @@ class Data(object):
 
             :param event:
             """
-            pass
+            if not self.isNew():
+                self.setEvtData(event)
+            else:
+                raise OverwriteError('Acutal event would be overwritten!')
 
         applydata = {'pick': applyPicks,
                      'arrival': applyArrivals,
