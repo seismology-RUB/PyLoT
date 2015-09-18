@@ -54,11 +54,9 @@ from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
-# Version information
-__version__ = _getVersionString()
-
 
 class MainWindow(QMainWindow):
+    __version__ = _getVersionString()
     closing = Signal()
 
     def __init__(self, parent=None):
@@ -340,7 +338,7 @@ class MainWindow(QMainWindow):
 
     def loadData(self, fname=None):
         if not self.okToContinue():
-                return
+            return
         if fname is None:
             action = self.sender()
             if isinstance(action, QAction):
@@ -355,7 +353,7 @@ class MainWindow(QMainWindow):
                     fname = unicode(action.data().toString())
         self.setFileName(fname)
         self.data += Data(self, evtdata=self.getFileName())
-        self.convertPicks4PyLoT()
+        self.updatePicks()
         self.drawPicks()
 
     def getLastEvent(self):
@@ -692,7 +690,7 @@ class MainWindow(QMainWindow):
                 raise Exception('FATAL: Should never occur!')
         self.getPicks()[station] = stat_picks
 
-    def convertPicks4PyLoT(self):
+    def updatePicks(self):
         evt = self.getData().getEvtData()
         picks = {}
         onsets = {}
@@ -809,20 +807,24 @@ def main():
     app_icon = QIcon()
     app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
-    # set Application Information
-    pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
-    pylot_app.setOrganizationDomain("rub.de")
-    pylot_app.setApplicationName("PyLoT")
-    pylot_app.setApplicationVersion(__version__)
-    pylot_app.setWindowIcon(app_icon)
-
     # create the main window
     pylot_form = MainWindow()
     splash.showMessage('Loading. Please wait ...')
     pylot_app.processEvents()
 
+    # set Application Information
+    pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
+    pylot_app.setOrganizationDomain("rub.de")
+    pylot_app.processEvents()
+    pylot_app.setApplicationName("PyLoT")
+    pylot_app.setApplicationVersion(pylot_form.__version__)
+    pylot_app.setWindowIcon(app_icon)
+    pylot_app.processEvents()
+
     # Show main window and run the app
     pylot_form.showMaximized()
+    pylot_app.processEvents()
+
     splash.finish(pylot_form)
     pylot_app.exec_()
 
