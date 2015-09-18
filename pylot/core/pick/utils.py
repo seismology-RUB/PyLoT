@@ -43,13 +43,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     LPick = None
     EPick = None
     PickError = None
-<<<<<<< Updated upstream
-    print ("earllatepicker: Get earliest and latest possible pick relative to most likely pick ...")
-=======
-    # MP MP ++ output suppressed
     #print 'earllatepicker: Get earliest and latest possible pick relative to most likely pick ...'
-    # MP MP --
->>>>>>> Stashed changes
 
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,

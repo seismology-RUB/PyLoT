@@ -1,0 +1,721 @@
+import os
+import numpy as np
+from obspy.core import read
+from obspy import Stream
+from obspy import Trace
+from pylot.core.pick.CharFuns import HOScf
+from pylot.core.pick.CharFuns import AICcf
+from pylot.core.pick.utils import getSNR
+from pylot.core.pick.utils import earllatepicker
+
+class SeismicShot(object):
+    '''
+    SuperClass for a seismic shot object.
+    '''
+    def __init__(self, obsfile):
+        '''
+        Initialize seismic shot object giving an inputfile.
+
+        :param: obsfile, ((!SEG2/SEGY!)) file readable by obspy
+        :type: string
+        '''
+        self.traces = read(obsfile)
+        self.recCoordlist = None
+        self.srcCoordlist = None
+        self.traceIDs = None
+        self.pick = {}
+        self.pick_backup = {}
+        self.earliest = {}
+        self.latest = {}
+        self.pickwindow= {}
+        self.manualpicks= {}
+        self.snr = {}
+        self.snrthreshold = {}
+        self.timeArray = {}
+        self.paras = {}
+        self.paras['shotname'] = obsfile
+
+    def removeEmptyTraces(self):
+        traceIDs = []
+        coordlist = self.getRecCoordlist()
+        removed = []
+        for i in range(0, len(coordlist)):
+            traceIDs.append(int(coordlist[i].split()[0]))
+            
+        for trace in self.traces:
+            try:
+                traceIDs.index(int(trace.stats.channel))
+            except:
+                self.traces.remove(trace)        
+                removed.append(int(trace.stats.channel))
+                
+        if len(removed) > 0:
+            return removed
+
+    def removeTrace(self, traceID):
+        for trace in self.traces:
+            if traceID == trace.stats.channel:
+                self.traces.remove(trace)
+        
+        # for traceID in TraceIDs:
+        #     traces = [trace for trace in self.traces if int(trace.stats.channel) == traceID]
+        #     if len(traces) is not 1:
+        #         self.traces.remove(trace)
+
+    def updateTraceList(self):
+        '''
+        Looks for empty traces, returns a list of deleted traceIDs.
+        '''
+        traceIDs = []
+        for traceID in self.getTraceIDlist():
+            if traceID not in self.getStreamTraceIDs():
+                self.traceIDs.remove(traceID)
+                traceIDs.append(traceID)
+        return traceIDs
+
+    def setParameters(self, name, value):
+        self.paras[name] = value
+
+    def setCut(self, cut):
+        self.setParameters('cut', cut)
+
+    def setTmovwind(self, tmovwind):
+        self.setParameters('tmovwind', tmovwind)
+
+    def setOrder(self, order):
+       self.setParameters('order', order)
+
+    def setTsignal(self, tsignal):
+       self.setParameters('tsignal', tsignal)
+
+    def setTgap(self, tgap):
+       self.setParameters('tgap', tgap)
+
+    def setShotnumber(self, shotname):
+       self.setParameters('shotname', shotname)
+
+    def setRecfile(self, recfile):
+       self.setParameters('recfile', recfile)
+
+    def setSourcefile(self, sourcefile):
+       self.setParameters('sourcefile', sourcefile)
+
+    def getParas(self):
+        return self.paras
+
+    def getShotname(self):
+        return self.paras['shotname']
+
+    def getCut(self):
+        return self.paras['cut']
+
+    def getTmovwind(self):
+        return self.paras['tmovwind']
+
+    def getOrder(self):
+        return self.paras['order']
+
+    def getTsignal(self):
+        return self.paras['tsignal']
+
+    def getTgap(self):
+        return self.paras['tgap']
+
+    def getShotnumber(self):
+        return self.paras['shotnumber']
+
+    def getRecfile(self):
+        return self.paras['recfile']
+
+    def getSourcefile(self):
+        return self.paras['sourcefile']
+
+    def getPick(self, traceID):
+        return self.pick[traceID]
+
+    def getPick_backup(self, traceID):
+        return self.pick_backup[traceID]
+
+    def getEarliest(self, traceID):
+        return self.earliest[traceID]
+
+    def getLatest(self, traceID):
+        return self.latest[traceID]
+
+    def getMistake(self, traceID):
+        mistake = abs(self.getEarliest(traceID) - self.getLatest(traceID))
+        if np.isnan(mistake) == True: 
+            print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
+        return mistake 
+  
+    def getStreamTraceIDs(self):
+        traceIDs = []
+        for trace in self.traces:
+            traceIDs.append(int(trace.stats.channel))
+        return traceIDs
+
+    def getTraceIDlist(self):
+        '''
+        Returns a list containing the traceIDs read from the receiver inputfile.
+        '''
+        traceIDs = []
+        if self.traceIDs == None:
+            recCoordlist = self.getRecCoordlist()
+            for i in range(0, len(recCoordlist)):
+                traceIDs.append(int(recCoordlist[i].split()[0]))
+            self.traceIDs = traceIDs
+
+        return self.traceIDs
+
+    def getPickwindow(self, traceID):
+        try:
+            self.pickwindow[traceID]    
+        except KeyError, e:
+            print('no pickwindow for trace %s, set to %s' % (traceID, self.getCut()))
+            self.setPickwindow(traceID, self.getCut())
+        return self.pickwindow[traceID]
+    
+    def getSNR(self, traceID):
+        return self.snr[traceID]
+    
+    def getSNRthreshold(self, traceID):
+        return self.snrthreshold[traceID]
+
+    def getRecCoordlist(self):
+        if self.recCoordlist is None:
+            coordlist = open(self.getRecfile(),'r').readlines()
+            #print 'Reading receiver coordinates from %s' %(self.getRecfile())
+            self.recCoordlist = coordlist
+        return self.recCoordlist
+
+    def getSrcCoordlist(self):
+        if self.srcCoordlist is None:
+            coordlist = open(self.getSourcefile(),'r').readlines()
+            #print 'Reading shot coordinates from %s' %(self.getSourcefile())
+            self.srcCoordlist = coordlist
+        return self.srcCoordlist
+
+    def getTimeArray(self, traceID):
+        return self.timeArray[traceID]
+
+    def getHOScf(self, traceID):
+        '''
+        Returns the higher order statistics characteristic function for a trace using pylot.
+
+        :param: traceID
+        :type: int
+
+        :param: cut, cut out a part of the trace (t_start, t_end) [s]
+        :type: tuple
+
+        :param: t2, size of the moving window [s]
+        :type: float
+
+        :param: order, order of the characteristic function
+        :type: int
+        '''
+        return HOScf(self.getSingleStream(traceID), self.getCut(),
+                     self.getTmovwind(), self.getOrder())
+
+    def getAICcf(self, traceID):
+        '''
+        Returns the Akaike criterion for a trace using pylot and the higher order statistics characteristic function.
+
+        :param: traceID
+        :type: int
+
+        :param: cut, cut out a part of the trace (t_start, t_end) [s]
+        :type: tuple
+
+        :param: t2, size of the moving window [s]
+        :type: float
+
+        :param: order, order of the characteristic function
+        :type: int
+        '''
+
+        st_cf = Stream()
+        tr_cf = Trace()
+        tr_cf.data = self.getHOScf(traceID).getCF()
+        st_cf += tr_cf
+        return AICcf(st_cf, self.getCut(), self.getTmovwind())
+
+    def getSingleStream(self, traceID):  ########## SEG2 / SEGY ? ##########
+        '''
+        Returns a Stream with only one trace (instead of just one trace) because it is needed for pylot.
+
+        :param: traceID
+        :type: int
+        '''
+        #traces = [trace for trace in self.traces if int(trace.stats.seg2['CHANNEL_NUMBER']) == traceID]
+        traces = [trace for trace in self.traces if int(trace.stats.channel) == traceID]
+        if len(traces) == 1:
+            return Stream(traces)
+        else:
+            self.setPick(traceID, None)
+            print 'Warning: ambigious or empty traceID: %s' % traceID
+        
+        #raise ValueError('ambigious or empty traceID: %s' % traceID)
+        
+    def pickTraces(self, traceID, pickmethod, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
+        # LOCALMAX NOT IMPLEMENTED!
+        '''
+        Intitiate picking for a trace.
+
+        :param: traceID
+        :type: int
+
+        :param: pickmethod, use either 'threshold' or 'localmax' method. (localmax not yet implemented 04_08_15)
+        :type: string
+
+        :param: cutwindow (equals HOScf 'cut' variable)
+        :type: tuple
+
+        :param: t2 (equals HOScf t2 variable)
+        :type: float
+
+        :param: order (equals HOScf 'order' variable)
+        :type: int
+
+        :param: windowsize, window around the returned HOS picktime, to search for the AIC minumum
+        :type: 'tuple'
+
+        :param: folm, fraction of local maximumm (default = 0.6)
+        :type: 'real'
+
+        :param: HosAic, get hos or aic pick (can be 'hos'(default) or 'aic')
+        :type: 'string'
+        '''
+        hoscf = self.getHOScf(traceID) ### determination of both, HOS and AIC (need to change threshold-picker) ###
+        aiccf = self.getAICcf(traceID)
+
+        self.timeArray[traceID] = hoscf.getTimeArray()
+
+        if pickmethod == 'threshold':
+            aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
+
+        #setpick = {'threshold':self.threshold,
+         #          'localmax':self.localmax}
+
+        #aiccftime, hoscftime = setpick[pickmethod](hoscf, aiccf, windowsize, pickwindow)
+
+        setHosAic = {'hos': hoscftime,
+                     'aic': aiccftime}
+
+        self.setPick(traceID, setHosAic[HosAic])
+        self.pick_backup[traceID] = setHosAic[HosAic] ### verbessern (vor allem weil ueberschrieben bei 2tem mal picken)
+
+    def setEarllatepick(self, traceID, nfac = 1.5):
+        tgap = self.getTgap()
+        tsignal = self.getTsignal()
+        tnoise = self.getPick(traceID) - tgap
+
+        (self.earliest[traceID], self.latest[traceID], tmp) = earllatepicker(self.getSingleStream(traceID), 
+                                                                             nfac, (tnoise, tgap, tsignal), 
+                                                                             self.getPick(traceID))
+
+    def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
+        '''
+        Threshold picker, using the local maximum in a pickwindow to find the time at 
+        which a fraction of the local maximum is reached for the first time.
+        
+        :param: hoscf, Higher Order Statistics Characteristic Function
+        :type: 'Characteristic Function'
+
+        :param: aiccf, Characteristic Function after Akaike
+        :type: 'Characteristic Function'
+
+        :param: windowsize, window around the returned HOS picktime, to search for the AIC minumum
+        :type: 'tuple'
+
+        :param: pickwindow [seconds]
+        :type: 'tuple'
+
+        :param: cutwindow [seconds], cut a part of the trace as in Characteristic Function
+        :type: 'tuple'
+
+        :param: folm, fraction of local maximum (default = 0.6)
+        :type: 'real'
+        '''
+        hoscflist = list(hoscf.getCF())
+        leftb = int(pickwindow[0] / self.getCut()[1] * len(hoscflist))
+        rightb = int(pickwindow[1] / self.getCut()[1] * len(hoscflist))
+
+        threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+
+        m = leftb
+        
+        while hoscflist[m] < threshold:
+            m += 1
+ 
+        hoscftime = list(hoscf.getTimeArray())[m]
+
+        lb = max(0, m - windowsize[0]) # if window exceeds t = 0
+        aiccfcut = list(aiccf.getCF())[lb : m + windowsize[1]]
+        n = aiccfcut.index(min(aiccfcut))
+ 
+        m = lb + n
+ 
+        aiccftime = list(hoscf.getTimeArray())[m]
+       
+        return aiccftime, hoscftime
+
+    def getDistance(self, traceID):
+        '''
+        Returns the distance of the receiver with the ID == traceID to the source location (shot location).
+        Uses getSrcLoc and getRecLoc.
+        
+        :param: traceID
+        :type: int
+        '''
+        shotX, shotY, shotZ = self.getSrcLoc()
+        recX, recY, recZ = self.getRecLoc(traceID)
+        dist = np.sqrt((shotX-recX)**2 + (shotY-recY)**2 + (shotZ-recZ)**2)
+        
+        if np.isnan(dist) == True:
+            raise ValueError("Distance is NaN for traceID %s" %traceID)
+
+        return dist
+        #return abs(float(self.getSrcLoc(traceID))-float(self.getRecLoc(traceID)))
+
+    def getRecLoc(self, traceID):  ########## input FILENAME ##########
+        '''
+        Returns the location (x, y, z) of the receiver with the ID == traceID.
+        RECEIVEIVER FILE MUST BE SET FIRST, TO BE IMPROVED.
+        
+        :param: traceID
+        :type: int
+        '''
+        if traceID == 0:        # artificial traceID 0 with pick at t = 0
+            return self.getSrcLoc()
+
+        coordlist = self.getRecCoordlist()
+        for i in range(0, len(coordlist)):
+            if int(coordlist[i].split()[0]) == traceID:
+                x = coordlist[i].split()[1]
+                y = coordlist[i].split()[2]
+                z = coordlist[i].split()[3]
+                return float(x), float(y), float(z)
+            
+        #print "WARNING: traceID %s not found" % traceID
+        raise ValueError("traceID %s not found" % traceID)
+        #return float(self.getSingleStream(traceID)[0].stats.seg2['RECEIVER_LOCATION'])
+
+    def getSrcLoc(self):  ########## input FILENAME ##########
+        '''
+        Returns the location (x, y, z) of the shot.
+        SOURCE FILE MUST BE SET FIRST, TO BE IMPROVED.
+        '''
+        coordlist = self.getSrcCoordlist()
+        for i in range(0, len(coordlist)):
+            if int(coordlist[i].split()[0]) == self.paras['shotnumber']:
+                x = coordlist[i].split()[1]
+                y = coordlist[i].split()[2]
+                z = coordlist[i].split()[3]
+                return float(x), float(y), float(z)
+        #return float(self.getSingleStream(traceID)[0].stats.seg2['SOURCE_LOCATION'])
+
+    def getTraceIDs4Dist(self, distance = 0, distancebin = (0, 0)): ########## nur fuer 2D benutzt, 'distance bins' ##########
+        '''
+        Returns the traceID(s) for a certain distance between source and receiver.
+        Used for 2D Tomography. TO BE IMPROVED.
+        
+        :param: distance
+        :type: real
+
+        :param: distancebin
+        :type: tuple
+        '''
+
+        traceID_list = []
+        for trace in self.traces:
+                #traceID = int(trace.stats.seg2['CHANNEL_NUMBER'])
+                traceID = int(trace.stats.channel)
+                if distance != 0:
+                    if self.getDistance(traceID) == distance:
+                        traceID_list.append(traceID)
+                if distancebin[0] >= 0 and distancebin[1] > 0:
+                    if self.getDistance(traceID) > distancebin[0] and self.getDistance(traceID) < distancebin[1]:
+                        traceID_list.append(traceID)
+
+        if len(traceID_list) > 0:
+            return traceID_list
+
+    def setManualPicks(self, traceID, picklist): ########## picklist momentan nicht allgemein, nur testweise benutzt ##########
+        '''
+        Sets the manual picks for a receiver with the ID == traceID for comparison.
+        
+        :param: traceID
+        :type: int
+
+        :param: picklist, list containing the manual picks (mostlikely, earliest, latest).
+        :type: list
+        '''
+        picks = picklist[traceID - 1].split()
+        mostlikely = float(picks[1])
+        earliest = float(picks[2])
+        latest = float(picks[3])
+
+        if not self.manualpicks.has_key(traceID):
+            self.manualpicks[traceID] = (mostlikely, earliest, latest)
+        #else:
+        #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID) 
+        
+    def setPick(self, traceID, pick): ########## siehe Kommentar ##########
+        self.pick[traceID] = pick
+        # ++++++++++++++ Block raus genommen, da Error beim 2ten Mal picken! (Ueberschreiben von erstem Pick!)
+        # if not self.pick.has_key(traceID):
+        #     self.getPick(traceID) = picks
+        # else:
+        #     raise KeyError('pick to be set more than once for traceID %s' % traceID) 
+
+        #    def readParameter(self, parfile):
+        #        parlist = open(parfile,'r').readlines()
+
+    def removePick(self, traceID):
+        self.setPick(traceID, None)
+
+    def setPickwindow(self, traceID, pickwindow):
+        self.pickwindow[traceID] = pickwindow
+
+    def setSNR(self, traceID):  ########## FORCED HOS PICK ##########
+        '''
+        Gets the SNR using pylot and then sets the SNR for the traceID.
+        
+        :param: traceID
+        :type: int
+
+        :param: (tnoise, tgap, tsignal), as used in pylot SNR
+        '''
+
+        from pylot.core.pick.utils import getSNR
+
+        tgap = self.getTgap()
+        tsignal = self.getTsignal()
+        tnoise = self.getPick(traceID) - tgap
+
+        self.snr[traceID] = getSNR(self.getSingleStream(traceID), (tnoise,tgap,tsignal), self.getPick(traceID))
+
+    def setSNRthreshold(self, traceID, snrthreshold):
+        self.snrthreshold[traceID] = snrthreshold
+
+    def getDistArray4ttcPlot(self):  ########## nur fuer 2D benoetigt ##########
+        '''
+        Function to create a distance array for the plots. 2D only!
+        '''
+        distancearray = []
+
+        for traceID in self.pick.keys():
+            if self.getRecLoc(traceID) > self.getSrcLoc(traceID):
+                distancearray.append(self.getDistance(traceID))
+            elif self.getRecLoc(traceID) < self.getSrcLoc(traceID):
+                distancearray.append((-1)*self.getDistance(traceID))
+
+        return distancearray
+
+
+    # def plot2dttc(self, dist_med = 0):  ########## 2D ##########
+    #     '''
+    #     Function to plot the traveltime curve for automated picks (AIC & HOS) of a shot. 2d only!
+        
+    #     :param: dist_med (optional)
+    #     :type: 'dictionary'
+    #     '''
+    #     import matplotlib.pyplot as plt
+    #     plt.interactive('True')
+    #     aictimearray = []
+    #     hostimearray = []
+    #     if dist_med is not 0: 
+    #         dist_medarray = []
+
+    #     i = 1
+    #     for traceID in self.pick.keys():
+    #         aictimearray.append(self.getPick(traceID)) ###### HIER NICHT MEHR aic = [0] oder hos = [1]
+    #         hostimearray.append(self.getPick(traceID))
+    #         if dist_med is not 0: dist_medarray.append(dist_med[self.getDistance(traceID)])
+    #         i += 1
+
+    #     plt.plot(self.getDistArray4ttcPlot(), aictimearray, 'r', label = "AIC")
+    #     plt.plot(self.getDistArray4ttcPlot(), hostimearray, 'y', label = "HOS")
+    #     if dist_med is not 0: plt.plot(self.getDistArray4ttcPlot(), dist_medarray, ':b')
+    #     plt.title(self.shotname)
+
+    # def plotmanualttc(self):  ########## 2D ##########
+    #     '''
+    #     Function to plot the traveltime curve for manual picks of a shot. 2D only!
+    #     '''
+    #     import matplotlib.pyplot as plt
+    #     plt.interactive('True')
+    #     manualpicktimesarray = []
+    #     dist_medarray = []
+
+    #     i = 1
+    #     for traceID in self.manualpicks.keys():
+    #         if self.manualpicks[traceID][0] <= 0:
+    #             manualpicktimesarray.append(None)
+    #         else:
+    #             manualpicktimesarray.append(self.manualpicks[traceID][0])
+    #         i += 1
+
+    #     plt.plot(self.getDistArray4ttcPlot(), manualpicktimesarray, 'b', label = "manual")
+
+    # def plotpickwindow(self):   ########## 2D ##########
+    #     '''
+    #     Plots the pickwindow of a shot for the 2nd iteration step of picking. 2D only!
+    #     '''
+    #     import matplotlib.pyplot as plt
+    #     plt.interactive('True')
+    #     pickwindowarray_lowerb = []
+    #     pickwindowarray_upperb = []
+
+    #     i = 1
+    #     for traceID in self.pickwindow.keys():
+    #         pickwindowarray_lowerb.append(self.pickwindow[traceID][0])
+    #         pickwindowarray_upperb.append(self.pickwindow[traceID][1])
+    #         i += 1
+
+    #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_lowerb, ':k')
+    #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_upperb, ':k')
+
+    def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
+        import matplotlib.pyplot as plt
+        from pylot.core.util import getGlobalTimes
+        from pylot.core.util import prepTimeAxis
+        
+        stream = self.getSingleStream(traceID)
+        stime = getGlobalTimes(stream)[0]
+        timeaxis = prepTimeAxis(stime, stream[0]) 
+        timeaxis -= stime
+
+        plt.interactive('True')
+        
+        hoscf = self.getHOScf(traceID)
+        aiccf = self.getAICcf(traceID)
+
+        fig = plt.figure()
+        ax1 = plt.subplot(2,1,1)
+        plt.title('Shot: %s, traceID: %s, pick: %s' %(self.getShotnumber(), traceID, self.getPick(traceID)))
+        ax1.plot(timeaxis, stream[0].data, 'k', label = 'trace')
+        ax1.plot([self.getPick(traceID), self.getPick(traceID)], 
+                 [min(stream[0].data), 
+                  max(stream[0].data)],
+                 'r', label = 'mostlikely')
+        plt.legend()
+        ax2 = plt.subplot(2,1,2, sharex = ax1)
+        ax2.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
+        ax2.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
+        ax2.plot([self.getPick(traceID), self.getPick(traceID)], 
+                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())), 
+                  max(np.maximum(hoscf.getCF(), aiccf.getCF()))],
+                 'r', label = 'mostlikely')
+        ax2.plot([0, self.getPick(traceID)],
+                 [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
+                 'm:', label = 'folm = %s' %folm)
+        plt.xlabel('Time [s]')
+        plt.legend()
+        
+    def plot3dttc(self, step = 0.5, contour = False, plotpicks = False, method = 'linear', ax = None):
+        '''
+        Plots a 3D 'traveltime cone' as surface plot by interpolating on a regular grid over the traveltimes, not yet regarding the vertical offset of the receivers.
+
+        :param: step (optional), gives the stepsize for the interpolated grid. Default is 0.5
+        :type: 'float'
+
+        :param: contour (optional), plot contour plot instead of surface plot
+        :type: 'logical'
+
+        :param: plotpicks (optional), plot the data points onto the interpolated grid
+        :type: 'logical'
+
+        :param: method (optional), interpolation method; can be 'linear' (default) or 'cubic'
+        :type: 'string'
+        '''
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import griddata
+        from matplotlib import cm
+        from mpl_toolkits.mplot3d import Axes3D
+
+        x = []
+        y = []
+        z = []
+        for traceID in self.pick.keys():
+            if self.getPick(traceID) != None:
+                x.append(self.getRecLoc(traceID)[0])
+                y.append(self.getRecLoc(traceID)[1])
+                z.append(self.getPick(traceID))
+
+        xaxis = np.arange(min(x)+1, max(x), step)
+        yaxis = np.arange(min(y)+1, max(y), step)
+        xgrid, ygrid = np.meshgrid(xaxis, yaxis)
+        zgrid = griddata((x, y), z, (xgrid, ygrid), method = method)
+
+        if ax == None:
+            fig = plt.figure()
+            ax = plt.axes(projection = '3d')
+        
+        xsrc, ysrc, zsrc = self.getSrcLoc()
+
+        if contour == True:
+            ax.contour3D(xgrid,ygrid,zgrid,20)
+        else:
+            ax.plot_surface(xgrid, ygrid, zgrid, linewidth = 0, cmap = cm.jet, vmin = min(z), vmax = max(z))
+        ax.plot([xsrc], [ysrc], [self.getPick(0)], 'k*', markersize = 20) # plot source location
+        ax.plot([xsrc], [ysrc], [self.getPick(0)], 'r*', markersize = 15) # plot source location
+
+        if plotpicks == True:
+            ax.plot(x, y, z, 'k.')
+    
+    def plotttc(self, method, *args):
+        plotmethod = {'2d': self.plot2dttc, '3d': self.plot3dttc}
+        
+        plotmethod[method](*args)
+        
+    def matshow(self, step = 0.5, method = 'linear', ax = None, plotRec = False, annotations = False):
+        '''
+        Plots a 2D matrix of the interpolated traveltimes. This needs less performance than plot3dttc
+
+        :param: step (optional), gives the stepsize for the interpolated grid. Default is 0.5
+        :type: 'float'
+
+        :param: method (optional), interpolation method; can be 'linear' (default) or 'cubic'
+        :type: 'string'
+
+        :param: plotRec (optional), plot the receiver positions
+        :type: 'logical'
+
+        :param: annotations (optional), displays traceIDs as annotations
+        :type: 'logical'
+        '''
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import griddata
+#        plt.interactive('True')
+
+        x = []
+        y = []
+        z = []
+        for traceID in self.pick.keys():
+            if self.getPick(traceID) != None:
+                x.append(self.getRecLoc(traceID)[0])
+                y.append(self.getRecLoc(traceID)[1])
+                z.append(self.getPick(traceID))
+
+        xaxis = np.arange(min(x)+1, max(x), step)
+        yaxis = np.arange(min(y)+1, max(y), step)
+        xgrid, ygrid = np.meshgrid(xaxis, yaxis)
+        zgrid = griddata((x, y), z, (xgrid, ygrid), method='linear')
+
+        if ax == None:
+            fig = plt.figure()
+            ax = plt.axes()
+
+        ax.imshow(zgrid, interpolation = 'none', extent = [min(x), max(x), min(y), max(y)])
+               
+        if annotations == True:
+            for i, traceID in enumerate(self.pick.keys()):
+                if shot.picks[traceID] != None:
+                    ax.annotate('%s' % traceID, xy=(x[i], y[i]), fontsize = 'x-small')
+
+        if plotRec == True:
+            ax.plot(x, y, 'k.')
+
+        plt.show()
