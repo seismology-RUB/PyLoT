@@ -693,21 +693,26 @@ class MainWindow(QMainWindow):
     def updatePicks(self):
         evt = self.getData().getEvtData()
         picks = {}
-        onsets = {}
         for pick in evt.picks:
             phase = {}
             station = pick.waveform_id.station_code
+            try:
+                onsets = picks[station]
+            except KeyError as e:
+                print(e)
+                onsets = {}
             mpp = pick.time
-            lpp = mpp + pick.time.upper_uncertainty
-            epp = mpp - pick.time.lower_uncertainty
-            spe = pick.time.uncertainty
+            lpp = mpp + pick.time_errors.upper_uncertainty
+            epp = mpp - pick.time_errors.lower_uncertainty
+            spe = pick.time_errors.uncertainty
             phase['mpp'] = mpp
             phase['epp'] = epp
             phase['lpp'] = lpp
             phase['spe'] = spe
 
-            onsets[pick.phase_hint] = phase
-            picks[station] = onsets
+            onsets[pick.phase_hint] = phase.copy()
+            picks[station] = onsets.copy()
+        self.picks.update(picks)
 
     def drawPicks(self, station=None):
         # if picks to draw not specified, draw all picks available
