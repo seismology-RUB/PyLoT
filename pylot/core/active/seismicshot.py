@@ -579,8 +579,8 @@ class SeismicShot(object):
 
     def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
         import matplotlib.pyplot as plt
-        from pylot.core.util import getGlobalTimes
-        from pylot.core.util import prepTimeAxis
+        from pylot.core.util.utils import getGlobalTimes
+        from pylot.core.util.utils import prepTimeAxis
         
         stream = self.getSingleStream(traceID)
         stime = getGlobalTimes(stream)[0]
