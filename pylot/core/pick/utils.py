@@ -68,20 +68,23 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
     # get earliest possible pick
 
-    EPick = np.nan
-    pis = isignal[:len(isignal) / 2] if not len(isignal) % 2 else \
-        isignal[:len(isignal) / 2 + 1]
+    EPick = np.nan; count = 0
+    pis = isignal
+
+    # if EPick stays NaN the signal window size will be doubled
     while np.isnan(EPick):
-        print("earllatepicker: Doubled signal window size because of NaN for "
-              "earliest pick.")
-        isigDoubleWinStart = pis[-1] + 1
-        isignalDoubleWin = np.arange(isigDoubleWinStart,
+        if count > 0:
+            print("earllatepicker: Doubled signal window size %s time(s) "
+                  "because of NaN for earliest pick." %count)
+            isigDoubleWinStart = pis[-1] + 1
+            isignalDoubleWin = np.arange(isigDoubleWinStart,
                                      isigDoubleWinStart + len(pis))
-        if (isigDoubleWinStart + len(pis)) < X[0].data.size:
-            pis = np.concatenate((pis, isignalDoubleWin))
-        else:
-            print("Could not double signal window. Index out of bounds.")
-            break
+            if (isigDoubleWinStart + len(pis)) < X[0].data.size:
+                pis = np.concatenate((pis, isignalDoubleWin))
+            else:
+                print("Could not double signal window. Index out of bounds.")
+                break
+        count += 1
         # determine all zero crossings in signal window (demeaned)
         zc = crossings_nonzero_all(x[pis] - x[pis].mean())
         # calculate mean half period T0 of signal as the average of the
