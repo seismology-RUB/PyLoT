@@ -68,12 +68,26 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
 
     # get earliest possible pick
 
-    # determine all zero crossings in signal window (demeaned)
-    zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
-    # calculate mean half period T0 of signal as the average of the
-    T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
-    # T0/4 is assumed as time difference between most likely and earliest possible pick!
-    EPick = Pick1 - T0 / 2
+    EPick = np.nan
+    while np.isnan(EPick):
+        # determine all zero crossings in signal window (demeaned)
+        zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
+        # calculate mean half period T0 of signal as the average of the
+        T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
+        # T0/4 is assumed as time difference between most likely and earliest possible pick!
+        EPick = Pick1 - T0 / 2
+        if np.isnan(EPick): 
+            print "earllatepicker: Doubled signal window size because of NaN for earliest pick."
+            isigDoubleWinStart = isignal[-1] + 1
+            isignalDoubleWin = np.arange(isigDoubleWinStart, isigDoubleWinStart + len(isignal))
+            if (isigDoubleWinStart + len(isignal)) < X[0].data.size:
+                isignal = np.concatenate((isignal, isignalDoubleWin))
+            else:
+                isignalDoubleWin = np.arange(isigDoubleWinStart, X[0].data.size)
+                isignal = np.concatenate((isignal, isignalDoubleWin))
+                print "Could not double signal window. Index out of bounds."
+                break
+            
 
     # get symmetric pick error as mean from earliest and latest possible pick
     # by weighting latest possible pick two times earliest possible pick
