@@ -143,10 +143,10 @@ class SeismicShot(object):
         return self.latest[traceID]
 
     def getPickError(self, traceID):
-        mistake = abs(self.getEarliest(traceID) - self.getLatest(traceID))
-        if np.isnan(mistake) == True: 
+        pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
+        if np.isnan(pickerror) == True: 
             print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
-        return mistake 
+        return pickerror 
   
     def getStreamTraceIDs(self):
         traceIDs = []
