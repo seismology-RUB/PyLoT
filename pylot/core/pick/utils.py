@@ -59,7 +59,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     ilup, = np.where(x[isignal] > nlevel)
     ildown, = np.where(x[isignal] < -nlevel)
     if not ilup.size and not ildown.size:
-    	print ("earllatepicker: Signal lower than noise level!")
+        print ("earllatepicker: Signal lower than noise level!")
         print ("Skip this trace!")
         return LPick, EPick, PickError
     il = min(np.min(ilup) if ilup.size else float('inf'),
@@ -69,24 +69,25 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     # get earliest possible pick
 
     EPick = np.nan
+    pis = isignal[:len(isignal) / 2] if not len(isignal) % 2 else \
+        isignal[:len(isignal) / 2 + 1]
     while np.isnan(EPick):
+        print("earllatepicker: Doubled signal window size because of NaN for "
+              "earliest pick.")
+        isigDoubleWinStart = pis[-1] + 1
+        isignalDoubleWin = np.arange(isigDoubleWinStart,
+                                     isigDoubleWinStart + len(pis))
+        if (isigDoubleWinStart + len(pis)) < X[0].data.size:
+            pis = np.concatenate((pis, isignalDoubleWin))
+        else:
+            print("Could not double signal window. Index out of bounds.")
+            break
         # determine all zero crossings in signal window (demeaned)
-        zc = crossings_nonzero_all(x[isignal] - x[isignal].mean())
+        zc = crossings_nonzero_all(x[pis] - x[pis].mean())
         # calculate mean half period T0 of signal as the average of the
-        T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
+        T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length
         # T0/4 is assumed as time difference between most likely and earliest possible pick!
         EPick = Pick1 - T0 / 2
-        if np.isnan(EPick): 
-            print "earllatepicker: Doubled signal window size because of NaN for earliest pick."
-            isigDoubleWinStart = isignal[-1] + 1
-            isignalDoubleWin = np.arange(isigDoubleWinStart, isigDoubleWinStart + len(isignal))
-            if (isigDoubleWinStart + len(isignal)) < X[0].data.size:
-                isignal = np.concatenate((isignal, isignalDoubleWin))
-            else:
-                isignalDoubleWin = np.arange(isigDoubleWinStart, X[0].data.size)
-                isignal = np.concatenate((isignal, isignalDoubleWin))
-                print "Could not double signal window. Index out of bounds."
-                break
             
 
     # get symmetric pick error as mean from earliest and latest possible pick
@@ -200,11 +201,11 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][li1]]))
             if imax1 == 0:
-            	imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][index1[1]]]))
+                imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][index1[1]]]))
                 if imax1 == 0:
-                	print ("fmpicker: Zero crossings too close!")
-                        print ("Skip first motion determination!")
-                        return FM
+                    print ("fmpicker: Zero crossings too close!")
+                    print ("Skip first motion determination!")
+                    return FM
 
             islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
             # calculate slope as polynomal fit of order 1
@@ -242,11 +243,11 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         else:
             imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
             if imax2 == 0:
-            	imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][index2[1]]]))
+                imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][index2[1]]]))
                 if imax2 == 0:
-                	print ("fmpicker: Zero crossings too close!")
-                        print ("Skip first motion determination!")
-                        return FM
+                    print ("fmpicker: Zero crossings too close!")
+                    print ("Skip first motion determination!")
+                    return FM
 
             islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
             # calculate slope as polynomal fit of order 1
