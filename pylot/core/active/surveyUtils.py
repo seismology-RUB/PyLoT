@@ -124,10 +124,7 @@ def exportFMTOMO(shot_dict, directory = 'FMTOMO_export', sourcefile = 'input_sf.
         for traceID in traceIDlist:
             if shot.getPick(traceID) is not None:
                 pick = shot.getPick(traceID) * fmtomo_factor
-                ### MP MP + +
-                #delta = shot.getMistake(traceID) * fmtomo_factor
-                delta = 0.2
-                ### MP MP - -
+                delta = shot.getPickError(traceID) * fmtomo_factor
                 (x, y, z) = shot.getRecLoc(traceID)
                 ttfile.writelines('%20s %20s %20s %10s %10s\n' %(getAngle(y), getAngle(x), (-1)*z, pick, delta))
                 LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
