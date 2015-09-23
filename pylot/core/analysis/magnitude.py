@@ -156,15 +156,17 @@ class DCfc(Magnitude):
 
         # fft 
         fny = tr.stats.sampling_rate / 2
-        N = 1024
+        l = len(xdat) / tr.stats.sampling_rate
+        n = tr.stats.sampling_rate * l # number of fft bins after Bath
+        # find next power of 2 of data length
+        m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
+        N = int(np.power(m, 2))
         y = tr.stats.delta * np.fft.fft(xdat, N)
         Y = abs(y[: N/2])
         L = (N - 1) / tr.stats.sampling_rate
-        f = np.arange(0, fny, 1 / L)
+        f = np.arange(0, fny, 1/L)
         
-        #if self.getiplot() > 1:
-        iplot=2
-        if iplot > 1:
+        if self.getiplot() > 1:
             f1 = plt.figure(1)
             plt.subplot(2,1,1)
             plt.plot(t, np.multiply(tr, 1000), 'k') # show displacement in mm
