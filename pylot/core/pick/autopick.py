@@ -11,12 +11,13 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
-    getSNR, fmpicker, checkPonsets, wadaticheck
+    getSNR, fmpicker, checkPonsets, wadaticheck, crossings_nonzero_all
 from pylot.core.read.data import Data
-from pylot.core.analysis.magnitude import WApp
+from pylot.core.analysis.magnitude import WApp, DCfc
 
 def autopickevent(data, param):
     stations = []
@@ -308,6 +309,26 @@ def autopickstation(wfstream, pickparam):
                     FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
                 else:
                     FM = 'N'
+
+                ##############################################################
+                # get DC value (w0) and corner frequency (fc) of source spectrum
+                # from P pulse
+                # restitute streams
+                # initialize Data object
+                data = Data()
+                [corzdat, restflag] = data.restituteWFData(invdir, zdat)
+                if restflag == 1:
+                        # integrate to displacement
+                        corintzdat = integrate.cumtrapz(corzdat[0], None, corzdat[0].stats.delta)
+                        # class needs stream object => build it
+                        z_copy = zdat.copy()
+                        z_copy[0].data = corintzdat
+                	# calculate source spectrum and get w0 and fc
+                        calcwin = 1 / bpz2[0] # largest detectable period == window length 
+                                              # around P pulse for calculating source spectrum
+                	specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                        w0 = specpara.getw0()
+                        fc = specpara.getfc()
 
                 print 'autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
                       'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
