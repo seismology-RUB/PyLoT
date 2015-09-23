@@ -1,7 +1,3 @@
-from pylab import *
-startpos = []
-endpos = []
-
 def generateSurvey(obsdir, shotlist):
     from obspy.core import read
     from pylot.core.active import seismicshot
@@ -50,7 +46,8 @@ def readParameters(parfile, parameter):
     parameterConfig = ConfigParser()
     parameterConfig.read('parfile')
     
-    value = parameterConfig.get('vars', parameter).split('\t')[0]
+    value = parameterConfig.get('vars', parameter).split('#')[0]
+    value = value.replace(" ", "")
 
     return value
 
