@@ -96,7 +96,7 @@ def setFittedSNR(shot_dict, shiftdist = 5, p1 = 0.004, p2 = -0.004):
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist(): ### IMPROVE
             shot.setSNRthreshold(traceID, 1/(fit_fn(shot.getDistance(traceID) + shiftdist)**2)) ### s.o.
-    print "setFittedSNR: Finished setting of fitted SNR-threshold"
+    print "\nsetFittedSNR: Finished setting of fitted SNR-threshold"
 
 #def linearInterp(dist_med, dist_start
 
