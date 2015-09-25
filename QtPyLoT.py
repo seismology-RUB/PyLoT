@@ -386,8 +386,8 @@ class MainWindow(QMainWindow):
                 else:
                     raise DatastructureError('not specified')
             return self.fnames
-        except DatastructureError, e:
-            print e
+        except DatastructureError as e:
+            print(e)
             props = PropertiesDlg(self)
             if props.exec_() == QDialog.Accepted:
                 return self.getWFFnames()
@@ -410,7 +410,7 @@ class MainWindow(QMainWindow):
     def saveData(self):
 
         def getSavePath(e):
-            print 'warning: {0}'.format(e)
+            print('warning: {0}'.format(e))
             directory = os.path.join(self.getRoot(), self.getEventFileName())
             file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
             fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
@@ -513,7 +513,7 @@ class MainWindow(QMainWindow):
     def plotWaveformData(self):
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
-        title = 'overview: {0} components'.format(zne_text[comp])
+        title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
         self.draw()
@@ -574,8 +574,8 @@ class MainWindow(QMainWindow):
     def getFilterOptions(self):
         try:
             return self.filteroptions[self.getSeismicPhase()]
-        except AttributeError, e:
-            print e
+        except AttributeError as e:
+            print(e)
             return FilterOptions(None, None, None)
 
     def getFilters(self):
@@ -592,12 +592,12 @@ class MainWindow(QMainWindow):
             settings = QSettings()
             if settings.value("filterdefaults",
                               None) is None and not self.getFilters():
-                for key, value in FILTERDEFAULTS.iteritems():
+                for key, value in FILTERDEFAULTS.items():
                     self.setFilterOptions(FilterOptions(**value), key)
             elif settings.value("filterdefaults", None) is not None:
                 for key, value in settings.value("filterdefaults"):
                     self.setFilterOptions(FilterOptions(**value), key)
-        except Exception, e:
+        except Exception as e:
             self.updateStatus('Error ...')
             emsg = QErrorMessage(self)
             emsg.showMessage('Error: {0}'.format(e))
@@ -636,8 +636,12 @@ class MainWindow(QMainWindow):
         if pickDlg.exec_():
             self.setDirty(True)
             self.updateStatus('picks accepted ({0})'.format(station))
-            self.addPicks(station, pickDlg.getPicks())
-            self.drawPicks(station)
+            replot = self.addPicks(station, pickDlg.getPicks())
+            if replot:
+                self.plotWaveformData()
+                self.drawPicks()
+            else:
+                self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
 
@@ -667,6 +671,7 @@ class MainWindow(QMainWindow):
 
     def addPicks(self, station, picks):
         stat_picks = self.getPicksOnStation(station)
+        rval = False
         if not stat_picks:
             stat_picks = picks
         else:
@@ -684,11 +689,13 @@ class MainWindow(QMainWindow):
             ret = msgBox.exec_()
             if ret == QMessageBox.Save:
                 stat_picks = picks
+                rval = True
             elif ret == QMessageBox.Cancel:
                 pass
             else:
                 raise Exception('FATAL: Should never occur!')
         self.getPicks()[station] = stat_picks
+        return rval
 
     def updatePicks(self):
         evt = self.getData().getEvtData()
