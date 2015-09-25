@@ -187,7 +187,7 @@ class PickDlg(QDialog):
             try:
                 data = parent.getData().getWFData().copy()
                 self.data = data.select(station=station)
-            except AttributeError, e:
+            except AttributeError as e:
                 errmsg = 'You either have to put in a data or an appropriate ' \
                          'parent (PyLoT MainWindow) object: {0}'.format(e)
                 raise Exception(errmsg)
@@ -239,6 +239,8 @@ class PickDlg(QDialog):
         zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
         home_icon = QIcon()
         home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
+        del_icon = QIcon()
+        del_icon.addPixmap(QPixmap(':/icon/delete.png'))
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
@@ -251,9 +253,12 @@ class PickDlg(QDialog):
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
-        self.resetAction = createAction(parent=self, text='Home',
+        self.resetZoomAction = createAction(parent=self, text='Home',
                                         slot=self.resetZoom, icon=home_icon,
                                         tip='Reset zoom to original limits')
+        self.resetPicksAction = createAction(parent=self, text='Delete Picks',
+                                             slot=self.delPicks, icon=del_icon,
+                                             tip='Delete current picks.')
 
         # create other widget elements
         self.selectPhase = QComboBox()
@@ -269,7 +274,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(self.selectPhase)
         _dialtoolbar.addAction(self.zoomAction)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addAction(self.resetAction)
+        _dialtoolbar.addAction(self.resetZoomAction)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
