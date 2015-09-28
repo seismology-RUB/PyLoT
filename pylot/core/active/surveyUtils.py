@@ -1,3 +1,5 @@
+import numpy as np
+
 def generateSurvey(obsdir, shotlist):
     from obspy.core import read
     from pylot.core.active import seismicshot
@@ -57,7 +59,6 @@ def setArtificialPick(shot_dict, traceID, pick):
         shot.setPickwindow(traceID, shot.getCut())
 
 def fitSNR4dist(shot_dict, shiftdist = 5):
-    import numpy as np
     dists = []
     picks = []
     snrs = []
@@ -90,7 +91,6 @@ def plotFittedSNR(dists, snrthresholds, snrs):
     plt.legend()
 
 def setFittedSNR(shot_dict, shiftdist = 5, p1 = 0.004, p2 = -0.004):
-    import numpy as np
     #fit_fn = fitSNR4dist(shot_dict)
     fit_fn = np.poly1d([p1, p2])
     for shot in shot_dict.values():
@@ -149,7 +149,6 @@ def getAngle(distance):
     '''
     Function returns the angle on a Sphere of the radius R = 6371 [km] for a distance [km].
     '''
-    import numpy as np
     PI = np.pi
     R = 6371.
     angle = distance * 180 / (PI * R)
