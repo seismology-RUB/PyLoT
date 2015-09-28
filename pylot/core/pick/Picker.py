@@ -147,7 +147,7 @@ class AICPicker(AutoPicking):
 
     def calcPick(self):
 
-        print 'AICPicker: Get initial onset time (pick) from AIC-CF ...'
+        print('AICPicker: Get initial onset time (pick) from AIC-CF ...')
 
         self.Pick = None
         self.slope = None
@@ -155,7 +155,7 @@ class AICPicker(AutoPicking):
         #find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
-           self.cf[nn] = 0
+            self.cf[nn] = 0
         #taper AIC-CF to get rid off side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
@@ -163,15 +163,15 @@ class AICPicker(AutoPicking):
         ismooth = int(round(self.Tsmooth / self.dt))
         aicsmooth = np.zeros(len(aic))
         if len(aic) < ismooth:
-           print 'AICPicker: Tsmooth larger than CF!'
-           return
+            print('AICPicker: Tsmooth larger than CF!')
+            return
         else:
-           for i in range(1, len(aic)):
-              if i > ismooth:
-                 ii1 = i - ismooth
-                 aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
-              else:
-                 aicsmooth[i] = np.mean(aic[1 : i])
+            for i in range(1, len(aic)):
+                if i > ismooth:
+                    ii1 = i - ismooth
+                    aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
+                else:
+                    aicsmooth[i] = np.mean(aic[1 : i])
         #remove offset
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
@@ -180,7 +180,7 @@ class AICPicker(AutoPicking):
         #find NaN's
         nn = np.isnan(diffcf)
         if len(nn) > 1:
-           diffcf[nn] = 0
+            diffcf[nn] = 0
         #taper CF to get rid off side maxima
         tap = np.hanning(len(diffcf))
         diffcf = tap * diffcf * max(abs(aicsmooth))
@@ -189,104 +189,104 @@ class AICPicker(AutoPicking):
         #find minimum in AIC-CF front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
         for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
-           if aicsmooth[i - 1] >= aicsmooth[i]:
-              self.Pick = self.Tcf[i]
-              break
+            if aicsmooth[i - 1] >= aicsmooth[i]:
+                self.Pick = self.Tcf[i]
+                break
         #if no minimum could be found:
         #search in 1st derivative of AIC-CF
         if self.Pick is None:
-           for i in range(icfmax -1, max([icfmax -lpickwindow, 2]), -1):
-              if diffcf[i -1] >= diffcf[i]:
-                 self.Pick = self.Tcf[i]
-                 break
+            for i in range(icfmax -1, max([icfmax -lpickwindow, 2]), -1):
+                if diffcf[i -1] >= diffcf[i]:
+                    self.Pick = self.Tcf[i]
+                    break
 
         # quality assessment using SNR and slope from CF
         if self.Pick is not None:
-           # get noise window
-           inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
-           # check, if these are counts or m/s, important for slope estimation!
-           # this is quick and dirty, better solution?
-           if max(self.Data[0].data < 1e-3):
-              self.Data[0].data = self.Data[0].data * 1000000
-           # get signal window
-           isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
-           # calculate SNR from CF
-           self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / max(abs(aic[inoise] \
-                      - np.mean(aic[inoise])))
-           # calculate slope from CF after initial pick
-           # get slope window
-           tslope = self.TSNR[3]  #slope determination window
-           islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
-                    & (self.Tcf >= self.Pick))
-           # find maximum within slope determination window
-           # 'cause slope should be calculated up to first local minimum only!
-           imax = np.argmax(self.Data[0].data[islope])
-           if imax == 0:
-              print 'AICPicker: Maximum for slope determination right at the beginning of the window!'
-              print 'Choose longer slope determination window!'
-              if self.iplot > 1:
-              	p = plt.figure(self.iplot)
-                x = self.Data[0].data
-                p1, = plt.plot(self.Tcf, x / max(x), 'k')
-                p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
-               	plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
-                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                plt.yticks([])
-                plt.title(self.Data[0].stats.station)
-                plt.show()
-                raw_input()
-                plt.close(p)
-              return
-           islope = islope[0][0 :imax]
-           dataslope = self.Data[0].data[islope]
-           # calculate slope as polynomal fit of order 1
-           xslope = np.arange(0, len(dataslope), 1)
-           P = np.polyfit(xslope, dataslope, 1)
-           datafit = np.polyval(P, xslope)
-           if datafit[0] >= datafit[len(datafit) - 1]:
-              print 'AICPicker: Negative slope, bad onset skipped!'
-              return
-           self.slope = 1 / tslope * (datafit[len(dataslope) - 1] - datafit[0])
+            # get noise window
+            inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
+            # check, if these are counts or m/s, important for slope estimation!
+            # this is quick and dirty, better solution?
+            if max(self.Data[0].data < 1e-3):
+                self.Data[0].data = self.Data[0].data * 1000000
+            # get signal window
+            isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
+            # calculate SNR from CF
+            self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / \
+                       max(abs(aic[inoise] - np.mean(aic[inoise])))
+            # calculate slope from CF after initial pick
+            # get slope window
+            tslope = self.TSNR[3]  #slope determination window
+            islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
+                              & (self.Tcf >= self.Pick))
+            # find maximum within slope determination window
+            # 'cause slope should be calculated up to first local minimum only!
+            imax = np.argmax(self.Data[0].data[islope])
+            if imax == 0:
+                print('AICPicker: Maximum for slope determination right at the beginning of the window!')
+                print('Choose longer slope determination window!')
+                if self.iplot > 1:
+                    p = plt.figure(self.iplot)
+                    x = self.Data[0].data
+                    p1, = plt.plot(self.Tcf, x / max(x), 'k')
+                    p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
+                    plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
+                    plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                    plt.yticks([])
+                    plt.title(self.Data[0].stats.station)
+                    plt.show()
+                    raw_input()
+                    plt.close(p)
+                return
+            islope = islope[0][0 :imax]
+            dataslope = self.Data[0].data[islope]
+            # calculate slope as polynomal fit of order 1
+            xslope = np.arange(0, len(dataslope), 1)
+            P = np.polyfit(xslope, dataslope, 1)
+            datafit = np.polyval(P, xslope)
+            if datafit[0] >= datafit[len(datafit) - 1]:
+                print('AICPicker: Negative slope, bad onset skipped!')
+                return
+            self.slope = 1 / tslope * (datafit[len(dataslope) - 1] - datafit[0])
 
         else:
-           self.SNR = None
-           self.slope = None
+            self.SNR = None
+            self.slope = None
 
         if self.iplot > 1:
-           p = plt.figure(self.iplot)
-           x = self.Data[0].data
-           p1, = plt.plot(self.Tcf, x / max(x), 'k')
-           p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
-           if self.Pick is not None:
-              p3, = plt.plot([self.Pick, self.Pick], [-0.1 , 0.5], 'b', linewidth=2)
-              plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
-           else:
-              plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
-           plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-           plt.yticks([])
-           plt.title(self.Data[0].stats.station)
+            p = plt.figure(self.iplot)
+            x = self.Data[0].data
+            p1, = plt.plot(self.Tcf, x / max(x), 'k')
+            p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
+            if self.Pick is not None:
+                p3, = plt.plot([self.Pick, self.Pick], [-0.1 , 0.5], 'b', linewidth=2)
+                plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
+            else:
+                plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
+            plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+            plt.yticks([])
+            plt.title(self.Data[0].stats.station)
 
-           if self.Pick is not None:
-              plt.figure(self.iplot + 1)
-              p11, = plt.plot(self.Tcf, x, 'k')
-              p12, = plt.plot(self.Tcf[inoise], self.Data[0].data[inoise])
-              p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
-              p14, = plt.plot(self.Tcf[islope], dataslope, 'g--')
-              p15, = plt.plot(self.Tcf[islope], datafit, 'g', linewidth=2)
-              plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'], \
-                         loc='best')
-              plt.title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station, \
-                        self.SNR, self.slope))
-              plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-              plt.ylabel('Counts')
-              plt.yticks([])
+            if self.Pick is not None:
+                plt.figure(self.iplot + 1)
+                p11, = plt.plot(self.Tcf, x, 'k')
+                p12, = plt.plot(self.Tcf[inoise], self.Data[0].data[inoise])
+                p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
+                p14, = plt.plot(self.Tcf[islope], dataslope, 'g--')
+                p15, = plt.plot(self.Tcf[islope], datafit, 'g', linewidth=2)
+                plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'],
+                           loc='best')
+                plt.title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
+                                                                             self.SNR, self.slope))
+                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                plt.ylabel('Counts')
+                plt.yticks([])
 
-           plt.show()
-           raw_input()
-           plt.close(p)
+            plt.show()
+            raw_input()
+            plt.close(p)
 
         if self.Pick == None:
-           print 'AICPicker: Could not find minimum, picking window too short?'
+            print('AICPicker: Could not find minimum, picking window too short?')
 
 
 class PragPicker(AutoPicking):
@@ -297,102 +297,102 @@ class PragPicker(AutoPicking):
     def calcPick(self):
 
         if self.getpick1() is not None:
-           print 'PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...'
+            print('PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...')
 
-           self.Pick = None
-           self.SNR = None
-           self.slope = None
-           pickflag = 0
-           #smooth CF
-           ismooth = int(round(self.Tsmooth / self.dt))
-           cfsmooth = np.zeros(len(self.cf))
-           if len(self.cf) < ismooth:
-              print 'PragPicker: Tsmooth larger than CF!'
-              return
-           else:
-              for i in range(1, len(self.cf)):
-                 if i > ismooth:
-                    ii1 = i - ismooth;
-                    cfsmooth[i] = cfsmooth[i - 1] + (self.cf[i] - self.cf[ii1]) / ismooth
-                 else:
-                    cfsmooth[i] = np.mean(self.cf[1 : i])
+            self.Pick = None
+            self.SNR = None
+            self.slope = None
+            pickflag = 0
+            #smooth CF
+            ismooth = int(round(self.Tsmooth / self.dt))
+            cfsmooth = np.zeros(len(self.cf))
+            if len(self.cf) < ismooth:
+                print('PragPicker: Tsmooth larger than CF!')
+                return
+            else:
+                for i in range(1, len(self.cf)):
+                    if i > ismooth:
+                        ii1 = i - ismooth;
+                        cfsmooth[i] = cfsmooth[i - 1] + (self.cf[i] - self.cf[ii1]) / ismooth
+                    else:
+                        cfsmooth[i] = np.mean(self.cf[1 : i])
 
-           #select picking window
-           #which is centered around tpick1
-           ipick = np.where((self.Tcf >= self.getpick1() - self.PickWindow / 2) \
-                 & (self.Tcf <= self.getpick1() + self.PickWindow / 2))
-           cfipick = self.cf[ipick] - np.mean(self.cf[ipick])
-           Tcfpick = self.Tcf[ipick]
-           cfsmoothipick = cfsmooth[ipick]- np.mean(self.cf[ipick])
-           ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
-           cfpick1 = 2 * self.cf[ipick1]
+            #select picking window
+            #which is centered around tpick1
+            ipick = np.where((self.Tcf >= self.getpick1() - self.PickWindow / 2) \
+                             & (self.Tcf <= self.getpick1() + self.PickWindow / 2))
+            cfipick = self.cf[ipick] - np.mean(self.cf[ipick])
+            Tcfpick = self.Tcf[ipick]
+            cfsmoothipick = cfsmooth[ipick]- np.mean(self.cf[ipick])
+            ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
+            cfpick1 = 2 * self.cf[ipick1]
 
-           #check trend of CF, i.e. differences of CF and adjust aus regarding this trend
-           #prominent trend: decrease aus
-           #flat: use given aus
-           cfdiff = np.diff(cfipick);
-           i0diff = np.where(cfdiff > 0)
-           cfdiff = cfdiff[i0diff]
-           minaus = min(cfdiff * (1 + self.aus));
-           aus1 = max([minaus, self.aus]);
+            #check trend of CF, i.e. differences of CF and adjust aus regarding this trend
+            #prominent trend: decrease aus
+            #flat: use given aus
+            cfdiff = np.diff(cfipick)
+            i0diff = np.where(cfdiff > 0)
+            cfdiff = cfdiff[i0diff]
+            minaus = min(cfdiff * (1 + self.aus))
+            aus1 = max([minaus, self.aus])
 
-           #at first we look to the right until the end of the pick window is reached
-           flagpick_r = 0
-           flagpick_l = 0
-           cfpick_r = 0
-           cfpick_l = 0
-           lpickwindow = int(round(self.PickWindow / self.dt))
-           for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
-              if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
-                 if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                    if cfpick1 >= self.cf[i]:
-                    	pick_r = self.Tcf[i]
-                    	self.Pick = pick_r
-                    	flagpick_l = 1
-                    	cfpick_r = self.cf[i]
-                    	break
+            #at first we look to the right until the end of the pick window is reached
+            flagpick_r = 0
+            flagpick_l = 0
+            cfpick_r = 0
+            cfpick_l = 0
+            lpickwindow = int(round(self.PickWindow / self.dt))
+            for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
+                if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                    if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                        if cfpick1 >= self.cf[i]:
+                            pick_r = self.Tcf[i]
+                            self.Pick = pick_r
+                            flagpick_l = 1
+                            cfpick_r = self.cf[i]
+                            break
 
-           # now we look to the left
-           for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
-              if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
-                 if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                    if cfpick1 >= self.cf[i]:
-                    	pick_l = self.Tcf[i]
-                    	self.Pick = pick_l
-                    	flagpick_r = 1
-                    	cfpick_l = self.cf[i]
-                    	break
+            # now we look to the left
+            for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
+                if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                    if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                        if cfpick1 >= self.cf[i]:
+                            pick_l = self.Tcf[i]
+                            self.Pick = pick_l
+                            flagpick_r = 1
+                            cfpick_l = self.cf[i]
+                            break
 
-           # now decide which pick: left or right?
-           if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= cfpick_r:
-           	self.Pick = pick_l
-           	pickflag = 1
-           elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
-           	self.Pick = pick_r
-           	pickflag = 1
-           elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
+            # now decide which pick: left or right?
+            if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= cfpick_r:
                 self.Pick = pick_l
                 pickflag = 1
-           else:
-           	print 'PragPicker: Could not find reliable onset!'
-           	self.Pick = None
-           	pickflag = 0
+            elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
+                self.Pick = pick_r
+                pickflag = 1
+            elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
+                self.Pick = pick_l
+                pickflag = 1
+            else:
+                print('PragPicker: Could not find reliable onset!')
+                self.Pick = None
+                pickflag = 0
 
-           if self.getiplot() > 1:
-              p = plt.figure(self.getiplot())
-              p1, = plt.plot(Tcfpick,cfipick, 'k')
-              p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
-              if pickflag > 0:
-              	p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
-              	plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick'])
-              plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-              plt.yticks([])
-              plt.title(self.Data[0].stats.station)
-              plt.show()
-              raw_input()
-              plt.close(p)
+            if self.getiplot() > 1:
+                p = plt.figure(self.getiplot())
+                p1, = plt.plot(Tcfpick,cfipick, 'k')
+                p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
+                if pickflag > 0:
+                    p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
+                    plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick'])
+                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                plt.yticks([])
+                plt.title(self.Data[0].stats.station)
+                plt.show()
+                raw_input()
+                plt.close(p)
 
         else:
-           print 'PragPicker: No initial onset time given! Check input!'
-           self.Pick = None
-           return
+            print('PragPicker: No initial onset time given! Check input!')
+            self.Pick = None
+            return

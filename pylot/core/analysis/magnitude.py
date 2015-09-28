@@ -25,7 +25,8 @@ class Magnitude(object):
         :type:  float
 
         :param: pwin, pick window [To To+pwin] to get maximum
-                peak-to-peak amplitude
+                peak-to-peak amplitude (WApp) or to calculate
+                source spectrum (DCfc)
         :type:  float
 
         :param: iplot, no. of figure window for plotting interims results
@@ -40,6 +41,7 @@ class Magnitude(object):
         self.setpwin(pwin)
         self.setiplot(iplot)
         self.calcwapp()
+        self.calcsourcespec()
 
 
     def getwfstream(self):
@@ -68,10 +70,15 @@ class Magnitude(object):
 
     def getwapp(self):
         return self.wapp
+  
+    def getw0(self):
+        return self.w0
+
+    def getfc(self):
+        return self.fc
 
     def calcwapp(self):
         self.wapp = None
-
 
     def calcsourcespec(self):
         self.sourcespek = None
@@ -79,7 +86,7 @@ class Magnitude(object):
 class WApp(Magnitude):
     '''
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
-    seismograph. Has to be derived from corrected traces!
+    seismograph. Has to be derived from instrument corrected traces!
     '''
 
     def calcwapp(self):
@@ -110,6 +117,7 @@ class WApp(Magnitude):
         iwin = getsignalwin(th, self.getTo(), self.getpwin())
         self.wapp = np.max(sqH[iwin])
         print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
+
         if self.getiplot() > 1:
             stream.plot()
             f = plt.figure(2)
@@ -128,10 +136,50 @@ class WApp(Magnitude):
 class DCfc(Magnitude):
     '''
     Method to calculate the source spectrum and to derive from that the plateau 
-    (the so-called DC-value) and the corner frequency assuming Aki's omega-square 
-    source model. Has to be derived from corrected traces!
+    (so-called DC-value) and the corner frequency assuming Aki's omega-square 
+    source model. Has to be derived from instrument corrected displacement traces!
     '''
 
     def calcsourcespec(self):
     	print ("Calculating source spectrum ....")
 
+        self.w0 = None # DC-value
+        self.fc = None # corner frequency 
+
+        stream = self.getwfstream()
+        tr = stream[0]
+
+        # get time array
+        t = np.arange(0, len(tr) * tr.stats.delta, tr.stats.delta)
+        iwin = getsignalwin(t, self.getTo(), self.getpwin())
+        xdat = tr.data[iwin]
+
+        # fft 
+        fny = tr.stats.sampling_rate / 2
+        l = len(xdat) / tr.stats.sampling_rate
+        n = tr.stats.sampling_rate * l # number of fft bins after Bath
+        # find next power of 2 of data length
+        m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
+        N = int(np.power(m, 2))
+        y = tr.stats.delta * np.fft.fft(xdat, N)
+        Y = abs(y[: N/2])
+        L = (N - 1) / tr.stats.sampling_rate
+        f = np.arange(0, fny, 1/L)
+        
+        if self.getiplot() > 1:
+            f1 = plt.figure(1)
+            plt.subplot(2,1,1)
+            plt.plot(t, np.multiply(tr, 1000), 'k') # show displacement in mm
+            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g') # show displacement in mm
+            plt.title('Seismogram and P pulse, station %s' % tr.stats.station)
+            plt.xlabel('Time since %s' % tr.stats.starttime)
+            plt.ylabel('Displacement [mm]')
+
+            plt.subplot(2,1,2)
+            plt.semilogy(f, Y.real)
+            plt.title('Source Spectrum from P Pulse')
+            plt.xlabel('Frequency [Hz]')
+            plt.ylabel('Amplitude [m/Hz]')
+            plt.show()
+            raw_input()
+            plt.close(f1)

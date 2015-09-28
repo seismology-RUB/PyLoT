@@ -187,7 +187,7 @@ class PickDlg(QDialog):
             try:
                 data = parent.getData().getWFData().copy()
                 self.data = data.select(station=station)
-            except AttributeError, e:
+            except AttributeError as e:
                 errmsg = 'You either have to put in a data or an appropriate ' \
                          'parent (PyLoT MainWindow) object: {0}'.format(e)
                 raise Exception(errmsg)
@@ -239,6 +239,8 @@ class PickDlg(QDialog):
         zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
         home_icon = QIcon()
         home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
+        del_icon = QIcon()
+        del_icon.addPixmap(QPixmap(':/icons/delete.png'))
 
         # create actions
         self.filterAction = createAction(parent=self, text='Filter',
@@ -251,9 +253,12 @@ class PickDlg(QDialog):
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
-        self.resetAction = createAction(parent=self, text='Home',
+        self.resetZoomAction = createAction(parent=self, text='Home',
                                         slot=self.resetZoom, icon=home_icon,
                                         tip='Reset zoom to original limits')
+        self.resetPicksAction = createAction(parent=self, text='Delete Picks',
+                                             slot=self.delPicks, icon=del_icon,
+                                             tip='Delete current picks.')
 
         # create other widget elements
         self.selectPhase = QComboBox()
@@ -269,7 +274,9 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(self.selectPhase)
         _dialtoolbar.addAction(self.zoomAction)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addAction(self.resetAction)
+        _dialtoolbar.addAction(self.resetZoomAction)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addAction(self.resetPicksAction)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -371,7 +378,7 @@ class PickDlg(QDialog):
         traceIDs = []
         for channel in channels:
             channel = channel.upper()
-            for traceID, channelID in plotDict.iteritems():
+            for traceID, channelID in plotDict.items():
                 if channelID[1].upper().endswith(channel):
                     traceIDs.append(traceID)
         return traceIDs
@@ -421,6 +428,13 @@ class PickDlg(QDialog):
 
     def getPicks(self):
         return self.picks
+
+    def resetPicks(self):
+        self.picks = {}
+
+    def delPicks(self):
+        self.resetPicks()
+        self.resetPlot()
 
     def setIniPick(self, gui_event):
 
@@ -672,7 +686,20 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims())
         self.setPlotLabels()
+        self.drawPicks()
         self.draw()
+
+    def resetPlot(self):
+        self.updateCurrentLimits()
+        data = self.getWFData().copy()
+        title = self.getPlotWidget().getAxes().get_title()
+        self.getPlotWidget().plotWFData(wfdata=data, title=title,
+                                        zoomx=self.getXLims(),
+                                        zoomy=self.getYLims())
+        self.setPlotLabels()
+        self.drawPicks()
+        self.draw()
+
 
     def setPlotLabels(self):
 
@@ -711,7 +738,7 @@ class PickDlg(QDialog):
         else:
             # deal with something that should never happen
             scale_factor = 1
-            print gui_event.button
+            print(gui_event.button)
 
         new_xlim = gui_event.xdata - \
                    scale_factor * (gui_event.xdata - self.getXLims())
@@ -742,7 +769,7 @@ class PickDlg(QDialog):
     def apply(self):
         picks = self.getPicks()
         for pick in picks:
-            print pick, picks[pick]
+            print(pick, picks[pick])
 
     def accept(self):
         self.apply()

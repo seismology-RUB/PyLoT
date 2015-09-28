@@ -45,7 +45,7 @@ class AutoPickParameter(object):
         self.__filename = fnin
         parFileCont = {}
         # read from parsed arguments alternatively
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             parFileCont[key] = val
 
         if self.__filename is not None:
@@ -57,7 +57,7 @@ class AutoPickParameter(object):
             for line in lines:
                 parspl = line.split('\t')[:2]
                 parFileCont[parspl[0].strip()] = parspl[1]
-        except Exception, e:
+        except Exception as e:
             self._printParameterError(e)
             inputFile.seek(0)
             lines = inputFile.readlines()
@@ -65,7 +65,7 @@ class AutoPickParameter(object):
                 if not line.startswith(('#', '%', '\n', ' ')):
                     parspl = line.split('#')[:2]
                     parFileCont[parspl[1].strip()] = parspl[0].strip()
-        for key, value in parFileCont.iteritems():
+        for key, value in parFileCont.items():
             try:
                 val = int(value)
             except:
@@ -121,7 +121,7 @@ class AutoPickParameter(object):
         return len(self.__parameter.keys())
 
     def iteritems(self):
-        for key, value in self.__parameter.iteritems():
+        for key, value in self.__parameter.items():
             yield key, value
 
     def hasParam(self, parameter):
@@ -134,22 +134,22 @@ class AutoPickParameter(object):
             for param in args:
                 try:
                     return self.__getitem__(param)
-                except KeyError, e:
+                except KeyError as e:
                     self._printParameterError(e)
         except TypeError:
             try:
                 return self.__getitem__(args)
-            except KeyError, e:
+            except KeyError as e:
                 self._printParameterError(e)
 
     def setParam(self, **kwargs):
-        for param, value in kwargs.iteritems():
+        for param, value in kwargs.items():
             self.__setitem__(param, value)
-        print self
+        print(self)
 
     @staticmethod
     def _printParameterError(errmsg):
-        print 'ParameterError:\n non-existent parameter %s' % errmsg
+        print('ParameterError:\n non-existent parameter %s' % errmsg)
 
     def export2File(self, fnout):
         fid_out = open(fnout, 'w')
