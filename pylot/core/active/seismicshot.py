@@ -257,16 +257,12 @@ class SeismicShot(object):
         
         #raise ValueError('ambigious or empty traceID: %s' % traceID)
         
-    def pickTraces(self, traceID, pickmethod, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
-        # LOCALMAX NOT IMPLEMENTED!
+    def pickTraces(self, traceID, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
         '''
         Intitiate picking for a trace.
 
         :param: traceID
         :type: int
-
-        :param: pickmethod, use either 'threshold' or 'localmax' method. (localmax not yet implemented 04_08_15)
-        :type: string
 
         :param: cutwindow (equals HOScf 'cut' variable)
         :type: tuple
@@ -291,13 +287,7 @@ class SeismicShot(object):
 
         self.timeArray[traceID] = hoscf.getTimeArray()
 
-        if pickmethod == 'threshold':
-            aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
-
-        #setpick = {'threshold':self.threshold,
-         #          'localmax':self.localmax}
-
-        #aiccftime, hoscftime = setpick[pickmethod](hoscf, aiccf, windowsize, pickwindow)
+        aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
 
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
@@ -487,7 +477,6 @@ class SeismicShot(object):
 
         :param: (tnoise, tgap, tsignal), as used in pylot SNR
         '''
-
         from pylot.core.pick.utils import getSNR
 
         tgap = self.getTgap()
