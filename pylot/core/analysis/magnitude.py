@@ -184,12 +184,11 @@ class DCfc(Magnitude):
         [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [DCin, Fcin])
         self.w0 = optspecfit[0]
         self.fc = optspecfit[1]
-        print ("DCfc: Determined DC-value: %f, \n" \
-               "Determined corner frequency: %f" % (self.w0, self.fc)) 
+        print ("DCfc: Determined DC-value: %e m/Hz, \n" \
+               "Determined corner frequency: %f Hz" % (self.w0, self.fc)) 
         
         
         if self.getiplot() > 1:
-        if iplot > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
             # show displacement in mm
@@ -200,13 +199,14 @@ class DCfc(Magnitude):
             plt.ylabel('Displacement [mm]')
 
             plt.subplot(2,1,2)
-            plt.semilogy(f, Y.real, 'k')
-            plt.semilogy(F, YY.real)
-            plt.semilogy(F, fit, 'g')
-            plt.title('Source Spectrum from P Pulse, DC=%f m/Hz, fc=%4.1f Hz' \
+            plt.loglog(f, Y.real, 'k')
+            plt.loglog(F, YY.real)
+            plt.loglog(F, fit, 'g')
+            plt.title('Source Spectrum from P Pulse, DC=%e m/Hz, fc=%4.1f Hz' \
                        % (self.w0, self.fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
+            plt.grid()
             plt.show()
             raw_input()
             plt.close(f1)
@@ -229,10 +229,6 @@ def synthsourcespec(f, omega0, fcorner):
         
     #ssp = omega0 / (pow(2, (1 + f / fcorner)))
     ssp = omega0 / (1 + pow(2, (f / fcorner)))
-
-    #plt.plot(f, ssp)
-    #plt.show()
-    #raw_input()
 
     return ssp
 
