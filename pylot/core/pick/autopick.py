@@ -313,7 +313,6 @@ def autopickstation(wfstream, pickparam):
                 ##############################################################
                 # get DC value (w0) and corner frequency (fc) of source spectrum
                 # from P pulse
-                # restitute streams
                 # initialize Data object
                 data = Data()
                 [corzdat, restflag] = data.restituteWFData(invdir, zdat)
@@ -323,33 +322,45 @@ def autopickstation(wfstream, pickparam):
                         # class needs stream object => build it
                         z_copy = zdat.copy()
                         z_copy[0].data = corintzdat
-                	# calculate source spectrum and get w0 and fc
-                        calcwin = 1 / bpz2[0] # largest detectable period == window length 
-                                              # around P pulse for calculating source spectrum
-                	specpara = DCfc(z_copy, mpickP, calcwin, iplot)
-                        w0 = specpara.getw0()
-                        fc = specpara.getfc()
+                        # largest detectable period == window length
+                        # after P pulse for calculating source spectrum
+                        winzc = (1 / bpz2[0]) * z_copy[0].stats.sampling_rate  
+                        impickP = mpickP * z_copy[0].stats.sampling_rate
+                        wfzc = z_copy[0].data[impickP : impickP + winzc]
+                        # calculate spectrum using only first cycles of
+                        # waveform after P onset!
+                        zc = crossings_nonzero_all(wfzc)
+                        if np.size(zc) == 0:
+                            print ("Something is wrong with the waveform, " \
+                                   "no zero crossings derived!")
+                            print ("Cannot calculate source spectrum!")
+                        else:
+                            calcwin = (zc[3] - zc[0]) * z_copy[0].stats.delta
+                	    # calculate source spectrum and get w0 and fc
+                	    specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                            w0 = specpara.getw0()
+                            fc = specpara.getfc()
 
-                print 'autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, ' \
-                      'Polarity: %s' % (Pweight, SNRP, SNRPdB, FM)
+                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, " \
+                       "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
                 Sflag = 1
 
         else:
-            print 'Bad initial (AIC) P-pick, skipping this onset!'
+            print ("Bad initial (AIC) P-pick, skipping this onset!")
             print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope(), 'counts/s'
             print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, 'counts/s)'
             Sflag = 0
 
     else:
-        print 'autopickstation: No vertical component data available!, ' \
-              'Skipping station!'
+        print ("autopickstation: No vertical component data available!, " \
+               "Skipping station!")
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
-        print 'Go on picking S onset ...'
-        print '##################################################'
-        print 'Working on S onset of station %s' % edat[0].stats.station
-        print 'Filtering horizontal traces ...'
+        print ("Go on picking S onset ...")
+        print ("##################################################")
+        print ("Working on S onset of station %s" % edat[0].stats.station)
+        print ("Filtering horizontal traces ...")
 
         # determine time window for calculating CF after P onset
         cuttimesh = [round(max([mpickP + sstart, 0])),

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 from pylot.core.pick.utils import getsignalwin
+from scipy.optimize import curve_fit
 
 class Magnitude(object):
     '''
@@ -165,21 +166,69 @@ class DCfc(Magnitude):
         Y = abs(y[: N/2])
         L = (N - 1) / tr.stats.sampling_rate
         f = np.arange(0, fny, 1/L)
+
+        # remove zero-frequency and frequencies above 
+        # corner frequency of seismometer (assumed
+        # to be 100 Hz)
+        fi = np.where((f >= 1) & (f < 100))
+        F = f[fi]
+        YY = Y[fi]
+        # get plateau (DC value) and corner frequency
+        # initial guess of plateau
+        DCin = np.mean(YY[0:100])
+        # initial guess of corner frequency
+        # where spectral level reached 50% of flat level
+        iin = np.where(YY >= 0.5 * DCin)
+        Fcin = F[iin[0][np.size(iin) - 1]]
+        fit = synthsourcespec(F, DCin, Fcin)
+        [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [DCin, Fcin])
+        self.w0 = optspecfit[0]
+        self.fc = optspecfit[1]
+        print ("DCfc: Determined DC-value: %e m/Hz, \n" \
+               "Determined corner frequency: %f Hz" % (self.w0, self.fc)) 
+        
         
         if self.getiplot() > 1:
-            f1 = plt.figure(1)
+            f1 = plt.figure()
             plt.subplot(2,1,1)
-            plt.plot(t, np.multiply(tr, 1000), 'k') # show displacement in mm
-            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g') # show displacement in mm
+            # show displacement in mm
+            plt.plot(t, np.multiply(tr, 1000), 'k') 
+            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g') 
             plt.title('Seismogram and P pulse, station %s' % tr.stats.station)
             plt.xlabel('Time since %s' % tr.stats.starttime)
             plt.ylabel('Displacement [mm]')
 
             plt.subplot(2,1,2)
-            plt.semilogy(f, Y.real)
-            plt.title('Source Spectrum from P Pulse')
+            plt.loglog(f, Y.real, 'k')
+            plt.loglog(F, YY.real)
+            plt.loglog(F, fit, 'g')
+            plt.title('Source Spectrum from P Pulse, DC=%e m/Hz, fc=%4.1f Hz' \
+                       % (self.w0, self.fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
+            plt.grid()
             plt.show()
             raw_input()
             plt.close(f1)
+
+
+def synthsourcespec(f, omega0, fcorner):
+    '''
+    Calculates synthetic source spectrum from given plateau and corner 
+    frequency assuming Akis omega-square model.  
+
+    :param: f, frequencies
+    :type:  array
+
+    :param: omega0, DC-value (plateau) of source spectrum
+    :type:  float
+
+    :param: fcorner, corner frequency of source spectrum
+    :type:  float
+    '''
+        
+    #ssp = omega0 / (pow(2, (1 + f / fcorner)))
+    ssp = omega0 / (1 + pow(2, (f / fcorner)))
+
+    return ssp
+
