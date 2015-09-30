@@ -25,11 +25,13 @@ rockeskyll = False
 if rockeskyll == True:
     receiverfile = "Geophone_interpoliert_rockes"
     sourcefile = "Schusspunkte_rockes"
-    obsdir = "../rockeskyll_200615_270615/"
+    obsdir = "/rscratch/minos22/marcel/flachseismik/rockeskyll_200615_270615/"
+    filename = 'survey_rockes.pickle'
 else:
     receiverfile = "Geophone_interpoliert_GZB" 
     sourcefile = "Schusspunkte_GZB"
-    obsdir = "../GZB_26_06_15_01/"
+    obsdir = "/rscratch/minos22/marcel/flachseismik/GZB_26_06_15_01/"
+    filename = 'survey_GZB.pickle'
 
 # SNR
 tsignal = 0.03
@@ -99,5 +101,6 @@ for shot in survey.data.values():
     tend = datetime.now() + tremain
     print 'shot: %s, est. time to be finished is %s:%s:%s' % (shot.getShotname(), tend.hour, tend.minute, tend.second)
 
+survey.saveSurvey(filename)
 print '\n--- Finished script ---'
 print 'Elapsed time:', datetime.now()-starttime
