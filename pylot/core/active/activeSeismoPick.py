@@ -197,8 +197,8 @@ class Survey(object):
                     pickedTraces += 1
             info_dict[shot.getShotnumber()] = {'numtraces': numtraces,
                                                'picked traces': [pickedTraces,
-                                                                 '%2.2f %%'%(pickedTraces /
-                                                                             numtraces * 100)],
+                                                                 '%2.2f %%'%(float(pickedTraces) /
+                                                                             float(numtraces) * 100)],
                                                'mean SNR': np.mean(snrlist),
                                                'mean distance': np.mean(dist)}
 
