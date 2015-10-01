@@ -74,33 +74,20 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
     dX = getDistance(np.rad2deg(dPhi))
     dY = getDistance(np.rad2deg(dTheta))
     
-    xGrid = np.linspace(sX, sX + (dX * nX), nX)
-    yGrid = np.linspace(sZ, sZ + (nY * dY), nY)
-    zGrid = np.linspace(sZ, sZ + (nR * dR), nR)
-    nPoints = len(xGrid) * len(yGrid) * len(zGrid)
+    nPoints = nX * nY * nZ
+
+    dZ = dR
 
     # write header
     print("Writing header for VTK file...")
     outfile.writelines('# vtk DataFile Version 3.1\n')
     outfile.writelines('Velocity on FMTOMO vgrids.in points\n')
     outfile.writelines('ASCII\n')
-    outfile.writelines('DATASET POLYDATA\n')
-    outfile.writelines('POINTS %15d float\n' %(nPoints))
+    outfile.writelines('DATASET STRUCTURED_POINTS\n')
 
-    # write coordinates
-    print("Writing coordinates to VTK file...")
-    for z in zGrid:
-        for y in yGrid:
-            for x in xGrid:
-                outfile.writelines('%10f %10f %10f \n' %(x, y, z))
-
-
-    outfile.writelines('VERTICES %15d %15d\n' %(nPoints, 2 * nPoints))
-
-    # write indices
-    print("Writing indices to VTK file...")
-    for index in range(nPoints):
-        outfile.writelines('%10d %10d\n' %(1, index))
+    outfile.writelines('DIMENSIONS %d %d %d\n' %(nX, nY, nZ))
+    outfile.writelines('ORIGIN %f %f %f\n' %(sX, sY, sZ))
+    outfile.writelines('SPACING %f %f %f\n' %(dX, dY, dZ))
 
     outfile.writelines('POINT_DATA %15d\n' %(nPoints))
     outfile.writelines('SCALARS velocity float %d\n' %(1))
