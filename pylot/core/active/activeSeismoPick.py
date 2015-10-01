@@ -1,5 +1,6 @@
-from pylot.core.active import seismicshot
+import sys
 import numpy as np
+from pylot.core.active import seismicshot
 
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas = False):
@@ -92,12 +93,13 @@ class Survey(object):
                    "on removed traces."%(filename))
             outfile.close()
 
-    def pickAllShots(self, HosAic = 'hos', vmin = 333, vmax = 5500):
+    def pickAllShots(self, windowsize, HosAic = 'hos', vmin = 333, vmax = 5500, folm = 0.6):
         '''
         Automatically pick all traces of all shots of the survey.
         '''
         from datetime import datetime
-        count = 0
+        starttime = datetime.now()
+        count = 0; tpicksum = starttime - starttime
 
         for shot in self.data.values():
             tstartpick = datetime.now(); count += 1
@@ -116,7 +118,7 @@ class Survey(object):
                     pickwin_used = (pwleft, pwright)
 
                 shot.setPickwindow(traceID, pickwin_used)
-                shot.pickTraces(traceID, pickmethod, windowsize, folm, HosAic) # picker
+                shot.pickTraces(traceID, windowsize, folm, HosAic) # picker
 
                 # ++ TEST: set and check SNR before adding to distance bin ############################
                 shot.setSNR(traceID)    
@@ -129,12 +131,11 @@ class Survey(object):
                     shot.setEarllatepick(traceID)
 
             tpicksum += (datetime.now() - tstartpick); tpick = tpicksum/count
-            tremain = (tpick * (len(survey.getShotDict()) - count))
+            tremain = (tpick * (len(self.getShotDict()) - count))
             tend = datetime.now() + tremain
-            print 'shot: %s, est. time to be finished is %s:%s:%s' % (shot.getShotname(), tend.hour, tend.minute, tend.second)
-
-
-
+            progress = float(count) / float(len(self.getShotDict())) * 100
+            self._update_progress(shot.getShotname(), tend, progress)
+        print('\npickAllShots: Finished\n')
 
     def setArtificialPick(self, traceID, pick):
         for shot in self.data.values():
@@ -203,6 +204,108 @@ class Survey(object):
                                                'mean distance': np.mean(dist)}
 
         return info_dict
+
+    def getShotForShotnumber(self, shotnumber):
+        for shot in self.data.values():
+            if shot.getShotnumber() == shotnumber:
+                return shot
+
+    def exportFMTOMO(self, directory = 'FMTOMO_export', sourcefile = 'input_sf.in', ttFileExtension = '.tt'):
+        def getAngle(distance):
+            PI = np.pi
+            R = 6371.
+            angle = distance * 180 / (PI * R)
+            return angle
+
+        count = 0
+        fmtomo_factor = 1000 # transforming [m/s] -> [km/s]
+        LatAll = []; LonAll = []; DepthAll = []
+        srcfile = open(directory + '/' + sourcefile, 'w')
+        srcfile.writelines('%10s\n' %len(self.data)) # number of sources
+        for shotnumber in self.getShotlist():
+            shot = self.getShotForShotnumber(shotnumber)
+            ttfilename = str(shotnumber) + ttFileExtension
+            (x, y, z) = shot.getSrcLoc() # getSrcLoc returns (x, y, z)
+            srcfile.writelines('%10s %10s %10s\n' %(getAngle(y), getAngle(x), (-1)*z)) # lat, lon, depth
+            LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
+            srcfile.writelines('%10s\n' %1) # 
+            srcfile.writelines('%10s %10s %10s\n' %(1, 1, ttfilename))
+            ttfile = open(directory + '/' + ttfilename, 'w')
+            traceIDlist = shot.getTraceIDlist()
+            traceIDlist.sort()
+            ttfile.writelines(str(self.countPickedTraces(shot)) + '\n')
+            for traceID in traceIDlist:
+                if shot.getPick(traceID) is not None:
+                    pick = shot.getPick(traceID) * fmtomo_factor
+                    delta = shot.getPickError(traceID) * fmtomo_factor
+                    (x, y, z) = shot.getRecLoc(traceID)
+                    ttfile.writelines('%20s %20s %20s %10s %10s\n' %(getAngle(y), getAngle(x), (-1)*z, pick, delta))
+                    LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
+                    count += 1
+            ttfile.close()
+        srcfile.close()       
+        print 'Wrote output for %s traces' %count
+        print 'WARNING: output generated for FMTOMO-obsdata. Obsdata seems to take Lat, Lon, Depth and creates output for FMTOMO as Depth, Lat, Lon'
+        print 'Dimensions of the seismic Array, transformed for FMTOMO, are Depth(%s, %s), Lat(%s, %s), Lon(%s, %s)'%(
+            min(DepthAll), max(DepthAll), min(LatAll), max(LatAll), min(LonAll), max(LonAll))
+
+    def countPickedTraces(self, shot):
+        count = 0
+        for traceID in shot.getTraceIDlist():
+            if shot.getPick(traceID) is not None:
+                count += 1
+        return count
+
+    def plotAllPicks(self, plotDeleted = False):
+        '''
+        Plots all picks over the distance between source and receiver. Returns (ax, region)
+        '''
+        import matplotlib.pyplot as plt
+        import math
+        plt.interactive(True)
+        from pylot.core.active.surveyPlotTools import regions
+
+        dist = []
+        pick = []
+        snrloglist = []
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if plotDeleted == False:
+                    if shot.getPick(traceID) is not None: 
+                        dist.append(shot.getDistance(traceID))
+                        pick.append(shot.getPick(traceID))
+                        snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
+                elif plotDeleted == True:
+                    dist.append(shot.getDistance(traceID))
+                    pick.append(shot.getPick(traceID))
+                    snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
+
+        ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
+        region = regions(ax, self.data)
+        ax.legend()
+
+        return ax, region
+
+    def createPlot(self, dist, pick, inkByVal, label):
+        import matplotlib.pyplot as plt
+        plt.interactive(True)
+        cm = plt.cm.jet
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        fig = ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
+        cbar = plt.colorbar(fig, fraction = 0.05)
+        cbar.set_label(label)
+        plt.title('Plot of all Picks')
+        plt.xlabel('Distance [m]')
+        plt.ylabel('Time [s]')
+
+        return ax
+
+    def _update_progress(self, shotname, tend, progress):
+        sys.stdout.write("Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r" 
+                         %(shotname, tend.hour, tend.minute, tend.second, progress))
+        sys.stdout.flush()
 
     def saveSurvey(self, filename = 'survey.pickle'):
         import cPickle
