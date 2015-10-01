@@ -1,3 +1,5 @@
+import numpy as np
+
 def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
     '''
     Generate a vtk-file readable by e.g. paraview from FMTOMO output vgrids.in
