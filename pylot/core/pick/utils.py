@@ -74,8 +74,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     # if EPick stays NaN the signal window size will be doubled
     while np.isnan(EPick):
         if count > 0:
-            print("earllatepicker: Doubled signal window size %s time(s) "
-                  "because of NaN for earliest pick.\n" %count)
+            print("\nearllatepicker: Doubled signal window size %s time(s) "
+                  "because of NaN for earliest pick." %count)
             isigDoubleWinStart = pis[-1] + 1
             isignalDoubleWin = np.arange(isigDoubleWinStart,
                                      isigDoubleWinStart + len(pis))
