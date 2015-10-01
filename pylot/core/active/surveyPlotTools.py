@@ -1,84 +1,5 @@
 import matplotlib.pyplot as plt
-import math
-#from selectRegions import regions
-
 plt.interactive(True)
-
-def plotAllPicks(shot_dict, dist_med = None):
-    '''
-    Plots all picks over the distance between source and receiver. Returns (ax, region)
-    '''
-    dist = []
-    pick = []
-    snrloglist = []
-    for shot in shot_dict.values():
-        for traceID in shot.getTraceIDlist():
-            if shot.getPick(traceID) is not None: 
-                dist.append(shot.getDistance(traceID))
-                pick.append(shot.getPick(traceID))
-                snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
-
-    ax = createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
-    region = regions(ax, shot_dict)
-    if dist_med is not None:
-        ax = addDistMed(ax, dist_med)
-    ax.legend()
-
-    return ax, region
-
-def plotAllPicks_withCutOutTraces(shot_dict, dist_med = None):
-    '''
-    Plots all picks over the distance between source and receiver. Returns (ax, region)
-    '''
-    dist = []
-    pick = []
-    snrloglist = []
-    for shot in shot_dict.values():
-        for traceID in shot.getTraceIDlist():
-            if shot.getSNR(traceID)[0] > 3:
-                dist.append(shot.getDistance(traceID))
-                pick.append(shot.getPick_backup(traceID))
-                snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
-
-    ax = createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
-    region = regions(ax, shot_dict)
-    if dist_med is not None:
-        ax = addDistMed(ax, dist_med)
-    ax.legend()
-
-    return ax, region
-
-def createPlot(dist, pick, inkByVal, label):
-    cm = plt.cm.jet
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    fig = ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
-    cbar = plt.colorbar(fig, fraction = 0.05)
-    cbar.set_label(label)
-    plt.title('Plot of all Picks')
-    plt.xlabel('Distance [m]')
-    plt.ylabel('Time [s]')
-
-    return ax
-
-def addDistMed(ax, dist_med):
-    '''
-    Add shot dictionary containing the Median for several distancebins to the ax.
-    '''
-    x = []
-    y = []
-    for dist in dist_med.keys():
-        x.append(dist)
-        y.append(dist_med[dist])
-        
-    xy = sorted(zip(x,y))
-    x1 = [x for (x,y) in xy]
-    y1 = [y for (x,y) in xy]
-    
-    ax.plot(x1, y1, 'k', label = 'Median')
-
-    return ax
 
 class regions(object):
     def __init__(self, ax, shot_dict):
@@ -159,7 +80,6 @@ class regions(object):
         self.ax.set_ylim(shot.getCut())
 
     def plotTracesInRegion(self):
-        import matplotlib.pyplot as plt
         count = 0
         maxfigures = 20
         # if len(self.shots_found) == 0:
@@ -179,7 +99,6 @@ class regions(object):
             print 'No picks yet defined in the regions x = (%s, %s), y = (%s, %s)' %(self._x0, self._x1, self._y0, self._y1)
 
     def plotTracesInRegion_withCutOutTraces(self):
-        import matplotlib.pyplot as plt
         count = 0
         maxfigures = 20
         # if len(self.shots_found) == 0:
@@ -246,5 +165,4 @@ class regions(object):
         self.refreshFigure()
 
     def refreshFigure(self):
-        import matplotlib.pyplot as plt
         plt.draw()
