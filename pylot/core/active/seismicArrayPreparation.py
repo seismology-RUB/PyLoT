@@ -598,7 +598,7 @@ class SeisArray(object):
             outfile.writelines('%10d\n' %traceID)
 
         outfile.close()
-        print("Wrote receiver grid for %d points to file: %s" %(nPoints, filename))
+        print("Wrote %d receiver for to file: %s" %(nPoints, filename))
         return
 
     def sources2VTK(self, filename = 'sources.vtk'):
@@ -647,7 +647,7 @@ class SeisArray(object):
             outfile.writelines('%10d\n' %shotnumber)
 
         outfile.close()
-        print("Wrote receiver grid for %d points to file: %s" %(nPoints, filename))
+        print("Wrote %d sources to file: %s" %(nPoints, filename))
         return
 
 
