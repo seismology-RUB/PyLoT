@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 import numpy as np
 from obspy.core import read
@@ -145,7 +148,7 @@ class SeismicShot(object):
     def getPickError(self, traceID):
         pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
         if np.isnan(pickerror) == True: 
-            print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
+            print("SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID))
         return pickerror 
   
     def getStreamTraceIDs(self):
@@ -170,7 +173,7 @@ class SeismicShot(object):
     def getPickwindow(self, traceID):
         try:
             self.pickwindow[traceID]    
-        except KeyError, e:
+        except KeyError as e:
             print('no pickwindow for trace %s, set to %s' % (traceID, self.getCut()))
             self.setPickwindow(traceID, self.getCut())
         return self.pickwindow[traceID]
@@ -253,7 +256,7 @@ class SeismicShot(object):
             return Stream(traces)
         else:
             self.setPick(traceID, None)
-            print 'Warning: ambigious or empty traceID: %s' % traceID
+            print('Warning: ambigious or empty traceID: %s' % traceID)
         
         #raise ValueError('ambigious or empty traceID: %s' % traceID)
         
