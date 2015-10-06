@@ -127,7 +127,12 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
         raynumber += 1 
         firstline = infile.readline()
         if firstline == '': break # break at EOF
+        raynumber = int(firstline.split()[0])
         shotnumber = int(firstline.split()[1])
+        rayValid = int(firstline.split()[4]) # is zero if the ray is invalid
+        if rayValid == 0:
+            print('Invalid ray number %d for shot number %d'%(raynumber, shotnumber))
+            continue
         nRayPoints = int(infile.readline().split()[0])
         if not shotnumber in rays.keys():
             rays[shotnumber] = {}
