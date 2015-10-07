@@ -160,7 +160,7 @@ class regions(object):
 
     def highlightPicksForShot(self, shot, annotations = False):
         for traceID in shot.getTraceIDlist():
-            if shot.getPick(traceID) is not None:
+            if shot.getFlag(traceID) is not 0:
                 self.highlightPick(shot, traceID, annotations)
         self.refreshFigure()
 
