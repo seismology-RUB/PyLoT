@@ -127,7 +127,7 @@ class Survey(object):
                         shot.removePick(traceID)
                 # -- TEST: set and check SNR before adding to distance bin ############################
 
-                if shot.getPick(traceID) is not None:
+                if shot.getFlag(traceID) is not 0:
                     shot.setEarllatepick(traceID)
 
             tpicksum += (datetime.now() - tstartpick); tpick = tpicksum/count
@@ -194,7 +194,7 @@ class Survey(object):
             for traceID in shot.getTraceIDlist():
                 snrlist.append(shot.getSNR(traceID)[0])
                 dist.append(shot.getDistance(traceID))
-                if shot.getPick(traceID) is not None:
+                if shot.getFlag(traceID) is not 0:
                     pickedTraces += 1
             info_dict[shot.getShotnumber()] = {'numtraces': numtraces,
                                                'picked traces': [pickedTraces,
@@ -235,7 +235,7 @@ class Survey(object):
             traceIDlist.sort()
             ttfile.writelines(str(self.countPickedTraces(shot)) + '\n')
             for traceID in traceIDlist:
-                if shot.getPick(traceID) is not None:
+                if shot.getFlag(traceID) is not 0:
                     pick = shot.getPick(traceID) * fmtomo_factor
                     delta = shot.getPickError(traceID) * fmtomo_factor
                     (x, y, z) = shot.getRecLoc(traceID)
@@ -252,7 +252,7 @@ class Survey(object):
     def countPickedTraces(self, shot):
         count = 0
         for traceID in shot.getTraceIDlist():
-            if shot.getPick(traceID) is not None:
+            if shot.getFlag(traceID) is not 0:
                 count += 1
         return count
 
@@ -271,7 +271,7 @@ class Survey(object):
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if plotDeleted == False:
-                    if shot.getPick(traceID) is not None: 
+                    if shot.getFlag(traceID) is not 0: 
                         dist.append(shot.getDistance(traceID))
                         pick.append(shot.getPick(traceID))
                         snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
