@@ -24,9 +24,6 @@ class SeismicShot(object):
         self.srcCoordlist = None
         self.traceIDs = None
         self.pick = {}
-        self.pick_backup = {}
-        self.earliest = {}
-        self.latest = {}
         self.pickwindow= {}
         self.manualpicks= {}
         self.snr = {}
@@ -131,16 +128,13 @@ class SeismicShot(object):
         return self.paras['sourcefile']
 
     def getPick(self, traceID):
-        return self.pick[traceID]
-
-    def getPick_backup(self, traceID):
-        return self.pick_backup[traceID]
+        return self.pick[traceID]['mpp']
 
     def getEarliest(self, traceID):
-        return self.earliest[traceID]
+        return self.pick[traceID]['epp']
 
     def getLatest(self, traceID):
-        return self.latest[traceID]
+        return self.pick[traceID]['lpp']
 
     def getPickError(self, traceID):
         pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
@@ -293,14 +287,13 @@ class SeismicShot(object):
                      'aic': aiccftime}
 
         self.setPick(traceID, setHosAic[HosAic])
-        self.pick_backup[traceID] = setHosAic[HosAic] ### verbessern (vor allem weil ueberschrieben bei 2tem mal picken)
 
     def setEarllatepick(self, traceID, nfac = 1.5):
         tgap = self.getTgap()
         tsignal = self.getTsignal()
         tnoise = self.getPick(traceID) - tgap
 
-        (self.earliest[traceID], self.latest[traceID], tmp) = earllatepicker(self.getSingleStream(traceID), 
+        (self.pick[traceID]['epp'], self.pick[traceID]['lpp'], tmp) = earllatepicker(self.getSingleStream(traceID), 
                                                                              nfac, (tnoise, tgap, tsignal), 
                                                                              self.getPick(traceID))
 
@@ -452,7 +445,10 @@ class SeismicShot(object):
         #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID) 
         
     def setPick(self, traceID, pick): ########## siehe Kommentar ##########
-        self.pick[traceID] = pick
+        if not traceID in self.pick.keys():
+            self.pick[traceID] = {}
+        self.pick[traceID]['mpp'] = pick
+        self.pick[traceID]['flag'] = 1
         # ++++++++++++++ Block raus genommen, da Error beim 2ten Mal picken! (Ueberschreiben von erstem Pick!)
         # if not self.pick.has_key(traceID):
         #     self.getPick(traceID) = picks
@@ -463,7 +459,14 @@ class SeismicShot(object):
         #        parlist = open(parfile,'r').readlines()
 
     def removePick(self, traceID):
-        self.setPick(traceID, None)
+        self.setFlag(traceID, 0)
+
+    def setFlag(self, traceID, flag):
+        'Set flag = 0 if pick is invalid, else flag = 1'
+        self.pick[traceID]['flag'] = 0
+
+    def getFlag(self, traceID):
+        return self.pick[traceID]['flag']
 
     def setPickwindow(self, traceID, pickwindow):
         self.pickwindow[traceID] = pickwindow
@@ -628,7 +631,7 @@ class SeismicShot(object):
         y = []
         z = []
         for traceID in self.pick.keys():
-            if self.getPick(traceID) != None:
+            if self.getFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
@@ -683,7 +686,7 @@ class SeismicShot(object):
         y = []
         z = []
         for traceID in self.pick.keys():
-            if self.getPick(traceID) != None:
+            if self.getFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
