@@ -7,19 +7,19 @@ class regions(object):
 
     Examples:
 
-    region.chooseRectangles():
+    regions.chooseRectangles():
      - lets the user choose several rectangular regions in the plot
 
-    region.plotTracesInRegions():
+    regions.plotTracesInRegions():
      - creates plots (shot.plot_traces) for all traces in the active regions (i.e. chosen by e.g. chooseRectangles)
 
-    region.setActiveRegionsForDeletion():
+    regions.setActiveRegionsForDeletion():
      - highlights all shots in a the active regions for deletion
 
-    region.deleteMarkedPicks():
+    regions.deleteMarkedPicks():
      - deletes the picks (pick flag set to 0) for all shots set for deletion
 
-    region.deselectSelection(number):
+    regions.deselectSelection(number):
      - deselects the region of number = number
 
     '''
@@ -216,7 +216,7 @@ class regions(object):
     def refreshFigure(self):
         print('Refreshing figure...')
         self.ax.clear()
-        self.ax = self.survey.plotAllPicks(ax = self.ax)
+        self.ax = self.survey.plotAllPicks(ax = self.ax, refreshPlot = True)
         self.markAllActiveRegions()
         self.drawFigure()
         print('Done!')
