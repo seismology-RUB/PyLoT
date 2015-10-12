@@ -24,7 +24,7 @@ class CharacteristicFunction(object):
     '''
     SuperClass for different types of characteristic functions.
     '''
-    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None):
+    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None, stealthMode=False):
         '''
         Initialize data type object with information from the original
         Seismogram.
@@ -61,6 +61,7 @@ class CharacteristicFunction(object):
         self.calcCF(self.getDataArray())
         self.arpara = np.array([])
         self.xpred = np.array([])
+        self.stealthMode = stealthMode
 
     def __str__(self):
         return '''\n\t{name} object:\n
@@ -218,7 +219,8 @@ class AICcf(CharacteristicFunction):
 
     def calcCF(self, data):
 
-        #print 'Calculating AIC ...'  ## MP MP output suppressed
+        if self.stealthMode is False:
+            print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -256,11 +258,13 @@ class HOScf(CharacteristicFunction):
         if len(nn) > 1:
            xnp[nn] = 0
         if self.getOrder() == 3:  # this is skewness
-            print 'Calculating skewness ...'
+            if self.stealthMode is False:
+                print 'Calculating skewness ...'
             y = np.power(xnp, 3)
             y1 = np.power(xnp, 2)
         elif self.getOrder() == 4:  # this is kurtosis
-            #print 'Calculating kurtosis ...'  ## MP MP output suppressed
+            if self.stealthMode is False:
+                print 'Calculating kurtosis ...'
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 
