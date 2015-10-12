@@ -18,6 +18,7 @@ class Survey(object):
             self.setParametersForShots()
         self._removeAllEmptyTraces()
         self._updateShots()
+        self.setArtificialPick(0, 0) # artificial pick at source origin
         
     def _generateSurvey(self):
         from obspy.core import read
@@ -33,17 +34,23 @@ class Survey(object):
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)
             shot_dict[shotnumber].setParameters('shotnumber', shotnumber)
 
-        self.setArtificialPick(0, 0) # artificial pick at source origin
-
         self.data = shot_dict
         print ("Generated Survey object for %d shots" % len(shotlist))
         print ("Total number of traces: %d \n" %self.countAllTraces())
+
+    def setArtificialPick(self, traceID, pick):
+        '''
+        Sets an artificial pick for a traceID of all shots in the survey object.
+        (This can be used to create a pick with t = 0 at the source origin)
+        '''
+        for shot in self.data.values():
+            shot.setPick(traceID, pick)
 
     def setParametersForShots(self, cutwindow = (0, 0.2), tmovwind = 0.3, tsignal = 0.03, tgap = 0.0007):
         if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
             tsignal == 0.03 and tgap == 0.0007):
             print ("Warning: Standard values used for "
-                   "setParamters. This may not be clever.")
+                   "setParamters. This might not be clever.")
         # CHANGE this later. Parameters only needed for survey, not for each shot.
         for shot in self.data.values():
             shot.setCut(cutwindow)
@@ -120,14 +127,13 @@ class Survey(object):
                 shot.setPickwindow(traceID, pickwin_used)
                 shot.pickTraces(traceID, windowsize, folm, HosAic) # picker
 
-                # ++ TEST: set and check SNR before adding to distance bin ############################
                 shot.setSNR(traceID)    
                 #if shot.getSNR(traceID)[0] < snrthreshold:
                 if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
                         shot.removePick(traceID)
-                # -- TEST: set and check SNR before adding to distance bin ############################
-
-                if shot.getFlag(traceID) is not 0:
+                        
+                # set epp and lpp if SNR > 1 (else earllatepicker cant set values)
+                if shot.getSNR(traceID)[0] > 1:
                     shot.setEarllatepick(traceID)
 
             tpicksum += (datetime.now() - tstartpick); tpick = tpicksum/count
@@ -136,6 +142,22 @@ class Survey(object):
             progress = float(count) / float(len(self.getShotDict())) * 100
             self._update_progress(shot.getShotname(), tend, progress)
         print('\npickAllShots: Finished\n')
+
+    def recover(self):
+        '''
+        Recovers all (accidently) removed picks. Still regards SNR threshold.
+        '''
+        print('Recovering survey...')
+        numpicks = 0
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getFlag(traceID) == 0:
+                    shot.setFlag(traceID, 1)
+                    if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
+                        shot.removePick(traceID)
+                    else:
+                        numpicks += 1
+        print('Recovered %d picks'%numpicks)
 
     def setArtificialPick(self, traceID, pick):
         for shot in self.data.values():
@@ -256,49 +278,127 @@ class Survey(object):
                 count += 1
         return count
 
-    def plotAllPicks(self, plotDeleted = False):
+    def countAllPickedTraces(self):
+        count = 0
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getFlag(traceID) is not 0:
+                    count += 1
+        return count
+
+    def plotAllPicks(self, plotRemoved = False, ax = None):
         '''
-        Plots all picks over the distance between source and receiver. Returns (ax, region)
+        Plots all picks over the distance between source and receiver. Returns (ax, region).
+        Picks can be checked and removed by using region class.
+
+        Examples:
+
+        region.chooseRectangles():
+         - lets the user choose several rectangular regions in the plot
+
+        region.plotTracesInRegions():
+         - creates plots (shot.plot_traces) for all traces in the active regions (i.e. chosen by e.g. chooseRectangles)
+
+        region.setActiveRegionsForDeletion():
+         - highlights all shots in a the active regions for deletion
+
+        region.deleteMarkedPicks():
+         - deletes the picks (pick flag set to 0) for all shots set for deletion
+
+        region.deselectSelection(number):
+         - deselects the region of number = number
+
         '''
         import matplotlib.pyplot as plt
         import math
         plt.interactive(True)
         from pylot.core.active.surveyPlotTools import regions
+        refreshPlot = False
+
+        if ax is not None: refreshPlot = True
 
         dist = []
         pick = []
         snrloglist = []
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if plotDeleted == False:
+                if plotRemoved == False:
                     if shot.getFlag(traceID) is not 0: 
                         dist.append(shot.getDistance(traceID))
                         pick.append(shot.getPick(traceID))
                         snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
-                elif plotDeleted == True:
+                elif plotRemoved == True:
                     dist.append(shot.getDistance(traceID))
-                    pick.append(shot.getPick(traceID))
+                    pick.append(shot.getPickIncludeRemoved(traceID))
                     snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
 
-        ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
-        region = regions(ax, self.data)
-        ax.legend()
+        if refreshPlot is False:
+            ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
+            region = regions(ax, self)
+            ax.legend()
+            return ax, region
+        elif refreshPlot is True:
+            ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)', ax = ax)
+            ax.legend()
+            return ax
 
-        return ax, region
+    def plotAllShots(self, rows = 3, columns = 4):
+        '''
+        Plots all shots as Matrices with the color corresponding to the traveltime for each receiver.
+        NOTE: Topography (z - coordinate) is not considered in the diagrams!
+        '''
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        plt.interactive(True)
 
-    def createPlot(self, dist, pick, inkByVal, label):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        figPerSubplot = columns * rows
+
+        index = 1
+        #shotnames = []
+        #shotnumbers = []
+
+        # for shot in self.data.values():
+        #     shotnames.append(shot.getShotname())
+        #     shotnumbers.append(shot.getShotnumber())
+
+        # shotnumbers = [shotnumbers for (shotnumbers, shotnames) in sorted(zip(shotnumbers, shotnames))]
+        
+        for shotnumber in self.getShotlist():
+            if index <= figPerSubplot:
+                #ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:' 
+                #+str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
+                #shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
+                ax = fig.add_subplot(3, 4, index)
+                self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True)
+                index += 1
+            if index > figPerSubplot:
+                fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
+                fig = plt.figure()
+                index = 1
+
+        fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
+
+    def createPlot(self, dist, pick, inkByVal, label, ax = None):
         import matplotlib.pyplot as plt
         plt.interactive(True)
         cm = plt.cm.jet
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        fig = ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
-        cbar = plt.colorbar(fig, fraction = 0.05)
-        cbar.set_label(label)
-        plt.title('Plot of all Picks')
-        plt.xlabel('Distance [m]')
-        plt.ylabel('Time [s]')
+        if ax is None:
+            print('Generating new plot...')
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fig = ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
+            cbar = plt.colorbar(fig, fraction = 0.05)
+            cbar.set_label(label)
+            plt.title('Plot of all Picks')
+            plt.xlabel('Distance [m]')
+            plt.ylabel('Time [s]')
+        else:
+            print('Refreshing plot...')
+            ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
 
         return ax
 
