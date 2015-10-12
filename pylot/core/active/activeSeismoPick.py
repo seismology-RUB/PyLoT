@@ -286,66 +286,10 @@ class Survey(object):
                     count += 1
         return count
 
-    def plotAllPicks(self, plotRemoved = False, ax = None):
-        '''
-        Plots all picks over the distance between source and receiver. Returns (ax, region).
-        Picks can be checked and removed by using region class.
-
-        Examples:
-
-        region.chooseRectangles():
-         - lets the user choose several rectangular regions in the plot
-
-        region.plotTracesInRegions():
-         - creates plots (shot.plot_traces) for all traces in the active regions (i.e. chosen by e.g. chooseRectangles)
-
-        region.setActiveRegionsForDeletion():
-         - highlights all shots in a the active regions for deletion
-
-        region.deleteMarkedPicks():
-         - deletes the picks (pick flag set to 0) for all shots set for deletion
-
-        region.deselectSelection(number):
-         - deselects the region of number = number
-
-        '''
-        import matplotlib.pyplot as plt
-        import math
-        plt.interactive(True)
-        from pylot.core.active.surveyPlotTools import regions
-        refreshPlot = False
-
-        if ax is not None: refreshPlot = True
-
-        dist = []
-        pick = []
-        snrloglist = []
-        for shot in self.data.values():
-            for traceID in shot.getTraceIDlist():
-                if plotRemoved == False:
-                    if shot.getFlag(traceID) is not 0: 
-                        dist.append(shot.getDistance(traceID))
-                        pick.append(shot.getPick(traceID))
-                        snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
-                elif plotRemoved == True:
-                    dist.append(shot.getDistance(traceID))
-                    pick.append(shot.getPickIncludeRemoved(traceID))
-                    snrloglist.append(math.log10(shot.getSNR(traceID)[0]))
-
-        if refreshPlot is False:
-            ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)')
-            region = regions(ax, self)
-            ax.legend()
-            return ax, region
-        elif refreshPlot is True:
-            ax = self.createPlot(dist, pick, snrloglist, label = 'log10(SNR)', ax = ax)
-            ax.legend()
-            return ax
-
     def plotAllShots(self, rows = 3, columns = 4):
         '''
         Plots all shots as Matrices with the color corresponding to the traveltime for each receiver.
-        NOTE: Topography (z - coordinate) is not considered in the diagrams!
+        IMPORTANT NOTE: Topography (z - coordinate) is not considered in the diagrams!
         '''
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
@@ -381,11 +325,75 @@ class Survey(object):
 
         fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
 
+    def plotAllPicks(self, plotRemoved = False, colorByVal = 'log10SNR', ax = None, refreshPlot = False):
+        '''
+        Plots all picks over the distance between source and receiver. Returns (ax, region).
+        Picks can be checked and removed by using region class (pylot.core.active.surveyPlotTools.regions)
+
+        :param: plotRemoved, if True plots traces that were picked but removed from the survey (flag = 0)
+        :type: logical
+
+        :param: colorByVal, can be "log10SNR", "pickerror", or "spe"
+        :type: str
+
+        Examples:
+
+        regions.chooseRectangles():
+         - lets the user choose several rectangular regions in the plot
+
+        regions.plotTracesInRegions():
+         - creates plots (shot.plot_traces) for all traces in the active regions (i.e. chosen by e.g. chooseRectangles)
+
+        regions.setActiveRegionsForDeletion():
+         - highlights all shots in a the active regions for deletion
+
+        regions.deleteMarkedPicks():
+         - deletes the picks (pick flag set to 0) for all shots set for deletion
+
+        regions.deselectSelection(number):
+         - deselects the region of number = number
+
+        '''
+
+        import matplotlib.pyplot as plt
+        import math
+        plt.interactive(True)
+        from pylot.core.active.surveyPlotTools import regions
+
+        dist = []
+        pick = []
+        snrlog = []
+        pickerror = []
+        spe = []
+
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if plotRemoved == False:
+                    if shot.getFlag(traceID) is not 0 or plotRemoved == True: 
+                        dist.append(shot.getDistance(traceID))
+                        pick.append(shot.getPick(traceID))
+                        snrlog.append(math.log10(shot.getSNR(traceID)[0]))
+                        pickerror.append(shot.getPickError(traceID))
+                        spe.append(shot.getSymmetricPickError(traceID))
+
+        color = {'log10SNR': snrlog,
+                 'pickerror': pickerror,
+                 'spe': spe}
+
+        if refreshPlot is False:
+            ax = self.createPlot(dist, pick, color[colorByVal], label = '%s'%colorByVal)
+            region = regions(ax, self)
+            ax.legend()
+            return ax, region
+        elif refreshPlot is True:
+            ax = self.createPlot(dist, pick, color[colorByVal], label = '%s'%colorByVal, ax = ax)
+            ax.legend()
+            return ax
+
     def createPlot(self, dist, pick, inkByVal, label, ax = None):
         import matplotlib.pyplot as plt
         plt.interactive(True)
         cm = plt.cm.jet
-
         if ax is None:
             print('Generating new plot...')
             fig = plt.figure()
@@ -397,7 +405,6 @@ class Survey(object):
             plt.xlabel('Distance [m]')
             plt.ylabel('Time [s]')
         else:
-            print('Refreshing plot...')
             ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
 
         return ax
