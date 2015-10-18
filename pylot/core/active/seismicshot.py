@@ -44,14 +44,14 @@ class SeismicShot(object):
         removed = []
         for i in range(0, len(coordlist)):
             traceIDs.append(int(coordlist[i].split()[0]))
-            
+
         for trace in self.traces:
             try:
                 traceIDs.index(int(trace.stats.channel))
             except:
-                self.traces.remove(trace)        
+                self.traces.remove(trace)
                 removed.append(int(trace.stats.channel))
-                
+
         if len(removed) > 0:
             return removed
 
@@ -59,7 +59,7 @@ class SeismicShot(object):
         for trace in self.traces:
             if traceID == trace.stats.channel:
                 self.traces.remove(trace)
-        
+
         # for traceID in TraceIDs:
         #     traces = [trace for trace in self.traces if int(trace.stats.channel) == traceID]
         #     if len(traces) is not 1:
@@ -147,10 +147,10 @@ class SeismicShot(object):
 
     def getPickError(self, traceID):
         pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
-        if np.isnan(pickerror) == True: 
+        if np.isnan(pickerror) == True:
             print("SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID))
-        return pickerror 
-  
+        return pickerror
+
     def getStreamTraceIDs(self):
         traceIDs = []
         for trace in self.traces:
@@ -172,15 +172,15 @@ class SeismicShot(object):
 
     def getPickwindow(self, traceID):
         try:
-            self.pickwindow[traceID]    
+            self.pickwindow[traceID]
         except KeyError as e:
             print('no pickwindow for trace %s, set to %s' % (traceID, self.getCut()))
             self.setPickwindow(traceID, self.getCut())
         return self.pickwindow[traceID]
-    
+
     def getSNR(self, traceID):
         return self.snr[traceID]
-    
+
     def getSNRthreshold(self, traceID):
         return self.snrthreshold[traceID]
 
@@ -257,15 +257,19 @@ class SeismicShot(object):
         else:
             self.setPick(traceID, None)
             print('Warning: ambigious or empty traceID: %s' % traceID)
-        
+
         #raise ValueError('ambigious or empty traceID: %s' % traceID)
-        
-    def pickTraces(self, traceID, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
+
+    def pickTraces(self, traceID, pickmethod, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
+        # LOCALMAX NOT IMPLEMENTED!
         '''
         Intitiate picking for a trace.
 
         :param: traceID
         :type: int
+
+        :param: pickmethod, use either 'threshold' or 'localmax' method. (localmax not yet implemented 04_08_15)
+        :type: string
 
         :param: cutwindow (equals HOScf 'cut' variable)
         :type: tuple
@@ -290,7 +294,13 @@ class SeismicShot(object):
 
         self.timeArray[traceID] = hoscf.getTimeArray()
 
-        aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
+        if pickmethod == 'threshold':
+            aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
+
+        #setpick = {'threshold':self.threshold,
+         #          'localmax':self.localmax}
+
+        #aiccftime, hoscftime = setpick[pickmethod](hoscf, aiccf, windowsize, pickwindow)
 
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
@@ -303,15 +313,15 @@ class SeismicShot(object):
         tsignal = self.getTsignal()
         tnoise = self.getPick(traceID) - tgap
 
-        (self.earliest[traceID], self.latest[traceID], tmp) = earllatepicker(self.getSingleStream(traceID), 
-                                                                             nfac, (tnoise, tgap, tsignal), 
+        (self.earliest[traceID], self.latest[traceID], tmp) = earllatepicker(self.getSingleStream(traceID),
+                                                                             nfac, (tnoise, tgap, tsignal),
                                                                              self.getPick(traceID))
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
         '''
-        Threshold picker, using the local maximum in a pickwindow to find the time at 
+        Threshold picker, using the local maximum in a pickwindow to find the time at
         which a fraction of the local maximum is reached for the first time.
-        
+
         :param: hoscf, Higher Order Statistics Characteristic Function
         :type: 'Characteristic Function'
 
@@ -337,34 +347,34 @@ class SeismicShot(object):
         threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
 
         m = leftb
-        
+
         while hoscflist[m] < threshold:
             m += 1
- 
+
         hoscftime = list(hoscf.getTimeArray())[m]
 
         lb = max(0, m - windowsize[0]) # if window exceeds t = 0
         aiccfcut = list(aiccf.getCF())[lb : m + windowsize[1]]
         n = aiccfcut.index(min(aiccfcut))
- 
+
         m = lb + n
- 
+
         aiccftime = list(hoscf.getTimeArray())[m]
-       
+
         return aiccftime, hoscftime
 
     def getDistance(self, traceID):
         '''
         Returns the distance of the receiver with the ID == traceID to the source location (shot location).
         Uses getSrcLoc and getRecLoc.
-        
+
         :param: traceID
         :type: int
         '''
         shotX, shotY, shotZ = self.getSrcLoc()
         recX, recY, recZ = self.getRecLoc(traceID)
         dist = np.sqrt((shotX-recX)**2 + (shotY-recY)**2 + (shotZ-recZ)**2)
-        
+
         if np.isnan(dist) == True:
             raise ValueError("Distance is NaN for traceID %s" %traceID)
 
@@ -375,7 +385,7 @@ class SeismicShot(object):
         '''
         Returns the location (x, y, z) of the receiver with the ID == traceID.
         RECEIVEIVER FILE MUST BE SET FIRST, TO BE IMPROVED.
-        
+
         :param: traceID
         :type: int
         '''
@@ -389,7 +399,7 @@ class SeismicShot(object):
                 y = coordlist[i].split()[2]
                 z = coordlist[i].split()[3]
                 return float(x), float(y), float(z)
-            
+
         #print "WARNING: traceID %s not found" % traceID
         raise ValueError("traceID %s not found" % traceID)
         #return float(self.getSingleStream(traceID)[0].stats.seg2['RECEIVER_LOCATION'])
@@ -412,7 +422,7 @@ class SeismicShot(object):
         '''
         Returns the traceID(s) for a certain distance between source and receiver.
         Used for 2D Tomography. TO BE IMPROVED.
-        
+
         :param: distance
         :type: real
 
@@ -437,7 +447,7 @@ class SeismicShot(object):
     def setManualPicks(self, traceID, picklist): ########## picklist momentan nicht allgemein, nur testweise benutzt ##########
         '''
         Sets the manual picks for a receiver with the ID == traceID for comparison.
-        
+
         :param: traceID
         :type: int
 
@@ -452,15 +462,15 @@ class SeismicShot(object):
         if not self.manualpicks.has_key(traceID):
             self.manualpicks[traceID] = (mostlikely, earliest, latest)
         #else:
-        #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID) 
-        
+        #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID)
+
     def setPick(self, traceID, pick): ########## siehe Kommentar ##########
         self.pick[traceID] = pick
         # ++++++++++++++ Block raus genommen, da Error beim 2ten Mal picken! (Ueberschreiben von erstem Pick!)
         # if not self.pick.has_key(traceID):
         #     self.getPick(traceID) = picks
         # else:
-        #     raise KeyError('pick to be set more than once for traceID %s' % traceID) 
+        #     raise KeyError('pick to be set more than once for traceID %s' % traceID)
 
         #    def readParameter(self, parfile):
         #        parlist = open(parfile,'r').readlines()
@@ -474,12 +484,13 @@ class SeismicShot(object):
     def setSNR(self, traceID):  ########## FORCED HOS PICK ##########
         '''
         Gets the SNR using pylot and then sets the SNR for the traceID.
-        
+
         :param: traceID
         :type: int
 
         :param: (tnoise, tgap, tsignal), as used in pylot SNR
         '''
+
         from pylot.core.pick.utils import getSNR
 
         tgap = self.getTgap()
@@ -509,7 +520,7 @@ class SeismicShot(object):
     # def plot2dttc(self, dist_med = 0):  ########## 2D ##########
     #     '''
     #     Function to plot the traveltime curve for automated picks (AIC & HOS) of a shot. 2d only!
-        
+
     #     :param: dist_med (optional)
     #     :type: 'dictionary'
     #     '''
@@ -517,7 +528,7 @@ class SeismicShot(object):
     #     plt.interactive('True')
     #     aictimearray = []
     #     hostimearray = []
-    #     if dist_med is not 0: 
+    #     if dist_med is not 0:
     #         dist_medarray = []
 
     #     i = 1
@@ -573,14 +584,14 @@ class SeismicShot(object):
         import matplotlib.pyplot as plt
         from pylot.core.util.utils import getGlobalTimes
         from pylot.core.util.utils import prepTimeAxis
-        
+
         stream = self.getSingleStream(traceID)
         stime = getGlobalTimes(stream)[0]
-        timeaxis = prepTimeAxis(stime, stream[0]) 
+        timeaxis = prepTimeAxis(stime, stream[0])
         timeaxis -= stime
 
         plt.interactive('True')
-        
+
         hoscf = self.getHOScf(traceID)
         aiccf = self.getAICcf(traceID)
 
@@ -588,16 +599,16 @@ class SeismicShot(object):
         ax1 = plt.subplot(2,1,1)
         plt.title('Shot: %s, traceID: %s, pick: %s' %(self.getShotnumber(), traceID, self.getPick(traceID)))
         ax1.plot(timeaxis, stream[0].data, 'k', label = 'trace')
-        ax1.plot([self.getPick(traceID), self.getPick(traceID)], 
-                 [min(stream[0].data), 
+        ax1.plot([self.getPick(traceID), self.getPick(traceID)],
+                 [min(stream[0].data),
                   max(stream[0].data)],
                  'r', label = 'mostlikely')
         plt.legend()
         ax2 = plt.subplot(2,1,2, sharex = ax1)
         ax2.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
         ax2.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
-        ax2.plot([self.getPick(traceID), self.getPick(traceID)], 
-                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())), 
+        ax2.plot([self.getPick(traceID), self.getPick(traceID)],
+                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())),
                   max(np.maximum(hoscf.getCF(), aiccf.getCF()))],
                  'r', label = 'mostlikely')
         ax2.plot([0, self.getPick(traceID)],
@@ -605,7 +616,7 @@ class SeismicShot(object):
                  'm:', label = 'folm = %s' %folm)
         plt.xlabel('Time [s]')
         plt.legend()
-        
+
     def plot3dttc(self, step = 0.5, contour = False, plotpicks = False, method = 'linear', ax = None):
         '''
         Plots a 3D 'traveltime cone' as surface plot by interpolating on a regular grid over the traveltimes, not yet regarding the vertical offset of the receivers.
@@ -644,7 +655,7 @@ class SeismicShot(object):
         if ax == None:
             fig = plt.figure()
             ax = plt.axes(projection = '3d')
-        
+
         xsrc, ysrc, zsrc = self.getSrcLoc()
 
         if contour == True:
@@ -656,12 +667,12 @@ class SeismicShot(object):
 
         if plotpicks == True:
             ax.plot(x, y, z, 'k.')
-    
+
     def plotttc(self, method, *args):
         plotmethod = {'2d': self.plot2dttc, '3d': self.plot3dttc}
-        
+
         plotmethod[method](*args)
-        
+
     def matshow(self, step = 0.5, method = 'linear', ax = None, plotRec = False, annotations = False):
         '''
         Plots a 2D matrix of the interpolated traveltimes. This needs less performance than plot3dttc
@@ -701,7 +712,7 @@ class SeismicShot(object):
             ax = plt.axes()
 
         ax.imshow(zgrid, interpolation = 'none', extent = [min(x), max(x), min(y), max(y)])
-               
+
         if annotations == True:
             for i, traceID in enumerate(self.pick.keys()):
                 if shot.picks[traceID] != None:
