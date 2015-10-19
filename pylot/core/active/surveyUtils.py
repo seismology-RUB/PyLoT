@@ -20,7 +20,7 @@ def fitSNR4dist(shot_dict, shiftdist = 5):
         for traceID in shot.getTraceIDlist():
             if shot.getSNR(traceID)[0] >= 1:
                 dists.append(shot.getDistance(traceID))
-                picks.append(shot.getPick_backup(traceID))
+                picks.append(shot.getPickIncludeRemoved(traceID))
                 snrs.append(shot.getSNR(traceID)[0])
                 snr_sqrt_inv.append(1/np.sqrt(shot.getSNR(traceID)[0]))
     fit = np.polyfit(dists, snr_sqrt_inv, 1)
