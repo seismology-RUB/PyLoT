@@ -273,8 +273,7 @@ class MainWindow(QMainWindow):
                                       slot=self.autoPick, shortcut='Alt+Ctrl+A',
                                       icon=auto_icon, tip='Automatically pick'
                                                           ' the entire dataset'
-                                                          ' displayed!',
-                                      checkable=False)
+                                                          ' displayed!')
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
         autoPickActions = (auto_pick,)

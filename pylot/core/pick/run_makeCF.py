@@ -6,8 +6,8 @@
    Only for test purposes!
 """
 
-from obspy.core import read 
-import matplotlib.pyplot as plt  
+from obspy.core import read
+import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.CharFuns import CharacteristicFunction
 from pylot.core.pick.Picker import AutoPicking
@@ -56,7 +56,7 @@ def run_makeCF(project, database, event, iplot, station=None):
           st_copy = st.copy()
           #filter and taper data
           tr_filt = st[0].copy()
-          tr_filt.filter('bandpass', freqmin=bpz[0], freqmax=bpz[1], zerophase=False) 
+          tr_filt.filter('bandpass', freqmin=bpz[0], freqmax=bpz[1], zerophase=False)
           tr_filt.taper(max_percentage=0.05, type='hann')
           st_copy[0].data = tr_filt.data
           ##############################################################
@@ -120,8 +120,8 @@ def run_makeCF(project, database, event, iplot, station=None):
           #filter and taper data
           trH1_filt = H[0].copy()
           trH2_filt = H[1].copy()
-          trH1_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
-          trH2_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
+          trH1_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False)
+          trH2_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False)
           trH1_filt.taper(max_percentage=0.05, type='hann')
           trH2_filt.taper(max_percentage=0.05, type='hann')
           H_copy[0].data = trH1_filt.data
@@ -167,9 +167,9 @@ def run_makeCF(project, database, event, iplot, station=None):
           All1_filt = AllC[0].copy()
           All2_filt = AllC[1].copy()
           All3_filt = AllC[2].copy()
-          All1_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
-          All2_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False) 
-          All3_filt.filter('bandpass', freqmin=bpz[0], freqmax=bpz[1], zerophase=False) 
+          All1_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False)
+          All2_filt.filter('bandpass', freqmin=bph[0], freqmax=bph[1], zerophase=False)
+          All3_filt.filter('bandpass', freqmin=bpz[0], freqmax=bpz[1], zerophase=False)
           All1_filt.taper(max_percentage=0.05, type='hann')
           All2_filt.taper(max_percentage=0.05, type='hann')
           All3_filt.taper(max_percentage=0.05, type='hann')
@@ -209,19 +209,19 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.ylim([-1.5, 1.5])
              plt.xlabel('Time [s]')
              plt.ylabel('Normalized Counts')
-             plt.title('%s, %s, CF-SNR=%7.2f, CF-Slope=%12.2f' % (tr.stats.station, \
-                        tr.stats.channel, aicpick.getSNR(), aicpick.getSlope()))
+             plt.title('%s, %s, CF-SNR=%7.2f, CF-Slope=%12.2f' % (tr.stats.station,
+                                                                  tr.stats.channel, aicpick.getSNR(), aicpick.getSlope()))
              plt.suptitle(tr.stats.starttime)
-             plt.legend([p1, p2, p3, p4, p5], ['Data', 'HOS-CF', 'HOSAIC-CF', 'ARZ-CF', 'ARZAIC-CF']) 
+             plt.legend([p1, p2, p3, p4, p5], ['Data', 'HOS-CF', 'HOSAIC-CF', 'ARZ-CF', 'ARZAIC-CF'])
              #plot horizontal traces
              plt.figure(2)
              plt.subplot(2,1,1)
-             tsteph = tpredh / 4 
+             tsteph = tpredh / 4
              th1data = np.arange(0, trH1_filt.stats.npts / trH1_filt.stats.sampling_rate, trH1_filt.stats.delta)
              th2data = np.arange(0, trH2_filt.stats.npts / trH2_filt.stats.sampling_rate, trH2_filt.stats.delta)
              tarhcf = np.arange(0, len(arhcf.getCF()) * tsteph, tsteph) + cuttimes[0] + tdeth +tpredh
              p21, = plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
-             p22, = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             p22, = plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r')
              p23, = plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
@@ -238,10 +238,10 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.ylabel('Normalized Counts')
              plt.title([trH1_filt.stats.station, trH1_filt.stats.channel])
              plt.suptitle(trH1_filt.stats.starttime)
-             plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF']) 
+             plt.legend([p21, p22, p23], ['Data', 'ARH-CF', 'ARHAIC-CF'])
              plt.subplot(2,1,2)
              plt.plot(th2data, trH2_filt.data/max(trH2_filt.data), 'k')
-             plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r') 
+             plt.plot(arhcf.getTimeArray(), arhcf.getCF()/max(arhcf.getCF()), 'r')
              plt.plot(arhaiccf.getTimeArray(), arhaiccf.getCF()/max(arhaiccf.getCF()))
              plt.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'b')
              plt.plot([aicarhpick.getpick()-0.5, aicarhpick.getpick()+0.5], [1, 1], 'b')
@@ -271,7 +271,7 @@ def run_makeCF(project, database, event, iplot, station=None):
              plt.ylabel('Normalized Counts')
              plt.title([tr.stats.station, tr.stats.channel])
              plt.suptitle(trH1_filt.stats.starttime)
-             plt.legend([p31, p32], ['Data', 'AR3C-CF']) 
+             plt.legend([p31, p32], ['Data', 'AR3C-CF'])
              plt.subplot(3,1,2)
              plt.plot(th1data, trH1_filt.data/max(trH1_filt.data), 'k')
              plt.plot(ar3ccf.getTimeArray(), ar3ccf.getCF()/max(ar3ccf.getCF()), 'r')

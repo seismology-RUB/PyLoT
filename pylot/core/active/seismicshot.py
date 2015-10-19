@@ -437,7 +437,7 @@ class SeismicShot(object):
                     if self.getDistance(traceID) == distance:
                         traceID_list.append(traceID)
                 if distancebin[0] >= 0 and distancebin[1] > 0:
-                    if self.getDistance(traceID) > distancebin[0] and self.getDistance(traceID) < distancebin[1]:
+                    if distancebin[0] < self.getDistance(traceID) < distancebin[1]:
                         traceID_list.append(traceID)
 
         if len(traceID_list) > 0:

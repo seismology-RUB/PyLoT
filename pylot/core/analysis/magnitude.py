@@ -185,7 +185,7 @@ class DCfc(Magnitude):
         [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [DCin, Fcin])
         self.w0 = optspecfit[0]
         self.fc = optspecfit[1]
-        print ("DCfc: Determined DC-value: %e m/Hz, \n" \
+        print ("DCfc: Determined DC-value: %e m/Hz, \n"
                "Determined corner frequency: %f Hz" % (self.w0, self.fc))
 
 

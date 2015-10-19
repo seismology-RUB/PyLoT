@@ -204,27 +204,27 @@ def autopickstation(wfstream, pickparam):
             if len(ndat) == 0 or len(edat) == 0:
                 print ("One or more horizontal components missing!")
                 print ("Signal length only checked on vertical component!")
-                print ("Decreasing minsiglengh from %f to %f" \
-                        % (minsiglength, minsiglength / 2))
+                print ("Decreasing minsiglengh from %f to %f"
+                       % (minsiglength, minsiglength / 2))
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength / 2, \
+                                          minsiglength / 2,
                                           nfacsl, minpercent, iplot)
             else:
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
                 trH2_filt = ndat.copy()
                 trH1_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1], \
-                                  zerophase=False)
+                                  freqmax=bph1[1],
+                                 zerophase=False)
                 trH2_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1], \
-                                  zerophase=False)
+                                  freqmax=bph1[1],
+                                 zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 zne += trH1_filt
                 zne += trH2_filt
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength, \
+                                          minsiglength,
                                           nfacsl, minpercent, iplot)
 
             if Pflag == 1:
@@ -234,7 +234,7 @@ def autopickstation(wfstream, pickparam):
                     print 'One or more horizontal components missing!'
                     print 'Skipping control function checkZ4S.'
                 else:
-                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
+                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
                                      tsnrz[3], iplot)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
@@ -331,7 +331,7 @@ def autopickstation(wfstream, pickparam):
                     # waveform after P onset!
                     zc = crossings_nonzero_all(wfzc)
                     if np.size(zc) == 0:
-                        print ("Something is wrong with the waveform, " \
+                        print ("Something is wrong with the waveform, "
                                "no zero crossings derived!")
                         print ("Cannot calculate source spectrum!")
                     else:
@@ -341,7 +341,7 @@ def autopickstation(wfstream, pickparam):
                     w0 = specpara.getw0()
                     fc = specpara.getfc()
 
-                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, " \
+                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
                        "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
                 Sflag = 1
 
@@ -352,7 +352,7 @@ def autopickstation(wfstream, pickparam):
             Sflag = 0
 
     else:
-        print ("autopickstation: No vertical component data available!, " \
+        print ("autopickstation: No vertical component data available!, "
                "Skipping station!")
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
@@ -593,8 +593,8 @@ def autopickstation(wfstream, pickparam):
             if restflag == 1:
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
-                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP \
-                            + sstop)), iplot)
+                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
+                                                                     + sstop)), iplot)
                 Ao = wapp.getwapp()
 
     else:
@@ -771,14 +771,14 @@ def autopickstation(wfstream, pickparam):
     # create dictionary
     # for P phase
     phase = 'P'
-    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror, \
+    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
                  'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
     # add S phase
     phase = 'S'
-    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror, \
+    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror,
                  'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
     picks[phase] = phasepick
     # add Wood-Anderson amplitude

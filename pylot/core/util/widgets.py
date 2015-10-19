@@ -814,9 +814,10 @@ class PropertiesDlg(QDialog):
             if values is not None:
                 self.setValues(values)
 
-    def setValues(self, tabValues):
+    @staticmethod
+    def setValues(tabValues):
         settings = QSettings()
-        for setting, value in tabValues.iteritems():
+        for setting, value in tabValues.items():
             settings.setValue(setting, value)
         settings.sync()
 

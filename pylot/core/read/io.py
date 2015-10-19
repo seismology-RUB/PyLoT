@@ -73,8 +73,8 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
 
         stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = createEvent(eventDate, loccinfo, None, 'earthquake', eventNum,
-                            authority_id)
+        event = createEvent(eventDate, loccinfo, etype='earthquake', resID=eventNum,
+                            authority_id=authority_id)
 
         lat = float(loc['LAT'])
         lon = float(loc['LON'])
@@ -130,7 +130,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         event.magnitudes.append(magnitude)
         return event
 
-    except AttributeError, e:
+    except AttributeError as e:
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
 
