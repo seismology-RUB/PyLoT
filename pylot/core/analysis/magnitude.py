@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created August/September 2015.
@@ -34,7 +35,7 @@ class Magnitude(object):
         :type: integer
 
         '''
-        
+
         assert isinstance(wfstream, Stream), "%s is not a stream object" % str(wfstream)
 
         self.setwfstream(wfstream)
@@ -62,7 +63,7 @@ class Magnitude(object):
 
     def setpwin(self, pwin):
         self.pwin = pwin
-   
+
     def getiplot(self):
         return self.iplot
 
@@ -71,7 +72,7 @@ class Magnitude(object):
 
     def getwapp(self):
         return self.wapp
-  
+
     def getw0(self):
         return self.w0
 
@@ -103,7 +104,7 @@ class WApp(Magnitude):
             'poles': [5.6089 - 5.4978j, -5.6089 - 5.4978j],
             'zeros': [0j, 0j],
             'gain': 2080,
-            'sensitivity': 1} 
+            'sensitivity': 1}
 
         stream.simulate(paz_remove=None, paz_simulate=paz_wa)
 
@@ -133,19 +134,19 @@ class WApp(Magnitude):
             raw_input()
             plt.close(f)
 
-    
+
 class DCfc(Magnitude):
     '''
-    Method to calculate the source spectrum and to derive from that the plateau 
-    (so-called DC-value) and the corner frequency assuming Aki's omega-square 
+    Method to calculate the source spectrum and to derive from that the plateau
+    (so-called DC-value) and the corner frequency assuming Aki's omega-square
     source model. Has to be derived from instrument corrected displacement traces!
     '''
 
     def calcsourcespec(self):
-    	print ("Calculating source spectrum ....")
+        print ("Calculating source spectrum ....")
 
         self.w0 = None # DC-value
-        self.fc = None # corner frequency 
+        self.fc = None # corner frequency
 
         stream = self.getwfstream()
         tr = stream[0]
@@ -155,7 +156,7 @@ class DCfc(Magnitude):
         iwin = getsignalwin(t, self.getTo(), self.getpwin())
         xdat = tr.data[iwin]
 
-        # fft 
+        # fft
         fny = tr.stats.sampling_rate / 2
         l = len(xdat) / tr.stats.sampling_rate
         n = tr.stats.sampling_rate * l # number of fft bins after Bath
@@ -167,7 +168,7 @@ class DCfc(Magnitude):
         L = (N - 1) / tr.stats.sampling_rate
         f = np.arange(0, fny, 1/L)
 
-        # remove zero-frequency and frequencies above 
+        # remove zero-frequency and frequencies above
         # corner frequency of seismometer (assumed
         # to be 100 Hz)
         fi = np.where((f >= 1) & (f < 100))
@@ -185,15 +186,15 @@ class DCfc(Magnitude):
         self.w0 = optspecfit[0]
         self.fc = optspecfit[1]
         print ("DCfc: Determined DC-value: %e m/Hz, \n" \
-               "Determined corner frequency: %f Hz" % (self.w0, self.fc)) 
-        
-        
+               "Determined corner frequency: %f Hz" % (self.w0, self.fc))
+
+
         if self.getiplot() > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
             # show displacement in mm
-            plt.plot(t, np.multiply(tr, 1000), 'k') 
-            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g') 
+            plt.plot(t, np.multiply(tr, 1000), 'k')
+            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
             plt.title('Seismogram and P pulse, station %s' % tr.stats.station)
             plt.xlabel('Time since %s' % tr.stats.starttime)
             plt.ylabel('Displacement [mm]')
@@ -214,8 +215,8 @@ class DCfc(Magnitude):
 
 def synthsourcespec(f, omega0, fcorner):
     '''
-    Calculates synthetic source spectrum from given plateau and corner 
-    frequency assuming Akis omega-square model.  
+    Calculates synthetic source spectrum from given plateau and corner
+    frequency assuming Akis omega-square model.
 
     :param: f, frequencies
     :type:  array
@@ -226,7 +227,7 @@ def synthsourcespec(f, omega0, fcorner):
     :param: fcorner, corner frequency of source spectrum
     :type:  float
     '''
-        
+
     #ssp = omega0 / (pow(2, (1 + f / fcorner)))
     ssp = omega0 / (1 + pow(2, (f / fcorner)))
 

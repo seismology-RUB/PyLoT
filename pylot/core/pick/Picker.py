@@ -312,7 +312,7 @@ class PragPicker(AutoPicking):
             else:
                 for i in range(1, len(self.cf)):
                     if i > ismooth:
-                        ii1 = i - ismooth;
+                        ii1 = i - ismooth
                         cfsmooth[i] = cfsmooth[i - 1] + (self.cf[i] - self.cf[ii1]) / ismooth
                     else:
                         cfsmooth[i] = np.mean(self.cf[1 : i])

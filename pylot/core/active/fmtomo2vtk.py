@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 
 def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
@@ -73,7 +74,7 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
 
     dX = getDistance(np.rad2deg(dPhi))
     dY = getDistance(np.rad2deg(dTheta))
-    
+
     nPoints = nX * nY * nZ
 
     dZ = dR
@@ -114,7 +115,7 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
         R = 6371.
         distance = angle / 180 * (PI * R)
         return distance
-    
+
     infile = open(fnin, 'r')
     R = 6371
     rays = {}
@@ -124,7 +125,7 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
     ### NOTE: rays.dat seems to be in km and radians
 
     while True:
-        raynumber += 1 
+        raynumber += 1
         firstline = infile.readline()
         if firstline == '': break # break at EOF
         raynumber = int(firstline.split()[0])

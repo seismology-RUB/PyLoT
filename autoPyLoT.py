@@ -8,11 +8,11 @@ import glob
 
 import matplotlib.pyplot as plt
 from obspy.core import read
-from pylot.core.util import _getVersionString
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 

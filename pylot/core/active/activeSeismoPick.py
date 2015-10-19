@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import numpy as np
 from pylot.core.active import seismicshot
@@ -14,7 +15,7 @@ class Survey(object):
         self._sourcefile = sourcefile
         self._obsdir = path
         self._generateSurvey()
-        if useDefaultParas == True: 
+        if useDefaultParas == True:
             self.setParametersForShots()
         self._removeAllEmptyTraces()
         self._updateShots()
@@ -72,7 +73,7 @@ class Survey(object):
             if removed is not None:
                 if count == 0: outfile = open(filename, 'w')
                 count += 1
-                outfile.writelines('shot: %s, removed empty traces: %s\n' 
+                outfile.writelines('shot: %s, removed empty traces: %s\n'
                                    %(shot.getShotnumber(), removed))
         print ("\nremoveEmptyTraces: Finished! Removed %d traces" %count)
         if count > 0:
@@ -90,7 +91,7 @@ class Survey(object):
                 count += 1
                 countTraces += len(del_traceIDs)
                 outfile.writelines("shot: %s, removed traceID(s) %s because "
-                                   "they were not found in the corresponding stream\n" 
+                                   "they were not found in the corresponding stream\n"
                                    %(shot.getShotnumber(), del_traceIDs))
 
         print ("\nupdateShots: Finished! Updated %d shots and removed "
@@ -166,8 +167,8 @@ class Survey(object):
 
     def countAllTraces(self):
         numtraces = 0
-        for line in self.getShotlist():
-            for line in self.getReceiverlist():
+        for shot in self.getShotlist():
+            for rec in self.getReceiverlist():
                 numtraces += 1
         return numtraces
 
@@ -202,7 +203,7 @@ class Survey(object):
 
     def getReceiverfile(self):
         return self._recfile
-    
+
     def getPath(self):
         return self._obsdir
 
@@ -250,7 +251,7 @@ class Survey(object):
             (x, y, z) = shot.getSrcLoc() # getSrcLoc returns (x, y, z)
             srcfile.writelines('%10s %10s %10s\n' %(getAngle(y), getAngle(x), (-1)*z)) # lat, lon, depth
             LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
-            srcfile.writelines('%10s\n' %1) # 
+            srcfile.writelines('%10s\n' %1) #
             srcfile.writelines('%10s %10s %10s\n' %(1, 1, ttfilename))
             ttfile = open(directory + '/' + ttfilename, 'w')
             traceIDlist = shot.getTraceIDlist()
@@ -265,7 +266,7 @@ class Survey(object):
                     LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
                     count += 1
             ttfile.close()
-        srcfile.close()       
+        srcfile.close()
         print 'Wrote output for %s traces' %count
         print 'WARNING: output generated for FMTOMO-obsdata. Obsdata seems to take Lat, Lon, Depth and creates output for FMTOMO as Depth, Lat, Lon'
         print 'Dimensions of the seismic Array, transformed for FMTOMO, are Depth(%s, %s), Lat(%s, %s), Lon(%s, %s)'%(
@@ -410,7 +411,7 @@ class Survey(object):
         return ax
 
     def _update_progress(self, shotname, tend, progress):
-        sys.stdout.write("Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r" 
+        sys.stdout.write("Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r"
                          %(shotname, tend.hour, tend.minute, tend.second, progress))
         sys.stdout.flush()
 
@@ -420,8 +421,8 @@ class Survey(object):
 
         cPickle.dump(self, outfile, -1)
         print('saved Survey to file %s'%(filename))
-        
-    @staticmethod    
+
+    @staticmethod
     def from_pickle(filename):
         import cPickle
         infile = open(filename, 'rb')
