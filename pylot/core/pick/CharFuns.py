@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created Oct/Nov 2014
@@ -119,7 +120,7 @@ class CharacteristicFunction(object):
 
     def getTimeArray(self):
         incr = self.getIncrement()
-        self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0] 
+        self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0]
         return self.TimeArray
 
     def getFnoise(self):
@@ -175,7 +176,7 @@ class CharacteristicFunction(object):
                 h2 = hh[1].copy()
                 hh[0].data = h1.data[int(start):int(stop)]
                 hh[1].data = h2.data[int(start):int(stop)]
-                data = hh 
+                data = hh
                 return data
             elif len(self.orig_data) == 3:
                 if self.cut[0] == 0 and self.cut[1] == 0:
@@ -196,12 +197,12 @@ class CharacteristicFunction(object):
                 hh[0].data = h1.data[int(start):int(stop)]
                 hh[1].data = h2.data[int(start):int(stop)]
                 hh[2].data = h3.data[int(start):int(stop)]
-                data = hh 
+                data = hh
                 return data
         else:
             data = self.orig_data.copy()
             return data
-       
+
     def calcCF(self, data=None):
         self.cf = data
 
@@ -285,7 +286,7 @@ class HOScf(CharacteristicFunction):
                 LTA[j] = lta / np.power(lta1, 1.5)
             elif self.getOrder() == 4:
                 LTA[j] = lta / np.power(lta1, 2)
-        
+
         nn = np.isnan(LTA)
         if len(nn) > 1:
            LTA[nn] = 0
@@ -315,7 +316,7 @@ class ARZcf(CharacteristicFunction):
         cf = np.zeros(len(xnp))
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() #AR-calculation index
-	for i in range(ldet + self.getOrder(), tend - lpred - 1):
+        for i in range(ldet + self.getOrder(), tend - lpred - 1):
             if i == arcalci:
                 #determination of AR coefficients
                 #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
@@ -362,7 +363,7 @@ class ARZcf(CharacteristicFunction):
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
             for i in range(rind, ldet+1):
-		ki = k + 1
+                ki = k + 1
                 rhs[k] = rhs[k] + data[i] * data[i - ki]
 
         #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
@@ -382,7 +383,7 @@ class ARZcf(CharacteristicFunction):
     def arPredZ(self, data, arpara, rind, lpred):
         '''
         Function to predict waveform, assuming an autoregressive process of order
-        p (=size(arpara)), with AR parameters arpara calculated in arDet. After 
+        p (=size(arpara)), with AR parameters arpara calculated in arDet. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
         :param: data, time series to be predicted
         :type: array
@@ -400,9 +401,9 @@ class ARZcf(CharacteristicFunction):
         '''
         #be sure of the summation indeces
         if rind < len(arpara):
-            rind = len(arpara) 
+            rind = len(arpara)
         if rind > len(data) - lpred :
-            rind = len(data) - lpred 
+            rind = len(data) - lpred
         if lpred < 1:
             lpred = 1
         if lpred > len(data) - 2:
@@ -422,7 +423,7 @@ class ARHcf(CharacteristicFunction):
     def calcCF(self, data):
 
         print 'Calculating AR-prediction error from both horizontal traces ...'
-        
+
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
         if len(n0) > 1:
@@ -430,7 +431,7 @@ class ARHcf(CharacteristicFunction):
         n1 = np.isnan(xnp[1].data)
         if len(n1) > 1:
            xnp[1].data[n1] = 0
-        
+
         #some parameters needed
         #add noise to time series
         xenoise = xnp[0].data + np.random.normal(0.0, 1.0, len(xnp[0].data)) * self.getFnoise() * max(abs(xnp[0].data))
@@ -441,7 +442,7 @@ class ARHcf(CharacteristicFunction):
         #Time2: length of AR-prediction window [sec]
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
-              
+
         cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
         arcalci = lpred + self.getOrder() - 1 #AR-calculation index
@@ -515,7 +516,7 @@ class ARHcf(CharacteristicFunction):
     def arPredH(self, data, arpara, rind, lpred):
         '''
         Function to predict waveform, assuming an autoregressive process of order
-        p (=size(arpara)), with AR parameters arpara calculated in arDet. After 
+        p (=size(arpara)), with AR parameters arpara calculated in arDet. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
         :param: data, horizontal component seismograms to be predicted
         :type: structured array
@@ -558,7 +559,7 @@ class AR3Ccf(CharacteristicFunction):
     def calcCF(self, data):
 
         print 'Calculating AR-prediction error from all 3 components ...'
-        
+
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
         if len(n0) > 1:
@@ -569,7 +570,7 @@ class AR3Ccf(CharacteristicFunction):
         n2 = np.isnan(xnp[2].data)
         if len(n2) > 1:
            xnp[2].data[n2] = 0
-        
+
         #some parameters needed
         #add noise to time series
         xenoise = xnp[0].data + np.random.normal(0.0, 1.0, len(xnp[0].data)) * self.getFnoise() * max(abs(xnp[0].data))
@@ -581,7 +582,7 @@ class AR3Ccf(CharacteristicFunction):
         #Time2: length of AR-prediction window [sec]
         ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
         lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
-              
+
         cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
         arcalci = ldet + self.getOrder() - 1 #AR-calculation index
@@ -616,7 +617,7 @@ class AR3Ccf(CharacteristicFunction):
         Function to calculate AR parameters arpara after Thomas Meier (CAU), published
         in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
         Penrose inverse, i.e. the least-squares approach. "data" is a structured array.
-        AR parameters are calculated based on both horizontal components and vertical 
+        AR parameters are calculated based on both horizontal components and vertical
         componant.
         :param: data, horizontal component seismograms to calculate AR parameters from
         :type: structured array
@@ -658,7 +659,7 @@ class AR3Ccf(CharacteristicFunction):
     def arPred3C(self, data, arpara, rind, lpred):
         '''
         Function to predict waveform, assuming an autoregressive process of order
-        p (=size(arpara)), with AR parameters arpara calculated in arDet3C. After 
+        p (=size(arpara)), with AR parameters arpara calculated in arDet3C. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
         :param: data, horizontal and vertical component seismograms to be predicted
         :type: structured array

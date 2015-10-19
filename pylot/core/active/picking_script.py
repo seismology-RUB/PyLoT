@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 from obspy import read
 from obspy import Stream
@@ -28,7 +29,7 @@ if rockeskyll == True:
     obsdir = "/rscratch/minos22/marcel/flachseismik/rockeskyll_200615_270615/"
     filename = 'survey_rockes.pickle'
 else:
-    receiverfile = "Geophone_interpoliert_GZB" 
+    receiverfile = "Geophone_interpoliert_GZB"
     sourcefile = "Schusspunkte_GZB"
     obsdir = "/rscratch/minos22/marcel/flachseismik/GZB_26_06_15_01/"
     filename = 'survey_GZB.pickle'
@@ -85,9 +86,9 @@ for shot in survey.data.values():
         shot.setPickwindow(traceID, pickwin_used)
         shot.pickTraces(traceID, windowsize, folm, HosAic) # picker
         #shot.setManualPicks(traceID, picklist) # set manual picks if given (yet used on 2D only)
-        
+
         # ++ TEST: set and check SNR before adding to distance bin ############################
-        shot.setSNR(traceID)    
+        shot.setSNR(traceID)
         #if shot.getSNR(traceID)[0] < snrthreshold:
         if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
                 shot.removePick(traceID)

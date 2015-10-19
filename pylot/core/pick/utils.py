@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # -*- coding: utf-8 -*-
 """
@@ -91,7 +92,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
         T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length
         # T0/4 is assumed as time difference between most likely and earliest possible pick!
         EPick = Pick1 - T0 / 2
-            
+
 
     # get symmetric pick error as mean from earliest and latest possible pick
     # by weighting latest possible pick two times earliest possible pick
@@ -493,9 +494,9 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
 
     if len(SPtimes) >= 3:
-    	# calculate slope
-    	p1 = np.polyfit(Ppicks, SPtimes, 1)
-    	wdfit = np.polyval(p1, Ppicks)
+        # calculate slope
+        p1 = np.polyfit(Ppicks, SPtimes, 1)
+        wdfit = np.polyval(p1, Ppicks)
         wfitflag = 0
 
         # calculate vp/vs ratio before check
@@ -532,40 +533,40 @@ def wadaticheck(pickdic, dttolerance, iplot):
                 pickdic[key]['S']['marked'] = marker
 
         if len(checkedPpicks) >= 3:
-    		# calculate new slope
-    		p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
-    		wdfit2 = np.polyval(p2, checkedPpicks)
+            # calculate new slope
+            p2 = np.polyfit(checkedPpicks, checkedSPtimes, 1)
+            wdfit2 = np.polyval(p2, checkedPpicks)
 
-        	# calculate vp/vs ratio after check
-        	cvpvsr = p2[0] + 1
-        	print ("wadaticheck: Average Vp/Vs ratio after check: %f" % cvpvsr)
-                print ("wadatacheck: Skipped %d S pick(s)" % ibad)
+            # calculate vp/vs ratio after check
+            cvpvsr = p2[0] + 1
+            print ("wadaticheck: Average Vp/Vs ratio after check: %f" % cvpvsr)
+            print ("wadatacheck: Skipped %d S pick(s)" % ibad)
         else:
-                print ("###############################################")
-        	print ("wadatacheck: Not enough checked S-P times available!")
-                print ("Skip Wadati check!")
+            print ("###############################################")
+            print ("wadatacheck: Not enough checked S-P times available!")
+            print ("Skip Wadati check!")
 
         checkedonsets = pickdic
 
     else:
-    	print ("wadaticheck: Not enough S-P times available for reliable regression!")
+        print ("wadaticheck: Not enough S-P times available for reliable regression!")
         print ("Skip wadati check!")
         wfitflag = 1
 
     # plot results
     if iplot > 1:
-    	plt.figure(iplot)
-    	f1, = plt.plot(Ppicks, SPtimes, 'ro')
+        plt.figure(iplot)
+        f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
-        	f2, = plt.plot(Ppicks, wdfit, 'k')
-                f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
-                f4, = plt.plot(checkedPpicks, wdfit2, 'g')
-                plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
-                          'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
-                plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', \
-                           'Reliable S-Picks', 'Wadati 2'], loc='best')
+            f2, = plt.plot(Ppicks, wdfit, 'k')
+            f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
+            f4, = plt.plot(checkedPpicks, wdfit2, 'g')
+            plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
+                      'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
+            plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1', \
+                       'Reliable S-Picks', 'Wadati 2'], loc='best')
         else:
-        	plt.title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
+            plt.title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
 
         plt.ylabel('S-P Times [s]')
         plt.xlabel('P Times [s]')
@@ -579,8 +580,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
 def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     '''
     Function to detect spuriously picked noise peaks.
-    Uses RMS trace of all 3 components (if available) to determine, 
-    how many samples [per cent] after P onset are below certain 
+    Uses RMS trace of all 3 components (if available) to determine,
+    how many samples [per cent] after P onset are below certain
     threshold, calculated from noise level times noise factor.
 
     : param: X, time series (seismogram)
@@ -612,7 +613,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     print ("Checking signal length ...")
 
     if len(X) > 1:
-    	# all three components available
+        # all three components available
         # make sure, all components have equal lengths
         ilen = min([len(X[0].data), len(X[1].data), len(X[2].data)])
         x1 = X[0][0:ilen]
@@ -639,7 +640,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     numoverthr = len(np.where(rms[isignal] >= minsiglevel)[0])
 
     if numoverthr >= minnum:
-    	print ("checksignallength: Signal reached required length.")
+        print ("checksignallength: Signal reached required length.")
         returnflag = 1
     else:
         print ("checksignallength: Signal shorter than required minimum signal length!")
@@ -649,7 +650,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
 
     if iplot == 2:
         plt.figure(iplot)
-    	p1, = plt.plot(t,rms, 'k')
+        p1, = plt.plot(t,rms, 'k')
         p2, = plt.plot(t[inoise], rms[inoise], 'c')
         p3, = plt.plot(t[isignal],rms[isignal], 'r')
         p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]], \
@@ -729,27 +730,27 @@ def checkPonsets(pickdic, dttolerance, iplot):
     badjkmarker = 'badjkcheck'
     for i in range(0, len(goodstations)):
         # mark P onset as checked and keep P weight
-    	pickdic[goodstations[i]]['P']['marked'] = goodmarker
+        pickdic[goodstations[i]]['P']['marked'] = goodmarker
     for i in range(0, len(badstations)):
-       	# mark P onset and downgrade P weight to 9
-       	# (not used anymore)
-    	pickdic[badstations[i]]['P']['marked'] = badmarker
-      	pickdic[badstations[i]]['P']['weight'] = 9
+        # mark P onset and downgrade P weight to 9
+        # (not used anymore)
+        pickdic[badstations[i]]['P']['marked'] = badmarker
+        pickdic[badstations[i]]['P']['weight'] = 9
     for i in range(0, len(badjkstations)):
-       	# mark P onset and downgrade P weight to 9
-       	# (not used anymore)
-    	pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
-      	pickdic[badjkstations[i]]['P']['weight'] = 9
+        # mark P onset and downgrade P weight to 9
+        # (not used anymore)
+        pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
+        pickdic[badjkstations[i]]['P']['weight'] = 9
 
     checkedonsets = pickdic
 
     if iplot > 1:
-    	p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
+        p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
         p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
         p3, = plt.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g', \
                         linewidth=2)
         for i in range(0, len(Ppicks)):
-        	plt.text(i, Ppicks[i] + 0.2, stations[i])
+            plt.text(i, Ppicks[i] + 0.2, stations[i])
 
         plt.xlabel('Number of P Picks')
         plt.ylabel('Onset Time [s] from 1.1.1970')
@@ -789,37 +790,37 @@ def jackknife(X, phi, h):
     g = len(X) / h
 
     if type(g) is not int:
-    	print ("jackknife: Cannot divide quantity X in equal sized subgroups!")
+        print ("jackknife: Cannot divide quantity X in equal sized subgroups!")
         print ("Choose another size for subgroups!")
         return PHI_jack, PHI_pseudo, PHI_sub
     else:
-    	# estimator of undisturbed spot check
-    	if phi == 'MEA':
-        	phi_sc = np.mean(X)
+        # estimator of undisturbed spot check
+        if phi == 'MEA':
+            phi_sc = np.mean(X)
         elif phi == 'VAR':
-        	phi_sc = np.var(X)
+            phi_sc = np.var(X)
         elif phi == 'MED':
-        	phi_sc = np.median(X)
+            phi_sc = np.median(X)
 
-    	# estimators of subgroups
+        # estimators of subgroups
         PHI_pseudo = []
         PHI_sub = []
         for i in range(0, g - 1):
-        	# subgroup i, remove i-th sample
-                xx = X[:]
-                del xx[i]
-                # calculate estimators of disturbed spot check
-        	if phi == 'MEA':
-                	phi_sub = np.mean(xx)
-                elif phi == 'VAR':
-                	phi_sub = np.var(xx)
-                elif phi == 'MED':
-                	phi_sub = np.median(xx)
+            # subgroup i, remove i-th sample
+            xx = X[:]
+            del xx[i]
+            # calculate estimators of disturbed spot check
+            if phi == 'MEA':
+                phi_sub = np.mean(xx)
+            elif phi == 'VAR':
+                phi_sub = np.var(xx)
+            elif phi == 'MED':
+                phi_sub = np.median(xx)
 
-                PHI_sub.append(phi_sub)
-                # pseudo values
-                phi_pseudo = g * phi_sc - ((g - 1) * phi_sub)
-                PHI_pseudo.append(phi_pseudo)
+            PHI_sub.append(phi_sub)
+            # pseudo values
+            phi_pseudo = g * phi_sc - ((g - 1) * phi_sub)
+            PHI_pseudo.append(phi_pseudo)
         # jackknife estimator
         PHI_jack = np.mean(PHI_pseudo)
 
@@ -899,17 +900,17 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     # vertical P-coda level must exceed horizontal P-coda level
     # zfac times encodalevel
     if zcodalevel < minsiglevel:
-    	print ("checkZ4S: Maybe S onset? Skip this P pick!")
+        print ("checkZ4S: Maybe S onset? Skip this P pick!")
     else:
         print ("checkZ4S: P onset passes checkZ4S test!")
         returnflag = 1
 
     if iplot > 1:
-    	te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
+        te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
                   edat[0].stats.delta)
-    	tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
+        tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
                   ndat[0].stats.delta)
-    	plt.plot(tz, z / max(z), 'k')
+        plt.plot(tz, z / max(z), 'k')
         plt.plot(tz[isignal], z[isignal] / max(z), 'r')
         plt.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
         plt.plot(te[isignal], edat[0].data[isignal] / max(edat[0].data) + 1, 'r')

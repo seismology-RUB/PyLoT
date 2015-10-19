@@ -35,8 +35,7 @@ class SeismicShot(object):
         self.snr = {}
         self.snrthreshold = {}
         self.timeArray = {}
-        self.paras = {}
-        self.paras['shotname'] = obsfile
+        self.paras = {'shotname': obsfile}
 
     def removeEmptyTraces(self):
         traceIDs = []

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 plt.interactive(True)
 
@@ -13,9 +14,9 @@ class regions(object):
         self.shots_for_deletion = {}
 
     def _onselect(self, eclick, erelease):
-        'eclick and erelease are matplotlib events at press and release'                                                                                            #print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)     
-        #print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata) 
-        print 'region selected x0, y0 = (%3s, %3s), x1, y1 = (%3s, %3s)'%(eclick.xdata, eclick.ydata, erelease.xdata, erelease.ydata)      
+        'eclick and erelease are matplotlib events at press and release'                                                                                            #print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
+        #print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
+        print 'region selected x0, y0 = (%3s, %3s), x1, y1 = (%3s, %3s)'%(eclick.xdata, eclick.ydata, erelease.xdata, erelease.ydata)
         x0 = min(eclick.xdata, erelease.xdata)
         x1 = max(eclick.xdata, erelease.xdata)
         y0 = min(eclick.ydata, erelease.ydata)
@@ -51,7 +52,7 @@ class regions(object):
         return self.shots_for_deletion
 
     def findTracesInShotDict(self, picks = 'normal'):
-        '''                                                                                                               
+        '''
         Returns traces corresponding to a certain area in a plot with all picks over the distances.
         '''
         print "findTracesInShotDict: Searching for marked traces in the shot dictionary... "
@@ -116,7 +117,7 @@ class regions(object):
                             shot.plot_traces(traceID)
         else:
             print 'No picks yet defined in the regions x = (%s, %s), y = (%s, %s)' %(self._x0, self._x1, self._y0, self._y1)
-           
+
 
     def setCurrentRegionsForDeletion(self):
         # if len(self.shots_found) == 0:

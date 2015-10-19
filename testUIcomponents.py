@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 
 import sys, time
 from PySide.QtGui import QApplication
@@ -9,7 +11,7 @@ dialogs = [FilterOptionsDialog, PropertiesDlg, HelpForm]
 app = QApplication(sys.argv)
 
 for dlg in dialogs:
-	win = dlg()
-	win.show()
-	time.sleep(1)
-	win.destroy()
+    win = dlg()
+    win.show()
+    time.sleep(1)
+    win.destroy()
