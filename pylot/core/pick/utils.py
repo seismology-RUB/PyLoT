@@ -15,7 +15,7 @@ from obspy.core import Stream, UTCDateTime
 import warnings
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -44,7 +44,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     LPick = None
     EPick = None
     PickError = None
-    #print 'earllatepicker: Get earliest and latest possible pick relative to most likely pick ...'
+    if stealthMode is False:
+        print 'earllatepicker: Get earliest and latest possible pick relative to most likely pick ...'
 
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
@@ -75,8 +76,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     # if EPick stays NaN the signal window size will be doubled
     while np.isnan(EPick):
         if count > 0:
-            print("\nearllatepicker: Doubled signal window size %s time(s) "
-                  "because of NaN for earliest pick." %count)
+            if stealthMode is False:
+                print("\nearllatepicker: Doubled signal window size %s time(s) "
+                      "because of NaN for earliest pick." %count)
             isigDoubleWinStart = pis[-1] + 1
             isignalDoubleWin = np.arange(isigDoubleWinStart,
                                      isigDoubleWinStart + len(pis))

@@ -10,6 +10,8 @@ from pylot.core.pick.CharFuns import HOScf
 from pylot.core.pick.CharFuns import AICcf
 from pylot.core.pick.utils import getSNR
 from pylot.core.pick.utils import earllatepicker
+import matplotlib.pyplot as plt
+plt.interactive('True')
 
 class SeismicShot(object):
     '''
@@ -27,9 +29,6 @@ class SeismicShot(object):
         self.srcCoordlist = None
         self.traceIDs = None
         self.pick = {}
-        self.pick_backup = {}
-        self.earliest = {}
-        self.latest = {}
         self.pickwindow= {}
         self.manualpicks= {}
         self.snr = {}
@@ -132,17 +131,27 @@ class SeismicShot(object):
     def getSourcefile(self):
         return self.paras['sourcefile']
 
-    def getPick(self, traceID):
-        return self.pick[traceID]
+    def getPick(self, traceID, returnRemoved = False):
+        if not self.getFlag(traceID) == 0:
+            return self.pick[traceID]['mpp']
+        if returnRemoved == True:
+            #print('getPick: Returned removed pick for shot %d, traceID %d' %(self.getShotnumber(), traceID))
+            return self.pick[traceID]['mpp']
 
-    def getPick_backup(self, traceID):
-        return self.pick_backup[traceID]
+    def getPickIncludeRemoved(self, traceID):
+        return self.getPick(traceID, returnRemoved = True)
 
     def getEarliest(self, traceID):
-        return self.earliest[traceID]
+        return self.pick[traceID]['epp']
 
     def getLatest(self, traceID):
-        return self.latest[traceID]
+        return self.pick[traceID]['lpp']
+
+    def getSymmetricPickError(self, traceID):
+        pickerror = self.pick[traceID]['spe']
+        if np.isnan(pickerror) == True: 
+            print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
+        return pickerror
 
     def getPickError(self, traceID):
         pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
@@ -217,7 +226,7 @@ class SeismicShot(object):
         :type: int
         '''
         return HOScf(self.getSingleStream(traceID), self.getCut(),
-                     self.getTmovwind(), self.getOrder())
+                     self.getTmovwind(), self.getOrder(), stealthMode = True)
 
     def getAICcf(self, traceID):
         '''
@@ -240,7 +249,7 @@ class SeismicShot(object):
         tr_cf = Trace()
         tr_cf.data = self.getHOScf(traceID).getCF()
         st_cf += tr_cf
-        return AICcf(st_cf, self.getCut(), self.getTmovwind())
+        return AICcf(st_cf, self.getCut(), self.getTmovwind(), stealthMode = True)
 
     def getSingleStream(self, traceID):  ########## SEG2 / SEGY ? ##########
         '''
@@ -305,16 +314,17 @@ class SeismicShot(object):
                      'aic': aiccftime}
 
         self.setPick(traceID, setHosAic[HosAic])
-        self.pick_backup[traceID] = setHosAic[HosAic] ### verbessern (vor allem weil ueberschrieben bei 2tem mal picken)
 
     def setEarllatepick(self, traceID, nfac = 1.5):
         tgap = self.getTgap()
         tsignal = self.getTsignal()
-        tnoise = self.getPick(traceID) - tgap
+        tnoise = self.getPickIncludeRemoved(traceID) - tgap
 
-        (self.earliest[traceID], self.latest[traceID], tmp) = earllatepicker(self.getSingleStream(traceID),
-                                                                             nfac, (tnoise, tgap, tsignal),
-                                                                             self.getPick(traceID))
+        (self.pick[traceID]['epp'], self.pick[traceID]['lpp'],
+         self.pick[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
+                                                     nfac, (tnoise, tgap, tsignal), 
+                                                     self.getPickIncludeRemoved(traceID),
+                                                     stealthMode = True)
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
         '''
@@ -464,7 +474,10 @@ class SeismicShot(object):
         #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID)
 
     def setPick(self, traceID, pick): ########## siehe Kommentar ##########
-        self.pick[traceID] = pick
+        if not traceID in self.pick.keys():
+            self.pick[traceID] = {}
+        self.pick[traceID]['mpp'] = pick
+        self.pick[traceID]['flag'] = 1
         # ++++++++++++++ Block raus genommen, da Error beim 2ten Mal picken! (Ueberschreiben von erstem Pick!)
         # if not self.pick.has_key(traceID):
         #     self.getPick(traceID) = picks
@@ -475,7 +488,14 @@ class SeismicShot(object):
         #        parlist = open(parfile,'r').readlines()
 
     def removePick(self, traceID):
-        self.setPick(traceID, None)
+        self.setFlag(traceID, 0)
+
+    def setFlag(self, traceID, flag):
+        'Set flag = 0 if pick is invalid, else flag = 1'
+        self.pick[traceID]['flag'] = flag
+
+    def getFlag(self, traceID):
+        return self.pick[traceID]['flag']
 
     def setPickwindow(self, traceID, pickwindow):
         self.pickwindow[traceID] = pickwindow
@@ -580,7 +600,39 @@ class SeismicShot(object):
     #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_upperb, ':k')
 
     def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
-        import matplotlib.pyplot as plt
+        from matplotlib.widgets import Button
+
+        def onclick(event):
+            self.setPick(traceID, event.xdata)
+            self._drawStream(traceID, refresh = True)
+            self._drawCFs(traceID, folm, refresh = True)
+            fig.canvas.mpl_disconnect(self.traces4plot[traceID]['cid'])
+            plt.draw()
+
+        def connectButton(event = None):
+            cid = fig.canvas.mpl_connect('button_press_event', onclick)
+            self.traces4plot[traceID]['cid'] = cid
+            
+        fig = plt.figure()
+        ax1 = fig.add_subplot(2,1,1)
+        ax2 = fig.add_subplot(2,1,2, sharex = ax1)
+        axb = fig.add_axes([0.15, 0.91, 0.05, 0.03])
+        button = Button(axb, 'repick', color = 'red', hovercolor = 'grey')
+        button.on_clicked(connectButton)
+
+        self.traces4plot = {}
+        if not traceID in self.traces4plot.keys():
+            self.traces4plot[traceID] = {'fig': fig,
+                                         'ax1': ax1,
+                                         'ax2': ax2,
+                                         'axb': axb,
+                                         'button': button,
+                                         'cid': None,}
+
+        self._drawStream(traceID)
+        self._drawCFs(traceID, folm)
+
+    def _drawStream(self, traceID, refresh = False):
         from pylot.core.util.utils import getGlobalTimes
         from pylot.core.util.utils import prepTimeAxis
 
@@ -588,33 +640,48 @@ class SeismicShot(object):
         stime = getGlobalTimes(stream)[0]
         timeaxis = prepTimeAxis(stime, stream[0])
         timeaxis -= stime
+        
+        ax = self.traces4plot[traceID]['ax1']
 
-        plt.interactive('True')
+        if refresh == True:
+            xlim, ylim = ax.get_xlim(), ax.get_ylim()
+        ax.clear()
+        if refresh == True:
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
 
+        ax.set_title('Shot: %s, traceID: %s, pick: %s'
+                     %(self.getShotnumber(), traceID, self.getPick(traceID)))
+        ax.plot(timeaxis, stream[0].data, 'k', label = 'trace')
+        ax.plot([self.getPick(traceID), self.getPick(traceID)], 
+                [min(stream[0].data), 
+                 max(stream[0].data)],
+                'r', label = 'mostlikely')
+        ax.legend()
+
+    def _drawCFs(self, traceID, folm, refresh = False):
         hoscf = self.getHOScf(traceID)
         aiccf = self.getAICcf(traceID)
+        ax = self.traces4plot[traceID]['ax2']
 
-        fig = plt.figure()
-        ax1 = plt.subplot(2,1,1)
-        plt.title('Shot: %s, traceID: %s, pick: %s' %(self.getShotnumber(), traceID, self.getPick(traceID)))
-        ax1.plot(timeaxis, stream[0].data, 'k', label = 'trace')
-        ax1.plot([self.getPick(traceID), self.getPick(traceID)],
-                 [min(stream[0].data),
-                  max(stream[0].data)],
-                 'r', label = 'mostlikely')
-        plt.legend()
-        ax2 = plt.subplot(2,1,2, sharex = ax1)
-        ax2.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
-        ax2.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
-        ax2.plot([self.getPick(traceID), self.getPick(traceID)],
-                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())),
+        if refresh == True:
+            xlim, ylim = ax.get_xlim(), ax.get_ylim()
+        ax.clear()
+        if refresh == True:
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+
+        ax.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
+        ax.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
+        ax.plot([self.getPick(traceID), self.getPick(traceID)], 
+                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())), 
                   max(np.maximum(hoscf.getCF(), aiccf.getCF()))],
                  'r', label = 'mostlikely')
-        ax2.plot([0, self.getPick(traceID)],
+        ax.plot([0, self.getPick(traceID)],
                  [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
                  'm:', label = 'folm = %s' %folm)
-        plt.xlabel('Time [s]')
-        plt.legend()
+        ax.set_xlabel('Time [s]')
+        ax.legend()
 
     def plot3dttc(self, step = 0.5, contour = False, plotpicks = False, method = 'linear', ax = None):
         '''
@@ -632,7 +699,6 @@ class SeismicShot(object):
         :param: method (optional), interpolation method; can be 'linear' (default) or 'cubic'
         :type: 'string'
         '''
-        import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
         from matplotlib import cm
         from mpl_toolkits.mplot3d import Axes3D
@@ -641,13 +707,13 @@ class SeismicShot(object):
         y = []
         z = []
         for traceID in self.pick.keys():
-            if self.getPick(traceID) != None:
+            if self.getFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
 
-        xaxis = np.arange(min(x)+1, max(x), step)
-        yaxis = np.arange(min(y)+1, max(y), step)
+        xaxis = np.arange(min(x), max(x), step)
+        yaxis = np.arange(min(y), max(y), step)
         xgrid, ygrid = np.meshgrid(xaxis, yaxis)
         zgrid = griddata((x, y), z, (xgrid, ygrid), method = method)
 
@@ -671,8 +737,8 @@ class SeismicShot(object):
         plotmethod = {'2d': self.plot2dttc, '3d': self.plot3dttc}
 
         plotmethod[method](*args)
-
-    def matshow(self, step = 0.5, method = 'linear', ax = None, plotRec = False, annotations = False):
+        
+    def matshow(self, ax = None, step = 0.5, method = 'linear', plotRec = True, annotations = True, colorbar = True):
         '''
         Plots a 2D matrix of the interpolated traveltimes. This needs less performance than plot3dttc
 
@@ -682,27 +748,32 @@ class SeismicShot(object):
         :param: method (optional), interpolation method; can be 'linear' (default) or 'cubic'
         :type: 'string'
 
-        :param: plotRec (optional), plot the receiver positions
+        :param: plotRec (optional), plot the receiver positions (colored scatter plot, should not be
+        deactivated because there might be receivers that are not inside the interpolated area)
         :type: 'logical'
 
         :param: annotations (optional), displays traceIDs as annotations
         :type: 'logical'
         '''
-        import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
-#        plt.interactive('True')
 
-        x = []
-        y = []
-        z = []
+        x = []; xcut = []
+        y = []; ycut = []
+        z = []; zcut = []
+        tmin, tmax = self.getCut()
+
         for traceID in self.pick.keys():
-            if self.getPick(traceID) != None:
+            if self.getFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
+            if self.getFlag(traceID) == 0 and self.getPickIncludeRemoved(traceID) is not None:
+                xcut.append(self.getRecLoc(traceID)[0])
+                ycut.append(self.getRecLoc(traceID)[1])
+                zcut.append(self.getPickIncludeRemoved(traceID))
 
-        xaxis = np.arange(min(x)+1, max(x), step)
-        yaxis = np.arange(min(y)+1, max(y), step)
+        xaxis = np.arange(min(x), max(x), step)
+        yaxis = np.arange(min(y), max(y), step)
         xgrid, ygrid = np.meshgrid(xaxis, yaxis)
         zgrid = griddata((x, y), z, (xgrid, ygrid), method='linear')
 
@@ -710,14 +781,28 @@ class SeismicShot(object):
             fig = plt.figure()
             ax = plt.axes()
 
-        ax.imshow(zgrid, interpolation = 'none', extent = [min(x), max(x), min(y), max(y)])
-
-        if annotations == True:
-            for i, traceID in enumerate(self.pick.keys()):
-                if shot.picks[traceID] != None:
-                    ax.annotate('%s' % traceID, xy=(x[i], y[i]), fontsize = 'x-small')
+        ax.matshow(zgrid, extent = [min(x), max(x), min(y), max(y)], origin = 'lower')
+        plt.text(0.45, 0.9, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes)
+        sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, linewidths = 1.5)
+        sccut = ax.scatter(xcut, ycut, c = zcut, s = 30, edgecolor = 'm', label = 'cut out shots', vmin = tmin, vmax = tmax, linewidths = 1.5)
+        if colorbar == True:
+            plt.colorbar(sc)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.plot(self.getSrcLoc()[0], self.getSrcLoc()[1],'*k', markersize = 15) # plot source location
 
         if plotRec == True:
-            ax.plot(x, y, 'k.')
+            ax.scatter(x, y, c = z, s = 30)
+
+        if annotations == True:
+            for traceID in self.getTraceIDlist():
+                if self.getFlag(traceID) is not 0:
+                    ax.annotate(' %s' %traceID , xy = (self.getRecLoc(traceID)[0], self.getRecLoc(traceID)[1]),
+                                fontsize = 'x-small', color = 'k')
+                else:
+                    ax.annotate(' %s' %traceID , xy = (self.getRecLoc(traceID)[0], self.getRecLoc(traceID)[1]),
+                                fontsize = 'x-small', color = 'r')
 
         plt.show()
+
+

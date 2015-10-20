@@ -491,7 +491,11 @@ class SeisArray(object):
         plt.legend()
         if annotations == True:
             for traceID in self.getReceiverCoordinates().keys():
-                plt.annotate(str(traceID), xy = (self._getXreceiver(traceID), self._getYreceiver(traceID)), fontsize = 'x-small')
+                plt.annotate((' ' + str(traceID)), xy = (self._getXreceiver(traceID), self._getYreceiver(traceID)), fontsize = 'x-small', color = 'k')
+            for shotnumber in self.getSourceLocations().keys():
+                plt.annotate(('  ' + str(shotnumber)), xy = (self._getXshot(shotnumber), self._getYshot(shotnumber)), fontsize = 'x-small', color = 'b')
+
+
 
     def plotArray3D(self, ax = None):
         import matplotlib.pyplot as plt
