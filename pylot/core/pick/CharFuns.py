@@ -62,7 +62,7 @@ class CharacteristicFunction(object):
         self.calcCF(self.getDataArray())
         self.arpara = np.array([])
         self.xpred = np.array([])
-        self.stealthMode = stealthMode
+        self._stealthMode = stealthMode
 
     def __str__(self):
         return '''\n\t{name} object:\n
@@ -135,6 +135,9 @@ class CharacteristicFunction(object):
 
     def getXCF(self):
         return self.xcf
+
+    def _getStealthMode(self):
+        return self._stealthMode()
 
     def getDataArray(self, cut=None):
         '''
@@ -220,8 +223,8 @@ class AICcf(CharacteristicFunction):
 
     def calcCF(self, data):
 
-        if self.stealthMode is False:
-            print 'Calculating AIC ...'
+        #if self._getStealthMode() is False:
+        #    print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -259,13 +262,13 @@ class HOScf(CharacteristicFunction):
         if len(nn) > 1:
            xnp[nn] = 0
         if self.getOrder() == 3:  # this is skewness
-            if self.stealthMode is False:
-                print 'Calculating skewness ...'
+            #if self._getStealthMode() is False:
+            #    print 'Calculating skewness ...'
             y = np.power(xnp, 3)
             y1 = np.power(xnp, 2)
         elif self.getOrder() == 4:  # this is kurtosis
-            if self.stealthMode is False:
-                print 'Calculating kurtosis ...'
+            #if self._getStealthMode() is False:
+            #    print 'Calculating kurtosis ...'
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 
