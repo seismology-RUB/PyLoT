@@ -34,7 +34,8 @@ class SeismicShot(object):
         self.snr = {}
         self.snrthreshold = {}
         self.timeArray = {}
-        self.paras = {'shotname': obsfile}
+        self.paras = {}
+        self.paras['shotname'] = obsfile
 
     def removeEmptyTraces(self):
         traceIDs = []
@@ -262,23 +263,19 @@ class SeismicShot(object):
         traces = [trace for trace in self.traces if int(trace.stats.channel) == traceID]
         if len(traces) == 1:
             return Stream(traces)
-        else:
-            self.setPick(traceID, None)
-            print('Warning: ambigious or empty traceID: %s' % traceID)
+        self.setPick(traceID, None)
+        print 'Warning: ambigious or empty traceID: %s' % traceID
 
         #raise ValueError('ambigious or empty traceID: %s' % traceID)
 
-    def pickTraces(self, traceID, pickmethod, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
+    def pickTraces(self, traceID, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
         # LOCALMAX NOT IMPLEMENTED!
         '''
         Intitiate picking for a trace.
 
         :param: traceID
         :type: int
-
-        :param: pickmethod, use either 'threshold' or 'localmax' method. (localmax not yet implemented 04_08_15)
-        :type: string
-
+        
         :param: cutwindow (equals HOScf 'cut' variable)
         :type: tuple
 
@@ -301,15 +298,7 @@ class SeismicShot(object):
         aiccf = self.getAICcf(traceID)
 
         self.timeArray[traceID] = hoscf.getTimeArray()
-
-        if pickmethod == 'threshold':
-            aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
-
-        #setpick = {'threshold':self.threshold,
-         #          'localmax':self.localmax}
-
-        #aiccftime, hoscftime = setpick[pickmethod](hoscf, aiccf, windowsize, pickwindow)
-
+        aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
 
@@ -621,13 +610,13 @@ class SeismicShot(object):
         button.on_clicked(connectButton)
 
         self.traces4plot = {}
-        if not traceID in self.traces4plot.keys():
+        if traceID not in self.traces4plot.keys():
             self.traces4plot[traceID] = {'fig': fig,
                                          'ax1': ax1,
                                          'ax2': ax2,
                                          'axb': axb,
                                          'button': button,
-                                         'cid': None,}
+                                         'cid': None}
 
         self._drawStream(traceID)
         self._drawCFs(traceID, folm)
