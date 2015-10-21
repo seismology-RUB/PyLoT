@@ -19,8 +19,8 @@ class Survey(object):
             self.setParametersForShots()
         self._removeAllEmptyTraces()
         self._updateShots()
-        self.setArtificialPick(0, 0) # artificial pick at source origin
-        
+        self.setArtificialPick(0, 0)
+
     def _generateSurvey(self):
         from obspy.core import read
 
@@ -29,8 +29,7 @@ class Survey(object):
         for shotnumber in shotlist:       # loop over data files
             # generate filenames and read manual picks to a list
             obsfile = self._obsdir + str(shotnumber) + '_pickle.dat'
-
-            if not obsfile in shot_dict.keys():
+            if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)
             shot_dict[shotnumber].setParameters('shotnumber', shotnumber)
@@ -168,7 +167,7 @@ class Survey(object):
     def countAllTraces(self):
         numtraces = 0
         for shot in self.getShotlist():
-            for rec in self.getReceiverlist():
+            for rec in self.getReceiverlist(): ### shot.getReceiverlist etc.
                 numtraces += 1
         return numtraces
 
@@ -326,7 +325,7 @@ class Survey(object):
 
         fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
 
-    def plotAllPicks(self, plotRemoved = False, colorByVal = 'log10SNR', ax = None, refreshPlot = False):
+    def plotAllPicks(self, plotRemoved = False, colorByVal = 'log10SNR', ax = None, cbar = None, refreshPlot = False):
         '''
         Plots all picks over the distance between source and receiver. Returns (ax, region).
         Picks can be checked and removed by using region class (pylot.core.active.surveyPlotTools.regions)
@@ -378,20 +377,20 @@ class Survey(object):
                         spe.append(shot.getSymmetricPickError(traceID))
 
         color = {'log10SNR': snrlog,
-                 'pickerror': pickerror,
-                 'spe': spe}
-
+         'pickerror': pickerror,
+         'spe': spe}
+        self.color = color
         if refreshPlot is False:
-            ax = self.createPlot(dist, pick, color[colorByVal], label = '%s'%colorByVal)
-            region = regions(ax, self)
+            ax, cbar = self.createPlot(dist, pick, color[colorByVal], label='%s' % colorByVal)
+            region = regions(ax, cbar, self)
             ax.legend()
-            return ax, region
-        elif refreshPlot is True:
-            ax = self.createPlot(dist, pick, color[colorByVal], label = '%s'%colorByVal, ax = ax)
+            return (ax, region)
+        if refreshPlot is True:
+            ax, cbar = self.createPlot(dist, pick, color[colorByVal], label='%s' % colorByVal, ax=ax, cbar=cbar)
             ax.legend()
             return ax
 
-    def createPlot(self, dist, pick, inkByVal, label, ax = None):
+    def createPlot(self, dist, pick, inkByVal, label, ax = None, cbar = None):
         import matplotlib.pyplot as plt
         plt.interactive(True)
         cm = plt.cm.jet
@@ -399,20 +398,27 @@ class Survey(object):
             print('Generating new plot...')
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            fig = ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
-            cbar = plt.colorbar(fig, fraction = 0.05)
+            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5, edgecolors='none', label=label)
+            cbar = plt.colorbar(sc, fraction=0.05)
             cbar.set_label(label)
-            plt.title('Plot of all Picks')
-            plt.xlabel('Distance [m]')
-            plt.ylabel('Time [s]')
+            ax.set_xlabel('Distance [m]')
+            ax.set_ylabel('Time [s]')
+            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes, horizontalalignment='center')
         else:
-            ax.scatter(dist, pick, cmap = cm, c = inkByVal, s = 5, edgecolors = 'none', label = label)
-
-        return ax
+            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5, edgecolors='none', label=label)
+            cbar = plt.colorbar(sc, cax=cbar.ax)
+            cbar.set_label(label)
+            ax.set_xlabel('Distance [m]')
+            ax.set_ylabel('Time [s]')
+            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes, horizontalalignment='center')
+        return (ax, cbar)
 
     def _update_progress(self, shotname, tend, progress):
-        sys.stdout.write("Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r"
-                         %(shotname, tend.hour, tend.minute, tend.second, progress))
+        sys.stdout.write('Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r' % (shotname,
+         tend.hour,
+         tend.minute,
+         tend.second,
+         progress))
         sys.stdout.flush()
 
     def saveSurvey(self, filename = 'survey.pickle'):
