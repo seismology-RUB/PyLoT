@@ -188,7 +188,9 @@ class DCfc(Magnitude):
                "Determined corner frequency: %f Hz" % (self.w0, self.fc)) 
         
         
-        if self.getiplot() > 1:
+        #if self.getiplot() > 1:
+        iplot=2
+        if iplot > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
             # show displacement in mm
