@@ -7,7 +7,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
-
+import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
@@ -74,7 +74,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None):
     # if EPick stays NaN the signal window size will be doubled
     while np.isnan(EPick):
         if count > 0:
-            print("\nearllatepicker: Doubled signal window size %s time(s) "
+            print("earllatepicker: Doubled signal window size %s time(s) "
                   "because of NaN for earliest pick." %count)
             isigDoubleWinStart = pis[-1] + 1
             isignalDoubleWin = np.arange(isigDoubleWinStart,
@@ -927,6 +927,48 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
         raw_input()
 
     return returnflag
+
+
+def writephases(arrivals, fformat, filename):
+    '''
+    Function of methods to write phases to the following standard file
+    formats used for locating earthquakes:
+
+    HYPO71, NLLoc, VELEST, HYPOSAT, HYPOINVERSE and hypoDD
+
+    :param: arrivals
+    :type: dictionary containing all phase information including
+           station ID, phase, first motion, weight (uncertainty), 
+           ....
+
+    :param: fformat
+    :type:  string, chosen file format (location routine),
+            choose between NLLoc, HYPO71, HYPOSAT, VELEST, 
+            HYPOINVERSE, and hypoDD
+
+    :param: filename, full path and name of phase file
+    :type: string
+    '''
+
+
+    if fformat == 'NLLoc':
+    	print ("Writing phases to %s for NLLoc" % filename)
+        fid = open("%s" % filename, 'w')
+        # write header
+        fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
+        for key in arrivals:
+            if arrivals[key]['P']['weight'] < 4:
+                # NLLoc only knows weight 0 (do not use pick)
+                # and weight 1 (use pick)
+                NLLocweight = 1 
+                # write phase information to file
+                fid.write('%s \n' % key) 
+
+        fid.close()
+
+
+
+        
 
 if __name__ == '__main__':
     import doctest
