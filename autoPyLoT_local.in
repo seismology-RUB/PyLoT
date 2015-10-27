@@ -19,10 +19,10 @@ AUTOPHASES.obs                      #phasefile#    %name of autoPyLoT-output pha
                                                    %(in nllocroot/obs)
 Insheim_min1d2015.in                #locfile#      %name of autoPyLoT-output control file for NLLoc
                                                    %(in nllocroot/run)
-ttime                               #ttpatter#     %patter of NLLoc ttimes from grid
+ttime                               #ttpatter#     %pattern of NLLoc ttimes from grid
                                                    %(in nllocroot/times)
-AUTOLOC_nlloc                       #outpatter#    %patter of NLLoc-output file
-                                                   %(returns e.g. 'eventID_outpatter')
+AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
+                                                   %(returns 'eventID_outpatter')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
 6                                   #pmin#         %minimum required P picks for location
