@@ -8,12 +8,11 @@ import glob
 
 import matplotlib.pyplot as plt
 from obspy.core import read
-from pylot.core.util import _getVersionString
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent
-from pylot.core.pick.utils import writephases
+from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
@@ -86,9 +85,6 @@ def autoPyLoT(inputfile):
                 # !automated picking starts here!
                 picks = autopickevent(wfdat, parameter)
 
-                # write phases to NLLoc-phase file
-                writephases(wd_checked_onsets, 'NLLoc', phasefile) 
-
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
                 print '------------------------------------------'
@@ -103,9 +99,6 @@ def autoPyLoT(inputfile):
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
-
-            # write phases to NLLoc-phase file
-            writephases(wd_checked_onsets, 'NLLoc', phasefile) 
 
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')

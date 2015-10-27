@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import numpy as np
 from scipy.interpolate import griddata
@@ -28,12 +29,12 @@ class SeisArray(object):
 
     def _generateReceiverlines(self):
         '''
-        Connects the traceIDs to the lineIDs 
+        Connects the traceIDs to the lineIDs
         for each receiverline in a dictionary.
         '''
         for receiver in self._receiverlist:
-            traceID = int(receiver.split()[0]) 
-            lineID =  int(receiver.split()[1]) 
+            traceID = int(receiver.split()[0])
+            lineID =  int(receiver.split()[1])
             if not lineID in self._receiverlines.keys():
                 self._receiverlines[lineID] = []
             self._receiverlines[lineID].append(traceID)
@@ -43,16 +44,16 @@ class SeisArray(object):
         Fills the three x, y, z dictionaries with measured coordinates
         '''
         for line in self._getReceiverlist():
-            traceID = int(line.split()[0]) 
-            x = float(line.split()[3]) 
-            y = float(line.split()[4]) 
-            z = float(line.split()[5]) 
+            traceID = int(line.split()[0])
+            x = float(line.split()[3])
+            y = float(line.split()[4])
+            z = float(line.split()[5])
             self._receiverCoords[traceID] = (x, y, z)
             self._measuredReceivers[traceID] = (x, y, z)
 
     def _setGeophoneNumbers(self):
         for line in self._getReceiverlist():
-            traceID = int(line.split()[0]) 
+            traceID = int(line.split()[0])
             gphoneNum = float(line.split()[2])
             self._geophoneNumbers[traceID] = gphoneNum
 
@@ -93,7 +94,7 @@ class SeisArray(object):
         return self._geophoneNumbers[traceID]
 
     def getMeasuredReceivers(self):
-        return self._measuredReceivers 
+        return self._measuredReceivers
 
     def getMeasuredTopo(self):
         return self._measuredTopo
@@ -139,11 +140,11 @@ class SeisArray(object):
         if self._getReceiverValue(traceID1, coordinate) < self._getReceiverValue(traceID2, coordinate):
             direction = +1
             return direction
-        if self._getReceiverValue(traceID1, coordinate) > self._getReceiverValue(traceID2, coordinate): 
+        if self._getReceiverValue(traceID1, coordinate) > self._getReceiverValue(traceID2, coordinate):
             direction = -1
             return direction
         print "Error: Same Value for traceID1 = %s and traceID2 = %s" %(traceID1, traceID2)
-                        
+
     def _interpolateMeanDistances(self, traceID1, traceID2, coordinate):
         '''
         Returns the mean distance between two traceID's depending on the number of geophones in between
@@ -186,7 +187,7 @@ class SeisArray(object):
             x = float(line[1])
             y = float(line[2])
             z = float(line[3])
-            self._measuredTopo[pointID] = (x, y, z)        
+            self._measuredTopo[pointID] = (x, y, z)
 
     def addSourceLocations(self, filename):
         '''
@@ -202,7 +203,7 @@ class SeisArray(object):
             x = float(line[1])
             y = float(line[2])
             z = float(line[3])
-            self._sourceLocs[pointID] = (x, y, z)        
+            self._sourceLocs[pointID] = (x, y, z)
 
     def interpZcoords4rec(self, method = 'linear'):
         '''
@@ -239,9 +240,9 @@ class SeisArray(object):
         '''
         x = []; y = []; z = []
         for traceID in self.getMeasuredReceivers().keys():
-            x.append(self.getMeasuredReceivers()[traceID][0])        
+            x.append(self.getMeasuredReceivers()[traceID][0])
             y.append(self.getMeasuredReceivers()[traceID][1])
-            z.append(self.getMeasuredReceivers()[traceID][2])        
+            z.append(self.getMeasuredReceivers()[traceID][2])
         return x, y, z
 
     def getMeasuredTopoLists(self):
@@ -250,9 +251,9 @@ class SeisArray(object):
         '''
         x = []; y = []; z = []
         for pointID in self.getMeasuredTopo().keys():
-            x.append(self.getMeasuredTopo()[pointID][0])        
+            x.append(self.getMeasuredTopo()[pointID][0])
             y.append(self.getMeasuredTopo()[pointID][1])
-            z.append(self.getMeasuredTopo()[pointID][2])        
+            z.append(self.getMeasuredTopo()[pointID][2])
         return x, y, z
 
     def getSourceLocsLists(self):
@@ -261,9 +262,9 @@ class SeisArray(object):
         '''
         x = []; y = []; z = []
         for pointID in self.getSourceLocations().keys():
-            x.append(self.getSourceLocations()[pointID][0])        
+            x.append(self.getSourceLocations()[pointID][0])
             y.append(self.getSourceLocations()[pointID][1])
-            z.append(self.getSourceLocations()[pointID][2])        
+            z.append(self.getSourceLocations()[pointID][2])
         return x, y, z
 
     def getAllMeasuredPointsLists(self):
@@ -289,7 +290,7 @@ class SeisArray(object):
             y.append(self.getReceiverCoordinates()[traceID][1])
             z.append(self.getReceiverCoordinates()[traceID][2])
         return x, y, z
-       
+
     def _interpolateXY4rec(self):
         '''
         Interpolates the X and Y coordinates for all receivers.
@@ -317,7 +318,7 @@ class SeisArray(object):
 
         :param: phiWE (W, E) extensions of the model in degree
         type: tuple
-        '''                                       
+        '''
 
         surface = []
         elevation = 0.25 # elevate topography so that no source lies above the surface
@@ -356,9 +357,9 @@ class SeisArray(object):
                 progress = float(count) / float(nTotal) * 100
                 self._update_progress(progress)
 
-                if filename is not None: 
+                if filename is not None:
                     outfile.writelines('%10s\n'%(z + elevation))
-                
+
         return surface
 
     def generateVgrid(self, nTheta = 80, nPhi = 80, nR = 120,
@@ -415,7 +416,7 @@ class SeisArray(object):
         thetaDelta = abs(thetaN - thetaS) / (nTheta - 1)
         phiDelta = abs(phiE - phiW) / (nPhi - 1)
         rDelta = abs(rbot - rtop) / (nR - 1)
-        
+
         # create a regular grid including +2 cushion nodes in every direction
         thetaGrid = np.linspace(thetaS - thetaDelta, thetaN + thetaDelta, num = nTheta + 2) # +2 cushion nodes
         phiGrid = np.linspace(phiW - phiDelta, phiE + phiDelta, num = nPhi + 2) # +2 cushion nodes
@@ -455,7 +456,7 @@ class SeisArray(object):
 
                     progress = float(count) / float(nTotal) * 100
                     self._update_progress(progress)
-                    
+
         outfile.close()
 
     def exportAll(self, filename = 'interpolated_receivers.out'):
@@ -463,7 +464,7 @@ class SeisArray(object):
         count = 0
         for traceID in self.getReceiverCoordinates().keys():
             count += 1
-            x, y, z = self.getReceiverCoordinates()[traceID] 
+            x, y, z = self.getReceiverCoordinates()[traceID]
             recfile_out.writelines('%5s %15s %15s %15s\n' %(traceID, x, y, z))
         print "Exported coordinates for %s traces to file > %s" %(count, filename)
         recfile_out.close()
@@ -472,15 +473,15 @@ class SeisArray(object):
         import matplotlib.pyplot as plt
         plt.interactive(True)
         plt.figure()
-        xmt, ymt, zmt = self.getMeasuredTopoLists() 
+        xmt, ymt, zmt = self.getMeasuredTopoLists()
         xsc, ysc, zsc = self.getSourceLocsLists()
-        xmr, ymr, zmr = self.getMeasuredReceiverLists() 
-        xrc, yrc, zrc = self.getReceiverLists() 
+        xmr, ymr, zmr = self.getMeasuredReceiverLists()
+        xrc, yrc, zrc = self.getReceiverLists()
 
         plt.plot(xrc, yrc, 'k.', markersize = 10, label = 'all receivers')
         plt.plot(xsc, ysc, 'b*', markersize = 10, label = 'shot locations')
 
-        if plot_topo == True: 
+        if plot_topo == True:
             plt.plot(xmt, ymt, 'b', markersize = 10, label = 'measured topo points')
         if highlight_measured == True:
             plt.plot(xmr, ymr, 'ro', label = 'measured receivers')
@@ -490,7 +491,11 @@ class SeisArray(object):
         plt.legend()
         if annotations == True:
             for traceID in self.getReceiverCoordinates().keys():
-                plt.annotate(str(traceID), xy = (self._getXreceiver(traceID), self._getYreceiver(traceID)), fontsize = 'x-small')
+                plt.annotate((' ' + str(traceID)), xy = (self._getXreceiver(traceID), self._getYreceiver(traceID)), fontsize = 'x-small', color = 'k')
+            for shotnumber in self.getSourceLocations().keys():
+                plt.annotate(('  ' + str(shotnumber)), xy = (self._getXshot(shotnumber), self._getYshot(shotnumber)), fontsize = 'x-small', color = 'b')
+
+
 
     def plotArray3D(self, ax = None):
         import matplotlib.pyplot as plt
@@ -501,9 +506,9 @@ class SeisArray(object):
             fig = plt.figure()
             ax = plt.axes(projection = '3d')
 
-        xmt, ymt, zmt = self.getMeasuredTopoLists() 
-        xmr, ymr, zmr = self.getMeasuredReceiverLists() 
-        xin, yin, zin = self.getReceiverLists() 
+        xmt, ymt, zmt = self.getMeasuredTopoLists()
+        xmr, ymr, zmr = self.getMeasuredReceiverLists()
+        xin, yin, zin = self.getReceiverLists()
 
         ax.plot(xmt, ymt, zmt, 'b*', markersize = 10, label = 'measured topo points')
         ax.plot(xin, yin, zin, 'k.', markersize = 10, label = 'interpolated receivers')
@@ -512,8 +517,8 @@ class SeisArray(object):
         ax.legend()
 
         return ax
-            
-        
+
+
     def plotSurface3D(self, ax = None, step = 0.5, method = 'linear'):
         from matplotlib import cm
         import matplotlib.pyplot as plt
@@ -657,8 +662,8 @@ class SeisArray(object):
 
         cPickle.dump(self, outfile, -1)
         print('saved SeisArray to file %s'%(filename))
-        
-    @staticmethod    
+
+    @staticmethod
     def from_pickle(filename):
         import cPickle
         infile = open(filename, 'rb')

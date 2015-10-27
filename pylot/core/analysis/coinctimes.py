@@ -6,7 +6,7 @@ from obspy.signal.trigger import coincidenceTrigger
 
 
 
-class CoincidenceTimes():
+class CoincidenceTimes(object):
 
     def __init__(self, st, comp='Z', coinum=4, sta=1., lta=10., on=5., off=1.):
         _type = 'recstalta'

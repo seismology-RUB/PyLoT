@@ -204,27 +204,27 @@ def autopickstation(wfstream, pickparam):
             if len(ndat) == 0 or len(edat) == 0:
                 print ("One or more horizontal components missing!")
                 print ("Signal length only checked on vertical component!")
-                print ("Decreasing minsiglengh from %f to %f" \
-                        % (minsiglength, minsiglength / 2))
+                print ("Decreasing minsiglengh from %f to %f"
+                       % (minsiglength, minsiglength / 2))
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength / 2, \
+                                          minsiglength / 2,
                                           nfacsl, minpercent, iplot)
             else:
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
                 trH2_filt = ndat.copy()
                 trH1_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1], \
-                                  zerophase=False)
+                                  freqmax=bph1[1],
+                                 zerophase=False)
                 trH2_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1], \
-                                  zerophase=False)
+                                  freqmax=bph1[1],
+                                 zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 zne += trH1_filt
                 zne += trH2_filt
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength, \
+                                          minsiglength,
                                           nfacsl, minpercent, iplot)
 
             if Pflag == 1:
@@ -234,7 +234,7 @@ def autopickstation(wfstream, pickparam):
                     print 'One or more horizontal components missing!'
                     print 'Skipping control function checkZ4S.'
                 else:
-                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac, \
+                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
                                      tsnrz[3], iplot)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
@@ -317,31 +317,31 @@ def autopickstation(wfstream, pickparam):
                 data = Data()
                 [corzdat, restflag] = data.restituteWFData(invdir, zdat)
                 if restflag == 1:
-                        # integrate to displacement
-                        corintzdat = integrate.cumtrapz(corzdat[0], None, corzdat[0].stats.delta)
-                        # class needs stream object => build it
-                        z_copy = zdat.copy()
-                        z_copy[0].data = corintzdat
-                        # largest detectable period == window length
-                        # after P pulse for calculating source spectrum
-                        winzc = (1 / bpz2[0]) * z_copy[0].stats.sampling_rate  
-                        impickP = mpickP * z_copy[0].stats.sampling_rate
-                        wfzc = z_copy[0].data[impickP : impickP + winzc]
-                        # calculate spectrum using only first cycles of
-                        # waveform after P onset!
-                        zc = crossings_nonzero_all(wfzc)
-                        if np.size(zc) == 0:
-                            print ("Something is wrong with the waveform, " \
-                                   "no zero crossings derived!")
-                            print ("Cannot calculate source spectrum!")
-                        else:
-                            calcwin = (zc[3] - zc[0]) * z_copy[0].stats.delta
-                	    # calculate source spectrum and get w0 and fc
-                	    specpara = DCfc(z_copy, mpickP, calcwin, iplot)
-                            w0 = specpara.getw0()
-                            fc = specpara.getfc()
+                    # integrate to displacement
+                    corintzdat = integrate.cumtrapz(corzdat[0], None, corzdat[0].stats.delta)
+                    # class needs stream object => build it
+                    z_copy = zdat.copy()
+                    z_copy[0].data = corintzdat
+                    # largest detectable period == window length
+                    # after P pulse for calculating source spectrum
+                    winzc = (1 / bpz2[0]) * z_copy[0].stats.sampling_rate
+                    impickP = mpickP * z_copy[0].stats.sampling_rate
+                    wfzc = z_copy[0].data[impickP : impickP + winzc]
+                    # calculate spectrum using only first cycles of
+                    # waveform after P onset!
+                    zc = crossings_nonzero_all(wfzc)
+                    if np.size(zc) == 0:
+                        print ("Something is wrong with the waveform, "
+                               "no zero crossings derived!")
+                        print ("Cannot calculate source spectrum!")
+                    else:
+                        calcwin = (zc[3] - zc[0]) * z_copy[0].stats.delta
+                    # calculate source spectrum and get w0 and fc
+                    specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                    w0 = specpara.getw0()
+                    fc = specpara.getfc()
 
-                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, " \
+                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
                        "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
                 Sflag = 1
 
@@ -352,7 +352,7 @@ def autopickstation(wfstream, pickparam):
             Sflag = 0
 
     else:
-        print ("autopickstation: No vertical component data available!, " \
+        print ("autopickstation: No vertical component data available!, "
                "Skipping station!")
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
@@ -560,7 +560,7 @@ def autopickstation(wfstream, pickparam):
                 hdat += ndat
                 h_copy = hdat.copy()
                 [cordat, restflag] = data.restituteWFData(invdir, h_copy)
-                # calculate WA-peak-to-peak amplitude 
+                # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
                 if restflag == 1:
                     if Sweight < 4:
@@ -591,10 +591,10 @@ def autopickstation(wfstream, pickparam):
             h_copy = hdat.copy()
             [cordat, restflag] = data.restituteWFData(invdir, h_copy)
             if restflag == 1:
-                # calculate WA-peak-to-peak amplitude 
+                # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
-                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP \
-                            + sstop)), iplot)
+                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
+                                                                     + sstop)), iplot)
                 Ao = wapp.getwapp()
 
     else:
@@ -771,14 +771,14 @@ def autopickstation(wfstream, pickparam):
     # create dictionary
     # for P phase
     phase = 'P'
-    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror, \
+    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
                  'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
     # add S phase
     phase = 'S'
-    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror, \
+    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror,
                  'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
     picks[phase] = phasepick
     # add Wood-Anderson amplitude
