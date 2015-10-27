@@ -5,8 +5,9 @@
 import os
 import argparse
 import glob
-
+import subprocess
 import matplotlib.pyplot as plt
+
 from obspy.core import read
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -71,12 +72,23 @@ def autoPyLoT(inputfile):
 
         # get path to inventory or dataless-seed file with station meta data
         invdir = parameter.getParam('invdir')
-        # get path and name of phase file  
-        phasefile = parameter.getParam('phasefile')
-        # get path and name of NLLoc-control file
-        locfile = parameter.getparam('locfile')
-        # path and pattern of NLLoc ttimes from location grid
-        ttpattern = parameter.getparam('ttpattern')
+
+        # get NLLoc-root path
+        nllocroot = parameter.getParam('nllocroot')
+        # get path to NLLoc executable
+        nllocbin = parameter.getParam('nllocbin')
+        nlloccall = '%s/NLLoc' % nllocbin
+        # get name of phase file  
+        phasef = parameter.getParam('phasefile')
+        phasefile = '%s/%s' % (nllocroot, phasef)
+        # get name of NLLoc-control file
+        locf = parameter.getParam('locfile')
+        locfile = '%s/run/%s' % (nllocroot, locf)
+        # patter of NLLoc ttimes from location grid
+        ttpat = parameter.getParam('ttpatter')
+        ttpatter = '%s/time/%s' % (nllocroot, ttpat)
+        # patter of NLLoc-output file
+        nllocoutpatter = parameter.getParam('outpatter')
 
 
         # multiple event processing
@@ -96,6 +108,27 @@ def autoPyLoT(inputfile):
                 # write phases to NLLoc-phase file
                 writephases(picks, 'NLLoc', phasefile)
 
+                ##########################################################
+                # For locating the events we have to modify the NLLoc-control file!
+                # create comment line for NLLoc-control file
+                # NLLoc-output file
+                nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
+                locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
+                print ("Modifying  NLLoc-control file %s ..." % locfile)
+                # modification of NLLoc-control file
+                filedata = None
+                nllfile = open(locfile, 'r')
+                filedata = nllfile.read()
+                # replace old command
+                filedata = filedata.replace('LOCFILES', locfiles)
+                nllfile = open(locfile, 'w')
+                nllfile.write(filedata)
+                nllfile.close()
+
+                # locate the event
+                subprocess.call([nlloccall, locfile])
+                ##########################################################
+
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
                 print '------------------------------------------'
@@ -114,8 +147,26 @@ def autoPyLoT(inputfile):
             # write phases to NLLoc-phase file
             writephases(picks, 'NLLoc', phasefile)
 
-            # create comment line for NLLoc-control file
-            locfiles = printf('LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpattern, NLLocoutfile))
+            ##########################################################
+            # For locating the events we have to modify the NLLoc-control file!
+            # create comment line for NLLoc-control file NLLoc-output file
+            nllocout = '%s/loc/%s_%s' % (nllocroot, parameter.getParam('eventID'), nllocoutpatter)
+            locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
+            print ("Modifying  NLLoc-control file %s ..." % locfile)
+            # modification of NLLoc-control file
+            filedata = None
+            nllfile = open(locfile, 'r')
+            filedata = nllfile.read()
+            # replace old command
+            filedata = filedata.replace('LOCFILES', locfiles)
+            nllfile = open(locfile, 'w')
+            nllfile.write(filedata)
+            nllfile.close()
+
+            # locate the event
+            subprocess.call([nlloccall, locfile])
+            ##########################################################
+                   
 
 
             print '------------------------------------------'
