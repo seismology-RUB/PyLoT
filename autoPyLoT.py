@@ -119,11 +119,12 @@ def autoPyLoT(inputfile):
                 filedata = None
                 nllfile = open(locfile, 'r')
                 filedata = nllfile.read()
-                # replace old command
-                filedata = filedata.replace('LOCFILES', locfiles)
-                nllfile = open(locfile, 'w')
-                nllfile.write(filedata)
-                nllfile.close()
+                if filedata.find(locfiles) < 0:
+                    # replace old command
+                    filedata = filedata.replace('LOCFILES', locfiles)
+                    nllfile = open(locfile, 'w')
+                    nllfile.write(filedata)
+                    nllfile.close()
 
                 # locate the event
                 subprocess.call([nlloccall, locfile])
