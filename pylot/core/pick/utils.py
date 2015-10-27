@@ -961,11 +961,44 @@ def writephases(arrivals, fformat, filename):
         fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
-                # NLLoc only knows weight 0 (do not use pick)
-                # and weight 1 (use pick)
-                NLLocweight = 1 
-                # write phase information to file
-                fid.write('%s \n' % key) 
+                fm = arrivals[key]['P']['fm']
+                onset = arrivals[key]['P']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
+                 fm,
+                 year,
+                 month,
+                 day,
+                 hh,
+                 mm,
+                 ss_ms))
+            if arrivals[key]['S']['weight'] < 4:
+                fm = '?'
+                onset = arrivals[key]['S']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
+                 fm,
+                 year,
+                 month,
+                 day,
+                 hh,
+                 mm,
+                 ss_ms))
+
 
         fid.close()
 
