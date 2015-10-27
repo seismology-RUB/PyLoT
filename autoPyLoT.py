@@ -12,6 +12,7 @@ from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.pick.utils import writephases
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -70,6 +71,13 @@ def autoPyLoT(inputfile):
 
         # get path to inventory or dataless-seed file with station meta data
         invdir = parameter.getParam('invdir')
+        # get path and name of phase file  
+        phasefile = parameter.getParam('phasefile')
+        # get path and name of NLLoc-control file
+        locfile = parameter.getparam('locfile')
+        # path and pattern of NLLoc ttimes from location grid
+        ttpattern = parameter.getparam('ttpattern')
+
 
         # multiple event processing
         # read each event in database
@@ -85,6 +93,9 @@ def autoPyLoT(inputfile):
                 # !automated picking starts here!
                 picks = autopickevent(wfdat, parameter)
 
+                # write phases to NLLoc-phase file
+                writephases(picks, 'NLLoc', phasefile)
+
                 print '------------------------------------------'
                 print '-----Finished event %s!-----' % event
                 print '------------------------------------------'
@@ -99,6 +110,13 @@ def autoPyLoT(inputfile):
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
+            
+            # write phases to NLLoc-phase file
+            writephases(picks, 'NLLoc', phasefile)
+
+            # create comment line for NLLoc-control file
+            locfiles = printf('LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpattern, NLLocoutfile))
+
 
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
