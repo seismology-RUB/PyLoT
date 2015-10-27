@@ -7,7 +7,7 @@ import argparse
 import glob
 import subprocess
 import matplotlib.pyplot as plt
-
+import pdb
 from obspy.core import read
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -157,11 +157,12 @@ def autoPyLoT(inputfile):
             filedata = None
             nllfile = open(locfile, 'r')
             filedata = nllfile.read()
-            # replace old command
-            filedata = filedata.replace('LOCFILES', locfiles)
-            nllfile = open(locfile, 'w')
-            nllfile.write(filedata)
-            nllfile.close()
+            if filedata.find(locfiles) < 0:
+                # replace old command
+            	filedata = filedata.replace('LOCFILES', locfiles)
+            	nllfile = open(locfile, 'w')
+            	nllfile.write(filedata)
+            	nllfile.close()
 
             # locate the event
             subprocess.call([nlloccall, locfile])
