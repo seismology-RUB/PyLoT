@@ -8,7 +8,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
-import pdb
+
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
