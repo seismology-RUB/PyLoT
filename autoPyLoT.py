@@ -6,8 +6,7 @@ import os
 import argparse
 import glob
 import subprocess
-import matplotlib.pyplot as plt
-import pdb
+
 from obspy.core import read
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -20,7 +19,7 @@ __version__ = _getVersionString()
 
 
 def autoPyLoT(inputfile):
-    '''
+    """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
 
@@ -32,7 +31,7 @@ def autoPyLoT(inputfile):
 
     .. rubric:: Example
 
-    '''
+    """
     print '************************************'
     print '*********autoPyLoT starting*********'
     print 'The Python picking and Location Tool'
@@ -57,9 +56,9 @@ def autoPyLoT(inputfile):
 
     if parameter.hasParam('datastructure'):
         datastructure = DATASTRUCTURE[parameter.getParam('datastructure')]()
-        dsfields = {'root':parameter.getParam('rootpath'),
-                    'dpath':parameter.getParam('datapath'),
-                    'dbase':parameter.getParam('database')}
+        dsfields = {'root' :parameter.getParam('rootpath'),
+                    'dpath' :parameter.getParam('datapath'),
+                    'dbase' :parameter.getParam('database')}
 
         exf = ['root', 'dpath', 'dbase']
 
@@ -70,25 +69,28 @@ def autoPyLoT(inputfile):
         datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
-        # get path to inventory or dataless-seed file with station meta data
-        invdir = parameter.getParam('invdir')
-
-        # get NLLoc-root path
-        nllocroot = parameter.getParam('nllocroot')
-        # get path to NLLoc executable
-        nllocbin = parameter.getParam('nllocbin')
-        nlloccall = '%s/NLLoc' % nllocbin
-        # get name of phase file  
-        phasef = parameter.getParam('phasefile')
-        phasefile = '%s/obs/%s' % (nllocroot, phasef)
-        # get name of NLLoc-control file
-        locf = parameter.getParam('locfile')
-        locfile = '%s/run/%s' % (nllocroot, locf)
-        # patter of NLLoc ttimes from location grid
-        ttpat = parameter.getParam('ttpatter')
-        ttpatter = '%s/time/%s' % (nllocroot, ttpat)
-        # patter of NLLoc-output file
-        nllocoutpatter = parameter.getParam('outpatter')
+        # check if default location routine NLLoc is available
+        if parameter.hasParam('nllocbin'):
+            locflag = 1
+            # get NLLoc-root path
+            nllocroot = parameter.getParam('nllocroot')
+            # get path to NLLoc executable
+            nllocbin = parameter.getParam('nllocbin')
+            nlloccall = '%s/NLLoc' % nllocbin
+            # get name of phase file  
+            phasef = parameter.getParam('phasefile')
+            phasefile = '%s/obs/%s' % (nllocroot, phasef)
+            # get name of NLLoc-control file
+            locf = parameter.getParam('locfile')
+            locfile = '%s/run/%s' % (nllocroot, locf)
+            # patter of NLLoc ttimes from location grid
+            ttpat = parameter.getParam('ttpatter')
+            ttpatter = '%s/time/%s' % (nllocroot, ttpat)
+            # patter of NLLoc-output file
+            nllocoutpatter = parameter.getParam('outpatter')
+        else:
+            locflag = 0
+            print ("!!No location routine available, autoPyLoT just picks the events without locating them!!")
 
 
         # multiple event processing
@@ -97,37 +99,39 @@ def autoPyLoT(inputfile):
         if not parameter.hasParam('eventID'):
             for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
-                print 'Working on event %s' %event
+                print 'Working on event %s' % event
                 print data
 
-                wfdat = data.getWFData() # all available streams
+                wfdat = data.getWFData()  # all available streams
                 ##########################################################
                 # !automated picking starts here!
                 picks = autopickevent(wfdat, parameter)
 
-                # write phases to NLLoc-phase file
-                writephases(picks, 'NLLoc', phasefile)
-
                 ##########################################################
-                # For locating the events we have to modify the NLLoc-control file!
-                # create comment line for NLLoc-control file
-                # NLLoc-output file
-                nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
-                locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
-                print ("Modifying  NLLoc-control file %s ..." % locfile)
-                # modification of NLLoc-control file
-                filedata = None
-                nllfile = open(locfile, 'r')
-                filedata = nllfile.read()
-                if filedata.find(locfiles) < 0:
-                    # replace old command
-                    filedata = filedata.replace('LOCFILES', locfiles)
-                    nllfile = open(locfile, 'w')
-                    nllfile.write(filedata)
-                    nllfile.close()
+                # locating
+                if locflag == 1:
+                    # write phases to NLLoc-phase file
+                    writephases(picks, 'NLLoc', phasefile)
 
-                # locate the event
-                subprocess.call([nlloccall, locfile])
+                    # For locating the events we have to modify the NLLoc-control file!
+                    # create comment line for NLLoc-control file
+                    # NLLoc-output file
+                    nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
+                    locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
+                    print ("Modifying  NLLoc-control file %s ..." % locfile)
+                    # modification of NLLoc-control file
+                    filedata = None
+                    nllfile = open(locfile, 'r')
+                    filedata = nllfile.read()
+                    if filedata.find(locfiles) < 0:
+                        # replace old command
+                        filedata = filedata.replace('LOCFILES', locfiles)
+                        nllfile = open(locfile, 'w')
+                        nllfile.write(filedata)
+                        nllfile.close()
+
+                    # locate the event
+                    subprocess.call([nlloccall, locfile])
                 ##########################################################
 
                 print '------------------------------------------'
@@ -140,33 +144,35 @@ def autoPyLoT(inputfile):
             print 'Working on event ', parameter.getParam('eventID')
             print data
 
-            wfdat = data.getWFData() # all available streams
+            wfdat = data.getWFData()  # all available streams
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
             
-            # write phases to NLLoc-phase file
-            writephases(picks, 'NLLoc', phasefile)
-
             ##########################################################
-            # For locating the event we have to modify the NLLoc-control file!
-            # create comment line for NLLoc-control file NLLoc-output file
-            nllocout = '%s/loc/%s_%s' % (nllocroot, parameter.getParam('eventID'), nllocoutpatter)
-            locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
-            print ("Modifying  NLLoc-control file %s ..." % locfile)
-            # modification of NLLoc-control file
-            filedata = None
-            nllfile = open(locfile, 'r')
-            filedata = nllfile.read()
-            if filedata.find(locfiles) < 0:
-                # replace old command
-            	filedata = filedata.replace('LOCFILES', locfiles)
-            	nllfile = open(locfile, 'w')
-            	nllfile.write(filedata)
-            	nllfile.close()
+            # locating
+            if locflag == 1:
+                # write phases to NLLoc-phase file
+                writephases(picks, 'NLLoc', phasefile)
 
-            # locate the event
-            subprocess.call([nlloccall, locfile])
+                # For locating the event we have to modify the NLLoc-control file!
+                # create comment line for NLLoc-control file NLLoc-output file
+                nllocout = '%s/loc/%s_%s' % (nllocroot, parameter.getParam('eventID'), nllocoutpatter)
+                locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
+                print ("Modifying  NLLoc-control file %s ..." % locfile)
+                # modification of NLLoc-control file
+                filedata = None
+                nllfile = open(locfile, 'r')
+                filedata = nllfile.read()
+                if filedata.find(locfiles) < 0:
+                    # replace old command
+            	    filedata = filedata.replace('LOCFILES', locfiles)
+            	    nllfile = open(locfile, 'w')
+            	    nllfile.write(filedata)
+            	    nllfile.close()
+
+                # locate the event
+                subprocess.call([nlloccall, locfile])
             ##########################################################
                    
 
