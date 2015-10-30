@@ -470,7 +470,7 @@ class SeisArray(object):
         print "Exported coordinates for %s traces to file > %s" %(count, filename)
         recfile_out.close()
 
-    def plotArray2D(self, plot_topo = False, highlight_measured = False, annotations = True):
+    def plotArray2D(self, plot_topo = False, highlight_measured = False, annotations = True, pointsize = 10):
         import matplotlib.pyplot as plt
         plt.interactive(True)
         fig = plt.figure()
@@ -481,14 +481,14 @@ class SeisArray(object):
         xrc, yrc, zrc = self.getReceiverLists()
 
         if len(xrc) > 0:
-            ax.plot(xrc, yrc, 'k.', markersize = 10, label = 'all receivers')
+            ax.plot(xrc, yrc, 'k.', markersize = pointsize, label = 'all receivers')
         if len(xsc) > 0:
-            ax.plot(xsc, ysc, 'b*', markersize = 10, label = 'shot locations')
+            ax.plot(xsc, ysc, 'b*', markersize = pointsize, label = 'shot locations')
 
         if plot_topo == True:
-            ax.plot(xmt, ymt, 'b', markersize = 10, label = 'measured topo points')
+            ax.plot(xmt, ymt, 'b.', markersize = pointsize, label = 'measured topo points')
         if highlight_measured == True:
-            ax.plot(xmr, ymr, 'ro', label = 'measured receivers')
+            ax.plot(xmr, ymr, 'r.', markersize = pointsize, label = 'measured receivers')
 
         plt.title('2D plot of seismic array %s'%self.recfile)
         ax.set_xlabel('X [m]')
@@ -532,7 +532,7 @@ class SeisArray(object):
         return ax
 
 
-    def plotSurface3D(self, ax = None, step = 0.5, method = 'linear'):
+    def plotSurface3D(self, ax = None, step = 0.5, method = 'linear', exag = False):
         from matplotlib import cm
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
@@ -558,7 +558,8 @@ class SeisArray(object):
 
         ax.plot_surface(xgrid, ygrid, zgrid, linewidth = 0, cmap = cm.jet, vmin = min(z), vmax = max(z))
 
-        ax.set_zlim(-(max(x) - min(x)/2),(max(x) - min(x)/2))
+        if exag == False:
+            ax.set_zlim(-(max(x) - min(x)/2),(max(x) - min(x)/2))
         ax.set_aspect('equal')
 
         ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('elevation')
