@@ -544,18 +544,17 @@ class MainWindow(QMainWindow):
                         return True
                 return False
 
-            if self.filterAction.isChecked():
-                kwargs = {}
-                freq = self.getFilterOptions().getFreq()
-                if freq is not None and len(freq) > 1:
-                    kwargs['freqmin'] = freq[0]
-                    kwargs['freqmax'] = freq[1]
-                elif freq is not None and len(freq) == 1:
-                    kwargs['freq'] = freq
+            def pushFilterWF(kwdict):
                 if hasfreq(kwargs):
-                    kwargs['type'] = self.getFilterOptions().getFilterType()
-                    kwargs['corners'] = self.getFilterOptions().getOrder()
                     self.getData().filterWFData(kwargs)
+
+            if self.getFilterOptions() and self.filterAction.isChecked():
+                kwargs = self.getFilterOptions().parseFilterOptions()
+                pushFilterWF(kwargs)
+            elif self.filterAction.isChecked():
+                self.adjustFilterOptions()
+                kwargs = self.getFilterOptions().parseFilterOptions()
+                pushFilterWF(kwargs)
             else:
                 self.getData().resetWFData()
         self.plotWaveformData()
