@@ -206,6 +206,9 @@ class FilterOptions(object):
                    order=self.getOrder())
         return hrs
 
+    def __nonzero__(self):
+        return bool(self.getFilterType())
+
     def parseFilterOptions(self):
         if self.getFilterType():
             robject = {'type': self.getFilterType(), 'corners': self.getOrder()}
