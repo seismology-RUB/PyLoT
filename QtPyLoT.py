@@ -536,38 +536,31 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
         self.drawPicks()
 
+    def pushFilterWF(self, param_args):
+        self.getData().filterWFData(param_args)
+
     def filterWaveformData(self):
         if self.getData():
-            def hasfreq(kwdict):
-                for key in kwdict.keys():
-                    if not key.startswith('freq'):
-                        return True
-                return False
-
-            def pushFilterWF(kwdict):
-                if hasfreq(kwargs):
-                    self.getData().filterWFData(kwargs)
-
             if self.getFilterOptions() and self.filterAction.isChecked():
                 kwargs = self.getFilterOptions().parseFilterOptions()
-                pushFilterWF(kwargs)
+                self.pushFilterWF(kwargs)
             elif self.filterAction.isChecked():
                 self.adjustFilterOptions()
-                kwargs = self.getFilterOptions().parseFilterOptions()
-                pushFilterWF(kwargs)
             else:
                 self.getData().resetWFData()
         self.plotWaveformData()
 
     def adjustFilterOptions(self):
-        filteroptions = self.getFilterOptions()
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
         filterDlg = FilterOptionsDialog(titleString=fstring,
-                                        parent=self,
-                                        filterOptions=filteroptions)
+                                        parent=self)
         if filterDlg.exec_():
             filteroptions = filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
+            if self.filterAction.isChecked():
+                kwargs = self.getFilterOptions().parseFilterOptions()
+                self.pushFilterWF(kwargs)
+                self.plotWaveformData()
 
     def getFilterOptions(self):
         try:
