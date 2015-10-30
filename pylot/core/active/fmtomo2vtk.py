@@ -106,7 +106,15 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
         if not len(velref) == len(vel):
             print('ERROR: Number of gridpoints mismatch for %s and %s'%(inputfile, inputfileref))
             return
-        velrel = [vel - velref for vel, velref in zip(vel, velref)]
+        #velrel = [((vel - velref) / velref * 100) for vel, velref in zip(vel, velref)]
+        velrel = []
+        for velocities in zip(vel, velref):
+            v, vref = velocities
+            if not vref == 0:
+                velrel.append((v - vref) / vref * 100)
+            else:
+                velrel.append(0)            
+
         nR_ref, nTheta_ref, nPhi_ref = readNumberOfPoints(inputfileref)
         if not nR_ref == nR and nTheta_ref == nTheta and nPhi_ref == nPhi:
             print('ERROR: Dimension mismatch of grids %s and %s'%(inputfile, inputfileref))
