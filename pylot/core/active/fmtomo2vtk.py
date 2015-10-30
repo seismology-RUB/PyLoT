@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
+def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'abs', inputfileref = 'vgridsref.in'):
     '''
     Generate a vtk-file readable by e.g. paraview from FMTOMO output vgrids.in
     '''
@@ -19,6 +19,8 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
         nTheta = int(vglines[1].split()[1])
         nPhi = int(vglines[1].split()[2])
 
+        print('readNumberOf Points: Awaiting %d grid points in %s'
+              %(nR*nTheta*nPhi, filename))
         fin.close()
         return nR, nTheta, nPhi
 
@@ -95,9 +97,24 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk'):
     outfile.writelines('LOOKUP_TABLE default\n')
 
     # write velocity
-    print("Writing velocity values to VTK file...")
-    for velocity in vel:
-        outfile.writelines('%10f\n' %velocity)
+    if absOrRel == 'abs':
+        print("Writing velocity values to VTK file...")
+        for velocity in vel:
+            outfile.writelines('%10f\n' %velocity)
+    elif absOrRel == 'rel':
+        velref = readVelocity(inputfileref)
+        if not len(velref) == len(vel):
+            print('ERROR: Number of gridpoints mismatch for %s and %s'%(inputfile, inputfileref))
+            return
+        velrel = [vel - velref for vel, velref in zip(vel, velref)]
+        nR_ref, nTheta_ref, nPhi_ref = readNumberOfPoints(inputfileref)
+        if not nR_ref == nR and nTheta_ref == nTheta and nPhi_ref == nPhi:
+            print('ERROR: Dimension mismatch of grids %s and %s'%(inputfile, inputfileref))
+            return
+        print("Writing velocity values to VTK file...")
+        for velocity in velrel:
+            outfile.writelines('%10f\n' %velocity)
+        print('Pertubations: min: %s, max: %s'%(min(velrel), max(velrel)))
 
     outfile.close()
     print("Wrote velocity grid for %d points to file: %s" %(nPoints, outputfile))
