@@ -235,10 +235,10 @@ class MainWindow(QMainWindow):
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
-        phaseToolBar = self.addToolBar("PhaseTools")
-        phaseToolActions = (self.selectPAction, self.selectSAction)
-        phaseToolBar.setObjectName("PhaseTools")
-        self.addActions(phaseToolBar, phaseToolActions)
+        # phaseToolBar = self.addToolBar("PhaseTools")
+        # phaseToolActions = (self.selectPAction, self.selectSAction)
+        # phaseToolBar.setObjectName("PhaseTools")
+        # self.addActions(phaseToolBar, phaseToolActions)
 
         # create button group for component selection
 
