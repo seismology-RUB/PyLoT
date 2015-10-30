@@ -32,7 +32,8 @@ def runProgram(cmd, parameter=None):
     output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
                                      shell = True)
 
-
+def isSorted(iterable):
+    return sorted(iterable) == iterable
 
 def fnConstructor(s):
     if type(s) is str:
