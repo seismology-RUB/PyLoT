@@ -364,9 +364,9 @@ class SeisArray(object):
         return surface
 
     def generateVgrid(self, nTheta = 80, nPhi = 80, nR = 120,
-                      thetaSN = (-0.2, 1.2), phiWE = (-0.2, 1.2),
-                      Rbt = (-62.0, 6.0), vbot = 5.5, filename = 'vgrids.in',
-                      method = 'linear' ):
+                      Rbt = (-62.0, 6.0), thetaSN = None,
+                      phiWE = None, outfilename = 'vgrids.in',
+                      method = 'linear', infilename = 'mygrid.in'):
         '''
         Generate a velocity grid for fmtomo regarding topography with a linear gradient starting at the topography with 0.34 [km/s].
 
@@ -387,9 +387,12 @@ class SeisArray(object):
 
         :param: Rbt (bot, top) extensions of the model in km
         type: tuple
-
+        
         :param: vbot, velocity at the bottom of the model
         type: real
+ 
+        :param: method, interpolation method for topography
+        type: str
         '''
 
         def getRad(angle):
@@ -397,16 +400,48 @@ class SeisArray(object):
             rad = angle / 180 * PI
             return rad
 
-        def getZmax(surface):
-            z = []
-            for point in surface:
-                z.append(point[2])
-            return max(z)
+        def readMygridNlayers(filename):
+            infile = open(filename, 'r')
+            nlayers = len(infile.readlines()) / 2
+            infile.close()
+
+            return nlayers
+
+        def readMygrid(filename):
+            ztop = []; zbot = []; vtop = []; vbot = []
+            infile = open(filename, 'r')
+            nlayers = readMygridNlayers(filename)
+
+            for index in range(nlayers):
+                line1 = infile.readline()
+                line2 = infile.readline()
+                ztop.append(float(line1.split()[0]))
+                vtop.append(float(line1.split()[1]))
+                zbot.append(float(line2.split()[0]))
+                vbot.append(float(line2.split()[1]))
+            
+            if not ztop[0] == 0:
+                print('ERROR: there must be a velocity set for z = 0 in the file %s'%filename)
+                print('e.g.:\n0    0.33\n-5    1.0\netc.')
+
+            infile.close()
+            return ztop, zbot, vtop, vbot
 
         R = 6371
         vmin = 0.34
+        cushionfactor = 0.1 # add some extra space to the model
         decm = 0.3 # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
-        outfile = open(filename, 'w')
+        outfile = open(outfilename, 'w')
+
+        # generate dimensions of the grid from array
+        if thetaSN is None and phiWE is None:
+            x, y, z = self.getAllMeasuredPointsLists()
+            phi_min, phi_max = (self._getAngle(min(x)), self._getAngle(max(x)))
+            theta_min, theta_max = (self._getAngle(min(y)), self._getAngle(max(y)))
+            cushionPhi = abs(phi_max - phi_min) * cushionfactor
+            cushionTheta = abs(theta_max - theta_min) * cushionfactor
+            phiWE = (phi_min - cushionPhi, phi_max + cushionPhi)
+            thetaSN = (theta_min - cushionTheta, theta_max + cushionTheta)
 
         thetaS, thetaN = thetaSN
         phiW, phiE = phiWE
@@ -433,11 +468,14 @@ class SeisArray(object):
         outfile.writelines('%10s %10s %10s\n' %(rbot - rDelta, getRad(thetaS - thetaDelta), getRad(phiW - phiDelta)))
 
         surface = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method = method, filename = None)
-        zmax = getZmax(surface)
 
-        print "\nGenerating velocity grid for FMTOMO. Output filename = %s, interpolation method = %s"%(filename, method)
+        print "\nGenerating velocity grid for FMTOMO. Output filename = %s, interpolation method = %s"%(outfilename, method)
         print "nTheta = %s, nPhi = %s, nR = %s, thetaSN = %s, phiWE = %s, Rbt = %s"%(nTheta, nPhi, nR, thetaSN, phiWE, Rbt)
         count = 0
+
+        nlayers = readMygridNlayers(infilename)
+        ztop, zbot, vtop, vbot = readMygrid(infilename)
+
         for radius in rGrid:
             for theta in thetaGrid:
                 for phi in phiGrid:
@@ -445,19 +483,27 @@ class SeisArray(object):
                     yval = self._getDistance(theta)
                     for point in surface:
                         if point[0] == xval and point[1] == yval:
-                            z = point[2]
-                    if radius > (R + z + 1):
+                            topo = point[2]
+                    z = -(R + topo - radius)
+                    if z > (topo + 1): 
                         vel = 0.0
-                    # elif radius > (R + z - 15): ########### TESTING
-                    #     vel = (radius - z - R) / (Rbt[0] - rDelta - zmax) * 1.0 + vmin     ##########################
+                    elif (topo + 1) >= z > (topo): # cushioning around topography
+                        vel = vtop[0]
                     else:
-                        vel = (radius - z - R) / (Rbt[0] - rDelta - zmax) * vbot + vmin     ##########################
+                        for index in range(nlayers):
+                            if (topo + ztop[index]) >= z > (topo + zbot[index]):
+                                vel = (z - topo) / (zbot[index] - topo) * (vbot[index] - vtop[index]) + vtop[index]
+                                break
+                        if not (topo + ztop[index]) >= z > (topo + zbot[index]):
+                            print('ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile'%(z - topo))
+                            return
                     count += 1
                     outfile.writelines('%10s %10s\n'%(vel, decm))
 
                     progress = float(count) / float(nTotal) * 100
                     self._update_progress(progress)
 
+        print('Wrote %d points to file %s for %d layers'%(count, outfilename, nlayers))
         outfile.close()
 
     def exportAll(self, filename = 'interpolated_receivers.out'):
