@@ -3,7 +3,6 @@
 %and picking are to be set here!
 %Parameters are optimized for local data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 #main settings#
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
@@ -12,10 +11,20 @@ e0019.048.13                        #eventID#      %event ID for single event pr
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
-AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
-AUTOLOC_AIC_HOS4_ARH                #locfile#      %name of autoPILOT output location file 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#NLLoc settings
+/home/ludger/NLLOC                  #nllocbin#     %path to NLLoc executable
+/home/ludger/NLLOC/Insheim          #nllocroot#    %root of NLLoc-processing directory
+AUTOPHASES.obs                      #phasefile#    %name of autoPyLoT-output phase file for NLLoc
+                                                   %(in nllocroot/obs)
+Insheim_min1d2015.in                #locfile#      %name of autoPyLoT-output control file for NLLoc
+                                                   %(in nllocroot/run)
+ttime                               #ttpatter#     %pattern of NLLoc ttimes from grid
+                                                   %(in nllocroot/times)
+AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
+                                                   %(returns 'eventID_outpatter')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
-HYPOSAT                             #locrt#        %location routine used ("HYPOINVERSE" or "HYPOSAT")
 6                                   #pmin#         %minimum required P picks for location
 4                                   #p0min#        %minimum required P picks for location if at least
                                                    %3 excellent P picks are found

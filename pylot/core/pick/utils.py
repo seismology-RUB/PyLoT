@@ -931,6 +931,81 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
 
     return returnflag
 
+
+def writephases(arrivals, fformat, filename):
+    '''
+    Function of methods to write phases to the following standard file
+    formats used for locating earthquakes:
+
+    HYPO71, NLLoc, VELEST, HYPOSAT, HYPOINVERSE and hypoDD
+
+    :param: arrivals
+    :type: dictionary containing all phase information including
+           station ID, phase, first motion, weight (uncertainty), 
+           ....
+
+    :param: fformat
+    :type:  string, chosen file format (location routine),
+            choose between NLLoc, HYPO71, HYPOSAT, VELEST, 
+            HYPOINVERSE, and hypoDD
+
+    :param: filename, full path and name of phase file
+    :type: string
+    '''
+
+
+    if fformat == 'NLLoc':
+    	print ("Writing phases to %s for NLLoc" % filename)
+        fid = open("%s" % filename, 'w')
+        # write header
+        fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
+        for key in arrivals:
+            if arrivals[key]['P']['weight'] < 4:
+                fm = arrivals[key]['P']['fm']
+                onset = arrivals[key]['P']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
+                 fm,
+                 year,
+                 month,
+                 day,
+                 hh,
+                 mm,
+                 ss_ms))
+            if arrivals[key]['S']['weight'] < 4:
+                fm = '?'
+                onset = arrivals[key]['S']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
+                 fm,
+                 year,
+                 month,
+                 day,
+                 hh,
+                 mm,
+                 ss_ms))
+
+
+        fid.close()
+
+
+
+        
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()

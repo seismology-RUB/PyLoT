@@ -235,10 +235,10 @@ class MainWindow(QMainWindow):
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
-        phaseToolBar = self.addToolBar("PhaseTools")
-        phaseToolActions = (self.selectPAction, self.selectSAction)
-        phaseToolBar.setObjectName("PhaseTools")
-        self.addActions(phaseToolBar, phaseToolActions)
+        # phaseToolBar = self.addToolBar("PhaseTools")
+        # phaseToolActions = (self.selectPAction, self.selectSAction)
+        # phaseToolBar.setObjectName("PhaseTools")
+        # self.addActions(phaseToolBar, phaseToolActions)
 
         # create button group for component selection
 
@@ -536,39 +536,31 @@ class MainWindow(QMainWindow):
         self.plotWaveformData()
         self.drawPicks()
 
+    def pushFilterWF(self, param_args):
+        self.getData().filterWFData(param_args)
+
     def filterWaveformData(self):
         if self.getData():
-            def hasfreq(kwdict):
-                for key in kwdict.keys():
-                    if not key.startswith('freq'):
-                        return True
-                return False
-
-            if self.filterAction.isChecked():
-                kwargs = {}
-                freq = self.getFilterOptions().getFreq()
-                if freq is not None and len(freq) > 1:
-                    kwargs['freqmin'] = freq[0]
-                    kwargs['freqmax'] = freq[1]
-                elif freq is not None and len(freq) == 1:
-                    kwargs['freq'] = freq
-                if hasfreq(kwargs):
-                    kwargs['type'] = self.getFilterOptions().getFilterType()
-                    kwargs['corners'] = self.getFilterOptions().getOrder()
-                    self.getData().filterWFData(kwargs)
+            if self.getFilterOptions() and self.filterAction.isChecked():
+                kwargs = self.getFilterOptions().parseFilterOptions()
+                self.pushFilterWF(kwargs)
+            elif self.filterAction.isChecked():
+                self.adjustFilterOptions()
             else:
                 self.getData().resetWFData()
         self.plotWaveformData()
 
     def adjustFilterOptions(self):
-        filteroptions = self.getFilterOptions()
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
         filterDlg = FilterOptionsDialog(titleString=fstring,
-                                        parent=self,
-                                        filterOptions=filteroptions)
+                                        parent=self)
         if filterDlg.exec_():
             filteroptions = filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
+            if self.filterAction.isChecked():
+                kwargs = self.getFilterOptions().parseFilterOptions()
+                self.pushFilterWF(kwargs)
+                self.plotWaveformData()
 
     def getFilterOptions(self):
         try:

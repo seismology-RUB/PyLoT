@@ -206,8 +206,11 @@ class FilterOptions(object):
                    order=self.getOrder())
         return hrs
 
+    def __nonzero__(self):
+        return bool(self.getFilterType())
+
     def parseFilterOptions(self):
-        if self.getFilterType():
+        if self:
             robject = {'type': self.getFilterType(), 'corners': self.getOrder()}
             if len(self.getFreq()) > 1:
                 robject['freqmin'] = self.getFreq()[0]

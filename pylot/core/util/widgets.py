@@ -27,7 +27,7 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanTrace
+    demeanTrace, isSorted
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -985,7 +985,7 @@ class FilterOptionsDialog(QDialog):
         """
         super(FilterOptionsDialog, self).__init__()
 
-        if parent is not None:
+        if parent is not None and parent.getFilterOptions():
             self.filterOptions = parent.getFilterOptions()
         elif filterOptions is not None:
             self.filterOptions = FilterOptions(filterOptions)
@@ -1021,8 +1021,8 @@ class FilterOptionsDialog(QDialog):
             try:
                 self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
                 self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
-            except TypeError, e:
-                print e
+            except TypeError as e:
+                print(e)
                 self.freqmaxSpinBox.setValue(1.)
                 self.freqminSpinBox.setValue(.1)
 
@@ -1037,6 +1037,7 @@ class FilterOptionsDialog(QDialog):
         self.selectTypeLabel.setText("Select filter type:")
         self.selectTypeCombo = QComboBox()
         self.selectTypeCombo.addItems(typeOptions)
+        self.selectTypeCombo.setCurrentIndex(typeOptions.index(self.getFilterOptions().getFilterType()))
         self.selectTypeLayout = QVBoxLayout()
         self.selectTypeLayout.addWidget(self.orderLabel)
         self.selectTypeLayout.addWidget(self.orderSpinBox)
@@ -1071,30 +1072,28 @@ class FilterOptionsDialog(QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
     def updateUi(self):
-        _enable = False
-        if self.selectTypeCombo.currentText() not in ['bandpass', 'bandstop']:
-            self.freqminLabel.setText("cutoff:")
-            self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
-        else:
-            _enable = True
-            self.freqminLabel.setText("minimum:")
-
+        type = self.selectTypeCombo.currentText()
+        _enable = type in ['bandpass', 'bandstop']
+        freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
         self.freqmaxLabel.setEnabled(_enable)
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        self.getFilterOptions().setFilterType(
-            self.selectTypeCombo.currentText())
-        freq = [self.freqminSpinBox.value()]
-        if _enable:
-            if self.freqminSpinBox.value() > self.freqmaxSpinBox.value():
+        if not _enable:
+            self.freqminLabel.setText("cutoff:")
+            self.freqmaxSpinBox.setValue(freq[0])
+            freq.remove(freq[1])
+        else:
+            self.freqminLabel.setText("minimum:")
+            if not isSorted(freq):
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "
                                     "same value as minimum frequency (notch)!")
-                self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+                self.freqmaxSpinBox.setValue(freq[0])
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
                 return
-            freq.append(self.freqmaxSpinBox.value())
+
+        self.getFilterOptions().setFilterType(type)
         self.getFilterOptions().setFreq(freq)
         self.getFilterOptions().setOrder(self.orderSpinBox.value())
 
