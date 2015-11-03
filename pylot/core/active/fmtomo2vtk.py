@@ -93,7 +93,10 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     outfile.writelines('SPACING %f %f %f\n' %(dX, dY, dZ))
 
     outfile.writelines('POINT_DATA %15d\n' %(nPoints))
-    outfile.writelines('SCALARS velocity float %d\n' %(1))
+    if absOrRel == 'abs':
+        outfile.writelines('SCALARS velocity float %d\n' %(1))
+    elif absOrRel == 'rel':
+        outfile.writelines('SCALARS velChangePercent float %d\n' %(1))
     outfile.writelines('LOOKUP_TABLE default\n')
 
     # write velocity
