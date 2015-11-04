@@ -449,9 +449,9 @@ class SeisArray(object):
         rtop = Rbt[1] + R
 
         # need to determine the delta to add two cushion nodes around the min/max values
-        thetaDelta = abs(thetaN - thetaS) / (nTheta - 1)
-        phiDelta = abs(phiE - phiW) / (nPhi - 1)
-        rDelta = abs(rbot - rtop) / (nR - 1)
+        thetaDelta = abs(thetaN - thetaS) / float((nTheta - 1))
+        phiDelta = abs(phiE - phiW) / float((nPhi - 1))
+        rDelta = abs(rbot - rtop) / float((nR - 1))
 
         # create a regular grid including +2 cushion nodes in every direction
         thetaGrid = np.linspace(thetaS - thetaDelta, thetaN + thetaDelta, num = nTheta + 2) # +2 cushion nodes
@@ -487,17 +487,19 @@ class SeisArray(object):
                     z = -(R + topo - radius)
                     if z > (topo + 1): 
                         vel = 0.0
-                    elif (topo + 1) >= z > (topo): # cushioning around topography
+                    elif (topo + 1) >= z > topo: # cushioning around topography
                         vel = vtop[0]
                     else:
                         for index in range(nlayers):
                             if (topo + ztop[index]) >= z > (topo + zbot[index]):
-                                vel = (z - topo) / (zbot[index] - topo) * (vbot[index] - vtop[index]) + vtop[index]
+                                vel = (z - ztop[index]) / (zbot[index] - ztop[index]) * (vbot[index] - vtop[index]) + vtop[index]
                                 break
                         if not (topo + ztop[index]) >= z > (topo + zbot[index]):
                             print('ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile'%(z - topo))
                             return
                     count += 1
+                    if vel < 0:
+                        print('ERROR, vel <0; z, topo, zbot, vbot, vtop:', z, topo, zbot[index], vbot[index], vtop[index])
                     outfile.writelines('%10s %10s\n'%(vel, decm))
 
                     progress = float(count) / float(nTotal) * 100
