@@ -113,7 +113,7 @@ def autoPyLoT(inputfile):
                     # write phases to NLLoc-phase file
                     writephases(picks, 'NLLoc', phasefile)
 
-                    # For locating the events we have to modify the NLLoc-control file!
+                    # For locating the event the NLLoc-control file has to be modified!
                     # create comment line for NLLoc-control file
                     # NLLoc-output file
                     nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
@@ -155,7 +155,7 @@ def autoPyLoT(inputfile):
                 # write phases to NLLoc-phase file
                 writephases(picks, 'NLLoc', phasefile)
 
-                # For locating the event we have to modify the NLLoc-control file!
+                # For locating the event the NLLoc-control file has to be modified!
                 # create comment line for NLLoc-control file NLLoc-output file
                 nllocout = '%s/loc/%s_%s' % (nllocroot, parameter.getParam('eventID'), nllocoutpatter)
                 locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
@@ -174,8 +174,12 @@ def autoPyLoT(inputfile):
                 # locate the event
                 subprocess.call([nlloccall, locfile])
             ##########################################################
+            # write phase files for various location routines
+            # HYPO71
+            hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
+            writephases(picks, 'HYPO71', hypo71file)
+           
                    
-
 
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
