@@ -486,7 +486,7 @@ class SeisArray(object):
                             topo = point[2]
                     z = -(R + topo - radius)
                     if z > (topo + 1): 
-                        vel = 0.0
+                        vel = vtop[0]
                     elif (topo + 1) >= z > topo: # cushioning around topography
                         vel = vtop[0]
                     else:
