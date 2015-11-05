@@ -172,17 +172,12 @@ def autoPyLoT(inputfile):
                 # locate the event
                 subprocess.call([nlloccall, locfile])
             ##########################################################
-<<<<<<< HEAD
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
             writephases(picks, 'HYPO71', hypo71file)
            
                    
-=======
-
->>>>>>> 223902f2d4a9fe992730bb1ba925bfa432f26550
-
             print '------------------------------------------'
             print '-------Finished event %s!-------' % parameter.getParam('eventID')
             print '------------------------------------------'
