@@ -8,7 +8,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
-
+import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
@@ -937,7 +937,7 @@ def writephases(arrivals, fformat, filename):
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
 
-    HYPO71, NLLoc, VELEST, HYPOSAT, HYPOINVERSE and hypoDD
+    HYPO71, NLLoc, VELEST, HYPOSAT, and hypoDD
 
     :param: arrivals
     :type: dictionary containing all phase information including
@@ -999,11 +999,80 @@ def writephases(arrivals, fformat, filename):
                  mm,
                  ss_ms))
 
-
         fid.close()
 
+    elif fformat == 'HYPO71':
+    	print ("Writing phases to %s for HYPO71" % filename)
+        fid = open("%s" % filename, 'w')
+        # write header
+        fid.write('                                                              EQ001\n')
+        for key in arrivals:
+            if arrivals[key]['P']['weight'] < 4:
+                Ponset = arrivals[key]['P']['mpp']
+                Sonset = arrivals[key]['S']['mpp']
+                pweight = arrivals[key]['P']['weight'] 
+                sweight = arrivals[key]['S']['weight'] 
+                fm = arrivals[key]['P']['fm']
+                if fm is None:
+                    fm = '-'
+                Ao = arrivals[key]['S']['Ao']
+                if Ao is None:
+                    Ao = ''
+                else:
+                    Ao = str('%7.2f' % Ao)
+                year = Ponset.year
+                if year >= 2000:
+                   year = year -2000
+                else:
+                   year = year - 1900
+                month = Ponset.month
+                day = Ponset.day
+                hh = Ponset.hour
+                mm = Ponset.minute
+                ss = Ponset.second
+                ms = Ponset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                if pweight < 2:
+                     pstr = 'I'
+                elif pweight >= 2:
+                     pstr = 'E'
+                if arrivals[key]['S']['weight'] < 4:
+                    Sss = Sonset.second
+                    Sms = Sonset.microsecond
+                    Sss_ms = Sss + Sms / 1000000.0
+                    Sss_ms = str('%5.02f' % Sss_ms)
+                    if sweight < 2:
+                        sstr = 'I'
+                    elif sweight >= 2:
+                        sstr = 'E'
+                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (key,
+                     pstr,
+                     fm,
+                     pweight,
+                     year,
+                     month,
+                     day,
+                     hh,
+                     mm,
+                     ss_ms,
+                     Sss_ms,
+                     sstr,
+                     sweight,
+                     Ao))
+                else:
+                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (key,
+                     pstr,
+                     fm,
+                     pweight,
+                     year,
+                     month,
+                     day,
+                     hh,
+                     mm,
+                     ss_ms,
+                     Ao))
 
-
+        fid.close()
         
 
 if __name__ == '__main__':

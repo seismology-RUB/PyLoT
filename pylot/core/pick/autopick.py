@@ -335,7 +335,8 @@ def autopickstation(wfstream, pickparam):
                                "no zero crossings derived!")
                         print ("Cannot calculate source spectrum!")
                     else:
-                        calcwin = (zc[3] - zc[0]) * z_copy[0].stats.delta
+                        index = min([3, len(zc) - 1])
+                        calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
                     # calculate source spectrum and get w0 and fc
                     specpara = DCfc(z_copy, mpickP, calcwin, iplot)
                     w0 = specpara.getw0()
