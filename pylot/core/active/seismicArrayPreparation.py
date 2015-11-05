@@ -223,7 +223,7 @@ class SeisArray(object):
         '''
         PI = np.pi
         R = 6371.
-        angle = distance * 180 / (PI * R)
+        angle = distance * 180. / (PI * R)
         return angle
 
     def _getDistance(self, angle):
@@ -232,7 +232,7 @@ class SeisArray(object):
         '''
         PI = np.pi
         R = 6371.
-        distance = angle / 180 * (PI * R)
+        distance = angle / 180. * (PI * R)
         return distance
 
     def getMeasuredReceiverLists(self):
@@ -486,13 +486,13 @@ class SeisArray(object):
                             topo = point[2]
                     z = -(R + topo - radius)
                     if z > (topo + 1): 
-                        vel = vtop[0]
+                        vel = 0.0
                     elif (topo + 1) >= z > topo: # cushioning around topography
                         vel = vtop[0]
                     else:
                         for index in range(nlayers):
                             if (topo + ztop[index]) >= z > (topo + zbot[index]):
-                                vel = (z - ztop[index]) / (zbot[index] - ztop[index]) * (vbot[index] - vtop[index]) + vtop[index]
+                                vel = (z - ztop[index] - topo) / (zbot[index] - ztop[index]) * (vbot[index] - vtop[index]) + vtop[index]
                                 break
                         if not (topo + ztop[index]) >= z > (topo + zbot[index]):
                             print('ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile'%(z - topo))
