@@ -387,10 +387,10 @@ class SeisArray(object):
 
         :param: Rbt (bot, top) extensions of the model in km
         type: tuple
-        
+
         :param: vbot, velocity at the bottom of the model
         type: real
- 
+
         :param: method, interpolation method for topography
         type: str
         '''
@@ -419,7 +419,7 @@ class SeisArray(object):
                 vtop.append(float(line1.split()[1]))
                 zbot.append(float(line2.split()[0]))
                 vbot.append(float(line2.split()[1]))
-            
+
             if not ztop[0] == 0:
                 print('ERROR: there must be a velocity set for z = 0 in the file %s'%filename)
                 print('e.g.:\n0    0.33\n-5    1.0\netc.')
@@ -427,7 +427,7 @@ class SeisArray(object):
             infile.close()
             return ztop, zbot, vtop, vbot
 
-        R = 6371
+        R = 6371.
         vmin = 0.34
         cushionfactor = 0.1 # add some extra space to the model
         decm = 0.3 # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
@@ -435,7 +435,7 @@ class SeisArray(object):
 
         # generate dimensions of the grid from array
         if thetaSN is None and phiWE is None:
-            x, y, z = self.getAllMeasuredPointsLists()
+            x, y, _ = self.getAllMeasuredPointsLists()
             phi_min, phi_max = (self._getAngle(min(x)), self._getAngle(max(x)))
             theta_min, theta_max = (self._getAngle(min(y)), self._getAngle(max(y)))
             cushionPhi = abs(phi_max - phi_min) * cushionfactor
@@ -459,7 +459,7 @@ class SeisArray(object):
         rGrid = np.linspace(rbot - rDelta, rtop + rDelta, num = nR + 2) # +2 cushion nodes
 
         nTotal = len(rGrid) * len(thetaGrid) * len(phiGrid)
-        print "Total number of grid nodes: %s"%nTotal
+        print("Total number of grid nodes: %s"%nTotal)
 
         # write header for velocity grid file (in RADIANS)
         outfile.writelines('%10s %10s \n' %(1, 1))
@@ -469,8 +469,10 @@ class SeisArray(object):
 
         surface = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method = method, filename = None)
 
-        print "\nGenerating velocity grid for FMTOMO. Output filename = %s, interpolation method = %s"%(outfilename, method)
-        print "nTheta = %s, nPhi = %s, nR = %s, thetaSN = %s, phiWE = %s, Rbt = %s"%(nTheta, nPhi, nR, thetaSN, phiWE, Rbt)
+        print("\nGenerating velocity grid for FMTOMO. "
+              "Output filename = %s, interpolation method = %s"%(outfilename, method))
+        print("nTheta = %s, nPhi = %s, nR = %s, "
+              "thetaSN = %s, phiWE = %s, Rbt = %s"%(nTheta, nPhi, nR, thetaSN, phiWE, Rbt))
         count = 0
 
         nlayers = readMygridNlayers(infilename)
@@ -484,22 +486,23 @@ class SeisArray(object):
                     for point in surface:
                         if point[0] == xval and point[1] == yval:
                             topo = point[2]
-                    z = -(R + topo - radius)
-                    if z > (topo + 1): 
+                            break
+                    depth = -(R + topo - radius)
+                    if depth > 1:
                         vel = 0.0
-                    elif (topo + 1) >= z > topo: # cushioning around topography
+                    elif 1 >= depth > 0: # cushioning around topography
                         vel = vtop[0]
                     else:
                         for index in range(nlayers):
-                            if (topo + ztop[index]) >= z > (topo + zbot[index]):
-                                vel = (z - ztop[index] - topo) / (zbot[index] - ztop[index]) * (vbot[index] - vtop[index]) + vtop[index]
+                            if (ztop[index]) >= depth > (zbot[index]):
+                                vel = (depth - ztop[index]) / (zbot[index] - ztop[index]) * (vbot[index] - vtop[index]) + vtop[index]
                                 break
-                        if not (topo + ztop[index]) >= z > (topo + zbot[index]):
-                            print('ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile'%(z - topo))
+                        if not (ztop[index]) >= depth > (zbot[index]):
+                            print('ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile'%(depth-topo))
                             return
                     count += 1
                     if vel < 0:
-                        print('ERROR, vel <0; z, topo, zbot, vbot, vtop:', z, topo, zbot[index], vbot[index], vtop[index])
+                        print('ERROR, vel <0; z, topo, zbot, vbot, vtop:', depth, topo, zbot[index], vbot[index], vtop[index])
                     outfile.writelines('%10s %10s\n'%(vel, decm))
 
                     progress = float(count) / float(nTotal) * 100
