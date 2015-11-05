@@ -88,7 +88,7 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 2.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
 60                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
-1.0                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
+0.5                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 
 #check statistics of P onsets#
 45                                  #mdttolerance#  %maximum allowed deviation of P picks from median [s]
 #wadati check#

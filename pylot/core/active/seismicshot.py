@@ -588,6 +588,23 @@ class SeismicShot(object):
     #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_lowerb, ':k')
     #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_upperb, ':k')
 
+    def plotTrace(self, traceID, plotSNR = True, lw = 1):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax = self._drawStream(traceID, ax = ax)
+
+        tgap = self.getTgap()
+        tsignal = self.getTsignal()
+        pick = self.getPick(traceID)
+        tnoise = pick - tgap
+        snr, snrdb, noiselevel = self.getSNR(traceID)
+
+        ax.plot([0, tnoise], [noiselevel, noiselevel], 'm', linewidth = lw, label = 'noise level')
+        ax.plot([tnoise, pick], [noiselevel, noiselevel], 'g:', linewidth = lw, label = 'gap')
+        ax.plot([tnoise + tgap, pick + tsignal], [noiselevel * snr, noiselevel * snr], 'b', linewidth = lw, label = 'signal level')
+        ax.legend()
+        ax.text(0.05, 0.95, 'SNR: %s' %snr, transform = ax.transAxes)
+
     def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
         from matplotlib.widgets import Button
 
@@ -621,7 +638,7 @@ class SeismicShot(object):
         self._drawStream(traceID)
         self._drawCFs(traceID, folm)
 
-    def _drawStream(self, traceID, refresh = False):
+    def _drawStream(self, traceID, refresh = False, ax = None):
         from pylot.core.util.utils import getGlobalTimes
         from pylot.core.util.utils import prepTimeAxis
 
@@ -630,7 +647,8 @@ class SeismicShot(object):
         timeaxis = prepTimeAxis(stime, stream[0])
         timeaxis -= stime
         
-        ax = self.traces4plot[traceID]['ax1']
+        if ax is None:
+            ax = self.traces4plot[traceID]['ax1']
 
         if refresh == True:
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
@@ -645,8 +663,9 @@ class SeismicShot(object):
         ax.plot([self.getPick(traceID), self.getPick(traceID)], 
                 [min(stream[0].data), 
                  max(stream[0].data)],
-                'r', label = 'mostlikely')
+                'r', label = 'most likely')
         ax.legend()
+        return ax
 
     def _drawCFs(self, traceID, folm, refresh = False):
         hoscf = self.getHOScf(traceID)
@@ -665,7 +684,7 @@ class SeismicShot(object):
         ax.plot([self.getPick(traceID), self.getPick(traceID)], 
                  [min(np.minimum(hoscf.getCF(), aiccf.getCF())), 
                   max(np.maximum(hoscf.getCF(), aiccf.getCF()))],
-                 'r', label = 'mostlikely')
+                 'r', label = 'most likely')
         ax.plot([0, self.getPick(traceID)],
                  [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
                  'm:', label = 'folm = %s' %folm)
@@ -745,11 +764,12 @@ class SeismicShot(object):
         :type: 'logical'
         '''
         from scipy.interpolate import griddata
+        from matplotlib import cm
+        cmap = cm.jet
 
         x = []; xcut = []
         y = []; ycut = []
         z = []; zcut = []
-        tmin, tmax = self.getCut()
 
         for traceID in self.pick.keys():
             if self.getFlag(traceID) != 0:
@@ -761,6 +781,9 @@ class SeismicShot(object):
                 ycut.append(self.getRecLoc(traceID)[1])
                 zcut.append(self.getPickIncludeRemoved(traceID))
 
+        tmin = 0.8 * min(z) # 20% cushion for colorbar
+        tmax = 1.2 * max(z)
+
         xaxis = np.arange(min(x), max(x), step)
         yaxis = np.arange(min(y), max(y), step)
         xgrid, ygrid = np.meshgrid(xaxis, yaxis)
@@ -770,18 +793,27 @@ class SeismicShot(object):
             fig = plt.figure()
             ax = plt.axes()
 
-        ax.matshow(zgrid, extent = [min(x), max(x), min(y), max(y)], origin = 'lower')
+        count = 0
+        ax.imshow(zgrid, extent = [min(x), max(x), min(y), max(y)], vmin = tmin, vmax = tmax, cmap = cmap, origin = 'lower', alpha = 0.85)
         plt.text(0.45, 0.9, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes)
-        sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, linewidths = 1.5)
-        sccut = ax.scatter(xcut, ycut, c = zcut, s = 30, edgecolor = 'm', label = 'cut out shots', vmin = tmin, vmax = tmax, linewidths = 1.5)
+        sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, cmap = cmap, linewidths = 1.5)
+        for xyz in zip(xcut, ycut, zcut):
+            x, y, z = xyz
+            label = None
+            if z > tmax:
+                count += 1
+                z = 'w'
+                if count == 1:
+                    label = 'cut out shots'
+            ax.scatter(x, y, c = z, s = 30, edgecolor = 'm', label = label, vmin = tmin, vmax = tmax, cmap = cmap, linewidths = 1.5)
         if colorbar == True:
-            plt.colorbar(sc)
+            cbar = plt.colorbar(sc)
+            cbar.set_label('Time [s]')
+
+        ax.legend()
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.plot(self.getSrcLoc()[0], self.getSrcLoc()[1],'*k', markersize = 15) # plot source location
-
-        if plotRec == True:
-            ax.scatter(x, y, c = z, s = 30)
 
         if annotations == True:
             for traceID in self.getTraceIDlist():

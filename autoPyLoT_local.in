@@ -9,15 +9,15 @@ EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
-PILOT				    #datastructure#  %choose data structure
-0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
+PILOT				    #datastructure#%choose data structure
+0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#NLLoc settings
+#NLLoc settings#
 /home/ludger/NLLOC                  #nllocbin#     %path to NLLoc executable
 /home/ludger/NLLOC/Insheim          #nllocroot#    %root of NLLoc-processing directory
 AUTOPHASES.obs                      #phasefile#    %name of autoPyLoT-output phase file for NLLoc
                                                    %(in nllocroot/obs)
-Insheim_min1d2015.in                #locfile#      %name of autoPyLoT-output control file for NLLoc
+Insheim_min1d2015_auto.in           #locfile#      %name of autoPyLoT-output control file for NLLoc
                                                    %(in nllocroot/run)
 ttime                               #ttpatter#     %pattern of NLLoc ttimes from grid
                                                    %(in nllocroot/times)
