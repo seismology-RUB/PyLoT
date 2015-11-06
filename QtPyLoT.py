@@ -57,6 +57,7 @@ import icons_rc
 
 class MainWindow(QMainWindow):
     __version__ = _getVersionString()
+    __slots__ = ['loc']
     closing = Signal()
 
     def __init__(self, parent=None):
@@ -89,6 +90,7 @@ class MainWindow(QMainWindow):
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
+        self.locflag(False)
 
         # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
@@ -635,6 +637,10 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
+        if not self.locflag() and self.check4Loc():
+            self.locflag(True)
+        elif self.locflag() and not self.check4Loc():
+            self.locflag(False)
 
     def autoPick(self):
         list = QListWidget()
@@ -768,6 +774,13 @@ class MainWindow(QMainWindow):
             num += len(phases)
         return num
 
+    @property
+    def locflag(self):
+        return self.loc
+
+    @locflag.setter
+    def locflag(self, value):
+        self.loc = value
 
     def tutorUser(self):
         self.updateStatus('select trace to pick on station ...', 10000)
