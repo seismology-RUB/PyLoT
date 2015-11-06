@@ -759,6 +759,16 @@ class MainWindow(QMainWindow):
                     "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
+    def check4Loc(self):
+        return self.picksNum() > 4
+
+    def picksNum(self):
+        num = 0
+        for phases in self.getPicks().values():
+            num += len(phases)
+        return num
+
+
     def tutorUser(self):
         self.updateStatus('select trace to pick on station ...', 10000)
 
