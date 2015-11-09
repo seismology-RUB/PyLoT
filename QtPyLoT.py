@@ -162,6 +162,8 @@ class MainWindow(QMainWindow):
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
         auto_icon = QIcon()
         auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
+        locate_icon = QIcon()
+        locate_icon.addPixmap(QPixmap(':/icons/locate.png'))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -285,6 +287,16 @@ class MainWindow(QMainWindow):
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
+
+        locateEvent = self.createAction(parent=self, text='locateEvent',
+                                        slot=self.locateEvent, shortcut='Alt+Ctrl+L',
+                                        icon=locate_icon, tip='Locate the event using '
+                                                              'the picked arrivals.')
+
+        locationToolBar = self.addToolBar("LocationTools")
+        locationToolActions = (locateEvent,)
+        locationToolBar.setObjectName("LocationTools")
+        self.addActions(locationToolBar, locationToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -752,18 +764,8 @@ class MainWindow(QMainWindow):
                     [mpp + spe, mpp + spe], ylims, colors[1])
         self.draw()
 
-    def updateStatus(self, message, duration=5000):
-        self.statusBar().showMessage(message, duration)
-        if self.getData() is not None:
-            if not self.getData().isNew():
-                self.setWindowTitle(
-                    "PyLoT - processing event %s[*]" % self.getData().getID())
-            elif self.getData().isNew():
-                self.setWindowTitle("PyLoT - New event [*]")
-            else:
-                self.setWindowTitle(
-                    "PyLoT - seismic processing the python way[*]")
-        self.setWindowModified(self.dirty)
+    def locateEvent(self):
+        pass
 
     def check4Loc(self):
         return self.picksNum() > 4
@@ -781,6 +783,19 @@ class MainWindow(QMainWindow):
     @locflag.setter
     def locflag(self, value):
         self.loc = value
+
+    def updateStatus(self, message, duration=5000):
+        self.statusBar().showMessage(message, duration)
+        if self.getData() is not None:
+            if not self.getData().isNew():
+                self.setWindowTitle(
+                    "PyLoT - processing event %s[*]" % self.getData().getID())
+            elif self.getData().isNew():
+                self.setWindowTitle("PyLoT - New event [*]")
+            else:
+                self.setWindowTitle(
+                    "PyLoT - seismic processing the python way[*]")
+        self.setWindowModified(self.dirty)
 
     def tutorUser(self):
         self.updateStatus('select trace to pick on station ...', 10000)
