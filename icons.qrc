@@ -2,6 +2,7 @@
     <qresource>
         <file>icons/pylot.ico</file>
         <file>icons/pylot.png</file>
+        <file>icons/locate.png</file>
         <file>icons/printer.png</file>
         <file>icons/delete.png</file>
         <file>icons/key_E.png</file>

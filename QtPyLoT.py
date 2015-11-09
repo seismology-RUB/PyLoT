@@ -57,6 +57,7 @@ import icons_rc
 
 class MainWindow(QMainWindow):
     __version__ = _getVersionString()
+    __slots__ = ['loc']
     closing = Signal()
 
     def __init__(self, parent=None):
@@ -89,6 +90,7 @@ class MainWindow(QMainWindow):
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
+        self.locflag(False)
 
         # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
@@ -160,6 +162,8 @@ class MainWindow(QMainWindow):
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
         auto_icon = QIcon()
         auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
+        locate_icon = QIcon()
+        locate_icon.addPixmap(QPixmap(':/icons/locate.png'))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -283,6 +287,16 @@ class MainWindow(QMainWindow):
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
+
+        locateEvent = self.createAction(parent=self, text='locateEvent',
+                                        slot=self.locateEvent, shortcut='Alt+Ctrl+L',
+                                        icon=locate_icon, tip='Locate the event using '
+                                                              'the picked arrivals.')
+
+        locationToolBar = self.addToolBar("LocationTools")
+        locationToolActions = (locateEvent,)
+        locationToolBar.setObjectName("LocationTools")
+        self.addActions(locationToolBar, locationToolActions)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -635,6 +649,10 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
+        if not self.locflag() and self.check4Loc():
+            self.locflag(True)
+        elif self.locflag() and not self.check4Loc():
+            self.locflag(False)
 
     def autoPick(self):
         list = QListWidget()
@@ -745,6 +763,26 @@ class MainWindow(QMainWindow):
                     [mpp, mpp], ylims, colors[2],
                     [mpp + spe, mpp + spe], ylims, colors[1])
         self.draw()
+
+    def locateEvent(self):
+        pass
+
+    def check4Loc(self):
+        return self.picksNum() > 4
+
+    def picksNum(self):
+        num = 0
+        for phases in self.getPicks().values():
+            num += len(phases)
+        return num
+
+    @property
+    def locflag(self):
+        return self.loc
+
+    @locflag.setter
+    def locflag(self, value):
+        self.loc = value
 
     def updateStatus(self, message, duration=5000):
         self.statusBar().showMessage(message, duration)
