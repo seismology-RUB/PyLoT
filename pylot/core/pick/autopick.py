@@ -11,7 +11,6 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pdb
 from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
@@ -332,7 +331,7 @@ def autopickstation(wfstream, pickparam):
                     # calculate spectrum using only first cycles of
                     # waveform after P onset!
                     zc = crossings_nonzero_all(wfzc)
-                    if np.size(zc) == 0:
+                    if np.size(zc) == 0 or len(zc) <= 3:
                         print ("Something is wrong with the waveform, "
                                "no zero crossings derived!")
                         print ("Cannot calculate source spectrum!")
