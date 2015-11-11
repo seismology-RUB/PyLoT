@@ -6,7 +6,7 @@ import os
 import argparse
 import glob
 import subprocess
-
+import string
 from obspy.core import read
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -99,7 +99,6 @@ def autoPyLoT(inputfile):
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
                 print('Working on event %s' % event)
                 print(data)
-
                 wfdat = data.getWFData()  # all available streams
                 ##########################################################
                 # !automated picking starts here!
@@ -114,7 +113,8 @@ def autoPyLoT(inputfile):
                     # For locating the event the NLLoc-control file has to be modified!
                     # create comment line for NLLoc-control file
                     # NLLoc-output file
-                    nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
+                    evID = event[string.rfind(event, "/") + 1 : len(events) - 1]
+                    nllocout = '%s/loc/%s_%s' % (nllocroot, evID, nllocoutpatter)
                     locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
                     print ("Modifying  NLLoc-control file %s ..." % locfile)
                     # modification of NLLoc-control file
@@ -133,7 +133,7 @@ def autoPyLoT(inputfile):
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
-                hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, eventID)
+                hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, evID)
                 writephases(picks, 'HYPO71', hypo71file)
 
                 print '------------------------------------------'
