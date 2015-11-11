@@ -11,6 +11,7 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pdb
 from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
@@ -28,7 +29,6 @@ def autopickevent(data, param):
     wdttolerance = param.getParam('wdttolerance')
     mdttolerance = param.getParam('mdttolerance')
     iplot = param.getParam('iplot')
-
     for n in range(len(data)):
         station = data[n].stats.station
         if station not in stations:
@@ -141,6 +141,8 @@ def autopickstation(wfstream, pickparam):
 
     # split components
     zdat = wfstream.select(component="Z")
+    if len(zdat) == 0:  # check for other components
+        zdat = wfstream.select(component="3")
     edat = wfstream.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = wfstream.select(component="2")
