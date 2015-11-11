@@ -11,7 +11,6 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pdb
 from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
@@ -339,10 +338,10 @@ def autopickstation(wfstream, pickparam):
                     else:
                         index = min([3, len(zc) - 1])
                         calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
-                    # calculate source spectrum and get w0 and fc
-                    specpara = DCfc(z_copy, mpickP, calcwin, iplot)
-                    w0 = specpara.getw0()
-                    fc = specpara.getfc()
+                        # calculate source spectrum and get w0 and fc
+                        specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                        w0 = specpara.getw0()
+                        fc = specpara.getfc()
 
                 print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
                        "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
