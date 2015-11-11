@@ -11,6 +11,7 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pdb
 from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
@@ -760,12 +761,12 @@ def autopickstation(wfstream, pickparam):
             plt.close()
     ##########################################################################
     # calculate "real" onset times
-    if mpickP is not None:
+    if mpickP is not None and epickP is not None and mpickP is not None:
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
         mpickP = zdat[0].stats.starttime + mpickP
 
-    if mpickS is not None:
+    if mpickS is not None and epickS is not None and mpickS is not None:
         lpickS = edat[0].stats.starttime + lpickS
         epickS = edat[0].stats.starttime + epickS
         mpickS = edat[0].stats.starttime + mpickS
