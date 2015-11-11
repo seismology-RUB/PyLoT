@@ -963,6 +963,8 @@ def writephases(arrivals, fformat, filename):
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 fm = arrivals[key]['P']['fm']
+                if fm == None:
+                   fm = '?'
                 onset = arrivals[key]['P']['mpp']
                 year = onset.year
                 month = onset.month
