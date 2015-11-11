@@ -867,6 +867,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
 
     # split components
     zdat = X.select(component="Z")
+    if len(zdat) == 0:  # check for other components
+        zdat = X.select(component="3")
     edat = X.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = X.select(component="2")
