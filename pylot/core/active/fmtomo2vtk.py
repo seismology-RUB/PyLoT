@@ -47,6 +47,9 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
         return sR, sTheta, sPhi
 
     def readVelocity(filename):
+        '''
+        Reads in velocity from vgrids file and returns a list containing all values in the same order
+        '''
         vel = []; count = 0
         fin = open(filename, 'r')
         vglines = fin.readlines()
@@ -59,7 +62,7 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
         print("Read %d points out of file: %s" %(count - 4, filename))
         return vel
 
-    R = 6371 # earth radius
+    R = 6371. # earth radius
     outfile = open(outputfile, 'w')
 
     # Theta, Phi in radians, R in km
@@ -167,7 +170,7 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
             rays[shotnumber] = {}
         rays[shotnumber][raynumber] = []
         for index in range(nRayPoints):
-            if index%nthPoint is 0 or index == nRayPoints:
+            if index % nthPoint is 0 or index == (nRayPoints - 1):
                 rad, lat, lon = infile.readline().split()
                 rays[shotnumber][raynumber].append([getDistance(np.rad2deg(float(lon))), getDistance(np.rad2deg(float(lat))), float(rad) - R])
             else:
