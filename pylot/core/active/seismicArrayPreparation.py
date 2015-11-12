@@ -358,11 +358,11 @@ class SeisArray(object):
         measured_x, measured_y, measured_z = self.getAllMeasuredPointsLists()
 
         # need to determine the delta to add two cushion nodes around the min/max values
-        thetaDelta = (thetaN - thetaS) / (nTheta - 1)
-        phiDelta = (phiE - phiW) / (nPhi - 1)
+        deltaTheta = (thetaN - thetaS) / (nTheta - 1)
+        deltaPhi = (phiE - phiW) / (nPhi - 1)
 
-        thetaGrid = np.linspace(thetaS - thetaDelta, thetaN + thetaDelta, num = nTheta + 2) # +2 cushion nodes
-        phiGrid = np.linspace(phiW - phiDelta, phiE + phiDelta, num = nPhi + 2) # +2 cushion nodes
+        thetaGrid = np.linspace(thetaS - deltaTheta, thetaN + deltaTheta, num = nTheta + 2) # +2 cushion nodes
+        phiGrid = np.linspace(phiW - deltaPhi, phiE + deltaPhi, num = nPhi + 2) # +2 cushion nodes
 
         nTotal = len(thetaGrid) * len(phiGrid); count = 0
         for theta in thetaGrid:
@@ -401,7 +401,7 @@ class SeisArray(object):
         nInterfaces = 2    
 
         # generate dimensions of the grid from array
-        phiWE, thetaSN = self.getThetaPhiFromArray(cushionfactor)
+        thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor)
 
         thetaS, thetaN = thetaSN
         phiW, phiE = phiWE
@@ -410,14 +410,14 @@ class SeisArray(object):
         outfile = open(outfilename, 'w')
 
         # determine the deltas
-        thetaDelta = abs(thetaN - thetaS) / float((nTheta - 1))
-        phiDelta = abs(phiE - phiW) / float((nPhi - 1))
+        deltaTheta = abs(thetaN - thetaS) / float((nTheta - 1))
+        deltaPhi = abs(phiE - phiW) / float((nPhi - 1))
 
         # write header for interfaces grid file (in RADIANS)
         outfile.writelines('%10s\n' %(nInterfaces))
         outfile.writelines('%10s %10s\n' %(nTheta + 2, nPhi + 2)) # +2 cushion nodes
-        outfile.writelines('%10s %10s\n' %(np.deg2rad(thetaDelta), np.deg2rad(phiDelta)))
-        outfile.writelines('%10s %10s\n' %(np.deg2rad(thetaS - thetaDelta), np.deg2rad(phiW - phiDelta)))
+        outfile.writelines('%10s %10s\n' %(np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
+        outfile.writelines('%10s %10s\n' %(np.deg2rad(thetaS - deltaTheta), np.deg2rad(phiW - deltaPhi)))
 
         interface1 = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method = method)
         interface2 = self.interpolateOnRegularGrid(nTheta, nPhi, thetaSN, phiWE, -depthmax, method = method)
@@ -450,9 +450,9 @@ class SeisArray(object):
         cushionTheta = abs(theta_max - theta_min) * cushionfactor
         phiWE = (phi_min - cushionPhi, phi_max + cushionPhi)
         thetaSN = (theta_min - cushionTheta, theta_max + cushionTheta)
-        return phiWE, thetaSN
+        return thetaSN, phiWE
 
-    def generatePropgrid(self, nTheta, nPhi, nR, Rbt, cushionfactor = 0.1,
+    def generatePropgrid(self, nTheta, nPhi, nR, Rbt, cushionpropgrid = 0.05,
                          refinement = (5, 5), outfilename = 'propgrid.in'):
         '''
         Create a propergation grid file for FMTOMO using SeisArray boundaries
@@ -469,7 +469,8 @@ class SeisArray(object):
         :param: Rbt (bot, top) extensions of the model in km
         type: tuple
 
-        :param: cushionfactor, add some extra space to the model (default: 0.1 = 10%)
+        :param: cushionpropogrid, cushionfactor for the propagationgrid (cushion direction
+        opposing to vgrids cushionfactor)
         type: float
 
         :param: refinement, (refinement factor, number of local cells for refinement) used by FMTOMO
@@ -477,22 +478,22 @@ class SeisArray(object):
         '''
         outfile = open(outfilename, 'w')
 
-        R = 6371.
+        thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor = 0)
 
-        phiWE, thetaSN = self.getThetaPhiFromArray(cushionfactor)
+        thetaS = thetaSN[0] + cushionpropgrid
+        thetaN = thetaSN[1] - cushionpropgrid
+        phiW = phiWE[0] + cushionpropgrid
+        phiE = phiWE[1] - cushionpropgrid
+        rbot = Rbt[0]
+        rtop = Rbt[1]
 
-        thetaS, thetaN = thetaSN
-        phiW, phiE = phiWE
-        rbot = Rbt[0] + R
-        rtop = Rbt[1] + R
-
-        thetaDelta = abs(thetaN - thetaS) / float((nTheta - 1))
-        phiDelta = abs(phiE - phiW) / float((nPhi - 1))
-        rDelta = abs(rbot - rtop) / float((nR - 1))
+        deltaTheta = abs(thetaN - thetaS) / float(nTheta - 1)
+        deltaPhi = abs(phiE - phiW) / float(nPhi - 1)
+        deltaR = abs(rbot - rtop) / float(nR - 1)
 
         outfile.writelines('%10s %10s %10s\n' %(nR, nTheta, nPhi))
-        outfile.writelines('%10s %10s %10s\n' %(rDelta, thetaDelta, phiDelta))
-        outfile.writelines('%10s %10s %10s\n' %(Rbt[1], thetaS, phiW))
+        outfile.writelines('%10s %10s %10s\n' %(deltaR, deltaTheta, deltaPhi))
+        outfile.writelines('%10s %10s %10s\n' %(rtop, thetaS, phiW))
         outfile.writelines('%10s %10s\n' %refinement)
 
         outfile.close()
@@ -568,7 +569,7 @@ class SeisArray(object):
 
         # generate dimensions of the grid from array
         if thetaSN is None and phiWE is None:
-            phiWE, thetaSN = self.getThetaPhiFromArray()
+            thetaSN, phiWE = self.getThetaPhiFromArray()
 
         thetaS, thetaN = thetaSN
         phiW, phiE = phiWE
@@ -576,14 +577,14 @@ class SeisArray(object):
         rtop = Rbt[1] + R
 
         # need to determine the delta to add two cushion nodes around the min/max values
-        thetaDelta = abs(thetaN - thetaS) / float((nTheta - 1))
-        phiDelta = abs(phiE - phiW) / float((nPhi - 1))
-        rDelta = abs(rbot - rtop) / float((nR - 1))
+        deltaTheta = abs(thetaN - thetaS) / float((nTheta - 1))
+        deltaPhi = abs(phiE - phiW) / float((nPhi - 1))
+        deltaR = abs(rbot - rtop) / float((nR - 1))
 
         # create a regular grid including +2 cushion nodes in every direction
-        thetaGrid = np.linspace(thetaS - thetaDelta, thetaN + thetaDelta, num = nTheta + 2) # +2 cushion nodes
-        phiGrid = np.linspace(phiW - phiDelta, phiE + phiDelta, num = nPhi + 2) # +2 cushion nodes
-        rGrid = np.linspace(rbot - rDelta, rtop + rDelta, num = nR + 2) # +2 cushion nodes
+        thetaGrid = np.linspace(thetaS - deltaTheta, thetaN + deltaTheta, num = nTheta + 2) # +2 cushion nodes
+        phiGrid = np.linspace(phiW - deltaPhi, phiE + deltaPhi, num = nPhi + 2) # +2 cushion nodes
+        rGrid = np.linspace(rbot - deltaR, rtop + deltaR, num = nR + 2) # +2 cushion nodes
 
         nTotal = len(rGrid) * len(thetaGrid) * len(phiGrid)
         print("Total number of grid nodes: %s"%nTotal)
@@ -591,8 +592,8 @@ class SeisArray(object):
         # write header for velocity grid file (in RADIANS)
         outfile.writelines('%10s %10s \n' %(1, 1))
         outfile.writelines('%10s %10s %10s\n' %(nR + 2, nTheta + 2, nPhi + 2))
-        outfile.writelines('%10s %10s %10s\n' %(rDelta, np.deg2rad(thetaDelta), np.deg2rad(phiDelta)))
-        outfile.writelines('%10s %10s %10s\n' %(rbot - rDelta, np.deg2rad(thetaS - thetaDelta), np.deg2rad(phiW - phiDelta)))
+        outfile.writelines('%10s %10s %10s\n' %(deltaR, np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
+        outfile.writelines('%10s %10s %10s\n' %(rbot - deltaR, np.deg2rad(thetaS - deltaTheta), np.deg2rad(phiW - deltaPhi)))
 
         surface = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method = method)
 
