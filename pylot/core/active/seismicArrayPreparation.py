@@ -381,6 +381,34 @@ class SeisArray(object):
 
         return surface
 
+    def generateFMTOMOinputFromArray(self, nRP, nThetaP, nPhiP, nRI, nThetaI, nPhiI,
+                                     Rbt, cushionfactor, interpolationMethod = 'linear',
+                                     customgrid = 'mygrid.in'):
+        print('\n------------------------------------------------------------')
+        print('Automatically generating input for FMTOMO from array size.')
+        print('Propgrid: nR = %s, nTheta = %s, nPhi = %s'%(nRP, nThetaP, nPhiP))
+        print('Interpolation Grid and Interfaces Grid: nR = %s, nTheta = %s, nPhi = %s'%(nRI, nThetaI, nPhiI))
+        print('Bottom and Top of model: (%s, %s)'%(Rbt[0], Rbt[1]))
+        print('Method: %s, customgrid = %s'%(interpolationMethod, customgrid))
+        print('------------------------------------------------------------')
+
+        def getZmin(surface):
+            z = []
+            for point in surface:
+                z.append(point[2])
+            return min(z)
+
+        self.generatePropgrid(nThetaP, nPhiP, nRP, Rbt, cushionpropgrid = 0.05)
+        surface = self.generateVgrid(nThetaI, nPhiI, nRI, Rbt, method = interpolationMethod,
+                                     cushionfactor = cushionfactor, infilename = customgrid,
+                                     returnTopo = True)
+
+        depthmax = abs(Rbt[0] - getZmin(surface)) - 1.0 # cushioning for the bottom interface
+
+        self.generateInterfaces(nThetaI, nPhiI, depthmax, cushionfactor = cushionfactor,
+                                returnInterfaces = False, method = interpolationMethod)
+
+
     def generateInterfaces(self, nTheta, nPhi, depthmax, cushionfactor = 0.1,
                            outfilename = 'interfaces.in', method = 'linear',
                            returnInterfaces = False):
@@ -398,6 +426,9 @@ class SeisArray(object):
         :param: cushionfactor, add some extra space to the model (default: 0.1 = 10%)
         type: float
         '''
+
+        print('\n------------------------------------------------------------')
+        print('Generating interfaces...')
         nInterfaces = 2    
 
         # generate dimensions of the grid from array
@@ -436,6 +467,9 @@ class SeisArray(object):
         if returnInterfaces == True:
             return interface1, interface2
 
+        print('Finished generating interfaces.')
+        print('------------------------------------------------------------')
+
     def getThetaPhiFromArray(self, cushionfactor = 0.1):
         '''
         Determine and returns PhiWE (tuple: (West, East)) and thetaSN (tuple (South, North)) from the SeisArray boundaries.
@@ -466,7 +500,7 @@ class SeisArray(object):
         :param: nR, number of points in R
         type: int
 
-        :param: Rbt (bot, top) extensions of the model in km
+        :param: Rbt (bot, top) extensions of the model in m
         type: tuple
 
         :param: cushionpropogrid, cushionfactor for the propagationgrid (cushion direction
@@ -477,6 +511,13 @@ class SeisArray(object):
         type: tuple
         '''
         outfile = open(outfilename, 'w')
+
+        print('\n------------------------------------------------------------')
+        print('Generating Propagation Grid for nTheta = %s, nPhi'
+              ' = %s, nR = %s and a cushioning of %s' 
+              %(nTheta, nPhi, nR, cushionpropgrid))
+        print('Bottom of the grid: %s, top of the grid %s' 
+              %(Rbt[0], Rbt[1]))
 
         thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor = 0)
 
@@ -498,10 +539,13 @@ class SeisArray(object):
 
         outfile.close()
 
-    def generateVgrid(self, nTheta = 80, nPhi = 80, nR = 120,
-                      Rbt = (-62.0, 6.0), thetaSN = None,
-                      phiWE = None, outfilename = 'vgrids.in',
-                      method = 'linear', infilename = 'mygrid.in'):
+        print('Created Propagation Grid and saved it to %s' %outfilename)
+        print('------------------------------------------------------------')
+
+    def generateVgrid(self, nTheta, nPhi, nR, Rbt, thetaSN = None,
+                      phiWE = None, cushionfactor = 0.1,
+                      outfilename = 'vgrids.in', method = 'linear',
+                      infilename = 'mygrid.in', returnTopo = False):
         '''
         Generate a velocity grid for fmtomo regarding topography with a linear gradient starting at the topography with 0.34 [km/s].
 
@@ -520,7 +564,7 @@ class SeisArray(object):
         :param: phiWE (W, E) extensions of the model in degree
         type: tuple
 
-        :param: Rbt (bot, top) extensions of the model in km
+        :param: Rbt (bot, top) extensions of the model in m
         type: tuple
 
         :param: vbot, velocity at the bottom of the model
@@ -529,6 +573,8 @@ class SeisArray(object):
         :param: method, interpolation method for topography
         type: str
         '''
+        print('\n------------------------------------------------------------')
+        print('generateVgrid: Starting...')
 
         # def getRad(angle):
         #     PI = np.pi
@@ -547,6 +593,7 @@ class SeisArray(object):
             infile = open(filename, 'r')
             nlayers = readMygridNlayers(filename)
 
+            print('\nreadMygrid: Reading file %s.'%filename)
             for index in range(nlayers):
                 line1 = infile.readline()
                 line2 = infile.readline()
@@ -554,6 +601,10 @@ class SeisArray(object):
                 vtop.append(float(line1.split()[1]))
                 zbot.append(float(line2.split()[0]))
                 vbot.append(float(line2.split()[1]))
+                print('Layer %s:\n[Top: v = %s [km/s], z = %s [m]]'
+                      '\n[Bot: v = %s [km/s], z = %s [m]]'
+                      %(index + 1, vtop[index], ztop[index],
+                        vbot[index], zbot[index]))
 
             if not ztop[0] == 0:
                 print('ERROR: there must be a velocity set for z = 0 in the file %s'%filename)
@@ -569,7 +620,7 @@ class SeisArray(object):
 
         # generate dimensions of the grid from array
         if thetaSN is None and phiWE is None:
-            thetaSN, phiWE = self.getThetaPhiFromArray()
+            thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor)
 
         thetaS, thetaN = thetaSN
         phiW, phiE = phiWE
@@ -597,14 +648,14 @@ class SeisArray(object):
 
         surface = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method = method)
 
+        nlayers = readMygridNlayers(infilename)
+        ztop, zbot, vtop, vbot = readMygrid(infilename)
+
         print("\nGenerating velocity grid for FMTOMO. "
               "Output filename = %s, interpolation method = %s"%(outfilename, method))
         print("nTheta = %s, nPhi = %s, nR = %s, "
               "thetaSN = %s, phiWE = %s, Rbt = %s"%(nTheta, nPhi, nR, thetaSN, phiWE, Rbt))
         count = 0
-
-        nlayers = readMygridNlayers(infilename)
-        ztop, zbot, vtop, vbot = readMygrid(infilename)
 
         for radius in rGrid:
             for theta in thetaGrid:
@@ -636,8 +687,12 @@ class SeisArray(object):
                     progress = float(count) / float(nTotal) * 100
                     self._update_progress(progress)
 
-        print('Wrote %d points to file %s for %d layers'%(count, outfilename, nlayers))
+        print('\nWrote %d points to file %s for %d layers'%(count, outfilename, nlayers))
+        print('------------------------------------------------------------')
         outfile.close()
+
+        if returnTopo == True:
+            return surface
 
     def addCheckerboard(self, spacing = 20., pertubation = 0.1, inputfile = 'vgrids.in', outputfile = 'vgrids_cb.in'):
         '''
