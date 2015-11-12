@@ -28,7 +28,6 @@ def autopickevent(data, param):
     wdttolerance = param.getParam('wdttolerance')
     mdttolerance = param.getParam('mdttolerance')
     iplot = param.getParam('iplot')
-
     for n in range(len(data)):
         station = data[n].stats.station
         if station not in stations:
@@ -141,6 +140,8 @@ def autopickstation(wfstream, pickparam):
 
     # split components
     zdat = wfstream.select(component="Z")
+    if len(zdat) == 0:  # check for other components
+        zdat = wfstream.select(component="3")
     edat = wfstream.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = wfstream.select(component="2")
@@ -330,17 +331,17 @@ def autopickstation(wfstream, pickparam):
                     # calculate spectrum using only first cycles of
                     # waveform after P onset!
                     zc = crossings_nonzero_all(wfzc)
-                    if np.size(zc) == 0:
+                    if np.size(zc) == 0 or len(zc) <= 3:
                         print ("Something is wrong with the waveform, "
                                "no zero crossings derived!")
                         print ("Cannot calculate source spectrum!")
                     else:
                         index = min([3, len(zc) - 1])
                         calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
-                    # calculate source spectrum and get w0 and fc
-                    specpara = DCfc(z_copy, mpickP, calcwin, iplot)
-                    w0 = specpara.getw0()
-                    fc = specpara.getfc()
+                        # calculate source spectrum and get w0 and fc
+                        specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                        w0 = specpara.getw0()
+                        fc = specpara.getfc()
 
                 print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
                        "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
@@ -759,12 +760,12 @@ def autopickstation(wfstream, pickparam):
             plt.close()
     ##########################################################################
     # calculate "real" onset times
-    if mpickP is not None:
+    if mpickP is not None and epickP is not None and mpickP is not None:
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
         mpickP = zdat[0].stats.starttime + mpickP
 
-    if mpickS is not None:
+    if mpickS is not None and epickS is not None and mpickS is not None:
         lpickS = edat[0].stats.starttime + lpickS
         epickS = edat[0].stats.starttime + epickS
         mpickS = edat[0].stats.starttime + mpickS

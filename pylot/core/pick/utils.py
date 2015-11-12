@@ -8,7 +8,7 @@
 
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
-import pdb
+
 import numpy as np
 import matplotlib.pyplot as plt
 from obspy.core import Stream, UTCDateTime
@@ -91,9 +91,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
         # determine all zero crossings in signal window (demeaned)
         zc = crossings_nonzero_all(x[pis] - x[pis].mean())
         # calculate mean half period T0 of signal as the average of the
-        T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length
-        # T0/4 is assumed as time difference between most likely and earliest possible pick!
-        EPick = Pick1 - T0 / 2
+        T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
+        EPick = Pick1 - T0 # half wavelength as suggested by Diehl et al.
 
 
     # get symmetric pick error as mean from earliest and latest possible pick
@@ -867,6 +866,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
 
     # split components
     zdat = X.select(component="Z")
+    if len(zdat) == 0:  # check for other components
+        zdat = X.select(component="3")
     edat = X.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = X.select(component="2")
@@ -962,6 +963,8 @@ def writephases(arrivals, fformat, filename):
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 fm = arrivals[key]['P']['fm']
+                if fm == None:
+                   fm = '?'
                 onset = arrivals[key]['P']['mpp']
                 year = onset.year
                 month = onset.month

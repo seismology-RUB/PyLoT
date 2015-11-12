@@ -2,8 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import subprocess
+import os
 from obspy.core.event import readEvents
 from pylot.core.pick.utils import writephases
+from pylot.core.util.utils import getPatternLine
+from pylot.core.util.version import get_git_version as _getVersionString
+
+__version__ = _getVersionString()
 
 def picksExport(picks, phasefile):
     '''
@@ -16,7 +21,7 @@ def picksExport(picks, phasefile):
     # write phases to NLLoc-phase file
     writephases(picks, 'NLLoc', phasefile)
 
-def modfiyInputFile(fn, root, outpath, phasefile, tttable):
+def modfiyInputFile(fn, root, outpath, phasefn, tttn):
     '''
 
     :param fn:
@@ -29,18 +34,21 @@ def modfiyInputFile(fn, root, outpath, phasefile, tttable):
     # For locating the event we have to modify the NLLoc-control file!
     # create comment line for NLLoc-control file NLLoc-output file
     print ("Modifying  NLLoc-control file %s ..." % fn)
-    nllocout = '%s/loc/%s_%s' % (root, outpath)
-    locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, tttable, nllocout)
+    nllocout = os.path.join(root,'loc', outpath)
+    phasefile = os.path.join(root, 'obs', phasefn)
+    tttable = os.path.join(root, 'time', tttn)
+    locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0\n' % (phasefile, tttable, nllocout)
 
     # modification of NLLoc-control file
+    curlocfiles = getPatternLine(fn, 'LOCFILES')
     nllfile = open(fn, 'r')
     filedata = nllfile.read()
     if filedata.find(locfiles) < 0:
         # replace old command
-        filedata = filedata.replace('LOCFILES', locfiles)
+        filedata = filedata.replace(curlocfiles, locfiles)
         nllfile = open(fn, 'w')
         nllfile.write(filedata)
-        nllfile.close()
+    nllfile.close()
 
 def locate(call, fnin):
     '''

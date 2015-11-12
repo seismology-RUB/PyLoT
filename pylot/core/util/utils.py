@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# -*- coding: utf-8 -*-
 
 import os
 import subprocess
@@ -68,6 +66,30 @@ def getHash(time):
 
 def getOwner(fn):
     return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+
+def getPatternLine(fn, pattern):
+    """
+    Takes a file name and a pattern string to search for in the file and
+    returns the first line which contains the pattern string otherwise None.
+
+    :param fn: file name
+    :type fn: str
+    :param pattern: pattern string to search for
+    :type pattern: str
+    :return: the complete line containing pattern or None
+
+    >>> getPatternLine('utils.py', 'python')
+    '#!/usr/bin/env python\\n'
+    >>> print(getPatternLine('version.py', 'palindrome'))
+    None
+    """
+    fobj = open(fn, 'r')
+    for line in fobj.readlines():
+        if pattern in line:
+            fobj.close()
+            return line
+
+    return None
 
 
 def prepTimeAxis(stime, trace):
@@ -342,3 +364,7 @@ def createAmplitude(pickID, amp, unit, category, cinfo):
     amplitude.type = ope.AmplitudeCategory(category)
     amplitude.pick_id = pickID
     return amplitude
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

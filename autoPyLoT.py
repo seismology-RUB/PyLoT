@@ -6,7 +6,7 @@ import os
 import argparse
 import glob
 import subprocess
-
+import string
 from obspy.core import read
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -88,7 +88,9 @@ def autoPyLoT(inputfile):
             nllocoutpatter = parameter.getParam('outpatter')
         else:
             locflag = 0
-            print ("!!No location routine available, autoPyLoT just picks the events without locating them!!")
+            print ("                 !!!              ")
+            print ("!!No location routine available, autoPyLoT is running in non-location mode!!")
+            print ("                 !!!              ")
 
 
         # multiple event processing
@@ -99,7 +101,6 @@ def autoPyLoT(inputfile):
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
                 print('Working on event %s' % event)
                 print(data)
-
                 wfdat = data.getWFData()  # all available streams
                 ##########################################################
                 # !automated picking starts here!
@@ -114,7 +115,8 @@ def autoPyLoT(inputfile):
                     # For locating the event the NLLoc-control file has to be modified!
                     # create comment line for NLLoc-control file
                     # NLLoc-output file
-                    nllocout = '%s/loc/%s_%s' % (nllocroot, event, nllocoutpatter)
+                    evID = event[string.rfind(event, "/") + 1 : len(events) - 1]
+                    nllocout = '%s/loc/%s_%s' % (nllocroot, evID, nllocoutpatter)
                     locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
                     print ("Modifying  NLLoc-control file %s ..." % locfile)
                     # modification of NLLoc-control file
@@ -130,20 +132,28 @@ def autoPyLoT(inputfile):
 
                     # locate the event
                     subprocess.call([nlloccall, locfile])
+
+                    # !iterative picking if traces remained unpicked or with bad picks!
+                    # get theoretical onset times for picks with weights >= 4
+                    # in order to reprocess them using smaller time windows
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
-                hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, eventID)
+                hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, evID)
                 writephases(picks, 'HYPO71', hypo71file)
 
-                print '------------------------------------------'
-                print '-----Finished event %s!-----' % event
-                print '------------------------------------------'
+                endsplash = '''------------------------------------------\n'
+                               -----Finished event %s!-----\n' 
+                               ------------------------------------------'''.format \
+                                (version=_getVersionString()) % evID
+                print(endsplash)
+                if locflag == 0:
+                    print("autoPyLoT was running in non-location mode!")
 
         # single event processing
         else:
             data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
-            print 'Working on event ', parameter.getParam('eventID')
+            print("Working on event "), parameter.getParam('eventID')
             print data
 
             wfdat = data.getWFData()  # all available streams
@@ -175,22 +185,30 @@ def autoPyLoT(inputfile):
 
                 # locate the event
                 subprocess.call([nlloccall, locfile])
+
+                # !iterative picking if traces remained unpicked or with bad picks!
+                # get theoretical onset times for picks with weights >= 4
+                # in order to reprocess them using smaller time windows
             ##########################################################
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
             writephases(picks, 'HYPO71', hypo71file)
            
+            endsplash = '''------------------------------------------\n'
+                           -----Finished event %s!-----\n' 
+                           ------------------------------------------'''.format \
+                            (version=_getVersionString()) % parameter.getParam('eventID')
+            print(endsplash)
+            if locflag == 0:
+                print("autoPyLoT was running in non-location mode!")
                    
-            print '------------------------------------------'
-            print '-------Finished event %s!-------' % parameter.getParam('eventID')
-            print '------------------------------------------'
-
-    print '####################################'
-    print '************************************'
-    print '*********autoPyLoT terminates*******'
-    print 'The Python picking and Location Tool'
-    print '************************************'
+    endsp = '''####################################\n
+               ************************************\n
+               *********autoPyLoT terminates*******\n
+               The Python picking and Location Tool\n
+               ************************************'''.format(version=_getVersionString())
+    print(endsp)
 
 if __name__ == "__main__":
     # parse arguments
