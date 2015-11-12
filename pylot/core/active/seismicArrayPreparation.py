@@ -398,7 +398,8 @@ class SeisArray(object):
                 z.append(point[2])
             return min(z)
 
-        self.generatePropgrid(nThetaP, nPhiP, nRP, Rbt, cushionpropgrid = 0.05)
+        self.generatePropgrid(nThetaP, nPhiP, nRP, Rbt, cushionfactor = cushionfactor,
+                              cushionpropgrid = 0.05)
         surface = self.generateVgrid(nThetaI, nPhiI, nRI, Rbt, method = interpolationMethod,
                                      cushionfactor = cushionfactor, infilename = customgrid,
                                      returnTopo = True)
@@ -486,7 +487,7 @@ class SeisArray(object):
         thetaSN = (theta_min - cushionTheta, theta_max + cushionTheta)
         return thetaSN, phiWE
 
-    def generatePropgrid(self, nTheta, nPhi, nR, Rbt, cushionpropgrid = 0.05,
+    def generatePropgrid(self, nTheta, nPhi, nR, Rbt, cushionfactor, cushionpropgrid = 0.05,
                          refinement = (5, 5), outfilename = 'propgrid.in'):
         '''
         Create a propergation grid file for FMTOMO using SeisArray boundaries
@@ -502,6 +503,9 @@ class SeisArray(object):
 
         :param: Rbt (bot, top) extensions of the model in m
         type: tuple
+
+        :param: cushionfactor, add some extra space to the model (default: 0.1 = 10%)
+        type: float
 
         :param: cushionpropogrid, cushionfactor for the propagationgrid (cushion direction
         opposing to vgrids cushionfactor)
@@ -519,7 +523,7 @@ class SeisArray(object):
         print('Bottom of the grid: %s, top of the grid %s' 
               %(Rbt[0], Rbt[1]))
 
-        thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor = 0)
+        thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor)
 
         thetaS = thetaSN[0] + cushionpropgrid
         thetaN = thetaSN[1] - cushionpropgrid
