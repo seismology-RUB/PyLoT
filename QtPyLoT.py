@@ -41,6 +41,7 @@ from obspy import UTCDateTime, readEvents
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError,\
     OverwriteError
@@ -54,6 +55,7 @@ from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
+locateTool = dict(nll=locateNll)
 
 class MainWindow(QMainWindow):
     __version__ = _getVersionString()
@@ -765,7 +767,12 @@ class MainWindow(QMainWindow):
         self.draw()
 
     def locateEvent(self):
-        pass
+        settings = QSettings()
+        loctool = settings.value("loc/tool", "nll")
+        extlocpath = settings.value("%s/binPath".format(loctool), None)
+        locroot = settings.value("%s/rootPath".format(loctool), None)
+        if extlocpath is None or locroot is None:
+            pass
 
     def check4Loc(self):
         return self.picksNum() > 4
