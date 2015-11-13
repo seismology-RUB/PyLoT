@@ -88,7 +88,9 @@ def autoPyLoT(inputfile):
             nllocoutpatter = parameter.getParam('outpatter')
         else:
             locflag = 0
-            print ("!!No location routine available, autoPyLoT just picks the events without locating them!!")
+            print ("                 !!!              ")
+            print ("!!No location routine available, autoPyLoT is running in non-location mode!!")
+            print ("                 !!!              ")
 
 
         # multiple event processing
@@ -130,20 +132,28 @@ def autoPyLoT(inputfile):
 
                     # locate the event
                     subprocess.call([nlloccall, locfile])
+
+                    # !iterative picking if traces remained unpicked or with bad picks!
+                    # get theoretical onset times for picks with weights >= 4
+                    # in order to reprocess them using smaller time windows
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
                 hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, evID)
                 writephases(picks, 'HYPO71', hypo71file)
 
-                print '------------------------------------------'
-                print '-----Finished event %s!-----' % event
-                print '------------------------------------------'
+                endsplash = '''------------------------------------------\n'
+                               -----Finished event %s!-----\n' 
+                               ------------------------------------------'''.format \
+                                (version=_getVersionString()) % evID
+                print(endsplash)
+                if locflag == 0:
+                    print("autoPyLoT was running in non-location mode!")
 
         # single event processing
         else:
             data.setWFData(glob.glob(os.path.join(datapath, parameter.getParam('eventID'), '*')))
-            print 'Working on event ', parameter.getParam('eventID')
+            print("Working on event "), parameter.getParam('eventID')
             print data
 
             wfdat = data.getWFData()  # all available streams
@@ -175,22 +185,30 @@ def autoPyLoT(inputfile):
 
                 # locate the event
                 subprocess.call([nlloccall, locfile])
+
+                # !iterative picking if traces remained unpicked or with bad picks!
+                # get theoretical onset times for picks with weights >= 4
+                # in order to reprocess them using smaller time windows
             ##########################################################
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
             writephases(picks, 'HYPO71', hypo71file)
            
+            endsplash = '''------------------------------------------\n'
+                           -----Finished event %s!-----\n' 
+                           ------------------------------------------'''.format \
+                            (version=_getVersionString()) % parameter.getParam('eventID')
+            print(endsplash)
+            if locflag == 0:
+                print("autoPyLoT was running in non-location mode!")
                    
-            print '------------------------------------------'
-            print '-------Finished event %s!-------' % parameter.getParam('eventID')
-            print '------------------------------------------'
-
-    print '####################################'
-    print '************************************'
-    print '*********autoPyLoT terminates*******'
-    print 'The Python picking and Location Tool'
-    print '************************************'
+    endsp = '''####################################\n
+               ************************************\n
+               *********autoPyLoT terminates*******\n
+               The Python picking and Location Tool\n
+               ************************************'''.format(version=_getVersionString())
+    print(endsp)
 
 if __name__ == "__main__":
     # parse arguments
