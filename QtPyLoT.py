@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
-        self.locflag(False)
+        self.loc = False
 
         # UI has to be set up before(!) children widgets are about to show up
         self.setupUi()
