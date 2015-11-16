@@ -622,16 +622,20 @@ class SeismicShot(object):
         fig = plt.figure()
         ax1 = fig.add_subplot(2,1,1)
         ax2 = fig.add_subplot(2,1,2, sharex = ax1)
-        axb = fig.add_axes([0.15, 0.91, 0.05, 0.03])
-        button = Button(axb, 'repick', color = 'red', hovercolor = 'grey')
-        button.on_clicked(connectButton)
+        axb1 = fig.add_axes([0.15, 0.91, 0.05, 0.03])
+        axb2 = fig.add_axes([0.22, 0.91, 0.05, 0.03])
+        button1 = Button(axb1, 'repick', color = 'red', hovercolor = 'grey')
+        button1.on_clicked(connectButton)
+        button2 = Button(axb2, 'delete', color = 'green', hovercolor = 'grey')
+        button2.on_clicked(self.removePick(traceID))
 
         self.traces4plot = {}
         if traceID not in self.traces4plot.keys():
             self.traces4plot[traceID] = {'fig': fig,
                                          'ax1': ax1,
                                          'ax2': ax2,
-                                         'axb': axb,
+                                         'axb1': axb1,
+                                         'axb2': axb2,
                                          'button': button,
                                          'cid': None}
 
