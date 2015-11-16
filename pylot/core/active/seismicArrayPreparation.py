@@ -383,7 +383,7 @@ class SeisArray(object):
 
     def generateFMTOMOinputFromArray(self, nRP, nThetaP, nPhiP, nRI, nThetaI, nPhiI,
                                      Rbt, cushionfactor, interpolationMethod = 'linear',
-                                     customgrid = 'mygrid.in'):
+                                     customgrid = 'mygrid.in', writeVTK = True):
         print('\n------------------------------------------------------------')
         print('Automatically generating input for FMTOMO from array size.')
         print('Propgrid: nR = %s, nTheta = %s, nPhi = %s'%(nRP, nThetaP, nPhiP))
@@ -406,8 +406,36 @@ class SeisArray(object):
 
         depthmax = abs(Rbt[0] - getZmin(surface)) - 1.0 # cushioning for the bottom interface
 
-        self.generateInterfaces(nThetaI, nPhiI, depthmax, cushionfactor = cushionfactor,
-                                returnInterfaces = False, method = interpolationMethod)
+        interf1, interf2 = self.generateInterfaces(nThetaI, nPhiI, depthmax, cushionfactor = cushionfactor,
+                                             returnInterfaces = True, method = interpolationMethod)
+
+        if writeVTK == True:
+            from pylot.core.active import fmtomoUtils
+            self.surface2VTK(interf1, filename = 'interface1.vtk')
+            self.surface2VTK(interf2, filename = 'interface2.vtk')
+            self.receivers2VTK()
+            self.sources2VTK()
+            fmtomoUtils.vgrids2VTK()
+
+    def generateReceiversIn(self, outfilename = 'receivers.in'):
+        outfile = open(outfilename, 'w')
+
+        recx, recy, recz = self.getReceiverLists()
+        nsrc = len(self.getSourceLocations())
+        outfile.writelines('%s\n'%(len(zip(recx, recy, recz)) * nsrc))
+
+        for index in range(nsrc):
+            for point in zip(recx, recy, recz):
+                rx, ry, rz = point
+                rad = - rz
+                lat = self._getAngle(ry)
+                lon = self._getAngle(rx)
+                outfile.writelines('%15s %15s %15s\n'%(rad, lat, lon))
+                outfile.writelines('%15s\n'%(1))
+                outfile.writelines('%15s\n'%(index + 1))
+                outfile.writelines('%15s\n'%(1))
+
+        outfile.close()
 
 
     def generateInterfaces(self, nTheta, nPhi, depthmax, cushionfactor = 0.1,
@@ -697,147 +725,6 @@ class SeisArray(object):
 
         if returnTopo == True:
             return surface
-
-    def addCheckerboard(self, spacing = 20., pertubation = 0.1, inputfile = 'vgrids.in', outputfile = 'vgrids_cb.in'):
-        '''
-        Add a checkerboard to an existing vgrids.in velocity model.
-
-        :param: spacing, size of the tiles
-        type: float
-
-        :param: pertubation, pertubation (default: 0.1 = 10%)
-        type: float
-        '''
-        def readNumberOfPoints(filename):
-            fin = open(filename, 'r')
-            vglines = fin.readlines()
-
-            nR = int(vglines[1].split()[0])
-            nTheta = int(vglines[1].split()[1])
-            nPhi = int(vglines[1].split()[2])
-
-            print('readNumberOf Points: Awaiting %d grid points in %s'
-                  %(nR*nTheta*nPhi, filename))
-            fin.close()
-            return nR, nTheta, nPhi
-
-        def readDelta(filename):
-            fin = open(filename, 'r')
-            vglines = fin.readlines()
-
-            dR = float(vglines[2].split()[0])
-            dTheta = float(vglines[2].split()[1])
-            dPhi = float(vglines[2].split()[2])
-
-            fin.close()
-            return dR, dTheta, dPhi
-
-        def readStartpoints(filename):
-            fin = open(filename, 'r')
-            vglines = fin.readlines()
-
-            sR = float(vglines[3].split()[0])
-            sTheta = float(vglines[3].split()[1])
-            sPhi = float(vglines[3].split()[2])
-
-            fin.close()
-            return sR, sTheta, sPhi
-
-        def readVelocity(filename):
-            '''            
-            Reads in velocity from vgrids file and returns a list containing all values in the same order
-            '''
-            vel = []; count = 0
-            fin = open(filename, 'r')
-            vglines = fin.readlines()
-
-            for line in vglines:
-                count += 1
-                if count > 4:
-                    vel.append(float(line.split()[0]))
-
-            print("Read %d points out of file: %s" %(count - 4, filename))
-            return vel
-
-        def correctSpacing(spacing, delta, disttype = None):
-            if spacing > delta:
-                spacing_corr = round(spacing / delta) * delta
-            elif spacing < delta:
-                spacing_corr = delta
-            print('The spacing of the checkerboard of %s (%s) was corrected to '
-                  'a value of %s to fit the grid spacing of %s.' %(spacing, disttype, spacing_corr, delta))
-            return spacing_corr
-            
-
-        R = 6371. # earth radius
-        decm = 0.3 # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
-        outfile = open(outputfile, 'w')
-
-        # Theta, Phi in radians, R in km
-        nR, nTheta, nPhi = readNumberOfPoints(inputfile)
-        dR, dThetaRad, dPhiRad = readDelta(inputfile)
-        sR, sThetaRad, sPhiRad = readStartpoints(inputfile)
-        vel = readVelocity(inputfile)
-
-        dTheta, dPhi = np.rad2deg((dThetaRad, dPhiRad))
-        sTheta, sPhi = np.rad2deg((dThetaRad, dPhiRad))
-        
-        eR = sR + (nR - 1) * dR
-        ePhi = sPhi + (nPhi - 1) * dPhi
-        eTheta = sTheta + (nTheta - 1) * dTheta
-
-        nPoints = nR * nTheta * nPhi
-
-        thetaGrid = np.linspace(sTheta, eTheta, num = nTheta)
-        phiGrid = np.linspace(sPhi, ePhi, num = nPhi)
-        rGrid = np.linspace(sR, eR, num = nR)
-
-        # write header for velocity grid file (in RADIANS)
-        outfile.writelines('%10s %10s \n' %(1, 1))
-        outfile.writelines('%10s %10s %10s\n' %(nR, nTheta, nPhi))
-        outfile.writelines('%10s %10s %10s\n' %(dR, dThetaRad, dPhiRad))
-        outfile.writelines('%10s %10s %10s\n' %(sR, sThetaRad, sPhiRad))
-
-        spacR = correctSpacing(spacing, dR, '[meter], R')
-        spacTheta = correctSpacing(self._getAngle(spacing), dTheta, '[degree], Theta')
-        spacPhi = correctSpacing(self._getAngle(spacing), dPhi, '[degree], Phi')
-
-        count = 0
-        evenOdd = 1
-        even = 0; odd = 0
-
-        # In the following loop it is checked whether the positive distance from the border of the model
-        # for a point on the grid divided by the spacing is even or odd and then pertubated.
-        # The position is also shifted by half of the delta so that the position is directly on the point and
-        # not on the border between two points.
-        for radius in rGrid:
-            if np.floor((radius - sR - dR/2) / spacR) % 2:
-                evenOddR = 1
-            else:
-                evenOddR = -1
-            for theta in thetaGrid:
-                if np.floor((theta - sTheta - dTheta/2) / spacTheta) % 2:
-                    evenOddT = 1
-                else:
-                    evenOddT = -1
-                for phi in phiGrid:
-                    if np.floor((phi - sPhi - dPhi/2) / spacPhi) % 2:
-                        evenOddP = 1
-                    else:
-                        evenOddP = -1
-                    velocity = vel[count]
-                    evenOdd = evenOddR * evenOddT * evenOddP
-                    velocity += evenOdd * pertubation * velocity
-
-                    outfile.writelines('%10s %10s\n'%(velocity, decm))
-                    count += 1
-
-                    progress = float(count) / float(nPoints) * 100
-                    self._update_progress(progress)
-
-        print('Added checkerboard to the grid in file %s with a spacing of %s and a pertubation of %s [km/s]. '
-              'Outputfile: %s.'%(inputfile, spacing, pertubation, outputfile))
-        outfile.close()
 
     def exportAll(self, filename = 'interpolated_receivers.out'):
         recfile_out = open(filename, 'w')
