@@ -615,6 +615,12 @@ class SeismicShot(object):
             fig.canvas.mpl_disconnect(self.traces4plot[traceID]['cid'])
             plt.draw()
 
+        def rmPick(event = None):
+            self.removePick(traceID)
+            self._drawStream(traceID, refresh = True)
+            self._drawCFs(traceID, folm, refresh = True)
+            plt.draw()
+
         def connectButton(event = None):
             cid = fig.canvas.mpl_connect('button_press_event', onclick)
             self.traces4plot[traceID]['cid'] = cid
@@ -627,7 +633,7 @@ class SeismicShot(object):
         button1 = Button(axb1, 'repick', color = 'red', hovercolor = 'grey')
         button1.on_clicked(connectButton)
         button2 = Button(axb2, 'delete', color = 'green', hovercolor = 'grey')
-        button2.on_clicked(self.removePick(traceID))
+        button2.on_clicked(rmPick)
 
         self.traces4plot = {}
         if traceID not in self.traces4plot.keys():
@@ -636,7 +642,8 @@ class SeismicShot(object):
                                          'ax2': ax2,
                                          'axb1': axb1,
                                          'axb2': axb2,
-                                         'button': button,
+                                         'button1': button1,
+                                         'button2': button2,
                                          'cid': None}
 
         self._drawStream(traceID)
