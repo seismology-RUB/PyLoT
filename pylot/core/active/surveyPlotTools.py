@@ -338,6 +338,9 @@ class regions(object):
         if type(shot) == int:
             shot = self.survey.getShotDict()[shot]
 
+        if shot.getFlag(traceID) is 0:
+            return
+
         self.ax.scatter(shot.getDistance(traceID), shot.getPick(traceID), s = 50, marker = 'o', facecolors = 'none', edgecolors = 'm', alpha = 1)
         if annotations == True:
             self.ax.annotate(s='s%s|t%s' % (shot.getShotnumber(), traceID), xy=(shot.getDistance(traceID), shot.getPick(traceID)), fontsize='xx-small')
