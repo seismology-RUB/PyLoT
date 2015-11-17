@@ -10,16 +10,18 @@ from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
-def picksExport(picks, phasefile):
+def picksExport(picks, locrt, phasefile):
     '''
     Take <picks> dictionary and exports picking data to a NLLOC-obs <phasefile> without creating an ObsPy event object.
     :param picks: picking data dictionary
     :type picks: dict
+    :param locrt: choose location routine
+    :type locrt: str
     :param phasefile: complete path to the exporting obs file
     :type phasefile: str
     '''
     # write phases to NLLoc-phase file
-    writephases(picks, 'NLLoc', phasefile)
+    writephases(picks, locrt, phasefile)
 
 def modfiyInputFile(fn, root, outpath, phasefn, tttn):
     '''
