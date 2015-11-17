@@ -34,6 +34,7 @@ class SeismicShot(object):
         self.snr = {}
         self.snrthreshold = {}
         self.timeArray = {}
+        self.traces4plot = {}
         self.paras = {}
         self.paras['shotname'] = obsfile
 
@@ -635,16 +636,17 @@ class SeismicShot(object):
         button2 = Button(axb2, 'delete', color = 'green', hovercolor = 'grey')
         button2.on_clicked(rmPick)
 
-        self.traces4plot = {}
         if traceID not in self.traces4plot.keys():
-            self.traces4plot[traceID] = {'fig': fig,
-                                         'ax1': ax1,
-                                         'ax2': ax2,
-                                         'axb1': axb1,
-                                         'axb2': axb2,
-                                         'button1': button1,
-                                         'button2': button2,
-                                         'cid': None}
+            self.traces4plot[traceID] = {}
+
+        self.traces4plot[traceID] = {'fig': fig,
+                                     'ax1': ax1,
+                                     'ax2': ax2,
+                                     'axb1': axb1,
+                                     'axb2': axb2,
+                                     'button1': button1,
+                                     'button2': button2,
+                                     'cid': None}
 
         self._drawStream(traceID)
         self._drawCFs(traceID, folm)
