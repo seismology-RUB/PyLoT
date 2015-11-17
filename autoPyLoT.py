@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-
 import os
 import argparse
 import glob
@@ -12,7 +11,7 @@ from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent
-from pylot.core.pick.utils import writephases
+from pylot.core.loc.nll import *
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -110,7 +109,7 @@ def autoPyLoT(inputfile):
                 # locating
                 if locflag == 1:
                     # write phases to NLLoc-phase file
-                    writephases(picks, 'NLLoc', phasefile)
+                    picksExport(picks, 'NLLoc', phasefile)
 
                     # For locating the event the NLLoc-control file has to be modified!
                     # create comment line for NLLoc-control file
@@ -165,7 +164,7 @@ def autoPyLoT(inputfile):
             # locating
             if locflag == 1:
                 # write phases to NLLoc-phase file
-                writephases(picks, 'NLLoc', phasefile)
+                picksExport(picks, 'NLLoc', phasefile)
 
                 # For locating the event the NLLoc-control file has to be modified!
                 # create comment line for NLLoc-control file NLLoc-output file
