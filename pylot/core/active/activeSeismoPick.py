@@ -142,6 +142,11 @@ class Survey(object):
             progress = float(count) / float(len(self.getShotDict())) * 100
             self._update_progress(shot.getShotname(), tend, progress)
         print('\npickAllShots: Finished\n')
+        ntraces = self.countAllTraces()
+        pickedtraces = self.countAllPickedTraces()
+        print('Picked %s / %s traces (%d %%)\n'
+              %(pickedtraces, ntraces, float(pickedtraces)/float(ntraces)*100.))
+
 
     def recover(self):
         '''
@@ -259,7 +264,7 @@ class Survey(object):
             for traceID in traceIDlist:
                 if shot.getFlag(traceID) is not 0:
                     pick = shot.getPick(traceID) * fmtomo_factor
-                    delta = shot.getPickError(traceID) * fmtomo_factor
+                    delta = shot.getSymmetricPickError(traceID) * fmtomo_factor
                     (x, y, z) = shot.getRecLoc(traceID)
                     ttfile.writelines('%20s %20s %20s %10s %10s\n' %(getAngle(y), getAngle(x), (-1)*z, pick, delta))
                     LatAll.append(getAngle(y)); LonAll.append(getAngle(x)); DepthAll.append((-1)*z)
