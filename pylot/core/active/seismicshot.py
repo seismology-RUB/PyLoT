@@ -156,9 +156,9 @@ class SeismicShot(object):
         return pickerror
 
     def getPickError(self, traceID):
-        pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID))
+        pickerror = abs(self.getEarliest(traceID) - self.getLatest(traceID)) / 2
         if np.isnan(pickerror) == True:
-            print("SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID))
+            print("PE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID))
         return pickerror
 
     def getStreamTraceIDs(self):
@@ -310,11 +310,16 @@ class SeismicShot(object):
         tsignal = self.getTsignal()
         tnoise = self.getPickIncludeRemoved(traceID) - tgap
 
-        (self.pick[traceID]['epp'], self.pick[traceID]['lpp'],
+        (self.pick[traceID]['epp'],
+         self.pick[traceID]['lpp'],
          self.pick[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
                                                      nfac, (tnoise, tgap, tsignal), 
                                                      self.getPickIncludeRemoved(traceID),
                                                      stealthMode = True)
+         
+        # TEST OF 1/2 PICKERROR
+        # self.pick[traceID]['spe'] *= 0.5
+        # TEST OF 1/2 PICKERROR
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
         '''
@@ -674,9 +679,20 @@ class SeismicShot(object):
                      %(self.getShotnumber(), traceID, self.getPick(traceID)))
         ax.plot(timeaxis, stream[0].data, 'k', label = 'trace')
         ax.plot([self.getPick(traceID), self.getPick(traceID)], 
-                [min(stream[0].data), 
-                 max(stream[0].data)],
+                [ax.get_ylim()[0], 
+                 ax.get_ylim()[1]],
                 'r', label = 'most likely')
+        if self.getEarliest(traceID) is not None:
+            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)], 
+                    [ax.get_ylim()[0], 
+                     ax.get_ylim()[1]],
+                    'g:', label = 'earliest')
+        if self.getLatest(traceID) is not None:
+            ax.plot([self.getLatest(traceID), self.getLatest(traceID)], 
+                    [ax.get_ylim()[0], 
+                     ax.get_ylim()[1]],
+                    'b:', label = 'latest')
+
         ax.legend()
         return ax
 
@@ -695,9 +711,19 @@ class SeismicShot(object):
         ax.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
         ax.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
         ax.plot([self.getPick(traceID), self.getPick(traceID)], 
-                 [min(np.minimum(hoscf.getCF(), aiccf.getCF())), 
-                  max(np.maximum(hoscf.getCF(), aiccf.getCF()))],
-                 'r', label = 'most likely')
+                [ax.get_ylim()[0], 
+                 ax.get_ylim()[1]],
+                'r', label = 'most likely')
+        if self.getEarliest(traceID) is not None:
+            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)], 
+                    [ax.get_ylim()[0], 
+                     ax.get_ylim()[1]],
+                    'g:', label = 'earliest')
+        if self.getLatest(traceID) is not None:
+            ax.plot([self.getLatest(traceID), self.getLatest(traceID)], 
+                    [ax.get_ylim()[0], 
+                     ax.get_ylim()[1]],
+                    'b:', label = 'latest')
         ax.plot([0, self.getPick(traceID)],
                  [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
                  'm:', label = 'folm = %s' %folm)
