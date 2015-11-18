@@ -764,11 +764,23 @@ def autopickstation(wfstream, pickparam):
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
         mpickP = zdat[0].stats.starttime + mpickP
+    else:
+        # dummy values (start of seismic trace) in order to derive
+        # theoretical onset times for iteratve picking
+        lpickP = zdat[0].stats.starttime
+        epickP = zdat[0].stats.starttime
+        mpickP = zdat[0].stats.starttime
 
     if mpickS is not None and epickS is not None and mpickS is not None:
         lpickS = edat[0].stats.starttime + lpickS
         epickS = edat[0].stats.starttime + epickS
         mpickS = edat[0].stats.starttime + mpickS
+    else:
+        # dummy values (start of seismic trace) in order to derive
+        # theoretical onset times for iteratve picking
+        lpickS = edat[0].stats.starttime
+        epickS = edat[0].stats.starttime
+        mpickS = edat[0].stats.starttime
 
     # create dictionary
     # for P phase
