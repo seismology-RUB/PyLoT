@@ -36,7 +36,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget
 import numpy as np
-from obspy import UTCDateTime, readEvents
+from obspy import UTCDateTime
 
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
@@ -59,7 +59,6 @@ locateTool = dict(nll=locateNll)
 
 class MainWindow(QMainWindow):
     __version__ = _getVersionString()
-    __slots__ = ['loc']
     closing = Signal()
 
     def __init__(self, parent=None):
@@ -651,10 +650,10 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station)
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
-        if not self.locflag() and self.check4Loc():
-            self.locflag(True)
-        elif self.locflag() and not self.check4Loc():
-            self.locflag(False)
+        if not self.getLocflag() and self.check4Loc():
+            self.setLocflag(True)
+        elif self.getLocflag() and not self.check4Loc():
+            self.setLocflag(False)
 
     def autoPick(self):
         list = QListWidget()
@@ -783,12 +782,10 @@ class MainWindow(QMainWindow):
             num += len(phases)
         return num
 
-    @property
-    def locflag(self):
+    def getLocflag(self):
         return self.loc
 
-    @locflag.setter
-    def locflag(self, value):
+    def setLocflag(self, value):
         self.loc = value
 
     def updateStatus(self, message, duration=5000):

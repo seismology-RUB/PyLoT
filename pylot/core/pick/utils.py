@@ -961,46 +961,58 @@ def writephases(arrivals, fformat, filename):
         # write header
         fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
         for key in arrivals:
-            if arrivals[key]['P']['weight'] < 4:
-                fm = arrivals[key]['P']['fm']
-                if fm == None:
-                   fm = '?'
-                onset = arrivals[key]['P']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
-                 fm,
-                 year,
-                 month,
-                 day,
-                 hh,
-                 mm,
-                 ss_ms))
-            if arrivals[key]['S']['weight'] < 4:
-                fm = '?'
-                onset = arrivals[key]['S']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 1 \n' % (key,
-                 fm,
-                 year,
-                 month,
-                 day,
-                 hh,
-                 mm,
-                 ss_ms))
+             # P onsets
+             if arrivals[key]['P']:
+                 fm = arrivals[key]['P']['fm']
+                 if fm == None:
+                     fm = '?'
+                 onset = arrivals[key]['P']['mpp']
+                 year = onset.year
+                 month = onset.month
+                 day = onset.day
+                 hh = onset.hour
+                 mm = onset.minute
+                 ss = onset.second
+                 ms = onset.microsecond
+                 ss_ms = ss + ms / 1000000.0
+                 if arrivals[key]['P']['weight'] < 4:
+                     pweight = 1 # use pick
+                 else:
+                     pweight = 0 # do not use pick
+                 fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                  fm,
+                  year,
+                  month,
+                  day,
+                  hh,
+                  mm,
+                  ss_ms,
+                  pweight))
+             # S onsets
+             if arrivals[key]['S']:
+                 fm = '?'
+                 onset = arrivals[key]['S']['mpp']
+                 year = onset.year
+                 month = onset.month
+                 day = onset.day
+                 hh = onset.hour
+                 mm = onset.minute
+                 ss = onset.second
+                 ms = onset.microsecond
+                 ss_ms = ss + ms / 1000000.0
+                 if arrivals[key]['S']['weight'] < 4:
+                     sweight = 1 # use pick
+                 else:
+                     sweight = 0 # do not use pick
+                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                  fm,
+                  year,
+                  month,
+                  day,
+                  hh,
+                  mm,
+                  ss_ms,
+                  sweight))
 
         fid.close()
 

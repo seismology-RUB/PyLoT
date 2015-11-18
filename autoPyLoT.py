@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-
 import os
 import argparse
 import glob
@@ -12,7 +11,7 @@ from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent
-from pylot.core.pick.utils import writephases
+from pylot.core.loc.nll import *
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -79,12 +78,11 @@ def autoPyLoT(inputfile):
             phasef = parameter.getParam('phasefile')
             phasefile = '%s/obs/%s' % (nllocroot, phasef)
             # get name of NLLoc-control file
-            locf = parameter.getParam('locfile')
-            locfile = '%s/run/%s' % (nllocroot, locf)
-            # patter of NLLoc ttimes from location grid
+            ctrf = parameter.getParam('ctrfile')
+            ctrfile = '%s/run/%s' % (nllocroot, ctrf)
+            # pattern of NLLoc ttimes from location grid
             ttpat = parameter.getParam('ttpatter')
-            ttpatter = '%s/time/%s' % (nllocroot, ttpat)
-            # patter of NLLoc-output file
+            # pattern of NLLoc-output file
             nllocoutpatter = parameter.getParam('outpatter')
         else:
             locflag = 0
@@ -110,30 +108,18 @@ def autoPyLoT(inputfile):
                 # locating
                 if locflag == 1:
                     # write phases to NLLoc-phase file
-                    writephases(picks, 'NLLoc', phasefile)
+                    picksExport(picks, 'NLLoc', phasefile)
 
                     # For locating the event the NLLoc-control file has to be modified!
-                    # create comment line for NLLoc-control file
-                    # NLLoc-output file
                     evID = event[string.rfind(event, "/") + 1 : len(events) - 1]
-                    nllocout = '%s/loc/%s_%s' % (nllocroot, evID, nllocoutpatter)
-                    locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
-                    print ("Modifying  NLLoc-control file %s ..." % locfile)
-                    # modification of NLLoc-control file
-                    filedata = None
-                    nllfile = open(locfile, 'r')
-                    filedata = nllfile.read()
-                    if filedata.find(locfiles) < 0:
-                        # replace old command
-                        filedata = filedata.replace('LOCFILES', locfiles)
-                        nllfile = open(locfile, 'w')
-                        nllfile.write(filedata)
-                        nllfile.close()
+                    nllocout = '%s_%s' % (evID, nllocoutpatter)
+                    # create comment line for NLLoc-control file
+                    modifyInputFile(ctrf, nllocroot, nllocout, phasef, ttpat)
 
                     # locate the event
-                    subprocess.call([nlloccall, locfile])
+                    locate(nlloccall, ctrfile)
 
-                    # !iterative picking if traces remained unpicked or with bad picks!
+                    # !iterative picking if traces remained unpicked or occupied with bad picks!
                     # get theoretical onset times for picks with weights >= 4
                     # in order to reprocess them using smaller time windows
                 ##########################################################
@@ -165,28 +151,17 @@ def autoPyLoT(inputfile):
             # locating
             if locflag == 1:
                 # write phases to NLLoc-phase file
-                writephases(picks, 'NLLoc', phasefile)
+                picksExport(picks, 'NLLoc', phasefile)
 
                 # For locating the event the NLLoc-control file has to be modified!
-                # create comment line for NLLoc-control file NLLoc-output file
-                nllocout = '%s/loc/%s_%s' % (nllocroot, parameter.getParam('eventID'), nllocoutpatter)
-                locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0' % (phasefile, ttpatter, nllocout)
-                print ("Modifying  NLLoc-control file %s ..." % locfile)
-                # modification of NLLoc-control file
-                filedata = None
-                nllfile = open(locfile, 'r')
-                filedata = nllfile.read()
-                if filedata.find(locfiles) < 0:
-                    # replace old command
-                    filedata = filedata.replace('LOCFILES', locfiles)
-                    nllfile = open(locfile, 'w')
-                    nllfile.write(filedata)
-                    nllfile.close()
+                nllocout = '%s_%s' % (parameter.getParam('eventID'), nllocoutpatter)
+                # create comment line for NLLoc-control file
+                modifyInputFile(ctrf, nllocroot, nllocout, phasef, ttpat)
 
                 # locate the event
-                subprocess.call([nlloccall, locfile])
+                locate(nlloccall, ctrfile)
 
-                # !iterative picking if traces remained unpicked or with bad picks!
+                # !iterative picking if traces remained unpicked or occupied with bad picks!
                 # get theoretical onset times for picks with weights >= 4
                 # in order to reprocess them using smaller time windows
             ##########################################################
