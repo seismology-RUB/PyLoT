@@ -14,7 +14,7 @@ def setArtificialPick(shot_dict, traceID, pick):
         shot.setPick(traceID, pick)
         shot.setPickwindow(traceID, shot.getCut())
 
-def fitSNR4dist(shot_dict, shiftdist = 5):
+def fitSNR4dist(shot_dict, shiftdist = 5, shiftSNR = 3):
     import numpy as np
     dists = []
     picks = []
@@ -32,7 +32,7 @@ def fitSNR4dist(shot_dict, shiftdist = 5):
     fit_fn = np.poly1d(fit)
     for dist in dists:
         dist += shiftdist
-        snrthresholds.append(1/(fit_fn(dist)**2))
+        snrthresholds.append((1/(fit_fn(dist)**2)) - shiftSNR)
     plotFittedSNR(dists, snrthresholds, snrs)
     return fit_fn #### ZU VERBESSERN, sollte fertige funktion wiedergeben
 
@@ -47,13 +47,18 @@ def plotFittedSNR(dists, snrthresholds, snrs):
     plt.ylabel('SNR')
     plt.legend()
 
-def setFittedSNR(shot_dict, shiftdist = 5, p1 = 0.004, p2 = -0.004):
+def setFittedSNR(shot_dict, shiftdist = 5, shiftSNR = 3, p1 = 0.004, p2 = -0.0007):
     import numpy as np
     #fit_fn = fitSNR4dist(shot_dict)
     fit_fn = np.poly1d([p1, p2])
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist(): ### IMPROVE
-            shot.setSNRthreshold(traceID, 1/(fit_fn(shot.getDistance(traceID) + shiftdist)**2)) ### s.o.
+            snrthreshold = (1/(fit_fn(shot.getDistance(traceID) + shiftdist)**2)) - shiftSNR
+            if snrthreshold < 0:
+                print('WARNING: SNR threshold %s lower 0!!! Try to lower the shiftSNR'
+                      %snrthreshold)
+                break
+            shot.setSNRthreshold(traceID, snrthreshold)
     print "setFittedSNR: Finished setting of fitted SNR-threshold"
 
 
