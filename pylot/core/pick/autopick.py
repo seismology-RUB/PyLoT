@@ -815,6 +815,10 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
     :param pickparameter: picking parameters from autoPyLoT-input file 
     '''
 
+    print("#######################################################")
+    print("autoPyLoT: Found bad onsets at station(s) %s, starting re-picking them ...") \
+                               % badpicks
+
     newpicks = {}
     for i in range(0, len(badpicks)):
          if len(badpicks[i][0]) > 4:
@@ -842,7 +846,6 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
           (3 * pickparameter.getParam('tlta')))
          pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
          pickparameter.setParam(Precalcwin=pickparameter.getParam('Precalcwin') / 2)
-         pickparameter.setParam(iplot=2)
          print("iteratepicker: The following picking parameters have been modified for iterative picking:")
          print("pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
          print("pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
