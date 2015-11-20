@@ -131,8 +131,6 @@ def autoPyLoT(inputfile):
                     if len(badpicks) == 0:
                         print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
                     else:
-                        print("autoPyLoT: Found bad onsets at station(s) %s, starting re-picking them ...") \
-                               % badpicks
                         # get theoretical P-onset times from NLLoc-location file
                         locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
                         # get latest file if several are available
@@ -195,8 +193,6 @@ def autoPyLoT(inputfile):
                 if len(badpicks) == 0:
                     print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
                 else:
-                    print("autoPyLoT: Found bad onsets at station(s) %s, starting re-picking them ...") \
-                           % badpicks
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
                     # get latest file if several are available
