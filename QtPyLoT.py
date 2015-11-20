@@ -771,7 +771,7 @@ class MainWindow(QMainWindow):
         extlocpath = settings.value("%s/binPath".format(loctool), None)
         locroot = settings.value("%s/rootPath".format(loctool), None)
         if extlocpath is None or locroot is None:
-            pass
+            self.PyLoTprefs()
 
     def check4Loc(self):
         return self.picksNum() > 4

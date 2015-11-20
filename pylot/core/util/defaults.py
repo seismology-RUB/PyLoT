@@ -7,6 +7,9 @@ Created on Wed Feb 26 12:31:25 2014
 """
 
 import os
+from pylot.core.loc import nll
+from pylot.core.loc import hsat
+from pylot.core.loc import velest
 
 def readFilterInformation(fname):
     def convert2FreqRange(*args):
@@ -41,3 +44,5 @@ FILTERDEFAULTS = readFilterInformation(os.path.join(os.path.expanduser('~'),
 OUTPUTFORMATS = {'.xml':'QUAKEML',
                  '.cnv':'CNV',
                  '.obs':'NLLOC_OBS'}
+
+LOCTOOLS = dict(nll = nll, hsat = hsat, velest = velest)

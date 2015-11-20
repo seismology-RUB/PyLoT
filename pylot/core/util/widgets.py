@@ -25,9 +25,9 @@ from obspy import Stream, UTCDateTime
 from pylot.core.read.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanTrace, isSorted
+    demeanTrace, isSorted, findComboBoxIndex
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -886,10 +886,7 @@ class OutputsTab(PropTab):
         eventoutputformats = OUTPUTFORMATS.keys()
         self.eventOutputComboBox.addItems(eventoutputformats)
 
-        if curval is None:
-            ind = 0
-        else:
-            ind = self.eventOutputComboBox.findText(curval)
+        ind = findComboBoxIndex(self.eventOutputComboBox, curval)
 
         self.eventOutputComboBox.setCurrentIndex(ind)
         layout = QGridLayout()
@@ -915,6 +912,25 @@ class GraphicsTab(PropTab):
         super(GraphicsTab, self).__init__(parent)
 
         pass
+
+
+class LocalisationTab(PropTab):
+    def __init__(self, parent=None):
+        super(LocalisationTab, self).__init__(parent)
+
+        settings = QSettings()
+        curtool = settings.value("loc/tool", None)
+
+        loctoollabel = QLabel("location tool")
+        self.locToolComboBox = QComboBox()
+        loctools = LOCTOOLS.keys()
+        self.locToolComboBox.addItems(loctools)
+
+        toolind = findComboBoxIndex(self.locToolComboBox, curtool)
+
+        self.locToolComboBox.setCurrentIndex(toolind)
+        
+        curroot = settings.value("loc/tool", None)
 
 
 class NewEventDlg(QDialog):

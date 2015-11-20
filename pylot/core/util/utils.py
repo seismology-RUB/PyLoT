@@ -365,6 +365,18 @@ def createAmplitude(pickID, amp, unit, category, cinfo):
     amplitude.pick_id = pickID
     return amplitude
 
+def findComboBoxIndex(combo_box, val):
+    """
+    Function findComboBoxIndex takes a QComboBox object and a string and
+    returns either 0 or the index throughout all QComboBox items.
+    :param combo_box: Combo box object.
+    :type combo_box: QComboBox
+    :param val: Name of a combo box to search for.
+    :return: index value of item with name val or 0
+    """
+
+    return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
