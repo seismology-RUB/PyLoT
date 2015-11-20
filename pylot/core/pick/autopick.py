@@ -3,7 +3,7 @@
 
 """
 Function to run automated picking algorithms using AIC,
-HOS and AR prediction. Uses object CharFuns and Picker and
+HOS and AR prediction. Uses objects CharFuns and Picker and
 function conglomerate utils.
 
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
@@ -16,6 +16,7 @@ from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
     getSNR, fmpicker, checkPonsets, wadaticheck, crossings_nonzero_all
+from pylot.core.util.utils import getPatternLine
 from pylot.core.read.data import Data
 from pylot.core.analysis.magnitude import WApp, DCfc
 
@@ -316,12 +317,11 @@ def autopickstation(wfstream, pickparam):
                 # from P pulse
                 # initialize Data object
                 data = Data()
-                [corzdat, restflag] = data.restituteWFData(invdir, zdat)
+                z_copy = zdat.copy()
+                [corzdat, restflag] = data.restituteWFData(invdir, z_copy)
                 if restflag == 1:
                     # integrate to displacement
                     corintzdat = integrate.cumtrapz(corzdat[0], None, corzdat[0].stats.delta)
-                    # class needs stream object => build it
-                    z_copy = zdat.copy()
                     z_copy[0].data = corintzdat
                     # largest detectable period == window length
                     # after P pulse for calculating source spectrum
@@ -799,3 +799,74 @@ def autopickstation(wfstream, pickparam):
     picks[phase]['Ao'] = Ao
 
     return picks
+
+def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
+    '''
+    Repicking of bad onsets. Uses theoretical onset times from NLLoc-location file.
+
+    :param wf: waveform, obspy stream object
+
+    :param NLLocfile: path/name of NLLoc-location file
+
+    :param picks: dictionary of available onset times
+
+    :param badpicks: picks to be repicked
+
+    :param pickparameter: picking parameters from autoPyLoT-input file 
+    '''
+
+    newpicks = {}
+    for i in range(0, len(badpicks)):
+         if len(badpicks[i][0]) > 4:
+             Ppattern = '%s  ?    ?    ? P' % badpicks[i][0]
+         elif len(badpicks[i][0]) == 4:
+             Ppattern = '%s   ?    ?    ? P' % badpicks[i][0]
+         elif len(badpicks[i][0]) < 4:
+             Ppattern = '%s    ?    ?    ? P' % badpicks[i][0]
+         nllocline = getPatternLine(NLLocfile, Ppattern)
+         res = nllocline.split(None)[16]
+         # get theoretical P-onset time from residuum
+         badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
+
+         # get corresponding waveform stream
+         wf2pick = wf.select(station=badpicks[i][0])
+
+         # modify some picking parameters
+         pstart_old = pickparameter.getParam('pstart')
+         pstop_old = pickparameter.getParam('pstop')
+         pickwinP_old = pickparameter.getParam('pickwinP')
+         Precalcwin_old = pickparameter.getParam('Precalcwin')
+         pickparameter.setParam(pstart=badpicks[i][1] - wf2pick[0].stats.starttime \
+          - pickparameter.getParam('tlta'))
+         pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
+          (3 * pickparameter.getParam('tlta')))
+         pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
+         pickparameter.setParam(Precalcwin=pickparameter.getParam('Precalcwin') / 2)
+         pickparameter.setParam(iplot=2)
+         print("iteratepicker: The following picking parameters have been modified for iterative picking:")
+         print("pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
+         print("pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
+         print("pickwinP: %fs => %fs" % (pickwinP_old, pickparameter.getParam('pickwinP')))
+         print("Precalcwin: %fs => %fs" % (Precalcwin_old, pickparameter.getParam('Precalcwin')))
+
+         # repick station
+         newpicks = autopickstation(wf2pick, pickparameter)
+         
+         # replace old dictionary with new one
+         picks[badpicks[i][0]] = newpicks
+ 
+    # reset temporary change of picking parameters
+    print("iteratepicker: Resetting picking parameters ...")
+    pickparameter.setParam(pstart=pstart_old)
+    pickparameter.setParam(pstop=pstop_old)
+    pickparameter.setParam(pickwinP=pickwinP_old)
+    pickparameter.setParam(Precalcwin=Precalcwin_old)
+
+    return picks
+
+
+
+
+
+
+
