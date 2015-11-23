@@ -151,7 +151,7 @@ class SeismicShot(object):
 
     def getSymmetricPickError(self, traceID):
         pickerror = self.pick[traceID]['spe']
-        if np.isnan(pickerror) == True: 
+        if np.isnan(pickerror) == True:
             print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
         return pickerror
 
@@ -276,7 +276,7 @@ class SeismicShot(object):
 
         :param: traceID
         :type: int
-        
+
         :param: cutwindow (equals HOScf 'cut' variable)
         :type: tuple
 
@@ -313,10 +313,10 @@ class SeismicShot(object):
         (self.pick[traceID]['epp'],
          self.pick[traceID]['lpp'],
          self.pick[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
-                                                     nfac, (tnoise, tgap, tsignal), 
+                                                     nfac, (tnoise, tgap, tsignal),
                                                      self.getPickIncludeRemoved(traceID),
                                                      stealthMode = True)
-         
+
         # TEST OF 1/2 PICKERROR
         # self.pick[traceID]['spe'] *= 0.5
         # TEST OF 1/2 PICKERROR
@@ -630,7 +630,10 @@ class SeismicShot(object):
         def connectButton(event = None):
             cid = fig.canvas.mpl_connect('button_press_event', onclick)
             self.traces4plot[traceID]['cid'] = cid
-            
+
+        def cleanup(event):
+            self.traces4plot[traceID] = {}
+
         fig = plt.figure()
         ax1 = fig.add_subplot(2,1,1)
         ax2 = fig.add_subplot(2,1,2, sharex = ax1)
@@ -640,18 +643,10 @@ class SeismicShot(object):
         button1.on_clicked(connectButton)
         button2 = Button(axb2, 'delete', color = 'green', hovercolor = 'grey')
         button2.on_clicked(rmPick)
+        fig.canvas.mpl_connect('close_event', cleanup)
 
-        if traceID not in self.traces4plot.keys():
-            self.traces4plot[traceID] = {}
-
-        self.traces4plot[traceID] = {'fig': fig,
-                                     'ax1': ax1,
-                                     'ax2': ax2,
-                                     'axb1': axb1,
-                                     'axb2': axb2,
-                                     'button1': button1,
-                                     'button2': button2,
-                                     'cid': None}
+        self.traces4plot[traceID] = dict(fig=fig, ax1=ax1, ax2=ax2, axb1=axb1, axb2=axb2, button1=button1,
+                                         button2=button2, cid=None)
 
         self._drawStream(traceID)
         self._drawCFs(traceID, folm)
@@ -664,7 +659,7 @@ class SeismicShot(object):
         stime = getGlobalTimes(stream)[0]
         timeaxis = prepTimeAxis(stime, stream[0])
         timeaxis -= stime
-        
+
         if ax is None:
             ax = self.traces4plot[traceID]['ax1']
 
@@ -678,18 +673,18 @@ class SeismicShot(object):
         ax.set_title('Shot: %s, traceID: %s, pick: %s'
                      %(self.getShotnumber(), traceID, self.getPick(traceID)))
         ax.plot(timeaxis, stream[0].data, 'k', label = 'trace')
-        ax.plot([self.getPick(traceID), self.getPick(traceID)], 
-                [ax.get_ylim()[0], 
+        ax.plot([self.getPick(traceID), self.getPick(traceID)],
+                [ax.get_ylim()[0],
                  ax.get_ylim()[1]],
                 'r', label = 'most likely')
         if self.getEarliest(traceID) is not None:
-            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)], 
-                    [ax.get_ylim()[0], 
+            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)],
+                    [ax.get_ylim()[0],
                      ax.get_ylim()[1]],
                     'g:', label = 'earliest')
         if self.getLatest(traceID) is not None:
-            ax.plot([self.getLatest(traceID), self.getLatest(traceID)], 
-                    [ax.get_ylim()[0], 
+            ax.plot([self.getLatest(traceID), self.getLatest(traceID)],
+                    [ax.get_ylim()[0],
                      ax.get_ylim()[1]],
                     'b:', label = 'latest')
 
@@ -710,18 +705,18 @@ class SeismicShot(object):
 
         ax.plot(hoscf.getTimeArray(), hoscf.getCF(), 'b', label = 'HOS')
         ax.plot(hoscf.getTimeArray(), aiccf.getCF(), 'g', label = 'AIC')
-        ax.plot([self.getPick(traceID), self.getPick(traceID)], 
-                [ax.get_ylim()[0], 
+        ax.plot([self.getPick(traceID), self.getPick(traceID)],
+                [ax.get_ylim()[0],
                  ax.get_ylim()[1]],
                 'r', label = 'most likely')
         if self.getEarliest(traceID) is not None:
-            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)], 
-                    [ax.get_ylim()[0], 
+            ax.plot([self.getEarliest(traceID), self.getEarliest(traceID)],
+                    [ax.get_ylim()[0],
                      ax.get_ylim()[1]],
                     'g:', label = 'earliest')
         if self.getLatest(traceID) is not None:
-            ax.plot([self.getLatest(traceID), self.getLatest(traceID)], 
-                    [ax.get_ylim()[0], 
+            ax.plot([self.getLatest(traceID), self.getLatest(traceID)],
+                    [ax.get_ylim()[0],
                      ax.get_ylim()[1]],
                     'b:', label = 'latest')
         ax.plot([0, self.getPick(traceID)],
@@ -784,7 +779,7 @@ class SeismicShot(object):
         plotmethod = {'2d': self.plot2dttc, '3d': self.plot3dttc}
 
         plotmethod[method](*args)
-        
+
     def matshow(self, ax = None, step = 0.5, method = 'linear', plotRec = True, annotations = True, colorbar = True):
         '''
         Plots a 2D matrix of the interpolated traveltimes. This needs less performance than plot3dttc

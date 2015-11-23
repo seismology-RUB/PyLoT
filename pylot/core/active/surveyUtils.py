@@ -86,3 +86,8 @@ def findTracesInRanges(shot_dict, distancebin, pickbin):
                     shots_found[shot.getShotnumber()].append(traceID)
 
     return shots_found
+
+def cleanUp(survey):
+
+    for shot in survey.data.values():
+        shot.traces4plot = {}

@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 from pylot.core.active import seismicshot
+from pylot.core.active.surveyUtils import cleanUp
 
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas = False):
@@ -127,11 +128,11 @@ class Survey(object):
                 shot.setPickwindow(traceID, pickwin_used)
                 shot.pickTraces(traceID, windowsize, folm, HosAic) # picker
 
-                shot.setSNR(traceID)    
+                shot.setSNR(traceID)
                 #if shot.getSNR(traceID)[0] < snrthreshold:
                 if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
                         shot.removePick(traceID)
-                        
+
                 # set epp and lpp if SNR > 1 (else earllatepicker cant set values)
                 if shot.getSNR(traceID)[0] > 1:
                     shot.setEarllatepick(traceID)
@@ -314,10 +315,10 @@ class Survey(object):
         #     shotnumbers.append(shot.getShotnumber())
 
         # shotnumbers = [shotnumbers for (shotnumbers, shotnames) in sorted(zip(shotnumbers, shotnames))]
-        
+
         for shotnumber in self.getShotlist():
             if index <= figPerSubplot:
-                #ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:' 
+                #ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:'
                 #+str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
                 #shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
                 ax = fig.add_subplot(3, 4, index)
@@ -374,7 +375,7 @@ class Survey(object):
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if plotRemoved == False:
-                    if shot.getFlag(traceID) is not 0 or plotRemoved == True: 
+                    if shot.getFlag(traceID) is not 0 or plotRemoved == True:
                         dist.append(shot.getDistance(traceID))
                         pick.append(shot.getPick(traceID))
                         snrlog.append(math.log10(shot.getSNR(traceID)[0]))
@@ -428,6 +429,7 @@ class Survey(object):
 
     def saveSurvey(self, filename = 'survey.pickle'):
         import cPickle
+        cleanUp(self)
         outfile = open(filename, 'wb')
 
         cPickle.dump(self, outfile, -1)
