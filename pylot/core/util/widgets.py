@@ -930,7 +930,13 @@ class LocalisationTab(PropTab):
 
         self.locToolComboBox.setCurrentIndex(toolind)
         
+
         curroot = settings.value("loc/tool", None)
+        if curtool is not None:
+            rootlabel = QLabel("{0} root dircetory".format(curtool))
+        else:
+            rootlabel = QLabel("root dircetory")
+            rootlabel.setDisabled()
 
 
 class NewEventDlg(QDialog):
