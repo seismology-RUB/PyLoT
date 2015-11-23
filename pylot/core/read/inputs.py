@@ -145,7 +145,7 @@ class AutoPickParameter(object):
     def setParam(self, **kwargs):
         for param, value in kwargs.items():
             self.__setitem__(param, value)
-        print(self)
+        #print(self)
 
     @staticmethod
     def _printParameterError(errmsg):

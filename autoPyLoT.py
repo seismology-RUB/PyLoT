@@ -6,11 +6,11 @@ import argparse
 import glob
 import subprocess
 import string
-from obspy.core import read
+from obspy.core import read, UTCDateTime
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.pick.autopick import autopickevent
+from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.loc.nll import *
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -121,7 +121,28 @@ def autoPyLoT(inputfile):
 
                     # !iterative picking if traces remained unpicked or occupied with bad picks!
                     # get theoretical onset times for picks with weights >= 4
-                    # in order to reprocess them using smaller time windows
+                    # in order to reprocess them using smaller time windows around theoretical onset
+                    # get stations with bad onsets
+                    badpicks = []
+                    for key in picks:
+                         if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
+                             badpicks.append([key, picks[key]['P']['mpp']])
+
+                    if len(badpicks) == 0:
+                        print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
+                    else:
+                        # get theoretical P-onset times from NLLoc-location file
+                        locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
+                        # get latest file if several are available
+                        nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                        if os.path.isfile(nllocfile):
+                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                            # write phases to NLLoc-phase file
+                            picksExport(picks, 'NLLoc', phasefile)
+                            # locate the event
+                            locate(nlloccall, ctrfile)
+                        else:
+                            print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
@@ -160,10 +181,30 @@ def autoPyLoT(inputfile):
 
                 # locate the event
                 locate(nlloccall, ctrfile)
-
                 # !iterative picking if traces remained unpicked or occupied with bad picks!
                 # get theoretical onset times for picks with weights >= 4
-                # in order to reprocess them using smaller time windows
+                # in order to reprocess them using smaller time windows around theoretical onset
+                # get stations with bad onsets
+                badpicks = []
+                for key in picks:
+                     if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
+                         badpicks.append([key, picks[key]['P']['mpp']])
+
+                if len(badpicks) == 0:
+                    print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
+                else:
+                    # get theoretical P-onset times from NLLoc-location file
+                    locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
+                    # get latest file if several are available
+                    nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                    if os.path.isfile(nllocfile):
+                        picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                        # write phases to NLLoc-phase file
+                        picksExport(picks, 'NLLoc', phasefile)
+                        # locate the event
+                        locate(nlloccall, ctrfile)
+                    else:
+                        print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
             # write phase files for various location routines
             # HYPO71
