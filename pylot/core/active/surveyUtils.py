@@ -54,9 +54,10 @@ def setFittedSNR(shot_dict, shiftdist = 5, shiftSNR = 3, p1 = 0.004, p2 = -0.000
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist(): ### IMPROVE
             snrthreshold = (1/(fit_fn(shot.getDistance(traceID) + shiftdist)**2)) - shiftSNR
-            if snrthreshold < 0:
-                print('WARNING: SNR threshold %s lower 0!!! Try to lower the shiftSNR'
+            if snrthreshold <= 1:
+                print('WARNING: SNR threshold %s lower 1!!! Try to lower the shiftSNR'
                       %snrthreshold)
+                shot.setSNRthreshold(traceID, 1)
                 break
             shot.setSNRthreshold(traceID, snrthreshold)
     print "setFittedSNR: Finished setting of fitted SNR-threshold"
