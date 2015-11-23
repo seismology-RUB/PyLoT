@@ -381,14 +381,34 @@ class SeisArray(object):
 
         return surface
 
-    def generateFMTOMOinputFromArray(self, nRP, nThetaP, nPhiP, nRI, nThetaI, nPhiI,
-                                     Rbt, cushionfactor, interpolationMethod = 'linear',
+    def generateFMTOMOinputFromArray(self, nPointsPropgrid, nPointsInvgrid,
+                                     zBotTop, cushionfactor, interpolationMethod = 'linear',
                                      customgrid = 'mygrid.in', writeVTK = True):
+        '''
+        Generate FMTOMO input files from the SeisArray dimensions.
+        Generates: vgrids.in, interfaces.in, propgrid.in
+
+        :param: nPointsPropgrid, number of points in each direction of the propagation grid (z, y, x)
+        :type: tuple
+
+        :param: nPointsInvgrid, number of points in each direction of the inversion grid (z, y, x)
+        :type: tuple
+
+        :param: zBotTop, (bottom, top) dimensions of the model
+        :type: tuple
+
+        :param: cushionfactor, adds cushioning around the model (0.1 = 10%)
+        :type: float
+        '''
+
+        nRP, nThetaP, nPhiP = nPointsPropgrid 
+        nRI, nThetaI, nPhiI = nPointsInvgrid
+
         print('\n------------------------------------------------------------')
         print('Automatically generating input for FMTOMO from array size.')
         print('Propgrid: nR = %s, nTheta = %s, nPhi = %s'%(nRP, nThetaP, nPhiP))
         print('Interpolation Grid and Interfaces Grid: nR = %s, nTheta = %s, nPhi = %s'%(nRI, nThetaI, nPhiI))
-        print('Bottom and Top of model: (%s, %s)'%(Rbt[0], Rbt[1]))
+        print('Bottom and Top of model: (%s, %s)'%(zBotTop[0], zBotTop[1]))
         print('Method: %s, customgrid = %s'%(interpolationMethod, customgrid))
         print('------------------------------------------------------------')
 
@@ -398,13 +418,13 @@ class SeisArray(object):
                 z.append(point[2])
             return min(z)
 
-        self.generatePropgrid(nThetaP, nPhiP, nRP, Rbt, cushionfactor = cushionfactor,
+        self.generatePropgrid(nThetaP, nPhiP, nRP, zBotTop, cushionfactor = cushionfactor,
                               cushionpropgrid = 0.05)
-        surface = self.generateVgrid(nThetaI, nPhiI, nRI, Rbt, method = interpolationMethod,
+        surface = self.generateVgrid(nThetaI, nPhiI, nRI, zBotTop, method = interpolationMethod,
                                      cushionfactor = cushionfactor, infilename = customgrid,
                                      returnTopo = True)
 
-        depthmax = abs(Rbt[0] - getZmin(surface)) - 1.0 # cushioning for the bottom interface
+        depthmax = abs(zBotTop[0] - getZmin(surface)) - 1.0 # cushioning for the bottom interface
 
         interf1, interf2 = self.generateInterfaces(nThetaI, nPhiI, depthmax, cushionfactor = cushionfactor,
                                              returnInterfaces = True, method = interpolationMethod)

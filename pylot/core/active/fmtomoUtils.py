@@ -341,7 +341,7 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
                 _update_progress(progress)
 
     print('Added checkerboard to the grid in file %s with a spacing of %s and a pertubation of %s %%. '
-          'Outputfile: %s.'%(inputfile, spacing, pertubation, outputfile))
+          'Outputfile: %s.'%(inputfile, spacing, pertubation*100, outputfile))
     outfile.close()
 
 def addBox(x = (None, None), y = (None, None), z = (None, None),
