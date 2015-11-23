@@ -18,7 +18,7 @@ from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
     QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
     QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
-    QTabWidget, QToolBar, QVBoxLayout, QWidget
+    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
@@ -789,6 +789,7 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(OutputsTab(self), "Outputs")
         self.tabWidget.addTab(PhasesTab(self), "Phases")
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
+        self.tabWidget.addTab(LocalisationTab(self), "Tools")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close)
@@ -842,7 +843,7 @@ class InputsTab(PropTab):
 
         # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
-        self.fullNameEdit.setText(fulluser)
+        self.fullNameEdit.setText(fulluser[0])
 
         # information about data structure
         dataroot = settings.value("data/dataRoot")
@@ -929,14 +930,46 @@ class LocalisationTab(PropTab):
         toolind = findComboBoxIndex(self.locToolComboBox, curtool)
 
         self.locToolComboBox.setCurrentIndex(toolind)
-        
 
-        curroot = settings.value("loc/tool", None)
+        curroot = settings.value("%s/rootPath".format(curtool), None)
+        curbin = settings.value("%s/binPath".format(curtool), None)
+
+        rootlabel = QLabel("root directory")
+        binlabel = QLabel("bin directory")
+
+        rootedit = QLineEdit('')
+        binedit = QLineEdit('')
+
+        rootBrowse = QPushButton('...', self)
+        rootBrowse.clicked.connect(lambda: self.selectDirectory(rootedit))
+
+        binBrowse = QPushButton('...', self)
+        binBrowse.clicked.connect(lambda: self.selectDirectory(binedit))
+
         if curtool is not None:
-            rootlabel = QLabel("{0} root dircetory".format(curtool))
-        else:
-            rootlabel = QLabel("root dircetory")
-            rootlabel.setDisabled()
+            rootlabel.setText("{0} root directory".format(curtool))
+            binlabel.setText("{0} bin directory".format(curtool))
+            if curroot is not None:
+                rootedit.setText(curroot)
+            if curbin is not None:
+                binedit.setText(curbin)
+
+        layout = QGridLayout()
+        layout.addWidget(loctoollabel, 0, 0)
+        layout.addWidget(self.locToolComboBox, 0, 1)
+        layout.addWidget(rootlabel, 1, 0)
+        layout.addWidget(rootedit, 1, 1)
+        layout.addWidget(rootBrowse, 1, 2)
+        layout.addWidget(binlabel, 2, 0)
+        layout.addWidget(binedit, 2, 1)
+        layout.addWidget(binBrowse, 2, 2)
+
+        self.setLayout(layout)
+
+    def selectDirectory(self, edit):
+        selected_directory =  QFileDialog.getExistingDirectory()
+        edit.setText(selected_directory)
+
 
 
 class NewEventDlg(QDialog):
