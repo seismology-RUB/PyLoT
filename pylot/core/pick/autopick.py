@@ -800,6 +800,7 @@ def autopickstation(wfstream, pickparam):
 
     return picks
 
+
 def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
     '''
     Repicking of bad onsets. Uses theoretical onset times from NLLoc-location file.
@@ -816,8 +817,8 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
     '''
 
     print("#######################################################")
-    print("autoPyLoT: Found bad onsets at station(s) %s, starting re-picking them ...") \
-                               % badpicks
+    print("autoPyLoT: Found %d bad onsets at station(s) %s, starting re-picking them ...") \
+                               % (len(badpicks), badpicks)
 
     newpicks = {}
     for i in range(0, len(badpicks)):
@@ -838,32 +839,44 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          # modify some picking parameters
          pstart_old = pickparameter.getParam('pstart')
          pstop_old = pickparameter.getParam('pstop')
+         sstop_old = pickparameter.getParam('sstop')
          pickwinP_old = pickparameter.getParam('pickwinP')
          Precalcwin_old = pickparameter.getParam('Precalcwin')
+         noisefactor_old = pickparameter.getParam('noisefactor')
+         zfac_old = pickparameter.getParam('zfac')
          pickparameter.setParam(pstart=badpicks[i][1] - wf2pick[0].stats.starttime \
           - pickparameter.getParam('tlta'))
          pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
           (3 * pickparameter.getParam('tlta')))
+         pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)
          pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
          pickparameter.setParam(Precalcwin=pickparameter.getParam('Precalcwin') / 2)
+         pickparameter.setParam(noisefactor=1.0)
+         pickparameter.setParam(zfac=1.0)
          print("iteratepicker: The following picking parameters have been modified for iterative picking:")
          print("pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
          print("pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
+         print("sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
          print("pickwinP: %fs => %fs" % (pickwinP_old, pickparameter.getParam('pickwinP')))
          print("Precalcwin: %fs => %fs" % (Precalcwin_old, pickparameter.getParam('Precalcwin')))
-
+         print("noisefactor: %f => %f" % (noisefactor_old, pickparameter.getParam('noisefactor')))
+         print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
+         
          # repick station
          newpicks = autopickstation(wf2pick, pickparameter)
          
          # replace old dictionary with new one
          picks[badpicks[i][0]] = newpicks
  
-    # reset temporary change of picking parameters
-    print("iteratepicker: Resetting picking parameters ...")
-    pickparameter.setParam(pstart=pstart_old)
-    pickparameter.setParam(pstop=pstop_old)
-    pickparameter.setParam(pickwinP=pickwinP_old)
-    pickparameter.setParam(Precalcwin=Precalcwin_old)
+         # reset temporary change of picking parameters
+         print("iteratepicker: Resetting picking parameters ...")
+         pickparameter.setParam(pstart=pstart_old)
+         pickparameter.setParam(pstop=pstop_old)
+         pickparameter.setParam(sstop=sstop_old)
+         pickparameter.setParam(pickwinP=pickwinP_old)
+         pickparameter.setParam(Precalcwin=Precalcwin_old)
+         pickparameter.setParam(noisefactor=noisefactor_old)
+         pickparameter.setParam(zfac=zfac_old)
 
     return picks
 
