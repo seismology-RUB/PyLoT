@@ -843,7 +843,10 @@ class InputsTab(PropTab):
 
         # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
-        self.fullNameEdit.setText(fulluser)
+        try:
+            self.fullNameEdit.setText(fulluser)
+        except TypeError as e:
+            self.fullNameEdit.setText(fulluser[0])
 
         # information about data structure
         dataroot = settings.value("data/dataRoot")
