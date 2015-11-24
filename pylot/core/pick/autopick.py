@@ -500,58 +500,60 @@ def autopickstation(wfstream, pickparam):
                 [lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
-                if algoS == 'ARH':
-                    # get earliest pick of both earliest possible picks
-                    epick = [epickS1, epickS2]
-                    lpick = [lpickS1, lpickS2]
-                    pickerr = [Serror1, Serror2]
-                    if epickS1 == None and epickS2 is not None:
-                        ipick = 1
-                    elif epickS1 is not None and epickS2 == None:
-                        ipick = 0
-                    elif epickS1 is not None and epickS2 is not None:
-                        ipick = np.argmin([epickS1, epickS2])
-                elif algoS == 'AR3':
-                    [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
-                                                                 tsnrh,
-                                                                 mpickS, iplot)
-                    # get earliest pick of all three picks
-                    epick = [epickS1, epickS2, epickS3]
-                    lpick = [lpickS1, lpickS2, lpickS3]
-                    pickerr = [Serror1, Serror2, Serror3]
-                    if epickS1 == None and epickS2 is not None \
-                            and epickS3 is not None:
-                        ipick = np.argmin([epickS2, epickS3])
-                    elif epickS1 is not None and epickS2 == None \
-                            and epickS3 is not None:
-                        ipick = np.argmin([epickS2, epickS3])
-                    elif epickS1 is not None and epickS2 is not None \
-                            and epickS3 == None:
-                        ipick = np.argmin([epickS1, epickS2])
-                    elif epickS1 is not None and epickS2 is not None \
-                            and epickS3 is not None:
-                        ipick = np.argmin([epickS1, epickS2, epickS3])
-                epickS = epick[ipick]
-                lpickS = lpick[ipick]
-                Serror = pickerr[ipick]
+                if epickS1 is not None and epickS2 is not None:
+                    if algoS == 'ARH':
+                        # get earliest pick of both earliest possible picks
+                        epick = [epickS1, epickS2]
+                        lpick = [lpickS1, lpickS2]
+                        pickerr = [Serror1, Serror2]
+                        if epickS1 == None and epickS2 is not None:
+                            ipick = 1
+                        elif epickS1 is not None and epickS2 == None:
+                            ipick = 0
+                        elif epickS1 is not None and epickS2 is not None:
+                            ipick = np.argmin([epickS1, epickS2])
+                    elif algoS == 'AR3':
+                        [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
+                                                                     tsnrh,
+                                                                     mpickS, iplot)
+                        # get earliest pick of all three picks
+                        epick = [epickS1, epickS2, epickS3]
+                        lpick = [lpickS1, lpickS2, lpickS3]
+                        pickerr = [Serror1, Serror2, Serror3]
+                        if epickS1 == None and epickS2 is not None \
+                                and epickS3 is not None:
+                            ipick = np.argmin([epickS2, epickS3])
+                        elif epickS1 is not None and epickS2 == None \
+                                and epickS3 is not None:
+                            ipick = np.argmin([epickS2, epickS3])
+                        elif epickS1 is not None and epickS2 is not None \
+                                and epickS3 == None:
+                            ipick = np.argmin([epickS1, epickS2])
+                        elif epickS1 is not None and epickS2 is not None \
+                                and epickS3 is not None:
+                            ipick = np.argmin([epickS1, epickS2, epickS3])
 
-                # get SNR
-                [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
+                    epickS = epick[ipick]
+                    lpickS = lpick[ipick]
+                    Serror = pickerr[ipick]
 
-                # weight S-onset using symmetric error
-                if Serror <= timeerrorsS[0]:
-                    Sweight = 0
-                elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
-                    Sweight = 1
-                elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
-                    Sweight = 2
-                elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
-                    Sweight = 3
-                elif Serror > timeerrorsS[3]:
-                    Sweight = 4
+                    # get SNR
+                    [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
 
-                print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
-                    Sweight, SNRS, SNRSdB)
+                    # weight S-onset using symmetric error
+                    if Serror <= timeerrorsS[0]:
+                        Sweight = 0
+                    elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
+                        Sweight = 1
+                    elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
+                        Sweight = 2
+                    elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
+                        Sweight = 3
+                    elif Serror > timeerrorsS[3]:
+                        Sweight = 4
+
+                    print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
+                        Sweight, SNRS, SNRSdB)
                 ##################################################################
                 # get Wood-Anderson peak-to-peak amplitude
                 print "################################################"
