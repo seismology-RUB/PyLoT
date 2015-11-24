@@ -213,7 +213,6 @@ def autoPyLoT(inputfile):
                 else:
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                    nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
                     if len(glob.glob(locsearch)) > 0:
                         # get latest file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
