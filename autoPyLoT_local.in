@@ -7,7 +7,7 @@
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
 2015.10_Insheim                     #database#     %name of data base
-e0011.280.15                        #eventID#      %event ID for single event processing
+                                    #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#%choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
@@ -42,7 +42,7 @@ AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file co
 15.0                                #pstart#       %start time [s] for calculating CF for P-picking
 60.0                                #pstop#        %end time [s] for calculating CF for P-picking
 -1.0                                #sstart#       %start time [s] relative to P-onset for calculating CF for S-picking
-12.0                                #sstop#        %end time [s] after P-onset for calculating CF for S-picking
+10.0                                #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 2 20                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
 2 30                                #bpz2#         %lower/upper corner freq. of second band pass filter Z-comp. [Hz]
 2 15                                #bph1#         %lower/upper corner freq. of first band pass filter H-comp. [Hz]
@@ -74,13 +74,12 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 0.6                                 #tdet2h#       %for HOS/AR, length of AR-determinaton window [s], H-components, 2nd pick
 0.3                                 #tpred2h#      %for HOS/AR, length of AR-prediction window [s], H-components, 2nd pick
 4                                   #Sarorder#     %for AR-picker, order of AR process of H-components
-6.0                                 #Srecalcwin#   %for AR-picker, window length [s] for recalculation of CF (2nd pick) (H)
+5.0                                 #Srecalcwin#   %for AR-picker, window length [s] for recalculation of CF (2nd pick) (H)
 3.0                                 #pickwinS#     %for initial AIC pick, length of S-pick window [s]
 2 0.2 1.5 0.5                       #tsnrh#        %for ARH/AR3, window lengths for SNR-and slope estimation [tnoise,tsafetey,tsignal,tslope] [s]
-0.05                                #aictsmoothS#  %for AIC-picker, take average of samples for smoothing of AIC-function [s]
-0.02                                #tsmoothS#     %for AR-picker, take average of samples for smoothing CF [s] (S)
-0.2                                 #pepsS#        %for AR-picker, artificial uplift of samples of CF (S) 
-0.4                                 #ausS#         %for HOS/AR, artificial uplift of samples (aus) of CF (S)
+0.5                                 #aictsmoothS#  %for AIC-picker, take average of samples for smoothing of AIC-function [s]
+0.7                                 #tsmoothS#     %for AR-picker, take average of samples for smoothing CF [s] (S)
+0.9                                 #ausS#         %for HOS/AR, artificial uplift of samples (aus) of CF (S)
 1.5                                 #nfacS#        %for AR-picker, noise factor for noise level determination (S)
 %first-motion picker%
 1                                   #minfmweight#  %minimum required P weight for first-motion determination
@@ -90,9 +89,9 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 #inital AIC onset#
 0.01 0.02 0.04 0.08                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
 0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
-10                                  #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
+4                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
-3                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
+2                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
 4                                   #minsiglength# %minimum required length of signal [s]
