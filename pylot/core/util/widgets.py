@@ -843,10 +843,11 @@ class InputsTab(PropTab):
 
         # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
-        self.fullNameEdit.setText(fulluser[0])
+        self.fullNameEdit.setText(fulluser)
 
         # information about data structure
         dataroot = settings.value("data/dataRoot")
+        curstructure = settings.value("data/Structure")
         dataDirLabel = QLabel("data root directory: ")
         self.dataDirEdit = QLineEdit()
         self.dataDirEdit.setText(dataroot)
@@ -857,6 +858,10 @@ class InputsTab(PropTab):
         from pylot.core.util.structure import DATASTRUCTURE
 
         self.structureSelect.addItems(DATASTRUCTURE.keys())
+
+        dsind = findComboBoxIndex(self.structureSelect, curstructure)
+
+        self.structureSelect.setCurrentIndex(dsind)
 
         layout = QGridLayout()
         layout.addWidget(dataDirLabel, 0, 0)
