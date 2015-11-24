@@ -6,8 +6,8 @@
 #main settings#
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
-2013.02_Insheim                     #database#     %name of data base
-e0019.048.13                        #eventID#      %event ID for single event processing
+2015.10_Insheim                     #database#     %name of data base
+e0011.280.15                        #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#%choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
@@ -39,10 +39,10 @@ AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file co
 300                                 #Qp#           %quality factor for P waves
 100                                 #Qs#           %quality factor for S waves
 #common settings picker#
-15                                  #pstart#       %start time [s] for calculating CF for P-picking
-60                                  #pstop#        %end time [s] for calculating CF for P-picking
+15.0                                #pstart#       %start time [s] for calculating CF for P-picking
+60.0                                #pstop#        %end time [s] for calculating CF for P-picking
 -1.0                                #sstart#       %start time [s] relative to P-onset for calculating CF for S-picking
-7                                   #sstop#        %end time [s] after P-onset for calculating CF for S-picking
+12.0                                #sstop#        %end time [s] after P-onset for calculating CF for S-picking
 2 20                                #bpz1#         %lower/upper corner freq. of first band pass filter Z-comp. [Hz]
 2 30                                #bpz2#         %lower/upper corner freq. of second band pass filter Z-comp. [Hz]
 2 15                                #bph1#         %lower/upper corner freq. of first band pass filter H-comp. [Hz]
@@ -95,8 +95,8 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 3                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
 1.5                                 #minAICSSNR#    %below this SNR the initial S pick is rejected
 #check duration of signal using envelope function#
-5                                   #minsiglength# %minimum required length of signal [s]
-1.8                                 #noisefactor#  %noiselevel*noisefactor=threshold
+4                                   #minsiglength# %minimum required length of signal [s]
+1.5                                 #noisefactor#  %noiselevel*noisefactor=threshold
 50                                  #minpercent#   %required percentage of samples higher than threshold
 #check for spuriously picked S-onsets#
 2.0                                 #zfac#         %P-amplitude must exceed at least zfac times RMS-S amplitude 

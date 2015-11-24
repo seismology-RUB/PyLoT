@@ -133,14 +133,32 @@ def autoPyLoT(inputfile):
                     else:
                         # get theoretical P-onset times from NLLoc-location file
                         locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                        # get latest file if several are available
-                        nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
-                        if os.path.isfile(nllocfile):
-                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
-                            # write phases to NLLoc-phase file
-                            picksExport(picks, 'NLLoc', phasefile)
-                            # locate the event
-                            locate(nlloccall, ctrfile)
+                        maxnumit = 3 # maximum number of iterations
+                        if len(glob.glob(locsearch)) > 0:
+                            # get latest file if several are available
+                            nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                            nlloccounter = 0
+                            while len(badpicks) > 0 and nlloccounter <= maxnumit: 
+                                nlloccounter += 1
+                                if nlloccounter > maxnumit:
+                                    print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
+                                    break
+                                print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
+                                picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                                # write phases to NLLoc-phase file
+                                picksExport(picks, 'NLLoc', phasefile)
+                                # locate the event
+                                locate(nlloccall, ctrfile)
+                                print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
+                                badpicks = []
+                                for key in picks:
+                                     if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
+                                         badpicks.append([key, picks[key]['P']['mpp']])
+                                print("autoPyLoT: After iteration No. %d: %d bad onsets found ..." % (nlloccounter, \
+                                       len(badpicks)))
+                                if len(badpicks) == 0:
+                                    print("autoPyLoT: No more bad onsets found, stop iterative picking!")
+                                    break
                         else:
                             print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                 ##########################################################
@@ -195,14 +213,33 @@ def autoPyLoT(inputfile):
                 else:
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                    # get latest file if several are available
                     nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
-                    if os.path.isfile(nllocfile):
-                        picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
-                        # write phases to NLLoc-phase file
-                        picksExport(picks, 'NLLoc', phasefile)
-                        # locate the event
-                        locate(nlloccall, ctrfile)
+                    maxnumit = 3 # maximum number of iterations
+                    if len(glob.glob(locsearch)) > 0:
+                        # get latest file if several are available
+                        nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                        nlloccounter = 0
+                        while len(badpicks) > 0 and nlloccounter <= maxnumit: 
+                            nlloccounter += 1
+                            if nlloccounter > maxnumit:
+                                print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
+                                break
+                            print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
+                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                            # write phases to NLLoc-phase file
+                            picksExport(picks, 'NLLoc', phasefile)
+                            # locate the event
+                            locate(nlloccall, ctrfile)
+                            print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
+                            badpicks = []
+                            for key in picks:
+                                 if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
+                                     badpicks.append([key, picks[key]['P']['mpp']])
+                            print("autoPyLoT: After iteration No. %d: %d bad onsets found ..." % (nlloccounter, \
+                                   len(badpicks)))
+                            if len(badpicks) == 0:
+                                print("autoPyLoT: No more bad onsets found, stop iterative picking!")
+                                break
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
