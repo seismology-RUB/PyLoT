@@ -84,6 +84,7 @@ def autoPyLoT(inputfile):
             ttpat = parameter.getParam('ttpatter')
             # pattern of NLLoc-output file
             nllocoutpatter = parameter.getParam('outpatter')
+            maxnumit = 3 # maximum number of iterations for re-picking
         else:
             locflag = 0
             print ("                 !!!              ")
@@ -133,7 +134,6 @@ def autoPyLoT(inputfile):
                     else:
                         # get theoretical P-onset times from NLLoc-location file
                         locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                        maxnumit = 3 # maximum number of iterations
                         if len(glob.glob(locsearch)) > 0:
                             # get latest file if several are available
                             nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
@@ -213,8 +213,6 @@ def autoPyLoT(inputfile):
                 else:
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                    nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
-                    maxnumit = 3 # maximum number of iterations
                     if len(glob.glob(locsearch)) > 0:
                         # get latest file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 

@@ -364,7 +364,7 @@ class PragPicker(AutoPicking):
                             break
 
             # now decide which pick: left or right?
-            if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= cfpick_r:
+            if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= 3 * cfpick_r:
                 self.Pick = pick_l
                 pickflag = 1
             elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
