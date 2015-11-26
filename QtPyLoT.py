@@ -655,25 +655,28 @@ class MainWindow(QMainWindow):
         elif self.getLocflag() and not self.check4Loc():
             self.setLocflag(False)
 
+    def addListItem(self, text):
+        self.listWidget.addItem(text)
+        self.listWidget.scrollToBottom()
+
     def autoPick(self):
-        list = QListWidget()
+        self.listWidget = QListWidget()
         self.setDirty(True)
         logDockWidget = QDockWidget("AutoPickLog", self)
         logDockWidget.setObjectName("LogDockWidget")
-        logDockWidget.setAllowedAreas(Qt.LeftDockWidgetArea)
-        logDockWidget.setWidget(list)
-        logDockWidget.show()
-        logDockWidget.setFloating(False)
-        list.addItem('loading default values for local data ...')
+        logDockWidget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        logDockWidget.setWidget(self.listWidget)
+        self.addDockWidget(Qt.LeftDockWidgetArea, logDockWidget)
+        self.addListItem('loading default values for local data ...')
         autopick_parameter = AutoPickParameter('autoPyLoT_local.in')
-        list.addItem(str(autopick_parameter))
+        self.addListItem(str(autopick_parameter))
 
         # Create the worker thread and run it
         self.thread = AutoPickThread(parent=self,
                                    func=autopickevent,
                                    data=self.getData().getWFData(),
                                    param=autopick_parameter)
-        self.thread.message.connect(list.addItem)
+        self.thread.message.connect(self.addListItem)
         self.thread.start()
 
         self.drawPicks()
@@ -772,6 +775,7 @@ class MainWindow(QMainWindow):
         locroot = settings.value("%s/rootPath".format(loctool), None)
         if extlocpath is None or locroot is None:
             self.PyLoTprefs()
+
 
     def check4Loc(self):
         return self.picksNum() > 4

@@ -21,7 +21,7 @@ class AutoPickThread(QThread):
             for station in picks:
                 self.parent().addPicks(station, picks[station])
         except AttributeError:
-            print picks
+            print(picks)
 
     def write(self, text):
         self.message.emit(text)
