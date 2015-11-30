@@ -18,7 +18,7 @@ from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
     getSNR, fmpicker, checkPonsets, wadaticheck, crossings_nonzero_all
 from pylot.core.util.utils import getPatternLine
 from pylot.core.read.data import Data
-from pylot.core.analysis.magnitude import WApp, DCfc
+from pylot.core.analysis.magnitude import WApp, w0fc
 
 def autopickevent(data, param):
     stations = []
@@ -137,7 +137,9 @@ def autopickstation(wfstream, pickparam):
     Pflag = 0
     Sflag = 0
     Pmarker = []
-    Ao = None
+    Ao = None     # Wood-Anderson peak-to-peak amplitude
+    w0 = None     # plateau of source spectrum
+    fc = None     # corner frequancy of source spectrum
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -313,7 +315,7 @@ def autopickstation(wfstream, pickparam):
                     FM = 'N'
 
                 ##############################################################
-                # get DC value (w0) and corner frequency (fc) of source spectrum
+                # get DC value and corner frequency (fc) of source spectrum
                 # from P pulse
                 # initialize Data object
                 data = Data()
@@ -339,7 +341,7 @@ def autopickstation(wfstream, pickparam):
                         index = min([3, len(zc) - 1])
                         calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
                         # calculate source spectrum and get w0 and fc
-                        specpara = DCfc(z_copy, mpickP, calcwin, iplot)
+                        specpara = w0fc(z_copy, mpickP, calcwin, iplot)
                         w0 = specpara.getw0()
                         fc = specpara.getfc()
 
@@ -788,7 +790,8 @@ def autopickstation(wfstream, pickparam):
     # for P phase
     phase = 'P'
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
-                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
+                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
+                 'w0': w0, 'fc': fc}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
@@ -799,6 +802,7 @@ def autopickstation(wfstream, pickparam):
     picks[phase] = phasepick
     # add Wood-Anderson amplitude
     picks[phase]['Ao'] = Ao
+
 
     return picks
 
