@@ -190,8 +190,8 @@ class M0Mw(Magnitude):
                % tr.stats.station)
 
         # additional common parameters for calculating Mo
-        rP = 0.52      # average radiation pattern of P waves (Aki & Richards, 1980)
-        freesurf = 2.0 # free surface correction, assuming vertical incidence 
+        rP = 2 / np.sqrt(15) # average radiation pattern of P waves (Aki & Richards, 1980)
+        freesurf = 2.0       # free surface correction, assuming vertical incidence 
 
         self.Mo = (self.getw0() * 4 * np.pi * self.getrho() * np.power(self.getvp(), 3) * \
                   self.getdelta()) / (rP * freesurf) 
