@@ -6,6 +6,7 @@ Created August/September 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 
+import pdb
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
@@ -181,17 +182,15 @@ class w0fc(Magnitude):
         # where spectral level reached 50% of flat level
         iin = np.where(YY >= 0.5 * w0in)
         Fcin = F[iin[0][np.size(iin) - 1]]
-        # use of implicit scipy function
+
+        # use of implicit scipy otimization function
         fit = synthsourcespec(F, w0in, Fcin)
         [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [w0in, Fcin])
-        self.w01 = optspecfit[0]
-        self.fc1 = optspecfit[1]
+        w01 = optspecfit[0]
+        fc1 = optspecfit[1]
         print ("w0fc: Determined w0-value: %e m/Hz, \n"
-               "Determined corner frequency: %f Hz" % (self.w01, self.fc1))
+               "Determined corner frequency: %f Hz" % (w01, fc1))
         
-        # use of conventional fitting 
-        [self.w02, self.fc2] = fitSourceModel(F, YY.real, Fcin, self.getiplot())
-
 	if self.getiplot() > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
@@ -215,6 +214,14 @@ class w0fc(Magnitude):
             plt.show()
             raw_input()
             plt.close(f1)
+
+        # use of conventional fitting 
+        [w02, fc2] = fitSourceModel(F, YY.real, Fcin, self.getiplot())
+ 
+        # get w0 and fc as median 
+        self.w0 = np.median([w01, w02])
+        self.fc = np.median([fc1, fc2])
+        print("w0fc: Using w0-value = %e m/Hz and fc = %f Hz" % (self.w0, self.fc))
 
 
 def synthsourcespec(f, omega0, fcorner):
