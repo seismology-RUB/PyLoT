@@ -17,11 +17,16 @@ class AutoPickThread(QThread):
 
         picks = self.func(self.data, self.param)
 
+        print("Autopicking finished!\n")
+
         try:
             for station in picks:
-                self.parent().addPicks(station, picks[station])
+                self.parent().addPicks(station, picks[station], type='auto')
         except AttributeError:
             print(picks)
+        # plot picks to section
+        self.parent().drawPicks(picktype='auto')
+
 
     def write(self, text):
         self.message.emit(text)
