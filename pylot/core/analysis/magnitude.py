@@ -135,10 +135,10 @@ class WApp(Magnitude):
             plt.close(f)
 
 
-class DCfc(Magnitude):
+class w0fc(Magnitude):
     '''
     Method to calculate the source spectrum and to derive from that the plateau
-    (so-called DC-value) and the corner frequency assuming Aki's omega-square
+    (usually called omega0) and the corner frequency assuming Aki's omega-square
     source model. Has to be derived from instrument corrected displacement traces!
     '''
 
@@ -176,20 +176,23 @@ class DCfc(Magnitude):
         YY = Y[fi]
         # get plateau (DC value) and corner frequency
         # initial guess of plateau
-        DCin = np.mean(YY[0:100])
+        w0in = np.mean(YY[0:100])
         # initial guess of corner frequency
         # where spectral level reached 50% of flat level
-        iin = np.where(YY >= 0.5 * DCin)
+        iin = np.where(YY >= 0.5 * w0in)
         Fcin = F[iin[0][np.size(iin) - 1]]
-        fit = synthsourcespec(F, DCin, Fcin)
-        [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [DCin, Fcin])
-        self.w0 = optspecfit[0]
-        self.fc = optspecfit[1]
-        print ("DCfc: Determined DC-value: %e m/Hz, \n"
-               "Determined corner frequency: %f Hz" % (self.w0, self.fc))
+        # use of implicit scipy function
+        fit = synthsourcespec(F, w0in, Fcin)
+        [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [w0in, Fcin])
+        self.w01 = optspecfit[0]
+        self.fc1 = optspecfit[1]
+        print ("w0fc: Determined w0-value: %e m/Hz, \n"
+               "Determined corner frequency: %f Hz" % (self.w01, self.fc1))
+        
+        # use of conventional fitting 
+        [self.w02, self.fc2] = fitSourceModel(F, YY.real, Fcin, self.getiplot())
 
-
-        if self.getiplot() > 1:
+	if self.getiplot() > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
             # show displacement in mm
@@ -203,7 +206,8 @@ class DCfc(Magnitude):
             plt.loglog(f, Y.real, 'k')
             plt.loglog(F, YY.real)
             plt.loglog(F, fit, 'g')
-            plt.title('Source Spectrum from P Pulse, DC=%e m/Hz, fc=%4.1f Hz' \
+            plt.loglog([self.fc, self.fc], [self.w0/100, self.w0], 'g') 
+            plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
                        % (self.w0, self.fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
@@ -232,4 +236,93 @@ def synthsourcespec(f, omega0, fcorner):
     ssp = omega0 / (1 + pow(2, (f / fcorner)))
 
     return ssp
+
+
+def fitSourceModel(f, S, fc0, iplot):
+    '''
+    Calculates synthetic source spectrum by varying corner frequency fc.
+    Returns best approximated plateau omega0 and corner frequency, i.e. with least 
+    common standard deviations. 
+
+    :param:  f, frequencies
+    :type:   array
+
+    :param:  S, observed source spectrum
+    :type:   array
+
+    :param:  fc0, initial corner frequency
+    :type:   float
+    '''
+
+    w0 =  []
+    stdw0 = []
+    fc = []
+    stdfc = []
+    STD = []
+
+    # get window around initial corner frequency for trials
+    fcstopl = fc0 - max(1, len(f) / 10)
+    il = np.argmin(abs(f-fcstopl))
+    fcstopl = f[il]
+    fcstopr = fc0 + min(len(f), len(f) /10) 
+    ir = np.argmin(abs(f-fcstopr))
+    fcstopr = f[ir]
+    iF = np.where((f >= fcstopl) & (f <= fcstopr))
+
+    # vary corner frequency around initial point
+    for i in range(il, ir): 
+        FC = f[i]
+        indexdc = np.where((f > 0 ) & (f <= FC))
+        dc = np.mean(S[indexdc])
+        stddc = np.std(dc - S[indexdc])
+        w0.append(dc)
+        stdw0.append(stddc)
+        fc.append(FC)
+        # slope
+        indexfc = np.where((f >= FC) & (f <= fcstopr))
+        yi = dc/(1+(f[indexfc]/FC)**2)
+        stdFC = np.std(yi - S[indexfc])
+        stdfc.append(stdFC)
+        STD.append(stddc + stdFC)
+
+    # get best found w0 anf fc from minimum
+    fc = fc[np.argmin(STD)]
+    w0 = w0[np.argmin(STD)]
+    print("fitSourceModel: best fc: %fHz, best w0: %e m/Hz" \
+           % (fc, w0))
+
+    if iplot > 1:
+        plt.figure(iplot)
+        plt.loglog(f, S, 'k')
+        plt.loglog([f[0], fc], [w0, w0], 'g')
+        plt.loglog([fc, fc], [w0/100, w0], 'g') 
+        plt.title('Calculated Source Spectrum, Omega0=%e m/Hz, fc=%6.2f Hz' \
+                   % (w0, fc)) 
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Amplitude [m/Hz]')
+        plt.grid()
+        plt.figure(iplot+1)
+        plt.subplot(311)
+        plt.plot(f[il:ir], STD,'*')
+        plt.title('Common Standard Deviations')
+        plt.xticks([])
+        plt.subplot(312)
+        plt.plot(f[il:ir], stdw0,'*')
+        plt.title('Standard Deviations of w0-Values')
+        plt.xticks([])
+        plt.subplot(313)
+        plt.plot(f[il:ir],stdfc,'*')
+        plt.title('Standard Deviations of Corner Frequencies')
+        plt.xlabel('Corner Frequencies [Hz]')
+        plt.show()
+        raw_input()
+        plt.close()
+
+    return w0, fc
+
+
+
+
+
+
 
