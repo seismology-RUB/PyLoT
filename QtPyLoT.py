@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
+        self.autopicks = {}
         self.loc = False
 
         # UI has to be set up before(!) children widgets are about to show up
@@ -476,12 +477,13 @@ class MainWindow(QMainWindow):
     def getData(self):
         return self.data
 
-    def getPicks(self):
-        return self.picks
+    def getPicks(self, type='manual'):
+        rdict = dict(auto=self.autopicks, manual=self.picks)
+        return rdict[type]
 
-    def getPicksOnStation(self, station):
+    def getPicksOnStation(self, station, type='manual'):
         try:
-            return self.getPicks()[station]
+            return self.getPicks(type)[station]
         except KeyError:
             return None
 
@@ -679,11 +681,8 @@ class MainWindow(QMainWindow):
         self.thread.message.connect(self.addListItem)
         self.thread.start()
 
-        self.drawPicks()
-
-
-    def addPicks(self, station, picks):
-        stat_picks = self.getPicksOnStation(station)
+    def addPicks(self, station, picks, type='manual'):
+        stat_picks = self.getPicksOnStation(station, type)
         rval = False
         if not stat_picks:
             stat_picks = picks
@@ -707,7 +706,7 @@ class MainWindow(QMainWindow):
                 pass
             else:
                 raise Exception('FATAL: Should never occur!')
-        self.getPicks()[station] = stat_picks
+        self.getPicks(type=type)[station] = stat_picks
         return rval
 
     def updatePicks(self):
@@ -734,24 +733,25 @@ class MainWindow(QMainWindow):
             picks[station] = onsets.copy()
         self.picks.update(picks)
 
-    def drawPicks(self, station=None):
+    def drawPicks(self, station=None, picktype='manual'):
         # if picks to draw not specified, draw all picks available
         if not station:
-            for station in self.getPicks():
-                self.drawPicks(station)
+            for station in self.getPicks(type=picktype):
+                self.drawPicks(station, picktype=picktype)
             return
         # plotting picks
         plotID = self.getStationID(station)
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        phase_col = {'P': ('c', 'c--', 'b-'),
-                     'S': ('m', 'm--', 'r-')}
+        phase_col = {'P': ('c', 'c--', 'b-', 'bv', 'b^'),
+                     'S': ('m', 'm--', 'r-', 'rv', 'r^')}
 
-        stat_picks = self.getPicks()[station]
+        stat_picks = self.getPicks(type=picktype)[station]
 
         for phase in stat_picks:
-
             picks = stat_picks[phase]
+            if type(stat_picks[phase]) is not dict:
+                return
             colors = phase_col[phase[0].upper()]
 
             stime = getGlobalTimes(self.getData().getWFData())[0]
@@ -761,11 +761,17 @@ class MainWindow(QMainWindow):
             lpp = picks['lpp'] - stime
             spe = picks['spe']
 
-            ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                            alpha=.5, color=colors[0])
-            ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                    [mpp, mpp], ylims, colors[2],
-                    [mpp + spe, mpp + spe], ylims, colors[1])
+            if picktype == 'manual':
+                ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                alpha=.5, color=colors[0])
+                ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                        [mpp, mpp], ylims, colors[2],
+                        [mpp + spe, mpp + spe], ylims, colors[1])
+            elif picktype == 'auto':
+                ax.plot(mpp, ylims[1], colors[3],
+                        mpp, ylims[0], colors[4])
+            else:
+                raise TypeError('Unknow picktype {0}'.format(picktype))
         self.draw()
 
     def locateEvent(self):
