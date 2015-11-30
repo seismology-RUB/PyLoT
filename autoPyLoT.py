@@ -13,6 +13,7 @@ from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.loc.nll import *
 from pylot.core.util.version import get_git_version as _getVersionString
+from pylot.core.analysis.magnitude import M0Mw
 
 __version__ = _getVersionString()
 
@@ -159,6 +160,15 @@ def autoPyLoT(inputfile):
                                 if len(badpicks) == 0:
                                     print("autoPyLoT: No more bad onsets found, stop iterative picking!")
                                     break
+                            # calculating seismic moment Mo and corresponding moment
+                            # magnitude Mw after Hanks and Kanamori (1979) from reliable
+                            # picks/waveforms 
+                            for key in picks:
+                                 if picks[key]['P']['weight'] < 4 and picks[key]['P']['w0'] is not None:
+                                     selwf = wfdat.select(station=key)
+                                     w0 = picks[key]['P']['w0']
+                                     sourcepara = M0Mw(selwf, None, None,  None, w0, 5, \
+                                     parameter.getParam('rho'), parameter.getParam('vp'))
                         else:
                             print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                 ##########################################################
@@ -238,6 +248,17 @@ def autoPyLoT(inputfile):
                             if len(badpicks) == 0:
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
                                 break
+                        
+                        # calculating seismic moment Mo and corresponding moment
+                        # magnitude Mw after Hanks and Kanamori (1979) from reliable
+                        # picks/waveforms 
+                        for key in picks:
+                             if picks[key]['P']['weight'] < 4 and picks[key]['P']['w0'] is not None:
+                                 selwf = wfdat.select(station=key)
+                                 w0 = picks[key]['P']['w0']
+                                 sourcepara = M0Mw(selwf, None, None,  None, w0, 5, \
+                                 parameter.getParam('rho'), parameter.getParam('vp'))
+                        
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
