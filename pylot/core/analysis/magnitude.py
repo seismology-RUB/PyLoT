@@ -6,7 +6,6 @@ Created August/September 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 
-import pdb
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
@@ -19,7 +18,7 @@ class Magnitude(object):
     amplitudes, local magnitudes and moment magnitudes.
     '''
 
-    def __init__(self, wfstream, To, pwin, iplot):
+    def __init__(self, wfstream, To, pwin, iplot, w0=None, delta=None, rho=None, vp=None):
         '''
         :param: wfstream
         :type: `~obspy.core.stream.Stream
@@ -43,8 +42,13 @@ class Magnitude(object):
         self.setTo(To)
         self.setpwin(pwin)
         self.setiplot(iplot)
+        self.setw0(w0)
+        self.setrho(rho)
+        self.setdelta(delta)
+        self.setvp(vp)
         self.calcwapp()
         self.calcsourcespec()
+        self.calcMoMw()
 
 
     def getwfstream(self):
@@ -71,6 +75,30 @@ class Magnitude(object):
     def setiplot(self, iplot):
         self.iplot = iplot
 
+    def setw0(self, w0):
+        self.w0 = w0
+
+    def getw0(self):
+        return self.w0
+
+    def setrho(self, rho):
+        self.rho = rho
+
+    def getrho(self):
+        return self.rho
+ 
+    def setvp(self, vp):
+        self.vp = vp
+
+    def getvp(self):
+        return self.vp
+
+    def setdelta(self, delta):
+        self.delta = delta
+
+    def getdelta(self):
+        return self.delta
+
     def getwapp(self):
         return self.wapp
 
@@ -80,11 +108,21 @@ class Magnitude(object):
     def getfc(self):
         return self.fc
 
+    def getMo(self):
+        return self.Mo
+
+    def getMw(self):
+        return self.Mw
+
     def calcwapp(self):
         self.wapp = None
 
     def calcsourcespec(self):
         self.sourcespek = None
+
+    def calcMoMw(self):
+        self.Mo = None
+        self.Mw = None
 
 class WApp(Magnitude):
     '''
@@ -136,6 +174,32 @@ class WApp(Magnitude):
             plt.close(f)
 
 
+class M0Mw(Magnitude):
+    '''
+    Method to calculate seismic moment Mo and moment magnitude Mw.
+    Uses class w0fc for calculating plateau wo and corner frequency 
+    fc of source spectrum, respectively.
+    '''
+
+    def calcMoMw(self):
+
+        stream = self.getwfstream()
+        tr = stream[0]
+
+        print("Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
+               % tr.stats.station)
+
+        # additional common parameters for calculating Mo
+        rP = 0.52      # average radiation pattern of P waves (Aki & Richards, 1980)
+        freesurf = 2.0 # free surface correction, assuming vertical incidence 
+
+        self.Mo = (self.getw0() * 4 * np.pi * self.getrho() * np.power(self.getvp(), 3) * \
+                  self.getdelta()) / (rP * freesurf) 
+
+        self.Mw = 2/3 * np.log10(self.Mo) - 6
+        print("MoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (self.Mo, self.Mw))
+
+        
 class w0fc(Magnitude):
     '''
     Method to calculate the source spectrum and to derive from that the plateau
@@ -191,6 +255,14 @@ class w0fc(Magnitude):
         print ("w0fc: Determined w0-value: %e m/Hz, \n"
                "Determined corner frequency: %f Hz" % (w01, fc1))
         
+        # use of conventional fitting 
+        [w02, fc2] = fitSourceModel(F, YY.real, Fcin, self.getiplot())
+ 
+        # get w0 and fc as median 
+        self.w0 = np.median([w01, w02])
+        self.fc = np.median([fc1, fc2])
+        print("w0fc: Using w0-value = %e m/Hz and fc = %f Hz" % (self.w0, self.fc))
+
 	if self.getiplot() > 1:
             f1 = plt.figure()
             plt.subplot(2,1,1)
@@ -215,13 +287,6 @@ class w0fc(Magnitude):
             raw_input()
             plt.close(f1)
 
-        # use of conventional fitting 
-        [w02, fc2] = fitSourceModel(F, YY.real, Fcin, self.getiplot())
- 
-        # get w0 and fc as median 
-        self.w0 = np.median([w01, w02])
-        self.fc = np.median([fc1, fc2])
-        print("w0fc: Using w0-value = %e m/Hz and fc = %f Hz" % (self.w0, self.fc))
 
 
 def synthsourcespec(f, omega0, fcorner):
