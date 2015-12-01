@@ -10,15 +10,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 from pylot.core.pick.utils import getsignalwin
+from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 
 class Magnitude(object):
     '''
     Superclass for calculating Wood-Anderson peak-to-peak
-    amplitudes, local magnitudes and moment magnitudes.
+    amplitudes, local magnitudes, seismic moments
+    and moment magnitudes.
     '''
 
-    def __init__(self, wfstream, To, pwin, iplot, w0=None, delta=None, rho=None, vp=None):
+    def __init__(self, wfstream, To, pwin, iplot, NLLocfile=None, picks=None, rho=None, vp=None):
         '''
         :param: wfstream
         :type: `~obspy.core.stream.Stream
@@ -32,8 +34,20 @@ class Magnitude(object):
         :type:  float
 
         :param: iplot, no. of figure window for plotting interims results
-        :type: integer
+        :type:  integer
 
+        :param: NLLocfile, name and full path to NLLoc-location file
+                needed when calling class MoMw
+        :type:  string
+
+        :param: picks, dictionary containing picking results
+        :type:  dictionary
+
+        :param: rho [kg/m³], rock density, parameter from autoPyLoT.in
+        :type:  integer
+
+        :param: vp [m/s], P-velocity
+        :param: integer
         '''
 
         assert isinstance(wfstream, Stream), "%s is not a stream object" % str(wfstream)
@@ -42,13 +56,13 @@ class Magnitude(object):
         self.setTo(To)
         self.setpwin(pwin)
         self.setiplot(iplot)
-        self.setw0(w0)
+        self.setNLLocfile(NLLocfile)
         self.setrho(rho)
-        self.setdelta(delta)
+        self.setpicks(picks)
         self.setvp(vp)
         self.calcwapp()
         self.calcsourcespec()
-        self.calcMoMw()
+        self.run_calcMoMw()
 
 
     def getwfstream(self):
@@ -75,11 +89,11 @@ class Magnitude(object):
     def setiplot(self, iplot):
         self.iplot = iplot
 
-    def setw0(self, w0):
-        self.w0 = w0
+    def setNLLocfile(self, NLLocfile):
+        self.NLLocfile = NLLocfile
 
-    def getw0(self):
-        return self.w0
+    def getNLLocfile(self):
+        return self.NLLocfile
 
     def setrho(self, rho):
         self.rho = rho
@@ -93,11 +107,11 @@ class Magnitude(object):
     def getvp(self):
         return self.vp
 
-    def setdelta(self, delta):
-        self.delta = delta
+    def setpicks(self, picks):
+        self.picks = picks
 
-    def getdelta(self):
-        return self.delta
+    def getpicks(self):
+        return self.picks
 
     def getwapp(self):
         return self.wapp
@@ -108,11 +122,8 @@ class Magnitude(object):
     def getfc(self):
         return self.fc
 
-    def getMo(self):
-        return self.Mo
-
-    def getMw(self):
-        return self.Mw
+    def getpicdic(self):
+        return self.picdic
 
     def calcwapp(self):
         self.wapp = None
@@ -120,9 +131,8 @@ class Magnitude(object):
     def calcsourcespec(self):
         self.sourcespek = None
 
-    def calcMoMw(self):
-        self.Mo = None
-        self.Mw = None
+    def run_calcMoMw(self):
+        self.pickdic = None
 
 class WApp(Magnitude):
     '''
@@ -177,27 +187,62 @@ class WApp(Magnitude):
 class M0Mw(Magnitude):
     '''
     Method to calculate seismic moment Mo and moment magnitude Mw.
-    Uses class w0fc for calculating plateau wo and corner frequency 
-    fc of source spectrum, respectively.
+    Requires results of class w0fc for calculating plateau w0 
+    and corner frequency fc of source spectrum, respectively. Uses 
+    subfunction calcMoMw.py. Returns modified dictionary of picks including 
+    seismic moment Mo and corresponding moment magntiude Mw.
     '''
 
-    def calcMoMw(self):
+    def run_calcMoMw(self):
 
-        stream = self.getwfstream()
-        tr = stream[0]
+        picks = self.getpicks()
+        nllocfile = self.getNLLocfile()
+        wfdat = self.getwfstream()
+        for key in picks:
+             if picks[key]['P']['weight'] < 4 and picks[key]['P']['w0'] is not None:
+                 # select waveform
+                 selwf = wfdat.select(station=key)
+                 # get corresponding height of source spectrum plateau w0
+                 w0 = picks[key]['P']['w0']
+                 # get hypocentral distance of station
+                 # from NLLoc-location file
+                 if len(key) > 4:
+                     Ppattern = '%s  ?    ?    ? P' % key
+                 elif len(key) == 4:
+                     Ppattern = '%s   ?    ?    ? P' % key
+                 elif len(key) < 4:
+                     Ppattern = '%s    ?    ?    ? P' % key
+                 nllocline = getPatternLine(nllocfile, Ppattern)
+                 delta = float(nllocline.split(None)[21])
+                 # call subfunction
+                 [Mo, Mw] = calcMoMw(selwf, w0, self.getrho(), self.getvp(), delta)
+                 # add Mo and Mw to dictionary
+                 picks[key]['P']['Mo'] = Mo
+                 picks[key]['P']['Mw'] = Mw
+                 self.picdic = picks
 
-        print("Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
-               % tr.stats.station)
+def calcMoMw(wfstream, w0, rho, vp, delta):
+    '''
+    Subfunction of run_calcMoMw to calculate individual
+    seismic moments and corresponding moment magnitudes.
+    '''
 
-        # additional common parameters for calculating Mo
-        rP = 2 / np.sqrt(15) # average radiation pattern of P waves (Aki & Richards, 1980)
-        freesurf = 2.0       # free surface correction, assuming vertical incidence 
+    tr = wfstream[0]
 
-        self.Mo = (self.getw0() * 4 * np.pi * self.getrho() * np.power(self.getvp(), 3) * \
-                  self.getdelta()) / (rP * freesurf) 
+    print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
+           % tr.stats.station)
 
-        self.Mw = 2/3 * np.log10(self.Mo) - 6
-        print("MoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (self.Mo, self.Mw))
+    # additional common parameters for calculating Mo
+    rP = 2 / np.sqrt(15) # average radiation pattern of P waves (Aki & Richards, 1980)
+    freesurf = 2.0       # free surface correction, assuming vertical incidence 
+
+    Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf) 
+
+    Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 #after Hanks & Kanamori (1979), defined for [dyn*cm]!
+
+    print("calcMoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (Mo, Mw))
+
+    return Mo, Mw
 
         
 class w0fc(Magnitude):
