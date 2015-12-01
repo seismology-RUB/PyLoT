@@ -4,6 +4,7 @@ from PySide.QtCore import QThread, Signal
 
 class AutoPickThread(QThread):
     message = Signal(str)
+    finished = Signal()
 
     def __init__(self, parent, func, data, param):
         super(AutoPickThread, self).__init__()
@@ -24,8 +25,8 @@ class AutoPickThread(QThread):
                 self.parent().addPicks(station, picks[station], type='auto')
         except AttributeError:
             print(picks)
-        # plot picks to section
-        self.parent().drawPicks(picktype='auto')
+        sys.stdout = sys.__stdout__
+        self.finished.emit()
 
 
     def write(self, text):

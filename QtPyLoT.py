@@ -680,6 +680,11 @@ class MainWindow(QMainWindow):
                                    param=autopick_parameter)
         self.thread.message.connect(self.addListItem)
         self.thread.start()
+        self.thread.finished.connect(self.finalizeAutoPick)
+
+    def finalizeAutoPick(self):
+        self.drawPicks(picktype='auto')
+        self.thread.quit()
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
