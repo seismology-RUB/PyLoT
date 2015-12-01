@@ -213,7 +213,7 @@ def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
     :type restype: str
     :param authority_id: name of the institution carrying out the processing
     :type authority_id: str, optional
-    # hrstr missing
+    :param hrstr:
     :return:
     '''
     assert isinstance(timetohash, UTCDateTime), "'timetohash' is not an ObsPy" \
