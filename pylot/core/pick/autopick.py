@@ -15,10 +15,10 @@ from scipy import integrate
 from pylot.core.pick.Picker import AICPicker, PragPicker
 from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
-    getSNR, fmpicker, checkPonsets, wadaticheck, crossings_nonzero_all
+    getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine
 from pylot.core.read.data import Data
-from pylot.core.analysis.magnitude import WApp, w0fc
+from pylot.core.analysis.magnitude import WApp
 
 def autopickevent(data, param):
     stations = []
@@ -138,8 +138,6 @@ def autopickstation(wfstream, pickparam):
     Sflag = 0
     Pmarker = []
     Ao = None     # Wood-Anderson peak-to-peak amplitude
-    w0 = None     # plateau of source spectrum
-    fc = None     # corner frequancy of source spectrum
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -313,37 +311,6 @@ def autopickstation(wfstream, pickparam):
                     FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
                 else:
                     FM = 'N'
-
-                ##############################################################
-                # get DC value and corner frequency (fc) of source spectrum
-                # from P pulse
-                # initialize Data object
-                data = Data()
-                z_copy = zdat.copy()
-                [corzdat, restflag] = data.restituteWFData(invdir, z_copy)
-                if restflag == 1:
-                    # integrate to displacement
-                    corintzdat = integrate.cumtrapz(corzdat[0], None, corzdat[0].stats.delta)
-                    z_copy[0].data = corintzdat
-                    # largest detectable period == window length
-                    # after P pulse for calculating source spectrum
-                    winzc = (1 / bpz2[0]) * z_copy[0].stats.sampling_rate
-                    impickP = mpickP * z_copy[0].stats.sampling_rate
-                    wfzc = z_copy[0].data[impickP : impickP + winzc]
-                    # calculate spectrum using only first cycles of
-                    # waveform after P onset!
-                    zc = crossings_nonzero_all(wfzc)
-                    if np.size(zc) == 0 or len(zc) <= 3:
-                        print ("Something is wrong with the waveform, "
-                               "no zero crossings derived!")
-                        print ("Cannot calculate source spectrum!")
-                    else:
-                        index = min([3, len(zc) - 1])
-                        calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
-                        # calculate source spectrum and get w0 and fc
-                        specpara = w0fc(z_copy, mpickP, calcwin, iplot)
-                        w0 = specpara.getw0()
-                        fc = specpara.getfc()
 
                 print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
                        "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
@@ -790,8 +757,7 @@ def autopickstation(wfstream, pickparam):
     # for P phase
     phase = 'P'
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
-                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
-                 'w0': w0, 'fc': fc}
+                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
