@@ -46,7 +46,7 @@ def autopickevent(data, param):
     # check S-P times (Wadati)
     return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
 
-def autopickstation(wfstream, pickparam):
+def autopickstation(wfstream, pickparam, verbose=False):
     """
     :param: wfstream
     :type: `~obspy.core.stream.Stream`
@@ -153,11 +153,11 @@ def autopickstation(wfstream, pickparam):
         ndat = wfstream.select(component="1")
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
-        print '##########################################'
-        print 'autopickstation: Working on P onset of station %s' % zdat[
-            0].stats.station
-        print 'Filtering vertical trace ...'
-        print zdat
+        msg = '##########################################\nautopickstation:' \
+             ' Working on P onset of station {station}\nFiltering vertical ' \
+             'trace ...\n{data}'.format(station=zdat[0].stats.station,
+                                        data=str(zdat))
+        if verbose: print(msg)
         z_copy = zdat.copy()
         # filter and taper data
         tr_filt = zdat[0].copy()
@@ -171,9 +171,9 @@ def autopickstation(wfstream, pickparam):
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         Ldiff = Lwf - Lc
         if Ldiff < 0:
-            print 'autopickstation: Cutting times are too large for actual ' \
-                  'waveform!'
-            print 'Using entire waveform instead!'
+            msg =  'autopickstation: Cutting times are too large for actual ' \
+                   'waveform!\nUsing entire waveform instead!'
+            if verbose: print(msg)
             pstart = 0
             pstop = len(zdat[0].data) * zdat[0].stats.delta
         cuttimes = [pstart, pstop]
@@ -206,10 +206,11 @@ def autopickstation(wfstream, pickparam):
             z_copy[0].data = tr_filt.data
             zne = z_copy
             if len(ndat) == 0 or len(edat) == 0:
-                print ("One or more horizontal components missing!")
-                print ("Signal length only checked on vertical component!")
-                print ("Decreasing minsiglengh from %f to %f"
-                       % (minsiglength, minsiglength / 2))
+                msg = 'One or more horizontal components missing!\nSignal ' \
+                      'length only checked on vertical component!\n' \
+                      'Decreasing minsiglengh from {0} to ' \
+                      '{1}'.format(minsiglength, minsiglength / 2)
+                if verbose: print(msg)
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
                                           minsiglength / 2,
                                           nfacsl, minpercent, iplot)
@@ -235,8 +236,9 @@ def autopickstation(wfstream, pickparam):
                 # check for spuriously picked S onset
                 # both horizontal traces needed
                 if len(ndat) == 0 or len(edat) == 0:
-                    print 'One or more horizontal components missing!'
-                    print 'Skipping control function checkZ4S.'
+                    msg = 'One or more horizontal components missing!\n' \
+                          'Skipping control function checkZ4S.'
+                    if verbose: print(msg)
                 else:
                     Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
                                      tsnrz[3], iplot)
@@ -252,11 +254,12 @@ def autopickstation(wfstream, pickparam):
                     aicpick.getSNR() >= minAICPSNR and
                     Pflag == 1):
             aicPflag = 1
-            print 'AIC P-pick passes quality control: Slope: %f counts/s, SNR: %f' % \
-                  (aicpick.getSlope(), aicpick.getSNR())
-            print 'Go on with refined picking ...'
+            msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
+                  'SNR: {1}\nGo on with refined picking ...\n' \
+                  'autopickstation: re-filtering vertical trace ' \
+                  '...'.format(aicpick.getSlope(), aicpick.getSNR())
+            if verbose: print(msg)
             # re-filter waveform with larger bandpass
-            print 'autopickstation: re-filtering vertical trace ...'
             z_copy = zdat.copy()
             tr_filt = zdat[0].copy()
             tr_filt.filter('bandpass', freqmin=bpz2[0], freqmax=bpz2[1],
@@ -334,9 +337,10 @@ def autopickstation(wfstream, pickparam):
                     # waveform after P onset!
                     zc = crossings_nonzero_all(wfzc)
                     if np.size(zc) == 0 or len(zc) <= 3:
-                        print ("Something is wrong with the waveform, "
-                               "no zero crossings derived!")
-                        print ("Cannot calculate source spectrum!")
+                        msg = "Something is wrong with the waveform, " \
+                              "no zero crossings derived!\nCannot " \
+                              "calculate source spectrum!"
+                        if verbose: print(msg)
                     else:
                         index = min([3, len(zc) - 1])
                         calcwin = (zc[index] - zc[0]) * z_copy[0].stats.delta
@@ -345,33 +349,42 @@ def autopickstation(wfstream, pickparam):
                         w0 = specpara.getw0()
                         fc = specpara.getfc()
 
-                print ("autopickstation: P-weight: %d, SNR: %f, SNR[dB]: %f, "
-                       "Polarity: %s" % (Pweight, SNRP, SNRPdB, FM))
+                msg = "autopickstation: P-weight: {0}, " \
+                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight,
+                                                                     SNRP,
+                                                                     SNRPdB,
+                                                                     FM)
+                print(msg)
                 Sflag = 1
 
         else:
-            print ("Bad initial (AIC) P-pick, skipping this onset!")
-            print 'AIC-SNR=', aicpick.getSNR(), 'AIC-Slope=', aicpick.getSlope(), 'counts/s'
-            print '(min. AIC-SNR=', minAICPSNR, ', min. AIC-Slope=', minAICPslope, 'counts/s)'
+            msg = 'Bad initial (AIC) P-pick, skipping this onset!\n' \
+                  'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
+                  '(min. AIC-SNR={2}, ' \
+                  'min. AIC-Slope={3}counts/s)'.format(aicpick.getSNR(),
+                                                       aicpick.getSlope(),
+                                                       minAICPSNR,
+                                                       minAICPslope)
+            if verbose: print(msg)
             Sflag = 0
 
     else:
-        print ("autopickstation: No vertical component data available!, "
-               "Skipping station!")
+        print("autopickstation: No vertical component data available!, "
+              "Skipping station!")
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
-        print ("Go on picking S onset ...")
-        print ("##################################################")
-        print ("Working on S onset of station %s" % edat[0].stats.station)
-        print ("Filtering horizontal traces ...")
-
+        msg = "Go on picking S onset ...\n" \
+              "##################################################\n" \
+              "Working on S onset of station {0}\nFiltering horizontal " \
+              "traces ...".format(edat[0].stats.station)
+        if verbose: print(msg)
         # determine time window for calculating CF after P onset
         cuttimesh = [round(max([mpickP + sstart, 0])),
                      round(min([mpickP + sstop, Lwf]))]
 
         if algoS == 'ARH':
-            print edat, ndat
+            if verbose: print(edat, ndat)
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
@@ -388,7 +401,7 @@ def autopickstation(wfstream, pickparam):
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
         elif algoS == 'AR3':
-            print zdat, edat, ndat
+            if verbose: print(zdat, edat, ndat)
             # re-create stream object including all components
             hdat = zdat.copy()
             hdat += edat
@@ -441,15 +454,15 @@ def autopickstation(wfstream, pickparam):
                     aicarhpick.getSNR() >= minAICSSNR and
                     aicarhpick.getpick() is not None):
             aicSflag = 1
-            print 'AIC S-pick passes quality control: Slope: %f counts/s, SNR: %f' \
-                  % (aicarhpick.getSlope(), aicarhpick.getSNR())
-            print 'Go on with refined picking ...'
+            msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
+                  'SNR: {1}\nGo on with refined picking ...\n' \
+                  'autopickstation: re-filtering horizontal traces ' \
+                  '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
             cuttimesh2 = [round(aicarhpick.getpick() - Srecalcwin),
                           round(aicarhpick.getpick() + Srecalcwin)]
             # re-filter waveform with larger bandpass
-            print 'autopickstation: re-filtering horizontal traces...'
             h_copy = hdat.copy()
             # filter and taper data
             if algoS == 'ARH':
@@ -554,11 +567,12 @@ def autopickstation(wfstream, pickparam):
                     elif Serror > timeerrorsS[3]:
                         Sweight = 4
 
-                    print 'autopickstation: S-weight: %d, SNR: %f, SNR[dB]: %f' % (
-                        Sweight, SNRS, SNRSdB)
+                    print('autopickstation: S-weight: {0}, SNR: {1}, '
+                          'SNR[dB]: {2}\n'
+                          '################################################'
+                          ''.format(Sweight, SNRS, SNRSdB))
                 ##################################################################
                 # get Wood-Anderson peak-to-peak amplitude
-                print "################################################"
                 # initialize Data object
                 data = Data()
                 # re-create stream object including both horizontal components
@@ -580,15 +594,19 @@ def autopickstation(wfstream, pickparam):
                     Ao = wapp.getwapp()
 
         else:
-            print 'Bad initial (AIC) S-pick, skipping this onset!'
-            print 'AIC-SNR=', aicarhpick.getSNR(), \
-                'AIC-Slope=', aicarhpick.getSlope(), 'counts/s'
-            print '(min. AIC-SNR=', minAICSSNR, ', min. AIC-Slope=', \
-                    minAICSslope, 'counts/s)'
+            msg = 'Bad initial (AIC) S-pick, skipping this onset!\n' \
+                  'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
+                  '(min. AIC-SNR={2}, ' \
+                  'min. AIC-Slope={3}counts/s)\n' \
+                  '################################################' \
+                  ''.format(aicarhpick.getSNR(),
+                            aicarhpick.getSlope(),
+                            minAICSSNR,
+                            minAICSslope)
+            if verbose: print(msg)
 
             ############################################################
             # get Wood-Anderson peak-to-peak amplitude
-            print "################################################"
             # initialize Data object
             data = Data()
             # re-create stream object including both horizontal components
@@ -604,8 +622,8 @@ def autopickstation(wfstream, pickparam):
                 Ao = wapp.getwapp()
 
     else:
-        print 'autopickstation: No horizontal component data available or ' \
-              'bad P onset, skipping S picking!'
+        print('autopickstation: No horizontal component data available or ' \
+              'bad P onset, skipping S picking!')
 
     ##############################################################
     if iplot > 0:
@@ -819,12 +837,13 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
 
     :param badpicks: picks to be repicked
 
-    :param pickparameter: picking parameters from autoPyLoT-input file 
+    :param pickparameter: picking parameters from autoPyLoT-input file
     '''
 
-    print("#######################################################")
-    print("autoPyLoT: Found %d bad onsets at station(s) %s, starting re-picking them ...") \
-                               % (len(badpicks), badpicks)
+    msg = '#######################################################\n' \
+          'autoPyLoT: Found {0} bad onsets at station(s) {1}, ' \
+          'starting re-picking them ...'.format(len(badpicks), badpicks)
+    print(msg)
 
     newpicks = {}
     for i in range(0, len(badpicks)):
@@ -867,13 +886,13 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          print("Precalcwin: %fs => %fs" % (Precalcwin_old, pickparameter.getParam('Precalcwin')))
          print("noisefactor: %f => %f" % (noisefactor_old, pickparameter.getParam('noisefactor')))
          print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
-         
+
          # repick station
          newpicks = autopickstation(wf2pick, pickparameter)
-         
+
          # replace old dictionary with new one
          picks[badpicks[i][0]] = newpicks
- 
+
          # reset temporary change of picking parameters
          print("iteratepicker: Resetting picking parameters ...")
          pickparameter.setParam(pstart=pstart_old)
