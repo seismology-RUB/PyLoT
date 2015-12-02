@@ -88,9 +88,10 @@ def autoPyLoT(inputfile):
             maxnumit = 3 # maximum number of iterations for re-picking
         else:
             locflag = 0
-            print ("                 !!!              ")
-            print ("!!No location routine available, autoPyLoT is running in non-location mode!!")
-            print ("                 !!!              ")
+            print("                 !!!              ")
+            print("!!No location routine available, autoPyLoT is running in non-location mode!!")
+            print("!!No source parameter estimation possible!!")
+            print("                 !!!              ")
 
 
         # multiple event processing
@@ -132,6 +133,18 @@ def autoPyLoT(inputfile):
 
                     if len(badpicks) == 0:
                         print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
+                        # get NLLoc-location file
+                        locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
+                        if len(glob.glob(locsearch)) > 0:
+                            # get latest NLLoc-location file if several are available
+                            nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                            # calculating seismic moment Mo and moment magnitude Mw
+                            finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
+                                          nllocfile, picks, parameter.getParam('rho'), \
+                                          parameter.getParam('vp'), parameter.getParam('invdir'))
+                        else:
+                            print("autoPyLoT: No NLLoc-location file available!")
+                            print("No source parameter estimation possible!")
                     else:
                         # get theoretical P-onset times from NLLoc-location file
                         locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
@@ -151,6 +164,9 @@ def autoPyLoT(inputfile):
                                 # locate the event
                                 locate(nlloccall, ctrfile)
                                 print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
+                                # get updated NLLoc-location file
+                                nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                                # check for bad picks
                                 badpicks = []
                                 for key in picks:
                                      if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
@@ -159,23 +175,19 @@ def autoPyLoT(inputfile):
                                        len(badpicks)))
                                 if len(badpicks) == 0:
                                     print("autoPyLoT: No more bad onsets found, stop iterative picking!")
-                                    break
-                            # calculating seismic moment Mo and corresponding moment
-                            # magnitude Mw after Hanks and Kanamori (1979) from reliable
-                            # picks/waveforms 
-                            for key in picks:
-                                 if picks[key]['P']['weight'] < 4 and picks[key]['P']['w0'] is not None:
-                                     selwf = wfdat.select(station=key)
-                                     w0 = picks[key]['P']['w0']
-                                     sourcepara = M0Mw(selwf, None, None,  None, w0, 5, \
-                                     parameter.getParam('rho'), parameter.getParam('vp'))
+                                    nlloccounter = maxnumit
+
+                            # calculating seismic moment Mo and moment magnitude Mw
+                            finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
+                                          nllocfile, picks, parameter.getParam('rho'), \
+                                          parameter.getParam('vp'), parameter.getParam('invdir'))
                         else:
                             print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
                 hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, evID)
-                writephases(picks, 'HYPO71', hypo71file)
+                writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
 
                 endsplash = '''------------------------------------------\n'
                                -----Finished event %s!-----\n' 
@@ -220,6 +232,18 @@ def autoPyLoT(inputfile):
 
                 if len(badpicks) == 0:
                     print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!") 
+                    # get NLLoc-location file
+                    locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
+                    if len(glob.glob(locsearch)) > 0:
+                        # get latest NLLOc-location file if several are available
+                        nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                        # calculating seismic moment Mo and moment magnitude Mw
+                        finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
+                                      nllocfile, picks, parameter.getParam('rho'), \
+                                      parameter.getParam('vp'), parameter.getParam('invdir'))
+                    else:
+                        print("autoPyLoT: No NLLoc-location file available!")
+                        print("No source parameter estimation possible!")
                 else:
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
@@ -239,6 +263,9 @@ def autoPyLoT(inputfile):
                             # locate the event
                             locate(nlloccall, ctrfile)
                             print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
+                            # get updated NLLoc-location file
+                            nllocfile = max(glob.glob(locsearch), key=os.path.getctime) 
+                            # check for bad picks
                             badpicks = []
                             for key in picks:
                                  if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
@@ -247,25 +274,19 @@ def autoPyLoT(inputfile):
                                    len(badpicks)))
                             if len(badpicks) == 0:
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
-                                break
+                                nlloccounter = maxnumit
                         
-                        # calculating seismic moment Mo and corresponding moment
-                        # magnitude Mw after Hanks and Kanamori (1979) from reliable
-                        # picks/waveforms 
-                        for key in picks:
-                             if picks[key]['P']['weight'] < 4 and picks[key]['P']['w0'] is not None:
-                                 selwf = wfdat.select(station=key)
-                                 w0 = picks[key]['P']['w0']
-                                 sourcepara = M0Mw(selwf, None, None,  None, w0, 5, \
-                                 parameter.getParam('rho'), parameter.getParam('vp'))
-                        
+                        # calculating seismic moment Mo and moment magnitude Mw
+                        finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
+                                      nllocfile, picks, parameter.getParam('rho'), \
+                                      parameter.getParam('vp'), parameter.getParam('invdir'))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
-            writephases(picks, 'HYPO71', hypo71file)
+            writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
            
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n' 
