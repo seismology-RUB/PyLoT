@@ -335,15 +335,15 @@ def autopickstation(wfstream, pickparam, verbose=False):
             Sflag = 0
 
     else:
-        print("autopickstation: No vertical component data available!, "
-              "Skipping station!")
+        print('autopickstation: No vertical component data available!, '
+              'Skipping station!')
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
-        msg = "Go on picking S onset ...\n" \
-              "##################################################\n" \
-              "Working on S onset of station {0}\nFiltering horizontal " \
-              "traces ...".format(edat[0].stats.station)
+        msg = 'Go on picking S onset ...\n' \
+              '##################################################\n' \
+              'Working on S onset of station {0}\nFiltering horizontal ' \
+              'traces ...'.format(edat[0].stats.station)
         if verbose: print(msg)
         # determine time window for calculating CF after P onset
         cuttimesh = [round(max([mpickP + sstart, 0])),
