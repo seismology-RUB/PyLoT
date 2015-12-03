@@ -204,7 +204,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             z_copy[0].data = tr_filt.data
             zne = z_copy
             if len(ndat) == 0 or len(edat) == 0:
-                msg = 'One or more horizontal components missing!\nSignal ' \
+                msg = 'One or more horizontal component(s) missing!\nSignal ' \
                       'length only checked on vertical component!\n' \
                       'Decreasing minsiglengh from {0} to ' \
                       '{1}'.format(minsiglength, minsiglength / 2)
@@ -424,6 +424,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                   'SNR: {1}\nGo on with refined picking ...\n' \
                   'autopickstation: re-filtering horizontal traces ' \
                   '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
+            if verbose: print(msg)
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
             cuttimesh2 = [round(aicarhpick.getpick() - Srecalcwin),
@@ -774,7 +775,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
     # for P phase
     phase = 'P'
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
-                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
+                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
+                   'w0': None, 'fc': None, 'Mo': None, 'Mw': None}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
