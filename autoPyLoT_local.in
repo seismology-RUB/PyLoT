@@ -6,8 +6,8 @@
 #main settings#
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
-2013.02_Insheim                     #database#     %name of data base
-e0019.048.13                        #eventID#      %event ID for single event processing
+2015.09_Insheim                     #database#     %name of data base
+                                    #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#%choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
@@ -25,8 +25,8 @@ AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
                                                    %(returns 'eventID_outpatter')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #parameters for seismic moment estimation#
-3000                                #vp#           %average P-wave velocity
-2600                                #rho#          %rock density [kg/m^3]
+3530                                #vp#           %average P-wave velocity
+2500                                #rho#          %average rock density [kg/m^3]
 300                                 #Qp#           %quality factor for P waves
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
