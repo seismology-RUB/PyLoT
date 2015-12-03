@@ -4,6 +4,9 @@ import numpy as np
 def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'abs', inputfileref = 'vgridsref.in'):
     '''
     Generate a vtk-file readable by e.g. paraview from FMTOMO output vgrids.in
+
+    :param: absOrRel, can be "abs" or "rel" for absolute or relative velocities. if "rel" inputfileref must be given
+    :type: str
     '''
     def getDistance(angle):
         PI = np.pi
@@ -136,7 +139,10 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
 
 def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
     '''
-    Writes VTK file(s) for FMTOMO rays from rays.dat
+    Writes VTK file(s) for FMTOMO rays from rays.dat. There is one file created for each ray.
+
+    :param: fdirout, output directory, must exist before
+    :type: str
 
     :param: nthPoint, plot every nth point of the ray
     :type: integer
