@@ -106,6 +106,9 @@ class regions(object):
             self.printOutput('Disconnected polygon selection')
 
     def addTextfield(self, xpos = 0, ypos = 0.95, width = 1, height = 0.03):
+        '''
+        Adds an ax for text output to the plot.
+        '''
         self.axtext = self.ax.figure.add_axes([xpos,
          ypos,
          width,
