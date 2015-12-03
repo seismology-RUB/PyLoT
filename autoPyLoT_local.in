@@ -25,8 +25,8 @@ AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
                                                    %(returns 'eventID_outpatter')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #parameters for seismic moment estimation#
-3000                                #vp#           %average P-wave velocity
-2600                                #rho#          %rock density [kg/m^3]
+3530                                #vp#           %average P-wave velocity
+2500                                #rho#          %average rock density [kg/m^3]
 300                                 #Qp#           %quality factor for P waves
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
