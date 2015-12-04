@@ -23,7 +23,7 @@ class Magnitude(object):
     '''
 
     def __init__(self, wfstream, To, pwin, iplot, NLLocfile=None, \
-                 picks=None, rho=None, vp=None, invdir=None):
+                 picks=None, rho=None, vp=None, Qp=None, invdir=None):
         '''
         :param: wfstream
         :type: `~obspy.core.stream.Stream
@@ -66,6 +66,7 @@ class Magnitude(object):
         self.setrho(rho)
         self.setpicks(picks)
         self.setvp(vp)
+        self.setQp(Qp)
         self.setinvdir(invdir)
         self.calcwapp()
         self.calcsourcespec()
@@ -113,6 +114,12 @@ class Magnitude(object):
 
     def getvp(self):
         return self.vp
+
+    def setQp(self, Qp):
+        self.Qp = Qp
+  
+    def getQp(self):
+        return self.Qp
 
     def setpicks(self, picks):
         self.picks = picks
@@ -233,7 +240,8 @@ class M0Mw(Magnitude):
                  # call subfunction to estimate source spectrum
                  # and to derive w0 and fc 
                  [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                             self.getinvdir(), az, inc, self.getiplot())
+                             self.getinvdir(), az, inc, self.getQp(), \
+                             self.getiplot())
 
                  if w0 is not None:
                      # call subfunction to calculate Mo and Mw
@@ -278,7 +286,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
 
         
 
-def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, iplot):
+def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -287,6 +295,13 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, iplot):
     into ray-coordinate system ZNE => LQT!
     '''
     print ("Calculating source spectrum ....")
+
+    # get Q value
+    qu = Qp.split('f**')
+    # constant Q
+    Q = int(qu[0])
+    # A, i.e. power of frequency
+    A = float(qu[1])
 
     fc = None
     w0 = None
@@ -392,24 +407,26 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, iplot):
                 fi = np.where((f >= 1) & (f < 100))
                 F = f[fi]
                 YY = Y[fi]
+                # correction for attenuation 
+                YYcor = YY.real*Q**A
                 # get plateau (DC value) and corner frequency
                 # initial guess of plateau
-                w0in = np.mean(YY[0:100])
+                w0in = np.mean(YYcor[0:100])
                 # initial guess of corner frequency
                 # where spectral level reached 50% of flat level
-                iin = np.where(YY >= 0.5 * w0in)
+                iin = np.where(YYcor >= 0.5 * w0in)
                 Fcin = F[iin[0][np.size(iin) - 1]]
 
                 # use of implicit scipy otimization function
                 fit = synthsourcespec(F, w0in, Fcin)
-                [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [w0in, Fcin])
+                [optspecfit, pcov] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
                 w01 = optspecfit[0]
                 fc1 = optspecfit[1]
                 print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
                        "Determined corner frequency: %f Hz" % (w01, fc1))
         
                 # use of conventional fitting 
-                [w02, fc2] = fitSourceModel(F, YY.real, Fcin, iplot)
+                [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot)
  
                 # get w0 and fc as median 
                 w0 = np.median([w01, w02])
@@ -440,10 +457,15 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, iplot):
 
             if plotflag == 1:
                 plt.subplot(2,1,2)
-                plt.loglog(f, Y.real, 'k')
-                plt.loglog(F, YY.real)
-                plt.loglog(F, fit, 'g')
+                p1, = plt.loglog(f, Y.real, 'k')
+                p2, = plt.loglog(F, YY.real)
+                p3, = plt.loglog(F, YYcor, 'r')
+                p4, = plt.loglog(F, fit, 'g')
                 plt.loglog([fc, fc], [w0/100, w0], 'g') 
+                plt.legend([p1, p2, p3, p4], ['Raw Spectrum', \
+                                              'Used Raw Spectrum', \
+                                              'Q-Corrected Spectrum', \
+                                              'Fit to Spectrum'])
                 plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
                            % (w0, fc))
                 plt.xlabel('Frequency [Hz]')
