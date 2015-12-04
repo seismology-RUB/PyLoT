@@ -142,7 +142,8 @@ def autoPyLoT(inputfile):
                             # calculating seismic moment Mo and moment magnitude Mw
                             finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                           nllocfile, picks, parameter.getParam('rho'), \
-                                          parameter.getParam('vp'), parameter.getParam('invdir'))
+                                          parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                          parameter.getParam('invdir'))
                         else:
                             print("autoPyLoT: No NLLoc-location file available!")
                             print("No source parameter estimation possible!")
@@ -183,7 +184,8 @@ def autoPyLoT(inputfile):
                             # calculating seismic moment Mo and moment magnitude Mw
                             finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                           nllocfile, picks, parameter.getParam('rho'), \
-                                          parameter.getParam('vp'), parameter.getParam('invdir'))
+                                          parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                          parameter.getParam('invdir'))
                             # get network moment magntiude
                             netMw = []
                             for key in finalpicks.getpicdic(): 
@@ -253,7 +255,8 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                       nllocfile, picks, parameter.getParam('rho'), \
-                                      parameter.getParam('vp'), parameter.getParam('invdir'))
+                                      parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                      parameter.getParam('invdir'))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -294,7 +297,8 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                       nllocfile, picks, parameter.getParam('rho'), \
-                                      parameter.getParam('vp'), parameter.getParam('invdir'))
+                                      parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                      parameter.getParam('invdir'))
                         # get network moment magntiude
                         netMw = []
                         for key in finalpicks.getpicdic(): 
