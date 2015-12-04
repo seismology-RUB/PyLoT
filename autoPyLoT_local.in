@@ -27,14 +27,13 @@ AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
 #parameters for seismic moment estimation#
 3530                                #vp#           %average P-wave velocity
 2500                                #rho#          %average rock density [kg/m^3]
-300                                 #Qp#           %quality factor for P waves
+300f**0.8                           #Qp#           %quality factor for P waves (Qp*f^a)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
 6                                   #pmin#         %minimum required P picks for location
 4                                   #p0min#        %minimum required P picks for location if at least
                                                    %3 excellent P picks are found
 2                                   #smin#         %minimum required S picks for location
-/home/ludger/bin/run_HYPOSAT4autoPILOT.csh #cshellp# %path and name of c-shell script to run location routine
 7.6 8.5                             #blon#         %longitude bounding for location map
 49 49.4                             #blat#         %lattitude bounding for location map
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
