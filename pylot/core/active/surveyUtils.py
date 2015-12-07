@@ -41,7 +41,7 @@ def plotFittedSNR(dists, snrthresholds, snrs):
     import matplotlib.pyplot as plt
     plt.interactive(True)
     fig = plt.figure()
-    plt.plot(dists, snrs, '.', markersize = 0.5, label = 'SNR values')
+    plt.plot(dists, snrs, '.', markersize = 1.0, label = 'SNR values')
     plt.plot(dists, snrthresholds, 'r.', markersize = 1, label = 'Fitted threshold')
     plt.xlabel('Distance[m]')
     plt.ylabel('SNR')
@@ -56,12 +56,12 @@ def setFittedSNR(shot_dict, shiftdist = 30, shiftSNR = 100, p1 = 0.004, p2 = -0.
         for traceID in shot.getTraceIDlist(): ### IMPROVE
             dist = shot.getDistance(traceID) + shiftdist
             snrthreshold = (1/(fit_fn(dist)**2)) - shiftSNR * np.exp(-0.05 * dist)
-            if snrthreshold <= 1:
+            if snrthreshold < minSNR:
                 print('WARNING: SNR threshold %s lower %s. Set SNR threshold to %s.'
                       %(snrthreshold, minSNR, minSNR))
                 shot.setSNRthreshold(traceID, minSNR)
-                break
-            shot.setSNRthreshold(traceID, snrthreshold)
+            else:
+                shot.setSNRthreshold(traceID, snrthreshold)
     print "setFittedSNR: Finished setting of fitted SNR-threshold"
 
 
