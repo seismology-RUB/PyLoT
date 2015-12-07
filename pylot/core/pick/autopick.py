@@ -204,7 +204,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             z_copy[0].data = tr_filt.data
             zne = z_copy
             if len(ndat) == 0 or len(edat) == 0:
-                msg = 'One or more horizontal components missing!\nSignal ' \
+                msg = 'One or more horizontal component(s) missing!\nSignal ' \
                       'length only checked on vertical component!\n' \
                       'Decreasing minsiglengh from {0} to ' \
                       '{1}'.format(minsiglength, minsiglength / 2)
@@ -335,15 +335,15 @@ def autopickstation(wfstream, pickparam, verbose=False):
             Sflag = 0
 
     else:
-        print("autopickstation: No vertical component data available!, "
-              "Skipping station!")
+        print('autopickstation: No vertical component data available!, '
+              'Skipping station!')
 
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
-        msg = "Go on picking S onset ...\n" \
-              "##################################################\n" \
-              "Working on S onset of station {0}\nFiltering horizontal " \
-              "traces ...".format(edat[0].stats.station)
+        msg = 'Go on picking S onset ...\n' \
+              '##################################################\n' \
+              'Working on S onset of station {0}\nFiltering horizontal ' \
+              'traces ...'.format(edat[0].stats.station)
         if verbose: print(msg)
         # determine time window for calculating CF after P onset
         cuttimesh = [round(max([mpickP + sstart, 0])),
@@ -424,6 +424,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                   'SNR: {1}\nGo on with refined picking ...\n' \
                   'autopickstation: re-filtering horizontal traces ' \
                   '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
+            if verbose: print(msg)
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
             cuttimesh2 = [round(aicarhpick.getpick() - Srecalcwin),
@@ -774,7 +775,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
     # for P phase
     phase = 'P'
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
-                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM}
+                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
+                   'w0': None, 'fc': None, 'Mo': None, 'Mw': None}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker

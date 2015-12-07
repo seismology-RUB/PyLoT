@@ -6,6 +6,7 @@ import argparse
 import glob
 import subprocess
 import string
+import numpy as np
 from obspy.core import read, UTCDateTime
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import AutoPickParameter
@@ -141,7 +142,8 @@ def autoPyLoT(inputfile):
                             # calculating seismic moment Mo and moment magnitude Mw
                             finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                           nllocfile, picks, parameter.getParam('rho'), \
-                                          parameter.getParam('vp'), parameter.getParam('invdir'))
+                                          parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                          parameter.getParam('invdir'))
                         else:
                             print("autoPyLoT: No NLLoc-location file available!")
                             print("No source parameter estimation possible!")
@@ -161,6 +163,8 @@ def autoPyLoT(inputfile):
                                 picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                                 # write phases to NLLoc-phase file
                                 picksExport(picks, 'NLLoc', phasefile)
+                                # remove actual NLLoc-location file to keep only the last
+                                os.remove(nllocfile)
                                 # locate the event
                                 locate(nlloccall, ctrfile)
                                 print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
@@ -180,14 +184,25 @@ def autoPyLoT(inputfile):
                             # calculating seismic moment Mo and moment magnitude Mw
                             finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                           nllocfile, picks, parameter.getParam('rho'), \
-                                          parameter.getParam('vp'), parameter.getParam('invdir'))
+                                          parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                          parameter.getParam('invdir'))
+                            # get network moment magntiude
+                            netMw = []
+                            for key in finalpicks.getpicdic(): 
+                                 if finalpicks.getpicdic()[key]['P']['Mw'] is not None:
+                                     netMw.append(finalpicks.getpicdic()[key]['P']['Mw'])
+                            netMw = np.median(netMw)
+                            print("Network moment magnitude: %4.1f" % netMw)
                         else:
                             print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                 ##########################################################
                 # write phase files for various location routines
                 # HYPO71
-                hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, evID)
-                writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
+                if finalpicks.getpicdic() is not None:
+                    writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                else:
+                    writephases(picks, 'HYPO71', hypo71file)
 
                 endsplash = '''------------------------------------------\n'
                                -----Finished event %s!-----\n' 
@@ -240,7 +255,8 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                       nllocfile, picks, parameter.getParam('rho'), \
-                                      parameter.getParam('vp'), parameter.getParam('invdir'))
+                                      parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                      parameter.getParam('invdir'))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -260,6 +276,8 @@ def autoPyLoT(inputfile):
                             picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                             # write phases to NLLoc-phase file
                             picksExport(picks, 'NLLoc', phasefile)
+                            # remove actual NLLoc-location file to keep only the last
+                            os.remove(nllocfile)
                             # locate the event
                             locate(nlloccall, ctrfile)
                             print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
@@ -279,14 +297,25 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         finalpicks = M0Mw(wfdat, None, None,  parameter.getParam('iplot'), \
                                       nllocfile, picks, parameter.getParam('rho'), \
-                                      parameter.getParam('vp'), parameter.getParam('invdir'))
+                                      parameter.getParam('vp'), parameter.getParam('Qp'), \
+                                      parameter.getParam('invdir'))
+                        # get network moment magntiude
+                        netMw = []
+                        for key in finalpicks.getpicdic(): 
+                             if finalpicks.getpicdic()[key]['P']['Mw'] is not None:
+                                 netMw.append(finalpicks.getpicdic()[key]['P']['Mw'])
+                        netMw = np.median(netMw)
+                        print("Network moment magnitude: %4.1f" % netMw)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
-            writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+            if finalpicks.getpicdic() is not None:
+                writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+            else:
+                writephases(picks, 'HYPO71', hypo71file)
            
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n' 

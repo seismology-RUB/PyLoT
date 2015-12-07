@@ -24,6 +24,7 @@ https://www.iconfinder.com/iconsets/flavour
 """
 
 import os, sys
+from os.path import expanduser
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -670,7 +671,8 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
-        autopick_parameter = AutoPickParameter('autoPyLoT_local.in')
+        home = expanduser("~")
+        autopick_parameter = AutoPickParameter('%s/.pylot/autoPyLoT_local.in' % home)
         self.addListItem(str(autopick_parameter))
 
         # Create the worker thread and run it
