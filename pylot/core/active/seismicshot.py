@@ -616,6 +616,8 @@ class SeismicShot(object):
 
         def onclick(event):
             self.setPick(traceID, event.xdata)
+            if self.getSNR(traceID)[0] > 1:
+                self.setEarllatepick(traceID)
             self._drawStream(traceID, refresh = True)
             self._drawCFs(traceID, folm, refresh = True)
             fig.canvas.mpl_disconnect(self.traces4plot[traceID]['cid'])
