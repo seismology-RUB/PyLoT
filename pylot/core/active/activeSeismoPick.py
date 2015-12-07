@@ -9,6 +9,11 @@ class Survey(object):
         '''
         The Survey Class contains all shots [type: seismicshot] of a survey
         as well as the aquisition geometry and the topography.
+
+        It contains methods to pick all traces of all shots.
+
+        It contains several methods e.g. for plotting of all picks (and postprocessing),
+        creating plots for all shots.
         '''
         self.data = {}
         self._topography = None
@@ -82,6 +87,9 @@ class Survey(object):
             outfile.close()
 
     def _updateShots(self):
+        '''
+        Removes traces that do not exist in the dataset for any reason.
+        '''
         filename = 'updateShots.out'
         count = 0; countTraces = 0
         for shot in self.data.values():
@@ -148,6 +156,24 @@ class Survey(object):
         print('Picked %s / %s traces (%d %%)\n'
               %(pickedtraces, ntraces, float(pickedtraces)/float(ntraces)*100.))
 
+    def cleanBySPE(self, maxSPE):
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getFlag(traceID) == 1:
+                    if shot.getSymmetricPickError(traceID) > maxSPE:
+                        shot.setFlag(traceID, 0)
+
+    def plotSPE(self):
+        import matplotlib.pyplot as plt
+        spe = []
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getFlag(traceID) == 1:
+                    spe.append(shot.getSymmetricPickError(traceID))
+        spe.sort()
+        plt.plot(spe, label = 'SPE')
+        plt.ylabel('Symmetric Pickerror')
+        plt.legend()
 
     def recover(self):
         '''
