@@ -60,7 +60,7 @@ class regions(object):
                  shot.getPickIncludeRemoved(traceID),
                  shot.getShotnumber(),
                  traceID,
-                 shot.getFlag(traceID)))
+                 shot.getPickFlag(traceID)))
 
         allpicks.sort()
         self._allpicks = allpicks
@@ -297,7 +297,7 @@ class regions(object):
         for shotnumber in shots.keys():
             shot = self.shot_dict[shotnumber]
             for traceID in shots[shotnumber]:
-                if shot.getFlag(traceID) is not 0:
+                if shot.getPickFlag(traceID) is not 0:
                     pickX = shot.getDistance(traceID)
                     pickY = shot.getPick(traceID)
                     if insidePoly(x, y, pickX, pickY):
@@ -341,7 +341,7 @@ class regions(object):
         if type(shot) == int:
             shot = self.survey.getShotDict()[shot]
 
-        if shot.getFlag(traceID) is 0:
+        if shot.getPickFlag(traceID) is 0:
             return
 
         self.ax.scatter(shot.getDistance(traceID), shot.getPick(traceID), s = 50, marker = 'o', facecolors = 'none', edgecolors = 'm', alpha = 1)
@@ -474,7 +474,7 @@ class regions(object):
             shot = self.survey.getShotDict()[shotnumber]
 
         for traceID in shot.getTraceIDlist():
-            if shot.getFlag(traceID) is not 0:
+            if shot.getPickFlag(traceID) is not 0:
                 self.highlightPick(shot, traceID, annotations)
 
         self.drawFigure()
