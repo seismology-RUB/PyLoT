@@ -317,6 +317,10 @@ class SeismicShot(object):
                                                      self.getPickIncludeRemoved(traceID),
                                                      stealthMode = True)
 
+        if self.pick[traceID]['epp'] < 0:
+            self.pick[traceID]['epp']
+            #print('setEarllatepick: Set epp to 0 because it was < 0')
+
         # TEST OF 1/2 PICKERROR
         # self.pick[traceID]['spe'] *= 0.5
         # TEST OF 1/2 PICKERROR
@@ -448,25 +452,46 @@ class SeismicShot(object):
         if len(traceID_list) > 0:
             return traceID_list
 
-    def setManualPicks(self, traceID, picklist): ########## picklist momentan nicht allgemein, nur testweise benutzt ##########
-        '''
-        Sets the manual picks for a receiver with the ID == traceID for comparison.
+    # def setManualPicks(self, traceID, picklist): ########## picklist momentan nicht allgemein, nur testweise benutzt ##########
+    #     '''
+    #     Sets the manual picks for a receiver with the ID == traceID for comparison.
 
-        :param: traceID
-        :type: int
+    #     :param: traceID
+    #     :type: int
 
-        :param: picklist, list containing the manual picks (mostlikely, earliest, latest).
-        :type: list
-        '''
-        picks = picklist[traceID - 1].split()
-        mostlikely = float(picks[1])
-        earliest = float(picks[2])
-        latest = float(picks[3])
+    #     :param: picklist, list containing the manual picks (mostlikely, earliest, latest).
+    #     :type: list
+    #     '''
+    #     picks = picklist[traceID - 1].split()
+    #     mostlikely = float(picks[1])
+    #     earliest = float(picks[2])
+    #     latest = float(picks[3])
 
-        if not self.manualpicks.has_key(traceID):
-            self.manualpicks[traceID] = (mostlikely, earliest, latest)
+    #     if not self.manualpicks.has_key(traceID):
+    #         self.manualpicks[traceID] = (mostlikely, earliest, latest)
         #else:
         #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID)
+
+    def setManualPicksFromFile(self, directory = 'picks'):
+        '''
+        Read manual picks from *.pck file.
+        The * must be identical with the shotnumber.
+        '''
+        if directory[-1] == '/':
+            filename = directory + str(self.getShotnumber()) + '.pck'
+        else:
+            filename = directory + '/' + str(self.getShotnumber()) + '.pck'
+        infile = open(filename, 'r')
+        mpicks = infile.readlines()
+        for line in mpicks:
+            if line.split()[0] == []:
+                continue
+            traceID, mpp, epp, lpp = line.split()
+            traceID = int(traceID)
+            if traceID in self.pick.keys():
+                self.manualpicks[traceID] = {'mpp': float(mpp),
+                                             'epp': float(epp),
+                                             'lpp': float(lpp)}
 
     def setPick(self, traceID, pick): ########## siehe Kommentar ##########
         if not traceID in self.pick.keys():
