@@ -28,8 +28,8 @@ class SeismicShot(object):
         self.recCoordlist = None
         self.srcCoordlist = None
         self.traceIDs = None
-        self.pick = {}
-        self.pickwindow= {}
+        self.picks = {}
+        self.pwindow= {}
         self.manualpicks= {}
         self.snr = {}
         self.snrthreshold = {}
@@ -133,24 +133,34 @@ class SeismicShot(object):
     def getSourcefile(self):
         return self.paras['sourcefile']
 
+    def getManualPick(self, traceID):
+        if not self.getManualPickFlag(traceID) == 0:
+            return self.manualpicks[traceID]['mpp']
+
+    def getManualEarliest(self, traceID):
+        return self.manualpicks[traceID]['epp']
+
+    def getManualLatest(self, traceID):
+        return self.manualpicks[traceID]['lpp']
+
     def getPick(self, traceID, returnRemoved = False):
-        if not self.getFlag(traceID) == 0:
-            return self.pick[traceID]['mpp']
+        if not self.getPickFlag(traceID) == 0:
+            return self.picks[traceID]['mpp']
         if returnRemoved == True:
             #print('getPick: Returned removed pick for shot %d, traceID %d' %(self.getShotnumber(), traceID))
-            return self.pick[traceID]['mpp']
+            return self.picks[traceID]['mpp']
 
     def getPickIncludeRemoved(self, traceID):
         return self.getPick(traceID, returnRemoved = True)
 
     def getEarliest(self, traceID):
-        return self.pick[traceID]['epp']
+        return self.picks[traceID]['epp']
 
     def getLatest(self, traceID):
-        return self.pick[traceID]['lpp']
+        return self.picks[traceID]['lpp']
 
     def getSymmetricPickError(self, traceID):
-        pickerror = self.pick[traceID]['spe']
+        pickerror = self.picks[traceID]['spe']
         if np.isnan(pickerror) == True:
             print "SPE is NaN for shot %s, traceID %s"%(self.getShotnumber(), traceID)
         return pickerror
@@ -182,11 +192,11 @@ class SeismicShot(object):
 
     def getPickwindow(self, traceID):
         try:
-            self.pickwindow[traceID]
+            self.pwindow[traceID]
         except KeyError as e:
             print('no pickwindow for trace %s, set to %s' % (traceID, self.getCut()))
             self.setPickwindow(traceID, self.getCut())
-        return self.pickwindow[traceID]
+        return self.pwindow[traceID]
 
     def getSNR(self, traceID):
         return self.snr[traceID]
@@ -310,19 +320,19 @@ class SeismicShot(object):
         tsignal = self.getTsignal()
         tnoise = self.getPickIncludeRemoved(traceID) - tgap
 
-        (self.pick[traceID]['epp'],
-         self.pick[traceID]['lpp'],
-         self.pick[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
+        (self.picks[traceID]['epp'],
+         self.picks[traceID]['lpp'],
+         self.picks[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
                                                      nfac, (tnoise, tgap, tsignal),
                                                      self.getPickIncludeRemoved(traceID),
                                                      stealthMode = True)
 
-        if self.pick[traceID]['epp'] < 0:
-            self.pick[traceID]['epp']
+        if self.picks[traceID]['epp'] < 0:
+            self.picks[traceID]['epp']
             #print('setEarllatepick: Set epp to 0 because it was < 0')
 
         # TEST OF 1/2 PICKERROR
-        # self.pick[traceID]['spe'] *= 0.5
+        # self.picks[traceID]['spe'] *= 0.5
         # TEST OF 1/2 PICKERROR
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
@@ -488,18 +498,23 @@ class SeismicShot(object):
                 continue
             traceID, mpp, epp, lpp = line.split()
             traceID = int(traceID)
-            if traceID in self.pick.keys():
+            if traceID in self.picks.keys():
                 self.manualpicks[traceID] = {'mpp': float(mpp),
                                              'epp': float(epp),
                                              'lpp': float(lpp)}
+            if float(mpp) <= 0:
+                self.setManualPickFlag(traceID, 0)
+            else:
+                self.setManualPickFlag(traceID, 1)
+
 
     def setPick(self, traceID, pick): ########## siehe Kommentar ##########
-        if not traceID in self.pick.keys():
-            self.pick[traceID] = {}
-        self.pick[traceID]['mpp'] = pick
-        self.pick[traceID]['flag'] = 1
+        if not traceID in self.picks.keys():
+            self.picks[traceID] = {}
+        self.picks[traceID]['mpp'] = pick
+        self.picks[traceID]['flag'] = 1
         # ++++++++++++++ Block raus genommen, da Error beim 2ten Mal picken! (Ueberschreiben von erstem Pick!)
-        # if not self.pick.has_key(traceID):
+        # if not self.picks.has_key(traceID):
         #     self.getPick(traceID) = picks
         # else:
         #     raise KeyError('pick to be set more than once for traceID %s' % traceID)
@@ -508,17 +523,24 @@ class SeismicShot(object):
         #        parlist = open(parfile,'r').readlines()
 
     def removePick(self, traceID):
-        self.setFlag(traceID, 0)
+        self.setPickFlag(traceID, 0)
 
-    def setFlag(self, traceID, flag):
+    def setPickFlag(self, traceID, flag):
         'Set flag = 0 if pick is invalid, else flag = 1'
-        self.pick[traceID]['flag'] = flag
+        self.picks[traceID]['flag'] = flag
 
-    def getFlag(self, traceID):
-        return self.pick[traceID]['flag']
+    def getPickFlag(self, traceID):
+        return self.picks[traceID]['flag']
+
+    def setManualPickFlag(self, traceID, flag):
+        'Set flag = 0 if pick is invalid, else flag = 1'
+        self.manualpicks[traceID]['flag'] = flag
+
+    def getManualPickFlag(self, traceID):
+        return self.manualpicks[traceID]['flag']
 
     def setPickwindow(self, traceID, pickwindow):
-        self.pickwindow[traceID] = pickwindow
+        self.pwindow[traceID] = pickwindow
 
     def setSNR(self, traceID):  ########## FORCED HOS PICK ##########
         '''
@@ -547,7 +569,7 @@ class SeismicShot(object):
         '''
         distancearray = []
 
-        for traceID in self.pick.keys():
+        for traceID in self.picks.keys():
             if self.getRecLoc(traceID) > self.getSrcLoc(traceID):
                 distancearray.append(self.getDistance(traceID))
             elif self.getRecLoc(traceID) < self.getSrcLoc(traceID):
@@ -571,7 +593,7 @@ class SeismicShot(object):
     #         dist_medarray = []
 
     #     i = 1
-    #     for traceID in self.pick.keys():
+    #     for traceID in self.picks.keys():
     #         aictimearray.append(self.getPick(traceID)) ###### HIER NICHT MEHR aic = [0] oder hos = [1]
     #         hostimearray.append(self.getPick(traceID))
     #         if dist_med is not 0: dist_medarray.append(dist_med[self.getDistance(traceID)])
@@ -611,9 +633,9 @@ class SeismicShot(object):
     #     pickwindowarray_upperb = []
 
     #     i = 1
-    #     for traceID in self.pickwindow.keys():
-    #         pickwindowarray_lowerb.append(self.pickwindow[traceID][0])
-    #         pickwindowarray_upperb.append(self.pickwindow[traceID][1])
+    #     for traceID in self.pwindow.keys():
+    #         pickwindowarray_lowerb.append(self.pwindow[traceID][0])
+    #         pickwindowarray_upperb.append(self.pwindow[traceID][1])
     #         i += 1
 
     #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_lowerb, ':k')
@@ -775,8 +797,8 @@ class SeismicShot(object):
         x = []
         y = []
         z = []
-        for traceID in self.pick.keys():
-            if self.getFlag(traceID) != 0:
+        for traceID in self.picks.keys():
+            if self.getPickFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
@@ -832,12 +854,12 @@ class SeismicShot(object):
         y = []; ycut = []
         z = []; zcut = []
 
-        for traceID in self.pick.keys():
-            if self.getFlag(traceID) != 0:
+        for traceID in self.picks.keys():
+            if self.getPickFlag(traceID) != 0:
                 x.append(self.getRecLoc(traceID)[0])
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
-            if self.getFlag(traceID) == 0 and self.getPickIncludeRemoved(traceID) is not None:
+            if self.getPickFlag(traceID) == 0 and self.getPickIncludeRemoved(traceID) is not None:
                 xcut.append(self.getRecLoc(traceID)[0])
                 ycut.append(self.getRecLoc(traceID)[1])
                 zcut.append(self.getPickIncludeRemoved(traceID))
@@ -878,7 +900,7 @@ class SeismicShot(object):
 
         if annotations == True:
             for traceID in self.getTraceIDlist():
-                if self.getFlag(traceID) is not 0:
+                if self.getPickFlag(traceID) is not 0:
                     ax.annotate(' %s' %traceID , xy = (self.getRecLoc(traceID)[0], self.getRecLoc(traceID)[1]),
                                 fontsize = 'x-small', color = 'k')
                 else:
