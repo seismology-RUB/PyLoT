@@ -70,6 +70,14 @@ class Survey(object):
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
                %(cutwindow, tmovwind, tsignal, tgap))
 
+    def setManualPicksFromFiles(self, directory = 'picks'):
+        '''
+        Read manual picks from *.pck files in a directory.
+        The * must be identical with the shotnumber.
+        '''
+        for shot in self.data.values():
+            shot.setManualPicksFromFile(directory)
+
     def _removeAllEmptyTraces(self):
         filename = 'removeEmptyTraces.out'
         count = 0
@@ -159,16 +167,16 @@ class Survey(object):
     def cleanBySPE(self, maxSPE):
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getFlag(traceID) == 1:
+                if shot.getPickFlag(traceID) == 1:
                     if shot.getSymmetricPickError(traceID) > maxSPE:
-                        shot.setFlag(traceID, 0)
+                        shot.setPickFlag(traceID, 0)
 
     def plotSPE(self):
         import matplotlib.pyplot as plt
         spe = []
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getFlag(traceID) == 1:
+                if shot.getPickFlag(traceID) == 1:
                     spe.append(shot.getSymmetricPickError(traceID))
         spe.sort()
         plt.plot(spe, label = 'SPE')
@@ -183,8 +191,8 @@ class Survey(object):
         numpicks = 0
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getFlag(traceID) == 0:
-                    shot.setFlag(traceID, 1)
+                if shot.getPickFlag(traceID) == 0:
+                    shot.setPickFlag(traceID, 1)
                     if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
                         shot.removePick(traceID)
                     else:
@@ -248,7 +256,7 @@ class Survey(object):
             for traceID in shot.getTraceIDlist():
                 snrlist.append(shot.getSNR(traceID)[0])
                 dist.append(shot.getDistance(traceID))
-                if shot.getFlag(traceID) is not 0:
+                if shot.getPickFlag(traceID) is not 0:
                     pickedTraces += 1
             info_dict[shot.getShotnumber()] = {'numtraces': numtraces,
                                                'picked traces': [pickedTraces,
@@ -289,7 +297,7 @@ class Survey(object):
             traceIDlist.sort()
             ttfile.writelines(str(self.countPickedTraces(shot)) + '\n')
             for traceID in traceIDlist:
-                if shot.getFlag(traceID) is not 0:
+                if shot.getPickFlag(traceID) is not 0:
                     pick = shot.getPick(traceID) * fmtomo_factor
                     delta = shot.getSymmetricPickError(traceID) * fmtomo_factor
                     (x, y, z) = shot.getRecLoc(traceID)
@@ -306,7 +314,7 @@ class Survey(object):
     def countPickedTraces(self, shot):
         count = 0
         for traceID in shot.getTraceIDlist():
-            if shot.getFlag(traceID) is not 0:
+            if shot.getPickFlag(traceID) is not 0:
                 count += 1
         return count
 
@@ -314,7 +322,7 @@ class Survey(object):
         count = 0
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getFlag(traceID) is not 0:
+                if shot.getPickFlag(traceID) is not 0:
                     count += 1
         return count
 
@@ -401,7 +409,7 @@ class Survey(object):
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if plotRemoved == False:
-                    if shot.getFlag(traceID) is not 0 or plotRemoved == True:
+                    if shot.getPickFlag(traceID) is not 0 or plotRemoved == True:
                         dist.append(shot.getDistance(traceID))
                         pick.append(shot.getPick(traceID))
                         snrlog.append(math.log10(shot.getSNR(traceID)[0]))
