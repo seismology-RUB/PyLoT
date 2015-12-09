@@ -21,11 +21,16 @@ class Survey(object):
         self._sourcefile = sourcefile
         self._obsdir = path
         self._generateSurvey()
+        self._initiateFilenames()
         if useDefaultParas == True:
             self.setParametersForShots()
         self._removeAllEmptyTraces()
         self._updateShots()
-        self.setArtificialPick(0, 0)
+
+    def _initiateFilenames(self):
+        for shot in self.data.values():
+            shot.setRecfile(self.getPath() + self.getReceiverfile())
+            shot.setSourcefile(self.getPath() + self.getSourcefile())
 
     def _generateSurvey(self):
         from obspy.core import read
@@ -63,8 +68,6 @@ class Survey(object):
             shot.setTmovwind(tmovwind)
             shot.setTsignal(tsignal)
             shot.setTgap(tgap)
-            shot.setRecfile(self.getPath() + self.getReceiverfile())
-            shot.setSourcefile(self.getPath() + self.getSourcefile())
             shot.setOrder(order = 4)
         print ("setParametersForShots: Parameters set to:\n"
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
