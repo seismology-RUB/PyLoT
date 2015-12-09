@@ -565,63 +565,67 @@ class SeismicShot(object):
 
     def getDistArray4ttcPlot(self):  ########## nur fuer 2D benoetigt ##########
         '''
-        Function to create a distance array for the plots. 2D only!
+        Function to create a distance array for the plots. 2D only! X DIRECTION!!
         '''
         distancearray = []
 
         for traceID in self.picks.keys():
-            if self.getRecLoc(traceID) > self.getSrcLoc(traceID):
+            if self.getRecLoc(traceID)[0] > self.getSrcLoc()[0]:
                 distancearray.append(self.getDistance(traceID))
-            elif self.getRecLoc(traceID) < self.getSrcLoc(traceID):
+            elif self.getRecLoc(traceID)[0] <= self.getSrcLoc()[0]:
                 distancearray.append((-1)*self.getDistance(traceID))
 
         return distancearray
 
 
-    # def plot2dttc(self, dist_med = 0):  ########## 2D ##########
-    #     '''
-    #     Function to plot the traveltime curve for automated picks (AIC & HOS) of a shot. 2d only!
+    def plot2dttc(self, ax = None):  ########## 2D ##########
+        '''
+        Function to plot the traveltime curve for automated picks of a shot. 2d only! ATM: X DIRECTION!!
+        '''
+        import matplotlib.pyplot as plt
+        plt.interactive('True')
+        picks = []
 
-    #     :param: dist_med (optional)
-    #     :type: 'dictionary'
-    #     '''
-    #     import matplotlib.pyplot as plt
-    #     plt.interactive('True')
-    #     aictimearray = []
-    #     hostimearray = []
-    #     if dist_med is not 0:
-    #         dist_medarray = []
+        for traceID in self.picks.keys():
+            picks.append(self.getPick(traceID))
 
-    #     i = 1
-    #     for traceID in self.picks.keys():
-    #         aictimearray.append(self.getPick(traceID)) ###### HIER NICHT MEHR aic = [0] oder hos = [1]
-    #         hostimearray.append(self.getPick(traceID))
-    #         if dist_med is not 0: dist_medarray.append(dist_med[self.getDistance(traceID)])
-    #         i += 1
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
 
-    #     plt.plot(self.getDistArray4ttcPlot(), aictimearray, 'r', label = "AIC")
-    #     plt.plot(self.getDistArray4ttcPlot(), hostimearray, 'y', label = "HOS")
-    #     if dist_med is not 0: plt.plot(self.getDistArray4ttcPlot(), dist_medarray, ':b')
-    #     plt.title(self.shotname)
+        # shotnumbers = [shotnumbers for (shotnumbers, shotnames) in sorted(zip(shotnumbers, shotnames))]
+        plotarray = sorted(zip(self.getDistArray4ttcPlot(), picks))
+        x = []; y = []
+        for point in plotarray:
+            x.append(point[0])
+            y.append(point[1])
+        ax.plot(x, y,'r', label = "Automatic Picks")
+        plt.title('Shot: %s' %self.getShotnumber())
 
-    # def plotmanualttc(self):  ########## 2D ##########
-    #     '''
-    #     Function to plot the traveltime curve for manual picks of a shot. 2D only!
-    #     '''
-    #     import matplotlib.pyplot as plt
-    #     plt.interactive('True')
-    #     manualpicktimesarray = []
-    #     dist_medarray = []
+    def plotmanual2dttc(self, ax = None):  ########## 2D ##########
+        '''
+        Function to plot the traveltime curve for manual picks of a shot. 2D only!
+        '''
+        import matplotlib.pyplot as plt
+        plt.interactive('True')
+        manualpicktimesarray = []
 
-    #     i = 1
-    #     for traceID in self.manualpicks.keys():
-    #         if self.manualpicks[traceID][0] <= 0:
-    #             manualpicktimesarray.append(None)
-    #         else:
-    #             manualpicktimesarray.append(self.manualpicks[traceID][0])
-    #         i += 1
+        for traceID in self.picks.keys():
+            if not traceID in self.manualpicks.keys() or self.getManualPickFlag(traceID) == 0:
+                manualpicktimesarray.append(None)
+            else:
+                manualpicktimesarray.append(self.getManualPick(traceID))
 
-    #     plt.plot(self.getDistArray4ttcPlot(), manualpicktimesarray, 'b', label = "manual")
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        plotarray = sorted(zip(self.getDistArray4ttcPlot(), manualpicktimesarray))
+        x = []; y = []
+        for point in plotarray:
+            x.append(point[0])
+            y.append(point[1])
+        ax.plot(x, y, 'b', label = "Manual Picks")
 
     # def plotpickwindow(self):   ########## 2D ##########
     #     '''
