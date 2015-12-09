@@ -600,7 +600,8 @@ class SeismicShot(object):
             x.append(point[0])
             y.append(point[1])
         ax.plot(x, y,'r', label = "Automatic Picks")
-        plt.title('Shot: %s' %self.getShotnumber())
+        ax.text(0.5, 0.9, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes
+                , horizontalalignment = 'center')
 
     def plotmanual2dttc(self, ax = None):  ########## 2D ##########
         '''
@@ -660,7 +661,7 @@ class SeismicShot(object):
         ax.plot([tnoise, pick], [noiselevel, noiselevel], 'g:', linewidth = lw, label = 'gap')
         ax.plot([tnoise + tgap, pick + tsignal], [noiselevel * snr, noiselevel * snr], 'b', linewidth = lw, label = 'signal level')
         ax.legend()
-        ax.text(0.05, 0.95, 'SNR: %s' %snr, transform = ax.transAxes)
+        ax.text(0.05, 0.9, 'SNR: %s' %snr, transform = ax.transAxes)
 
     def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
         from matplotlib.widgets import Button
@@ -882,7 +883,8 @@ class SeismicShot(object):
 
         count = 0
         ax.imshow(zgrid, extent = [min(x), max(x), min(y), max(y)], vmin = tmin, vmax = tmax, cmap = cmap, origin = 'lower', alpha = 0.85)
-        plt.text(0.45, 0.9, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes)
+        ax.text(0.5, 0.95, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes
+                , horizontalalignment = 'center')
         sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, cmap = cmap, linewidths = 1.5)
         for xyz in zip(xcut, ycut, zcut):
             x, y, z = xyz
