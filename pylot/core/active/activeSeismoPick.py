@@ -49,38 +49,6 @@ class Survey(object):
         print ("Generated Survey object for %d shots" % len(shotlist))
         print ("Total number of traces: %d \n" %self.countAllTraces())
 
-    def setArtificialPick(self, traceID, pick):
-        '''
-        Sets an artificial pick for a traceID of all shots in the survey object.
-        (This can be used to create a pick with t = 0 at the source origin)
-        '''
-        for shot in self.data.values():
-            shot.setPick(traceID, pick)
-
-    def setParametersForShots(self, cutwindow = (0, 0.2), tmovwind = 0.3, tsignal = 0.03, tgap = 0.0007):
-        if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
-            tsignal == 0.03 and tgap == 0.0007):
-            print ("Warning: Standard values used for "
-                   "setParamters. This might not be clever.")
-        # CHANGE this later. Parameters only needed for survey, not for each shot.
-        for shot in self.data.values():
-            shot.setCut(cutwindow)
-            shot.setTmovwind(tmovwind)
-            shot.setTsignal(tsignal)
-            shot.setTgap(tgap)
-            shot.setOrder(order = 4)
-        print ("setParametersForShots: Parameters set to:\n"
-               "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
-               %(cutwindow, tmovwind, tsignal, tgap))
-
-    def setManualPicksFromFiles(self, directory = 'picks'):
-        '''
-        Read manual picks from *.pck files in a directory.
-        The * must be identical with the shotnumber.
-        '''
-        for shot in self.data.values():
-            shot.setManualPicksFromFile(directory)
-
     def _removeAllEmptyTraces(self):
         filename = 'removeEmptyTraces.out'
         count = 0
@@ -119,6 +87,74 @@ class Survey(object):
             print ("See %s for more information "
                    "on removed traces."%(filename))
             outfile.close()
+
+    def setArtificialPick(self, traceID, pick):
+        '''
+        Sets an artificial pick for a traceID of all shots in the survey object.
+        (This can be used to create a pick with t = 0 at the source origin)
+        '''
+        for shot in self.data.values():
+            shot.setPick(traceID, pick)
+
+    def setParametersForShots(self, cutwindow = (0, 0.2), tmovwind = 0.3, tsignal = 0.03, tgap = 0.0007):
+        if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
+            tsignal == 0.03 and tgap == 0.0007):
+            print ("Warning: Standard values used for "
+                   "setParamters. This might not be clever.")
+        # CHANGE this later. Parameters only needed for survey, not for each shot.
+        for shot in self.data.values():
+            shot.setCut(cutwindow)
+            shot.setTmovwind(tmovwind)
+            shot.setTsignal(tsignal)
+            shot.setTgap(tgap)
+            shot.setOrder(order = 4)
+        print ("setParametersForShots: Parameters set to:\n"
+               "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
+               %(cutwindow, tmovwind, tsignal, tgap))
+
+    def setManualPicksFromFiles(self, directory = 'picks'):
+        '''
+        Read manual picks from *.pck files in a directory.
+        The * must be identical with the shotnumber.
+        '''
+        for shot in self.data.values():
+            shot.setManualPicksFromFile(directory)
+
+    def getDiffsFromManual(self):
+        '''
+        Returns a dictionary with the differences between manual and automatic pick for all shots.
+        '''
+        diffs = {}
+        for shot in self.data.values():
+            if not shot in diffs.keys():
+                diffs[shot] = {}
+            for traceID in shot.getTraceIDlist():
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                    diffs[shot][traceID] = shot.getPick(traceID) - shot.getManualPick(traceID)
+        return diffs
+
+    def plotDiffs(self):
+        import matplotlib.pyplot as plt
+        diffs = []; dists = []; picks = []
+        diffsDic = self.getDiffsFromManual()
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                    dists.append(shot.getDistance(traceID))
+                    picks.append(shot.getManualPick(traceID))
+                    diffs.append(diffsDic[shot][traceID])
+        
+        label = 'Difference to automatic picks [s]'
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        sc = ax.scatter(dists, picks, c = diffs, s=5, edgecolors='none', label = label)
+        cbar = plt.colorbar(sc, fraction=0.05)
+        cbar.set_label(label)
+        ax.set_xlabel('Distance [m]')
+        ax.set_ylabel('Time [s]')
+        ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
+
 
     def pickAllShots(self, windowsize, HosAic = 'hos', vmin = 333, vmax = 5500, folm = 0.6):
         '''
