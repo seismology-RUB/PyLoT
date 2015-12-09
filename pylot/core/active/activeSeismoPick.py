@@ -365,7 +365,7 @@ class Survey(object):
                     count += 1
         return count
 
-    def plotAllShots(self, rows = 3, columns = 4):
+    def plotAllShots(self, rows = 3, columns = 4, mode = '3d'):
         '''
         Plots all shots as Matrices with the color corresponding to the traveltime for each receiver.
         IMPORTANT NOTE: Topography (z - coordinate) is not considered in the diagrams!
@@ -395,7 +395,11 @@ class Survey(object):
                 #+str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
                 #shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
                 ax = fig.add_subplot(3, 4, index)
-                self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True)
+                if mode == '3d':
+                    self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True)
+                elif mode == '2d':
+                    self.getShot(shotnumber).plot2dttc(ax)
+                    self.getShot(shotnumber).plotmanual2dttc(ax)
                 index += 1
             if index > figPerSubplot:
                 fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
