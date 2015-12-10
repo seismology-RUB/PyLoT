@@ -638,6 +638,11 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 plt.legend([p1, p2], ['Data', 'CF1'])
                 plt.title('%s, P Weight=%d, SNR=None, '
                           'SNRdB=None' % (tr_filt.stats.channel, Pweight))
+        else:
+            plt.title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
+                                               tr_filt.stats.channel,
+                                               Pweight))
+            
         plt.yticks([])
         plt.ylim([-1.5, 1.5])
         plt.ylabel('Normalized Counts')
