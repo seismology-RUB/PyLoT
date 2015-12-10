@@ -826,6 +826,9 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
 
          # get corresponding waveform stream
+         msg = '#######################################################\n' \
+               'iteratepicker: Re-picking station {0}'.format(badpicks[i][0])
+         print(msg)
          wf2pick = wf.select(station=badpicks[i][0])
 
          # modify some picking parameters
@@ -836,8 +839,8 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          Precalcwin_old = pickparameter.getParam('Precalcwin')
          noisefactor_old = pickparameter.getParam('noisefactor')
          zfac_old = pickparameter.getParam('zfac')
-         pickparameter.setParam(pstart=badpicks[i][1] - wf2pick[0].stats.starttime \
-          - pickparameter.getParam('tlta'))
+         pickparameter.setParam(pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
+          - pickparameter.getParam('tlta')]))
          pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
           (3 * pickparameter.getParam('tlta')))
          pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)
