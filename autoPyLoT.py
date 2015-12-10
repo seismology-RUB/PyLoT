@@ -107,7 +107,7 @@ def autoPyLoT(inputfile):
                 ##########################################################
                 # !automated picking starts here!
                 picks = autopickevent(wfdat, parameter)
-
+                finalpicks = picks
                 ##########################################################
                 # locating
                 if locflag == 1:
@@ -199,8 +199,11 @@ def autoPyLoT(inputfile):
                 # write phase files for various location routines
                 # HYPO71
                 hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
-                if finalpicks.getpicdic() is not None:
-                    writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                if hasattr(finalpicks, 'getpicdic'):
+                    if finalpicks.getpicdic() is not None:
+                        writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                    else:
+                        writephases(picks, 'HYPO71', hypo71file)
                 else:
                     writephases(picks, 'HYPO71', hypo71file)
 
@@ -222,7 +225,7 @@ def autoPyLoT(inputfile):
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
-
+            finalpicks = picks
             ##########################################################
             # locating
             if locflag == 1:
@@ -312,8 +315,11 @@ def autoPyLoT(inputfile):
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.getParam('eventID'))
-            if finalpicks.getpicdic() is not None:
-                writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+            if hasattr(finalpicks, 'getpicdic'):
+                if finalpicks.getpicdic() is not None:
+                    writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                else:
+                    writephases(picks, 'HYPO71', hypo71file)
             else:
                 writephases(picks, 'HYPO71', hypo71file)
            
