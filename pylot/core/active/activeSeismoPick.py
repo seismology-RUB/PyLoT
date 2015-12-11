@@ -155,6 +155,17 @@ class Survey(object):
         ax.set_ylabel('Time [s]')
         ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
 
+    def plotHist(self):
+        import matplotlib.pyplot as plt
+        plt.interactive(True)
+        diffs = []
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                    diffs.append(self.getDiffsFromManual()[shot][traceID])
+        plt.hist(diffs, 20)
+        plt.title('Histogram of the differences between automatic and manual pick')
+        plt.xlabel('Difference in time (auto - manual) [s]')
 
     def pickAllShots(self, windowsize, HosAic = 'hos', vmin = 333, vmax = 5500, folm = 0.6):
         '''
