@@ -240,8 +240,8 @@ class M0Mw(Magnitude):
                  # call subfunction to estimate source spectrum
                  # and to derive w0 and fc 
                  [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                             self.getinvdir(), az, inc, self.getQp(), \
-                             self.getiplot())
+                             self.getinvdir(), self.getvp(), delta, az, \
+                             inc, self.getQp(), self.getiplot())
 
                  if w0 is not None:
                      # call subfunction to calculate Mo and Mw
@@ -268,6 +268,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     '''
 
     tr = wfstream[0]
+    delta = delta * 1000 # hypocentral distance in [m]
 
     print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
            % tr.stats.station)
@@ -278,7 +279,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf) 
 
-    Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 #after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    #Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    Mw = np.log10(Mo) * 2 / 3 - 6.7 # for metric units
 
     print("calcMoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (Mo, Mw))
 
@@ -286,7 +288,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
 
         
 
-def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
+def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, Qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -302,6 +304,7 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
     Q = int(qu[0])
     # A, i.e. power of frequency
     A = float(qu[1])
+    delta = delta * 1000 # hypocentral distance in [m]
 
     fc = None
     w0 = None
@@ -408,7 +411,9 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
                 F = f[fi]
                 YY = Y[fi]
                 # correction for attenuation 
-                YYcor = YY.real*Q**A
+                wa = 2 * np.pi * F #angular frequency
+                D = np.exp((wa * delta) / (2 * vp * Q*F**A))
+                YYcor = YY.real*D
                 # get plateau (DC value) and corner frequency
                 # initial guess of plateau
                 w0in = np.mean(YYcor[0:100])
