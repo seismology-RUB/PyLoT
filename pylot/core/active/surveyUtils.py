@@ -16,11 +16,13 @@ def setArtificialPick(shot_dict, traceID, pick):
 
 def fitSNR4dist(shot_dict, shiftdist = 30, shiftSNR = 100):
     import numpy as np
+    import matplotlib.pyplot as plt
     dists = []
     picks = []
     snrs = []
     snr_sqrt_inv = []
     snrthresholds = []
+    snrBestFit = []
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist():
             if shot.getSNR(traceID)[0] >= 1:
@@ -31,18 +33,23 @@ def fitSNR4dist(shot_dict, shiftdist = 30, shiftSNR = 100):
     fit = np.polyfit(dists, snr_sqrt_inv, 1)
     fit_fn = np.poly1d(fit)
     for dist in dists:
+        snrBestFit.append((1/(fit_fn(dist)**2)))
         dist += shiftdist
         snrthresholds.append((1/(fit_fn(dist)**2)) - shiftSNR * np.exp(-0.05 * dist))
-    plotFittedSNR(dists, snrthresholds, snrs)
+    plotFittedSNR(dists, snrthresholds, snrs, snrBestFit)
     return fit_fn #### ZU VERBESSERN, sollte fertige funktion wiedergeben
 
 
-def plotFittedSNR(dists, snrthresholds, snrs):
+def plotFittedSNR(dists, snrthresholds, snrs, snrBestFit):
     import matplotlib.pyplot as plt
     plt.interactive(True)
     fig = plt.figure()
-    plt.plot(dists, snrs, '.', markersize = 1.0, label = 'SNR values')
-    plt.plot(dists, snrthresholds, 'r.', markersize = 1, label = 'Fitted threshold')
+    plt.plot(dists, snrs, 'b.', markersize = 2.0, label = 'SNR values')
+    dists.sort()
+    snrthresholds.sort(reverse = True)
+    snrBestFit.sort(reverse = True)
+    plt.plot(dists, snrthresholds, 'r', markersize = 1, label = 'Fitted threshold')
+    plt.plot(dists, snrBestFit, 'k', markersize = 1, label = 'Best fitted curve')
     plt.xlabel('Distance[m]')
     plt.ylabel('SNR')
     plt.legend()
