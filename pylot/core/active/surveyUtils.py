@@ -54,7 +54,7 @@ def plotFittedSNR(dists, snrthresholds, snrs, snrBestFit):
     plt.ylabel('SNR')
     plt.legend()
 
-def setFittedSNR(shot_dict, shiftdist = 30, shiftSNR = 100, p1 = 0.004, p2 = -0.0007):
+def setDynamicFittedSNR(shot_dict, shiftdist = 30, shiftSNR = 100, p1 = 0.004, p2 = -0.0007):
     import numpy as np
     minSNR = 2.5
     #fit_fn = fitSNR4dist(shot_dict)
@@ -69,8 +69,14 @@ def setFittedSNR(shot_dict, shiftdist = 30, shiftSNR = 100, p1 = 0.004, p2 = -0.
                 shot.setSNRthreshold(traceID, minSNR)
             else:
                 shot.setSNRthreshold(traceID, snrthreshold)
-    print "setFittedSNR: Finished setting of fitted SNR-threshold"
+    print "setDynamicFittedSNR: Finished setting of fitted SNR-threshold"
 
+def setConstantSNR(shot_dict, snrthreshold = 2.5):
+    import numpy as np
+    for shot in shot_dict.values():
+        for traceID in shot.getTraceIDlist():
+            shot.setSNRthreshold(traceID, snrthreshold)
+    print "setConstantSNR: Finished setting of SNR threshold to a constant value of %s"%snrthreshold
 
 def findTracesInRanges(shot_dict, distancebin, pickbin):
     '''

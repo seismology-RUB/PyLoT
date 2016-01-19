@@ -365,7 +365,11 @@ class SeismicShot(object):
         leftb = int(pickwindow[0] / self.getCut()[1] * len(hoscflist))
         rightb = int(pickwindow[1] / self.getCut()[1] * len(hoscflist))
 
-        threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+        #threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+
+        ### TEST TEST
+        threshold = folm * (max(hoscflist[leftb : rightb]) - min(hoscflist[leftb : rightb])) + min(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+        ### TEST TEST
 
         m = leftb
 
@@ -376,7 +380,10 @@ class SeismicShot(object):
 
         lb = max(0, m - windowsize[0]) # if window exceeds t = 0
         aiccfcut = list(aiccf.getCF())[lb : m + windowsize[1]]
-        n = aiccfcut.index(min(aiccfcut))
+        if len(aiccfcut) > 0:
+            n = aiccfcut.index(min(aiccfcut))
+        else:
+            n = 0
 
         m = lb + n
 
@@ -814,8 +821,8 @@ class SeismicShot(object):
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
 
-        xaxis = np.arange(min(x), max(x), step)
-        yaxis = np.arange(min(y), max(y), step)
+        xaxis = np.arange(min(x) + step, max(x), step)
+        yaxis = np.arange(min(y) + step, max(y), step)
         xgrid, ygrid = np.meshgrid(xaxis, yaxis)
         zgrid = griddata((x, y), z, (xgrid, ygrid), method = method)
 
@@ -892,9 +899,9 @@ class SeismicShot(object):
         ax.text(0.5, 0.95, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes
                 , horizontalalignment = 'center')
         sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, cmap = cmap, linewidths = 1.5)
+        label = None
         for xyz in zip(xcut, ycut, zcut):
             x, y, z = xyz
-            label = None
             if z > tmax:
                 count += 1
                 z = 'w'

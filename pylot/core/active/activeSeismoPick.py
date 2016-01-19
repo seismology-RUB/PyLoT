@@ -170,9 +170,10 @@ class Survey(object):
             for traceID in shot.getTraceIDlist():
                 if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
                     diffs.append(self.getDiffsFromManual()[shot][traceID])
-        plt.hist(diffs, nbins)
+        hist = plt.hist(diffs, nbins, histtype = 'step', normed = True, stacked = True)
         plt.title('Histogram of the differences between automatic and manual pick')
         plt.xlabel('Difference in time (auto - manual) [s]')
+        return diffs
 
     def pickAllShots(self, windowsize, HosAic = 'hos', vmin = 333, vmax = 5500, folm = 0.6):
         '''
@@ -421,7 +422,7 @@ class Survey(object):
                 #ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:'
                 #+str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
                 #shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
-                ax = fig.add_subplot(3, 4, index)
+                ax = fig.add_subplot(rows, columns, index)
                 if mode == '3d':
                     self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True, legend = False)
                 elif mode == '2d':
