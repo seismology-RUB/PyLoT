@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Created August/September 2015.
+Created autumn/winter 2015.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
@@ -18,7 +18,7 @@ from pylot.core.read.data import Data
 class Magnitude(object):
     '''
     Superclass for calculating Wood-Anderson peak-to-peak
-    amplitudes, local magnitudes, seismic moments
+    amplitudes, local magnitudes, source spectra, seismic moments
     and moment magnitudes.
     '''
 
@@ -52,7 +52,7 @@ class Magnitude(object):
         :param: vp [m/s], P-velocity
         :param: integer
 
-        :param: invdir, path to inventory or dataless-SEED file
+        :param: invdir, name and path to inventory or dataless-SEED file
         :type:  string
         '''
 
@@ -240,8 +240,8 @@ class M0Mw(Magnitude):
                  # call subfunction to estimate source spectrum
                  # and to derive w0 and fc 
                  [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                             self.getinvdir(), az, inc, self.getQp(), \
-                             self.getiplot())
+                             self.getinvdir(), self.getvp(), delta, az, \
+                             inc, self.getQp(), self.getiplot())
 
                  if w0 is not None:
                      # call subfunction to calculate Mo and Mw
@@ -265,9 +265,25 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     '''
     Subfunction of run_calcMoMw to calculate individual
     seismic moments and corresponding moment magnitudes.
+
+    :param: wfstream
+    :type:  `~obspy.core.stream.Stream`
+
+    :param: w0, height of plateau of source spectrum
+    :type:  float
+ 
+    :param: rho, rock density [kg/m³]
+    :type:  integer
+
+    :param: delta, hypocentral distance [km]
+    :type:  integer
+
+    :param: inv, name/path of inventory or dataless-SEED file
+    :type:  string
     '''
 
     tr = wfstream[0]
+    delta = delta * 1000 # hypocentral distance in [m]
 
     print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
            % tr.stats.station)
@@ -278,7 +294,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf) 
 
-    Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 #after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    #Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    Mw = np.log10(Mo) * 2 / 3 - 6.7 # for metric units
 
     print("calcMoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (Mo, Mw))
 
@@ -286,13 +303,40 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
 
         
 
-def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
+def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, Qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
     source model. Has to be derived from instrument corrected displacement traces,
-    thus restitution and integration necessary! Integrated traces have to be rotated
-    into ray-coordinate system ZNE => LQT!
+    thus restitution and integration necessary! Integrated traces are rotated
+    into ray-coordinate system ZNE => LQT using Obspy's rotate modul!
+    
+    :param: wfstream
+    :type:  `~obspy.core.stream.Stream`
+
+    :param: onset, P-phase onset time
+    :type: float
+
+    :param: inventory, path/name of inventory or dataless-SEED file
+    :type:  string
+
+    :param: vp, Vp-wave velocity
+    :type:  float
+
+    :param: delta, hypocentral distance [km]
+    :type:  integer
+
+    :param: azimuth
+    :type:  integer
+
+    :param: incidence
+    :type:  integer
+
+    :param: Qp, quality factor for P-waves
+    :type:  integer
+
+    :param: iplot, show results (iplot>1) or not (iplot(<2)
+    :type:  integer
     '''
     print ("Calculating source spectrum ....")
 
@@ -302,6 +346,7 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
     Q = int(qu[0])
     # A, i.e. power of frequency
     A = float(qu[1])
+    delta = delta * 1000 # hypocentral distance in [m]
 
     fc = None
     w0 = None
@@ -343,7 +388,11 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
             LQT=cordat_copy.rotate('ZNE->LQT',azimuth, incidence)
             ldat = LQT.select(component="L")
             if len(ldat) == 0:
-                # yet Obspy's rotate can not handle channels 3/2/1
+                # if horizontal channels are 2 and 3
+                # no azimuth information is available and thus no 
+                # rotation is possible!
+                print("calcsourcespec: Azimuth information is missing, "
+                      "no rotation of components possible!")
                 ldat = LQT.select(component="Z")
 
             # integrate to displacement
@@ -407,8 +456,12 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
                 fi = np.where((f >= 1) & (f < 100))
                 F = f[fi]
                 YY = Y[fi]
+
                 # correction for attenuation 
-                YYcor = YY.real*Q**A
+                wa = 2 * np.pi * F #angular frequency
+                D = np.exp((wa * delta) / (2 * vp * Q*F**A))
+                YYcor = YY.real*D
+
                 # get plateau (DC value) and corner frequency
                 # initial guess of plateau
                 w0in = np.mean(YYcor[0:100])
@@ -428,7 +481,8 @@ def calcsourcespec(wfstream, onset, inventory, azimuth, incidence, Qp, iplot):
                 # use of conventional fitting 
                 [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot)
  
-                # get w0 and fc as median 
+                # get w0 and fc as median of both 
+                # source spectrum fits 
                 w0 = np.median([w01, w02])
                 fc = np.median([fc1, fc2])
                 print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))

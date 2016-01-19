@@ -638,6 +638,11 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 plt.legend([p1, p2], ['Data', 'CF1'])
                 plt.title('%s, P Weight=%d, SNR=None, '
                           'SNRdB=None' % (tr_filt.stats.channel, Pweight))
+        else:
+            plt.title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
+                                               tr_filt.stats.channel,
+                                               Pweight))
+            
         plt.yticks([])
         plt.ylim([-1.5, 1.5])
         plt.ylabel('Normalized Counts')
@@ -826,6 +831,9 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
 
          # get corresponding waveform stream
+         msg = '#######################################################\n' \
+               'iteratepicker: Re-picking station {0}'.format(badpicks[i][0])
+         print(msg)
          wf2pick = wf.select(station=badpicks[i][0])
 
          # modify some picking parameters
@@ -836,8 +844,8 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
          Precalcwin_old = pickparameter.getParam('Precalcwin')
          noisefactor_old = pickparameter.getParam('noisefactor')
          zfac_old = pickparameter.getParam('zfac')
-         pickparameter.setParam(pstart=badpicks[i][1] - wf2pick[0].stats.starttime \
-          - pickparameter.getParam('tlta'))
+         pickparameter.setParam(pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
+          - pickparameter.getParam('tlta')]))
          pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
           (3 * pickparameter.getParam('tlta')))
          pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)

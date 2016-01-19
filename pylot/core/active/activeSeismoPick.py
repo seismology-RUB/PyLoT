@@ -147,6 +147,7 @@ class Survey(object):
         
         labelm = 'manual picks'
         labela = 'automatic picks'
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
@@ -362,10 +363,19 @@ class Survey(object):
                     count += 1
             ttfile.close()
         srcfile.close()
-        print 'Wrote output for %s traces' %count
-        print 'WARNING: output generated for FMTOMO-obsdata. Obsdata seems to take Lat, Lon, Depth and creates output for FMTOMO as Depth, Lat, Lon'
-        print 'Dimensions of the seismic Array, transformed for FMTOMO, are Depth(%s, %s), Lat(%s, %s), Lon(%s, %s)'%(
-            min(DepthAll), max(DepthAll), min(LatAll), max(LatAll), min(LonAll), max(LonAll))
+        msg = 'Wrote output for {0} traces\n' \
+              'WARNING: output generated for FMTOMO-obsdata. Obsdata seems ' \
+              'to take Lat, Lon, Depth and creates output for FMTOMO as ' \
+              'Depth, Lat, Lon\nDimensions of the seismic Array, ' \
+              'transformed for FMTOMO, are Depth({1}, {2}), Lat({3}, {4}), ' \
+              'Lon({5}, {6})'.format(count,
+                                     min(DepthAll),
+                                     max(DepthAll),
+                                     min(LatAll),
+                                     max(LatAll),
+                                     min(LonAll),
+                                     max(LonAll))
+        print(msg)
 
     def countPickedTraces(self, shot):
         count = 0
