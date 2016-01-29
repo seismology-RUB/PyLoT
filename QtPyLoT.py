@@ -23,8 +23,9 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import os, sys
-from os.path import expanduser
+import os
+import sys
+
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -44,12 +45,12 @@ from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS
-from pylot.core.util.errors import FormatError, DatastructureError,\
+from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.utils import fnConstructor, createEvent, getLogin,\
+from pylot.core.util.utils import fnConstructor, createEvent, getLogin, \
     createCreationInfo, getGlobalTimes
-from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg,\
+from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
@@ -57,6 +58,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
 locateTool = dict(nll=locateNll)
+
 
 class MainWindow(QMainWindow):
     __version__ = _getVersionString()
@@ -85,7 +87,7 @@ class MainWindow(QMainWindow):
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
             dirname = QFileDialog().getExistingDirectory(
-                caption='Choose data root ...')
+                    caption='Choose data root ...')
             settings.setValue("data/dataRoot", dirname)
         settings.sync()
 
@@ -115,7 +117,7 @@ class MainWindow(QMainWindow):
 
         try:
             self.startTime = min(
-                [tr.stats.starttime for tr in self.data.wfdata])
+                    [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
 
@@ -613,8 +615,8 @@ class MainWindow(QMainWindow):
         else:
             self.updateStatus('Filter loaded ... '
                               '[{0}: {1} Hz]'.format(
-                self.getFilterOptions().getFilterType(),
-                self.getFilterOptions().getFreq()))
+                    self.getFilterOptions().getFilterType(),
+                    self.getFilterOptions().getFreq()))
         if self.filterAction.isChecked():
             self.filterWaveformData()
 
@@ -671,15 +673,15 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
-        home = expanduser("~")
+        home = os.path.expanduser("~")
         autopick_parameter = AutoPickParameter('%s/.pylot/autoPyLoT_local.in' % home)
         self.addListItem(str(autopick_parameter))
 
         # Create the worker thread and run it
         self.thread = AutoPickThread(parent=self,
-                                   func=autopickevent,
-                                   data=self.getData().getWFData(),
-                                   param=autopick_parameter)
+                                     func=autopickevent,
+                                     data=self.getData().getWFData(),
+                                     param=autopick_parameter)
         self.thread.message.connect(self.addListItem)
         self.thread.start()
         self.thread.finished.connect(self.finalizeAutoPick)
@@ -698,10 +700,10 @@ class MainWindow(QMainWindow):
             msgBox.setText("The picks for station {0} have been "
                            "changed.".format(station))
             msgBox.setDetailedText("Old picks:\n"
-                                "{old_picks}\n\n"
-                                "New picks:\n"
-                                "{new_picks}".format(old_picks=stat_picks,
-                                                     new_picks=picks))
+                                   "{old_picks}\n\n"
+                                   "New picks:\n"
+                                   "{new_picks}".format(old_picks=stat_picks,
+                                                        new_picks=picks))
             msgBox.setInformativeText("Do you want to save your changes?")
             msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
             msgBox.setDefaultButton(QMessageBox.Save)
@@ -789,7 +791,6 @@ class MainWindow(QMainWindow):
         if extlocpath is None or locroot is None:
             self.PyLoTprefs()
 
-
     def check4Loc(self):
         return self.picksNum() > 4
 
@@ -810,12 +811,12 @@ class MainWindow(QMainWindow):
         if self.getData() is not None:
             if not self.getData().isNew():
                 self.setWindowTitle(
-                    "PyLoT - processing event %s[*]" % self.getData().getID())
+                        "PyLoT - processing event %s[*]" % self.getData().getID())
             elif self.getData().isNew():
                 self.setWindowTitle("PyLoT - New event [*]")
             else:
                 self.setWindowTitle(
-                    "PyLoT - seismic processing the python way[*]")
+                        "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
     def tutorUser(self):
@@ -853,7 +854,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(
-                'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                    'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
             form = HelpForm(':/help.html')
         form.show()
