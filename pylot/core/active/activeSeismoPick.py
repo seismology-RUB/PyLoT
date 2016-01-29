@@ -135,26 +135,45 @@ class Survey(object):
 
     def plotDiffs(self):
         import matplotlib.pyplot as plt
-        diffs = []; dists = []; picks = []
+        diffs = []; dists = []; mpicks = []; picks = []
         diffsDic = self.getDiffsFromManual()
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
                     dists.append(shot.getDistance(traceID))
-                    picks.append(shot.getManualPick(traceID))
+                    mpicks.append(shot.getManualPick(traceID))
+                    picks.append(shot.getPick(traceID))
                     diffs.append(diffsDic[shot][traceID])
+        
+        labelm = 'manual picks'
+        labela = 'automatic picks'
 
-        label = 'Difference to automatic picks [s]'
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        sc = ax.scatter(dists, picks, c = diffs, s=5, edgecolors='none', label = label)
+        sc_a = ax.scatter(dists, picks, c = '0.5', s=10, edgecolors='none', label = labela, alpha = 0.3)
+        sc = ax.scatter(dists, mpicks, c = diffs, s=5, edgecolors='none', label = labelm)
         cbar = plt.colorbar(sc, fraction=0.05)
-        cbar.set_label(label)
+        cbar.set_label(labelm)
         ax.set_xlabel('Distance [m]')
         ax.set_ylabel('Time [s]')
         ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
 
+    def plotHist(self, nbins = 20, ax = None):
+        import matplotlib.pyplot as plt
+        plt.interactive(True)
+        diffs = []
+        if ax == None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                    diffs.append(self.getDiffsFromManual()[shot][traceID])
+        hist = plt.hist(diffs, nbins, histtype = 'step', normed = True, stacked = True)
+        plt.title('Histogram of the differences between automatic and manual pick')
+        plt.xlabel('Difference in time (auto - manual) [s]')
+        return diffs
 
     def pickAllShots(self, windowsize, HosAic = 'hos', vmin = 333, vmax = 5500, folm = 0.6):
         '''
@@ -403,9 +422,9 @@ class Survey(object):
                 #ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:'
                 #+str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
                 #shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
-                ax = fig.add_subplot(3, 4, index)
+                ax = fig.add_subplot(rows, columns, index)
                 if mode == '3d':
-                    self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True)
+                    self.getShot(shotnumber).matshow(ax = ax, colorbar = False, annotations = True, legend = False)
                 elif mode == '2d':
                     self.getShot(shotnumber).plot2dttc(ax)
                     self.getShot(shotnumber).plotmanual2dttc(ax)

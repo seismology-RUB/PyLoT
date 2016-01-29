@@ -747,6 +747,9 @@ class SeisArray(object):
             return surface
 
     def exportAll(self, filename = 'interpolated_receivers.out'):
+        '''
+        Exports all receivers to an input file for ActiveSeismoPick3D.
+        '''
         recfile_out = open(filename, 'w')
         count = 0
         for traceID in self.getReceiverCoordinates().keys():
@@ -803,7 +806,7 @@ class SeisArray(object):
         xrc, yrc, zrc = self.getReceiverLists()
         xsc, ysc, zsc = self.getSourceLocsLists()
 
-        plt.title('3D plot of seismic array %s'%self.recfile)
+        plt.title('3D plot of seismic array.')
         if len(xmt) > 0:
             ax.plot(xmt, ymt, zmt, 'b.', markersize = 10, label = 'measured topo points')
         if len(xrc) > 0:
@@ -812,7 +815,7 @@ class SeisArray(object):
             ax.plot(xmr, ymr, zmr, 'ro', label = 'measured receivers')
         if len(xsc) > 0:
             ax.plot(xsc, ysc, zsc, 'b*', label = 'shot locations')
-        ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('elevation')
+        ax.set_xlabel('X [m]'); ax.set_ylabel('Y [m]'); ax.set_zlabel('Z [m]')
         ax.legend()
 
         return ax
@@ -842,13 +845,15 @@ class SeisArray(object):
 
         zgrid = griddata((x, y), z, (xgrid, ygrid), method = method)
 
-        ax.plot_surface(xgrid, ygrid, zgrid, linewidth = 0, cmap = cm.jet, vmin = min(z), vmax = max(z))
+        surf = ax.plot_surface(xgrid, ygrid, zgrid, linewidth = 0, cmap = cm.jet, vmin = min(z), vmax = max(z))
+        cbar = plt.colorbar(surf)
+        cbar.set_label('Elevation [m]')
 
         if exag == False:
             ax.set_zlim(-(max(x) - min(x)/2),(max(x) - min(x)/2))
         ax.set_aspect('equal')
 
-        ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('elevation')
+        ax.set_xlabel('X [m]'); ax.set_ylabel('Y [m]'); ax.set_zlabel('Z [m]')
         ax.legend()
 
         return ax

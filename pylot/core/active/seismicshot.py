@@ -37,6 +37,7 @@ class SeismicShot(object):
         self.traces4plot = {}
         self.paras = {}
         self.paras['shotname'] = obsfile
+        self.folm = None
 
     def removeEmptyTraces(self):
         traceIDs = []
@@ -279,7 +280,7 @@ class SeismicShot(object):
 
         #raise ValueError('ambigious or empty traceID: %s' % traceID)
 
-    def pickTraces(self, traceID, windowsize, folm = 0.6, HosAic = 'hos'): ########## input variables ##########
+    def pickTraces(self, traceID, windowsize, folm, HosAic = 'hos'): ########## input variables ##########
         # LOCALMAX NOT IMPLEMENTED!
         '''
         Intitiate picking for a trace.
@@ -299,7 +300,7 @@ class SeismicShot(object):
         :param: windowsize, window around the returned HOS picktime, to search for the AIC minumum
         :type: 'tuple'
 
-        :param: folm, fraction of local maximumm (default = 0.6)
+        :param: folm, fraction of local maximumm
         :type: 'real'
 
         :param: HosAic, get hos or aic pick (can be 'hos'(default) or 'aic')
@@ -307,6 +308,8 @@ class SeismicShot(object):
         '''
         hoscf = self.getHOScf(traceID) ### determination of both, HOS and AIC (need to change threshold-picker) ###
         aiccf = self.getAICcf(traceID)
+
+        self.folm = folm
 
         self.timeArray[traceID] = hoscf.getTimeArray()
         aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
@@ -335,7 +338,7 @@ class SeismicShot(object):
         # self.picks[traceID]['spe'] *= 0.5
         # TEST OF 1/2 PICKERROR
 
-    def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm = 0.6):
+    def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm):
         '''
         Threshold picker, using the local maximum in a pickwindow to find the time at
         which a fraction of the local maximum is reached for the first time.
@@ -355,14 +358,18 @@ class SeismicShot(object):
         :param: cutwindow [seconds], cut a part of the trace as in Characteristic Function
         :type: 'tuple'
 
-        :param: folm, fraction of local maximum (default = 0.6)
+        :param: folm, fraction of local maximum
         :type: 'real'
         '''
         hoscflist = list(hoscf.getCF())
         leftb = int(pickwindow[0] / self.getCut()[1] * len(hoscflist))
         rightb = int(pickwindow[1] / self.getCut()[1] * len(hoscflist))
 
-        threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+        #threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+
+        ### TEST TEST
+        threshold = folm * (max(hoscflist[leftb : rightb]) - min(hoscflist[leftb : rightb])) + min(hoscflist[leftb : rightb]) # combination of local maximum and threshold
+        ### TEST TEST
 
         m = leftb
 
@@ -373,7 +380,10 @@ class SeismicShot(object):
 
         lb = max(0, m - windowsize[0]) # if window exceeds t = 0
         aiccfcut = list(aiccf.getCF())[lb : m + windowsize[1]]
-        n = aiccfcut.index(min(aiccfcut))
+        if len(aiccfcut) > 0:
+            n = aiccfcut.index(min(aiccfcut))
+        else:
+            n = 0
 
         m = lb + n
 
@@ -663,7 +673,7 @@ class SeismicShot(object):
         ax.legend()
         ax.text(0.05, 0.9, 'SNR: %s' %snr, transform = ax.transAxes)
 
-    def plot_traces(self, traceID, folm = 0.6): ########## 2D, muss noch mehr verbessert werden ##########
+    def plot_traces(self, traceID): ########## 2D, muss noch mehr verbessert werden ##########
         from matplotlib.widgets import Button
 
         def onclick(event):
@@ -687,6 +697,8 @@ class SeismicShot(object):
 
         def cleanup(event):
             self.traces4plot[traceID] = {}
+
+        folm = self.folm
 
         fig = plt.figure()
         ax1 = fig.add_subplot(2,1,1)
@@ -745,7 +757,7 @@ class SeismicShot(object):
         ax.legend()
         return ax
 
-    def _drawCFs(self, traceID, folm, refresh = False):
+    def _drawCFs(self, traceID, folm = None, refresh = False):
         hoscf = self.getHOScf(traceID)
         aiccf = self.getAICcf(traceID)
         ax = self.traces4plot[traceID]['ax2']
@@ -773,9 +785,10 @@ class SeismicShot(object):
                     [ax.get_ylim()[0],
                      ax.get_ylim()[1]],
                     'b:', label = 'latest')
-        ax.plot([0, self.getPick(traceID)],
-                 [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
-                 'm:', label = 'folm = %s' %folm)
+        if folm is not None:
+            ax.plot([0, self.getPick(traceID)],
+                    [folm * max(hoscf.getCF()), folm * max(hoscf.getCF())],
+                    'm:', label = 'folm = %s' %folm)
         ax.set_xlabel('Time [s]')
         ax.legend()
 
@@ -808,8 +821,8 @@ class SeismicShot(object):
                 y.append(self.getRecLoc(traceID)[1])
                 z.append(self.getPick(traceID))
 
-        xaxis = np.arange(min(x), max(x), step)
-        yaxis = np.arange(min(y), max(y), step)
+        xaxis = np.arange(min(x) + step, max(x), step)
+        yaxis = np.arange(min(y) + step, max(y), step)
         xgrid, ygrid = np.meshgrid(xaxis, yaxis)
         zgrid = griddata((x, y), z, (xgrid, ygrid), method = method)
 
@@ -834,7 +847,7 @@ class SeismicShot(object):
 
         plotmethod[method](*args)
 
-    def matshow(self, ax = None, step = 0.5, method = 'linear', plotRec = True, annotations = True, colorbar = True):
+    def matshow(self, ax = None, step = 0.5, method = 'linear', plotRec = True, annotations = True, colorbar = True, legend = True):
         '''
         Plots a 2D matrix of the interpolated traveltimes. This needs less performance than plot3dttc
 
@@ -886,9 +899,9 @@ class SeismicShot(object):
         ax.text(0.5, 0.95, 'shot: %s' %self.getShotnumber(), transform = ax.transAxes
                 , horizontalalignment = 'center')
         sc = ax.scatter(x, y, c = z, s = 30, label = 'picked shots', vmin = tmin, vmax = tmax, cmap = cmap, linewidths = 1.5)
+        label = None
         for xyz in zip(xcut, ycut, zcut):
             x, y, z = xyz
-            label = None
             if z > tmax:
                 count += 1
                 z = 'w'
@@ -899,7 +912,8 @@ class SeismicShot(object):
             cbar = plt.colorbar(sc)
             cbar.set_label('Time [s]')
 
-        ax.legend()
+        if legend == True:
+            ax.legend()
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.plot(self.getSrcLoc()[0], self.getSrcLoc()[1],'*k', markersize = 15) # plot source location
