@@ -107,3 +107,131 @@ def cleanUp(survey):
 
     for shot in survey.data.values():
         shot.traces4plot = {}
+
+# def plotScatterStats(survey, key, ax = None):
+#     import matplotlib.pyplot as plt
+#     x = []; y = []; value = []
+#     stats = survey.getStats()
+#     for shotnumber in stats.keys():
+#         if type(value) == list:
+#             value.append(stats[shotnumber][key][0])
+#         else:
+#             value.append(stats[shotnumber][key])
+#         x.append(survey.data[shotnumber].getSrcLoc()[0])
+#         y.append(survey.data[shotnumber].getSrcLoc()[1])
+    
+#     if ax == None:
+#         fig = plt.figure()
+#         ax = fig.add_subplot(111)
+
+#     sc = ax.scatter(x, y, s = value, c = value)
+#     plt.xlabel('X')
+#     plt.ylabel('Y')
+#     cbar = plt.colorbar(sc)
+#     cbar.set_label(key)
+
+def plotScatterStats4Shots(survey, key):
+    '''
+    Statistics, scatter plot.
+    key can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
+    '''
+    import matplotlib.pyplot as plt
+    import numpy as np
+    statsShot = {}
+    x = []; y = []; value = []
+    for shot in survey.data.values():
+        for traceID in shot.getTraceIDlist():
+            if not shot in statsShot.keys():
+                statsShot[shot] = {'x': shot.getSrcLoc()[0],
+                                   'y': shot.getSrcLoc()[1],
+                                   'SNR': [],
+                                   'SPE': [],
+                                   'picked traces': 0}
+            
+            statsShot[shot]['SNR'].append(shot.getSNR(traceID)[0])
+            if shot.getPickFlag(traceID) == 1:
+                statsShot[shot]['picked traces'] += 1
+                statsShot[shot]['SPE'].append(shot.getSymmetricPickError(traceID))
+
+    for shot in statsShot.keys():
+        statsShot[shot]['mean SNR'] = np.mean(statsShot[shot]['SNR'])
+        statsShot[shot]['median SNR'] = np.median(statsShot[shot]['SNR'])
+        statsShot[shot]['mean SPE'] = np.mean(statsShot[shot]['SPE'])
+        statsShot[shot]['median SPE'] = np.median(statsShot[shot]['SPE'])
+
+    for shot in statsShot.keys():
+        x.append(statsShot[shot]['x'])
+        y.append(statsShot[shot]['y'])
+        value.append(statsShot[shot][key])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    size = []
+    for val in value:
+        size.append(100 * val / max(value))
+
+    sc = ax.scatter(x, y, s = size, c = value)
+    plt.title('Plot of all shots')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    cbar = plt.colorbar(sc)
+    cbar.set_label(key)
+
+    for shot in statsShot.keys():
+        ax.annotate(' %s' %shot.getShotnumber() , xy = (shot.getSrcLoc()[0], shot.getSrcLoc()[1]),
+                    fontsize = 'x-small', color = 'k')
+    
+def plotScatterStats4Receivers(survey, key):
+    '''
+    Statistics, scatter plot.
+    key can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
+    '''
+    import matplotlib.pyplot as plt
+    import numpy as np
+    statsRec = {}
+    x = []; y = []; value = []
+    for shot in survey.data.values():
+        for traceID in shot.getTraceIDlist():
+            if not traceID in statsRec.keys():
+                statsRec[traceID] = {'x': shot.getRecLoc(traceID)[0],
+                                     'y': shot.getRecLoc(traceID)[1],
+                                     'SNR': [],
+                                     'SPE': [],
+                                     'picked traces': 0}
+            
+            statsRec[traceID]['SNR'].append(shot.getSNR(traceID)[0])
+            if shot.getPickFlag(traceID) == 1:
+                statsRec[traceID]['picked traces'] += 1
+                statsRec[traceID]['SPE'].append(shot.getSymmetricPickError(traceID))
+
+
+    for traceID in statsRec.keys():
+        statsRec[traceID]['mean SNR'] = np.mean(statsRec[traceID]['SNR'])
+        statsRec[traceID]['median SNR'] = np.median(statsRec[traceID]['SNR'])
+        statsRec[traceID]['mean SPE'] = np.mean(statsRec[traceID]['SPE'])
+        statsRec[traceID]['median SPE'] = np.median(statsRec[traceID]['SPE'])
+
+    for traceID in statsRec.keys():
+        x.append(statsRec[traceID]['x'])
+        y.append(statsRec[traceID]['y'])
+        value.append(statsRec[traceID][key])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    size = []
+    for val in value:
+        size.append(100 * val / max(value))
+
+    sc = ax.scatter(x, y, s = size, c = value)
+    plt.title('Plot of all receivers')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    cbar = plt.colorbar(sc)
+    cbar.set_label(key)
+    
+    shot = survey.data.values()[0]
+    for traceID in shot.getTraceIDlist():
+        ax.annotate(' %s' %traceID , xy = (shot.getRecLoc(traceID)[0], shot.getRecLoc(traceID)[1]),
+                    fontsize = 'x-small', color = 'k')
