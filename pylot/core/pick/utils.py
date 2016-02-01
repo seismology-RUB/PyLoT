@@ -942,12 +942,12 @@ def writephases(arrivals, fformat, filename):
 
     :param: arrivals
     :type: dictionary containing all phase information including
-           station ID, phase, first motion, weight (uncertainty), 
+           station ID, phase, first motion, weight (uncertainty),
            ....
 
     :param: fformat
     :type:  string, chosen file format (location routine),
-            choose between NLLoc, HYPO71, HYPOSAT, VELEST, 
+            choose between NLLoc, HYPO71, HYPOSAT, VELEST,
             HYPOINVERSE, and hypoDD
 
     :param: filename, full path and name of phase file
@@ -956,7 +956,7 @@ def writephases(arrivals, fformat, filename):
 
 
     if fformat == 'NLLoc':
-    	print ("Writing phases to %s for NLLoc" % filename)
+        print ("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
@@ -1017,7 +1017,7 @@ def writephases(arrivals, fformat, filename):
         fid.close()
 
     elif fformat == 'HYPO71':
-    	print ("Writing phases to %s for HYPO71" % filename)
+        print ("Writing phases to %s for HYPO71" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('                                                              EQ001\n')
@@ -1025,8 +1025,8 @@ def writephases(arrivals, fformat, filename):
             if arrivals[key]['P']['weight'] < 4:
                 Ponset = arrivals[key]['P']['mpp']
                 Sonset = arrivals[key]['S']['mpp']
-                pweight = arrivals[key]['P']['weight'] 
-                sweight = arrivals[key]['S']['weight'] 
+                pweight = arrivals[key]['P']['weight']
+                sweight = arrivals[key]['S']['weight']
                 fm = arrivals[key]['P']['fm']
                 if fm is None:
                     fm = '-'
@@ -1088,7 +1088,7 @@ def writephases(arrivals, fformat, filename):
                      Ao))
 
         fid.close()
-        
+
 
 if __name__ == '__main__':
     import doctest
