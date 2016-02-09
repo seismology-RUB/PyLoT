@@ -116,18 +116,22 @@ class ProbabilityDensityFunction(object):
     def __add__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
-        if self.sampling_rate() == other.sampling_rate():
-            max = np.maximum(self.axis, other.axis)
-            x = np.arange(-max, max + self.sampling_rate(), self.sampling_rate())
-        else:
-            raise ValueError('Sampling rates do not match!')
 
-        pdf1 = self.data
+        x, pdf_self, pdf_other = self.rearrange(other)
+
+        pdf = np.convolve(pdf_self, pdf_other, 'same') * self.delta()
 
         return ProbabilityDensityFunction(x, pdf)
 
     def __sub__(self, other):
-        pass
+        assert isinstance(other, ProbabilityDensityFunction), \
+            'both operands must be of type ProbabilityDensityFunction'
+
+        x, pdf_self, pdf_other = self.rearrange(other, plus=False)
+
+        pdf = np.convolve(pdf_self, pdf_other[::-1], 'same') * self.delta()
+
+        return ProbabilityDensityFunction(x, pdf)
 
     def __nonzero__(self):
         return True
@@ -148,8 +152,55 @@ class ProbabilityDensityFunction(object):
     def axis(self, x):
         self.axis = np.array(x)
 
-    def sampling_rate(self):
+    def delta(self):
         return self.axis[1] - self.axis[0]
+
+    def rearrange(self, other, plus=True):
+        '''
+        Method rearrange takes another Probability Density Function and returns
+        a new axis with mid-point 0 and covering positive and negative range
+        of axis values, either containing the maximum value of both axis or
+        the sum of the maxima
+        :param other:
+        :param plus:
+        :return:
+        '''
+
+        assert isinstance(other, ProbabilityDensityFunction), \
+            'both operands must be of type ProbabilityDensityFunction'
+
+        sd = self.delta()
+        od = other.delta()
+
+        samin = np.min(self.axis)
+        oamin = np.min(other.axis)
+
+        # test if 0 is a sampling node
+        nodes_test = (not samin % sd and not oamin % od)
+
+        # test if sampling rates match and if 0 is a sampling node
+        if sd == od and nodes_test:
+            if plus:
+                max = np.max(self.axis) + np.max(other.axis)
+            else:
+                max = np.max(np.max(self.axis), np.max(other.axis))
+            x = np.arange(-max, max + sd, sd)
+        else:
+            raise ValueError('Sampling rates do not match or nodes shifted!')
+
+        pdf_self = np.zeros(x.size)
+        pdf_other = np.zeros(x.size)
+
+        sstart = np.where(x == samin)
+        s_end = sstart + self.data.size
+        ostart = np.where(x == oamin)
+        o_end = ostart + other.data.size
+
+        pdf_self[sstart:s_end] = self.data
+        pdf_other[ostart:o_end] = other.data
+
+        return x, pdf_self, pdf_other
+
 
 class PickPDF(ProbabilityDensityFunction):
 
