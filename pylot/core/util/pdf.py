@@ -8,6 +8,13 @@ __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
 
+def create_axis(x0, incr, npts):
+    ax = np.zeros(npts)
+    for i in range(npts):
+        ax[i] = x0 + incr * i
+    return ax
+
+
 def gauss_parameter(te, tm, tl, eta):
     '''
     takes three onset times and returns the parameters sig1, sig2, a1 and a2
@@ -109,19 +116,22 @@ class ProbabilityDensityFunction(object):
 
     version = __version__
 
-    def __init__(self, x, pdf):
-        self.axis = x
+    def __init__(self, x0, incr, npts, pdf):
+        self.x0 = x0
+        self.incr = incr
+        self.npts = npts
+        self.axis = create_axis(x0, incr, npts)
         self.data = pdf
 
     def __add__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        x, pdf_self, pdf_other = self.rearrange(other)
+        incr, limits, pdf_self, pdf_other = self.rearrange(other)
 
         pdf = np.convolve(pdf_self, pdf_other, 'same') * self.delta()
 
-        return ProbabilityDensityFunction(x, pdf)
+        return ProbabilityDensityFunction(incr, limits, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
@@ -138,22 +148,38 @@ class ProbabilityDensityFunction(object):
 
     @property
     def data(self):
-        return self.data
+        return self._pdf
 
     @data.setter
     def data(self, pdf):
-        self.data = np.array(pdf)
+        self._pdf = np.array(pdf)
 
     @property
     def axis(self):
-        return self.axis
+        return self._x
 
     @axis.setter
     def axis(self, x):
-        self.axis = np.array(x)
+        self._x = np.array(x)
 
-    def delta(self):
-        return self.axis[1] - self.axis[0]
+    @classmethod
+    def fromPick(self, incr, lbound, midpoint, rbound, decfact=0.01, type='gauss'):
+        '''
+        Initialize a new ProbabilityDensityFunction object.
+        Takes incr, lbound, midpoint and rbound to derive x0 and the number
+        of points npts for the axis vector.
+        Maximum density
+        is given at the midpoint and on the boundaries the function has
+        declined to decfact times the maximum value. Integration of the
+        function over a particular interval gives the probability for the
+        variable value to be in that interval.
+        '''
+        margin = 1.5 * np.max(midpoint - lbound, rbound - midpoint)
+        x0 = midpoint - margin
+        npts = 2 * int(margin // incr)
+        params = parameter[type](lbound, midpoint, rbound, decfact)
+        pdf = branches[type](create_axis(x0, incr, npts), midpoint, *params)
+        return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def rearrange(self, other, plus=True):
         '''
@@ -200,44 +226,3 @@ class ProbabilityDensityFunction(object):
         pdf_other[ostart:o_end] = other.data
 
         return x, pdf_self, pdf_other
-
-
-class PickPDF(ProbabilityDensityFunction):
-
-    def __init__(self, x, lbound, midpoint, rbound, decfact=0.01, type='gauss'):
-        '''
-        Initialize a new ProbabilityDensityFunction object. Takes arguments x,
-        lbound, midpoint and rbound to define a probability density function
-        defined on the interval of x. Maximum density is given at the midpoint
-        and on the boundaries the function has declined to decfact times the
-        maximum value. Integration of the function over a particular interval
-        gives the probability for the variable value to lie in that interval.
-        :param x: interval on which the pdf is defined
-        :param lbound: left boundary
-        :param midpoint: point of maximum probability density
-        :param rbound: right boundary
-        :param decfact: boundary decline factor
-        :param type: determines the type of the probability density function's
-         branches
-        '''
-
-        self.nodes = dict(te=lbound, tm=midpoint, tl=rbound, eta=decfact)
-        self.type = type
-        super(PickPDF, self).__init__(x, self.pdf())
-
-    @property
-    def type(self):
-        return self.type
-
-    @type.setter
-    def type(self, type):
-        self.type = type
-
-    def params(self):
-        return parameter[self.type](**self.nodes)
-
-    def get(self, key):
-        return self.nodes[key]
-
-    def pdf(self):
-        return branches[self.type](self.axis, self.get('tm'), *self.params())
