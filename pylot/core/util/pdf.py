@@ -132,15 +132,23 @@ class ProbabilityDensityFunction(object):
 
         pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
 
+        # shift axis values for correct plotting
+        midpoint = int(npts // 2) + 1
+        x0 += incr * midpoint
+
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other, plus=False)
+        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
 
         pdf = np.correlate(pdf_self, pdf_other, 'same') * incr
+
+        # shift axis values for correct plotting
+        midpoint = int(npts // 2) + 1
+        x0 -= incr * midpoint
 
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
@@ -189,7 +197,7 @@ class ProbabilityDensityFunction(object):
                                  midpoint.timestamp, *params)
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
-    def findlimits(self, incr, l1, l2, r1, r2, max_npts=1e5):
+    def commonlimits(self, incr, other, max_npts=1e5):
         '''
         Takes an increment incr and two left and two right limits and returns
         the left most limit and the minimum number of points needed to cover
@@ -202,6 +210,11 @@ class ProbabilityDensityFunction(object):
         :param max_npts:
         :return:
         '''
+
+        l1 = self.x0
+        r1 = np.max(self.axis)
+        l2 = other.x0
+        r2 = np.max(other.axis)
 
         if l1 >= l2 and r1 >= r2:
             x0 = l2
@@ -230,40 +243,34 @@ class ProbabilityDensityFunction(object):
         return x0, npts
 
 
-    def rearrange(self, other, plus=True):
+    def rearrange(self, other):
         '''
         Method rearrange takes another Probability Density Function and returns
         a new axis with mid-point 0 and covering positive and negative range
         of axis values, either containing the maximum value of both axis or
         the sum of the maxima
         :param other:
-        :param plus:
         :return:
         '''
 
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        smin = np.min(self.axis)
-        smax = np.max(self.axis)
-        omin = np.min(other.axis)
-        omax = np.max(other.axis)
-
         if not self.incr == other.incr:
             raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
         else:
             incr = self.incr
 
-        x0, npts = self.findlimits(incr, smin, smax, omin, omax)
+        x0, npts = self.commonlimits(incr, other)
 
         pdf_self = np.zeros(npts)
         pdf_other = np.zeros(npts)
 
         x = create_axis(x0, incr, npts)
 
-        sstart = np.where(x == smin)
+        sstart = np.where(x == self.x0)
         s_end = sstart + self.data.size
-        ostart = np.where(x == omin)
+        ostart = np.where(x == other.x0)
         o_end = ostart + other.data.size
 
         pdf_self[sstart:s_end] = self.data
