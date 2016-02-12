@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from obspy import UTCDateTime
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -127,21 +128,21 @@ class ProbabilityDensityFunction(object):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        incr, limits, pdf_self, pdf_other = self.rearrange(other)
+        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
 
-        pdf = np.convolve(pdf_self, pdf_other, 'same') * self.delta()
+        pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
 
-        return ProbabilityDensityFunction(incr, limits, pdf)
+        return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        x, pdf_self, pdf_other = self.rearrange(other, plus=False)
+        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other, plus=False)
 
-        pdf = np.convolve(pdf_self, pdf_other[::-1], 'same') * self.delta()
+        pdf = np.correlate(pdf_self, pdf_other, 'same') * incr
 
-        return ProbabilityDensityFunction(x, pdf)
+        return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __nonzero__(self):
         return True
@@ -176,10 +177,58 @@ class ProbabilityDensityFunction(object):
         '''
         margin = 1.5 * np.max(midpoint - lbound, rbound - midpoint)
         x0 = midpoint - margin
-        npts = 2 * int(margin // incr)
+        npts = int(2 * margin // incr)
         params = parameter[type](lbound, midpoint, rbound, decfact)
-        pdf = branches[type](create_axis(x0, incr, npts), midpoint, *params)
+        try:
+            pdf = branches[type](create_axis(x0, incr, npts), midpoint, *params)
+        except TypeError as e:
+            print('Warning:\n' + e.message + '\n' + 'trying timestamp instead')
+            assert isinstance(midpoint, UTCDateTime), 'object not capable of' \
+                                                    ' timestamp representation'
+            pdf = branches[type](create_axis(x0, incr, npts),
+                                 midpoint.timestamp, *params)
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
+
+    def findlimits(self, incr, l1, l2, r1, r2, max_npts=1e5):
+        '''
+        Takes an increment incr and two left and two right limits and returns
+        the left most limit and the minimum number of points needed to cover
+        the whole given interval.
+        :param incr:
+        :param l1:
+        :param l2:
+        :param r1:
+        :param r2:
+        :param max_npts:
+        :return:
+        '''
+
+        if l1 >= l2 and r1 >= r2:
+            x0 = l2
+            npts = int(r1 - x0 // incr)
+        elif l1 < l2 and r1 >= r2:
+            x0 = l1
+            npts = int(r1 - x0 // incr)
+        elif l1 >= l2 and r1 < r2:
+            x0 = l2
+            npts = int(r2 - x0 // incr)
+        elif l1 >= r2:
+            x0 = l2
+            npts = int(r1 - x0 // incr)
+        elif l2 >= r1:
+            x0 = l1
+            npts = int(r2 - x0 // incr)
+        else:
+            x0 = None
+            npts = None
+
+        if npts > max_npts:
+            raise ValueError('Maximum number of points exceeded:\n'
+                             'max_npts - %d\n'
+                             'npts - %d\n' % (max_npts, npts))
+
+        return x0, npts
+
 
     def rearrange(self, other, plus=True):
         '''
@@ -195,34 +244,30 @@ class ProbabilityDensityFunction(object):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        sd = self.delta()
-        od = other.delta()
+        smin = np.min(self.axis)
+        smax = np.max(self.axis)
+        omin = np.min(other.axis)
+        omax = np.max(other.axis)
 
-        samin = np.min(self.axis)
-        oamin = np.min(other.axis)
-
-        # test if 0 is a sampling node
-        nodes_test = (not samin % sd and not oamin % od)
-
-        # test if sampling rates match and if 0 is a sampling node
-        if sd == od and nodes_test:
-            if plus:
-                max = np.max(self.axis) + np.max(other.axis)
-            else:
-                max = np.max(np.max(self.axis), np.max(other.axis))
-            x = np.arange(-max, max + sd, sd)
+        if not self.incr == other.incr:
+            raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
         else:
-            raise ValueError('Sampling rates do not match or nodes shifted!')
+            incr = self.incr
 
-        pdf_self = np.zeros(x.size)
-        pdf_other = np.zeros(x.size)
+        x0, npts = self.findlimits(incr, smin, smax, omin, omax)
 
-        sstart = np.where(x == samin)
+        pdf_self = np.zeros(npts)
+        pdf_other = np.zeros(npts)
+
+        x = create_axis(x0, incr, npts)
+
+        sstart = np.where(x == smin)
         s_end = sstart + self.data.size
-        ostart = np.where(x == oamin)
+        ostart = np.where(x == omin)
         o_end = ostart + other.data.size
 
         pdf_self[sstart:s_end] = self.data
         pdf_other[ostart:o_end] = other.data
 
-        return x, pdf_self, pdf_other
+        return x0, incr, npts, pdf_self, pdf_other
+
