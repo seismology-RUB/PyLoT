@@ -15,6 +15,9 @@ def create_axis(x0, incr, npts):
         ax[i] = x0 + incr * i
     return ax
 
+def find_nearest_index(array, value):
+    return (np.abs(array-value)).argmin()
+
 
 def gauss_parameter(te, tm, tl, eta):
     '''
@@ -128,15 +131,16 @@ class ProbabilityDensityFunction(object):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
-
-        pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
-
-        # shift axis values for correct plotting
-        midpoint = int(npts // 2) + 1
-        x0 += incr * midpoint
-
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        raise NotImplementedError('implementation of resulting axis unclear - feature pending!')
+        # x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        #
+        # pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
+        # 
+        # # shift axis values for correct plotting
+        # midpoint = npts / 2
+        # x0 = incr * midpoint
+        #
+        # return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
@@ -147,8 +151,8 @@ class ProbabilityDensityFunction(object):
         pdf = np.correlate(pdf_self, pdf_other, 'same') * incr
 
         # shift axis values for correct plotting
-        midpoint = int(npts // 2) + 1
-        x0 -= incr * midpoint
+        midpoint = npts / 2
+        x0 = -incr * midpoint
 
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
@@ -172,29 +176,49 @@ class ProbabilityDensityFunction(object):
         self._x = np.array(x)
 
     @classmethod
-    def fromPick(self, incr, lbound, midpoint, rbound, decfact=0.01, type='gauss'):
+    def fromPick(self, incr, lbound, barycentre, rbound, decfact=0.01, type='gauss'):
         '''
         Initialize a new ProbabilityDensityFunction object.
-        Takes incr, lbound, midpoint and rbound to derive x0 and the number
+        Takes incr, lbound, barycentre and rbound to derive x0 and the number
         of points npts for the axis vector.
         Maximum density
-        is given at the midpoint and on the boundaries the function has
+        is given at the barycentre and on the boundaries the function has
         declined to decfact times the maximum value. Integration of the
         function over a particular interval gives the probability for the
         variable value to be in that interval.
         '''
-        margin = 1.5 * np.max(midpoint - lbound, rbound - midpoint)
-        x0 = midpoint - margin
-        npts = int(2 * margin // incr)
-        params = parameter[type](lbound, midpoint, rbound, decfact)
+
+        # derive adequate window of definition
+        margin = 1.5 * np.max([barycentre - lbound, rbound - barycentre])
+
+        # find midpoint accounting also for `~obspy.UTCDateTime` object usage
         try:
-            pdf = branches[type](create_axis(x0, incr, npts), midpoint, *params)
+            midpoint = (rbound + lbound) / 2
+        except TypeError:
+            midpoint = (rbound + float(lbound)) / 2
+
+        # find x0 on a grid point and sufficient npts
+        n = int(np.ceil((barycentre - midpoint) / incr))
+        m = int(np.ceil((margin / incr)))
+        midpoint = barycentre - n * incr
+        margin = m * incr
+        x0 = midpoint - margin
+        npts = 2 * m
+
+        # calculate parameter for pdf representing function
+        params = parameter[type](lbound, barycentre, rbound, decfact)
+
+        # calculate pdf values
+        try:
+            pdf = branches[type](create_axis(x0, incr, npts), barycentre, *params)
         except TypeError as e:
             print('Warning:\n' + e.message + '\n' + 'trying timestamp instead')
-            assert isinstance(midpoint, UTCDateTime), 'object not capable of' \
+            assert isinstance(barycentre, UTCDateTime), 'object not capable of' \
                                                     ' timestamp representation'
             pdf = branches[type](create_axis(x0, incr, npts),
-                                 midpoint.timestamp, *params)
+                                 barycentre.timestamp, *params)
+
+        # return the object
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def commonlimits(self, incr, other, max_npts=1e5):
@@ -209,36 +233,40 @@ class ProbabilityDensityFunction(object):
         :param r2:
         :param max_npts:
         :return:
+
         '''
+        # >>> manu = ProbabilityDensityFunction.fromPick(0.01, 0.3, 0.5, 0.54)
+        # >>> auto = ProbabilityDensityFunction.fromPick(0.01, 0.3, 0.34, 0.54)
+        # >>> manu.commonlimits(0.01, auto)
+        # (
 
         l1 = self.x0
-        r1 = np.max(self.axis)
+        r1 = l1 + self.incr * self.npts
         l2 = other.x0
-        r2 = np.max(other.axis)
+        r2 = l2 + other.incr * other.npts
 
-        if l1 >= l2 and r1 >= r2:
-            x0 = l2
-            npts = int(r1 - x0 // incr)
-        elif l1 < l2 and r1 >= r2:
+        if l1 < l2:
             x0 = l1
-            npts = int(r1 - x0 // incr)
-        elif l1 >= l2 and r1 < r2:
-            x0 = l2
-            npts = int(r2 - x0 // incr)
-        elif l1 >= r2:
-            x0 = l2
-            npts = int(r1 - x0 // incr)
-        elif l2 >= r1:
-            x0 = l1
-            npts = int(r2 - x0 // incr)
         else:
-            x0 = None
-            npts = None
+            x0 = l2
+
+        # calculate index for rounding
+        ri = int(np.ceil(np.abs(np.log10(incr))))
+
+        if r1 < r2:
+            npts = int(round(r2 - x0, ri) // incr)
+        else:
+            npts = int(round(r1 - x0, ri) // incr)
 
         if npts > max_npts:
             raise ValueError('Maximum number of points exceeded:\n'
                              'max_npts - %d\n'
                              'npts - %d\n' % (max_npts, npts))
+
+        npts = np.max([npts, self.npts, other.npts])
+
+        if npts < self.npts or npts < other.npts:
+            raise ValueError('new npts is to small')
 
         return x0, npts
 
@@ -268,9 +296,9 @@ class ProbabilityDensityFunction(object):
 
         x = create_axis(x0, incr, npts)
 
-        sstart = np.where(x == self.x0)
+        sstart = find_nearest_index(x, self.x0)
         s_end = sstart + self.data.size
-        ostart = np.where(x == other.x0)
+        ostart = find_nearest_index(x, other.x0)
         o_end = ostart + other.data.size
 
         pdf_self[sstart:s_end] = self.data
