@@ -15,6 +15,7 @@ def create_axis(x0, incr, npts):
         ax[i] = x0 + incr * i
     return ax
 
+
 def find_nearest_index(array, value):
     return (np.abs(array-value)).argmin()
 
@@ -135,7 +136,7 @@ class ProbabilityDensityFunction(object):
         # x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
         #
         # pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
-        # 
+        #
         # # shift axis values for correct plotting
         # midpoint = npts / 2
         # x0 = incr * midpoint
