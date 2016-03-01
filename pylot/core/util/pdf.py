@@ -82,9 +82,9 @@ def gauss_branches(x, mu, sig1, sig2, a1, a2):
     fun_vals = []
     for k in x:
         if k < mu:
-            fun_vals.append(a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1)**2 / 2 ))
+            fun_vals.append(a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2))
         else:
-            fun_vals.append(a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) / sig2)**2 / 2))
+            fun_vals.append(a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) / sig2) ** 2 / 2))
     return np.array(fun_vals)
 
 
