@@ -431,13 +431,14 @@ class MainWindow(QMainWindow):
             print('warning: {0}'.format(e))
             directory = os.path.join(self.getRoot(), self.getEventFileName())
             file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
-            fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
+            fname, selected_filter = QFileDialog.getSaveFileName(self, 'Save event data ...',
                                                 directory, file_filter)
 
-            fbasename, exform = os.path.splitext(fname[0])
+            fbasename, exform = os.path.splitext(fname)
 
-            if not exform:
-                exform = file_filter[0].split('*')[1][:-1]
+            if not exform and selected_filter:
+                exform = selected_filter.split('*')[1][:-1]
+
             return fbasename, exform
 
         settings = QSettings()
