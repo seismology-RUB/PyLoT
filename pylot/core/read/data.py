@@ -432,11 +432,13 @@ class Data(object):
                     if firstonset is None or firstonset > onset:
                         firstonset = onset
 
-            if 'smi:local' in self.getID():
+            if 'smi:local' in self.getID() and firstonset:
                 fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
                 ID = ResourceIdentifier('event/' + fonset_str)
                 ID.convertIDToQuakeMLURI(authority_id=authority_id)
                 self.getEvtData().resource_id = ID
+            else:
+                print('No picks to apply!')
 
         def applyArrivals(arrivals):
             """
