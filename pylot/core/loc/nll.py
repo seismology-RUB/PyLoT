@@ -3,7 +3,7 @@
 
 import subprocess
 import os
-from obspy.core.event import readEvents
+from obspy import readEvents
 from pylot.core.pick.utils import writephases
 from pylot.core.util.utils import getPatternLine
 from pylot.core.util.version import get_git_version as _getVersionString
