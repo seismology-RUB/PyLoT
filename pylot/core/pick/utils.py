@@ -321,7 +321,7 @@ def crossings_nonzero_all(data):
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
 
-def getSNR(X, TSNR, t1):
+def getSNR(X, TSNR, t1, tracenum=0):
     '''
     Function to calculate SNR of certain part of seismogram relative to
     given time (onset) out of given noise and signal windows. A safety gap
@@ -340,9 +340,11 @@ def getSNR(X, TSNR, t1):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    x = X[0].data
-    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
-                  X[0].stats.delta)
+    x = X[tracenum].data
+    npts = X[tracenum].stats.npts
+    sr = X[tracenum].stats.sampling_rate
+    dt = X[tracenum].stats.delta
+    t = np.arange(0, npts / sr, dt)
 
     # get noise window
     inoise = getnoisewin(t, t1, TSNR[0], TSNR[1])
