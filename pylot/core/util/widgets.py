@@ -470,8 +470,12 @@ class PickDlg(QDialog):
         noise_win = settings.value('picking/noise_win_P', 5.)
         gap_win = settings.value('picking/gap_win_P', .2)
         signal_win = settings.value('picking/signal_win_P', 3.)
+        itrace = int(trace_number)
 
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+        while itrace > len(wfdata) - 1:
+            itrace -= 1
+
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
 
         snr = result[0]
         noiselevel = result[2] * nfac
