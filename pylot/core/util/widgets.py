@@ -422,6 +422,11 @@ class PickDlg(QDialog):
                 trace = selectTrace(trace, 'NE')
                 if trace:
                     wfdata.append(trace)
+        elif component == '1' or component == '2':
+            for trace in self.getWFData():
+                trace = selectTrace(trace, '12')
+                if trace:
+                    wfdata.append(trace)
         elif component == 'Z':
             wfdata = self.getWFData().select(component=component)
         return wfdata
@@ -527,9 +532,15 @@ class PickDlg(QDialog):
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
-        horiz_comp = ('n', 'e')
+        try:
+            horiz_comp = ('n', 'e')
+            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        except IndexError as e:
+            print('warning: {0}'.format(e))
+            horiz_comp = ('1', '2')
 
         data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+
 
         x_res = getResolutionWindow(snr)
 
