@@ -480,6 +480,15 @@ class PickDlg(QDialog):
         while itrace > len(wfdata) - 1:
             itrace -= 1
 
+        # copy data for plotting
+        data = self.getWFData().copy()
+
+        # filter data and trace on which is picked prior to determination of SNR
+        phase = self.selectPhase.currentText()
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        data.filter(**filteroptions)
+        wfdata.filter(**filteroptions)
+
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
 
         snr = result[0]
@@ -488,16 +497,16 @@ class PickDlg(QDialog):
         x_res = getResolutionWindow(snr)
 
         # remove mean noise level from waveforms
-        wfdata = self.getWFData().copy()
-        for trace in wfdata:
+        for trace in data:
             t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
+
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
-        self.getPlotWidget().plotWFData(wfdata=wfdata,
+        self.getPlotWidget().plotWFData(wfdata=data,
                                         title=self.getStation() +
                                               ' picking mode',
                                         zoomx=self.getXLims(),
