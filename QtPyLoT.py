@@ -456,7 +456,7 @@ class MainWindow(QMainWindow):
             ret = msgBox.exec_()
             if ret == QMessageBox.Save:
                 self.getData().resetPicks()
-                self.saveData()
+                return self.saveData()
             elif ret == QMessageBox.Cancel:
                 return False
         try:
