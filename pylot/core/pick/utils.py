@@ -362,8 +362,12 @@ def getSNR(X, TSNR, t1, tracenum=0):
     x = x - np.mean(x[inoise])
 
     # calculate ratios
-    noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
-    signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+    # noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
+    # signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+
+    noiselevel = np.abs(x[inoise]).max()
+    signallevel = np.abs(x[isignal]).max()
+
     SNR = signallevel / noiselevel
     SNRdB = 10 * np.log10(SNR)
 

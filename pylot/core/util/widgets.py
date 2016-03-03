@@ -516,31 +516,34 @@ class PickDlg(QDialog):
         gap_win = settings.value('picking/gap_win_P', .2)
         signal_win = settings.value('picking/signal_win_P', 3.)
 
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
-
-        snr = result[0]
-        noiselevel = result[2] * nfac
-
+        # copy data for plotting
         data = self.getWFData().copy()
 
+        # filter data and trace on which is picked prior to determination of SNR
         phase = self.selectPhase.currentText()
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         data.filter(**filteroptions)
+        wfdata.filter(**filteroptions)
 
+        # determine SNR and noiselevel
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+        snr = result[0]
+        noiselevel = result[2] * nfac
+
+        # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
+        # account for non-oriented horizontal waveforms
         try:
             horiz_comp = ('n', 'e')
             data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
         except IndexError as e:
             print('warning: {0}'.format(e))
             horiz_comp = ('1', '2')
-
-        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
-
+            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
         x_res = getResolutionWindow(snr)
 
