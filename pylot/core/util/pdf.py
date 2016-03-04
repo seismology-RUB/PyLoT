@@ -3,6 +3,7 @@
 
 import numpy as np
 from obspy import UTCDateTime
+from pylot.core.util.utils import find_nearest
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -133,13 +134,13 @@ class ProbabilityDensityFunction(object):
             'both operands must be of type ProbabilityDensityFunction'
 
         raise NotImplementedError('implementation of resulting axis unclear - feature pending!')
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
-        pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
-
-        # shift axis values for correct plotting
-        npts *= 2
-        x0 *= 2
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        # x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        # pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
+        #
+        # # shift axis values for correct plotting
+        # npts *= 2
+        # x0 *= 2
+        # return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
@@ -236,8 +237,27 @@ class ProbabilityDensityFunction(object):
         return rval * self.incr
 
     def standard_deviation(self):
-        pass
+        mu = self.expectation()
+        rval = 0
+        for n, x in enumerate(self.axis):
+            rval += (x - mu) ** 2 * self.data[n]
+        return rval * self.incr
 
+    def prob_lt_val(self, value):
+        if value <= self.axis[0] or value > self.axis[-1]:
+            raise ValueError('value out of bounds: {0}'.format(value))
+        return self.data[self.axis <= value].sum() * self.incr
+
+    def prob_gt_val(self, value):
+        if value < self.axis[0] or value >= self.axis[-1]:
+            raise ValueError('value out of bounds: {0}'.format(value))
+        return self.data[self.axis >= value].sum() * self.incr
+
+    def prob_val(self, value):
+        if not (self.axis[0] <= value <= self.axis[-1]):
+            Warning('{0} not on axis'.format(value))
+            return None
+        return self.data[find_nearest(self.axis, value)] * self.incr
 
     def commonlimits(self, incr, other, max_npts=1e5):
         '''
