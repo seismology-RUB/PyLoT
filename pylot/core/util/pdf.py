@@ -157,7 +157,7 @@ class ProbabilityDensityFunction(object):
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __nonzero__(self):
-        return True
+        return bool(np.round(self.prob_gt_val(self.axis[0]), 4) == 1.)
 
     @property
     def data(self):
@@ -258,6 +258,18 @@ class ProbabilityDensityFunction(object):
             Warning('{0} not on axis'.format(value))
             return None
         return self.data[find_nearest(self.axis, value)] * self.incr
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+
+        plt.plot(self.axis, self.data)
+        plt.xlabel('x')
+        plt.ylabel('f(x)')
+        if self:
+            plt.title('Probability density function')
+        else:
+            plt.title('Function not suitable as probability density function')
+        plt.show()
 
     def commonlimits(self, incr, other, max_npts=1e5):
         '''
