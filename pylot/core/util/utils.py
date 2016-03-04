@@ -246,6 +246,16 @@ def findComboBoxIndex(combo_box, val):
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
 
+def find_nearest(array, value):
+    '''
+    Function find_nearest takes an array and a value and returns the
+    index of the nearest value found in the array.
+    :param array:
+    :param value:
+    :return:
+    '''
+    return (np.abs(array-value)).argmin()
+
 def fnConstructor(s):
     '''
 
