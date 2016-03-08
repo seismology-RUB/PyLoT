@@ -521,10 +521,10 @@ class PickDlg(QDialog):
 
         settings = QSettings()
 
-        nfac = settings.value('picking/nfac_P', 1.5)
-        noise_win = settings.value('picking/noise_win_P', 5.)
-        gap_win = settings.value('picking/gap_win_P', .2)
-        signal_win = settings.value('picking/signal_win_P', 3.)
+        nfac = settings.value('picking/nfac_S', 1.5)
+        noise_win = settings.value('picking/noise_win_S', 5.)
+        gap_win = settings.value('picking/gap_win_S', .2)
+        signal_win = settings.value('picking/signal_win_S', 3.)
 
         # copy data for plotting
         data = self.getWFData().copy()
@@ -583,15 +583,21 @@ class PickDlg(QDialog):
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
 
-        wfdata = self.getWFData().copy().select(channel=channel)
-        stime = self.getStartTime()
-        # get earliest and latest possible pick and symmetric pick error
-        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
-
         # get name of phase actually picked
         phase = self.selectPhase.currentText()
 
+        # get filter parameter for the phase to be picked
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+
+        # copy and filter data for earliest and latest possible picks
+        wfdata = self.getWFData().copy().select(channel=channel)
+        wfdata.filter(**filteroptions)
+
+        # get earliest and latest possible pick and symmetric pick error
+        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
+
         # return absolute time values for phases
+        stime = self.getStartTime()
         epp = stime + epp
         mpp = stime + pick
         lpp = stime + lpp
