@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import warnings
 import numpy as np
 from obspy import UTCDateTime
 from pylot.core.util.utils import find_nearest
@@ -9,17 +10,19 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
+def broadcast(pdf, si, ei, data):
+    try:
+        pdf[si:ei] = data
+    except ValueError as e:
+        warnings.warn(str(e), Warning)
+        return broadcast(pdf, si, ei, data[:-1])
+    return pdf
 
 def create_axis(x0, incr, npts):
     ax = np.zeros(npts)
     for i in range(npts):
         ax[i] = x0 + incr * i
     return ax
-
-
-def find_nearest_index(array, value):
-    return (np.abs(array-value)).argmin()
-
 
 def gauss_parameter(te, tm, tl, eta):
     '''
@@ -265,6 +268,7 @@ class ProbabilityDensityFunction(object):
         plt.plot(self.axis, self.data)
         plt.xlabel('x')
         plt.ylabel('f(x)')
+        plt.autoscale(axis='x', tight=True)
         if self:
             plt.title('Probability density function')
         else:
@@ -346,13 +350,13 @@ class ProbabilityDensityFunction(object):
 
         x = create_axis(x0, incr, npts)
 
-        sstart = find_nearest_index(x, self.x0)
+        sstart = find_nearest(x, self.x0)
         s_end = sstart + self.data.size
-        ostart = find_nearest_index(x, other.x0)
+        ostart = find_nearest(x, other.x0)
         o_end = ostart + other.data.size
 
-        pdf_self[sstart:s_end] = self.data
-        pdf_other[ostart:o_end] = other.data
+        broadcast(pdf_self, sstart, s_end, self.data)
+        broadcast(pdf_other, ostart, o_end, other.data)
 
         return x0, incr, npts, pdf_self, pdf_other
 
