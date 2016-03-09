@@ -10,14 +10,6 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
-def broadcast(pdf, si, ei, data):
-    try:
-        pdf[si:ei] = data
-    except ValueError as e:
-        warnings.warn(str(e), Warning)
-        return broadcast(pdf, si, ei, data[:-1])
-    return pdf
-
 def create_axis(x0, incr, npts):
     ax = np.zeros(npts)
     for i in range(npts):
@@ -224,6 +216,14 @@ class ProbabilityDensityFunction(object):
         # return the object
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
+    def broadcast(self, pdf, si, ei, data):
+        try:
+            pdf[si:ei] = data
+        except ValueError as e:
+            warnings.warn(str(e), Warning)
+            return self.broadcast(pdf, si, ei, data[:-1])
+        return pdf
+
     def expectation(self):
         '''
         returns the expectation value of the actual pdf object
@@ -355,8 +355,7 @@ class ProbabilityDensityFunction(object):
         ostart = find_nearest(x, other.x0)
         o_end = ostart + other.data.size
 
-        broadcast(pdf_self, sstart, s_end, self.data)
-        broadcast(pdf_other, ostart, o_end, other.data)
+        pdf_self = self.broadcast(pdf_self, sstart, s_end, self.data)
+        pdf_other = self.broadcast(pdf_other, ostart, o_end, other.data)
 
         return x0, incr, npts, pdf_self, pdf_other
-
