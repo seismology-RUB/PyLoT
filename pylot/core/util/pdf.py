@@ -128,14 +128,13 @@ class ProbabilityDensityFunction(object):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        raise NotImplementedError('implementation of resulting axis unclear - feature pending!')
-        # x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
-        # pdf = np.convolve(pdf_self, pdf_other, 'same') * incr
-        #
-        # # shift axis values for correct plotting
-        # npts *= 2
-        # x0 *= 2
-        # return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        pdf = np.convolve(pdf_self, pdf_other, 'full') * incr
+
+        # shift axis values for correct plotting
+        npts = pdf.size
+        x0 *= 2
+        return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __sub__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
