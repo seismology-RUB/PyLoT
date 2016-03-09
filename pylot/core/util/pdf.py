@@ -153,6 +153,9 @@ class ProbabilityDensityFunction(object):
     def __nonzero__(self):
         return bool(np.round(self.prob_gt_val(self.axis[0]), 4) == 1.)
 
+    def __str__(self):
+        return str(self.data)
+
     @property
     def data(self):
         return self._pdf
