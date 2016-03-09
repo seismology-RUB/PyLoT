@@ -151,10 +151,17 @@ class ProbabilityDensityFunction(object):
         return ProbabilityDensityFunction(x0, incr, npts, pdf)
 
     def __nonzero__(self):
-        return bool(np.round(self.prob_gt_val(self.axis[0]), 4) == 1.)
+        prec = self.precision(self.incr)
+        gtzero = np.any(self.data >= 0)
+        probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
+        return (gtzero and probone)
 
     def __str__(self):
         return str(self.data)
+
+    @staticmethod
+    def precision(incr):
+        return int(np.ceil(np.abs(np.log10(incr))))
 
     @property
     def data(self):
@@ -307,7 +314,7 @@ class ProbabilityDensityFunction(object):
             x0 = l2
 
         # calculate index for rounding
-        ri = int(np.ceil(np.abs(np.log10(incr))))
+        ri = self.precision(incr)
 
         if r1 < r2:
             npts = int(round(r2 - x0, ri) // incr)
