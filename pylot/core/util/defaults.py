@@ -46,3 +46,7 @@ OUTPUTFORMATS = {'.xml':'QUAKEML',
                  '.obs':'NLLOC_OBS'}
 
 LOCTOOLS = dict(nll = nll, hsat = hsat, velest = velest)
+
+COMPONENTS_MAPPING = dict(Z = 2, N = 1, E = 0)
+COMPONENTS_MAPPING['1'] = 1
+COMPONENTS_MAPPING['2'] = 0

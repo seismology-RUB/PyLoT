@@ -535,7 +535,7 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.getData().getWFData().select(component=comp)
-        self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
+        self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
         self.draw()
         plotDict = self.getPlotWidget().getPlotDict()
         pos = plotDict.keys()

@@ -25,7 +25,8 @@ from obspy import Stream, UTCDateTime
 from pylot.core.read.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS,\
+    COMPONENTS_MAPPING
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
 
@@ -87,13 +88,18 @@ class MPLWidget(FigureCanvas):
         self._parent = parent
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None, scaleddata=False):
+                   noiselevel=None, scaleddata=False, mapping=True):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = getGlobalTimes(wfdata)
+        nmax = 0
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
             station = trace.stats.station
+            if mapping:
+                comp = channel[-1]
+                n = COMPONENTS_MAPPING[comp]
+                nmax = n if n > nmax else nmax
             msg = 'plotting %s channel of station %s' % (channel, station)
             print(msg)
             stime = trace.stats.starttime - wfstart
@@ -110,7 +116,7 @@ class MPLWidget(FigureCanvas):
         ylabel = ''
         self.updateWidget(xlabel, ylabel, title)
         self.setXLims([0, wfend - wfstart])
-        self.setYLims([-0.5, n + 0.5])
+        self.setYLims([-0.5, nmax + 0.5])
         if zoomx is not None:
             self.setXLims(zoomx)
         if zoomy is not None:
