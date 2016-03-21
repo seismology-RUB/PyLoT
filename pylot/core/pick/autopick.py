@@ -11,8 +11,8 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 from pylot.core.pick.picker import AICPicker, PragPicker
+from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
     getSNR, fmpicker, checkPonsets, wadaticheck
@@ -175,6 +175,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             pstart = 0
             pstop = len(zdat[0].data) * zdat[0].stats.delta
         cuttimes = [pstart, pstop]
+        cf1 = None
         if algoP == 'HOS':
             # calculate HOS-CF using subclass HOScf of class
             # CharacteristicFunction
@@ -188,6 +189,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
         # calculate AIC-HOS-CF using subclass AICcf of class
         # CharacteristicFunction
         # class needs stream object => build it
+        assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
+                'correctly: maybe the algorithm name ({algoP}) is ' \
+                'corrupted'.format(algoP=algoP)
         tr_aic = tr_filt.copy()
         tr_aic.data = cf1.getCF()
         z_copy[0].data = tr_aic.data
@@ -270,6 +274,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             cuttimes2 = [round(max([aicpick.getpick() - Precalcwin, 0])),
                          round(min([len(zdat[0].data) * zdat[0].stats.delta,
                                     aicpick.getpick() + Precalcwin]))]
+            cf2 = None
             if algoP == 'HOS':
                 # calculate HOS-CF using subclass HOScf of class
                 # CharacteristicFunction
@@ -282,6 +287,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
                             addnoise)  # instance of ARZcf
             ##############################################################
             # get refined onset time from CF2 using class Picker
+            assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
+                'correctly: maybe the algorithm name ({algoP}) is ' \
+                'corrupted'.format(algoP=algoP)
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
                                   aicpick.getpick())
             mpickP = refPpick.getpick()
