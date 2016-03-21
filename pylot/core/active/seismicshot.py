@@ -6,8 +6,8 @@ import numpy as np
 from obspy.core import read
 from obspy import Stream
 from obspy import Trace
-from pylot.core.pick.CharFuns import HOScf
-from pylot.core.pick.CharFuns import AICcf
+from pylot.core.pick.charfuns import HOScf
+from pylot.core.pick.charfuns import AICcf
 from pylot.core.pick.utils import getSNR
 from pylot.core.pick.utils import earllatepicker
 import matplotlib.pyplot as plt

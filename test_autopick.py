@@ -9,8 +9,8 @@
 from obspy.core import read
 import matplotlib.pyplot as plt
 import numpy as np
-from pylot.core.pick.CharFuns import *
-from pylot.core.pick.Picker import *
+from pylot.core.pick.charfuns import *
+from pylot.core.pick.picker import *
 import glob
 import argparse
 

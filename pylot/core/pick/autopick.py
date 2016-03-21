@@ -12,8 +12,8 @@ function conglomerate utils.
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate
-from pylot.core.pick.Picker import AICPicker, PragPicker
-from pylot.core.pick.CharFuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
+from pylot.core.pick.picker import AICPicker, PragPicker
+from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
     getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine

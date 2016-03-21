@@ -22,10 +22,10 @@ calculated after Diehl & Kissling (2009).
 import numpy as np
 import matplotlib.pyplot as plt
 from pylot.core.pick.utils import getnoisewin, getsignalwin
-from pylot.core.pick.CharFuns import CharacteristicFunction
+from pylot.core.pick.charfuns import CharacteristicFunction
 import warnings
 
-class AutoPicking(object):
+class AutoPicker(object):
     '''
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
@@ -137,7 +137,7 @@ class AutoPicking(object):
         self.Pick = None
 
 
-class AICPicker(AutoPicking):
+class AICPicker(AutoPicker):
     '''
     Method to derive the onset time of an arriving phase based on CF
     derived from AIC. In order to get an impression of the quality of this inital pick,
@@ -289,7 +289,7 @@ class AICPicker(AutoPicking):
             print('AICPicker: Could not find minimum, picking window too short?')
 
 
-class PragPicker(AutoPicking):
+class PragPicker(AutoPicker):
     '''
     Method of pragmatic picking exploiting information given by CF.
     '''
