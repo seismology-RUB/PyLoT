@@ -3,9 +3,9 @@
 
 import os
 import glob
-from obspy.xseed import Parser
+from obspy.io.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
-from obspy import readEvents, read_inventory
+from obspy import read_events, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
 from pylot.core.read.io import readPILOTEvent
@@ -37,9 +37,10 @@ class Data(object):
         if isinstance(evtdata, Event):
             self.evtdata = evtdata
         elif isinstance(evtdata, dict):
-            cat = readPILOTEvent(**evtdata)
+            evt = readPILOTEvent(**evtdata)
+            self.evtdata = evt
         elif evtdata:
-            cat = readEvents(evtdata)
+            cat = read_events(evtdata)
             self.evtdata = cat[0]
         else:  # create an empty Event object
             self.setNew()
