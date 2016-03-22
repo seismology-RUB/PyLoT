@@ -11,14 +11,16 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pylot.core.read.inputs import AutoPickParameter
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
-from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker,\
+from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine
 from pylot.core.read.data import Data
 from pylot.core.analysis.magnitude import WApp
+
 
 def autopickevent(data, param):
     stations = []
@@ -46,14 +48,18 @@ def autopickevent(data, param):
     # check S-P times (Wadati)
     return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
 
+
 def autopickstation(wfstream, pickparam, verbose=False):
     """
-    :param: wfstream
-    :type: `~obspy.core.stream.Stream`
+    :param wfstream: `~obspy.core.stream.Stream`  containing waveform
+    :type wfstream: obspy.core.stream.Stream
 
-    :param: pickparam
-    :type: container of picking parameters from input file,
+    :param pickparam: container of picking parameters from input file,
            usually autoPyLoT.in
+    :type pickparam: AutoPickParameter
+    :param verbose:
+    :type verbose: bool
+
     """
 
     # declaring pickparam variables (only for convenience)
@@ -137,7 +143,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Pflag = 0
     Sflag = 0
     Pmarker = []
-    Ao = None     # Wood-Anderson peak-to-peak amplitude
+    Ao = None  # Wood-Anderson peak-to-peak amplitude
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -152,9 +158,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##########################################\nautopickstation:' \
-             ' Working on P onset of station {station}\nFiltering vertical ' \
-             'trace ...\n{data}'.format(station=zdat[0].stats.station,
-                                        data=str(zdat))
+              ' Working on P onset of station {station}\nFiltering vertical ' \
+              'trace ...\n{data}'.format(station=zdat[0].stats.station,
+                                         data=str(zdat))
         if verbose: print(msg)
         z_copy = zdat.copy()
         # filter and taper data
@@ -169,8 +175,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         Ldiff = Lwf - Lc
         if Ldiff < 0:
-            msg =  'autopickstation: Cutting times are too large for actual ' \
-                   'waveform!\nUsing entire waveform instead!'
+            msg = 'autopickstation: Cutting times are too large for actual ' \
+                  'waveform!\nUsing entire waveform instead!'
             if verbose: print(msg)
             pstart = 0
             pstop = len(zdat[0].data) * zdat[0].stats.delta
@@ -190,8 +196,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
         # CharacteristicFunction
         # class needs stream object => build it
         assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
-                'correctly: maybe the algorithm name ({algoP}) is ' \
-                'corrupted'.format(algoP=algoP)
+                                                        'correctly: maybe the algorithm name ({algoP}) is ' \
+                                                        'corrupted'.format(
+            algoP=algoP)
         tr_aic = tr_filt.copy()
         tr_aic.data = cf1.getCF()
         z_copy[0].data = tr_aic.data
@@ -221,10 +228,10 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 trH1_filt = edat.copy()
                 trH2_filt = ndat.copy()
                 trH1_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1],
+                                 freqmax=bph1[1],
                                  zerophase=False)
                 trH2_filt.filter('bandpass', freqmin=bph1[0],
-                                  freqmax=bph1[1],
+                                 freqmax=bph1[1],
                                  zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
@@ -253,8 +260,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
         ##############################################################
         # go on with processing if AIC onset passes quality control
         if (aicpick.getSlope() >= minAICPslope and
-                    aicpick.getSNR() >= minAICPSNR and
-                    Pflag == 1):
+                    aicpick.getSNR() >= minAICPSNR and Pflag == 1):
             aicPflag = 1
             msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -288,15 +294,16 @@ def autopickstation(wfstream, pickparam, verbose=False):
             ##############################################################
             # get refined onset time from CF2 using class Picker
             assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
-                'correctly: maybe the algorithm name ({algoP}) is ' \
-                'corrupted'.format(algoP=algoP)
+                                                            'correctly: maybe the algorithm name ({algoP}) is ' \
+                                                            'corrupted'.format(
+                algoP=algoP)
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
                                   aicpick.getpick())
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
                 # quality assessment
-                # get earliest and latest possible pick and symmetrized uncertainty
+                # get earliest/latest possible pick and symmetrized uncertainty
                 [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
                                                           mpickP, iplot)
 
@@ -481,7 +488,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             #############################################################
             if mpickS is not None:
                 # quality assessment
-                # get earliest and latest possible pick and symmetrized uncertainty
+                # get earliest/latest possible pick and symmetrized uncertainty
                 h_copy[0].data = trH1_filt.data
                 [lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
@@ -496,28 +503,30 @@ def autopickstation(wfstream, pickparam, verbose=False):
                         epick = [epickS1, epickS2]
                         lpick = [lpickS1, lpickS2]
                         pickerr = [Serror1, Serror2]
-                        if epickS1 == None and epickS2 is not None:
+                        if epickS1 is None and epickS2 is not None:
                             ipick = 1
-                        elif epickS1 is not None and epickS2 == None:
+                        elif epickS1 is not None and epickS2 is None:
                             ipick = 0
                         elif epickS1 is not None and epickS2 is not None:
                             ipick = np.argmin([epickS1, epickS2])
                     elif algoS == 'AR3':
-                        [lpickS3, epickS3, Serror3] = earllatepicker(h_copy, nfacS,
+                        [lpickS3, epickS3, Serror3] = earllatepicker(h_copy,
+                                                                     nfacS,
                                                                      tsnrh,
-                                                                     mpickS, iplot)
+                                                                     mpickS,
+                                                                     iplot)
                         # get earliest pick of all three picks
                         epick = [epickS1, epickS2, epickS3]
                         lpick = [lpickS1, lpickS2, lpickS3]
                         pickerr = [Serror1, Serror2, Serror3]
-                        if epickS1 == None and epickS2 is not None \
+                        if epickS1 is None and epickS2 is not None \
                                 and epickS3 is not None:
                             ipick = np.argmin([epickS2, epickS3])
-                        elif epickS1 is not None and epickS2 == None \
+                        elif epickS1 is not None and epickS2 is None \
                                 and epickS3 is not None:
                             ipick = np.argmin([epickS2, epickS3])
                         elif epickS1 is not None and epickS2 is not None \
-                                and epickS3 == None:
+                                and epickS3 is None:
                             ipick = np.argmin([epickS1, epickS2])
                         elif epickS1 is not None and epickS2 is not None \
                                 and epickS3 is not None:
@@ -546,7 +555,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                           'SNR[dB]: {2}\n'
                           '################################################'
                           ''.format(Sweight, SNRS, SNRSdB))
-                ##################################################################
+                ################################################################
                 # get Wood-Anderson peak-to-peak amplitude
                 # initialize Data object
                 data = Data()
@@ -563,8 +572,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
                     else:
                         # use larger window for getting peak-to-peak amplitude
                         # as the S pick is quite unsure
-                        wapp = WApp(cordat, mpickP, mpickP + sstop + \
-                                   (0.5 * (mpickP + sstop)), iplot)
+                        wapp = WApp(cordat, mpickP, mpickP + sstop +
+                                    (0.5 * (mpickP + sstop)), iplot)
 
                     Ao = wapp.getwapp()
 
@@ -593,7 +602,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
                 wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
-                                                                     + sstop)), iplot)
+                                                                     + sstop)),
+                            iplot)
                 Ao = wapp.getwapp()
 
     else:
@@ -650,7 +660,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             plt.title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
                                                tr_filt.stats.channel,
                                                Pweight))
-            
+
         plt.yticks([])
         plt.ylim([-1.5, 1.5])
         plt.ylabel('Normalized Counts')
@@ -789,7 +799,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     phase = 'P'
     phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
                  'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
-                   'w0': None, 'fc': None, 'Mo': None, 'Mw': None}
+                 'w0': None, 'fc': None, 'Mo': None, 'Mw': None}
     picks = {phase: phasepick}
     # add P marker
     picks[phase]['marked'] = Pmarker
@@ -800,7 +810,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
     picks[phase] = phasepick
     # add Wood-Anderson amplitude
     picks[phase]['Ao'] = Ao
-
 
     return picks
 
@@ -827,70 +836,72 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
 
     newpicks = {}
     for i in range(0, len(badpicks)):
-         if len(badpicks[i][0]) > 4:
-             Ppattern = '%s  ?    ?    ? P' % badpicks[i][0]
-         elif len(badpicks[i][0]) == 4:
-             Ppattern = '%s   ?    ?    ? P' % badpicks[i][0]
-         elif len(badpicks[i][0]) < 4:
-             Ppattern = '%s    ?    ?    ? P' % badpicks[i][0]
-         nllocline = getPatternLine(NLLocfile, Ppattern)
-         res = nllocline.split(None)[16]
-         # get theoretical P-onset time from residuum
-         badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
+        if len(badpicks[i][0]) > 4:
+            Ppattern = '%s  ?    ?    ? P' % badpicks[i][0]
+        elif len(badpicks[i][0]) == 4:
+            Ppattern = '%s   ?    ?    ? P' % badpicks[i][0]
+        elif len(badpicks[i][0]) < 4:
+            Ppattern = '%s    ?    ?    ? P' % badpicks[i][0]
+        nllocline = getPatternLine(NLLocfile, Ppattern)
+        res = nllocline.split(None)[16]
+        # get theoretical P-onset time from residuum
+        badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
 
-         # get corresponding waveform stream
-         msg = '#######################################################\n' \
-               'iteratepicker: Re-picking station {0}'.format(badpicks[i][0])
-         print(msg)
-         wf2pick = wf.select(station=badpicks[i][0])
+        # get corresponding waveform stream
+        msg = '#######################################################\n' \
+              'iteratepicker: Re-picking station {0}'.format(badpicks[i][0])
+        print(msg)
+        wf2pick = wf.select(station=badpicks[i][0])
 
-         # modify some picking parameters
-         pstart_old = pickparameter.getParam('pstart')
-         pstop_old = pickparameter.getParam('pstop')
-         sstop_old = pickparameter.getParam('sstop')
-         pickwinP_old = pickparameter.getParam('pickwinP')
-         Precalcwin_old = pickparameter.getParam('Precalcwin')
-         noisefactor_old = pickparameter.getParam('noisefactor')
-         zfac_old = pickparameter.getParam('zfac')
-         pickparameter.setParam(pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
-          - pickparameter.getParam('tlta')]))
-         pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
-          (3 * pickparameter.getParam('tlta')))
-         pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)
-         pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
-         pickparameter.setParam(Precalcwin=pickparameter.getParam('Precalcwin') / 2)
-         pickparameter.setParam(noisefactor=1.0)
-         pickparameter.setParam(zfac=1.0)
-         print("iteratepicker: The following picking parameters have been modified for iterative picking:")
-         print("pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
-         print("pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
-         print("sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
-         print("pickwinP: %fs => %fs" % (pickwinP_old, pickparameter.getParam('pickwinP')))
-         print("Precalcwin: %fs => %fs" % (Precalcwin_old, pickparameter.getParam('Precalcwin')))
-         print("noisefactor: %f => %f" % (noisefactor_old, pickparameter.getParam('noisefactor')))
-         print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
+        # modify some picking parameters
+        pstart_old = pickparameter.getParam('pstart')
+        pstop_old = pickparameter.getParam('pstop')
+        sstop_old = pickparameter.getParam('sstop')
+        pickwinP_old = pickparameter.getParam('pickwinP')
+        Precalcwin_old = pickparameter.getParam('Precalcwin')
+        noisefactor_old = pickparameter.getParam('noisefactor')
+        zfac_old = pickparameter.getParam('zfac')
+        pickparameter.setParam(
+            pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
+                        - pickparameter.getParam('tlta')]))
+        pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
+                                     (3 * pickparameter.getParam('tlta')))
+        pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)
+        pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
+        pickparameter.setParam(
+            Precalcwin=pickparameter.getParam('Precalcwin') / 2)
+        pickparameter.setParam(noisefactor=1.0)
+        pickparameter.setParam(zfac=1.0)
+        print(
+        "iteratepicker: The following picking parameters have been modified for iterative picking:")
+        print(
+        "pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
+        print(
+        "pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
+        print(
+        "sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
+        print("pickwinP: %fs => %fs" % (
+        pickwinP_old, pickparameter.getParam('pickwinP')))
+        print("Precalcwin: %fs => %fs" % (
+        Precalcwin_old, pickparameter.getParam('Precalcwin')))
+        print("noisefactor: %f => %f" % (
+        noisefactor_old, pickparameter.getParam('noisefactor')))
+        print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
 
-         # repick station
-         newpicks = autopickstation(wf2pick, pickparameter)
+        # repick station
+        newpicks = autopickstation(wf2pick, pickparameter)
 
-         # replace old dictionary with new one
-         picks[badpicks[i][0]] = newpicks
+        # replace old dictionary with new one
+        picks[badpicks[i][0]] = newpicks
 
-         # reset temporary change of picking parameters
-         print("iteratepicker: Resetting picking parameters ...")
-         pickparameter.setParam(pstart=pstart_old)
-         pickparameter.setParam(pstop=pstop_old)
-         pickparameter.setParam(sstop=sstop_old)
-         pickparameter.setParam(pickwinP=pickwinP_old)
-         pickparameter.setParam(Precalcwin=Precalcwin_old)
-         pickparameter.setParam(noisefactor=noisefactor_old)
-         pickparameter.setParam(zfac=zfac_old)
+        # reset temporary change of picking parameters
+        print("iteratepicker: Resetting picking parameters ...")
+        pickparameter.setParam(pstart=pstart_old)
+        pickparameter.setParam(pstop=pstop_old)
+        pickparameter.setParam(sstop=sstop_old)
+        pickparameter.setParam(pickwinP=pickwinP_old)
+        pickparameter.setParam(Precalcwin=Precalcwin_old)
+        pickparameter.setParam(noisefactor=noisefactor_old)
+        pickparameter.setParam(zfac=zfac_old)
 
     return picks
-
-
-
-
-
-
-
