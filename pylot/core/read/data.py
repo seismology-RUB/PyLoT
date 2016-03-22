@@ -186,8 +186,11 @@ class Data(object):
         self.wforiginal = None
         if fnames is not None:
             self.appendWFData(fnames)
+        else:
+            return False
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
+        return True
 
     def appendWFData(self, fnames):
         """

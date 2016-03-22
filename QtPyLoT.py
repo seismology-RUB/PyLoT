@@ -110,8 +110,10 @@ class MainWindow(QMainWindow):
         # load and display waveform data
         self.dirty = False
         self.loadData()
-        self.loadWaveformData()
-        self.updateFilterOptions()
+        if self.loadWaveformData():
+            self.updateFilterOptions()
+        else:
+            sys.exit(0)
 
     def setupUi(self):
 
@@ -403,6 +405,8 @@ class MainWindow(QMainWindow):
 
                 else:
                     raise DatastructureError('not specified')
+            if not self.fnames:
+                return None
             return self.fnames
         except DatastructureError as e:
             print(e)
@@ -525,10 +529,13 @@ class MainWindow(QMainWindow):
     def loadWaveformData(self):
         if self.fnames and self.okToContinue():
             self.setDirty(True)
-            self.data.setWFData(self.fnames)
+            ans = self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
-            self.data.setWFData(self.getWFFnames())
-        self.plotWaveformData()
+            ans = self.data.setWFData(self.getWFFnames())
+        if ans:
+            self.plotWaveformData()
+        else:
+            return ans
 
     def plotWaveformData(self):
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
