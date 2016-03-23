@@ -144,6 +144,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Sflag = 0
     Pmarker = []
     Ao = None  # Wood-Anderson peak-to-peak amplitude
+    picker = 'autoPyLoT' # name of the picking programm
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -796,21 +797,14 @@ def autopickstation(wfstream, pickparam, verbose=False):
 
     # create dictionary
     # for P phase
-    phase = 'P'
-    phasepick = {'lpp': lpickP, 'epp': epickP, 'mpp': mpickP, 'spe': Perror,
-                 'snr': SNRP, 'snrdb': SNRPdB, 'weight': Pweight, 'fm': FM,
-                 'w0': None, 'fc': None, 'Mo': None, 'Mw': None}
-    picks = {phase: phasepick}
-    # add P marker
-    picks[phase]['marked'] = Pmarker
+    ppick = dict(lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
+                 snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
+                 Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    phase = 'S'
-    phasepick = {'lpp': lpickS, 'epp': epickS, 'mpp': mpickS, 'spe': Serror,
-                 'snr': SNRS, 'snrdb': SNRSdB, 'weight': Sweight, 'fm': None}
-    picks[phase] = phasepick
-    # add Wood-Anderson amplitude
-    picks[phase]['Ao'] = Ao
-
+    spick = dict(lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
+                 snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
+    # merge picks into returning dictionary
+    picks = dict(P=ppick, S=spick)
     return picks
 
 

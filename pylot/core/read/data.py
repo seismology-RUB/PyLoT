@@ -421,12 +421,14 @@ class Data(object):
                     epp = phase['epp']
                     lpp = phase['lpp']
                     error = phase['spe']
+                    picker = phase['picker']
                     pick = Pick()
                     pick.time = onset
                     pick.time_errors.lower_uncertainty = onset - epp
                     pick.time_errors.upper_uncertainty = lpp - onset
                     pick.time_errors.uncertainty = error
                     pick.phase_hint = label
+                    pick.method_id = ResourceIdentifier(id=picker)
                     pick.waveform_id = WaveformStreamID(station_code=station)
                     self.getEvtData().picks.append(pick)
                     try:
