@@ -534,6 +534,7 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.getWFFnames())
         if ans:
             self.plotWaveformData()
+            return ans
         else:
             return ans
 
