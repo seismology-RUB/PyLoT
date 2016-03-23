@@ -175,6 +175,8 @@ class PickDlg(QDialog):
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+        settings = QSettings()
+        self._user = settings.value('user/Login', 'anonymous')
         if picks:
             self.picks = picks
         else:
@@ -388,6 +390,9 @@ class PickDlg(QDialog):
                 if channelID[1].upper().endswith(channel):
                     traceIDs.append(traceID)
         return traceIDs
+
+    def getUser(self):
+        return self._user
 
     def getFilterOptions(self, phase):
         options = self.filteroptions[phase]
@@ -609,7 +614,8 @@ class PickDlg(QDialog):
         lpp = stime + lpp
 
         # save pick times for actual phase
-        phasepicks = {'epp': epp, 'lpp': lpp, 'mpp': mpp, 'spe': spe}
+        phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
+                          picker=self.getUser())
 
         try:
             oldphasepick = self.picks[phase]
