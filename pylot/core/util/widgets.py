@@ -180,6 +180,7 @@ class PickDlg(QDialog):
         else:
             self.picks = {}
         self.filteroptions = FILTERDEFAULTS
+        self.filt_block = False
 
         # initialize panning attributes
         self.press = None
@@ -253,8 +254,7 @@ class PickDlg(QDialog):
                                          slot=self.filterWFData,
                                          icon=filter_icon,
                                          tip='Toggle filtered/original'
-                                             ' waveforms',
-                                         checkable=True)
+                                             ' waveforms')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
@@ -354,6 +354,7 @@ class PickDlg(QDialog):
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
             self.filterWFData()
+            self.filt_block = self.toggleFilterBlocker()
         else:
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
@@ -701,7 +702,12 @@ class PickDlg(QDialog):
 
         ax.figure.canvas.draw()
 
+    def toggleFilterBlocker(self):
+        return not self.filt_block
+
     def filterWFData(self):
+        if self.filt_block:
+            return
         self.updateCurrentLimits()
         data = self.getWFData().copy()
         old_title = self.getPlotWidget().getAxes().get_title()
