@@ -64,7 +64,7 @@ class MPLWidget(FigureCanvas):
         # clear axes each time plot is called
         self.axes.hold(True)
         # initialize super class
-        FigureCanvas.__init__(self, self.figure)
+        super(MPLWidget, self).__init__(self.figure)
         # add an cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
                                        horizOn=True,
@@ -182,7 +182,7 @@ class PickDlg(QDialog):
         else:
             self.picks = {}
         self.filteroptions = FILTERDEFAULTS
-        self.filt_block = False
+        self.pick_block = False
 
         # initialize panning attributes
         self.press = None
@@ -356,7 +356,7 @@ class PickDlg(QDialog):
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
             self.filterWFData()
-            self.filt_block = self.toggleFilterBlocker()
+            self.pick_block = self.togglePickBlocker()
         else:
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
@@ -708,11 +708,11 @@ class PickDlg(QDialog):
 
         ax.figure.canvas.draw()
 
-    def toggleFilterBlocker(self):
-        return not self.filt_block
+    def togglePickBlocker(self):
+        return not self.pick_block
 
     def filterWFData(self):
-        if self.filt_block:
+        if self.pick_block:
             return
         self.updateCurrentLimits()
         data = self.getWFData().copy()
@@ -768,7 +768,9 @@ class PickDlg(QDialog):
         self.getPlotWidget().setYLims(self.getYLims())
 
     def zoom(self):
-        if self.zoomAction.isChecked():
+        if self.zoomAction.isChecked() and self.pick_block:
+            self.zoomAction.setChecked(False)
+        elif self.zoomAction.isChecked():
             self.disconnectPressEvent()
             self.disconnectMotionEvent()
             self.disconnectReleaseEvent()
