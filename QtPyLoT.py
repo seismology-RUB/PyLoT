@@ -727,7 +727,7 @@ class MainWindow(QMainWindow):
         self.getPicks(type=type)[station] = stat_picks
         return rval
 
-    def updatePicks(self):
+    def updatePicks(self, type='manual'):
         evt = self.getData().getEvtData()
         picks = {}
         for pick in evt.picks:
@@ -753,7 +753,10 @@ class MainWindow(QMainWindow):
 
             onsets[pick.phase_hint] = phase.copy()
             picks[station] = onsets.copy()
-        self.picks.update(picks)
+        if type == 'manual':
+            self.picks.update(picks)
+        elif type == 'auto':
+            self.autopicks.update(picks)
 
     def drawPicks(self, station=None, picktype='manual'):
         # if picks to draw not specified, draw all picks available
