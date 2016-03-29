@@ -47,6 +47,9 @@ OUTPUTFORMATS = {'.xml':'QUAKEML',
 
 LOCTOOLS = dict(nll = nll, hsat = hsat, velest = velest)
 
-COMPONENTS_MAPPING = dict(Z = 2, N = 1, E = 0)
-COMPONENTS_MAPPING['1'] = 1
-COMPONENTS_MAPPING['2'] = 0
+COMPPOSITION_MAP = dict(Z = 2, N = 1, E = 0)
+COMPPOSITION_MAP['1'] = 1
+COMPPOSITION_MAP['2'] = 0
+COMPPOSITION_MAP['3'] = 2
+
+COMPNAME_MAP = dict(Z = '3', N = '1', E = '2')

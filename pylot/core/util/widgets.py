@@ -26,7 +26,7 @@ from pylot.core.read.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
     getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS,\
-    COMPONENTS_MAPPING
+    COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
 
@@ -98,7 +98,7 @@ class MPLWidget(FigureCanvas):
             station = trace.stats.station
             if mapping:
                 comp = channel[-1]
-                n = COMPONENTS_MAPPING[comp]
+                n = COMPPOSITION_MAP[comp]
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)

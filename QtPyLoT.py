@@ -44,7 +44,7 @@ from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.loc.nll import locate as locateNll
-from pylot.core.util.defaults import FILTERDEFAULTS
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
@@ -545,7 +545,9 @@ class MainWindow(QMainWindow):
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
+        alter_comp = COMPNAME_MAP[comp]
         wfst = self.getData().getWFData().select(component=comp)
+        wfst += self.getData().getWFData().select(component=alter_comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
         self.draw()
         plotDict = self.getPlotWidget().getPlotDict()
