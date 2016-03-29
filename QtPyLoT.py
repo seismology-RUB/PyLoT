@@ -356,7 +356,10 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
-    def loadData(self, fname=None):
+    def loadAutoPicks(self):
+        self.loadData(type='auto')
+
+    def loadData(self, fname=None, type='manual'):
         if not self.okToContinue():
             return
         if fname is None:
@@ -373,7 +376,7 @@ class MainWindow(QMainWindow):
                     fname = unicode(action.data().toString())
         self.setFileName(fname)
         self.data += Data(self, evtdata=self.getFileName())
-        self.updatePicks()
+        self.updatePicks(type=type)
         self.drawPicks()
 
     def getLastEvent(self):
