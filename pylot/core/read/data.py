@@ -3,6 +3,7 @@
 
 import os
 import glob
+import warnings
 from obspy.io.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
 from obspy import read_events, read_inventory
@@ -421,7 +422,11 @@ class Data(object):
                     epp = phase['epp']
                     lpp = phase['lpp']
                     error = phase['spe']
-                    picker = phase['picker']
+                    try:
+                        picker = phase['picker']
+                    except KeyError as e:
+                        warnings.warn(str(e), Warning)
+                        picker = 'Unknown'
                     pick = Pick()
                     pick.time = onset
                     pick.time_errors.lower_uncertainty = onset - epp
