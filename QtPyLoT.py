@@ -747,7 +747,10 @@ class MainWindow(QMainWindow):
             phase['lpp'] = lpp
             phase['spe'] = spe
             try:
-                phase['picker'] = str(pick.method_id).split('/')[1]
+                picker = str(pick.method_id)
+                if picker.startswith('smi:local/'):
+                    picker = picker.split('smi:local/')[1]
+                phase['picker'] = picker
             except IndexError:
                 pass
 
