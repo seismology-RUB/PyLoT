@@ -746,6 +746,10 @@ class MainWindow(QMainWindow):
             phase['epp'] = epp
             phase['lpp'] = lpp
             phase['spe'] = spe
+            try:
+                phase['picker'] = str(pick.method_id).split('/')[1]
+            except IndexError:
+                pass
 
             onsets[pick.phase_hint] = phase.copy()
             picks[station] = onsets.copy()
