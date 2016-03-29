@@ -581,6 +581,7 @@ class MainWindow(QMainWindow):
             else:
                 self.getData().resetWFData()
         self.plotWaveformData()
+        self.drawPicks()
 
     def adjustFilterOptions(self):
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
