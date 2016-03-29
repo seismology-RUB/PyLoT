@@ -99,7 +99,8 @@ class MPLWidget(FigureCanvas):
             if mapping:
                 comp = channel[-1]
                 n = COMPONENTS_MAPPING[comp]
-                nmax = n if n > nmax else nmax
+            if n > nmax:
+                nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
             print(msg)
             stime = trace.stats.starttime - wfstart
