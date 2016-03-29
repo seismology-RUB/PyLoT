@@ -650,6 +650,7 @@ class PickDlg(QDialog):
         self.drawPicks()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
+        self.pick_block = self.togglePickBlocker()
         self.selectPhase.setCurrentIndex(-1)
         self.setPlotLabels()
 
