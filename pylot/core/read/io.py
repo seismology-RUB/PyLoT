@@ -7,8 +7,9 @@ import scipy.io as sio
 import obspy.core.event as ope
 from obspy.core import UTCDateTime
 
-from pylot.core.util.utils import getOwner, createPick, createArrival,\
+from pylot.core.util.utils import getOwner, createPick, createArrival, \
     createEvent, createOrigin, createMagnitude
+
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -133,5 +134,3 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     except AttributeError as e:
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
-
-

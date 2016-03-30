@@ -144,7 +144,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Sflag = 0
     Pmarker = []
     Ao = None  # Wood-Anderson peak-to-peak amplitude
-    picker = 'autoPyLoT' # name of the picking programm
+    picker = 'autoPyLoT'  # name of the picking programm
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -867,19 +867,19 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
         pickparameter.setParam(noisefactor=1.0)
         pickparameter.setParam(zfac=1.0)
         print(
-        "iteratepicker: The following picking parameters have been modified for iterative picking:")
+            "iteratepicker: The following picking parameters have been modified for iterative picking:")
         print(
-        "pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
+            "pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
         print(
-        "pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
+            "pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
         print(
-        "sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
+            "sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
         print("pickwinP: %fs => %fs" % (
-        pickwinP_old, pickparameter.getParam('pickwinP')))
+            pickwinP_old, pickparameter.getParam('pickwinP')))
         print("Precalcwin: %fs => %fs" % (
-        Precalcwin_old, pickparameter.getParam('Precalcwin')))
+            Precalcwin_old, pickparameter.getParam('Precalcwin')))
         print("noisefactor: %f => %f" % (
-        noisefactor_old, pickparameter.getParam('noisefactor')))
+            noisefactor_old, pickparameter.getParam('noisefactor')))
         print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
 
         # repick station

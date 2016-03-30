@@ -10,6 +10,7 @@ import numpy as np
 from obspy.core import UTCDateTime
 import obspy.core.event as ope
 
+
 def createAmplitude(pickID, amp, unit, category, cinfo):
     '''
 
@@ -27,6 +28,7 @@ def createAmplitude(pickID, amp, unit, category, cinfo):
     amplitude.type = ope.AmplitudeCategory(category)
     amplitude.pick_id = pickID
     return amplitude
+
 
 def createArrival(pickresID, cinfo, phase, azimuth=None, dist=None):
     '''
@@ -56,6 +58,7 @@ def createArrival(pickresID, cinfo, phase, azimuth=None, dist=None):
     arrival.distance = dist
     return arrival
 
+
 def createCreationInfo(agency_id=None, creation_time=None, author=None):
     '''
 
@@ -70,6 +73,7 @@ def createCreationInfo(agency_id=None, creation_time=None, author=None):
         creation_time = UTCDateTime()
     return ope.CreationInfo(agency_id=agency_id, author=author,
                             creation_time=creation_time)
+
 
 def createEvent(origintime, cinfo, originloc=None, etype=None, resID=None,
                 authority_id=None):
@@ -115,6 +119,7 @@ def createEvent(origintime, cinfo, originloc=None, etype=None, resID=None,
         event.origins = [o]
     return event
 
+
 def createMagnitude(originID, cinfo):
     '''
     createMagnitude - function to create an ObsPy Magnitude object
@@ -128,6 +133,7 @@ def createMagnitude(originID, cinfo):
     magnitude.creation_info = cinfo
     magnitude.origin_id = originID
     return magnitude
+
 
 def createOrigin(origintime, cinfo, latitude, longitude, depth):
     '''
@@ -157,6 +163,7 @@ def createOrigin(origintime, cinfo, latitude, longitude, depth):
     origin.longitude = longitude
     origin.depth = depth
     return origin
+
 
 def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
                wfseedstr, authority_id):
@@ -196,6 +203,7 @@ def createPick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
     pick.waveform_id = ope.ResourceIdentifier(id=wfseedstr, prefix='file:/')
     return pick
 
+
 def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
 
@@ -220,6 +228,7 @@ def createResourceID(timetohash, restype, authority_id=None, hrstr=None):
         resID.convertIDToQuakeMLURI(authority_id=authority_id)
     return resID
 
+
 def demeanTrace(trace, window):
     """
     returns the DATA where each trace is demean by the average value within
@@ -234,6 +243,7 @@ def demeanTrace(trace, window):
     trace.data -= trace.data[window].mean()
     return trace
 
+
 def findComboBoxIndex(combo_box, val):
     """
     Function findComboBoxIndex takes a QComboBox object and a string and
@@ -246,6 +256,7 @@ def findComboBoxIndex(combo_box, val):
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
 
+
 def find_nearest(array, value):
     '''
     Function find_nearest takes an array and a value and returns the
@@ -254,7 +265,8 @@ def find_nearest(array, value):
     :param value:
     :return:
     '''
-    return (np.abs(array-value)).argmin()
+    return (np.abs(array - value)).argmin()
+
 
 def fnConstructor(s):
     '''
@@ -277,6 +289,7 @@ def fnConstructor(s):
         fn = '_' + fn
     return fn
 
+
 def getGlobalTimes(stream):
     '''
 
@@ -293,6 +306,7 @@ def getGlobalTimes(stream):
             max_end = trace.stats.endtime
     return min_start, max_end
 
+
 def getHash(time):
     '''
     :param time: time object for which a hash should be calculated
@@ -303,12 +317,14 @@ def getHash(time):
     hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f'))
     return hg.hexdigest()
 
+
 def getLogin():
     '''
 
     :return:
     '''
     return pwd.getpwuid(os.getuid())[0]
+
 
 def getOwner(fn):
     '''
@@ -318,6 +334,7 @@ def getOwner(fn):
     :return:
     '''
     return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+
 
 def getPatternLine(fn, pattern):
     """
@@ -343,6 +360,7 @@ def getPatternLine(fn, pattern):
 
     return None
 
+
 def isSorted(iterable):
     '''
 
@@ -351,6 +369,7 @@ def isSorted(iterable):
     :return:
     '''
     return sorted(iterable) == iterable
+
 
 def prepTimeAxis(stime, trace):
     '''
@@ -377,6 +396,7 @@ def prepTimeAxis(stime, trace):
                          '{1} length of time vector \n'
                          'delta: {2}'.format(nsamp, len(time_ax), tincr))
     return time_ax
+
 
 def scaleWFData(data, factor=None, components='all'):
     """
@@ -409,6 +429,7 @@ def scaleWFData(data, factor=None, components='all'):
 
     return data
 
+
 def runProgram(cmd, parameter=None):
     """
     run an external program specified by cmd with parameters input returning the
@@ -427,8 +448,10 @@ def runProgram(cmd, parameter=None):
         cmd += ' %s 2>&1' % parameter
 
     output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
-                                     shell = True)
+                                     shell=True)
+
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

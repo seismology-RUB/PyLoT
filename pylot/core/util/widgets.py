@@ -9,6 +9,7 @@ import datetime
 import numpy as np
 
 from matplotlib.figure import Figure
+
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 except ImportError:
@@ -23,9 +24,9 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.read.inputs import FilterOptions
-from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
+from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS,\
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
@@ -164,8 +165,9 @@ class MPLWidget(FigureCanvas):
     def insertLabel(self, pos, text):
         pos = pos / max(self.getAxes().ylim)
         axann = self.getAxes().annotate(text, xy=(.03, pos),
-                                   xycoords='axes fraction')
+                                        xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+
 
 class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, picks=None,
@@ -263,8 +265,8 @@ class PickDlg(QDialog):
                                        tip='Zoom into waveform',
                                        checkable=True)
         self.resetZoomAction = createAction(parent=self, text='Home',
-                                        slot=self.resetZoom, icon=home_icon,
-                                        tip='Reset zoom to original limits')
+                                            slot=self.resetZoom, icon=home_icon,
+                                            tip='Reset zoom to original limits')
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
@@ -516,7 +518,6 @@ class PickDlg(QDialog):
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
-
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
@@ -575,8 +576,8 @@ class PickDlg(QDialog):
         traces = self.getTraceID(horiz_comp)
         traces.sort()
         self.setYLims(tuple(np.array([-0.5, +0.5]) +
-                      np.array(traces)))
-        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] +\
+                            np.array(traces)))
+        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
                       [trace - 1 / (2.5 * 2) for trace in traces]
 
         self.getPlotWidget().plotWFData(wfdata=data,
@@ -756,7 +757,6 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.drawPicks()
         self.draw()
-
 
     def setPlotLabels(self):
 
@@ -1041,7 +1041,7 @@ class LocalisationTab(PropTab):
             self.binlabel.setText("{0} bin directory".format(curtool))
 
     def selectDirectory(self, edit):
-        selected_directory =  QFileDialog.getExistingDirectory()
+        selected_directory = QFileDialog.getExistingDirectory()
         edit.setText(selected_directory)
 
     def getValues(self):
@@ -1050,7 +1050,6 @@ class LocalisationTab(PropTab):
                   "%s/binPath".format(loctool): self.binedit.text(),
                   "loc/tool": loctool}
         return values
-
 
 
 class NewEventDlg(QDialog):
@@ -1293,6 +1292,8 @@ class HelpForm(QDialog):
     def updatePageTitle(self):
         self.pageLabel.setText(self.webBrowser.documentTitle())
 
+
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

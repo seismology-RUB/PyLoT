@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from obspy.signal.trigger import recSTALTA, triggerOnset
+from obspy.signal.trigger import recursive_sta_lta, trigger_onset
 
 
 def createSingleTriggerlist(st, station='ZV01', trigcomp='Z', stalta=(1, 10),
@@ -24,8 +24,8 @@ def createSingleTriggerlist(st, station='ZV01', trigcomp='Z', stalta=(1, 10),
     tr = st.copy().select(component=trigcomp, station=station)[0]
     df = tr.stats.sampling_rate
 
-    cft = recSTALTA(tr.data, int(stalta[0] * df), int(stalta[1] * df))
-    triggers = triggerOnset(cft, trigonoff[0], trigonoff[1])
+    cft = recursive_sta_lta(tr.data, int(stalta[0] * df), int(stalta[1] * df))
+    triggers = trigger_onset(cft, trigonoff[0], trigonoff[1])
     trigg = []
     for time in triggers:
         trigg.append(tr.stats.starttime + time[0] / df)

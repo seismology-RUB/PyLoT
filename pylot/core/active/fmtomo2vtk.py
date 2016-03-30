@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'abs', inputfileref = 'vgridsref.in'):
+
+def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', inputfileref='vgridsref.in'):
     '''
     Generate a vtk-file readable by e.g. paraview from FMTOMO output vgrids.in
 
     :param: absOrRel, can be "abs" or "rel" for absolute or relative velocities. if "rel" inputfileref must be given
     :type: str
     '''
+
     def getDistance(angle):
         PI = np.pi
         R = 6371.
@@ -23,7 +25,7 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
         nPhi = int(vglines[1].split()[2])
 
         print('readNumberOf Points: Awaiting %d grid points in %s'
-              %(nR*nTheta*nPhi, filename))
+              % (nR * nTheta * nPhi, filename))
         fin.close()
         return nR, nTheta, nPhi
 
@@ -53,7 +55,8 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
         '''
         Reads in velocity from vgrids file and returns a list containing all values in the same order
         '''
-        vel = []; count = 0
+        vel = [];
+        count = 0
         fin = open(filename, 'r')
         vglines = fin.readlines()
 
@@ -62,10 +65,10 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
             if count > 4:
                 vel.append(float(line.split()[0]))
 
-        print("Read %d points out of file: %s" %(count - 4, filename))
+        print("Read %d points out of file: %s" % (count - 4, filename))
         return vel
 
-    R = 6371. # earth radius
+    R = 6371.  # earth radius
     outfile = open(outputfile, 'w')
 
     # Theta, Phi in radians, R in km
@@ -74,7 +77,9 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     sR, sTheta, sPhi = readStartpoints(inputfile)
     vel = readVelocity(inputfile)
 
-    nX = nPhi; nY = nTheta; nZ = nR
+    nX = nPhi;
+    nY = nTheta;
+    nZ = nR
 
     sZ = sR - R
     sX = getDistance(np.rad2deg(sPhi))
@@ -94,50 +99,51 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     outfile.writelines('ASCII\n')
     outfile.writelines('DATASET STRUCTURED_POINTS\n')
 
-    outfile.writelines('DIMENSIONS %d %d %d\n' %(nX, nY, nZ))
-    outfile.writelines('ORIGIN %f %f %f\n' %(sX, sY, sZ))
-    outfile.writelines('SPACING %f %f %f\n' %(dX, dY, dZ))
+    outfile.writelines('DIMENSIONS %d %d %d\n' % (nX, nY, nZ))
+    outfile.writelines('ORIGIN %f %f %f\n' % (sX, sY, sZ))
+    outfile.writelines('SPACING %f %f %f\n' % (dX, dY, dZ))
 
-    outfile.writelines('POINT_DATA %15d\n' %(nPoints))
+    outfile.writelines('POINT_DATA %15d\n' % (nPoints))
     if absOrRel == 'abs':
-        outfile.writelines('SCALARS velocity float %d\n' %(1))
+        outfile.writelines('SCALARS velocity float %d\n' % (1))
     elif absOrRel == 'rel':
-        outfile.writelines('SCALARS velChangePercent float %d\n' %(1))
+        outfile.writelines('SCALARS velChangePercent float %d\n' % (1))
     outfile.writelines('LOOKUP_TABLE default\n')
 
     # write velocity
     if absOrRel == 'abs':
         print("Writing velocity values to VTK file...")
         for velocity in vel:
-            outfile.writelines('%10f\n' %velocity)
+            outfile.writelines('%10f\n' % velocity)
     elif absOrRel == 'rel':
         velref = readVelocity(inputfileref)
         if not len(velref) == len(vel):
-            print('ERROR: Number of gridpoints mismatch for %s and %s'%(inputfile, inputfileref))
+            print('ERROR: Number of gridpoints mismatch for %s and %s' % (inputfile, inputfileref))
             return
-        #velrel = [((vel - velref) / velref * 100) for vel, velref in zip(vel, velref)]
+        # velrel = [((vel - velref) / velref * 100) for vel, velref in zip(vel, velref)]
         velrel = []
         for velocities in zip(vel, velref):
             v, vref = velocities
             if not vref == 0:
                 velrel.append((v - vref) / vref * 100)
             else:
-                velrel.append(0)            
+                velrel.append(0)
 
         nR_ref, nTheta_ref, nPhi_ref = readNumberOfPoints(inputfileref)
         if not nR_ref == nR and nTheta_ref == nTheta and nPhi_ref == nPhi:
-            print('ERROR: Dimension mismatch of grids %s and %s'%(inputfile, inputfileref))
+            print('ERROR: Dimension mismatch of grids %s and %s' % (inputfile, inputfileref))
             return
         print("Writing velocity values to VTK file...")
         for velocity in velrel:
-            outfile.writelines('%10f\n' %velocity)
-        print('Pertubations: min: %s, max: %s'%(min(velrel), max(velrel)))
+            outfile.writelines('%10f\n' % velocity)
+        print('Pertubations: min: %s, max: %s' % (min(velrel), max(velrel)))
 
     outfile.close()
-    print("Wrote velocity grid for %d points to file: %s" %(nPoints, outputfile))
+    print("Wrote velocity grid for %d points to file: %s" % (nPoints, outputfile))
     return
 
-def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
+
+def rays2VTK(fnin, fdirout='./vtk_files/', nthPoint=50):
     '''
     Writes VTK file(s) for FMTOMO rays from rays.dat. There is one file created for each ray.
 
@@ -147,6 +153,7 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
     :param: nthPoint, plot every nth point of the ray
     :type: integer
     '''
+
     def getDistance(angle):
         PI = np.pi
         R = 6371.
@@ -164,12 +171,12 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
     while True:
         raynumber += 1
         firstline = infile.readline()
-        if firstline == '': break # break at EOF
+        if firstline == '': break  # break at EOF
         raynumber = int(firstline.split()[0])
         shotnumber = int(firstline.split()[1])
-        rayValid = int(firstline.split()[4]) # is zero if the ray is invalid
+        rayValid = int(firstline.split()[4])  # is zero if the ray is invalid
         if rayValid == 0:
-            print('Invalid ray number %d for shot number %d'%(raynumber, shotnumber))
+            print('Invalid ray number %d for shot number %d' % (raynumber, shotnumber))
             continue
         nRayPoints = int(infile.readline().split()[0])
         if not shotnumber in rays.keys():
@@ -178,14 +185,15 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
         for index in range(nRayPoints):
             if index % nthPoint is 0 or index == (nRayPoints - 1):
                 rad, lat, lon = infile.readline().split()
-                rays[shotnumber][raynumber].append([getDistance(np.rad2deg(float(lon))), getDistance(np.rad2deg(float(lat))), float(rad) - R])
+                rays[shotnumber][raynumber].append(
+                    [getDistance(np.rad2deg(float(lon))), getDistance(np.rad2deg(float(lat))), float(rad) - R])
             else:
                 dummy = infile.readline()
 
     infile.close()
 
     for shotnumber in rays.keys():
-        fnameout = fdirout + 'rays%03d.vtk'%(shotnumber)
+        fnameout = fdirout + 'rays%03d.vtk' % (shotnumber)
         outfile = open(fnameout, 'w')
 
         nPoints = 0
@@ -194,43 +202,42 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
                 nPoints += 1
 
         # write header
-        #print("Writing header for VTK file...")
-        print("Writing shot %d to file %s" %(shotnumber, fnameout))
+        # print("Writing header for VTK file...")
+        print("Writing shot %d to file %s" % (shotnumber, fnameout))
         outfile.writelines('# vtk DataFile Version 3.1\n')
         outfile.writelines('FMTOMO rays\n')
         outfile.writelines('ASCII\n')
         outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' %(nPoints))
+        outfile.writelines('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
-        #print("Writing coordinates to VTK file...")
+        # print("Writing coordinates to VTK file...")
 
         for raynumber in rays[shotnumber].keys():
             for raypoint in rays[shotnumber][raynumber]:
-                outfile.writelines('%10f %10f %10f \n' %(raypoint[0], raypoint[1], raypoint[2]))
+                outfile.writelines('%10f %10f %10f \n' % (raypoint[0], raypoint[1], raypoint[2]))
 
-        outfile.writelines('LINES %15d %15d\n' %(len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
+        outfile.writelines('LINES %15d %15d\n' % (len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
 
         # write indices
-        #print("Writing indices to VTK file...")
+        # print("Writing indices to VTK file...")
 
         count = 0
         for raynumber in rays[shotnumber].keys():
-            outfile.writelines('%d ' %(len(rays[shotnumber][raynumber])))
+            outfile.writelines('%d ' % (len(rays[shotnumber][raynumber])))
             for index in range(len(rays[shotnumber][raynumber])):
-                outfile.writelines('%d ' %(count))
+                outfile.writelines('%d ' % (count))
                 count += 1
             outfile.writelines('\n')
 
-    # outfile.writelines('POINT_DATA %15d\n' %(nPoints))
-    # outfile.writelines('SCALARS rays float %d\n' %(1))
-    # outfile.writelines('LOOKUP_TABLE default\n')
+            # outfile.writelines('POINT_DATA %15d\n' %(nPoints))
+            # outfile.writelines('SCALARS rays float %d\n' %(1))
+            # outfile.writelines('LOOKUP_TABLE default\n')
 
-    # # write velocity
-    # print("Writing velocity values to VTK file...")
-    # for velocity in vel:
-    #     outfile.writelines('%10f\n' %velocity)
+            # # write velocity
+            # print("Writing velocity values to VTK file...")
+            # for velocity in vel:
+            #     outfile.writelines('%10f\n' %velocity)
 
-    # outfile.close()
-    # print("Wrote velocity grid for %d points to file: %s" %(nPoints, outputfile))
-
+            # outfile.close()
+            # print("Wrote velocity grid for %d points to file: %s" %(nPoints, outputfile))

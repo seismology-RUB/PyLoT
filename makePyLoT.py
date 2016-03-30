@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
+from __future__ import print_function
+
 """
 makePyLoT -- build and install PyLoT
 
@@ -123,7 +125,7 @@ USAGE
     except KeyboardInterrupt:
         cleanUp(verbose)
         return 0
-    except Exception, e:
+    except Exception as e:
         if DEBUG or TESTRUN:
             raise e
         indent = len(program_name) * " "
@@ -139,7 +141,7 @@ def buildPyLoT(verbosity=None):
                "\n"
                "              Current working directory: {1}\n"
                ).format(system, os.getcwd())
-        print msg
+        print(msg)
     if system.startswith(('win', 'microsoft')):
         raise CLIError(
             "building on Windows system not tested yet; implementation pending")

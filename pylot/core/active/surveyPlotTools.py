@@ -2,7 +2,9 @@
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+
 plt.interactive(True)
+
 
 class regions(object):
     '''
@@ -12,19 +14,19 @@ class regions(object):
 
     regions.chooseRectangles():
      - lets the user choose several rectangular regions in the plot
-    
+
     regions.plotTracesInActiveRegions():
      - creates plots (shot.plot_traces) for all traces in the active regions (i.e. chosen by e.g. chooseRectangles)
-    
+
     regions.setAllActiveRegionsForDeletion():
      - highlights all shots in a the active regions for deletion
-    
+
     regions.deleteAllMarkedPicks():
      - deletes the picks (pick flag set to 0) for all shots set for deletion
 
     regions.deselectSelection(number):
      - deselects the region of number = number
-    
+
     '''
 
     def __init__(self, ax, cbar, survey):
@@ -57,10 +59,10 @@ class regions(object):
         for shot in self.shot_dict.values():
             for traceID in shot.getTraceIDlist():
                 allpicks.append((shot.getDistance(traceID),
-                 shot.getPickIncludeRemoved(traceID),
-                 shot.getShotnumber(),
-                 traceID,
-                 shot.getPickFlag(traceID)))
+                                 shot.getPickIncludeRemoved(traceID),
+                                 shot.getShotnumber(),
+                                 traceID,
+                                 shot.getPickFlag(traceID)))
 
         allpicks.sort()
         self._allpicks = allpicks
@@ -74,9 +76,9 @@ class regions(object):
     def _onselect_clicks(self, eclick, erelease):
         '''eclick and erelease are matplotlib events at press and release'''
         print 'region selected x0, y0 = (%3s, %3s), x1, y1 = (%3s, %3s)' % (eclick.xdata,
-         eclick.ydata,
-         erelease.xdata,
-         erelease.ydata)
+                                                                            eclick.ydata,
+                                                                            erelease.xdata,
+                                                                            erelease.ydata)
         x0 = min(eclick.xdata, erelease.xdata)
         x1 = max(eclick.xdata, erelease.xdata)
         y0 = min(eclick.ydata, erelease.ydata)
@@ -105,18 +107,18 @@ class regions(object):
             self.disconnectPoly()
             self.printOutput('Disconnected polygon selection')
 
-    def addTextfield(self, xpos = 0, ypos = 0.95, width = 1, height = 0.03):
+    def addTextfield(self, xpos=0, ypos=0.95, width=1, height=0.03):
         '''
         Adds an ax for text output to the plot.
         '''
         self.axtext = self.ax.figure.add_axes([xpos,
-         ypos,
-         width,
-         height])
+                                               ypos,
+                                               width,
+                                               height])
         self.axtext.xaxis.set_visible(False)
         self.axtext.yaxis.set_visible(False)
 
-    def writeInTextfield(self, text = None):
+    def writeInTextfield(self, text=None):
         self.setXYlim(self.ax.get_xlim(), self.ax.get_ylim())
         self.axtext.clear()
         self.axtext.text(0.01, 0.5, text, verticalalignment='center', horizontalalignment='left')
@@ -136,16 +138,16 @@ class regions(object):
         self.addButton('SelAll', self.setAllActiveRegionsForDeletion, xpos=xpos2 + 2 * dx)
         self.addButton('DelAll', self.deleteAllMarkedPicks, xpos=xpos2 + 3 * dx, color='red')
 
-    def addButton(self, name, action, xpos, ypos = 0.91, color = None):
+    def addButton(self, name, action, xpos, ypos=0.91, color=None):
         from matplotlib.widgets import Button
         self.buttons[name] = {'ax': None,
-         'button': None,
-         'action': action,
-         'xpos': xpos}
+                              'button': None,
+                              'action': action,
+                              'xpos': xpos}
         ax = self.ax.figure.add_axes([xpos,
-         ypos,
-         0.05,
-         0.03])
+                                      ypos,
+                                      0.05,
+                                      0.03])
         button = Button(ax, name, color=color, hovercolor='grey')
         button.on_clicked(action)
         self.buttons[name]['ax'] = ax
@@ -179,23 +181,24 @@ class regions(object):
         self.drawLastPolyLine()
         x = self._polyx
         y = self._polyy
-        self._polyx = []; self._polyy = []
+        self._polyx = [];
+        self._polyy = []
 
         key = self.getKey()
-        self.markPolygon(x, y, key = key)
+        self.markPolygon(x, y, key=key)
 
         shots, numtraces = self.findTracesInPoly(x, y)
         self.shots_found[key] = {'shots': shots,
-         'selection': 'poly',
-         'xvalues': x,
-         'yvalues': y}
+                                 'selection': 'poly',
+                                 'xvalues': x,
+                                 'yvalues': y}
         self.printOutput('Found %d traces in polygon: %s' % (numtraces, shots))
 
     def printOutput(self, text):
         print text
         self.writeInTextfield(text)
 
-    def chooseRectangles(self, event = None):
+    def chooseRectangles(self, event=None):
         '''
         Activates matplotlib widget RectangleSelector.
         '''
@@ -208,7 +211,7 @@ class regions(object):
         self._rectangle = RectangleSelector(self.ax, self._onselect_clicks)
         return self._rectangle
 
-    def choosePolygon(self, event = None):
+    def choosePolygon(self, event=None):
         '''
         Activates matplotlib widget LassoSelector.
         '''
@@ -221,7 +224,7 @@ class regions(object):
         self._lasso = LassoSelector(self.ax, self._onselect_verts)
         return self._lasso
 
-    def disconnectPoly(self, event = None):
+    def disconnectPoly(self, event=None):
         if not hasattr(self, '_cidPoly'):
             self.printOutput('no poly selection found')
             return
@@ -231,7 +234,7 @@ class regions(object):
         self._lasso.disconnect_events()
         print 'disconnected poly selection\n'
 
-    def disconnectRect(self, event = None):
+    def disconnectRect(self, event=None):
         if not hasattr(self, '_cidRect'):
             self.printOutput('no rectangle selection found')
             return
@@ -240,14 +243,14 @@ class regions(object):
         self._rectangle.disconnect_events()
         print 'disconnected rectangle selection\n'
 
-    def deselectLastSelection(self, event = None):
+    def deselectLastSelection(self, event=None):
         if self.shots_found.keys() == []:
             self.printOutput('No selection found.')
             return
         key = max(self.shots_found.keys())
         self.deselectSelection(key)
 
-    def deselectSelection(self, key, color = 'green', alpha = 0.1):
+    def deselectSelection(self, key, color='green', alpha=0.1):
         if key not in self.shots_found.keys():
             self.printOutput('No selection found.')
             return
@@ -255,17 +258,17 @@ class regions(object):
             if self.shots_found[key]['selection'] == 'rect':
                 self.markRectangle(self.shots_found[key]['xvalues'],
                                    self.shots_found[key]['yvalues'],
-                                   key = key, color = color, alpha = alpha,
-                                   linewidth = 1)
+                                   key=key, color=color, alpha=alpha,
+                                   linewidth=1)
             elif self.shots_found[key]['selection'] == 'poly':
                 self.markPolygon(self.shots_found[key]['xvalues'],
                                  self.shots_found[key]['yvalues'],
-                                 key = key, color = color, alpha = alpha,
-                                 linewidth = 1)                    
+                                 key=key, color=color, alpha=alpha,
+                                 linewidth=1)
         value = self.shots_found.pop(key)
         self.printOutput('Deselected selection number %d' % key)
 
-    def findTracesInPoly(self, x, y, picks = 'normal', highlight = True):
+    def findTracesInPoly(self, x, y, picks='normal', highlight=True):
         def dotproduct(v1, v2):
             return sum((a * b for a, b in zip(v1, v2)))
 
@@ -279,21 +282,26 @@ class regions(object):
             angle = 0
             epsilon = 1e-07
             for index in range(len(x)):
-                xval1 = x[index - 1]; yval1 = y[index - 1]
-                xval2 = x[index]; yval2 = y[index]
+                xval1 = x[index - 1];
+                yval1 = y[index - 1]
+                xval2 = x[index];
+                yval2 = y[index]
                 angle += getangle([xval1 - pickX, yval1 - pickY], [xval2 - pickX, yval2 - pickY])
-            if 360 - epsilon <= angle <= 360 + epsilon: ### IMPROVE THAT??
+            if 360 - epsilon <= angle <= 360 + epsilon:  ### IMPROVE THAT??
                 return True
 
         if len(x) == 0 or len(y) == 0:
             self.printOutput('No polygon defined.')
             return
 
-        shots_found = {}; numtraces = 0
-        x0 = min(x); x1 = max(x)
-        y0 = min(y); y1 = max(y)
+        shots_found = {};
+        numtraces = 0
+        x0 = min(x);
+        x1 = max(x)
+        y0 = min(y);
+        y1 = max(y)
 
-        shots, numtracesrect = self.findTracesInShotDict((x0, x1), (y0, y1), highlight = False)
+        shots, numtracesrect = self.findTracesInShotDict((x0, x1), (y0, y1), highlight=False)
         for shotnumber in shots.keys():
             shot = self.shot_dict[shotnumber]
             for traceID in shots[shotnumber]:
@@ -310,18 +318,21 @@ class regions(object):
 
         self.drawFigure()
         return shots_found, numtraces
-        
-    def findTracesInShotDict(self, (x0, x1), (y0, y1), picks = 'normal', highlight = True):
+
+    def findTracesInShotDict(self, (x0, x1), (y0, y1), picks='normal', highlight=True):
         '''
         Returns traces corresponding to a certain area in the plot with all picks over the distances.
         '''
-        shots_found = {}; numtraces = 0
-        if picks == 'normal': pickflag = 0
-        elif picks == 'includeCutOut': pickflag = None
+        shots_found = {};
+        numtraces = 0
+        if picks == 'normal':
+            pickflag = 0
+        elif picks == 'includeCutOut':
+            pickflag = None
 
         for line in self._allpicks:
             dist, pick, shotnumber, traceID, flag = line
-            if flag == pickflag: continue ### IMPROVE THAT
+            if flag == pickflag: continue  ### IMPROVE THAT
             if (x0 <= dist <= x1 and y0 <= pick <= y1):
                 if shotnumber not in shots_found.keys():
                     shots_found[shotnumber] = []
@@ -333,7 +344,7 @@ class regions(object):
         self.drawFigure()
         return shots_found, numtraces
 
-    def highlightPick(self, shot, traceID, annotations = True):
+    def highlightPick(self, shot, traceID, annotations=True):
         '''
         Highlights a single pick for a shot(object)/shotnumber and traceID.
         If annotations == True: Displays shotnumber and traceID in the plot.
@@ -344,9 +355,11 @@ class regions(object):
         if shot.getPickFlag(traceID) is 0:
             return
 
-        self.ax.scatter(shot.getDistance(traceID), shot.getPick(traceID), s = 50, marker = 'o', facecolors = 'none', edgecolors = 'm', alpha = 1)
+        self.ax.scatter(shot.getDistance(traceID), shot.getPick(traceID), s=50, marker='o', facecolors='none',
+                        edgecolors='m', alpha=1)
         if annotations == True:
-            self.ax.annotate(s='s%s|t%s' % (shot.getShotnumber(), traceID), xy=(shot.getDistance(traceID), shot.getPick(traceID)), fontsize='xx-small')
+            self.ax.annotate(s='s%s|t%s' % (shot.getShotnumber(), traceID),
+                             xy=(shot.getDistance(traceID), shot.getPick(traceID)), fontsize='xx-small')
 
     def highlightAllActiveRegions(self):
         '''
@@ -358,7 +371,7 @@ class regions(object):
                     self.highlightPick(self.shot_dict[shotnumber], traceID)
         self.drawFigure()
 
-    def plotTracesInActiveRegions(self, event = None, keys = 'all', maxfigures = 20):
+    def plotTracesInActiveRegions(self, event=None, keys='all', maxfigures=20):
         '''
         Plots all traces in the active region or for all specified keys.
 
@@ -382,13 +395,14 @@ class regions(object):
                             for traceID in self.shots_found[key]['shots'][shotnumber]:
                                 count += 1
                                 if count > maxfigures:
-                                    print 'Maximum number of figures (%s) reached. %sth figure was not opened.' %(maxfigures, count)
+                                    print 'Maximum number of figures (%s) reached. %sth figure was not opened.' % (
+                                    maxfigures, count)
                                     break
                                 shot.plot_traces(traceID)
         else:
             self.printOutput('No picks defined in that region(s)')
 
-    def setAllActiveRegionsForDeletion(self, event = None):
+    def setAllActiveRegionsForDeletion(self, event=None):
         keys = []
         for key in self.shots_found.keys():
             keys.append(key)
@@ -405,7 +419,7 @@ class regions(object):
                 for traceID in self.shots_found[key]['shots'][shotnumber]:
                     if traceID not in self.shots_for_deletion[shotnumber]:
                         self.shots_for_deletion[shotnumber].append(traceID)
-            self.deselectSelection(key, color = 'red', alpha = 0.2)
+            self.deselectSelection(key, color='red', alpha=0.2)
 
             self.deselectSelection(key, color='red', alpha=0.2)
 
@@ -415,13 +429,12 @@ class regions(object):
         for key in self.shots_found.keys():
             if self.shots_found[key]['selection'] == 'rect':
                 self.markRectangle(self.shots_found[key]['xvalues'],
-                                   self.shots_found[key]['yvalues'], key = key)
+                                   self.shots_found[key]['yvalues'], key=key)
             if self.shots_found[key]['selection'] == 'poly':
                 self.markPolygon(self.shots_found[key]['xvalues'],
-                                 self.shots_found[key]['yvalues'], key = key)
-            
+                                 self.shots_found[key]['yvalues'], key=key)
 
-    def markRectangle(self, (x0, x1), (y0, y1), key = None, color = 'grey', alpha = 0.1, linewidth = 1):
+    def markRectangle(self, (x0, x1), (y0, y1), key=None, color='grey', alpha=0.1, linewidth=1):
         '''
         Mark a rectangular region on the axes.
         '''
@@ -431,7 +444,7 @@ class regions(object):
             self.ax.text(x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2, str(key))
         self.drawFigure()
 
-    def markPolygon(self, x, y, key = None, color = 'grey', alpha = 0.1, linewidth = 1):
+    def markPolygon(self, x, y, key=None, color='grey', alpha=0.1, linewidth=1):
         from matplotlib.patches import Polygon
         poly = Polygon(np.array(zip(x, y)), color=color, alpha=alpha, lw=linewidth)
         self.ax.add_patch(poly)
@@ -449,7 +462,7 @@ class regions(object):
     def getShotsForDeletion(self):
         return self.shots_for_deletion
 
-    def deleteAllMarkedPicks(self, event = None):
+    def deleteAllMarkedPicks(self, event=None):
         '''
         Deletes all shots set for deletion.
         '''
@@ -462,11 +475,11 @@ class regions(object):
                 if shot.getShotnumber() == shotnumber:
                     for traceID in self.getShotsForDeletion()[shotnumber]:
                         shot.removePick(traceID)
-                        print "Deleted the pick for traceID %s on shot number %s" %(traceID, shotnumber)
+                        print "Deleted the pick for traceID %s on shot number %s" % (traceID, shotnumber)
         self.clearShotsForDeletion()
         self.refreshFigure()
 
-    def highlightPicksForShot(self, shot, annotations = False):
+    def highlightPicksForShot(self, shot, annotations=False):
         '''
         Highlight all picks for a given shot.
         '''
@@ -482,19 +495,19 @@ class regions(object):
     def setXYlim(self, xlim, ylim):
         self._xlim, self._ylim = xlim, ylim
 
-    def refreshLog10SNR(self, event = None):
+    def refreshLog10SNR(self, event=None):
         cbv = 'log10SNR'
         self.refreshFigure(self, colorByVal=cbv)
 
-    def refreshPickerror(self, event = None):
+    def refreshPickerror(self, event=None):
         cbv = 'pickerror'
         self.refreshFigure(self, colorByVal=cbv)
 
-    def refreshSPE(self, event = None):
+    def refreshSPE(self, event=None):
         cbv = 'spe'
         self.refreshFigure(self, colorByVal=cbv)
 
-    def refreshFigure(self, event = None, colorByVal = None):
+    def refreshFigure(self, event=None, colorByVal=None):
         if colorByVal == None:
             colorByVal = self.cbv
         else:
@@ -508,7 +521,7 @@ class regions(object):
         self.drawFigure()
         self.printOutput('Done!')
 
-    def drawFigure(self, resetAxes = True):
+    def drawFigure(self, resetAxes=True):
         if resetAxes == True:
             self.ax.set_xlim(self._xlim)
             self.ax.set_ylim(self._ylim)

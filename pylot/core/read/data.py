@@ -81,7 +81,6 @@ class Data(object):
             picks_str += str(pick) + '\n'
         return picks_str
 
-
     def getParent(self):
         """
 

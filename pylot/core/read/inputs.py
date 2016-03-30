@@ -3,6 +3,7 @@
 
 from pylot.core.util.errors import ParameterError
 
+
 class AutoPickParameter(object):
     '''
     AutoPickParameters is a parameter type object capable to read and/or write
@@ -50,7 +51,7 @@ class AutoPickParameter(object):
             parFileCont[key] = val
 
         if self.__filename is not None:
-                inputFile = open(self.__filename, 'r')
+            inputFile = open(self.__filename, 'r')
         else:
             return
         try:
@@ -148,7 +149,7 @@ class AutoPickParameter(object):
     def setParam(self, **kwargs):
         for param, value in kwargs.items():
             self.__setitem__(param, value)
-        #print(self)
+            # print(self)
 
     @staticmethod
     def _printParameterError(errmsg):
@@ -193,6 +194,7 @@ class FilterOptions(object):
         ``'highpass'``
             Butterworth-Highpass
     '''
+
     def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3,
                  **kwargs):
         self._order = order

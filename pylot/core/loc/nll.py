@@ -9,9 +9,10 @@ from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
+
 def picksExport(picks, locrt, phasefile):
     '''
-    Take <picks> dictionary and exports picking data to a NLLOC-obs 
+    Take <picks> dictionary and exports picking data to a NLLOC-obs
     <phasefile> without creating an ObsPy event object.
 
     :param picks: picking data dictionary
@@ -26,6 +27,7 @@ def picksExport(picks, locrt, phasefile):
     # write phases to NLLoc-phase file
     writephases(picks, locrt, phasefile)
 
+
 def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
     '''
     :param ctrfn: name of NLLoc-control file
@@ -35,18 +37,18 @@ def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
     :type: str
 
     :param nllocoutn: name of NLLoc-location output file
-    :type: str 
+    :type: str
 
     :param phasefn: name of NLLoc-input phase file
     :type: str
 
     :param tttn: pattern of precalculated NLLoc traveltime tables
-    :type: str 
+    :type: str
     '''
     # For locating the event the NLLoc-control file has to be modified!
     # create comment line for NLLoc-control file NLLoc-output file
     ctrfile = os.path.join(root, 'run', ctrfn)
-    nllocout = os.path.join(root,'loc', nllocoutn)
+    nllocout = os.path.join(root, 'loc', nllocoutn)
     phasefile = os.path.join(root, 'obs', phasefn)
     tttable = os.path.join(root, 'time', tttn)
     locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0\n' % (phasefile, tttable, nllocout)
@@ -63,6 +65,7 @@ def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
         nllfile.write(filedata)
     nllfile.close()
 
+
 def locate(call, fnin):
     '''
     Takes paths to NLLoc executable <call> and input parameter file <fnin>
@@ -78,8 +81,10 @@ def locate(call, fnin):
     # locate the event
     subprocess.call([call, fnin])
 
+
 def readLocation(fn):
     pass
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     pass
