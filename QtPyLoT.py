@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
             dirname = QFileDialog().getExistingDirectory(
-                    caption='Choose data root ...')
+                caption='Choose data root ...')
             settings.setValue("data/dataRoot", dirname)
         settings.sync()
 
@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
 
         try:
             self.startTime = min(
-                    [tr.stats.starttime for tr in self.data.wfdata])
+                [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
 
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
                                                           filter=filt)
                     fname = fname[0]
                 else:
-                    fname = unicode(action.data().toString())
+                    fname = str(action.data().toString())
         self.setFileName(fname)
         self.data += Data(self, evtdata=self.getFileName())
         self.updatePicks(type=type)
@@ -439,7 +439,7 @@ class MainWindow(QMainWindow):
             directory = os.path.join(self.getRoot(), self.getEventFileName())
             file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
             fname, selected_filter = QFileDialog.getSaveFileName(self, 'Save event data ...',
-                                                directory, file_filter)
+                                                                 directory, file_filter)
 
             fbasename, exform = os.path.splitext(fname)
 
@@ -630,8 +630,8 @@ class MainWindow(QMainWindow):
         else:
             self.updateStatus('Filter loaded ... '
                               '[{0}: {1} Hz]'.format(
-                    self.getFilterOptions().getFilterType(),
-                    self.getFilterOptions().getFreq()))
+                self.getFilterOptions().getFilterType(),
+                self.getFilterOptions().getFreq()))
         if self.filterAction.isChecked():
             self.filterWaveformData()
 
@@ -836,12 +836,12 @@ class MainWindow(QMainWindow):
         if self.getData() is not None:
             if not self.getData().isNew():
                 self.setWindowTitle(
-                        "PyLoT - processing event %s[*]" % self.getData().getID())
+                    "PyLoT - processing event %s[*]" % self.getData().getID())
             elif self.getData().isNew():
                 self.setWindowTitle("PyLoT - New event [*]")
             else:
                 self.setWindowTitle(
-                        "PyLoT - seismic processing the python way[*]")
+                    "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
     def tutorUser(self):
@@ -879,7 +879,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(
-                    'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
             form = HelpForm(':/help.html')
         form.show()
