@@ -43,6 +43,7 @@ from obspy import UTCDateTime
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.read.io import picks_from_evt
 from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
 from pylot.core.util.errors import FormatError, DatastructureError, \
@@ -734,34 +735,7 @@ class MainWindow(QMainWindow):
         return rval
 
     def updatePicks(self, type='manual'):
-        evt = self.getData().getEvtData()
-        picks = {}
-        for pick in evt.picks:
-            phase = {}
-            station = pick.waveform_id.station_code
-            try:
-                onsets = picks[station]
-            except KeyError as e:
-                print(e)
-                onsets = {}
-            mpp = pick.time
-            lpp = mpp + pick.time_errors.upper_uncertainty
-            epp = mpp - pick.time_errors.lower_uncertainty
-            spe = pick.time_errors.uncertainty
-            phase['mpp'] = mpp
-            phase['epp'] = epp
-            phase['lpp'] = lpp
-            phase['spe'] = spe
-            try:
-                picker = str(pick.method_id)
-                if picker.startswith('smi:local/'):
-                    picker = picker.split('smi:local/')[1]
-                phase['picker'] = picker
-            except IndexError:
-                pass
-
-            onsets[pick.phase_hint] = phase.copy()
-            picks[station] = onsets.copy()
+        picks = picks_from_evt(evt=self.getData().getEvtData())
         if type == 'manual':
             self.picks.update(picks)
         elif type == 'auto':

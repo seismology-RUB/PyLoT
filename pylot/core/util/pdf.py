@@ -180,7 +180,8 @@ class ProbabilityDensityFunction(object):
         self._x = np.array(x)
 
     @classmethod
-    def fromPick(self, incr, lbound, barycentre, rbound, decfact=0.01, type='gauss'):
+    def fromPick(self, lbound, barycentre, rbound, incr=0.005, decfact=0.01,
+                 type='gauss'):
         '''
         Initialize a new ProbabilityDensityFunction object.
         Takes incr, lbound, barycentre and rbound to derive x0 and the number
@@ -199,7 +200,10 @@ class ProbabilityDensityFunction(object):
         try:
             midpoint = (rbound + lbound) / 2
         except TypeError:
-            midpoint = (rbound + float(lbound)) / 2
+            try:
+                midpoint = (rbound + float(lbound)) / 2
+            except TypeError:
+                midpoint = float(rbound + float(lbound)) / 2
 
         # find x0 on a grid point and sufficient npts
         n = int(np.ceil((barycentre - midpoint) / incr))

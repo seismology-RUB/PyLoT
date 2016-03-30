@@ -134,3 +134,40 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     except AttributeError as e:
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
+
+def picks_from_evt(evt):
+    '''
+    Takes an Event object and return the pick dictionary commonly used within
+    PyLoT
+    :param evt: Event object contain all available information
+    :type evt: `~obspy.core.event.Event`
+    :return: pick dictionary
+    '''
+    picks = {}
+    for pick in evt.picks:
+        phase = {}
+        station = pick.waveform_id.station_code
+        try:
+            onsets = picks[station]
+        except KeyError as e:
+            print(e)
+            onsets = {}
+        mpp = pick.time
+        lpp = mpp + pick.time_errors.upper_uncertainty
+        epp = mpp - pick.time_errors.lower_uncertainty
+        spe = pick.time_errors.uncertainty
+        phase['mpp'] = mpp
+        phase['epp'] = epp
+        phase['lpp'] = lpp
+        phase['spe'] = spe
+        try:
+            picker = str(pick.method_id)
+            if picker.startswith('smi:local/'):
+                picker = picker.split('smi:local/')[1]
+            phase['picker'] = picker
+        except IndexError:
+            pass
+
+        onsets[pick.phase_hint] = phase.copy()
+        picks[station] = onsets.copy()
+    return picks
