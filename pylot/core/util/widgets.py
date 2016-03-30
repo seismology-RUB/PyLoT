@@ -5,6 +5,7 @@ Created on Wed Mar 19 11:27:35 2014
 @author: sebastianw
 """
 
+import warnings
 import datetime
 import numpy as np
 
@@ -348,6 +349,10 @@ class PickDlg(QDialog):
         return widget.mpl_connect('button_release_event', slot)
 
     def verifyPhaseSelection(self):
+        if self.pick_block:
+            self.pick_block = self.togglePickBlocker()
+            warnings.warn('Changed selection before phase was set!',
+                          UserWarning)
         phase = self.selectPhase.currentText()
         self.updateCurrentLimits()
         if phase:
@@ -731,13 +736,15 @@ class PickDlg(QDialog):
                 filtoptions = filtoptions.parseFilterOptions()
         if filtoptions is not None:
             data.filter(**filtoptions)
-            if old_title.endswith(')'):
-                title = old_title[:-1] + ', filtered)'
-            else:
+            if not old_title.endswith(')'):
                 title = old_title + ' (filtered)'
+            elif not old_title.endswith(' (filtered)') and not old_title.endswith(', filtered)'):
+                title = old_title[:-1] + ', filtered)'
         else:
             if old_title.endswith(' (filtered)'):
                 title = old_title.replace(' (filtered)', '')
+            elif old_title.endswith(', filtered)'):
+                title = old_title.replace(', filtered)', ')')
         if title is None:
             title = old_title
         self.getPlotWidget().plotWFData(wfdata=data, title=title,
