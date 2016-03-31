@@ -11,7 +11,7 @@ __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
 
-def readData(fn):
+def read_data(fn):
     """
     Reads pick data from QuakeML files named FN and returns a dictionary
     containing a ProbabilityDensityFunction object for each pick.

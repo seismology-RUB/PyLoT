@@ -152,7 +152,7 @@ class ProbabilityDensityFunction(object):
 
     def __nonzero__(self):
         prec = self.precision(self.incr)
-        gtzero = np.any(self.data >= 0)
+        gtzero = np.all(self.data >= 0)
         probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
         return (gtzero and probone)
 
@@ -161,7 +161,8 @@ class ProbabilityDensityFunction(object):
 
     @staticmethod
     def precision(incr):
-        return int(np.ceil(np.abs(np.log10(incr))))
+        prec = int(np.ceil(np.abs(np.log10(incr)))) - 2
+        return prec if prec >= 0 else 0
 
     @property
     def data(self):
@@ -180,7 +181,7 @@ class ProbabilityDensityFunction(object):
         self._x = np.array(x)
 
     @classmethod
-    def fromPick(self, lbound, barycentre, rbound, incr=0.005, decfact=0.01,
+    def fromPick(self, lbound, barycentre, rbound, incr=0.0001, decfact=0.01,
                  type='gauss'):
         '''
         Initialize a new ProbabilityDensityFunction object.
@@ -194,7 +195,7 @@ class ProbabilityDensityFunction(object):
         '''
 
         # derive adequate window of definition
-        margin = 1.5 * np.max([barycentre - lbound, rbound - barycentre])
+        margin = 2. * np.max([barycentre - lbound, rbound - barycentre])
 
         # find midpoint accounting also for `~obspy.UTCDateTime` object usage
         try:
@@ -206,12 +207,19 @@ class ProbabilityDensityFunction(object):
                 midpoint = float(rbound + float(lbound)) / 2
 
         # find x0 on a grid point and sufficient npts
+        was_datetime = None
+        if isinstance(barycentre, UTCDateTime):
+            barycentre = float(barycentre)
+            was_datetime = True
         n = int(np.ceil((barycentre - midpoint) / incr))
         m = int(np.ceil((margin / incr)))
         midpoint = barycentre - n * incr
         margin = m * incr
         x0 = midpoint - margin
         npts = 2 * m
+
+        if was_datetime:
+            barycentre = UTCDateTime(barycentre)
 
         # calculate parameter for pdf representing function
         params = parameter[type](lbound, barycentre, rbound, decfact)
@@ -275,7 +283,7 @@ class ProbabilityDensityFunction(object):
             return None
         return self.data[find_nearest(self.axis, value)] * self.incr
 
-    def plot(self):
+    def plot(self, label=None):
         import matplotlib.pyplot as plt
 
         plt.plot(self.axis, self.data)
@@ -283,9 +291,13 @@ class ProbabilityDensityFunction(object):
         plt.ylabel('f(x)')
         plt.autoscale(axis='x', tight=True)
         if self:
-            plt.title('Probability density function')
+            title_str = 'Probability density function '
+            if label:
+                title_str += label
+            title_str.strip()
         else:
-            plt.title('Function not suitable as probability density function')
+            title_str = 'Function not suitable as probability density function'
+        plt.title(title_str)
         plt.show()
 
     def commonlimits(self, incr, other, max_npts=1e5):
