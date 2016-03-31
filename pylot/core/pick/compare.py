@@ -11,7 +11,7 @@ __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
 
-def read_data(fn):
+def read_data(fn, type='exp'):
     """
     Reads pick data from QuakeML files named FN and returns a dictionary
     containing a ProbabilityDensityFunction object for each pick.
@@ -26,6 +26,27 @@ def read_data(fn):
             phases[phase] = ProbabilityDensityFunction.fromPick(values['epp'],
                                                                 values['mpp'],
                                                                 values['lpp'],
-                                                                type='exp')
+                                                                type=type)
 
     return pdf_picks
+
+
+def compare_picksets(a, b):
+    """
+    Compare two picksets A and B and return a dictionary compiling the results.
+    Comparison is carried out with the help of pdf representation of the picks
+    and a probabilistic approach to the time difference of two onset
+    measurements.
+    :param a: filename for pickset A
+    :type a: str
+    :param b: filename for pickset B
+    :type b: str
+    :return: dictionary containing the resulting comparison pdfs for all picks
+    :rtype: dict
+    """
+    pdf_a = read_data(a)
+    pdf_b = read_data(b)
+
+    compare_pdfs = dict()
+
+    return compare_pdfs
