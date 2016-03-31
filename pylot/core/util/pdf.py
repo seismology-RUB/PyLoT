@@ -270,12 +270,21 @@ class ProbabilityDensityFunction(object):
     def prob_lt_val(self, value):
         if value <= self.axis[0] or value > self.axis[-1]:
             raise ValueError('value out of bounds: {0}'.format(value))
-        return self.data[self.axis <= value].sum() * self.incr
+        return self.prob_limits((self.axis[0], value))
 
     def prob_gt_val(self, value):
         if value < self.axis[0] or value >= self.axis[-1]:
             raise ValueError('value out of bounds: {0}'.format(value))
-        return self.data[self.axis >= value].sum() * self.incr
+        return self.prob_limits((value, self.axis[-1]))
+
+    def prob_limits(self, limits):
+        lim_ind = np.logical_and(limits[0] <= self.axis, self.axis <= limits[1])
+        data = self.data[lim_ind]
+        min_est, max_est = 0., 0.
+        for n in range(len(data) - 1):
+            min_est += min(data[n], data[n + 1])
+            max_est += max(data[n], data[n + 1])
+        return (min_est + max_est) / 2. * self.incr
 
     def prob_val(self, value):
         if not (self.axis[0] <= value <= self.axis[-1]):

@@ -49,4 +49,13 @@ def compare_picksets(a, b):
 
     compare_pdfs = dict()
 
+    for station, phases in pdf_a.items():
+        if station in pdf_b.keys():
+            compare_pdf = dict()
+            for phase in phases:
+                if phase in pdf_b[station].keys():
+                    compare_pdf[phase] = phases[phase] - pdf_b[station][phase]
+            if compare_pdf is not None:
+                compare_pdfs[station] = compare_pdf
+
     return compare_pdfs
