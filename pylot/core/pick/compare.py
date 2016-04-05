@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import copy
+
 from obspy import read_events
 
 from pylot.core.read.io import picks_from_evt
@@ -11,51 +13,124 @@ __version__ = _getVersionString()
 __author__ = 'sebastianw'
 
 
-def read_data(fn, type='exp'):
+class Comparison(object):
     """
-    Reads pick data from QuakeML files named FN and returns a dictionary
-    containing a ProbabilityDensityFunction object for each pick.
-    :param fn: name of the QuakeML file which contains the picks
-    :type fn: str
-    :return: a dictionary containing the picks represented as pdfs
+    A Comparison object contains information on the evaluated picks' probability
+    density function and compares these in terms of building the difference of
+    compared pick sets. The results can be displayed as histograms showing its
+    properties.
     """
-    pdf_picks = picks_from_evt(read_events(fn)[0])
+    def __init__(self, **kwargs):
+        names = list()
+        self._pdfs = dict()
+        for name, fn in kwargs:
+            self._pdfs[name] = PDFDictionary.from_quakeml(fn)
+            names.append(name)
+        if len(names) > 2:
+            raise ValueError('Comparison is only defined for two '
+                                 'arguments!')
+        self._names = names
 
-    for station, phases in pdf_picks.items():
-        for phase, values in phases.items():
-            phases[phase] = ProbabilityDensityFunction.fromPick(values['epp'],
-                                                                values['mpp'],
-                                                                values['lpp'],
-                                                                type=type)
+    def __nonzero__(self):
+        if not len(self.names) == 2 or not self._pdfs:
+            return False
+        return True
 
-    return pdf_picks
+    def get(self, name):
+        return self._pdfs[name]
+
+    @property
+    def names(self):
+        return self._names
+
+    @names.setter
+    def names(self, names):
+        assert isinstance(names, list) and len(names) == 2, 'variable "names"' \
+                                                            ' is either not a' \
+                                                            ' list or its ' \
+                                                            'length is not 2:' \
+                                                            'names : {names}'.format(names=names)
+        self._names = names
+
+    def compare_picksets(self):
+        """
+        Compare two picksets A and B and return a dictionary compiling the results.
+        Comparison is carried out with the help of pdf representation of the picks
+        and a probabilistic approach to the time difference of two onset
+        measurements.
+        :param a: filename for pickset A
+        :type a: str
+        :param b: filename for pickset B
+        :type b: str
+        :return: dictionary containing the resulting comparison pdfs for all picks
+        :rtype: dict
+        """
+        compare_pdfs = dict()
+
+        pdf_a = self.get(self.names[0])
+        pdf_b = self.get(self.names[1])
+
+        for station, phases in pdf_a.items():
+            if station in pdf_b.keys():
+                compare_pdf = dict()
+                for phase in phases:
+                    if phase in pdf_b[station].keys():
+                        compare_pdf[phase] = phases[phase] - pdf_b[station][
+                            phase]
+                if compare_pdf is not None:
+                    compare_pdfs[station] = compare_pdf
+
+        return compare_pdfs
 
 
-def compare_picksets(a, b):
+class PDFDictionary(object):
     """
-    Compare two picksets A and B and return a dictionary compiling the results.
-    Comparison is carried out with the help of pdf representation of the picks
-    and a probabilistic approach to the time difference of two onset
-    measurements.
-    :param a: filename for pickset A
-    :type a: str
-    :param b: filename for pickset B
-    :type b: str
-    :return: dictionary containing the resulting comparison pdfs for all picks
-    :rtype: dict
+    A PDFDictionary is a dictionary like object containing structured data on
+    the probability density function of seismic phase onsets.
     """
-    pdf_a = read_data(a)
-    pdf_b = read_data(b)
+    def __init__(self, data):
+        self._pickdata = data
 
-    compare_pdfs = dict()
+    def __nonzero__(self):
+        if len(self.pick_data) < 1:
+            return False
+        else:
+            return True
 
-    for station, phases in pdf_a.items():
-        if station in pdf_b.keys():
-            compare_pdf = dict()
-            for phase in phases:
-                if phase in pdf_b[station].keys():
-                    compare_pdf[phase] = phases[phase] - pdf_b[station][phase]
-            if compare_pdf is not None:
-                compare_pdfs[station] = compare_pdf
+    @property
+    def pick_data(self):
+        return self._pickdata
 
-    return compare_pdfs
+    @pick_data.setter
+    def pick_data(self, data):
+        self._pickdata = data
+
+    @classmethod
+    def from_quakeml(self, fn):
+        cat = read_events(fn)
+        if len(cat) > 1:
+            raise NotImplementedError('reading more than one event at the same '
+                                      'time is not implemented yet! Sorry!')
+        self.pick_data = picks_from_evt(cat[0])
+
+    def pdf_data(self, type='exp'):
+        """
+        Returns probabiliy density function dictionary containing the
+        representation of the actual pick_data.
+        :param type: type of the returned
+         `~pylot.core.util.pdf.ProbabilityDensityFunction` object
+        :type type: str
+        :return: a dictionary containing the picks represented as pdfs
+        """
+
+        pdf_picks = copy.deepcopy(self.pick_data)
+
+        for station, phases in pdf_picks.items():
+            for phase, values in phases.items():
+                phases[phase] = ProbabilityDensityFunction.fromPick(values['epp'],
+                                                                    values['mpp'],
+                                                                    values['lpp'],
+                                                                    type=type)
+
+        return pdf_picks
+
