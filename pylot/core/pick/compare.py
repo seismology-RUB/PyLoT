@@ -130,6 +130,46 @@ class Comparison(object):
 
         plt.show()
 
+    def get_expectation_array(self, phase):
+        pdf_dict = self.comparison
+        exp_array = list()
+        for station, phases in pdf_dict.items():
+            exp_array.append(phases[phase].expectation())
+        return exp_array
+
+    def get_std_array(self, phase):
+        pdf_dict = self.comparison
+        std_array = list()
+        for station, phases in pdf_dict.items():
+            std_array.append(phases[phase].standard_deviation())
+        return std_array
+
+    def hist_expectation(self, phases='all', bins=50, normed=False):
+        phases.strip()
+        if phases.find('all') == 0:
+            phases = 'ps'
+        phases = phases.upper()
+        nsp = len(phases)
+        fig, axarray = plt.subplots(1, nsp, sharey=True)
+        for n, phase in enumerate(phases):
+            ax = axarray[0, n]
+            data = self.get_expectation_array(phase)
+            xlims = [np.floor(min(data)), np.ceil(max(data))]
+            ax.hist(data, xlims=xlims, bins=bins, normed=normed)
+            title_str = 'phase: {0}, samples: {1}'.format(phase, len(data))
+            ax.title(title_str)
+            ax.xlabel('expectation [s]')
+            if n is 0:
+                ax.ylabel('abundance [-]')
+        plt.setp([a.get_yticklabels() for a in axarray[0, 1:]], visible=False)
+        plt.show()
+
+    def hist_standard_deviation(self):
+        pass
+
+    def hist(self, type='std'):
+        pass
+
 
 class PDFDictionary(object):
     """
