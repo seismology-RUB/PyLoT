@@ -146,26 +146,43 @@ class Comparison(object):
 
     def hist_expectation(self, phases='all', bins=50, normed=False):
         phases.strip()
+        if phases.find('all') is 0:
+            phases = 'ps'
+        phases = phases.upper()
+        nsp = len(phases)
+        fig, axarray = plt.subplots(1, nsp, sharey=True)
+        for n, phase in enumerate(phases):
+            ax = axarray[n]
+            data = self.get_expectation_array(phase)
+            xlims = [np.floor(min(data)), np.ceil(max(data))]
+            ax.hist(data, range=xlims, bins=bins, normed=normed)
+            title_str = 'phase: {0}, samples: {1}'.format(phase, len(data))
+            ax.set_title(title_str)
+            ax.set_xlabel('expectation [s]')
+            if n is 0:
+                ax.set_ylabel('abundance [-]')
+        plt.setp([a.get_yticklabels() for a in axarray[1:]], visible=False)
+        plt.show()
+
+    def hist_standard_deviation(self, phases='all', bins=50, normed=False):
+        phases.strip()
         if phases.find('all') == 0:
             phases = 'ps'
         phases = phases.upper()
         nsp = len(phases)
         fig, axarray = plt.subplots(1, nsp, sharey=True)
         for n, phase in enumerate(phases):
-            ax = axarray[0, n]
-            data = self.get_expectation_array(phase)
+            ax = axarray[n]
+            data = self.get_std_array(phase)
             xlims = [np.floor(min(data)), np.ceil(max(data))]
-            ax.hist(data, xlims=xlims, bins=bins, normed=normed)
+            ax.hist(data, range=xlims, bins=bins, normed=normed)
             title_str = 'phase: {0}, samples: {1}'.format(phase, len(data))
-            ax.title(title_str)
-            ax.xlabel('expectation [s]')
+            ax.set_title(title_str)
+            ax.set_xlabel('standard deviation [s]')
             if n is 0:
-                ax.ylabel('abundance [-]')
-        plt.setp([a.get_yticklabels() for a in axarray[0, 1:]], visible=False)
+                ax.set_ylabel('abundance [-]')
+        plt.setp([a.get_yticklabels() for a in axarray[1:]], visible=False)
         plt.show()
-
-    def hist_standard_deviation(self):
-        pass
 
     def hist(self, type='std'):
         pass
@@ -223,3 +240,9 @@ class PDFDictionary(object):
                     type=type)
 
         return pdf_picks
+
+
+comp_obj = Comparison(manual='/home/sebastianp/Data/Insheim/e0057.026.13.xml', auto='/home/sebastianp/Data/Insheim/e0057.026.13.xml')
+comp_obj.plot()
+comp_obj.hist_expectation()
+comp_obj.hist_standard_deviation()
