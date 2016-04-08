@@ -144,7 +144,7 @@ class Comparison(object):
             std_array.append(phases[phase].standard_deviation())
         return std_array
 
-    def hist_expectation(self, phases='all', bins=50, normed=False):
+    def hist_expectation(self, phases='all', bins=20, normed=False):
         phases.strip()
         if phases.find('all') is 0:
             phases = 'ps'
@@ -154,7 +154,7 @@ class Comparison(object):
         for n, phase in enumerate(phases):
             ax = axarray[n]
             data = self.get_expectation_array(phase)
-            xlims = [np.floor(min(data)), np.ceil(max(data))]
+            xlims = [min(data), max(data)]
             ax.hist(data, range=xlims, bins=bins, normed=normed)
             title_str = 'phase: {0}, samples: {1}'.format(phase, len(data))
             ax.set_title(title_str)
@@ -164,7 +164,7 @@ class Comparison(object):
         plt.setp([a.get_yticklabels() for a in axarray[1:]], visible=False)
         plt.show()
 
-    def hist_standard_deviation(self, phases='all', bins=50, normed=False):
+    def hist_standard_deviation(self, phases='all', bins=20, normed=False):
         phases.strip()
         if phases.find('all') == 0:
             phases = 'ps'
@@ -174,7 +174,7 @@ class Comparison(object):
         for n, phase in enumerate(phases):
             ax = axarray[n]
             data = self.get_std_array(phase)
-            xlims = [np.floor(min(data)), np.ceil(max(data))]
+            xlims = [min(data), max(data)]
             ax.hist(data, range=xlims, bins=bins, normed=normed)
             title_str = 'phase: {0}, samples: {1}'.format(phase, len(data))
             ax.set_title(title_str)
