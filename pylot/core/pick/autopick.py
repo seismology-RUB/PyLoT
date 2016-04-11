@@ -305,7 +305,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             if mpickP is not None:
                 # quality assessment
                 # get earliest/latest possible pick and symmetrized uncertainty
-                [lpickP, epickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
+                [epickP, lpickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
                                                           mpickP, iplot)
 
                 # get SNR
@@ -491,11 +491,11 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 # quality assessment
                 # get earliest/latest possible pick and symmetrized uncertainty
                 h_copy[0].data = trH1_filt.data
-                [lpickS1, epickS1, Serror1] = earllatepicker(h_copy, nfacS,
+                [epickS1, lpickS1, Serror1] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
                 h_copy[0].data = trH2_filt.data
-                [lpickS2, epickS2, Serror2] = earllatepicker(h_copy, nfacS,
+                [epickS2, lpickS2, Serror2] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
                 if epickS1 is not None and epickS2 is not None:
@@ -511,7 +511,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                         elif epickS1 is not None and epickS2 is not None:
                             ipick = np.argmin([epickS1, epickS2])
                     elif algoS == 'AR3':
-                        [lpickS3, epickS3, Serror3] = earllatepicker(h_copy,
+                        [epickS3, lpickS3, Serror3] = earllatepicker(h_copy,
                                                                      nfacS,
                                                                      tsnrh,
                                                                      mpickS,
