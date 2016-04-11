@@ -417,6 +417,8 @@ class Data(object):
             for station, onsets in picks.items():
                 print('Reading picks on station %s' % station)
                 for label, phase in onsets.items():
+                    if not isinstance(phase, dict):
+                        continue
                     onset = phase['mpp']
                     epp = phase['epp']
                     lpp = phase['lpp']

@@ -202,10 +202,15 @@ def autoPyLoT(inputfile):
                 if hasattr(finalpicks, 'getpicdic'):
                     if finalpicks.getpicdic() is not None:
                         writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                        data.applyEVTData(finalpicks.getpicdic())
                     else:
                         writephases(picks, 'HYPO71', hypo71file)
+                        data.applyEVTData(picks)
                 else:
                     writephases(picks, 'HYPO71', hypo71file)
+                    data.applyEVTData(picks)
+                fnqml = '%s/autoPyLoT' % event
+                data.exportEvent(fnqml)
 
                 endsplash = '''------------------------------------------\n'
                                -----Finished event %s!-----\n'
@@ -318,10 +323,15 @@ def autoPyLoT(inputfile):
             if hasattr(finalpicks, 'getpicdic'):
                 if finalpicks.getpicdic() is not None:
                     writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
+                    data.applyEVTData(finalpicks.getpicdic())
                 else:
                     writephases(picks, 'HYPO71', hypo71file)
+                    data.applyEVTData(picks)
             else:
                 writephases(picks, 'HYPO71', hypo71file)
+                data.applyEVTData(picks)
+            fnqml =  '%s/%s/autoPyLoT' % (datapath, parameter.getParam('eventID'))
+            data.exportEvent(fnqml)
 
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'
@@ -340,6 +350,7 @@ def autoPyLoT(inputfile):
 
 
 if __name__ == "__main__":
+    from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
     # parse arguments
     parser = argparse.ArgumentParser(
         description='''autoPyLoT automatically picks phase onset times using higher order statistics,
@@ -349,8 +360,7 @@ if __name__ == "__main__":
                         action='store',
                         help='''full path to the file containing the input
                         parameters for autoPyLoT''',
-                        default=os.path.join(os.path.expanduser('~'), '.pylot',
-                                             'autoPyLoT.in')
+                        default=AUTOMATIC_DEFAULTS
                         )
     parser.add_argument('-v', '-V', '--version', action='version',
                         version='autoPyLoT ' + __version__,
