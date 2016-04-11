@@ -45,7 +45,8 @@ from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.read.io import picks_from_evt
 from pylot.core.loc.nll import locate as locateNll
-from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP,\
+    AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
@@ -689,8 +690,7 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
-        home = os.path.expanduser("~")
-        autopick_parameter = AutoPickParameter('%s/.pylot/autoPyLoT_local.in' % home)
+        autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
         self.addListItem(str(autopick_parameter))
 
         # Create the worker thread and run it

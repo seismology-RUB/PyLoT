@@ -135,6 +135,24 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
 
+def picks_from_obs(fn):
+    picks = dict()
+    station_name = str()
+    for line in open(fn, 'r'):
+        if line.startswith('#'):
+            continue
+        else:
+            phase_line = line.split()
+            if not station_name == phase_line[0]:
+                phase = dict()
+            station_name = phase_line[0]
+            phase_name = phase_line[4].upper()
+            pick = UTCDateTime(phase_line[6] + phase_line[7] + phase_line[8])
+            phase[phase_name] = dict(mpp=pick, fm=phase_line[5])
+            picks[station_name] = phase
+    return picks
+
+
 def picks_from_evt(evt):
     '''
     Takes an Event object and return the pick dictionary commonly used within

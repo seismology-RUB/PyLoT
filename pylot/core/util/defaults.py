@@ -43,6 +43,10 @@ FILTERDEFAULTS = readFilterInformation(os.path.join(os.path.expanduser('~'),
                                                     '.pylot',
                                                     'filter.in'))
 
+AUTOMATIC_DEFAULTS = os.path.join(os.path.expanduser('~'),
+                                  '.pylot',
+                                  'autoPyLoT.in')
+
 OUTPUTFORMATS = {'.xml': 'QUAKEML',
                  '.cnv': 'CNV',
                  '.obs': 'NLLOC_OBS'}
