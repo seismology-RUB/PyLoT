@@ -494,6 +494,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 [epickS1, lpickS1, Serror1] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
                                                              mpickS, iplot)
+
                 h_copy[0].data = trH2_filt.data
                 [epickS2, lpickS2, Serror2] = earllatepicker(h_copy, nfacS,
                                                              tsnrh,
@@ -773,6 +774,10 @@ def autopickstation(wfstream, pickparam, verbose=False):
             plt.close()
     ##########################################################################
     # calculate "real" onset times
+    if lpickP is not None and lpickP == mpickP:
+        lpickP += timeerrorsP[0]
+    if epickP is not None and epickP == mpickP:
+        epickP -= timeerrorsP[0]
     if mpickP is not None and epickP is not None and lpickP is not None:
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
@@ -780,10 +785,14 @@ def autopickstation(wfstream, pickparam, verbose=False):
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        lpickP = zdat[0].stats.starttime
-        epickP = zdat[0].stats.starttime
+        lpickP = zdat[0].stats.starttime + timeerrorsP[3]
+        epickP = zdat[0].stats.starttime - timeerrorsP[3]
         mpickP = zdat[0].stats.starttime
 
+    if lpickS is not None and lpickS == mpickS:
+        lpickS += timeerrorsS[0]
+    if epickS is not None and epickS == mpickS:
+        epickS -= timeerrorsS[0]
     if mpickS is not None and epickS is not None and lpickS is not None:
         lpickS = edat[0].stats.starttime + lpickS
         epickS = edat[0].stats.starttime + epickS
@@ -791,8 +800,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        lpickS = edat[0].stats.starttime
-        epickS = edat[0].stats.starttime
+        lpickS = edat[0].stats.starttime + timeerrorsS[3]
+        epickS = edat[0].stats.starttime - timeerrorsS[3]
         mpickS = edat[0].stats.starttime
 
     # create dictionary
