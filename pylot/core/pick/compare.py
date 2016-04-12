@@ -146,7 +146,12 @@ class Comparison(object):
         pdf_dict = self.comparison
         std_array = list()
         for station, phases in pdf_dict.items():
-            std_array.append(phases[phase].standard_deviation())
+            try:
+                std_array.append(phases[phase].standard_deviation())
+            except KeyError as e:
+                print('{err_msg}; station = {station}, phase = {phase}'.format(
+                    err_msg=str(e), station=station, phase=phase))
+                continue
         return std_array
 
     def hist_expectation(self, phases='all', bins=20, normed=False):
