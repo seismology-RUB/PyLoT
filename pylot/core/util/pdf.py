@@ -154,7 +154,7 @@ class ProbabilityDensityFunction(object):
         prec = self.precision(self.incr)
         gtzero = np.all(self.data >= 0)
         probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
-        return (gtzero and probone)
+        return bool(gtzero and probone)
 
     def __str__(self):
         return str(self.data)
