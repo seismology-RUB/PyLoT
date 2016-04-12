@@ -181,7 +181,7 @@ class ProbabilityDensityFunction(object):
         self._x = np.array(x)
 
     @classmethod
-    def fromPick(self, lbound, barycentre, rbound, incr=0.0001, decfact=0.01,
+    def fromPick(self, lbound, barycentre, rbound, incr=0.001, decfact=0.01,
                  type='gauss'):
         '''
         Initialize a new ProbabilityDensityFunction object.

@@ -134,7 +134,12 @@ class Comparison(object):
         pdf_dict = self.comparison
         exp_array = list()
         for station, phases in pdf_dict.items():
-            exp_array.append(phases[phase].expectation())
+            try:
+                exp_array.append(phases[phase].expectation())
+            except KeyError as e:
+                print('{err_msg}; station = {station}, phase = {phase}'.format(
+                    err_msg=str(e), station=station, phase=phase))
+                continue
         return exp_array
 
     def get_std_array(self, phase):
@@ -242,7 +247,8 @@ class PDFDictionary(object):
         return pdf_picks
 
 
-comp_obj = Comparison(manual='/home/sebastianp/Data/Insheim/e0057.026.13.xml', auto='/home/sebastianp/Data/Insheim/e0057.026.13.xml')
-comp_obj.plot()
-comp_obj.hist_expectation()
-comp_obj.hist_standard_deviation()
+#comp_obj = Comparison(manual='/home/sebastianp/Data/Insheim/e0019.048.13.xml',
+#                      auto='/data/Geothermie/Insheim/EVENT_DATA/LOCAL/RefDB/e0019.048.13/autoPyLoT.xml')
+#comp_obj.plot()
+#comp_obj.hist_expectation()
+#comp_obj.hist_standard_deviation()
