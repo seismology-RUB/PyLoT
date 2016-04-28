@@ -34,7 +34,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2014-11-26'
-__updated__ = '2014-11-26'
+__updated__ = '2016-04-28'
 
 DEBUG = 0
 TESTRUN = 0
@@ -69,19 +69,19 @@ def main(argv=None):  # IGNORE:C0111
     program_version_message = 'makePyLoT %s (%s)' % (
         program_version, program_build_date)
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
-    program_license = '''%s
+    program_license = '''{0:s}
 
-  Created by Sebastian Wehling-Benatelli on %s.
-  Copyright 2014 MAGS2 EP3 Working Group. All rights reserved.
+    Created by Sebastian Wehling-Benatelli on {1:s}.
+    Copyright 2014 MAGS2 EP3 Working Group. All rights reserved.
 
-  GNU Lesser General Public License, Version 3
+    GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
 
-  Distributed on an "AS IS" basis without warranties
-  or conditions of any kind, either express or implied.
+    Distributed on an "AS IS" basis without warranties
+    or conditions of any kind, either express or implied.
 
-USAGE
-''' % (program_shortdesc, str(__date__))
+    USAGE
+    '''.format(program_shortdesc, str(__date__))
 
     try:
         # Setup argument parser
@@ -109,17 +109,17 @@ USAGE
 
         if verbose > 0:
             print("Verbose mode on")
-            if install and not directory:
-                raise CLIError("""Trying to install without appropriate
-                               destination; please specify an installation
-                               directory!""")
-            if build and install:
-                print("Building and installing PyLoT ...\n")
-                buildPyLoT(verbose)
-                installPyLoT(verbose)
-            elif build and not install:
-                print("Building PyLoT without installing! Please wait ...\n")
-                buildPyLoT(verbose)
+        if install and not directory:
+            raise CLIError("""Trying to install without appropriate
+                           destination; please specify an installation
+                           directory!""")
+        if build and install:
+            print("Building and installing PyLoT ...\n")
+            buildPyLoT(verbose)
+            installPyLoT(verbose)
+        elif build and not install:
+            print("Building PyLoT without installing! Please wait ...\n")
+            buildPyLoT(verbose)
         cleanUp()
         return 0
     except KeyboardInterrupt:
