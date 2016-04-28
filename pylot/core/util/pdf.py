@@ -181,8 +181,8 @@ class ProbabilityDensityFunction(object):
         self._x = np.array(x)
 
     @classmethod
-    def fromPick(self, lbound, barycentre, rbound, incr=0.001, decfact=0.01,
-                 type='gauss'):
+    def from_pick(self, lbound, barycentre, rbound, incr=0.001, decfact=0.01,
+                  type='gauss'):
         '''
         Initialize a new ProbabilityDensityFunction object.
         Takes incr, lbound, barycentre and rbound to derive x0 and the number
@@ -323,8 +323,8 @@ class ProbabilityDensityFunction(object):
         :return:
 
         '''
-        # >>> manu = ProbabilityDensityFunction.fromPick(0.01, 0.3, 0.5, 0.54)
-        # >>> auto = ProbabilityDensityFunction.fromPick(0.01, 0.3, 0.34, 0.54)
+        # >>> manu = ProbabilityDensityFunction.from_pick(0.01, 0.3, 0.5, 0.54)
+        # >>> auto = ProbabilityDensityFunction.from_pick(0.01, 0.3, 0.34, 0.54)
         # >>> manu.commonlimits(0.01, auto)
         # (
 
