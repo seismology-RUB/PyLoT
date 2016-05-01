@@ -13,7 +13,7 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all
 from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 from scipy import integrate, signal
-from pylot.core.read.data import Data
+from pylot.core.io.data import Data
 
 
 class Magnitude(object):

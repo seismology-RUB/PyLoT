@@ -24,7 +24,7 @@ from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from pylot.core.read.inputs import FilterOptions
+from pylot.core.io.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \

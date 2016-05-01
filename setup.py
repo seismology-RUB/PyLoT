@@ -4,7 +4,7 @@ setup(
     name='PyLoT',
     version='0.1a1',
     packages=['pylot', 'pylot.core', 'pylot.core.loc', 'pylot.core.pick',
-              'pylot.core.read', 'pylot.core.util', 'pylot.core.active',
+              'pylot.core.io', 'pylot.core.util', 'pylot.core.active',
               'pylot.core.analysis', 'pylot.testing'],
     url='dummy',
     license='LGPLv3',

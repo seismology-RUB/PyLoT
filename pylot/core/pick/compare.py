@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from obspy import read_events
 
-from pylot.core.read.io import picks_from_evt
+from pylot.core.io.phases import picks_from_evt
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -251,9 +251,3 @@ class PDFDictionary(object):
 
         return pdf_picks
 
-
-#comp_obj = Comparison(manual='/home/sebastianp/Data/Insheim/e0019.048.13.xml',
-#                      auto='/data/Geothermie/Insheim/EVENT_DATA/LOCAL/RefDB/e0019.048.13/autoPyLoT.xml')
-#comp_obj.plot()
-#comp_obj.hist_expectation()
-#comp_obj.hist_standard_deviation()

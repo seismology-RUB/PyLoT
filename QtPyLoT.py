@@ -40,10 +40,10 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 from obspy import UTCDateTime
 
-from pylot.core.read.data import Data
-from pylot.core.read.inputs import FilterOptions, AutoPickParameter
+from pylot.core.io.data import Data
+from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
-from pylot.core.read.io import picks_from_evt
+from pylot.core.io.phases import picks_from_evt
 from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP,\
     AUTOMATIC_DEFAULTS

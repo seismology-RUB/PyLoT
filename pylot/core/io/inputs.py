@@ -40,13 +40,13 @@ class AutoPickParameter(object):
         '''
         Initialize parameter object:
 
-        read content of an ASCII file an form a type consistent dictionary
+        io content of an ASCII file an form a type consistent dictionary
         contain all parameters.
         '''
 
         self.__filename = fnin
         parFileCont = {}
-        # read from parsed arguments alternatively
+        # io from parsed arguments alternatively
         for key, val in kwargs.items():
             parFileCont[key] = val
 

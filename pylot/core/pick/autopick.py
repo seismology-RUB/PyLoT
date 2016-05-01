@@ -11,14 +11,14 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pylot.core.read.inputs import AutoPickParameter
+from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine
-from pylot.core.read.data import Data
+from pylot.core.io.data import Data
 from pylot.core.analysis.magnitude import WApp
 
 

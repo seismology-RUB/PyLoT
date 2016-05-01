@@ -9,10 +9,11 @@
    :author: Ludger Kueperkoch / MAGS2 EP3 working group
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from obspy.core import Stream, UTCDateTime
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+from obspy.core import Stream, UTCDateTime
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
@@ -935,162 +936,6 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
         raw_input()
 
     return returnflag
-
-
-def writephases(arrivals, fformat, filename):
-    '''
-    Function of methods to write phases to the following standard file
-    formats used for locating earthquakes:
-
-    HYPO71, NLLoc, VELEST, HYPOSAT, and hypoDD
-
-    :param: arrivals
-    :type: dictionary containing all phase information including
-           station ID, phase, first motion, weight (uncertainty),
-           ....
-
-    :param: fformat
-    :type:  string, chosen file format (location routine),
-            choose between NLLoc, HYPO71, HYPOSAT, VELEST,
-            HYPOINVERSE, and hypoDD
-
-    :param: filename, full path and name of phase file
-    :type: string
-    '''
-
-    if fformat == 'NLLoc':
-        print ("Writing phases to %s for NLLoc" % filename)
-        fid = open("%s" % filename, 'w')
-        # write header
-        fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
-        for key in arrivals:
-            # P onsets
-            if arrivals[key]['P']:
-                fm = arrivals[key]['P']['fm']
-                if fm == None:
-                    fm = '?'
-                onset = arrivals[key]['P']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                if arrivals[key]['P']['weight'] < 4:
-                    pweight = 1  # use pick
-                else:
-                    pweight = 0  # do not use pick
-                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                                                                                           fm,
-                                                                                           year,
-                                                                                           month,
-                                                                                           day,
-                                                                                           hh,
-                                                                                           mm,
-                                                                                           ss_ms,
-                                                                                           pweight))
-            # S onsets
-            if arrivals[key]['S']:
-                fm = '?'
-                onset = arrivals[key]['S']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                if arrivals[key]['S']['weight'] < 4:
-                    sweight = 1  # use pick
-                else:
-                    sweight = 0  # do not use pick
-                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                                                                                           fm,
-                                                                                           year,
-                                                                                           month,
-                                                                                           day,
-                                                                                           hh,
-                                                                                           mm,
-                                                                                           ss_ms,
-                                                                                           sweight))
-
-        fid.close()
-
-    elif fformat == 'HYPO71':
-        print ("Writing phases to %s for HYPO71" % filename)
-        fid = open("%s" % filename, 'w')
-        # write header
-        fid.write('                                                              EQ001\n')
-        for key in arrivals:
-            if arrivals[key]['P']['weight'] < 4:
-                Ponset = arrivals[key]['P']['mpp']
-                Sonset = arrivals[key]['S']['mpp']
-                pweight = arrivals[key]['P']['weight']
-                sweight = arrivals[key]['S']['weight']
-                fm = arrivals[key]['P']['fm']
-                if fm is None:
-                    fm = '-'
-                Ao = arrivals[key]['S']['Ao']
-                if Ao is None:
-                    Ao = ''
-                else:
-                    Ao = str('%7.2f' % Ao)
-                year = Ponset.year
-                if year >= 2000:
-                    year = year - 2000
-                else:
-                    year = year - 1900
-                month = Ponset.month
-                day = Ponset.day
-                hh = Ponset.hour
-                mm = Ponset.minute
-                ss = Ponset.second
-                ms = Ponset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                if pweight < 2:
-                    pstr = 'I'
-                elif pweight >= 2:
-                    pstr = 'E'
-                if arrivals[key]['S']['weight'] < 4:
-                    Sss = Sonset.second
-                    Sms = Sonset.microsecond
-                    Sss_ms = Sss + Sms / 1000000.0
-                    Sss_ms = str('%5.02f' % Sss_ms)
-                    if sweight < 2:
-                        sstr = 'I'
-                    elif sweight >= 2:
-                        sstr = 'E'
-                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (key,
-                                                                                             pstr,
-                                                                                             fm,
-                                                                                             pweight,
-                                                                                             year,
-                                                                                             month,
-                                                                                             day,
-                                                                                             hh,
-                                                                                             mm,
-                                                                                             ss_ms,
-                                                                                             Sss_ms,
-                                                                                             sstr,
-                                                                                             sweight,
-                                                                                             Ao))
-                else:
-                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (key,
-                                                                                             pstr,
-                                                                                             fm,
-                                                                                             pweight,
-                                                                                             year,
-                                                                                             month,
-                                                                                             day,
-                                                                                             hh,
-                                                                                             mm,
-                                                                                             ss_ms,
-                                                                                             Ao))
-
-        fid.close()
 
 
 if __name__ == '__main__':

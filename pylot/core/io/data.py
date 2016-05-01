@@ -9,7 +9,7 @@ from obspy.core import read, Stream, UTCDateTime
 from obspy import read_events, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
-from pylot.core.read.io import readPILOTEvent
+from pylot.core.io.phases import readPILOTEvent
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
 from pylot.core.util.errors import FormatError, OverwriteError
 

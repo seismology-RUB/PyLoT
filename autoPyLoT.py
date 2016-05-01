@@ -2,20 +2,20 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import os
+
 import argparse
 import glob
-import subprocess
 import string
+
 import numpy as np
-from obspy.core import read, UTCDateTime
-from pylot.core.read.data import Data
-from pylot.core.read.inputs import AutoPickParameter
-from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.pick.autopick import autopickevent, iteratepicker
-from pylot.core.loc.nll import *
-from pylot.core.util.version import get_git_version as _getVersionString
+
 from pylot.core.analysis.magnitude import M0Mw
+from pylot.core.io.data import Data
+from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.loc.nll import *
+from pylot.core.pick.autopick import autopickevent, iteratepicker
+from pylot.core.util.structure import DATASTRUCTURE
+from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
@@ -27,7 +27,7 @@ def autoPyLoT(inputfile):
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
-    `~pylot.core.read.input.AutoPickParameter`
+    `~pylot.core.io.inputs.AutoPickParameter`
     :type inputfile: str
     :return:
 
