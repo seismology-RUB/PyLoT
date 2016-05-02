@@ -43,8 +43,10 @@ from obspy import UTCDateTime
 from pylot.core.read.data import Data
 from pylot.core.read.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.read.io import picks_from_evt
 from pylot.core.loc.nll import locate as locateNll
-from pylot.core.util.defaults import FILTERDEFAULTS
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP,\
+    AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
@@ -87,7 +89,7 @@ class MainWindow(QMainWindow):
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
             dirname = QFileDialog().getExistingDirectory(
-                    caption='Choose data root ...')
+                caption='Choose data root ...')
             settings.setValue("data/dataRoot", dirname)
         settings.sync()
 
@@ -110,14 +112,16 @@ class MainWindow(QMainWindow):
         # load and display waveform data
         self.dirty = False
         self.loadData()
-        self.loadWaveformData()
-        self.updateFilterOptions()
+        if self.loadWaveformData():
+            self.updateFilterOptions()
+        else:
+            sys.exit(0)
 
     def setupUi(self):
 
         try:
             self.startTime = min(
-                    [tr.stats.starttime for tr in self.data.wfdata])
+                [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
 
@@ -354,7 +358,10 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
-    def loadData(self, fname=None):
+    def loadAutoPicks(self):
+        self.loadData(type='auto')
+
+    def loadData(self, fname=None, type='manual'):
         if not self.okToContinue():
             return
         if fname is None:
@@ -368,10 +375,10 @@ class MainWindow(QMainWindow):
                                                           filter=filt)
                     fname = fname[0]
                 else:
-                    fname = unicode(action.data().toString())
+                    fname = str(action.data().toString())
         self.setFileName(fname)
         self.data += Data(self, evtdata=self.getFileName())
-        self.updatePicks()
+        self.updatePicks(type=type)
         self.drawPicks()
 
     def getLastEvent(self):
@@ -403,6 +410,8 @@ class MainWindow(QMainWindow):
 
                 else:
                     raise DatastructureError('not specified')
+            if not self.fnames:
+                return None
             return self.fnames
         except DatastructureError as e:
             print(e)
@@ -431,13 +440,14 @@ class MainWindow(QMainWindow):
             print('warning: {0}'.format(e))
             directory = os.path.join(self.getRoot(), self.getEventFileName())
             file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
-            fname = QFileDialog.getSaveFileName(self, 'Save event data ...',
-                                                directory, file_filter)
+            fname, selected_filter = QFileDialog.getSaveFileName(self, 'Save event data ...',
+                                                                 directory, file_filter)
 
-            fbasename, exform = os.path.splitext(fname[0])
+            fbasename, exform = os.path.splitext(fname)
 
-            if not exform:
-                exform = file_filter[0].split('*')[1][:-1]
+            if not exform and selected_filter:
+                exform = selected_filter.split('*')[1][:-1]
+
             return fbasename, exform
 
         settings = QSettings()
@@ -455,7 +465,7 @@ class MainWindow(QMainWindow):
             ret = msgBox.exec_()
             if ret == QMessageBox.Save:
                 self.getData().resetPicks()
-                self.saveData()
+                return self.saveData()
             elif ret == QMessageBox.Cancel:
                 return False
         try:
@@ -524,17 +534,23 @@ class MainWindow(QMainWindow):
     def loadWaveformData(self):
         if self.fnames and self.okToContinue():
             self.setDirty(True)
-            self.data.setWFData(self.fnames)
+            ans = self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
-            self.data.setWFData(self.getWFFnames())
-        self.plotWaveformData()
+            ans = self.data.setWFData(self.getWFFnames())
+        if ans:
+            self.plotWaveformData()
+            return ans
+        else:
+            return ans
 
     def plotWaveformData(self):
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
+        alter_comp = COMPNAME_MAP[comp]
         wfst = self.getData().getWFData().select(component=comp)
-        self.getPlotWidget().plotWFData(wfdata=wfst, title=title)
+        wfst += self.getData().getWFData().select(component=alter_comp)
+        self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
         self.draw()
         plotDict = self.getPlotWidget().getPlotDict()
         pos = plotDict.keys()
@@ -569,6 +585,7 @@ class MainWindow(QMainWindow):
             else:
                 self.getData().resetWFData()
         self.plotWaveformData()
+        self.drawPicks()
 
     def adjustFilterOptions(self):
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
@@ -615,8 +632,8 @@ class MainWindow(QMainWindow):
         else:
             self.updateStatus('Filter loaded ... '
                               '[{0}: {1} Hz]'.format(
-                    self.getFilterOptions().getFilterType(),
-                    self.getFilterOptions().getFreq()))
+                self.getFilterOptions().getFilterType(),
+                self.getFilterOptions().getFreq()))
         if self.filterAction.isChecked():
             self.filterWaveformData()
 
@@ -673,8 +690,7 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
-        home = os.path.expanduser("~")
-        autopick_parameter = AutoPickParameter('%s/.pylot/autoPyLoT_local.in' % home)
+        autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
         self.addListItem(str(autopick_parameter))
 
         # Create the worker thread and run it
@@ -718,29 +734,12 @@ class MainWindow(QMainWindow):
         self.getPicks(type=type)[station] = stat_picks
         return rval
 
-    def updatePicks(self):
-        evt = self.getData().getEvtData()
-        picks = {}
-        for pick in evt.picks:
-            phase = {}
-            station = pick.waveform_id.station_code
-            try:
-                onsets = picks[station]
-            except KeyError as e:
-                print(e)
-                onsets = {}
-            mpp = pick.time
-            lpp = mpp + pick.time_errors.upper_uncertainty
-            epp = mpp - pick.time_errors.lower_uncertainty
-            spe = pick.time_errors.uncertainty
-            phase['mpp'] = mpp
-            phase['epp'] = epp
-            phase['lpp'] = lpp
-            phase['spe'] = spe
-
-            onsets[pick.phase_hint] = phase.copy()
-            picks[station] = onsets.copy()
-        self.picks.update(picks)
+    def updatePicks(self, type='manual'):
+        picks = picks_from_evt(evt=self.getData().getEvtData())
+        if type == 'manual':
+            self.picks.update(picks)
+        elif type == 'auto':
+            self.autopicks.update(picks)
 
     def drawPicks(self, station=None, picktype='manual'):
         # if picks to draw not specified, draw all picks available
@@ -811,12 +810,12 @@ class MainWindow(QMainWindow):
         if self.getData() is not None:
             if not self.getData().isNew():
                 self.setWindowTitle(
-                        "PyLoT - processing event %s[*]" % self.getData().getID())
+                    "PyLoT - processing event %s[*]" % self.getData().getID())
             elif self.getData().isNew():
                 self.setWindowTitle("PyLoT - New event [*]")
             else:
                 self.setWindowTitle(
-                        "PyLoT - seismic processing the python way[*]")
+                    "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
     def tutorUser(self):
@@ -854,7 +853,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(
-                    'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
             form = HelpForm(':/help.html')
         form.show()

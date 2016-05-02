@@ -22,10 +22,11 @@ calculated after Diehl & Kissling (2009).
 import numpy as np
 import matplotlib.pyplot as plt
 from pylot.core.pick.utils import getnoisewin, getsignalwin
-from pylot.core.pick.CharFuns import CharacteristicFunction
+from pylot.core.pick.charfuns import CharacteristicFunction
 import warnings
 
-class AutoPicking(object):
+
+class AutoPicker(object):
     '''
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
@@ -87,7 +88,6 @@ class AutoPicking(object):
                    Tsmooth=self.getTsmooth(),
                    Pick1=self.getpick1())
 
-
     def getTSNR(self):
         return self.TSNR
 
@@ -137,7 +137,7 @@ class AutoPicking(object):
         self.Pick = None
 
 
-class AICPicker(AutoPicking):
+class AICPicker(AutoPicker):
     '''
     Method to derive the onset time of an arriving phase based on CF
     derived from AIC. In order to get an impression of the quality of this inital pick,
@@ -152,14 +152,14 @@ class AICPicker(AutoPicking):
         self.Pick = None
         self.slope = None
         self.SNR = None
-        #find NaN's
+        # find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
             self.cf[nn] = 0
-        #taper AIC-CF to get rid off side maxima
+        # taper AIC-CF to get rid off side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
-        #smooth AIC-CF
+        # smooth AIC-CF
         ismooth = int(round(self.Tsmooth / self.dt))
         aicsmooth = np.zeros(len(aic))
         if len(aic) < ismooth:
@@ -171,32 +171,32 @@ class AICPicker(AutoPicking):
                     ii1 = i - ismooth
                     aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
                 else:
-                    aicsmooth[i] = np.mean(aic[1 : i])
-        #remove offset
+                    aicsmooth[i] = np.mean(aic[1: i])
+        # remove offset
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
-        #get maximum of 1st derivative of AIC-CF (more stable!) as starting point
+        # get maximum of 1st derivative of AIC-CF (more stable!) as starting point
         diffcf = np.diff(aicsmooth)
-        #find NaN's
+        # find NaN's
         nn = np.isnan(diffcf)
         if len(nn) > 1:
             diffcf[nn] = 0
-        #taper CF to get rid off side maxima
+        # taper CF to get rid off side maxima
         tap = np.hanning(len(diffcf))
         diffcf = tap * diffcf * max(abs(aicsmooth))
         icfmax = np.argmax(diffcf)
 
-        #find minimum in AIC-CF front of maximum
+        # find minimum in AIC-CF front of maximum
         lpickwindow = int(round(self.PickWindow / self.dt))
         for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
             if aicsmooth[i - 1] >= aicsmooth[i]:
                 self.Pick = self.Tcf[i]
                 break
-        #if no minimum could be found:
-        #search in 1st derivative of AIC-CF
+        # if no minimum could be found:
+        # search in 1st derivative of AIC-CF
         if self.Pick is None:
-            for i in range(icfmax -1, max([icfmax -lpickwindow, 2]), -1):
-                if diffcf[i -1] >= diffcf[i]:
+            for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
+                if diffcf[i - 1] >= diffcf[i]:
                     self.Pick = self.Tcf[i]
                     break
 
@@ -215,7 +215,7 @@ class AICPicker(AutoPicking):
                        max(abs(aic[inoise] - np.mean(aic[inoise])))
             # calculate slope from CF after initial pick
             # get slope window
-            tslope = self.TSNR[3]  #slope determination window
+            tslope = self.TSNR[3]  # slope determination window
             islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
                               & (self.Tcf >= self.Pick))
             # find maximum within slope determination window
@@ -237,7 +237,7 @@ class AICPicker(AutoPicking):
                     raw_input()
                     plt.close(p)
                 return
-            islope = islope[0][0 :imax]
+            islope = islope[0][0:imax]
             dataslope = self.Data[0].data[islope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
@@ -258,7 +258,7 @@ class AICPicker(AutoPicking):
             p1, = plt.plot(self.Tcf, x / max(x), 'k')
             p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
             if self.Pick is not None:
-                p3, = plt.plot([self.Pick, self.Pick], [-0.1 , 0.5], 'b', linewidth=2)
+                p3, = plt.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2)
                 plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
             else:
                 plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
@@ -273,7 +273,8 @@ class AICPicker(AutoPicking):
                 p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
                 p14, = plt.plot(self.Tcf[islope], dataslope, 'g--')
                 p15, = plt.plot(self.Tcf[islope], datafit, 'g', linewidth=2)
-                plt.legend([p11, p12, p13, p14, p15], ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'],
+                plt.legend([p11, p12, p13, p14, p15],
+                           ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'],
                            loc='best')
                 plt.title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
                                                                              self.SNR, self.slope))
@@ -289,7 +290,7 @@ class AICPicker(AutoPicking):
             print('AICPicker: Could not find minimum, picking window too short?')
 
 
-class PragPicker(AutoPicking):
+class PragPicker(AutoPicker):
     '''
     Method of pragmatic picking exploiting information given by CF.
     '''
@@ -303,7 +304,7 @@ class PragPicker(AutoPicking):
             self.SNR = None
             self.slope = None
             pickflag = 0
-            #smooth CF
+            # smooth CF
             ismooth = int(round(self.Tsmooth / self.dt))
             cfsmooth = np.zeros(len(self.cf))
             if len(self.cf) < ismooth:
@@ -315,28 +316,28 @@ class PragPicker(AutoPicking):
                         ii1 = i - ismooth
                         cfsmooth[i] = cfsmooth[i - 1] + (self.cf[i] - self.cf[ii1]) / ismooth
                     else:
-                        cfsmooth[i] = np.mean(self.cf[1 : i])
+                        cfsmooth[i] = np.mean(self.cf[1: i])
 
-            #select picking window
-            #which is centered around tpick1
+            # select picking window
+            # which is centered around tpick1
             ipick = np.where((self.Tcf >= self.getpick1() - self.PickWindow / 2) \
                              & (self.Tcf <= self.getpick1() + self.PickWindow / 2))
             cfipick = self.cf[ipick] - np.mean(self.cf[ipick])
             Tcfpick = self.Tcf[ipick]
-            cfsmoothipick = cfsmooth[ipick]- np.mean(self.cf[ipick])
+            cfsmoothipick = cfsmooth[ipick] - np.mean(self.cf[ipick])
             ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
             cfpick1 = 2 * self.cf[ipick1]
 
-            #check trend of CF, i.e. differences of CF and adjust aus regarding this trend
-            #prominent trend: decrease aus
-            #flat: use given aus
+            # check trend of CF, i.e. differences of CF and adjust aus regarding this trend
+            # prominent trend: decrease aus
+            # flat: use given aus
             cfdiff = np.diff(cfipick)
             i0diff = np.where(cfdiff > 0)
             cfdiff = cfdiff[i0diff]
             minaus = min(cfdiff * (1 + self.aus))
             aus1 = max([minaus, self.aus])
 
-            #at first we look to the right until the end of the pick window is reached
+            # at first we look to the right until the end of the pick window is reached
             flagpick_r = 0
             flagpick_l = 0
             cfpick_r = 0
@@ -380,8 +381,8 @@ class PragPicker(AutoPicking):
 
             if self.getiplot() > 1:
                 p = plt.figure(self.getiplot())
-                p1, = plt.plot(Tcfpick,cfipick, 'k')
-                p2, = plt.plot(Tcfpick,cfsmoothipick, 'r')
+                p1, = plt.plot(Tcfpick, cfipick, 'k')
+                p2, = plt.plot(Tcfpick, cfsmoothipick, 'r')
                 if pickflag > 0:
                     p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
                     plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick'])

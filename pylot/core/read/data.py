@@ -3,9 +3,10 @@
 
 import os
 import glob
-from obspy.xseed import Parser
+import warnings
+from obspy.io.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
-from obspy import readEvents, read_inventory
+from obspy import read_events, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
 from pylot.core.read.io import readPILOTEvent
@@ -37,9 +38,10 @@ class Data(object):
         if isinstance(evtdata, Event):
             self.evtdata = evtdata
         elif isinstance(evtdata, dict):
-            cat = readPILOTEvent(**evtdata)
+            evt = readPILOTEvent(**evtdata)
+            self.evtdata = evt
         elif evtdata:
-            cat = readEvents(evtdata)
+            cat = read_events(evtdata)
             self.evtdata = cat[0]
         else:  # create an empty Event object
             self.setNew()
@@ -78,7 +80,6 @@ class Data(object):
         for pick in self.getEvtData().picks:
             picks_str += str(pick) + '\n'
         return picks_str
-
 
     def getParent(self):
         """
@@ -186,8 +187,11 @@ class Data(object):
         self.wforiginal = None
         if fnames is not None:
             self.appendWFData(fnames)
+        else:
+            return False
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
+        return True
 
     def appendWFData(self, fnames):
         """
@@ -413,16 +417,24 @@ class Data(object):
             for station, onsets in picks.items():
                 print('Reading picks on station %s' % station)
                 for label, phase in onsets.items():
+                    if not isinstance(phase, dict):
+                        continue
                     onset = phase['mpp']
                     epp = phase['epp']
                     lpp = phase['lpp']
                     error = phase['spe']
+                    try:
+                        picker = phase['picker']
+                    except KeyError as e:
+                        warnings.warn(str(e), Warning)
+                        picker = 'Unknown'
                     pick = Pick()
                     pick.time = onset
                     pick.time_errors.lower_uncertainty = onset - epp
                     pick.time_errors.upper_uncertainty = lpp - onset
                     pick.time_errors.uncertainty = error
                     pick.phase_hint = label
+                    pick.method_id = ResourceIdentifier(id=picker)
                     pick.waveform_id = WaveformStreamID(station_code=station)
                     self.getEvtData().picks.append(pick)
                     try:
@@ -432,11 +444,13 @@ class Data(object):
                     if firstonset is None or firstonset > onset:
                         firstonset = onset
 
-            if 'smi:local' in self.getID():
+            if 'smi:local' in self.getID() and firstonset:
                 fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
                 ID = ResourceIdentifier('event/' + fonset_str)
                 ID.convertIDToQuakeMLURI(authority_id=authority_id)
                 self.getEvtData().resource_id = ID
+            else:
+                print('No picks to apply!')
 
         def applyArrivals(arrivals):
             """

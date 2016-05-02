@@ -21,10 +21,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 
+
 class CharacteristicFunction(object):
     '''
     SuperClass for different types of characteristic functions.
     '''
+
     def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None, stealthMode=False):
         '''
         Initialize data type object with information from the original
@@ -103,9 +105,9 @@ class CharacteristicFunction(object):
 
     def setARdetStep(self, t1):
         if t1:
-           self.ARdetStep = []
-           self.ARdetStep.append(t1 / 4)
-           self.ARdetStep.append(int(np.ceil(self.getTime2() / self.getIncrement()) / 4))
+            self.ARdetStep = []
+            self.ARdetStep.append(t1 / 4)
+            self.ARdetStep.append(int(np.ceil(self.getTime2() / self.getIncrement()) / 4))
 
     def getOrder(self):
         return self.order
@@ -150,14 +152,14 @@ class CharacteristicFunction(object):
         if cut is not None:
             if len(self.orig_data) == 1:
                 if self.cut[0] == 0 and self.cut[1] == 0:
-                   start = 0
-                   stop = len(self.orig_data[0])
+                    start = 0
+                    stop = len(self.orig_data[0])
                 elif self.cut[0] == 0 and self.cut[1] is not 0:
-                   start = 0
-                   stop = self.cut[1] / self.dt
+                    start = 0
+                    stop = self.cut[1] / self.dt
                 else:
-                   start = self.cut[0] / self.dt
-                   stop = self.cut[1] / self.dt
+                    start = self.cut[0] / self.dt
+                    stop = self.cut[1] / self.dt
                 zz = self.orig_data.copy()
                 z1 = zz[0].copy()
                 zz[0].data = z1.data[int(start):int(stop)]
@@ -165,16 +167,16 @@ class CharacteristicFunction(object):
                 return data
             elif len(self.orig_data) == 2:
                 if self.cut[0] == 0 and self.cut[1] == 0:
-                   start = 0
-                   stop = min([len(self.orig_data[0]), len(self.orig_data[1])])
+                    start = 0
+                    stop = min([len(self.orig_data[0]), len(self.orig_data[1])])
                 elif self.cut[0] == 0 and self.cut[1] is not 0:
-                   start = 0
-                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
-                               len(self.orig_data[1])])
+                    start = 0
+                    stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
+                                len(self.orig_data[1])])
                 else:
-                   start = max([0, self.cut[0] / self.dt])
-                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
-                               len(self.orig_data[1])])
+                    start = max([0, self.cut[0] / self.dt])
+                    stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
+                                len(self.orig_data[1])])
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
@@ -184,16 +186,16 @@ class CharacteristicFunction(object):
                 return data
             elif len(self.orig_data) == 3:
                 if self.cut[0] == 0 and self.cut[1] == 0:
-                   start = 0
-                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
-                               len(self.orig_data[1]), len(self.orig_data[2])])
+                    start = 0
+                    stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
+                                len(self.orig_data[1]), len(self.orig_data[2])])
                 elif self.cut[0] == 0 and self.cut[1] is not 0:
-                   start = 0
-                   stop = self.cut[1] / self.dt
+                    start = 0
+                    stop = self.cut[1] / self.dt
                 else:
-                   start = max([0, self.cut[0] / self.dt])
-                   stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
-                               len(self.orig_data[1]), len(self.orig_data[2])])
+                    start = max([0, self.cut[0] / self.dt])
+                    stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
+                                len(self.orig_data[1]), len(self.orig_data[2])])
                 hh = self.orig_data.copy()
                 h1 = hh[0].copy()
                 h2 = hh[1].copy()
@@ -223,13 +225,13 @@ class AICcf(CharacteristicFunction):
 
     def calcCF(self, data):
 
-        #if self._getStealthMode() is False:
+        # if self._getStealthMode() is False:
         #    print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
         nn = np.isnan(xnp)
         if len(nn) > 1:
-           xnp[nn] = 0
+            xnp[nn] = 0
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
@@ -247,6 +249,7 @@ class AICcf(CharacteristicFunction):
         self.cf = cf - np.mean(cf)
         self.xcf = x
 
+
 class HOScf(CharacteristicFunction):
     '''
     Function to calculate skewness (statistics of order 3) or kurtosis
@@ -257,38 +260,38 @@ class HOScf(CharacteristicFunction):
     def calcCF(self, data):
 
         x = self.getDataArray(self.getCut())
-        xnp =x[0].data
+        xnp = x[0].data
         nn = np.isnan(xnp)
         if len(nn) > 1:
-           xnp[nn] = 0
+            xnp[nn] = 0
         if self.getOrder() == 3:  # this is skewness
-            #if self._getStealthMode() is False:
+            # if self._getStealthMode() is False:
             #    print 'Calculating skewness ...'
             y = np.power(xnp, 3)
             y1 = np.power(xnp, 2)
         elif self.getOrder() == 4:  # this is kurtosis
-            #if self._getStealthMode() is False:
+            # if self._getStealthMode() is False:
             #    print 'Calculating kurtosis ...'
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 
-        #Initialisation
-        #t2: long term moving window
+        # Initialisation
+        # t2: long term moving window
         ilta = int(round(self.getTime2() / self.getIncrement()))
         lta = y[0]
         lta1 = y1[0]
-        #moving windows
+        # moving windows
         LTA = np.zeros(len(xnp))
         for j in range(0, len(xnp)):
             if j < 4:
                 LTA[j] = 0
             elif j <= ilta:
-                lta = (y[j] + lta * (j-1)) / j
-                lta1 = (y1[j] + lta1 * (j-1)) / j
+                lta = (y[j] + lta * (j - 1)) / j
+                lta1 = (y1[j] + lta1 * (j - 1)) / j
             else:
                 lta = (y[j] - y[j - ilta]) / ilta + lta
                 lta1 = (y1[j] - y1[j - ilta]) / ilta + lta1
-            #define LTA
+            # define LTA
             if self.getOrder() == 3:
                 LTA[j] = lta / np.power(lta1, 1.5)
             elif self.getOrder() == 4:
@@ -296,13 +299,12 @@ class HOScf(CharacteristicFunction):
 
         nn = np.isnan(LTA)
         if len(nn) > 1:
-           LTA[nn] = 0
+            LTA[nn] = 0
         self.cf = LTA
         self.xcf = x
 
 
 class ARZcf(CharacteristicFunction):
-
     def calcCF(self, data):
 
         print 'Calculating AR-prediction error from single trace ...'
@@ -310,33 +312,33 @@ class ARZcf(CharacteristicFunction):
         xnp = x[0].data
         nn = np.isnan(xnp)
         if len(nn) > 1:
-           xnp[nn] = 0
-        #some parameters needed
-        #add noise to time series
+            xnp[nn] = 0
+        # some parameters needed
+        # add noise to time series
         xnoise = xnp + np.random.normal(0.0, 1.0, len(xnp)) * self.getFnoise() * max(abs(xnp))
         tend = len(xnp)
-        #Time1: length of AR-determination window [sec]
-        #Time2: length of AR-prediction window [sec]
-        ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
-        lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
+        # Time1: length of AR-determination window [sec]
+        # Time2: length of AR-prediction window [sec]
+        ldet = int(round(self.getTime1() / self.getIncrement()))  # length of AR-determination window [samples]
+        lpred = int(np.ceil(self.getTime2() / self.getIncrement()))  # length of AR-prediction window [samples]
 
         cf = np.zeros(len(xnp))
         loopstep = self.getARdetStep()
-        arcalci = ldet + self.getOrder() #AR-calculation index
+        arcalci = ldet + self.getOrder()  # AR-calculation index
         for i in range(ldet + self.getOrder(), tend - lpred - 1):
             if i == arcalci:
-                #determination of AR coefficients
-                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
-                self.arDetZ(xnoise, self.getOrder(), i-ldet, i)
+                # determination of AR coefficients
+                # to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDetZ(xnoise, self.getOrder(), i - ldet, i)
                 arcalci = arcalci + loopstep[1]
-            #AR prediction of waveform using calculated AR coefficients
+            # AR prediction of waveform using calculated AR coefficients
             self.arPredZ(xnp, self.arpara, i + 1, lpred)
-            #prediction error = CF
-            cf[i + lpred-1] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred-1] - xnp[i:i + lpred-1], 2)) / lpred)
+            # prediction error = CF
+            cf[i + lpred - 1] = np.sqrt(np.sum(np.power(self.xpred[i:i + lpred - 1] - xnp[i:i + lpred - 1], 2)) / lpred)
         nn = np.isnan(cf)
         if len(nn) > 1:
-           cf[nn] = 0
-        #remove zeros and artefacts
+            cf[nn] = 0
+        # remove zeros and artefacts
         tap = np.hanning(len(cf))
         cf = tap * cf
         io = np.where(cf == 0)
@@ -366,25 +368,25 @@ class ARZcf(CharacteristicFunction):
         Output: AR parameters arpara
         '''
 
-        #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
+        # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
-            for i in range(rind, ldet+1):
+            for i in range(rind, ldet + 1):
                 ki = k + 1
                 rhs[k] = rhs[k] + data[i] * data[i - ki]
 
-        #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
-        A = np.zeros((self.getOrder(),self.getOrder()))
+        # recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
+        A = np.zeros((self.getOrder(), self.getOrder()))
         for k in range(1, self.getOrder() + 1):
             for j in range(1, k + 1):
-                for i in range(rind, ldet+1):
+                for i in range(rind, ldet + 1):
                     ki = k - 1
                     ji = j - 1
-                    A[ki,ji] = A[ki,ji] + data[i - j] * data[i - k]
+                    A[ki, ji] = A[ki, ji] + data[i - j] * data[i - k]
 
-                A[ji,ki] = A[ki,ji]
+                A[ji, ki] = A[ki, ji]
 
-        #apply Moore-Penrose inverse for SVD yielding the AR-parameters
+        # apply Moore-Penrose inverse for SVD yielding the AR-parameters
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPredZ(self, data, arpara, rind, lpred):
@@ -406,10 +408,10 @@ class ARZcf(CharacteristicFunction):
 
         Output: predicted waveform z
         '''
-        #be sure of the summation indeces
+        # be sure of the summation indeces
         if rind < len(arpara):
             rind = len(arpara)
-        if rind > len(data) - lpred :
+        if rind > len(data) - lpred:
             rind = len(data) - lpred
         if lpred < 1:
             lpred = 1
@@ -426,7 +428,6 @@ class ARZcf(CharacteristicFunction):
 
 
 class ARHcf(CharacteristicFunction):
-
     def calcCF(self, data):
 
         print 'Calculating AR-prediction error from both horizontal traces ...'
@@ -434,41 +435,42 @@ class ARHcf(CharacteristicFunction):
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
         if len(n0) > 1:
-           xnp[0].data[n0] = 0
+            xnp[0].data[n0] = 0
         n1 = np.isnan(xnp[1].data)
         if len(n1) > 1:
-           xnp[1].data[n1] = 0
+            xnp[1].data[n1] = 0
 
-        #some parameters needed
-        #add noise to time series
+        # some parameters needed
+        # add noise to time series
         xenoise = xnp[0].data + np.random.normal(0.0, 1.0, len(xnp[0].data)) * self.getFnoise() * max(abs(xnp[0].data))
         xnnoise = xnp[1].data + np.random.normal(0.0, 1.0, len(xnp[1].data)) * self.getFnoise() * max(abs(xnp[1].data))
-        Xnoise = np.array( [xenoise.tolist(), xnnoise.tolist()] )
+        Xnoise = np.array([xenoise.tolist(), xnnoise.tolist()])
         tend = len(xnp[0].data)
-        #Time1: length of AR-determination window [sec]
-        #Time2: length of AR-prediction window [sec]
-        ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
-        lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
+        # Time1: length of AR-determination window [sec]
+        # Time2: length of AR-prediction window [sec]
+        ldet = int(round(self.getTime1() / self.getIncrement()))  # length of AR-determination window [samples]
+        lpred = int(np.ceil(self.getTime2() / self.getIncrement()))  # length of AR-prediction window [samples]
 
         cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
-        arcalci = lpred + self.getOrder() - 1 #AR-calculation index
-        #arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        arcalci = lpred + self.getOrder() - 1  # AR-calculation index
+        # arcalci = ldet + self.getOrder() - 1 #AR-calculation index
         for i in range(lpred + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
-                #determination of AR coefficients
-                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
-                self.arDetH(Xnoise, self.getOrder(), i-ldet, i)
+                # determination of AR coefficients
+                # to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDetH(Xnoise, self.getOrder(), i - ldet, i)
                 arcalci = arcalci + loopstep[1]
-            #AR prediction of waveform using calculated AR coefficients
+            # AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
-            #prediction error = CF
+            # prediction error = CF
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
-            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (2 * lpred))
+                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (
+                                    2 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
-           cf[nn] = 0
-        #remove zeros and artefacts
+            cf[nn] = 0
+        # remove zeros and artefacts
         tap = np.hanning(len(cf))
         cf = tap * cf
         io = np.where(cf == 0)
@@ -500,24 +502,24 @@ class ARHcf(CharacteristicFunction):
         Output: AR parameters arpara
         '''
 
-        #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
+        # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
             for i in range(rind, ldet):
-                rhs[k] = rhs[k] + data[0,i] * data[0,i - k] + data[1,i] * data[1,i - k]
+                rhs[k] = rhs[k] + data[0, i] * data[0, i - k] + data[1, i] * data[1, i - k]
 
-        #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
-        A = np.zeros((4,4))
+        # recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
+        A = np.zeros((4, 4))
         for k in range(1, self.getOrder() + 1):
             for j in range(1, k + 1):
                 for i in range(rind, ldet):
                     ki = k - 1
                     ji = j - 1
-                    A[ki,ji] = A[ki,ji] + data[0,i - ji] * data[0,i - ki] + data[1,i - ji] *data[1,i - ki]
+                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] + data[1, i - ji] * data[1, i - ki]
 
-                A[ji,ki] = A[ki,ji]
+                A[ji, ki] = A[ki, ji]
 
-        #apply Moore-Penrose inverse for SVD yielding the AR-parameters
+        # apply Moore-Penrose inverse for SVD yielding the AR-parameters
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPredH(self, data, arpara, rind, lpred):
@@ -540,7 +542,7 @@ class ARHcf(CharacteristicFunction):
         Output: predicted waveform z
         :type: structured array
         '''
-        #be sure of the summation indeces
+        # be sure of the summation indeces
         if rind < len(arpara) + 1:
             rind = len(arpara) + 1
         if rind > len(data[0]) - lpred + 1:
@@ -558,11 +560,11 @@ class ARHcf(CharacteristicFunction):
                 z1[i] = z1[i] + arpara[ji] * z1[i - ji]
                 z2[i] = z2[i] + arpara[ji] * z2[i - ji]
 
-        z = np.array( [z1.tolist(), z2.tolist()] )
+        z = np.array([z1.tolist(), z2.tolist()])
         self.xpred = z
 
-class AR3Ccf(CharacteristicFunction):
 
+class AR3Ccf(CharacteristicFunction):
     def calcCF(self, data):
 
         print 'Calculating AR-prediction error from all 3 components ...'
@@ -570,46 +572,47 @@ class AR3Ccf(CharacteristicFunction):
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
         if len(n0) > 1:
-           xnp[0].data[n0] = 0
+            xnp[0].data[n0] = 0
         n1 = np.isnan(xnp[1].data)
         if len(n1) > 1:
-           xnp[1].data[n1] = 0
+            xnp[1].data[n1] = 0
         n2 = np.isnan(xnp[2].data)
         if len(n2) > 1:
-           xnp[2].data[n2] = 0
+            xnp[2].data[n2] = 0
 
-        #some parameters needed
-        #add noise to time series
+        # some parameters needed
+        # add noise to time series
         xenoise = xnp[0].data + np.random.normal(0.0, 1.0, len(xnp[0].data)) * self.getFnoise() * max(abs(xnp[0].data))
         xnnoise = xnp[1].data + np.random.normal(0.0, 1.0, len(xnp[1].data)) * self.getFnoise() * max(abs(xnp[1].data))
         xznoise = xnp[2].data + np.random.normal(0.0, 1.0, len(xnp[2].data)) * self.getFnoise() * max(abs(xnp[2].data))
-        Xnoise = np.array( [xenoise.tolist(), xnnoise.tolist(), xznoise.tolist()] )
+        Xnoise = np.array([xenoise.tolist(), xnnoise.tolist(), xznoise.tolist()])
         tend = len(xnp[0].data)
-        #Time1: length of AR-determination window [sec]
-        #Time2: length of AR-prediction window [sec]
-        ldet = int(round(self.getTime1() / self.getIncrement()))    #length of AR-determination window [samples]
-        lpred = int(np.ceil(self.getTime2() / self.getIncrement())) #length of AR-prediction window [samples]
+        # Time1: length of AR-determination window [sec]
+        # Time2: length of AR-prediction window [sec]
+        ldet = int(round(self.getTime1() / self.getIncrement()))  # length of AR-determination window [samples]
+        lpred = int(np.ceil(self.getTime2() / self.getIncrement()))  # length of AR-prediction window [samples]
 
         cf = np.zeros(len(xenoise))
         loopstep = self.getARdetStep()
-        arcalci = ldet + self.getOrder() - 1 #AR-calculation index
+        arcalci = ldet + self.getOrder() - 1  # AR-calculation index
         for i in range(ldet + self.getOrder() - 1, tend - 2 * lpred + 1):
             if i == arcalci:
-                #determination of AR coefficients
-                #to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
-                self.arDet3C(Xnoise, self.getOrder(), i-ldet, i)
+                # determination of AR coefficients
+                # to speed up calculation, AR-coefficients are calculated only every i+loopstep[1]!
+                self.arDet3C(Xnoise, self.getOrder(), i - ldet, i)
                 arcalci = arcalci + loopstep[1]
 
-            #AR prediction of waveform using calculated AR coefficients
+            # AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
-            #prediction error = CF
+            # prediction error = CF
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
-            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
-            + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (3 * lpred))
+                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
+                                           + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (
+                                    3 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
-           cf[nn] = 0
-        #remove zeros and artefacts
+            cf[nn] = 0
+        # remove zeros and artefacts
         tap = np.hanning(len(cf))
         cf = tap * cf
         io = np.where(cf == 0)
@@ -641,26 +644,26 @@ class AR3Ccf(CharacteristicFunction):
         Output: AR parameters arpara
         '''
 
-        #recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
+        # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
         for k in range(0, self.getOrder()):
             for i in range(rind, ldet):
-                rhs[k] = rhs[k] + data[0,i] * data[0,i - k] + data[1,i] * data[1,i - k] \
-                + data[2,i] * data[2,i - k]
+                rhs[k] = rhs[k] + data[0, i] * data[0, i - k] + data[1, i] * data[1, i - k] \
+                         + data[2, i] * data[2, i - k]
 
-        #recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
-        A = np.zeros((4,4))
+        # recursive calculation of data array (second sum at left part of eq. 6.5 in Kueperkoch et al. 2012)
+        A = np.zeros((4, 4))
         for k in range(1, self.getOrder() + 1):
             for j in range(1, k + 1):
                 for i in range(rind, ldet):
                     ki = k - 1
                     ji = j - 1
-                    A[ki,ji] = A[ki,ji] + data[0,i - ji] * data[0,i - ki] + data[1,i - ji] *data[1,i - ki] \
-                    + data[2,i - ji] *data[2,i - ki]
+                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] + data[1, i - ji] * data[1, i - ki] \
+                                + data[2, i - ji] * data[2, i - ki]
 
-                A[ji,ki] = A[ki,ji]
+                A[ji, ki] = A[ki, ji]
 
-        #apply Moore-Penrose inverse for SVD yielding the AR-parameters
+        # apply Moore-Penrose inverse for SVD yielding the AR-parameters
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPred3C(self, data, arpara, rind, lpred):
@@ -683,7 +686,7 @@ class AR3Ccf(CharacteristicFunction):
         Output: predicted waveform z
         :type: structured array
         '''
-        #be sure of the summation indeces
+        # be sure of the summation indeces
         if rind < len(arpara) + 1:
             rind = len(arpara) + 1
         if rind > len(data[0]) - lpred + 1:
@@ -703,5 +706,5 @@ class AR3Ccf(CharacteristicFunction):
                 z2[i] = z2[i] + arpara[ji] * z2[i - ji]
                 z3[i] = z3[i] + arpara[ji] * z3[i - ji]
 
-        z = np.array( [z1.tolist(), z2.tolist(), z3.tolist()] )
+        z = np.array([z1.tolist(), z2.tolist(), z3.tolist()])
         self.xpred = z

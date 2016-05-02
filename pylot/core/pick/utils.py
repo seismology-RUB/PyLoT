@@ -15,7 +15,7 @@ from obspy.core import Stream, UTCDateTime
 import warnings
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -70,7 +70,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
 
     # get earliest possible pick
 
-    EPick = np.nan; count = 0
+    EPick = np.nan;
+    count = 0
     pis = isignal
 
     # if EPick stays NaN the signal window size will be doubled
@@ -78,10 +79,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
         if count > 0:
             if stealthMode is False:
                 print("\nearllatepicker: Doubled signal window size %s time(s) "
-                      "because of NaN for earliest pick." %count)
+                      "because of NaN for earliest pick." % count)
             isigDoubleWinStart = pis[-1] + 1
             isignalDoubleWin = np.arange(isigDoubleWinStart,
-                                     isigDoubleWinStart + len(pis))
+                                         isigDoubleWinStart + len(pis))
             if (isigDoubleWinStart + len(pis)) < X[0].data.size:
                 pis = np.concatenate((pis, isignalDoubleWin))
             else:
@@ -92,8 +93,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
         zc = crossings_nonzero_all(x[pis] - x[pis].mean())
         # calculate mean half period T0 of signal as the average of the
         T0 = np.mean(np.diff(zc)) * X[0].stats.delta  # this is half wave length!
-        EPick = Pick1 - T0 # half wavelength as suggested by Diehl et al.
-
+        EPick = Pick1 - T0  # half wavelength as suggested by Diehl et al.
 
     # get symmetric pick error as mean from earliest and latest possible pick
     # by weighting latest possible pick two times earliest possible pick
@@ -131,117 +131,6 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode = False):
         plt.close(p)
 
     return EPick, LPick, PickError
-
-
-def gauss_parameter(te, tm, tl, eta):
-    '''
-    takes three onset times and returns the parameters sig1, sig2, a1 and a2
-    to represent the pick as a probability density funtion (PDF) with two
-    Gauss branches
-    :param te:
-    :param tm:
-    :param tl:
-    :param eta:
-    :return:
-    '''
-
-    sig1 = (tm - te) / np.sqrt(2 * np.log(1 / eta))
-    sig2 = (tl - tm) / np.sqrt(2 * np.log(1 / eta))
-
-    a1 = 2 / (1 + sig2 / sig1)
-    a2 = 2 / (1 + sig1 / sig2)
-
-    return sig1, sig2, a1, a2
-
-
-def exp_parameter(te, tm, tl, eta):
-    '''
-    takes three onset times te, tm and tl and returns the parameters sig1,
-    sig2 and a to represent the pick as a probability density function (PDF)
-    with two exponential decay branches
-    :param te:
-    :param tm:
-    :param tl:
-    :param eta:
-    :return:
-    '''
-
-    sig1 = np.log(eta) / (te - tm)
-    sig2 = np.log(eta) / (tm - tl)
-    a = 1 / (1 / sig1 + 1 / sig2)
-
-    return sig1, sig2, a
-
-
-def gauss_branches(x, mu, sig1, sig2, a1, a2):
-    '''
-    function gauss_branches takes an axes x, a center value mu, two sigma
-    values sig1 and sig2 and two scaling factors a1 and a2 and return a
-    list containing the values of a probability density function (PDF)
-    consisting of gauss branches
-    :param x:
-    :type x:
-    :param mu:
-    :type mu:
-    :param sig1:
-    :type sig1:
-    :param sig2:
-    :type sig2:
-    :param a1:
-    :type a1:
-    :param a2:
-    :returns fun_vals: list with function values along axes x
-    '''
-    fun_vals = []
-    for k in x:
-        if k < mu:
-            fun_vals.append(a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1)**2 / 2 ))
-        else:
-            fun_vals.append(a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) / sig2)**2 / 2))
-    return fun_vals
-
-
-def exp_branches(x, mu, sig1, sig2, a):
-    '''
-    function exp_branches takes an axes x, a center value mu, two sigma
-    values sig1 and sig2 and a scaling factor a and return a
-    list containing the values of a probability density function (PDF)
-    consisting of exponential decay branches
-    :param x:
-    :param mu:
-    :param sig1:
-    :param sig2:
-    :param a:
-    :returns fun_vals: list with function values along axes x:
-    '''
-    fun_vals = []
-    for k in x:
-        if k < mu:
-            fun_vals.append(a * np.exp(sig1 * (k - mu)))
-        else:
-            fun_vals.append(a * np.exp(-sig2 * (k - mu)))
-    return fun_vals
-
-
-def pick_pdf(t, te, tm, tl, type='gauss', eta=0.01):
-    '''
-    
-    :param t:
-    :param te:
-    :param tm:
-    :param tl:
-    :param type:
-    :param eta:
-    :param args:
-    :return:
-    '''
-
-    parameter = dict(gauss=gauss_parameter, exp=exp_parameter)
-    branches = dict(gauss=gauss_branches, exp=exp_branches)
-
-    params = parameter[type](te, tm, tl, eta)
-
-    return branches[type](t, tm, *params)
 
 
 def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
@@ -432,7 +321,7 @@ def crossings_nonzero_all(data):
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
 
-def getSNR(X, TSNR, t1):
+def getSNR(X, TSNR, t1, tracenum=0):
     '''
     Function to calculate SNR of certain part of seismogram relative to
     given time (onset) out of given noise and signal windows. A safety gap
@@ -451,9 +340,11 @@ def getSNR(X, TSNR, t1):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    x = X[0].data
-    t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
-                  X[0].stats.delta)
+    x = X[tracenum].data
+    npts = X[tracenum].stats.npts
+    sr = X[tracenum].stats.sampling_rate
+    dt = X[tracenum].stats.delta
+    t = np.arange(0, npts / sr, dt)
 
     # get noise window
     inoise = getnoisewin(t, t1, TSNR[0], TSNR[1])
@@ -471,8 +362,12 @@ def getSNR(X, TSNR, t1):
     x = x - np.mean(x[inoise])
 
     # calculate ratios
-    noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
-    signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+    # noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
+    # signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+
+    noiselevel = np.abs(x[inoise]).max()
+    signallevel = np.abs(x[isignal]).max()
+
     SNR = signallevel / noiselevel
     SNRdB = 10 * np.log10(SNR)
 
@@ -500,7 +395,7 @@ def getnoisewin(t, t1, tnoise, tgap):
 
     # get noise window
     inoise, = np.where((t <= max([t1 - tgap, 0])) \
-                      & (t >= max([t1 - tnoise - tgap, 0])))
+                       & (t >= max([t1 - tnoise - tgap, 0])))
     if np.size(inoise) < 1:
         print ("getnoisewin: Empty array inoise, check noise window!")
 
@@ -524,7 +419,7 @@ def getsignalwin(t, t1, tsignal):
 
     # get signal window
     isignal, = np.where((t <= min([t1 + tsignal, len(t)])) \
-                       & (t >= t1))
+                        & (t >= t1))
     if np.size(isignal) < 1:
         print ("getsignalwin: Empty array isignal, check signal window!")
 
@@ -565,7 +460,7 @@ def getResolutionWindow(snr):
     else:
         time_resolution = res_wins['HRW']
 
-    return time_resolution/2
+    return time_resolution / 2
 
 
 def wadaticheck(pickdic, dttolerance, iplot):
@@ -593,17 +488,16 @@ def wadaticheck(pickdic, dttolerance, iplot):
     SPtimes = []
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
-           # calculate S-P time
-           spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
-           # add S-P time to dictionary
-           pickdic[key]['SPt'] = spt
-           # add P onsets and corresponding S-P times to list
-           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
-           UTCSpick = UTCDateTime(pickdic[key]['S']['mpp'])
-           Ppicks.append(UTCPpick.timestamp)
-           Spicks.append(UTCSpick.timestamp)
-           SPtimes.append(spt)
-
+            # calculate S-P time
+            spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
+            # add S-P time to dictionary
+            pickdic[key]['SPt'] = spt
+            # add P onsets and corresponding S-P times to list
+            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+            UTCSpick = UTCDateTime(pickdic[key]['S']['mpp'])
+            Ppicks.append(UTCPpick.timestamp)
+            Spicks.append(UTCSpick.timestamp)
+            SPtimes.append(spt)
 
     if len(SPtimes) >= 3:
         # calculate slope
@@ -635,7 +529,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
                     ibad += 1
                 else:
                     marker = 'goodWadatiCheck'
-                    checkedPpick =  UTCDateTime(pickdic[key]['P']['mpp'])
+                    checkedPpick = UTCDateTime(pickdic[key]['P']['mpp'])
                     checkedPpicks.append(checkedPpick.timestamp)
                     checkedSpick = UTCDateTime(pickdic[key]['S']['mpp'])
                     checkedSpicks.append(checkedSpick.timestamp)
@@ -747,7 +641,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
     # calculate minimum adjusted signal level
     minsiglevel = max(rms[inoise]) * nfac
     # minimum adjusted number of samples over minimum signal level
-    minnum = len(isignal) * minpercent/100
+    minnum = len(isignal) * minpercent / 100
     # get number of samples above minimum adjusted signal level
     numoverthr = len(np.where(rms[isignal] >= minsiglevel)[0])
 
@@ -762,10 +656,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
 
     if iplot == 2:
         plt.figure(iplot)
-        p1, = plt.plot(t,rms, 'k')
+        p1, = plt.plot(t, rms, 'k')
         p2, = plt.plot(t[inoise], rms[inoise], 'c')
-        p3, = plt.plot(t[isignal],rms[isignal], 'r')
-        p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal)-1]]],
+        p3, = plt.plot(t[isignal], rms[isignal], 'r')
+        p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
                        [minsiglevel, minsiglevel], 'g', linewidth=2)
         p5, = plt.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2)
         plt.legend([p1, p2, p3, p4, p5], ['RMS Data', 'RMS Noise Window',
@@ -806,15 +700,15 @@ def checkPonsets(pickdic, dttolerance, iplot):
     stations = []
     for key in pickdic:
         if pickdic[key]['P']['weight'] < 4:
-           # add P onsets to list
-           UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
-           Ppicks.append(UTCPpick.timestamp)
-           stations.append(key)
+            # add P onsets to list
+            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+            Ppicks.append(UTCPpick.timestamp)
+            stations.append(key)
 
     # apply jackknife bootstrapping on variance of P onsets
     print ("###############################################")
     print ("checkPonsets: Apply jackknife bootstrapping on P-onset times ...")
-    [xjack,PHI_pseudo,PHI_sub] = jackknife(Ppicks, 'VAR', 1)
+    [xjack, PHI_pseudo, PHI_sub] = jackknife(Ppicks, 'VAR', 1)
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
     ij = np.where(PHI_pseudo <= 2 * xjack)
@@ -835,7 +729,7 @@ def checkPonsets(pickdic, dttolerance, iplot):
 
     print ("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
     print ("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
-            + len(badjkstations), len(stations)))
+                                                             + len(badjkstations), len(stations)))
 
     goodmarker = 'goodPonsetcheck'
     badmarker = 'badPonsetcheck'
@@ -986,10 +880,9 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     if len(ndat) == 0:  # check for other components
         ndat = X.select(component="1")
 
-
     z = zdat[0].data
     tz = np.arange(0, zdat[0].stats.npts / zdat[0].stats.sampling_rate,
-                  zdat[0].stats.delta)
+                   zdat[0].stats.delta)
 
     # calculate RMS trace from vertical component
     absz = np.sqrt(np.power(z, 2))
@@ -1021,9 +914,9 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
 
     if iplot > 1:
         te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
-                  edat[0].stats.delta)
+                       edat[0].stats.delta)
         tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
-                  ndat[0].stats.delta)
+                       ndat[0].stats.delta)
         plt.plot(tz, z / max(z), 'k')
         plt.plot(tz[isignal], z[isignal] / max(z), 'r')
         plt.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
@@ -1065,65 +958,64 @@ def writephases(arrivals, fformat, filename):
     :type: string
     '''
 
-
     if fformat == 'NLLoc':
         print ("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
         for key in arrivals:
-             # P onsets
-             if arrivals[key]['P']:
-                 fm = arrivals[key]['P']['fm']
-                 if fm == None:
-                     fm = '?'
-                 onset = arrivals[key]['P']['mpp']
-                 year = onset.year
-                 month = onset.month
-                 day = onset.day
-                 hh = onset.hour
-                 mm = onset.minute
-                 ss = onset.second
-                 ms = onset.microsecond
-                 ss_ms = ss + ms / 1000000.0
-                 if arrivals[key]['P']['weight'] < 4:
-                     pweight = 1 # use pick
-                 else:
-                     pweight = 0 # do not use pick
-                 fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                  fm,
-                  year,
-                  month,
-                  day,
-                  hh,
-                  mm,
-                  ss_ms,
-                  pweight))
-             # S onsets
-             if arrivals[key]['S']:
-                 fm = '?'
-                 onset = arrivals[key]['S']['mpp']
-                 year = onset.year
-                 month = onset.month
-                 day = onset.day
-                 hh = onset.hour
-                 mm = onset.minute
-                 ss = onset.second
-                 ms = onset.microsecond
-                 ss_ms = ss + ms / 1000000.0
-                 if arrivals[key]['S']['weight'] < 4:
-                     sweight = 1 # use pick
-                 else:
-                     sweight = 0 # do not use pick
-                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                  fm,
-                  year,
-                  month,
-                  day,
-                  hh,
-                  mm,
-                  ss_ms,
-                  sweight))
+            # P onsets
+            if arrivals[key]['P']:
+                fm = arrivals[key]['P']['fm']
+                if fm == None:
+                    fm = '?'
+                onset = arrivals[key]['P']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                if arrivals[key]['P']['weight'] < 4:
+                    pweight = 1  # use pick
+                else:
+                    pweight = 0  # do not use pick
+                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                                                                                           fm,
+                                                                                           year,
+                                                                                           month,
+                                                                                           day,
+                                                                                           hh,
+                                                                                           mm,
+                                                                                           ss_ms,
+                                                                                           pweight))
+            # S onsets
+            if arrivals[key]['S']:
+                fm = '?'
+                onset = arrivals[key]['S']['mpp']
+                year = onset.year
+                month = onset.month
+                day = onset.day
+                hh = onset.hour
+                mm = onset.minute
+                ss = onset.second
+                ms = onset.microsecond
+                ss_ms = ss + ms / 1000000.0
+                if arrivals[key]['S']['weight'] < 4:
+                    sweight = 1  # use pick
+                else:
+                    sweight = 0  # do not use pick
+                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                                                                                           fm,
+                                                                                           year,
+                                                                                           month,
+                                                                                           day,
+                                                                                           hh,
+                                                                                           mm,
+                                                                                           ss_ms,
+                                                                                           sweight))
 
         fid.close()
 
@@ -1148,9 +1040,9 @@ def writephases(arrivals, fformat, filename):
                     Ao = str('%7.2f' % Ao)
                 year = Ponset.year
                 if year >= 2000:
-                   year = year -2000
+                    year = year - 2000
                 else:
-                   year = year - 1900
+                    year = year - 1900
                 month = Ponset.month
                 day = Ponset.day
                 hh = Ponset.hour
@@ -1159,9 +1051,9 @@ def writephases(arrivals, fformat, filename):
                 ms = Ponset.microsecond
                 ss_ms = ss + ms / 1000000.0
                 if pweight < 2:
-                     pstr = 'I'
+                    pstr = 'I'
                 elif pweight >= 2:
-                     pstr = 'E'
+                    pstr = 'E'
                 if arrivals[key]['S']['weight'] < 4:
                     Sss = Sonset.second
                     Sms = Sonset.microsecond
@@ -1172,35 +1064,36 @@ def writephases(arrivals, fformat, filename):
                     elif sweight >= 2:
                         sstr = 'E'
                     fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (key,
-                     pstr,
-                     fm,
-                     pweight,
-                     year,
-                     month,
-                     day,
-                     hh,
-                     mm,
-                     ss_ms,
-                     Sss_ms,
-                     sstr,
-                     sweight,
-                     Ao))
+                                                                                             pstr,
+                                                                                             fm,
+                                                                                             pweight,
+                                                                                             year,
+                                                                                             month,
+                                                                                             day,
+                                                                                             hh,
+                                                                                             mm,
+                                                                                             ss_ms,
+                                                                                             Sss_ms,
+                                                                                             sstr,
+                                                                                             sweight,
+                                                                                             Ao))
                 else:
                     fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (key,
-                     pstr,
-                     fm,
-                     pweight,
-                     year,
-                     month,
-                     day,
-                     hh,
-                     mm,
-                     ss_ms,
-                     Ao))
+                                                                                             pstr,
+                                                                                             fm,
+                                                                                             pweight,
+                                                                                             year,
+                                                                                             month,
+                                                                                             day,
+                                                                                             hh,
+                                                                                             mm,
+                                                                                             ss_ms,
+                                                                                             Ao))
 
         fid.close()
 
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

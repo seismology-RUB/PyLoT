@@ -14,7 +14,7 @@ from pylot.core.pick.utils import getSNR
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', '-d', type=~obspy.core.stream.Stream,
+    parser.add_argument('--data', '-d', type=obspy.core.stream.Stream,
                         help='time series (seismogram) read with obspy module '
                              'read',
                         dest='data')

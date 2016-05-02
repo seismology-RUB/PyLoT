@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pylot.core.util.errors import ParameterError
+
 
 class AutoPickParameter(object):
     '''
@@ -49,7 +51,7 @@ class AutoPickParameter(object):
             parFileCont[key] = val
 
         if self.__filename is not None:
-                inputFile = open(self.__filename, 'r')
+            inputFile = open(self.__filename, 'r')
         else:
             return
         try:
@@ -57,7 +59,7 @@ class AutoPickParameter(object):
             for line in lines:
                 parspl = line.split('\t')[:2]
                 parFileCont[parspl[0].strip()] = parspl[1]
-        except Exception as e:
+        except IndexError as e:
             self._printParameterError(e)
             inputFile.seek(0)
             lines = inputFile.readlines()
@@ -136,16 +138,18 @@ class AutoPickParameter(object):
                     return self.__getitem__(param)
                 except KeyError as e:
                     self._printParameterError(e)
+                    raise ParameterError(e)
         except TypeError:
             try:
                 return self.__getitem__(args)
             except KeyError as e:
                 self._printParameterError(e)
+                raise ParameterError(e)
 
     def setParam(self, **kwargs):
         for param, value in kwargs.items():
             self.__setitem__(param, value)
-        #print(self)
+            # print(self)
 
     @staticmethod
     def _printParameterError(errmsg):
@@ -190,6 +194,7 @@ class FilterOptions(object):
         ``'highpass'``
             Butterworth-Highpass
     '''
+
     def __init__(self, filtertype='bandpass', freq=[2., 5.], order=3,
                  **kwargs):
         self._order = order

@@ -31,16 +31,19 @@
 #
 #   include RELEASE-VERSION
 
+from __future__ import print_function
+
 __all__ = "get_git_version"
 
 # NO IMPORTS FROM PYLOT IN THIS FILE! (file gets used at installation time)
 import os
 import inspect
 from subprocess import Popen, PIPE
+
 # NO IMPORTS FROM PYLOT IN THIS FILE! (file gets used at installation time)
 
 script_dir = os.path.abspath(os.path.dirname(inspect.getfile(
-                                             inspect.currentframe())))
+    inspect.currentframe())))
 PYLOT_ROOT = os.path.abspath(os.path.join(script_dir, os.pardir,
                                           os.pardir, os.pardir))
 VERSION_FILE = os.path.join(PYLOT_ROOT, "pylot", "RELEASE-VERSION")
@@ -108,4 +111,4 @@ def get_git_version(abbrev=4):
 
 
 if __name__ == "__main__":
-    print get_git_version()
+    print(get_git_version())

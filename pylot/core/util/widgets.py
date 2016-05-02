@@ -5,10 +5,12 @@ Created on Wed Mar 19 11:27:35 2014
 @author: sebastianw
 """
 
+import warnings
 import datetime
 import numpy as np
 
 from matplotlib.figure import Figure
+
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 except ImportError:
@@ -23,9 +25,10 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.read.inputs import FilterOptions
-from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin,\
+from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
+    COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
 
@@ -63,7 +66,7 @@ class MPLWidget(FigureCanvas):
         # clear axes each time plot is called
         self.axes.hold(True)
         # initialize super class
-        FigureCanvas.__init__(self, self.figure)
+        super(MPLWidget, self).__init__(self.figure)
         # add an cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
                                        horizOn=True,
@@ -87,13 +90,19 @@ class MPLWidget(FigureCanvas):
         self._parent = parent
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None, scaleddata=False):
+                   noiselevel=None, scaleddata=False, mapping=True):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = getGlobalTimes(wfdata)
+        nmax = 0
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
             station = trace.stats.station
+            if mapping:
+                comp = channel[-1]
+                n = COMPPOSITION_MAP[comp]
+            if n > nmax:
+                nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
             print(msg)
             stime = trace.stats.starttime - wfstart
@@ -110,7 +119,7 @@ class MPLWidget(FigureCanvas):
         ylabel = ''
         self.updateWidget(xlabel, ylabel, title)
         self.setXLims([0, wfend - wfstart])
-        self.setYLims([-0.5, n + 0.5])
+        self.setYLims([-0.5, nmax + 0.5])
         if zoomx is not None:
             self.setXLims(zoomx)
         if zoomy is not None:
@@ -157,8 +166,9 @@ class MPLWidget(FigureCanvas):
     def insertLabel(self, pos, text):
         pos = pos / max(self.getAxes().ylim)
         axann = self.getAxes().annotate(text, xy=(.03, pos),
-                                   xycoords='axes fraction')
+                                        xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+
 
 class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, picks=None,
@@ -169,11 +179,14 @@ class PickDlg(QDialog):
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+        settings = QSettings()
+        self._user = settings.value('user/Login', 'anonymous')
         if picks:
             self.picks = picks
         else:
             self.picks = {}
         self.filteroptions = FILTERDEFAULTS
+        self.pick_block = False
 
         # initialize panning attributes
         self.press = None
@@ -247,15 +260,14 @@ class PickDlg(QDialog):
                                          slot=self.filterWFData,
                                          icon=filter_icon,
                                          tip='Toggle filtered/original'
-                                             ' waveforms',
-                                         checkable=True)
+                                             ' waveforms')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
         self.resetZoomAction = createAction(parent=self, text='Home',
-                                        slot=self.resetZoom, icon=home_icon,
-                                        tip='Reset zoom to original limits')
+                                            slot=self.resetZoom, icon=home_icon,
+                                            tip='Reset zoom to original limits')
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
@@ -337,6 +349,10 @@ class PickDlg(QDialog):
         return widget.mpl_connect('button_release_event', slot)
 
     def verifyPhaseSelection(self):
+        if self.pick_block:
+            self.pick_block = self.togglePickBlocker()
+            warnings.warn('Changed selection before phase was set!',
+                          UserWarning)
         phase = self.selectPhase.currentText()
         self.updateCurrentLimits()
         if phase:
@@ -348,6 +364,7 @@ class PickDlg(QDialog):
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.setIniPick)
             self.filterWFData()
+            self.pick_block = self.togglePickBlocker()
         else:
             self.disconnectPressEvent()
             self.cidpress = self.connectPressEvent(self.panPress)
@@ -382,6 +399,9 @@ class PickDlg(QDialog):
                 if channelID[1].upper().endswith(channel):
                     traceIDs.append(traceID)
         return traceIDs
+
+    def getUser(self):
+        return self._user
 
     def getFilterOptions(self, phase):
         options = self.filteroptions[phase]
@@ -420,6 +440,11 @@ class PickDlg(QDialog):
         if component == 'E' or component == 'N':
             for trace in self.getWFData():
                 trace = selectTrace(trace, 'NE')
+                if trace:
+                    wfdata.append(trace)
+        elif component == '1' or component == '2':
+            for trace in self.getWFData():
+                trace = selectTrace(trace, '12')
                 if trace:
                     wfdata.append(trace)
         elif component == 'Z':
@@ -470,8 +495,22 @@ class PickDlg(QDialog):
         noise_win = settings.value('picking/noise_win_P', 5.)
         gap_win = settings.value('picking/gap_win_P', .2)
         signal_win = settings.value('picking/signal_win_P', 3.)
+        itrace = int(trace_number)
 
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+        while itrace > len(wfdata) - 1:
+            itrace -= 1
+
+        # copy data for plotting
+        data = self.getWFData().copy()
+
+        # filter data and trace on which is picked prior to determination of SNR
+        phase = self.selectPhase.currentText()
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        if filteroptions:
+            data.filter(**filteroptions)
+            wfdata.filter(**filteroptions)
+
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
 
         snr = result[0]
         noiselevel = result[2] * nfac
@@ -479,8 +518,7 @@ class PickDlg(QDialog):
         x_res = getResolutionWindow(snr)
 
         # remove mean noise level from waveforms
-        wfdata = self.getWFData().copy()
-        for trace in wfdata:
+        for trace in data:
             t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
@@ -488,7 +526,7 @@ class PickDlg(QDialog):
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
         self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
                       trace_number)
-        self.getPlotWidget().plotWFData(wfdata=wfdata,
+        self.getPlotWidget().plotWFData(wfdata=data,
                                         title=self.getStation() +
                                               ' picking mode',
                                         zoomx=self.getXLims(),
@@ -502,30 +540,40 @@ class PickDlg(QDialog):
 
         settings = QSettings()
 
-        nfac = settings.value('picking/nfac_P', 1.5)
-        noise_win = settings.value('picking/noise_win_P', 5.)
-        gap_win = settings.value('picking/gap_win_P', .2)
-        signal_win = settings.value('picking/signal_win_P', 3.)
+        nfac = settings.value('picking/nfac_S', 1.5)
+        noise_win = settings.value('picking/noise_win_S', 5.)
+        gap_win = settings.value('picking/gap_win_S', .2)
+        signal_win = settings.value('picking/signal_win_S', 3.)
 
+        # copy data for plotting
+        data = self.getWFData().copy()
+
+        # filter data and trace on which is picked prior to determination of SNR
+        phase = self.selectPhase.currentText()
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        if filteroptions:
+            data.filter(**filteroptions)
+            wfdata.filter(**filteroptions)
+
+        # determine SNR and noiselevel
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
-
         snr = result[0]
         noiselevel = result[2] * nfac
 
-        data = self.getWFData().copy()
-
-        phase = self.selectPhase.currentText()
-        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
-        data.filter(**filteroptions)
-
+        # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
-        horiz_comp = ('n', 'e')
-
-        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        # account for non-oriented horizontal waveforms
+        try:
+            horiz_comp = ('n', 'e')
+            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        except IndexError as e:
+            print('warning: {0}'.format(e))
+            horiz_comp = ('1', '2')
+            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
         x_res = getResolutionWindow(snr)
 
@@ -533,8 +581,8 @@ class PickDlg(QDialog):
         traces = self.getTraceID(horiz_comp)
         traces.sort()
         self.setYLims(tuple(np.array([-0.5, +0.5]) +
-                      np.array(traces)))
-        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] +\
+                            np.array(traces)))
+        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
                       [trace - 1 / (2.5 * 2) for trace in traces]
 
         self.getPlotWidget().plotWFData(wfdata=data,
@@ -554,21 +602,28 @@ class PickDlg(QDialog):
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
 
-        wfdata = self.getWFData().copy().select(channel=channel)
-        stime = self.getStartTime()
-        # get earliest and latest possible pick and symmetric pick error
-        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
-
         # get name of phase actually picked
         phase = self.selectPhase.currentText()
 
+        # get filter parameter for the phase to be picked
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+
+        # copy and filter data for earliest and latest possible picks
+        wfdata = self.getWFData().copy().select(channel=channel)
+        wfdata.filter(**filteroptions)
+
+        # get earliest and latest possible pick and symmetric pick error
+        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
+
         # return absolute time values for phases
+        stime = self.getStartTime()
         epp = stime + epp
         mpp = stime + pick
         lpp = stime + lpp
 
         # save pick times for actual phase
-        phasepicks = {'epp': epp, 'lpp': lpp, 'mpp': mpp, 'spe': spe}
+        phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
+                          picker=self.getUser())
 
         try:
             oldphasepick = self.picks[phase]
@@ -601,6 +656,7 @@ class PickDlg(QDialog):
         self.drawPicks()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
+        self.pick_block = self.togglePickBlocker()
         self.selectPhase.setCurrentIndex(-1)
         self.setPlotLabels()
 
@@ -660,7 +716,12 @@ class PickDlg(QDialog):
 
         ax.figure.canvas.draw()
 
+    def togglePickBlocker(self):
+        return not self.pick_block
+
     def filterWFData(self):
+        if self.pick_block:
+            return
         self.updateCurrentLimits()
         data = self.getWFData().copy()
         old_title = self.getPlotWidget().getAxes().get_title()
@@ -675,13 +736,15 @@ class PickDlg(QDialog):
                 filtoptions = filtoptions.parseFilterOptions()
         if filtoptions is not None:
             data.filter(**filtoptions)
-            if old_title.endswith(')'):
-                title = old_title[:-1] + ', filtered)'
-            else:
+            if not old_title.endswith(')'):
                 title = old_title + ' (filtered)'
+            elif not old_title.endswith(' (filtered)') and not old_title.endswith(', filtered)'):
+                title = old_title[:-1] + ', filtered)'
         else:
             if old_title.endswith(' (filtered)'):
                 title = old_title.replace(' (filtered)', '')
+            elif old_title.endswith(', filtered)'):
+                title = old_title.replace(', filtered)', ')')
         if title is None:
             title = old_title
         self.getPlotWidget().plotWFData(wfdata=data, title=title,
@@ -702,7 +765,6 @@ class PickDlg(QDialog):
         self.drawPicks()
         self.draw()
 
-
     def setPlotLabels(self):
 
         # get channel labels
@@ -715,7 +777,9 @@ class PickDlg(QDialog):
         self.getPlotWidget().setYLims(self.getYLims())
 
     def zoom(self):
-        if self.zoomAction.isChecked():
+        if self.zoomAction.isChecked() and self.pick_block:
+            self.zoomAction.setChecked(False)
+        elif self.zoomAction.isChecked():
             self.disconnectPressEvent()
             self.disconnectMotionEvent()
             self.disconnectReleaseEvent()
@@ -984,7 +1048,7 @@ class LocalisationTab(PropTab):
             self.binlabel.setText("{0} bin directory".format(curtool))
 
     def selectDirectory(self, edit):
-        selected_directory =  QFileDialog.getExistingDirectory()
+        selected_directory = QFileDialog.getExistingDirectory()
         edit.setText(selected_directory)
 
     def getValues(self):
@@ -993,7 +1057,6 @@ class LocalisationTab(PropTab):
                   "%s/binPath".format(loctool): self.binedit.text(),
                   "loc/tool": loctool}
         return values
-
 
 
 class NewEventDlg(QDialog):
@@ -1236,6 +1299,8 @@ class HelpForm(QDialog):
     def updatePageTitle(self):
         self.pageLabel.setText(self.webBrowser.documentTitle())
 
+
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

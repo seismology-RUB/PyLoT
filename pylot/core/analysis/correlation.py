@@ -6,11 +6,15 @@ import numpy as np
 
 def crosscorrsingle(wf1, wf2, taumax):
     '''
-
-    :param Wx:
-    :param Wy:
-    :param taumax:
-    :return:
+    Calculates the crosscorrelation between two waveforms with a defined maximum timedifference.
+    :param wf1: first waveformdata
+    :type wf1: list
+    :param wf2: second waveformdata
+    :type wf2: list
+    :param taumax: maximum time difference between waveforms
+    :type taumax: positive integer
+    :return: returns the crosscorrelation funktion 'c' and the lagvector 'l'
+    :rtype: c and l are lists
     '''
     N = len(wf1)
     c = np.zeros(2 * taumax - 1)
@@ -83,10 +87,13 @@ def wfscrosscorr(weights, wfs, taumax):
 
     SWB 26.01.2010 as arranged with Thomas Meier and Monika Bischoff
 
-    :param weights:
-    :param wfs:
-    :param taumax:
-    :return:
+    :param weights: weighting factors for the single components
+    :type weights: tuple
+    :param wfs: tuple of `~numpy.array` object containing waveform data
+    :type wfs: tuple
+    :param taumax: maximum time difference
+    :type taumax: positive integer
+    :return: returns cross correlation function normalized by the waveform energy
     '''
 
     ccnorm = 0.

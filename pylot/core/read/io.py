@@ -7,8 +7,9 @@ import scipy.io as sio
 import obspy.core.event as ope
 from obspy.core import UTCDateTime
 
-from pylot.core.util.utils import getOwner, createPick, createArrival,\
+from pylot.core.util.utils import getOwner, createPick, createArrival, \
     createEvent, createOrigin, createMagnitude
+
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -134,4 +135,57 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
                               insufficient data!'.format(e, phasfn, locfn))
 
+def picks_from_obs(fn):
+    picks = dict()
+    station_name = str()
+    for line in open(fn, 'r'):
+        if line.startswith('#'):
+            continue
+        else:
+            phase_line = line.split()
+            if not station_name == phase_line[0]:
+                phase = dict()
+            station_name = phase_line[0]
+            phase_name = phase_line[4].upper()
+            pick = UTCDateTime(phase_line[6] + phase_line[7] + phase_line[8])
+            phase[phase_name] = dict(mpp=pick, fm=phase_line[5])
+            picks[station_name] = phase
+    return picks
 
+
+def picks_from_evt(evt):
+    '''
+    Takes an Event object and return the pick dictionary commonly used within
+    PyLoT
+    :param evt: Event object contain all available information
+    :type evt: `~obspy.core.event.Event`
+    :return: pick dictionary
+    '''
+    picks = {}
+    for pick in evt.picks:
+        phase = {}
+        station = pick.waveform_id.station_code
+        try:
+            onsets = picks[station]
+        except KeyError as e:
+            print(e)
+            onsets = {}
+        mpp = pick.time
+        lpp = mpp + pick.time_errors.upper_uncertainty
+        epp = mpp - pick.time_errors.lower_uncertainty
+        spe = pick.time_errors.uncertainty
+        phase['mpp'] = mpp
+        phase['epp'] = epp
+        phase['lpp'] = lpp
+        phase['spe'] = spe
+        try:
+            picker = str(pick.method_id)
+            if picker.startswith('smi:local/'):
+                picker = picker.split('smi:local/')[1]
+            phase['picker'] = picker
+        except IndexError:
+            pass
+
+        onsets[pick.phase_hint] = phase.copy()
+        picks[station] = onsets.copy()
+    return picks

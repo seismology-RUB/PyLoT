@@ -2,11 +2,12 @@
 import sys
 import numpy as np
 
-def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'abs', inputfileref = 'vgridsref.in'):
+
+def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', inputfileref='vgridsref.in'):
     '''
     Generate a vtk-file readable by e.g. paraview from FMTOMO output vgrids.in
     '''
-    R = 6371. # earth radius
+    R = 6371.  # earth radius
     outfile = open(outputfile, 'w')
 
     number, delta, start, vel = _readVgrid(inputfile)
@@ -14,12 +15,14 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     nR, nTheta, nPhi = number
     dR, dTheta, dPhi = delta
     sR, sTheta, sPhi = start
-    
+
     thetaGrid, phiGrid, rGrid = _generateGrids(number, delta, start)
 
     nPoints = nR * nTheta * nPhi
 
-    nX = nPhi; nY = nTheta; nZ = nR
+    nX = nPhi;
+    nY = nTheta;
+    nZ = nR
 
     sZ = sR - R
     sX = _getDistance(sPhi)
@@ -36,17 +39,21 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     outfile.writelines('ASCII\n')
     outfile.writelines('DATASET STRUCTURED_POINTS\n')
 
-    outfile.writelines('DIMENSIONS %d %d %d\n' %(nX, nY, nZ))
-    outfile.writelines('ORIGIN %f %f %f\n' %(sX, sY, sZ))
-    outfile.writelines('SPACING %f %f %f\n' %(dX, dY, dZ))
+    outfile.writelines('DIMENSIONS %d %d %d\n' % (nX, nY, nZ))
+    outfile.writelines('ORIGIN %f %f %f\n' % (sX, sY, sZ))
+    outfile.writelines('SPACING %f %f %f\n' % (dX, dY, dZ))
 
-    outfile.writelines('POINT_DATA %15d\n' %(nPoints))
+    outfile.writelines('POINT_DATA %15d\n' % (nPoints))
     if absOrRel == 'abs':
+<<<<<<< HEAD
         outfile.writelines('SCALARS velocity float %d\n' %(1))
     if absOrRel == 'relDepth':
         outfile.writelines('SCALARS velocity2depthMean float %d\n' %(1))
+=======
+        outfile.writelines('SCALARS velocity float %d\n' % (1))
+>>>>>>> 37f9292c39246b327d3630995ca2521725c6cdd7
     elif absOrRel == 'rel':
-        outfile.writelines('SCALARS velChangePercent float %d\n' %(1))
+        outfile.writelines('SCALARS velChangePercent float %d\n' % (1))
     outfile.writelines('LOOKUP_TABLE default\n')
 
     pointsPerR = nTheta * nPhi
@@ -55,6 +62,7 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
     if absOrRel == 'abs':
         print("Writing velocity values to VTK file...")
         for velocity in vel:
+<<<<<<< HEAD
             outfile.writelines('%10f\n' %velocity)
     elif absOrRel == 'relDepth':
         print("Writing velocity values to VTK file relative to mean of each depth...")
@@ -69,34 +77,38 @@ def vgrids2VTK(inputfile = 'vgrids.in', outputfile = 'vgrids.vtk', absOrRel = 'a
                 for vel in veldepth:
                     outfile.writelines('%10f\n' %(vel - velmean))
                 veldepth = []
+=======
+            outfile.writelines('%10f\n' % velocity)
+>>>>>>> 37f9292c39246b327d3630995ca2521725c6cdd7
     elif absOrRel == 'rel':
         nref, dref, sref, velref = _readVgrid(inputfileref)
         nR_ref, nTheta_ref, nPhi_ref = nref
         if not len(velref) == len(vel):
-            print('ERROR: Number of gridpoints mismatch for %s and %s'%(inputfile, inputfileref))
+            print('ERROR: Number of gridpoints mismatch for %s and %s' % (inputfile, inputfileref))
             return
-        #velrel = [((vel - velref) / velref * 100) for vel, velref in zip(vel, velref)]
+        # velrel = [((vel - velref) / velref * 100) for vel, velref in zip(vel, velref)]
         velrel = []
         for velocities in zip(vel, velref):
             v, vref = velocities
             if not vref == 0:
                 velrel.append((v - vref) / vref * 100)
             else:
-                velrel.append(0)            
+                velrel.append(0)
 
         if not nR_ref == nR and nTheta_ref == nTheta and nPhi_ref == nPhi:
-            print('ERROR: Dimension mismatch of grids %s and %s'%(inputfile, inputfileref))
+            print('ERROR: Dimension mismatch of grids %s and %s' % (inputfile, inputfileref))
             return
         print("Writing velocity values to VTK file...")
         for velocity in velrel:
-            outfile.writelines('%10f\n' %velocity)
-        print('Pertubations: min: %s %%, max: %s %%'%(min(velrel), max(velrel)))
+            outfile.writelines('%10f\n' % velocity)
+        print('Pertubations: min: %s %%, max: %s %%' % (min(velrel), max(velrel)))
 
     outfile.close()
-    print("Wrote velocity grid for %d points to file: %s" %(nPoints, outputfile))
+    print("Wrote velocity grid for %d points to file: %s" % (nPoints, outputfile))
     return
 
-def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
+
+def rays2VTK(fnin, fdirout='./vtk_files/', nthPoint=50):
     '''
     Writes VTK file(s) for FMTOMO rays from rays.dat
 
@@ -113,12 +125,12 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
     while True:
         raynumber += 1
         firstline = infile.readline()
-        if firstline == '': break # break at EOF
+        if firstline == '': break  # break at EOF
         raynumber = int(firstline.split()[0])
         shotnumber = int(firstline.split()[1])
-        rayValid = int(firstline.split()[4]) # is zero if the ray is invalid
+        rayValid = int(firstline.split()[4])  # is zero if the ray is invalid
         if rayValid == 0:
-            print('Invalid ray number %d for shot number %d'%(raynumber, shotnumber))
+            print('Invalid ray number %d for shot number %d' % (raynumber, shotnumber))
             continue
         nRayPoints = int(infile.readline().split()[0])
         if not shotnumber in rays.keys():
@@ -127,14 +139,15 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
         for index in range(nRayPoints):
             if index % nthPoint is 0 or index == (nRayPoints - 1):
                 rad, lat, lon = infile.readline().split()
-                rays[shotnumber][raynumber].append([_getDistance(np.rad2deg(float(lon))), _getDistance(np.rad2deg(float(lat))), float(rad) - R])
+                rays[shotnumber][raynumber].append(
+                    [_getDistance(np.rad2deg(float(lon))), _getDistance(np.rad2deg(float(lat))), float(rad) - R])
             else:
                 dummy = infile.readline()
 
     infile.close()
 
     for shotnumber in rays.keys():
-        fnameout = fdirout + 'rays%03d.vtk'%(shotnumber)
+        fnameout = fdirout + 'rays%03d.vtk' % (shotnumber)
         outfile = open(fnameout, 'w')
 
         nPoints = 0
@@ -143,31 +156,32 @@ def rays2VTK(fnin, fdirout = './vtk_files/', nthPoint = 50):
                 nPoints += 1
 
         # write header
-        #print("Writing header for VTK file...")
-        print("Writing shot %d to file %s" %(shotnumber, fnameout))
+        # print("Writing header for VTK file...")
+        print("Writing shot %d to file %s" % (shotnumber, fnameout))
         outfile.writelines('# vtk DataFile Version 3.1\n')
         outfile.writelines('FMTOMO rays\n')
         outfile.writelines('ASCII\n')
         outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' %(nPoints))
+        outfile.writelines('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
-        #print("Writing coordinates to VTK file...")
+        # print("Writing coordinates to VTK file...")
         for raynumber in rays[shotnumber].keys():
             for raypoint in rays[shotnumber][raynumber]:
-                outfile.writelines('%10f %10f %10f \n' %(raypoint[0], raypoint[1], raypoint[2]))
+                outfile.writelines('%10f %10f %10f \n' % (raypoint[0], raypoint[1], raypoint[2]))
 
-        outfile.writelines('LINES %15d %15d\n' %(len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
+        outfile.writelines('LINES %15d %15d\n' % (len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
 
         # write indices
-        #print("Writing indices to VTK file...")
+        # print("Writing indices to VTK file...")
         count = 0
         for raynumber in rays[shotnumber].keys():
-            outfile.writelines('%d ' %(len(rays[shotnumber][raynumber])))
+            outfile.writelines('%d ' % (len(rays[shotnumber][raynumber])))
             for index in range(len(rays[shotnumber][raynumber])):
-                outfile.writelines('%d ' %(count))
+                outfile.writelines('%d ' % (count))
                 count += 1
             outfile.writelines('\n')
+
 
 def _readVgrid(filename):
     def readNumberOfPoints(filename):
@@ -179,7 +193,7 @@ def _readVgrid(filename):
         nPhi = int(vglines[1].split()[2])
 
         print('readNumberOf Points: Awaiting %d grid points in %s'
-              %(nR*nTheta*nPhi, filename))
+              % (nR * nTheta * nPhi, filename))
         fin.close()
         return nR, nTheta, nPhi
 
@@ -206,10 +220,11 @@ def _readVgrid(filename):
         return sR, sTheta, sPhi
 
     def readVelocity(filename):
-        '''            
+        '''
         Reads in velocity from vgrids file and returns a list containing all values in the same order
         '''
-        vel = []; count = 0
+        vel = [];
+        count = 0
         fin = open(filename, 'r')
         vglines = fin.readlines()
 
@@ -218,7 +233,7 @@ def _readVgrid(filename):
             if count > 4:
                 vel.append(float(line.split()[0]))
 
-        print("Read %d points out of file: %s" %(count - 4, filename))
+        print("Read %d points out of file: %s" % (count - 4, filename))
         return vel
 
     # Theta, Phi in radians, R in km
@@ -235,23 +250,25 @@ def _readVgrid(filename):
     start = (sR, sTheta, sPhi)
     return number, delta, start, vel
 
+
 def _generateGrids(number, delta, start):
     nR, nTheta, nPhi = number
     dR, dTheta, dPhi = delta
     sR, sTheta, sPhi = start
-    
+
     eR = sR + (nR - 1) * dR
     ePhi = sPhi + (nPhi - 1) * dPhi
     eTheta = sTheta + (nTheta - 1) * dTheta
 
-    thetaGrid = np.linspace(sTheta, eTheta, num = nTheta)
-    phiGrid = np.linspace(sPhi, ePhi, num = nPhi)
-    rGrid = np.linspace(sR, eR, num = nR)
+    thetaGrid = np.linspace(sTheta, eTheta, num=nTheta)
+    phiGrid = np.linspace(sPhi, ePhi, num=nPhi)
+    rGrid = np.linspace(sR, eR, num=nR)
 
     return (thetaGrid, phiGrid, rGrid)
 
-def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
-                    outputfile = 'vgrids_cb.in', ampmethod = 'linear', rect = (None, None)):
+
+def addCheckerboard(spacing=10., pertubation=0.1, inputfile='vgrids.in',
+                    outputfile='vgrids_cb.in', ampmethod='linear', rect=(None, None)):
     '''
     Add a checkerboard to an existing vgrids.in velocity model.
 
@@ -261,13 +278,14 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
     :param: pertubation, pertubation (default: 0.1 = 10%)
     type: float
     '''
-    def correctSpacing(spacing, delta, disttype = None):
+
+    def correctSpacing(spacing, delta, disttype=None):
         if spacing > delta:
             spacing_corr = round(spacing / delta) * delta
         elif spacing < delta:
             spacing_corr = delta
         print('The spacing of the checkerboard of %s (%s) was corrected to '
-              'a value of %s to fit the grid spacing of %s.' %(spacing, disttype, spacing_corr, delta))
+              'a value of %s to fit the grid spacing of %s.' % (spacing, disttype, spacing_corr, delta))
         return spacing_corr
 
     def linearAmp(InCell):
@@ -282,7 +300,7 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
         else:
             return 0
 
-    def ampFunc(InCell, method = 'linear', rect = None):
+    def ampFunc(InCell, method='linear', rect=None):
         if method == 'linear':
             return linearAmp(InCell)
         if method == 'rect' and rect is not None:
@@ -290,7 +308,7 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
         else:
             print('ampFunc: Could not amplify cb pattern')
 
-    decm = 0.3 # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
+    decm = 0.3  # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
     outfile = open(outputfile, 'w')
 
     number, delta, start, vel = _readVgrid(inputfile)
@@ -298,16 +316,16 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
     nR, nTheta, nPhi = number
     dR, dTheta, dPhi = delta
     sR, sTheta, sPhi = start
-    
+
     thetaGrid, phiGrid, rGrid = _generateGrids(number, delta, start)
 
     nPoints = nR * nTheta * nPhi
 
     # write header for velocity grid file (in RADIANS)
-    outfile.writelines('%10s %10s \n' %(1, 1))
-    outfile.writelines('%10s %10s %10s\n' %(nR, nTheta, nPhi))
-    outfile.writelines('%10s %10s %10s\n' %(dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
-    outfile.writelines('%10s %10s %10s\n' %(sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
+    outfile.writelines('%10s %10s \n' % (1, 1))
+    outfile.writelines('%10s %10s %10s\n' % (nR, nTheta, nPhi))
+    outfile.writelines('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
+    outfile.writelines('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
 
     spacR = correctSpacing(spacing, dR, '[meter], R')
     spacTheta = correctSpacing(_getAngle(spacing), dTheta, '[degree], Theta')
@@ -315,7 +333,8 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
 
     count = 0
     evenOdd = 1
-    even = 0; odd = 0
+    even = 0;
+    odd = 0
 
     # In the following loop it is checked whether the positive distance from the border of the model
     # for a point on the grid divided by the spacing is even or odd and then pertubated.
@@ -326,21 +345,21 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
     # The amplification factor ampFactor comes from a linear relationship and ranges between 0 (cell border)
     # and 1 (cell middle)
     for radius in rGrid:
-        rInCell = (radius - sR - dR/2) / spacR 
+        rInCell = (radius - sR - dR / 2) / spacR
         ampR = ampFunc(rInCell, ampmethod, rect)
         if np.floor(rInCell) % 2:
             evenOddR = 1
         else:
             evenOddR = -1
         for theta in thetaGrid:
-            thetaInCell = (theta - sTheta - dTheta/2) / spacTheta
+            thetaInCell = (theta - sTheta - dTheta / 2) / spacTheta
             ampTheta = ampFunc(thetaInCell, ampmethod, rect)
             if np.floor(thetaInCell) % 2:
                 evenOddT = 1
             else:
                 evenOddT = -1
             for phi in phiGrid:
-                phiInCell = (phi - sPhi - dPhi/2) / spacPhi
+                phiInCell = (phi - sPhi - dPhi / 2) / spacPhi
                 ampPhi = ampFunc(phiInCell, ampmethod, rect)
                 if np.floor(phiInCell) % 2:
                     evenOddP = 1
@@ -351,19 +370,20 @@ def addCheckerboard(spacing = 10., pertubation = 0.1, inputfile = 'vgrids.in',
                 evenOdd = evenOddR * evenOddT * evenOddP * ampFactor
                 velocity += evenOdd * pertubation * velocity
 
-                outfile.writelines('%10s %10s\n'%(velocity, decm))
+                outfile.writelines('%10s %10s\n' % (velocity, decm))
                 count += 1
 
                 progress = float(count) / float(nPoints) * 100
                 _update_progress(progress)
 
     print('Added checkerboard to the grid in file %s with a spacing of %s and a pertubation of %s %%. '
-          'Outputfile: %s.'%(inputfile, spacing, pertubation*100, outputfile))
+          'Outputfile: %s.' % (inputfile, spacing, pertubation * 100, outputfile))
     outfile.close()
 
-def addBox(x = (None, None), y = (None, None), z = (None, None),
-           boxvelocity = 1.0, inputfile = 'vgrids.in',
-           outputfile = 'vgrids_box.in'):
+
+def addBox(x=(None, None), y=(None, None), z=(None, None),
+           boxvelocity=1.0, inputfile='vgrids.in',
+           outputfile='vgrids_box.in'):
     '''
     Add a box with constant velocity to an existing vgrids.in velocity model.
 
@@ -380,7 +400,7 @@ def addBox(x = (None, None), y = (None, None), z = (None, None),
     type: float
     '''
     R = 6371.
-    decm = 0.3 # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
+    decm = 0.3  # diagonal elements of the covariance matrix (grid3dg's default value is 0.3)
     outfile = open(outputfile, 'w')
 
     theta1 = _getAngle(y[0])
@@ -392,23 +412,23 @@ def addBox(x = (None, None), y = (None, None), z = (None, None),
 
     print('Adding box to grid with theta = (%s, %s), phi = (%s, %s), '
           'r = (%s, %s), velocity = %s [km/s]'
-          %(theta1, theta2, phi1, phi2, r1, r2, boxvelocity))
-    
+          % (theta1, theta2, phi1, phi2, r1, r2, boxvelocity))
+
     number, delta, start, vel = _readVgrid(inputfile)
 
     nR, nTheta, nPhi = number
     dR, dTheta, dPhi = delta
     sR, sTheta, sPhi = start
-    
+
     thetaGrid, phiGrid, rGrid = _generateGrids(number, delta, start)
 
     nPoints = nR * nTheta * nPhi
 
     # write header for velocity grid file (in RADIANS)
-    outfile.writelines('%10s %10s \n' %(1, 1))
-    outfile.writelines('%10s %10s %10s\n' %(nR, nTheta, nPhi))
-    outfile.writelines('%10s %10s %10s\n' %(dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
-    outfile.writelines('%10s %10s %10s\n' %(sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
+    outfile.writelines('%10s %10s \n' % (1, 1))
+    outfile.writelines('%10s %10s %10s\n' % (nR, nTheta, nPhi))
+    outfile.writelines('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
+    outfile.writelines('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
 
     count = 0
     for radius in rGrid:
@@ -430,19 +450,21 @@ def addBox(x = (None, None), y = (None, None), z = (None, None),
                 if rFlag * thetaFlag * phiFlag is not 0:
                     velocity = boxvelocity
 
-                outfile.writelines('%10s %10s\n'%(velocity, decm))
+                outfile.writelines('%10s %10s\n' % (velocity, decm))
                 count += 1
 
                 progress = float(count) / float(nPoints) * 100
                 _update_progress(progress)
 
     print('Added box to the grid in file %s. '
-          'Outputfile: %s.'%(inputfile, outputfile))
+          'Outputfile: %s.' % (inputfile, outputfile))
     outfile.close()
 
+
 def _update_progress(progress):
-    sys.stdout.write("%d%% done   \r" % (progress) )
+    sys.stdout.write("%d%% done   \r" % (progress))
     sys.stdout.flush()
+
 
 def _getAngle(distance):
     '''
@@ -453,9 +475,9 @@ def _getAngle(distance):
     angle = distance * 180. / (PI * R)
     return angle
 
+
 def _getDistance(angle):
     PI = np.pi
     R = 6371.
     distance = angle / 180 * (PI * R)
     return distance
-

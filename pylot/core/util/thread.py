@@ -2,6 +2,7 @@
 import sys
 from PySide.QtCore import QThread, Signal
 
+
 class AutoPickThread(QThread):
     message = Signal(str)
     finished = Signal()
@@ -27,7 +28,6 @@ class AutoPickThread(QThread):
             print(picks)
         sys.stdout = sys.__stdout__
         self.finished.emit()
-
 
     def write(self, text):
         self.message.emit(text)

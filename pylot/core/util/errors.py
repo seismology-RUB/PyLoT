@@ -20,3 +20,7 @@ class DatastructureError(Exception):
 
 class OverwriteError(IOError):
     pass
+
+
+class ParameterError(Exception):
+    pass
