@@ -45,16 +45,41 @@ def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', i
 
     outfile.writelines('POINT_DATA %15d\n' % (nPoints))
     if absOrRel == 'abs':
+<<<<<<< HEAD
+        outfile.writelines('SCALARS velocity float %d\n' %(1))
+    if absOrRel == 'relDepth':
+        outfile.writelines('SCALARS velocity2depthMean float %d\n' %(1))
+=======
         outfile.writelines('SCALARS velocity float %d\n' % (1))
+>>>>>>> 37f9292c39246b327d3630995ca2521725c6cdd7
     elif absOrRel == 'rel':
         outfile.writelines('SCALARS velChangePercent float %d\n' % (1))
     outfile.writelines('LOOKUP_TABLE default\n')
+
+    pointsPerR = nTheta * nPhi
 
     # write velocity
     if absOrRel == 'abs':
         print("Writing velocity values to VTK file...")
         for velocity in vel:
+<<<<<<< HEAD
+            outfile.writelines('%10f\n' %velocity)
+    elif absOrRel == 'relDepth':
+        print("Writing velocity values to VTK file relative to mean of each depth...")
+        index = 0; count = 0
+        veldepth = []
+        for velocity in vel:
+            count += 1
+            veldepth.append(velocity)
+            if count%pointsPerR == 0:
+                velmean = np.mean(veldepth)
+                #print velmean, count, count/pointsPerR
+                for vel in veldepth:
+                    outfile.writelines('%10f\n' %(vel - velmean))
+                veldepth = []
+=======
             outfile.writelines('%10f\n' % velocity)
+>>>>>>> 37f9292c39246b327d3630995ca2521725c6cdd7
     elif absOrRel == 'rel':
         nref, dref, sref, velref = _readVgrid(inputfileref)
         nR_ref, nTheta_ref, nPhi_ref = nref
