@@ -1,6 +1,286 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
+import subprocess
+import datetime
 import numpy as np
+
+class Tomo3d(object):
+    def __init__(self, nproc):
+        self.defParas()
+        self.nproc = nproc
+        self.sources = self.readSrcFile()
+        self.traces = self.readTraces()
+
+    def defParas(self):
+        self.fmm = 'fm3d'
+        self.cvg = 'vgrids.in'
+        self.cig = 'interfaces.in'
+        self.csl = 'sources.in'
+        self.pg = 'propgrid.in'
+        self.rec = 'receivers.in'
+        #self.ot = 'otimes.dat'
+        self.frech = 'frechet.in'
+        self.mode = 'mode_set.in'
+        self.cwd = subprocess.check_output(['pwd'])[0:-1] + '/'
+        self.folder = 'test_'
+
+    def runFmm(self, directory, logfile, processes):
+        os.chdir(directory)
+        processes.append(subprocess.Popen('fm3d', stdout = None))
+#        os.system('%s > %s &'%(self.fmm, logfile))
+        os.chdir(self.cwd)
+        return processes
+
+    def makeDIR(self, directory):
+        err = os.system('mkdir %s'%directory)
+        if err is 256:
+            response = raw_input('Warning: Directory already existing. Continue (y/n)?\n')
+            if response == 'y':
+                print('Overwriting existing files.')
+            else:
+                sys.exit('Aborted')
+        
+    def readNsrc(self):
+        srcfile = open(self.csl, 'r')
+        nsrc = int(srcfile.readline())
+        srcfile.close()
+        return nsrc
+
+    def readNtraces(self):
+        recfile = open(self.rec, 'r')
+        nrec = int(recfile.readline())
+        recfile.close()
+        return nrec
+
+    def calcSrcPerKernel(self):
+        nsrc = self.readNsrc()
+        return nsrc/self.nproc, nsrc%self.nproc
+
+    def srcIDs4Kernel(self, procID):
+        proc = procID - 1
+        nsrc = self.readNsrc()
+        srcPK, remain = self.calcSrcPerKernel()
+        if procID > self.nproc:
+            sys.exit('STOP: Kernel ID exceeds available number.')
+        if proc < remain:
+            start = (srcPK + 1) * (proc) + 1
+            return range(start, start + srcPK + 1)
+        elif proc == remain:
+            start = (srcPK + 1) * (proc) + 1
+            return range(start, start + srcPK)
+        elif proc > remain:
+            start = (srcPK + 1) * remain + srcPK * (proc - remain) + 1
+            return range(start, start + srcPK)
+
+    def startTomo(self):
+        starttime = datetime.datetime.now()
+        processes = []
+        for procID in range(1, self.nproc + 1):
+            directory = self.getProcDir(procID)
+            log_out = self.cwd + 'fm3dlog_' + str(procID) + '.out'
+            
+            self.makeDIR(directory) # Problem bei Iteration
+            self.writeSrcFile(procID, directory)
+            self.writeTracesFile(procID, directory)
+            os.system('cp %s %s %s %s %s %s %s' 
+                      %(self.cvg, self.cig, self.frech,
+                        self.fmm, self.mode, self.pg, directory))
+            processes = self.runFmm(directory, log_out, processes)
+            
+        for p in processes:
+            p.wait()
+
+        self.mergeOutput()
+
+        tdelta = datetime.datetime.now() - starttime
+        print('Finished after %s'%tdelta)
+
+    def readSrcFile(self):
+        nsrc = self.readNsrc()
+        srcfile = open(self.csl, 'r')
+
+        sources = {}
+
+        temp = srcfile.readline()
+        for index in range(nsrc):
+            teleflag = int(srcfile.readline())
+            coords = srcfile.readline().split()
+            numpaths = int(srcfile.readline())
+            steps = int(srcfile.readline())
+            interactions = srcfile.readline().split()
+            veltype = int(srcfile.readline())
+            if teleflag is not 0:
+                sys.exit('Script not yet usable for teleseismic.')
+            if numpaths is not 1:
+                sys.exit('Script not yet usable for more than one path per source.')
+            
+            sources[index + 1] = {'teleflag': teleflag,
+                                  'coords': coords,
+                                  'numpaths': numpaths,
+                                  'steps': steps,
+                                  'interactions': interactions,
+                                  'veltype': veltype
+                                  }
+            
+        return sources
+
+    def readTraces(self):
+        recfile = open(self.rec, 'r')
+        ntraces = self.readNtraces()
+        
+        traces = {}
+
+        temp = recfile.readline()
+        for index in range(ntraces):
+            coords = recfile.readline().split()
+            paths = int(recfile.readline())
+            source = int(recfile.readline())
+            path = int(recfile.readline())
+            
+            traces[index + 1] = { 'coords': coords,
+                                  'paths': paths,
+                                  'source': source,
+                                  'path': path
+                                  }
+            
+        return traces
+
+    def writeSrcFile(self, procID, directory):
+        srcfile = open('%s/sources.in'%directory, 'w')
+        sourceIDs = self.srcIDs4Kernel(procID)
+
+        srcfile.writelines('%s\n'%len(sourceIDs))
+        for sourceID in sourceIDs:
+            source = self.sources[sourceID]
+            coords = source['coords']
+            interactions = source['interactions']
+            srcfile.writelines('%s\n'%source['teleflag'])
+            srcfile.writelines('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
+            srcfile.writelines('%s\n'%source['numpaths'])
+            srcfile.writelines('%s\n'%source['steps'])
+            srcfile.writelines('%s %s\n'%(int(interactions[0]), int(interactions[1])))
+            srcfile.writelines('%s\n'%source['veltype'])
+
+    def writeTracesFile(self, procID, directory):
+        recfile = open('%s/receivers.in'%directory, 'w')
+        sourceIDs = self.srcIDs4Kernel(procID)
+        traceIDs = self.getTraceIDs4Sources(sourceIDs)
+
+        recfile.writelines('%s\n'%len(traceIDs))
+        for traceID in traceIDs:
+            trace = self.traces[traceID]
+            coords = trace['coords']
+            source = int(trace['source']) - sourceIDs[0] + 1
+            recfile.writelines('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
+            recfile.writelines('%s\n'%trace['paths'])
+            recfile.writelines('%s\n'%source)
+            recfile.writelines('%s\n'%trace['path'])
+
+    def getTraceIDs4Sources(self, sourceIDs):
+        traceIDs = []
+        for traceID in self.traces.keys():
+            if self.traces[traceID]['source'] in sourceIDs:
+                traceIDs.append(traceID)
+        return traceIDs
+
+    def getTraceIDs4Source(self, sourceID):
+        traceIDs = []
+        for traceID in self.traces.keys():
+            if self.traces[traceID]['source'] == sourceID:
+                traceIDs.append(traceID)
+        return traceIDs
+
+    def readArrivals(self, procID):
+        directory = self.getProcDir(procID)
+        arrfile = open(directory + '/arrivals.dat', 'r')
+        sourceIDs = self.srcIDs4Kernel(procID)
+        
+        arrivals = []
+        for sourceID in sourceIDs:
+            traceIDs = self.getTraceIDs4Source(sourceID)
+            for traceID in traceIDs:
+                line = arrfile.readline().split()
+                if line != []:
+                    # recID and srcID for the individual processor will not be needed
+                    recID_proc, srcID_proc, ray, normal, arrtime, diff, head = line
+                    arrivals.append([traceID, sourceID, ray, normal, arrtime, diff, head])
+                
+        return arrivals
+
+    def readFrechet(self, procID):
+        directory = self.getProcDir(procID)
+        frechfile = open(directory + '/frechet.dat', 'r')
+        sourceIDs = self.srcIDs4Kernel(procID)
+        
+        frechet = {}
+        for sourceID in sourceIDs:
+            traceIDs = self.getTraceIDs4Source(sourceID)
+            for traceID in traceIDs:
+                line = frechfile.readline().split()
+                if line != []:
+                    # recID and srcID for the individual processor will not be needed
+                    PDEV = []
+                    recID_proc, srcID_proc, ray, normal, NPDEV = line
+                    for i in range(int(NPDEV)):
+                        PDEV.append(frechfile.readline())
+
+                    frechet[traceID] = {'sourceID': sourceID,
+                                        'raypath': ray,
+                                        'normal': normal,
+                                        'NPDEV': NPDEV,
+                                        'PDEV': PDEV
+                                        }
+        return frechet
+
+    def mergeArrivals(self):
+        arrivalsOut = open(self.cwd + '/arrivals.dat', 'w')
+        print('Merging arrivals.dat...')
+        for procID in range(1, self.nproc + 1):
+            arrivals = self.readArrivals(procID)
+            for line in arrivals:
+                arrivalsOut.writelines('%6s %6s %6s %6s %15s %5s %5s\n'%tuple(line))
+
+    def mergeFrechet(self):
+        print('Merging frechet.dat...')
+        frechetOut = open(self.cwd + '/frechet.dat', 'w')
+        for procID in range(1, self.nproc + 1):
+            frechet = self.readFrechet(procID)
+            traceIDs = frechet.keys()
+            traceIDs.sort()
+            for traceID in traceIDs:
+                frech = frechet[traceID]
+                frechetOut.writelines('%6s %6s %6s %6s %6s\n'%
+                                      (traceID,
+                                       frech['sourceID'],
+                                       frech['raypath'],
+                                       frech['normal'],
+                                       frech['NPDEV']))
+                for pdev in frech['PDEV']:
+                    frechetOut.writelines(pdev)
+
+    def mergeRays(self):
+        print('Merging rays.dat...')
+        filenames = []
+        for procID in range(1, self.nproc + 1):
+            directory = self.getProcDir(procID)
+            filenames.append(directory + '/rays.dat')
+
+        with open(self.cwd + 'rays.dat', 'w') as outfile:
+            for fname in filenames:
+                with open(fname) as infile:
+                    for line in infile:
+                        outfile.write(line)
+
+    def getProcDir(self, procID):
+        return self.cwd + self.folder + str(procID)
+
+    def mergeOutput(self):
+        self.mergeArrivals()
+        self.mergeFrechet()
+        self.mergeRays()
+        
+        
 
 
 def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', inputfileref='vgridsref.in'):
