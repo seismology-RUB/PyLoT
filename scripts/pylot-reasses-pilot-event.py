@@ -3,7 +3,6 @@
 
 import argparse
 
-from pylot.core.pick.utils import reassess_pilot_event
 from pylot.core.util.version import get_git_version as _getVersionString
 from pylot.core.io.phases import reassess_pilot_event
 

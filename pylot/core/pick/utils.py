@@ -938,10 +938,6 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     return returnflag
 
 
-def reassess_pilot_event():
-    pass
-
-
 if __name__ == '__main__':
     import doctest
 

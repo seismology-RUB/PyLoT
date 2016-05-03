@@ -230,7 +230,7 @@ def picks_to_dict(evt):
     return picks
 
 def picks_from_dict(picks):
-    firstonset = None
+    picks_list = list()
     for station, onsets in picks.items():
         print('Reading picks on station %s' % station)
         for label, phase in onsets.items():
@@ -262,9 +262,9 @@ def picks_from_dict(picks):
                 else:
                     pick.polarity = 'undecidable'
             except KeyError as e:
-                print('No polarity information found for %s' % phase)
-            if firstonset is None or firstonset > onset:
-                firstonset = onset
+                print(e.message, 'No polarity information found for %s' % phase)
+            picks_list.append(pick)
+    return picks_list
 
 
 def reassess_pilot_event(root_dir, event_id):
@@ -303,7 +303,9 @@ def reassess_pilot_event(root_dir, event_id):
     evt = ope.Event(resource_id=event_id)
     evt.picks = picks_from_dict(picks_dict)
     # write phase information to file
-    evt.write('{0}.xml'.format(event_id), format='QUAKEML')
+    fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
+    evt.write(fnout_prefix + 'xml', format='QUAKEML')
+    evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
 def writephases(arrivals, fformat, filename):
