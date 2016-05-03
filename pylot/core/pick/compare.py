@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from obspy import read_events
 
-from pylot.core.io.phases import picks_to_dict
+from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -227,7 +227,7 @@ class PDFDictionary(object):
         if len(cat) > 1:
             raise NotImplementedError('reading more than one event at the same '
                                       'time is not implemented yet! Sorry!')
-        return PDFDictionary(picks_to_dict(cat[0]))
+        return PDFDictionary(picksdict_from_picks(cat[0]))
 
     def pdf_data(self, type='exp'):
         """

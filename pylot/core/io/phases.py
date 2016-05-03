@@ -8,9 +8,10 @@ import scipy.io as sio
 import obspy.core.event as ope
 from obspy.core import UTCDateTime
 
+from pylot.core.pick.utils import select_for_phase
 from pylot.core.util.utils import getOwner, createPick, createArrival, \
     createEvent, createOrigin, createMagnitude
-
+from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -192,7 +193,7 @@ def picksdict_from_obs(fn):
     return picks
 
 
-def picks_to_dict(evt):
+def picksdict_from_picks(evt):
     '''
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
@@ -229,7 +230,7 @@ def picks_to_dict(evt):
         picks[station] = onsets.copy()
     return picks
 
-def picks_from_dict(picks):
+def picks_from_picksdict(picks):
     picks_list = list()
     for station, onsets in picks.items():
         print('Reading picks on station %s' % station)
@@ -267,17 +268,19 @@ def picks_from_dict(picks):
     return picks_list
 
 
-def reassess_pilot_event(root_dir, event_id):
+def reassess_pilot_event(root_dir, event_id, fn_param=AUTOMATIC_DEFAULTS):
     from obspy import read
-    from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
+
     from pylot.core.io.inputs import AutoPickParameter
     from pylot.core.pick.utils import earllatepicker
 
-    default = AutoPickParameter(AUTOMATIC_DEFAULTS)
+    default = AutoPickParameter(fn_param)
 
     search_base = os.path.join(root_dir, event_id)
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
-    picks_dict = picks_from_pilot(phases_file)
+    if not phases_file:
+        return
+    picks_dict = picks_from_pilot(phases_file[0])
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
@@ -293,19 +296,20 @@ def reassess_pilot_event(root_dir, event_id):
             except KeyError as e:
                 print(e.message, station)
                 continue
-            epp, lpp, spe = earllatepicker(st,
+            sel_st = select_for_phase(st, phase)
+            epp, lpp, spe = earllatepicker(sel_st,
                                            default.get('nfac{0}'.format(phase)),
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
-                                           mpp
+                                           mpp, None, True
                                            )
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
     # create Event object for export
     evt = ope.Event(resource_id=event_id)
-    evt.picks = picks_from_dict(picks_dict)
+    evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
     fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
-    evt.write(fnout_prefix + 'cnv', format='VELEST')
+    #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
 def writephases(arrivals, fformat, filename):

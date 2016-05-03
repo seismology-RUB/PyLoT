@@ -464,6 +464,37 @@ def getResolutionWindow(snr):
     return time_resolution / 2
 
 
+def select_for_phase(st, phase):
+    '''
+    takes a STream object and a phase name and returns that particular component
+    which presumably shows the chosen PHASE best
+
+    :param st: stream object containing one or more component[s]
+    :type st: `~obspy.core.stream.Stream`
+    :param phase: label of the phase for which the stream selection is carried
+        out; 'P' or 'S'
+    :type phase: str
+    :return:
+    '''
+    from pylot.core.util.defaults import COMPNAME_MAP
+
+    sel_st = Stream()
+    if phase.upper() is 'P':
+        comp = 'Z'
+        alter_comp = COMPNAME_MAP[comp]
+        sel_st += st.select(component=comp)
+        sel_st += st.select(component=alter_comp)
+    elif phase.upper() is 'S':
+        comps = 'NE'
+        for comp in comps:
+            alter_comp = COMPNAME_MAP[comp]
+            sel_st += st.select(component=comp)
+            sel_st += st.select(component=alter_comp)
+    else:
+        raise TypeError('Unknown phase label: {0}'.format(phase))
+    return sel_st
+
+
 def wadaticheck(pickdic, dttolerance, iplot):
     '''
     Function to calculate Wadati-diagram from given P and S onsets in order

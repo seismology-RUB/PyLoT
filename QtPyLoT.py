@@ -43,7 +43,7 @@ from obspy import UTCDateTime
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
-from pylot.core.io.phases import picks_to_dict
+from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP,\
     AUTOMATIC_DEFAULTS
@@ -735,7 +735,7 @@ class MainWindow(QMainWindow):
         return rval
 
     def updatePicks(self, type='manual'):
-        picks = picks_to_dict(evt=self.getData().getEvtData())
+        picks = picksdict_from_picks(evt=self.getData().getEvtData())
         if type == 'manual':
             self.picks.update(picks)
         elif type == 'auto':
