@@ -479,12 +479,12 @@ def select_for_phase(st, phase):
     from pylot.core.util.defaults import COMPNAME_MAP
 
     sel_st = Stream()
-    if phase.upper() is 'P':
+    if phase.upper() == 'P':
         comp = 'Z'
         alter_comp = COMPNAME_MAP[comp]
         sel_st += st.select(component=comp)
         sel_st += st.select(component=alter_comp)
-    elif phase.upper() is 'S':
+    elif phase.upper() == 'S':
         comps = 'NE'
         for comp in comps:
             alter_comp = COMPNAME_MAP[comp]

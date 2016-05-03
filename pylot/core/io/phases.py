@@ -10,8 +10,7 @@ from obspy.core import UTCDateTime
 
 from pylot.core.pick.utils import select_for_phase
 from pylot.core.util.utils import getOwner, createPick, createArrival, \
-    createEvent, createOrigin, createMagnitude
-from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
+    createEvent, createOrigin, createMagnitude, getGlobalTimes
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -268,11 +267,15 @@ def picks_from_picksdict(picks):
     return picks_list
 
 
-def reassess_pilot_event(root_dir, event_id, fn_param=AUTOMATIC_DEFAULTS):
+def reassess_pilot_event(root_dir, event_id, fn_param=None):
     from obspy import read
 
     from pylot.core.io.inputs import AutoPickParameter
     from pylot.core.pick.utils import earllatepicker
+
+    if fn_param is None:
+        import pylot.core.util.defaults as defaults
+        fn_param = defaults.AUTOMATIC_DEFAULTS
 
     default = AutoPickParameter(fn_param)
 
@@ -297,11 +300,16 @@ def reassess_pilot_event(root_dir, event_id, fn_param=AUTOMATIC_DEFAULTS):
                 print(e.message, station)
                 continue
             sel_st = select_for_phase(st, phase)
+            stime, etime = getGlobalTimes(sel_st)
+            rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
                                            default.get('nfac{0}'.format(phase)),
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
-                                           mpp, None, True
+                                           Pick1=rel_pick,
+                                           iplot=None,
                                            )
+            epp = stime + epp
+            lpp = stime + lpp
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
     # create Event object for export
     evt = ope.Event(resource_id=event_id)
