@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-
+import glob
+import warnings
 import scipy.io as sio
 import obspy.core.event as ope
 from obspy.core import UTCDateTime
@@ -173,7 +174,7 @@ def convert_pilot_times(time_array):
     return UTCDateTime(*times)
 
 
-def picks_from_obs(fn):
+def picksdict_from_obs(fn):
     picks = dict()
     station_name = str()
     for line in open(fn, 'r'):
@@ -191,7 +192,7 @@ def picks_from_obs(fn):
     return picks
 
 
-def picks_from_evt(evt):
+def picks_to_dict(evt):
     '''
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
@@ -227,6 +228,82 @@ def picks_from_evt(evt):
         onsets[pick.phase_hint] = phase.copy()
         picks[station] = onsets.copy()
     return picks
+
+def picks_from_dict(picks):
+    firstonset = None
+    for station, onsets in picks.items():
+        print('Reading picks on station %s' % station)
+        for label, phase in onsets.items():
+            if not isinstance(phase, dict):
+                continue
+            onset = phase['mpp']
+            epp = phase['epp']
+            lpp = phase['lpp']
+            error = phase['spe']
+            try:
+                picker = phase['picker']
+            except KeyError as e:
+                warnings.warn(str(e), Warning)
+                picker = 'Unknown'
+            pick = ope.Pick()
+            pick.time = onset
+            pick.time_errors.lower_uncertainty = onset - epp
+            pick.time_errors.upper_uncertainty = lpp - onset
+            pick.time_errors.uncertainty = error
+            pick.phase_hint = label
+            pick.method_id = ope.ResourceIdentifier(id=picker)
+            pick.waveform_id = ope.WaveformStreamID(station_code=station)
+            try:
+                polarity = phase['fm']
+                if polarity == 'U' or '+':
+                    pick.polarity = 'positive'
+                elif polarity == 'D' or '-':
+                    pick.polarity = 'negative'
+                else:
+                    pick.polarity = 'undecidable'
+            except KeyError as e:
+                print('No polarity information found for %s' % phase)
+            if firstonset is None or firstonset > onset:
+                firstonset = onset
+
+
+def reassess_pilot_event(root_dir, event_id):
+    from obspy import read
+    from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
+    from pylot.core.io.inputs import AutoPickParameter
+    from pylot.core.pick.utils import earllatepicker
+
+    default = AutoPickParameter(AUTOMATIC_DEFAULTS)
+
+    search_base = os.path.join(root_dir, event_id)
+    phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
+    picks_dict = picks_from_pilot(phases_file)
+    for station in picks_dict.keys():
+        fn_pattern = os.path.join(search_base, '{0}*'.format(station))
+        try:
+            st = read(fn_pattern)
+        except TypeError as e:
+            print(e.message)
+            st = read(fn_pattern, format='GSE2')
+        if not st:
+            raise RuntimeError('no waveform data found for station {station}'.format(station=station))
+        for phase in picks_dict[station].keys():
+            try:
+                mpp = picks_dict[station][phase]['mpp']
+            except KeyError as e:
+                print(e.message, station)
+                continue
+            epp, lpp, spe = earllatepicker(st,
+                                           default.get('nfac{0}'.format(phase)),
+                                           default.get('tsnrz' if phase == 'P' else 'tsnrh'),
+                                           mpp
+                                           )
+            picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
+    # create Event object for export
+    evt = ope.Event(resource_id=event_id)
+    evt.picks = picks_from_dict(picks_dict)
+    # write phase information to file
+    evt.write('{0}.xml'.format(event_id), format='QUAKEML')
 
 
 def writephases(arrivals, fformat, filename):

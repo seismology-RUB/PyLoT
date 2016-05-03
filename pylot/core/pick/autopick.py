@@ -28,9 +28,9 @@ def autopickevent(data, param):
 
     # get some parameters for quality control from
     # parameter input file (usually autoPyLoT.in).
-    wdttolerance = param.getParam('wdttolerance')
-    mdttolerance = param.getParam('mdttolerance')
-    iplot = param.getParam('iplot')
+    wdttolerance = param.get('wdttolerance')
+    mdttolerance = param.get('mdttolerance')
+    iplot = param.get('iplot')
     for n in range(len(data)):
         station = data[n].stats.station
         if station not in stations:
@@ -66,60 +66,60 @@ def autopickstation(wfstream, pickparam, verbose=False):
     # read your autoPyLoT.in for details!
 
     # special parameters for P picking
-    algoP = pickparam.getParam('algoP')
-    iplot = pickparam.getParam('iplot')
-    pstart = pickparam.getParam('pstart')
-    pstop = pickparam.getParam('pstop')
-    thosmw = pickparam.getParam('tlta')
-    tsnrz = pickparam.getParam('tsnrz')
-    hosorder = pickparam.getParam('hosorder')
-    bpz1 = pickparam.getParam('bpz1')
-    bpz2 = pickparam.getParam('bpz2')
-    pickwinP = pickparam.getParam('pickwinP')
-    tsmoothP = pickparam.getParam('tsmoothP')
-    ausP = pickparam.getParam('ausP')
-    nfacP = pickparam.getParam('nfacP')
-    tpred1z = pickparam.getParam('tpred1z')
-    tdet1z = pickparam.getParam('tdet1z')
-    Parorder = pickparam.getParam('Parorder')
-    addnoise = pickparam.getParam('addnoise')
-    Precalcwin = pickparam.getParam('Precalcwin')
-    minAICPslope = pickparam.getParam('minAICPslope')
-    minAICPSNR = pickparam.getParam('minAICPSNR')
-    timeerrorsP = pickparam.getParam('timeerrorsP')
+    algoP = pickparam.get('algoP')
+    iplot = pickparam.get('iplot')
+    pstart = pickparam.get('pstart')
+    pstop = pickparam.get('pstop')
+    thosmw = pickparam.get('tlta')
+    tsnrz = pickparam.get('tsnrz')
+    hosorder = pickparam.get('hosorder')
+    bpz1 = pickparam.get('bpz1')
+    bpz2 = pickparam.get('bpz2')
+    pickwinP = pickparam.get('pickwinP')
+    tsmoothP = pickparam.get('tsmoothP')
+    ausP = pickparam.get('ausP')
+    nfacP = pickparam.get('nfacP')
+    tpred1z = pickparam.get('tpred1z')
+    tdet1z = pickparam.get('tdet1z')
+    Parorder = pickparam.get('Parorder')
+    addnoise = pickparam.get('addnoise')
+    Precalcwin = pickparam.get('Precalcwin')
+    minAICPslope = pickparam.get('minAICPslope')
+    minAICPSNR = pickparam.get('minAICPSNR')
+    timeerrorsP = pickparam.get('timeerrorsP')
     # special parameters for S picking
-    algoS = pickparam.getParam('algoS')
-    sstart = pickparam.getParam('sstart')
-    sstop = pickparam.getParam('sstop')
-    bph1 = pickparam.getParam('bph1')
-    bph2 = pickparam.getParam('bph2')
-    tsnrh = pickparam.getParam('tsnrh')
-    pickwinS = pickparam.getParam('pickwinS')
-    tpred1h = pickparam.getParam('tpred1h')
-    tdet1h = pickparam.getParam('tdet1h')
-    tpred2h = pickparam.getParam('tpred2h')
-    tdet2h = pickparam.getParam('tdet2h')
-    Sarorder = pickparam.getParam('Sarorder')
-    aictsmoothS = pickparam.getParam('aictsmoothS')
-    tsmoothS = pickparam.getParam('tsmoothS')
-    ausS = pickparam.getParam('ausS')
-    minAICSslope = pickparam.getParam('minAICSslope')
-    minAICSSNR = pickparam.getParam('minAICSSNR')
-    Srecalcwin = pickparam.getParam('Srecalcwin')
-    nfacS = pickparam.getParam('nfacS')
-    timeerrorsS = pickparam.getParam('timeerrorsS')
+    algoS = pickparam.get('algoS')
+    sstart = pickparam.get('sstart')
+    sstop = pickparam.get('sstop')
+    bph1 = pickparam.get('bph1')
+    bph2 = pickparam.get('bph2')
+    tsnrh = pickparam.get('tsnrh')
+    pickwinS = pickparam.get('pickwinS')
+    tpred1h = pickparam.get('tpred1h')
+    tdet1h = pickparam.get('tdet1h')
+    tpred2h = pickparam.get('tpred2h')
+    tdet2h = pickparam.get('tdet2h')
+    Sarorder = pickparam.get('Sarorder')
+    aictsmoothS = pickparam.get('aictsmoothS')
+    tsmoothS = pickparam.get('tsmoothS')
+    ausS = pickparam.get('ausS')
+    minAICSslope = pickparam.get('minAICSslope')
+    minAICSSNR = pickparam.get('minAICSSNR')
+    Srecalcwin = pickparam.get('Srecalcwin')
+    nfacS = pickparam.get('nfacS')
+    timeerrorsS = pickparam.get('timeerrorsS')
     # parameters for first-motion determination
-    minFMSNR = pickparam.getParam('minFMSNR')
-    fmpickwin = pickparam.getParam('fmpickwin')
-    minfmweight = pickparam.getParam('minfmweight')
+    minFMSNR = pickparam.get('minFMSNR')
+    fmpickwin = pickparam.get('fmpickwin')
+    minfmweight = pickparam.get('minfmweight')
     # parameters for checking signal length
-    minsiglength = pickparam.getParam('minsiglength')
-    minpercent = pickparam.getParam('minpercent')
-    nfacsl = pickparam.getParam('noisefactor')
+    minsiglength = pickparam.get('minsiglength')
+    minpercent = pickparam.get('minpercent')
+    nfacsl = pickparam.get('noisefactor')
     # parameter to check for spuriously picked S onset
-    zfac = pickparam.getParam('zfac')
+    zfac = pickparam.get('zfac')
     # path to inventory-, dataless- or resp-files
-    invdir = pickparam.getParam('invdir')
+    invdir = pickparam.get('invdir')
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -857,39 +857,39 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
         wf2pick = wf.select(station=badpicks[i][0])
 
         # modify some picking parameters
-        pstart_old = pickparameter.getParam('pstart')
-        pstop_old = pickparameter.getParam('pstop')
-        sstop_old = pickparameter.getParam('sstop')
-        pickwinP_old = pickparameter.getParam('pickwinP')
-        Precalcwin_old = pickparameter.getParam('Precalcwin')
-        noisefactor_old = pickparameter.getParam('noisefactor')
-        zfac_old = pickparameter.getParam('zfac')
+        pstart_old = pickparameter.get('pstart')
+        pstop_old = pickparameter.get('pstop')
+        sstop_old = pickparameter.get('sstop')
+        pickwinP_old = pickparameter.get('pickwinP')
+        Precalcwin_old = pickparameter.get('Precalcwin')
+        noisefactor_old = pickparameter.get('noisefactor')
+        zfac_old = pickparameter.get('zfac')
         pickparameter.setParam(
             pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
-                        - pickparameter.getParam('tlta')]))
-        pickparameter.setParam(pstop=pickparameter.getParam('pstart') + \
-                                     (3 * pickparameter.getParam('tlta')))
-        pickparameter.setParam(sstop=pickparameter.getParam('sstop') / 2)
-        pickparameter.setParam(pickwinP=pickparameter.getParam('pickwinP') / 2)
+                        - pickparameter.get('tlta')]))
+        pickparameter.setParam(pstop=pickparameter.get('pstart') + \
+                                     (3 * pickparameter.get('tlta')))
+        pickparameter.setParam(sstop=pickparameter.get('sstop') / 2)
+        pickparameter.setParam(pickwinP=pickparameter.get('pickwinP') / 2)
         pickparameter.setParam(
-            Precalcwin=pickparameter.getParam('Precalcwin') / 2)
+            Precalcwin=pickparameter.get('Precalcwin') / 2)
         pickparameter.setParam(noisefactor=1.0)
         pickparameter.setParam(zfac=1.0)
         print(
             "iteratepicker: The following picking parameters have been modified for iterative picking:")
         print(
-            "pstart: %fs => %fs" % (pstart_old, pickparameter.getParam('pstart')))
+            "pstart: %fs => %fs" % (pstart_old, pickparameter.get('pstart')))
         print(
-            "pstop: %fs => %fs" % (pstop_old, pickparameter.getParam('pstop')))
+            "pstop: %fs => %fs" % (pstop_old, pickparameter.get('pstop')))
         print(
-            "sstop: %fs => %fs" % (sstop_old, pickparameter.getParam('sstop')))
+            "sstop: %fs => %fs" % (sstop_old, pickparameter.get('sstop')))
         print("pickwinP: %fs => %fs" % (
-            pickwinP_old, pickparameter.getParam('pickwinP')))
+            pickwinP_old, pickparameter.get('pickwinP')))
         print("Precalcwin: %fs => %fs" % (
-            Precalcwin_old, pickparameter.getParam('Precalcwin')))
+            Precalcwin_old, pickparameter.get('Precalcwin')))
         print("noisefactor: %f => %f" % (
-            noisefactor_old, pickparameter.getParam('noisefactor')))
-        print("zfac: %f => %f" % (zfac_old, pickparameter.getParam('zfac')))
+            noisefactor_old, pickparameter.get('noisefactor')))
+        print("zfac: %f => %f" % (zfac_old, pickparameter.get('zfac')))
 
         # repick station
         newpicks = autopickstation(wf2pick, pickparameter)

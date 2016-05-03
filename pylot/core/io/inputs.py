@@ -131,7 +131,7 @@ class AutoPickParameter(object):
             return True
         return False
 
-    def getParam(self, *args):
+    def get(self, *args):
         try:
             for param in args:
                 try:
