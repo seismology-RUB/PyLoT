@@ -3,13 +3,13 @@
 
 import os
 import glob
-import warnings
+
 from obspy.io.xseed import Parser
 from obspy.core import read, Stream, UTCDateTime
 from obspy import read_events, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
-from pylot.core.io.phases import readPILOTEvent
+from pylot.core.io.phases import readPILOTEvent, picks_from_dict
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
 from pylot.core.util.errors import FormatError, OverwriteError
 
@@ -414,35 +414,8 @@ class Data(object):
             firstonset = None
             if self.getEvtData().picks:
                 raise OverwriteError('Actual picks would be overwritten!')
-            for station, onsets in picks.items():
-                print('Reading picks on station %s' % station)
-                for label, phase in onsets.items():
-                    if not isinstance(phase, dict):
-                        continue
-                    onset = phase['mpp']
-                    epp = phase['epp']
-                    lpp = phase['lpp']
-                    error = phase['spe']
-                    try:
-                        picker = phase['picker']
-                    except KeyError as e:
-                        warnings.warn(str(e), Warning)
-                        picker = 'Unknown'
-                    pick = Pick()
-                    pick.time = onset
-                    pick.time_errors.lower_uncertainty = onset - epp
-                    pick.time_errors.upper_uncertainty = lpp - onset
-                    pick.time_errors.uncertainty = error
-                    pick.phase_hint = label
-                    pick.method_id = ResourceIdentifier(id=picker)
-                    pick.waveform_id = WaveformStreamID(station_code=station)
-                    self.getEvtData().picks.append(pick)
-                    try:
-                        polarity = phase['fm']
-                    except KeyError as e:
-                        print('No polarity information found for %s' % phase)
-                    if firstonset is None or firstonset > onset:
-                        firstonset = onset
+            picks, firstonset = picks_from_dict(picks)
+            self.getEvtData().picks = picks
 
             if 'smi:local' in self.getID() and firstonset:
                 fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
@@ -501,7 +474,7 @@ class GenericDataStructure(object):
         if not self.extraAllowed():
             kwargs = self.updateNotAllowed(kwargs)
 
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             key = str(key).lower()
             if value is not None:
                 if type(value) not in (str, int, float):
