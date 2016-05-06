@@ -310,6 +310,11 @@ def reassess_pilot_event(root_dir, event_id, fn_param=None):
                                            )
             epp = stime + epp
             lpp = stime + lpp
+            min_diff = 3 * st[0].stats.delta
+            if lpp - mpp < min_diff:
+                lpp = mpp + min_diff
+            if mpp - epp < min_diff:
+                epp = mpp - min_diff
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
     # create Event object for export
     evt = ope.Event(resource_id=event_id)
