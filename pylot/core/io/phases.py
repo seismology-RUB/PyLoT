@@ -267,7 +267,16 @@ def picks_from_picksdict(picks):
     return picks_list
 
 
-def reassess_pilot_event(root_dir, event_id, fn_param=None):
+def reassess_pilot_db(root_dir, out_dir=None, fn_param=None):
+    import glob
+
+    evt_list = glob.glob1(root_dir,'e????.???.??')
+
+    for evt in evt_list:
+        reassess_pilot_event(root_dir, evt, out_dir, fn_param)
+
+
+def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
     from obspy import read
 
     from pylot.core.io.inputs import AutoPickParameter
@@ -283,7 +292,9 @@ def reassess_pilot_event(root_dir, event_id, fn_param=None):
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
     if not phases_file:
         return
+    print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
     picks_dict = picks_from_pilot(phases_file[0])
+    print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
@@ -320,7 +331,10 @@ def reassess_pilot_event(root_dir, event_id, fn_param=None):
     evt = ope.Event(resource_id=event_id)
     evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
-    fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
+    if not out_dir:
+        fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
+    else:
+        fnout_prefix = os.path.join(out_dir, event_id, '{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 

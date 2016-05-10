@@ -21,4 +21,4 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    reassess_pilot_event(args.dir, args.id)
+    reassess_pilot_event(args.dir, args.id, None)
