@@ -12,23 +12,27 @@ e1412.008.06                        #eventID#      %event ID for single event pr
 /DATA/Egelados/STAT_INFO            #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
-AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
-AUTOLOC_AIC_HOS4_ARH                #locfile#      %name of autoPILOT output location file 
-AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing polarities
-HYPOSAT                             #locrt#        %location routine used ("HYPOINVERSE" or "HYPOSAT")
-6                                   #pmin#         %minimum required P picks for location
-4                                   #p0min#        %minimum required P picks for location if at least
-                                                   %3 excellent P picks are found
-2                                   #smin#         %minimum required S picks for location
-/home/ludger/bin/run_HYPOSAT4autoPILOT.csh #cshellp# %path and name of c-shell script to run location routine
-7.6 8.5                             #blon#         %longitude bounding for location map
-49 49.4                             #blat#         %lattitude bounding for location map
-#parameters for moment magnitude estimation#
-5000                                #vp#           %average P-wave velocity
-2800                                #vs#           %average S-wave velocity
-2200                                #rho#          %rock density [kg/m^3]
-300                                 #Qp#           %quality factor for P waves
-100                                 #Qs#           %quality factor for S waves
+True                                #apverbose#    %choose 'True' or 'False' for terminal output
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#NLLoc settings#
+/home/ludger/NLLOC                  #nllocbin#     %path to NLLoc executable
+/home/ludger/NLLOC/Insheim          #nllocroot#    %root of NLLoc-processing directory
+AUTOPHASES.obs                      #phasefile#    %name of autoPyLoT-output phase file for NLLoc
+                                                   %(in nllocroot/obs)
+Insheim_min1d2015_auto.in           #ctrfile#      %name of autoPyLoT-output control file for NLLoc
+                                                   %(in nllocroot/run)
+ttime                               #ttpatter#     %pattern of NLLoc ttimes from grid
+                                                   %(in nllocroot/times)
+AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
+                                                   %(returns 'eventID_outpatter')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#parameters for seismic moment estimation#
+3530                                #vp#           %average P-wave velocity
+2700                                #rho#          %average rock density [kg/m^3]
+1000f**0.8                          #Qp#           %quality factor for P waves (Qp*f^a)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing derived polarities
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #common settings picker#
 20                                  #pstart#       %start time [s] for calculating CF for P-picking
 100                                 #pstop#        %end time [s] for calculating CF for P-picking
