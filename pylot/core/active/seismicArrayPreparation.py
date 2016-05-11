@@ -134,7 +134,8 @@ class SeisArray(object):
         if traceID2 < traceID1:
             direction = -1
             return direction
-        print "Error: Same Value for traceID1 = %s and traceID2 = %s" % (traceID1, traceID2)
+        err_msg = "Same Value for traceID1 = %s and traceID2 = %s" % (traceID1, traceID2)
+        raise RuntimeError(err_msg)
 
     def _checkCoordDirection(self, traceID1, traceID2, coordinate):
         '''
@@ -146,7 +147,8 @@ class SeisArray(object):
         if self._getReceiverValue(traceID1, coordinate) > self._getReceiverValue(traceID2, coordinate):
             direction = -1
             return direction
-        print "Error: Same Value for traceID1 = %s and traceID2 = %s" % (traceID1, traceID2)
+        err_msg = "Same Value for traceID1 = %s and traceID2 = %s" % (traceID1, traceID2)
+        raise RuntimeError(err_msg)
 
     def _interpolateMeanDistances(self, traceID1, traceID2, coordinate):
         '''
@@ -455,7 +457,7 @@ class SeisArray(object):
 
         recx, recy, recz = self.getReceiverLists()
         nsrc = len(self.getSourceLocations())
-        outfile.writelines('%s\n' % (len(zip(recx, recy, recz)) * nsrc))
+        outfile.write('%s\n' % (len(zip(recx, recy, recz)) * nsrc))
 
         for index in range(nsrc):
             for point in zip(recx, recy, recz):
@@ -463,10 +465,10 @@ class SeisArray(object):
                 rad = - rz
                 lat = self._getAngle(ry)
                 lon = self._getAngle(rx)
-                outfile.writelines('%15s %15s %15s\n' % (rad, lat, lon))
-                outfile.writelines('%15s\n' % (1))
-                outfile.writelines('%15s\n' % (index + 1))
-                outfile.writelines('%15s\n' % (1))
+                outfile.write('%15s %15s %15s\n' % (rad, lat, lon))
+                outfile.write('%15s\n' % (1))
+                outfile.write('%15s\n' % (index + 1))
+                outfile.write('%15s\n' % (1))
 
         outfile.close()
 
@@ -506,22 +508,22 @@ class SeisArray(object):
         deltaPhi = abs(phiE - phiW) / float((nPhi - 1))
 
         # write header for interfaces grid file (in RADIANS)
-        outfile.writelines('%10s\n' % (nInterfaces))
-        outfile.writelines('%10s %10s\n' % (nTheta + 2, nPhi + 2))  # +2 cushion nodes
-        outfile.writelines('%10s %10s\n' % (np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
-        outfile.writelines('%10s %10s\n' % (np.deg2rad(thetaS - deltaTheta), np.deg2rad(phiW - deltaPhi)))
+        outfile.write('%10s\n' % (nInterfaces))
+        outfile.write('%10s %10s\n' % (nTheta + 2, nPhi + 2))  # +2 cushion nodes
+        outfile.write('%10s %10s\n' % (np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
+        outfile.write('%10s %10s\n' % (np.deg2rad(thetaS - deltaTheta), np.deg2rad(phiW - deltaPhi)))
 
         interface1 = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method=method)
         interface2 = self.interpolateOnRegularGrid(nTheta, nPhi, thetaSN, phiWE, -depthmax, method=method)
 
         for point in interface1:
             z = point[2]
-            outfile.writelines('%10s\n' % (z + R))
+            outfile.write('%10s\n' % (z + R))
 
-        outfile.writelines('\n')
+        outfile.write('\n')
         for point in interface2:
             z = point[2]
-            outfile.writelines('%10s\n' % (z + R))
+            outfile.write('%10s\n' % (z + R))
 
         outfile.close()
 
@@ -596,10 +598,10 @@ class SeisArray(object):
         deltaPhi = abs(phiE - phiW) / float(nPhi - 1)
         deltaR = abs(rbot - rtop) / float(nR - 1)
 
-        outfile.writelines('%10s %10s %10s\n' % (nR, nTheta, nPhi))
-        outfile.writelines('%10s %10s %10s\n' % (deltaR, deltaTheta, deltaPhi))
-        outfile.writelines('%10s %10s %10s\n' % (rtop, thetaS, phiW))
-        outfile.writelines('%10s %10s\n' % refinement)
+        outfile.write('%10s %10s %10s\n' % (nR, nTheta, nPhi))
+        outfile.write('%10s %10s %10s\n' % (deltaR, deltaTheta, deltaPhi))
+        outfile.write('%10s %10s %10s\n' % (rtop, thetaS, phiW))
+        outfile.write('%10s %10s\n' % refinement)
 
         outfile.close()
 
@@ -708,10 +710,10 @@ class SeisArray(object):
         print("Total number of grid nodes: %s" % nTotal)
 
         # write header for velocity grid file (in RADIANS)
-        outfile.writelines('%10s %10s \n' % (1, 1))
-        outfile.writelines('%10s %10s %10s\n' % (nR + 2, nTheta + 2, nPhi + 2))
-        outfile.writelines('%10s %10s %10s\n' % (deltaR, np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
-        outfile.writelines(
+        outfile.write('%10s %10s \n' % (1, 1))
+        outfile.write('%10s %10s %10s\n' % (nR + 2, nTheta + 2, nPhi + 2))
+        outfile.write('%10s %10s %10s\n' % (deltaR, np.deg2rad(deltaTheta), np.deg2rad(deltaPhi)))
+        outfile.write(
             '%10s %10s %10s\n' % (rbot - deltaR, np.deg2rad(thetaS - deltaTheta), np.deg2rad(phiW - deltaPhi)))
 
         surface = self.interpolateTopography(nTheta, nPhi, thetaSN, phiWE, method=method)
@@ -746,15 +748,16 @@ class SeisArray(object):
                                 vbot[index] - vtop[index]) + vtop[index]
                                 break
                         if not (ztop[index]) >= depth > (zbot[index]):
-                            print(
-                            'ERROR in grid inputfile, could not find velocity for a z-value of %s in the inputfile' % (
-                            depth - topo))
-                            return
+                            err_msg = 'ERROR in grid inputfile, could not find velocity'
+                            'for a z-value of %s in the inputfile' % (depth - topo)
+                            raise ValueError(err_msg)
                     count += 1
-                    if vel < 0:
-                        print(
-                        'ERROR, vel <0; z, topo, zbot, vbot, vtop:', depth, topo, zbot[index], vbot[index], vtop[index])
-                    outfile.writelines('%10s %10s\n' % (vel, decm))
+                    if not vel >= 0:
+                        err_msg = 'vel < 0; z, topo, zbot, vbot, vtop:',
+                        depth, topo, zbot[index], vbot[index], vtop[index]
+                        raise ValueError(err_msg)
+
+                    outfile.write('%10s %10s\n' % (vel, decm))
 
                     progress = float(count) / float(nTotal) * 100
                     self._update_progress(progress)
@@ -775,7 +778,7 @@ class SeisArray(object):
         for traceID in self.getReceiverCoordinates().keys():
             count += 1
             x, y, z = self.getReceiverCoordinates()[traceID]
-            recfile_out.writelines('%5s %15s %15s %15s\n' % (traceID, x, y, z))
+            recfile_out.write('%5s %15s %15s %15s\n' % (traceID, x, y, z))
         print "Exported coordinates for %s traces to file > %s" % (count, filename)
         recfile_out.close()
 
@@ -895,11 +898,11 @@ class SeisArray(object):
 
         # write header
         print("Writing header for VTK file...")
-        outfile.writelines('# vtk DataFile Version 3.1\n')
-        outfile.writelines('Surface Points\n')
-        outfile.writelines('ASCII\n')
-        outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' % (nPoints))
+        outfile.write('# vtk DataFile Version 3.1\n')
+        outfile.write('Surface Points\n')
+        outfile.write('ASCII\n')
+        outfile.write('DATASET POLYDATA\n')
+        outfile.write('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
         print("Writing coordinates to VTK file...")
@@ -908,23 +911,23 @@ class SeisArray(object):
             y = point[1]
             z = point[2]
 
-            outfile.writelines('%10f %10f %10f \n' % (x, y, z))
+            outfile.write('%10f %10f %10f \n' % (x, y, z))
 
-        outfile.writelines('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
+        outfile.write('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
 
         # write indices
         print("Writing indices to VTK file...")
         for index in range(nPoints):
-            outfile.writelines('%10d %10d\n' % (1, index))
+            outfile.write('%10d %10d\n' % (1, index))
 
-        # outfile.writelines('POINT_DATA %15d\n' %(nPoints))
-        # outfile.writelines('SCALARS traceIDs int %d\n' %(1))
-        # outfile.writelines('LOOKUP_TABLE default\n')
+        # outfile.write('POINT_DATA %15d\n' %(nPoints))
+        # outfile.write('SCALARS traceIDs int %d\n' %(1))
+        # outfile.write('LOOKUP_TABLE default\n')
 
         # # write traceIDs
         # print("Writing traceIDs to VTK file...")
         # for traceID in traceIDs:
-        #     outfile.writelines('%10d\n' %traceID)
+        #     outfile.write('%10d\n' %traceID)
 
         outfile.close()
         print("Wrote %d points to file: %s" % (nPoints, filename))
@@ -944,11 +947,11 @@ class SeisArray(object):
 
         # write header
         print("Writing header for VTK file...")
-        outfile.writelines('# vtk DataFile Version 3.1\n')
-        outfile.writelines('Receivers with traceIDs\n')
-        outfile.writelines('ASCII\n')
-        outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' % (nPoints))
+        outfile.write('# vtk DataFile Version 3.1\n')
+        outfile.write('Receivers with traceIDs\n')
+        outfile.write('ASCII\n')
+        outfile.write('DATASET POLYDATA\n')
+        outfile.write('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
         print("Writing coordinates to VTK file...")
@@ -957,23 +960,23 @@ class SeisArray(object):
             y = self._getYreceiver(traceID)
             z = self._getZreceiver(traceID)
 
-            outfile.writelines('%10f %10f %10f \n' % (x, y, z))
+            outfile.write('%10f %10f %10f \n' % (x, y, z))
 
-        outfile.writelines('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
+        outfile.write('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
 
         # write indices
         print("Writing indices to VTK file...")
         for index in range(nPoints):
-            outfile.writelines('%10d %10d\n' % (1, index))
+            outfile.write('%10d %10d\n' % (1, index))
 
-        outfile.writelines('POINT_DATA %15d\n' % (nPoints))
-        outfile.writelines('SCALARS traceIDs int %d\n' % (1))
-        outfile.writelines('LOOKUP_TABLE default\n')
+        outfile.write('POINT_DATA %15d\n' % (nPoints))
+        outfile.write('SCALARS traceIDs int %d\n' % (1))
+        outfile.write('LOOKUP_TABLE default\n')
 
         # write traceIDs
         print("Writing traceIDs to VTK file...")
         for traceID in traceIDs:
-            outfile.writelines('%10d\n' % traceID)
+            outfile.write('%10d\n' % traceID)
 
         outfile.close()
         print("Wrote %d receiver for to file: %s" % (nPoints, filename))
@@ -993,11 +996,11 @@ class SeisArray(object):
 
         # write header
         print("Writing header for VTK file...")
-        outfile.writelines('# vtk DataFile Version 3.1\n')
-        outfile.writelines('Shots with shotnumbers\n')
-        outfile.writelines('ASCII\n')
-        outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' % (nPoints))
+        outfile.write('# vtk DataFile Version 3.1\n')
+        outfile.write('Shots with shotnumbers\n')
+        outfile.write('ASCII\n')
+        outfile.write('DATASET POLYDATA\n')
+        outfile.write('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
         print("Writing coordinates to VTK file...")
@@ -1006,23 +1009,23 @@ class SeisArray(object):
             y = self._getYshot(shotnumber)
             z = self._getZshot(shotnumber)
 
-            outfile.writelines('%10f %10f %10f \n' % (x, y, z))
+            outfile.write('%10f %10f %10f \n' % (x, y, z))
 
-        outfile.writelines('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
+        outfile.write('VERTICES %15d %15d\n' % (nPoints, 2 * nPoints))
 
         # write indices
         print("Writing indices to VTK file...")
         for index in range(nPoints):
-            outfile.writelines('%10d %10d\n' % (1, index))
+            outfile.write('%10d %10d\n' % (1, index))
 
-        outfile.writelines('POINT_DATA %15d\n' % (nPoints))
-        outfile.writelines('SCALARS shotnumbers int %d\n' % (1))
-        outfile.writelines('LOOKUP_TABLE default\n')
+        outfile.write('POINT_DATA %15d\n' % (nPoints))
+        outfile.write('SCALARS shotnumbers int %d\n' % (1))
+        outfile.write('LOOKUP_TABLE default\n')
 
         # write shotnumber
         print("Writing shotnumbers to VTK file...")
         for shotnumber in shotnumbers:
-            outfile.writelines('%10d\n' % shotnumber)
+            outfile.write('%10d\n' % shotnumber)
 
         outfile.close()
         print("Wrote %d sources to file: %s" % (nPoints, filename))

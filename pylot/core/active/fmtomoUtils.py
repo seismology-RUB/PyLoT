@@ -6,31 +6,151 @@ import datetime
 import numpy as np
 
 class Tomo3d(object):
-    def __init__(self, nproc):
+    def __init__(self, nproc, iterations):
+        self.setCWD()
         self.defParas()
         self.nproc = nproc
+        self.iter = iterations   # number of iterations
+        self.citer = 0           # current iteration
         self.sources = self.readSrcFile()
         self.traces = self.readTraces()
-
+        self.directories = []
+        
     def defParas(self):
-        self.fmm = 'fm3d'
+        self.defFMMParas()
+        self.defInvParas()
+
+    def defFMMParas(self):
+        self.fmm = '{0}/fm3d'.format(self.cwd)
+        self.frechgen = '{0}/frechgen'.format(self.cwd)
         self.cvg = 'vgrids.in'
         self.cig = 'interfaces.in'
         self.csl = 'sources.in'
         self.pg = 'propgrid.in'
         self.rec = 'receivers.in'
-        #self.ot = 'otimes.dat'
         self.frech = 'frechet.in'
+        self.ot = 'otimes.dat'
+        self.ttim = 'arrivals.dat'
         self.mode = 'mode_set.in'
-        self.cwd = subprocess.check_output(['pwd'])[0:-1] + '/'
-        self.folder = 'test_'
+        self.folder = '.proc_'
+
+    def defInvParas(self):
+        # Name of program for performing inversion
+        self.inv = '{0}/invert3d'.format(self.cwd)
+        # Name of file containing current model traveltimes
+        self.mtrav = 'mtimes.dat'
+        # Name of file containing reference model traveltimes
+        self.rtrav = 'rtimes.dat'
+        # Name of file containing initial velocity grid
+        self.ivg = 'vgridsref.in'
+        # Name of file containing initial interface grid
+        self.iig = 'interfacesref.in'
+        # Name of file containing initial source locations
+        self.isl = 'sourcesref.in'
+        # Name of program for calculating traveltime residuals
+        self.resid = '{0}/residuals'.format(self.cwd)
+        # Name of output file for calculating traveltime residuals
+        self.resout = 'residuals.dat'
+
+    def copyRef(self):
+        # Attention: Copies reference grids to used grids (e.g. sourcesref.in to sources.in)
+        os.system('cp %s %s'%(self. ivg, self.cvg))
+        os.system('cp %s %s'%(self.iig, self.cig))
+        os.system('cp %s %s'%(self.isl, self.csl))
+
+    def setCWD(self):
+        self.cwd = subprocess.check_output(['pwd'])[0:-1]
+        print('Working directory is pwd: %s'%self.cwd)
+
+    def runFrech(self):
+        os.system(self.frechgen)
 
     def runFmm(self, directory, logfile, processes):
         os.chdir(directory)
-        processes.append(subprocess.Popen('fm3d', stdout = None))
-#        os.system('%s > %s &'%(self.fmm, logfile))
+        fout = open(logfile, 'w')
+        processes.append(subprocess.Popen(self.fmm, stdout = fout))
+        fout.close()
         os.chdir(self.cwd)
         return processes
+
+    def calcRes(self):
+        resout = os.path.join(self.cwd, self.resout)
+        if self.citer == 0:
+            os.system('%s > %s'%(self.resid, resout))
+        else:
+            os.system('%s >> %s'%(self.resid, resout))
+
+        with open(resout, 'r') as infile:
+            residuals = infile.readlines()
+        RMS, var, chi2 = residuals[-1].split()
+        print('Residuals: RMS = %s, var = %s, Chi^2 = %s.'%(RMS, var, chi2))
+
+    def runTOMO3D(self):
+        starttime = datetime.datetime.now()
+        print('Starting TOMO3D on %s parallel processes for %s iteration(s).'
+              %(self.nproc, self.iter))
+        if self.citer == 0:
+            self.startForward()
+            self.raiseIter()
+        
+        while self.citer <= self.iter:
+            self.startInversion()
+            self.startForward()
+            self.raiseIter()
+
+        tdelta = datetime.datetime.now() - starttime
+        print('runTOMO3D: Finished %s iterations after %s.'%(self.iter, tdelta))
+
+    def _printLine(self):
+        print('----------------------------------------')
+
+    def raiseIter(self):
+        self.citer +=1
+        self._printLine()
+
+    def startInversion(self):
+        print('Calling %s...'%self.inv)
+        os.system(self.inv)
+            
+    def startForward(self):
+        self._printLine()
+        print('Starting forward simulation for iteration %s.'%(self.citer))
+        self.makeDirectories()
+        starttime = datetime.datetime.now()
+        processes = []
+
+        if self.citer == 0:
+            self.copyRef()
+            self.runFrech()
+
+        for procID in range(1, self.nproc + 1):
+            directory = self.getProcDir(procID)
+            log_out = self.cwd + '/fm3dlog_' + str(procID) + '.out'
+            
+            self.writeSrcFile(procID, directory)
+            self.writeTracesFile(procID, directory)
+            os.system('cp {cvg} {cig} {mode} {pg} {frechout} {dest}'
+                      .format(cvg=self.cvg, cig=self.cig, frechout=self.frech,
+                              mode=self.mode, pg=self.pg, dest=directory))
+            processes = self.runFmm(directory, log_out, processes)
+            
+        for p in processes:
+            p.wait()
+
+        self.mergeOutput()
+        self.clearDirectories()
+        self.copyArrivals()
+        if self.citer == 0:
+            self.copyArrivals(self.rtrav)
+
+        self.calcRes()
+        tdelta = datetime.datetime.now() - starttime
+        print('Finished Forward calculation after %s'%tdelta)
+
+    def copyArrivals(self, target = None):
+        if target == None:
+            target = self.mtrav
+        os.system('cp %s %s'%(self.ttim, target))
 
     def makeDIR(self, directory):
         err = os.system('mkdir %s'%directory)
@@ -40,6 +160,21 @@ class Tomo3d(object):
                 print('Overwriting existing files.')
             else:
                 sys.exit('Aborted')
+
+        self.directories.append(directory)
+
+    def clearDIR(self, directory):
+        err = os.system('rm -r %s'%directory)
+        
+    def makeDirectories(self):
+        for procID in range(1, self.nproc + 1):
+            directory = self.getProcDir(procID)
+            self.makeDIR(directory) 
+
+    def clearDirectories(self):
+        for directory in self.directories:
+            self.clearDIR(directory) 
+        self.directories = []
         
     def readNsrc(self):
         srcfile = open(self.csl, 'r')
@@ -72,29 +207,6 @@ class Tomo3d(object):
         elif proc > remain:
             start = (srcPK + 1) * remain + srcPK * (proc - remain) + 1
             return range(start, start + srcPK)
-
-    def startTomo(self):
-        starttime = datetime.datetime.now()
-        processes = []
-        for procID in range(1, self.nproc + 1):
-            directory = self.getProcDir(procID)
-            log_out = self.cwd + 'fm3dlog_' + str(procID) + '.out'
-            
-            self.makeDIR(directory) # Problem bei Iteration
-            self.writeSrcFile(procID, directory)
-            self.writeTracesFile(procID, directory)
-            os.system('cp %s %s %s %s %s %s %s' 
-                      %(self.cvg, self.cig, self.frech,
-                        self.fmm, self.mode, self.pg, directory))
-            processes = self.runFmm(directory, log_out, processes)
-            
-        for p in processes:
-            p.wait()
-
-        self.mergeOutput()
-
-        tdelta = datetime.datetime.now() - starttime
-        print('Finished after %s'%tdelta)
 
     def readSrcFile(self):
         nsrc = self.readNsrc()
@@ -150,32 +262,32 @@ class Tomo3d(object):
         srcfile = open('%s/sources.in'%directory, 'w')
         sourceIDs = self.srcIDs4Kernel(procID)
 
-        srcfile.writelines('%s\n'%len(sourceIDs))
+        srcfile.write('%s\n'%len(sourceIDs))
         for sourceID in sourceIDs:
             source = self.sources[sourceID]
             coords = source['coords']
             interactions = source['interactions']
-            srcfile.writelines('%s\n'%source['teleflag'])
-            srcfile.writelines('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
-            srcfile.writelines('%s\n'%source['numpaths'])
-            srcfile.writelines('%s\n'%source['steps'])
-            srcfile.writelines('%s %s\n'%(int(interactions[0]), int(interactions[1])))
-            srcfile.writelines('%s\n'%source['veltype'])
+            srcfile.write('%s\n'%source['teleflag'])
+            srcfile.write('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
+            srcfile.write('%s\n'%source['numpaths'])
+            srcfile.write('%s\n'%source['steps'])
+            srcfile.write('%s %s\n'%(int(interactions[0]), int(interactions[1])))
+            srcfile.write('%s\n'%source['veltype'])
 
     def writeTracesFile(self, procID, directory):
         recfile = open('%s/receivers.in'%directory, 'w')
         sourceIDs = self.srcIDs4Kernel(procID)
         traceIDs = self.getTraceIDs4Sources(sourceIDs)
 
-        recfile.writelines('%s\n'%len(traceIDs))
+        recfile.write('%s\n'%len(traceIDs))
         for traceID in traceIDs:
             trace = self.traces[traceID]
             coords = trace['coords']
             source = int(trace['source']) - sourceIDs[0] + 1
-            recfile.writelines('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
-            recfile.writelines('%s\n'%trace['paths'])
-            recfile.writelines('%s\n'%source)
-            recfile.writelines('%s\n'%trace['path'])
+            recfile.write('%s %s %s\n'%(float(coords[0]), float(coords[1]), float(coords[2])))
+            recfile.write('%s\n'%trace['paths'])
+            recfile.write('%s\n'%source)
+            recfile.write('%s\n'%trace['path'])
 
     def getTraceIDs4Sources(self, sourceIDs):
         traceIDs = []
@@ -208,79 +320,139 @@ class Tomo3d(object):
                 
         return arrivals
 
-    def readFrechet(self, procID):
-        directory = self.getProcDir(procID)
-        frechfile = open(directory + '/frechet.dat', 'r')
-        sourceIDs = self.srcIDs4Kernel(procID)
-        
-        frechet = {}
-        for sourceID in sourceIDs:
-            traceIDs = self.getTraceIDs4Source(sourceID)
-            for traceID in traceIDs:
-                line = frechfile.readline().split()
-                if line != []:
-                    # recID and srcID for the individual processor will not be needed
-                    PDEV = []
-                    recID_proc, srcID_proc, ray, normal, NPDEV = line
-                    for i in range(int(NPDEV)):
-                        PDEV.append(frechfile.readline())
-
-                    frechet[traceID] = {'sourceID': sourceID,
-                                        'raypath': ray,
-                                        'normal': normal,
-                                        'NPDEV': NPDEV,
-                                        'PDEV': PDEV
-                                        }
-        return frechet
-
     def mergeArrivals(self):
-        arrivalsOut = open(self.cwd + '/arrivals.dat', 'w')
+        arrivalsOut = open(os.path.join(self.cwd, self.ttim), 'w')
         print('Merging arrivals.dat...')
         for procID in range(1, self.nproc + 1):
             arrivals = self.readArrivals(procID)
             for line in arrivals:
-                arrivalsOut.writelines('%6s %6s %6s %6s %15s %5s %5s\n'%tuple(line))
+                arrivalsOut.write('%6s %6s %6s %6s %15s %5s %5s\n'%tuple(line))
 
-    def mergeFrechet(self):
-        print('Merging frechet.dat...')
-        frechetOut = open(self.cwd + '/frechet.dat', 'w')
-        for procID in range(1, self.nproc + 1):
-            frechet = self.readFrechet(procID)
-            traceIDs = frechet.keys()
-            traceIDs.sort()
+    # def mergeFrechet(self):
+    #     print('Merging frechet.dat...')
+    #     frechetOut = open(self.cwd + '/frechet.dat', 'w')
+    #     for procID in range(1, self.nproc + 1):
+    #         frechet = self.readFrechet(procID)
+    #         traceIDs = frechet.keys()
+    #         traceIDs.sort()
+    #         for traceID in traceIDs:
+    #             frech = frechet[traceID]
+    #             frechetOut.write('%6s %6s %6s %6s %6s\n'%
+    #                              (traceID,
+    #                               frech['sourceID'],
+    #                               frech['raypath'],
+    #                               frech['normal'],
+    #                               frech['NPDEV']))
+    #             for pdev in frech['PDEV']:
+    #                 frechetOut.writelines(pdev)
+
+    def readRays(self, procID):
+        directory = self.getProcDir(procID)
+        raysfile = open(directory + '/rays.dat', 'r')
+        sourceIDs = self.srcIDs4Kernel(procID)
+        
+        rays = {}
+        for sourceID in sourceIDs:
+            traceIDs = self.getTraceIDs4Source(sourceID)
             for traceID in traceIDs:
-                frech = frechet[traceID]
-                frechetOut.writelines('%6s %6s %6s %6s %6s\n'%
-                                      (traceID,
-                                       frech['sourceID'],
-                                       frech['raypath'],
-                                       frech['normal'],
-                                       frech['NPDEV']))
-                for pdev in frech['PDEV']:
-                    frechetOut.writelines(pdev)
+                line1 = raysfile.readline().split()
+                if line1 != []:
+                    # recID and srcID for the individual processor will not be needed
+                    recID_proc, srcID_proc, ray, normal, nsec = line1
+                    raysecs = {}
+
+                    for sec in range(int(nsec)):
+                        line2 = raysfile.readline.split()
+                        npoints, region, diff, head = line2
+                        raypoints = []
+                    
+                        for j in range(int(npoints)):
+                            raypoints.append(raysfile.readline() + '\n')
+
+                        raysecs[sec] = {'npoints': npoints,
+                                        'region': region,
+                                        'diff': diff,
+                                        'head': head,
+                                        'raypoints': raypoints
+                                        }
+
+
+                    rays[traceID] = {'sourceID': sourceID,
+                                     'raypath': ray,
+                                     'normal': normal,
+                                     'nsec': nsec,
+                                     'raysections': raysecs
+                                     }
+        return rays
 
     def mergeRays(self):
         print('Merging rays.dat...')
-        filenames = []
-        for procID in range(1, self.nproc + 1):
-            directory = self.getProcDir(procID)
-            filenames.append(directory + '/rays.dat')
-
         with open(self.cwd + 'rays.dat', 'w') as outfile:
-            for fname in filenames:
-                with open(fname) as infile:
-                    for line in infile:
-                        outfile.write(line)
+        for procID in range(1, self.nproc + 1):
+            rays = self.readRays(procID)
+            for traceID in rays:
+                ray = rays[traceID]
+                outfile.write('%6s %6s %6s %6s %6s'%(traceID,
+                                                     ray['sourceID'],
+                                                     ray['raypath'],
+                                                     ray['normal'],
+                                                     ray['nsec']))
+                for sec in range(int(ray['nsec'])):
+                    raysec = ray['raysections'][sec]
+                    outfile.write('%6s %6s %6s %6s'%(raysec['npoints'],
+                                                     raysec['region'],
+                                                     raysec['diff'],
+                                                     raysec['head']))
+                    outfile.writelines(raysec['raypoints'])
+                                                  
+
+    # def readFrechet(self, procID):
+    #     directory = self.getProcDir(procID)
+    #     frechfile = open(directory + '/frechet.dat', 'r')
+    #     sourceIDs = self.srcIDs4Kernel(procID)
+        
+    #     frechet = {}
+    #     for sourceID in sourceIDs:
+    #         traceIDs = self.getTraceIDs4Source(sourceID)
+    #         for traceID in traceIDs:
+    #             line = frechfile.readline().split()
+    #             if line != []:
+    #                 # recID and srcID for the individual processor will not be needed
+    #                 PDEV = []
+    #                 recID_proc, srcID_proc, ray, normal, NPDEV = line
+    #                 for i in range(int(NPDEV)):
+    #                     PDEV.append(frechfile.readline())
+
+    #                 frechet[traceID] = {'sourceID': sourceID,
+    #                                     'raypath': ray,
+    #                                     'normal': normal,
+    #                                     'NPDEV': NPDEV,
+    #                                     'PDEV': PDEV
+    #                                     }
+    #     return frechet
+
+    def mergeFrechet(self):
+        print('Merging frechet.dat...')
+
+        with open(self.cwd + '/frechet.dat', 'w') as outfile:
+            for procID in range(1, self.nproc + 1):
+                filename = self.getProcDir(procID) + '/frechet.dat'
+                with open(filename) as infile:
+                    for sourceID in self.srcIDs4Kernel(procID):
+                        for traceID in self.getTraceIDs4Source(sourceID):
+                            recID_proc, srcID_proc, ray, normal, NPDEV = infile.readline().split()
+                            outfile.write('%6s %6s %6s %6s %6s\n'%(traceID, sourceID, ray, normal, NPDEV))
+                            for index in range(int(NPDEV)):
+                                outfile.write(infile.readline())
+
 
     def getProcDir(self, procID):
-        return self.cwd + self.folder + str(procID)
+        return os.path.join(self.cwd, self.folder) + str(procID)
 
     def mergeOutput(self):
         self.mergeArrivals()
         self.mergeFrechet()
         self.mergeRays()
-        
-        
 
 
 def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', inputfileref='vgridsref.in'):
@@ -314,23 +486,23 @@ def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', i
 
     # write header
     print("Writing header for VTK file...")
-    outfile.writelines('# vtk DataFile Version 3.1\n')
-    outfile.writelines('Velocity on FMTOMO vgrids.in points\n')
-    outfile.writelines('ASCII\n')
-    outfile.writelines('DATASET STRUCTURED_POINTS\n')
+    outfile.write('# vtk DataFile Version 3.1\n')
+    outfile.write('Velocity on FMTOMO vgrids.in points\n')
+    outfile.write('ASCII\n')
+    outfile.write('DATASET STRUCTURED_POINTS\n')
 
-    outfile.writelines('DIMENSIONS %d %d %d\n' % (nX, nY, nZ))
-    outfile.writelines('ORIGIN %f %f %f\n' % (sX, sY, sZ))
-    outfile.writelines('SPACING %f %f %f\n' % (dX, dY, dZ))
+    outfile.write('DIMENSIONS %d %d %d\n' % (nX, nY, nZ))
+    outfile.write('ORIGIN %f %f %f\n' % (sX, sY, sZ))
+    outfile.write('SPACING %f %f %f\n' % (dX, dY, dZ))
 
-    outfile.writelines('POINT_DATA %15d\n' % (nPoints))
+    outfile.write('POINT_DATA %15d\n' % (nPoints))
     if absOrRel == 'abs':
-        outfile.writelines('SCALARS velocity float %d\n' %(1))
+        outfile.write('SCALARS velocity float %d\n' %(1))
     if absOrRel == 'relDepth':
-        outfile.writelines('SCALARS velocity2depthMean float %d\n' %(1))
+        outfile.write('SCALARS velocity2depthMean float %d\n' %(1))
     elif absOrRel == 'rel':
-        outfile.writelines('SCALARS velChangePercent float %d\n' % (1))
-    outfile.writelines('LOOKUP_TABLE default\n')
+        outfile.write('SCALARS velChangePercent float %d\n' % (1))
+    outfile.write('LOOKUP_TABLE default\n')
 
     pointsPerR = nTheta * nPhi
 
@@ -338,7 +510,7 @@ def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', i
     if absOrRel == 'abs':
         print("Writing velocity values to VTK file...")
         for velocity in vel:
-            outfile.writelines('%10f\n' %velocity)
+            outfile.write('%10f\n' %velocity)
     elif absOrRel == 'relDepth':
         print("Writing velocity values to VTK file relative to mean of each depth...")
         index = 0; count = 0
@@ -350,7 +522,7 @@ def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', i
                 velmean = np.mean(veldepth)
                 #print velmean, count, count/pointsPerR
                 for vel in veldepth:
-                    outfile.writelines('%10f\n' %(vel - velmean))
+                    outfile.write('%10f\n' %(vel - velmean))
                 veldepth = []
     elif absOrRel == 'rel':
         nref, dref, sref, velref = _readVgrid(inputfileref)
@@ -372,7 +544,7 @@ def vgrids2VTK(inputfile='vgrids.in', outputfile='vgrids.vtk', absOrRel='abs', i
             return
         print("Writing velocity values to VTK file...")
         for velocity in velrel:
-            outfile.writelines('%10f\n' % velocity)
+            outfile.write('%10f\n' % velocity)
         print('Pertubations: min: %s %%, max: %s %%' % (min(velrel), max(velrel)))
 
     outfile.close()
@@ -430,29 +602,29 @@ def rays2VTK(fnin, fdirout='./vtk_files/', nthPoint=50):
         # write header
         # print("Writing header for VTK file...")
         print("Writing shot %d to file %s" % (shotnumber, fnameout))
-        outfile.writelines('# vtk DataFile Version 3.1\n')
-        outfile.writelines('FMTOMO rays\n')
-        outfile.writelines('ASCII\n')
-        outfile.writelines('DATASET POLYDATA\n')
-        outfile.writelines('POINTS %15d float\n' % (nPoints))
+        outfile.write('# vtk DataFile Version 3.1\n')
+        outfile.write('FMTOMO rays\n')
+        outfile.write('ASCII\n')
+        outfile.write('DATASET POLYDATA\n')
+        outfile.write('POINTS %15d float\n' % (nPoints))
 
         # write coordinates
         # print("Writing coordinates to VTK file...")
         for raynumber in rays[shotnumber].keys():
             for raypoint in rays[shotnumber][raynumber]:
-                outfile.writelines('%10f %10f %10f \n' % (raypoint[0], raypoint[1], raypoint[2]))
+                outfile.write('%10f %10f %10f \n' % (raypoint[0], raypoint[1], raypoint[2]))
 
-        outfile.writelines('LINES %15d %15d\n' % (len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
+        outfile.write('LINES %15d %15d\n' % (len(rays[shotnumber]), len(rays[shotnumber]) + nPoints))
 
         # write indices
         # print("Writing indices to VTK file...")
         count = 0
         for raynumber in rays[shotnumber].keys():
-            outfile.writelines('%d ' % (len(rays[shotnumber][raynumber])))
+            outfile.write('%d ' % (len(rays[shotnumber][raynumber])))
             for index in range(len(rays[shotnumber][raynumber])):
-                outfile.writelines('%d ' % (count))
+                outfile.write('%d ' % (count))
                 count += 1
-            outfile.writelines('\n')
+            outfile.write('\n')
 
 
 def _readVgrid(filename):
@@ -594,10 +766,10 @@ def addCheckerboard(spacing=10., pertubation=0.1, inputfile='vgrids.in',
     nPoints = nR * nTheta * nPhi
 
     # write header for velocity grid file (in RADIANS)
-    outfile.writelines('%10s %10s \n' % (1, 1))
-    outfile.writelines('%10s %10s %10s\n' % (nR, nTheta, nPhi))
-    outfile.writelines('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
-    outfile.writelines('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
+    outfile.write('%10s %10s \n' % (1, 1))
+    outfile.write('%10s %10s %10s\n' % (nR, nTheta, nPhi))
+    outfile.write('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
+    outfile.write('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
 
     spacR = correctSpacing(spacing, dR, '[meter], R')
     spacTheta = correctSpacing(_getAngle(spacing), dTheta, '[degree], Theta')
@@ -642,7 +814,7 @@ def addCheckerboard(spacing=10., pertubation=0.1, inputfile='vgrids.in',
                 evenOdd = evenOddR * evenOddT * evenOddP * ampFactor
                 velocity += evenOdd * pertubation * velocity
 
-                outfile.writelines('%10s %10s\n' % (velocity, decm))
+                outfile.write('%10s %10s\n' % (velocity, decm))
                 count += 1
 
                 progress = float(count) / float(nPoints) * 100
@@ -697,10 +869,10 @@ def addBox(x=(None, None), y=(None, None), z=(None, None),
     nPoints = nR * nTheta * nPhi
 
     # write header for velocity grid file (in RADIANS)
-    outfile.writelines('%10s %10s \n' % (1, 1))
-    outfile.writelines('%10s %10s %10s\n' % (nR, nTheta, nPhi))
-    outfile.writelines('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
-    outfile.writelines('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
+    outfile.write('%10s %10s \n' % (1, 1))
+    outfile.write('%10s %10s %10s\n' % (nR, nTheta, nPhi))
+    outfile.write('%10s %10s %10s\n' % (dR, np.deg2rad(dTheta), np.deg2rad(dPhi)))
+    outfile.write('%10s %10s %10s\n' % (sR, np.deg2rad(sTheta), np.deg2rad(sPhi)))
 
     count = 0
     for radius in rGrid:
@@ -722,7 +894,7 @@ def addBox(x=(None, None), y=(None, None), z=(None, None),
                 if rFlag * thetaFlag * phiFlag is not 0:
                     velocity = boxvelocity
 
-                outfile.writelines('%10s %10s\n' % (velocity, decm))
+                outfile.write('%10s %10s\n' % (velocity, decm))
                 count += 1
 
                 progress = float(count) / float(nPoints) * 100
