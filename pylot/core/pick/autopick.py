@@ -31,6 +31,7 @@ def autopickevent(data, param):
     wdttolerance = param.get('wdttolerance')
     mdttolerance = param.get('mdttolerance')
     iplot = param.get('iplot')
+    apverbose = param.get('apverbose')
     for n in range(len(data)):
         station = data[n].stats.station
         if station not in stations:
@@ -40,7 +41,7 @@ def autopickevent(data, param):
 
     for station in stations:
         topick = data.select(station=station)
-        all_onsets[station] = autopickstation(topick, param)
+        all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
 
     # quality control
     # median check and jackknife on P-onset times
@@ -366,7 +367,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
                      round(min([mpickP + sstop, Lwf]))]
 
         if algoS == 'ARH':
-            if verbose: print(edat, ndat)
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
@@ -383,7 +383,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
         elif algoS == 'AR3':
-            if verbose: print(zdat, edat, ndat)
             # re-create stream object including all components
             hdat = zdat.copy()
             hdat += edat
