@@ -269,6 +269,13 @@ class PDFDictionary(object):
         return pdf_picks
 
     def plot(self, stations=None):
+        '''
+        plots the all probability density function for either desired STATIONS
+        or all available date
+        :param stations: list of stations to be plotted
+        :type stations: list
+        :return: matplotlib figure object containing the plot
+        '''
         assert stations is not None or not isinstance(stations, list), \
             'parameter stations should be a list not {0}'.format(type(stations))
         if not stations:
@@ -279,12 +286,12 @@ class PDFDictionary(object):
 
         istations = range(nstations)
         fig, axarr = plt.subplots(nstations, 2, sharex='col', sharey='row')
+        hide_labels = True
 
         for n in istations:
             station = stations[n]
             pdfs = self.pdf_data[station]
             for l, phase in enumerate(pdfs.keys()):
-                hide_labels = True
                 try:
                     axarr[n, l].plot(pdfs[phase].axis, pdfs[phase].data)
                     if n is 0:
@@ -314,4 +321,4 @@ class PDFDictionary(object):
             plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
             plt.setp([a.get_yticklabels() for a in axarr[:, 0]], visible=False)
 
-        plt.show()
+        return fig
