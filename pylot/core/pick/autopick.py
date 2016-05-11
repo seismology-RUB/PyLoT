@@ -31,6 +31,7 @@ def autopickevent(data, param):
     wdttolerance = param.get('wdttolerance')
     mdttolerance = param.get('mdttolerance')
     iplot = param.get('iplot')
+    apverbose = param.get('apverbose')
     for n in range(len(data)):
         station = data[n].stats.station
         if station not in stations:
@@ -40,7 +41,7 @@ def autopickevent(data, param):
 
     for station in stations:
         topick = data.select(station=station)
-        all_onsets[station] = autopickstation(topick, param)
+        all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
 
     # quality control
     # median check and jackknife on P-onset times
