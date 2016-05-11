@@ -234,7 +234,7 @@ def picks_from_picksdict(picks):
     for station, onsets in picks.items():
         print('Reading picks on station %s' % station)
         for label, phase in onsets.items():
-            if not isinstance(phase, dict):
+            if not isinstance(phase, dict) or len(phase) < 3:
                 continue
             onset = phase['mpp']
             epp = phase['epp']
@@ -276,7 +276,7 @@ def reassess_pilot_db(root_dir, out_dir=None, fn_param=None):
         reassess_pilot_event(root_dir, evt, out_dir, fn_param)
 
 
-def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
+def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
     from obspy import read
 
     from pylot.core.io.inputs import AutoPickParameter
@@ -298,12 +298,10 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
-            st = read(fn_pattern)
+            st = read(fn_pattern, format='GSE2')
         except TypeError as e:
             print(e.message)
-            st = read(fn_pattern, format='GSE2')
-        if not st:
-            raise RuntimeError('no waveform data found for station {station}'.format(station=station))
+            st = read(fn_pattern)
         for phase in picks_dict[station].keys():
             try:
                 mpp = picks_dict[station][phase]['mpp']
@@ -311,6 +309,11 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
                 print(e.message, station)
                 continue
             sel_st = select_for_phase(st, phase)
+            if not sel_st:
+                raise warnings.formatwarning(
+                    'no waveform data found for station {station}'.format(
+                        station=station), category=RuntimeWarning)
+            print(sel_st)
             stime, etime = getGlobalTimes(sel_st)
             rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
@@ -319,6 +322,8 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
                                            Pick1=rel_pick,
                                            iplot=None,
                                            )
+            if epp is None or lpp is None:
+                continue
             epp = stime + epp
             lpp = stime + lpp
             min_diff = 3 * st[0].stats.delta
@@ -334,7 +339,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None):
     if not out_dir:
         fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
     else:
-        fnout_prefix = os.path.join(out_dir, event_id, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(out_dir, '{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
