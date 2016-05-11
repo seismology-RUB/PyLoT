@@ -11,6 +11,7 @@ EVENT_DATA/LOCAL		    #datapath#     %data path
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#%choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
+True                                #apverbose#    %choose 'True' or 'False' for terminal output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #NLLoc settings#
 /home/ludger/NLLOC                  #nllocbin#     %path to NLLoc executable
