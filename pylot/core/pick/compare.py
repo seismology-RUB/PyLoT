@@ -86,8 +86,8 @@ class Comparison(object):
         """
         compare_pdfs = dict()
 
-        pdf_a = self.get(self.names[0]).pdf_data(type)
-        pdf_b = self.get(self.names[1]).pdf_data(type)
+        pdf_a = self.get(self.names[0]).generate_pdf_data(type)
+        pdf_b = self.get(self.names[1]).generate_pdf_data(type)
 
         for station, phases in pdf_a.items():
             if station in pdf_b.keys():
@@ -206,12 +206,21 @@ class PDFDictionary(object):
 
     def __init__(self, data):
         self._pickdata = data
+        self._pdfdata = self.generate_pdf_data()
 
     def __nonzero__(self):
         if len(self.pick_data) < 1:
             return False
         else:
             return True
+
+    @property
+    def pdf_data(self):
+        return self._pdfdata
+
+    @pdf_data.setter
+    def pdf_data(self, data):
+        self._pdfdata = data
 
     @property
     def pick_data(self):
@@ -221,6 +230,14 @@ class PDFDictionary(object):
     def pick_data(self, data):
         self._pickdata = data
 
+    @property
+    def stations(self):
+        return self.pick_data.keys()
+
+    @property
+    def nstations(self):
+        return len(self.stations)
+
     @classmethod
     def from_quakeml(self, fn):
         cat = read_events(fn)
@@ -229,7 +246,7 @@ class PDFDictionary(object):
                                       'time is not implemented yet! Sorry!')
         return PDFDictionary(picksdict_from_picks(cat[0]))
 
-    def pdf_data(self, type='exp'):
+    def generate_pdf_data(self, type='exp'):
         """
         Returns probabiliy density function dictionary containing the
         representation of the actual pick_data.
@@ -251,3 +268,50 @@ class PDFDictionary(object):
 
         return pdf_picks
 
+    def plot(self, stations=None):
+        assert stations is not None or not isinstance(stations, list), \
+            'parameter stations should be a list not {0}'.format(type(stations))
+        if not stations:
+            nstations = self.nstations
+            stations = self.stations
+        else:
+            nstations = len(stations)
+
+        istations = range(nstations)
+        fig, axarr = plt.subplots(nstations, 2, sharex='col', sharey='row')
+
+        for n in istations:
+            station = stations[n]
+            pdfs = self.pdf_data[station]
+            for l, phase in enumerate(pdfs.keys()):
+                hide_labels = True
+                try:
+                    axarr[n, l].plot(pdfs[phase].axis, pdfs[phase].data)
+                    if n is 0:
+                        axarr[n, l].set_title(phase)
+                    if l is 0:
+                        axann = axarr[n, l].annotate(station, xy=(.05, .5),
+                                                     xycoords='axes fraction')
+                        bbox_props = dict(boxstyle='round', facecolor='lightgrey',
+                                          alpha=.7)
+                        axann.set_bbox(bbox_props)
+                    if n == int(np.median(istations)) and l is 0:
+                        label = 'probability density (qualitative)'
+                        axarr[n, l].set_ylabel(label)
+                except IndexError as e:
+                    print('trying aligned plotting\n{0}'.format(e))
+                    hide_labels = False
+                    axarr[l].plot(pdfs[phase].axis, pdfs[phase].data)
+                    axarr[l].set_title(phase)
+                    if l is 0:
+                        axann = axarr[l].annotate(station, xy=(.05, .5),
+                                                     xycoords='axes fraction')
+                        bbox_props = dict(boxstyle='round', facecolor='lightgrey',
+                                          alpha=.7)
+                        axann.set_bbox(bbox_props)
+        if hide_labels:
+            plt.setp([a.get_xticklabels() for a in axarr[0, :]], visible=False)
+            plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
+            plt.setp([a.get_yticklabels() for a in axarr[:, 0]], visible=False)
+
+        plt.show()
