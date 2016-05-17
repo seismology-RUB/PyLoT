@@ -4,11 +4,10 @@ import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
 
-
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
         '''
-        The Survey Class contains all shots [type: seismicshot] of a survey
+        The Survey Class contains all shots [class: Seismicshot] of a survey
         as well as the aquisition geometry and the topography.
 
         It contains methods to pick all traces of all shots.
@@ -24,7 +23,7 @@ class Survey(object):
         self._generateSurvey()
         self._initiateFilenames()
         if useDefaultParas == True:
-            self.setParametersForShots()
+            self.setParametersForAllShots()
         self._removeAllEmptyTraces()
         self._updateShots()
 
@@ -51,32 +50,36 @@ class Survey(object):
         print ("Total number of traces: %d \n" % self.countAllTraces())
 
     def _removeAllEmptyTraces(self):
-        filename = 'removeEmptyTraces.out'
+        '''
+        Removes traces of the dataset that are not found in the input receiver files.
+        '''
+        logfile = 'removeEmptyTraces.out'
         count = 0
         for shot in self.data.values():
             removed = shot.removeEmptyTraces()
             if removed is not None:
-                if count == 0: outfile = open(filename, 'w')
+                if count == 0: outfile = open(logfile, 'w')
                 count += 1
                 outfile.writelines('shot: %s, removed empty traces: %s\n'
                                    % (shot.getShotnumber(), removed))
         print ("\nremoveEmptyTraces: Finished! Removed %d traces" % count)
         if count > 0:
             print ("See %s for more information "
-                   "on removed traces." % (filename))
+                   "on removed traces." % (logfile))
             outfile.close()
 
     def _updateShots(self):
         '''
-        Removes traces that do not exist in the dataset for any reason.
+        Removes traces that do not exist in the dataset for any reason,
+        but were set in the input files.
         '''
-        filename = 'updateShots.out'
+        logfile = 'updateShots.out'
         count = 0;
         countTraces = 0
         for shot in self.data.values():
             del_traceIDs = shot.updateTraceList()
             if len(del_traceIDs) > 0:
-                if count == 0: outfile = open(filename, 'w')
+                if count == 0: outfile = open(logfile, 'w')
                 count += 1
                 countTraces += len(del_traceIDs)
                 outfile.writelines("shot: %s, removed traceID(s) %s because "
@@ -87,36 +90,37 @@ class Survey(object):
                "%d traces" % (count, countTraces))
         if count > 0:
             print ("See %s for more information "
-                   "on removed traces." % (filename))
+                   "on removed traces." % (logfile))
             outfile.close()
 
     def setArtificialPick(self, traceID, pick):
         '''
         Sets an artificial pick for a traceID of all shots in the survey object.
-        (This can be used to create a pick with t = 0 at the source origin)
+        (Commonly used to generate a travel time t = 0 at the source origin)
         '''
         for shot in self.data.values():
             shot.setPick(traceID, pick)
 
-    def setParametersForShots(self, cutwindow=(0, 0.2), tmovwind=0.3, tsignal=0.03, tgap=0.0007):
+    def setParametersForAllShots(self, cutwindow=(0, 0.2), tmovwind=0.3, tsignal=0.03, tgap=0.0007):
         if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
                     tsignal == 0.03 and tgap == 0.0007):
             print ("Warning: Standard values used for "
                    "setParamters. This might not be clever.")
-        # CHANGE this later. Parameters only needed for survey, not for each shot.
         for shot in self.data.values():
             shot.setCut(cutwindow)
             shot.setTmovwind(tmovwind)
             shot.setTsignal(tsignal)
             shot.setTgap(tgap)
             shot.setOrder(order=4)
-        print ("setParametersForShots: Parameters set to:\n"
+        print ("setParametersForAllShots: Parameters set to:\n"
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
                % (cutwindow, tmovwind, tsignal, tgap))
 
     def setManualPicksFromFiles(self, directory='picks'):
         '''
         Read manual picks from *.pck files in a directory.
+        Can be used for comparison of automatic and manual picks.
+
         The * must be identical with the shotnumber.
         '''
         for shot in self.data.values():
@@ -125,6 +129,7 @@ class Survey(object):
     def getDiffsFromManual(self):
         '''
         Returns a dictionary with the differences between manual and automatic pick for all shots.
+        Key: Seismicshot [object]
         '''
         diffs = {}
         for shot in self.data.values():
@@ -136,6 +141,10 @@ class Survey(object):
         return diffs
 
     def plotDiffs(self):
+        '''
+        Creates a plot of all Picks colored by the
+        difference between automatic and manual pick.
+        '''
         import matplotlib.pyplot as plt
         diffs = [];
         dists = [];
@@ -163,8 +172,12 @@ class Survey(object):
         ax.set_xlabel('Distance [m]')
         ax.set_ylabel('Time [s]')
         ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
+        plt.legend()
 
     def plotHist(self, nbins=20, ax=None):
+        '''
+        Plot a histogram of the difference between automatic and manual picks.
+        '''
         import matplotlib.pyplot as plt
         plt.interactive(True)
         diffs = []
