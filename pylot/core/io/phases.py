@@ -193,7 +193,7 @@ def picksdict_from_obs(fn):
 
 
 def picksdict_from_picks(evt):
-    '''
+    """
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
     :param evt: Event object contain all available information
