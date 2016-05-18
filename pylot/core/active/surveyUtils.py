@@ -16,26 +16,13 @@ def readParameters(parfile, parameter):
 
     return value
 
-
-def setArtificialPick(shot_dict, traceID, pick):
-    """
-
-    :param shot_dict:
-    :param traceID:
-    :param pick:
-    :return:
-    """
-    for shot in shot_dict.values():
-        shot.setPick(traceID, pick)
-        shot.setPickwindow(traceID, shot.getCut())
-
-
 def fitSNR4dist(shot_dict, shiftdist=30, shiftSNR=100):
     """
+    Approach to fit the decreasing SNR with wave travel distance.
 
-    :param shot_dict:
-    :param shiftdist:
-    :param shiftSNR:
+    :param shot_dict: dictionary containing Seismicshot objects (e.g. survey.getShotDict())
+    :param shiftdist: shift compensating curve by a certain distance to the left
+    :param shiftSNR: shift compensating curve by a certain SNR value to the bottom
     :return:
     """
     import numpy as np
@@ -87,6 +74,8 @@ def plotFittedSNR(dists, snrthresholds, snrs, snrBestFit):
 
 def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0007):
     """
+    Set SNR values for a dictionary containing Seismicshots (e.g. survey.getShotDict())
+    by parameters calulated from fitSNR4dist.
 
     :param shot_dict:
     :type shot_dict: dict
@@ -119,6 +108,7 @@ def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0
 
 def setConstantSNR(shot_dict, snrthreshold=2.5):
     """
+    Set a constant SNR value to all Seismicshots in a dictionary (e.g. survey.getShotDict()).
 
     :param shot_dict:
     :param snrthreshold:
@@ -158,42 +148,18 @@ def findTracesInRanges(shot_dict, distancebin, pickbin):
 
 def cleanUp(survey):
     """
-
-    :param survey:
-    :return:
+    Cleans up a Survey object by removing frontend information
+    which can not be saved in the pickle format.
     """
     for shot in survey.data.values():
         shot.traces4plot = {}
 
-
-# def plotScatterStats(survey, key, ax = None):
-#     import matplotlib.pyplot as plt
-#     x = []; y = []; value = []
-#     stats = survey.getStats()
-#     for shotnumber in stats.keys():
-#         if type(value) == list:
-#             value.append(stats[shotnumber][key][0])
-#         else:
-#             value.append(stats[shotnumber][key])
-#         x.append(survey.data[shotnumber].getSrcLoc()[0])
-#         y.append(survey.data[shotnumber].getSrcLoc()[1])
-
-#     if ax == None:
-#         fig = plt.figure()
-#         ax = fig.add_subplot(111)
-
-#     sc = ax.scatter(x, y, s = value, c = value)
-#     plt.xlabel('X')
-#     plt.ylabel('Y')
-#     cbar = plt.colorbar(sc)
-#     cbar.set_label(key)
-
-def plotScatterStats4Shots(survey, key):
+def plotScatterStats4Shots(survey, variable):
     """
     Statistics, scatter plot.
-    key can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
+
     :param survey:
-    :param key:
+    :param variable: can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
     :return:
     """
     import matplotlib.pyplot as plt
@@ -225,7 +191,7 @@ def plotScatterStats4Shots(survey, key):
     for shot in statsShot.keys():
         x.append(statsShot[shot]['x'])
         y.append(statsShot[shot]['y'])
-        value.append(statsShot[shot][key])
+        value.append(statsShot[shot][variable])
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -239,19 +205,19 @@ def plotScatterStats4Shots(survey, key):
     plt.xlabel('X')
     plt.ylabel('Y')
     cbar = plt.colorbar(sc)
-    cbar.set_label(key)
+    cbar.set_label(variable)
 
     for shot in statsShot.keys():
         ax.annotate(' %s' % shot.getShotnumber(), xy=(shot.getSrcLoc()[0], shot.getSrcLoc()[1]),
                     fontsize='x-small', color='k')
 
 
-def plotScatterStats4Receivers(survey, key):
+def plotScatterStats4Receivers(survey, variable):
     """
     Statistics, scatter plot.
-    key can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
+
     :param survey:
-    :param key:
+    :param variable: can be 'mean SNR', 'median SNR', 'mean SPE', 'median SPE', or 'picked traces'
     :return:
     """
     import matplotlib.pyplot as plt
@@ -283,7 +249,7 @@ def plotScatterStats4Receivers(survey, key):
     for traceID in statsRec.keys():
         x.append(statsRec[traceID]['x'])
         y.append(statsRec[traceID]['y'])
-        value.append(statsRec[traceID][key])
+        value.append(statsRec[traceID][variable])
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -297,7 +263,7 @@ def plotScatterStats4Receivers(survey, key):
     plt.xlabel('X')
     plt.ylabel('Y')
     cbar = plt.colorbar(sc)
-    cbar.set_label(key)
+    cbar.set_label(variable)
 
     shot = survey.data.values()[0]
     for traceID in shot.getTraceIDlist():
