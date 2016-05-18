@@ -193,13 +193,13 @@ def picksdict_from_obs(fn):
 
 
 def picks_to_dict(evt):
-    '''
+    """
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
     :param evt: Event object contain all available information
     :type evt: `~obspy.core.event.Event`
     :return: pick dictionary
-    '''
+    """
     picks = {}
     for pick in evt.picks:
         phase = {}
@@ -228,6 +228,7 @@ def picks_to_dict(evt):
         onsets[pick.phase_hint] = phase.copy()
         picks[station] = onsets.copy()
     return picks
+
 
 def picks_from_dict(picks):
     firstonset = None
@@ -265,6 +266,7 @@ def picks_from_dict(picks):
                 print('No polarity information found for %s' % phase)
             if firstonset is None or firstonset > onset:
                 firstonset = onset
+    return pick, firstonset
 
 
 def reassess_pilot_event(root_dir, event_id):
@@ -307,7 +309,7 @@ def reassess_pilot_event(root_dir, event_id):
 
 
 def writephases(arrivals, fformat, filename):
-    '''
+    """
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
 
@@ -325,7 +327,7 @@ def writephases(arrivals, fformat, filename):
 
     :param: filename, full path and name of phase file
     :type: string
-    '''
+    """
 
     if fformat == 'NLLoc':
         print ("Writing phases to %s for NLLoc" % filename)
@@ -387,7 +389,6 @@ def writephases(arrivals, fformat, filename):
                                                                                            sweight))
 
         fid.close()
-
     elif fformat == 'HYPO71':
         print ("Writing phases to %s for HYPO71" % filename)
         fid = open("%s" % filename, 'w')
