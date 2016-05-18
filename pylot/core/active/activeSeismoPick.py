@@ -4,11 +4,10 @@ import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
 
-
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
         '''
-        The Survey Class contains all shots [type: seismicshot] of a survey
+        The Survey Class contains all shots [class: Seismicshot] of a survey
         as well as the aquisition geometry and the topography.
 
         It contains methods to pick all traces of all shots.
@@ -24,7 +23,7 @@ class Survey(object):
         self._generateSurvey()
         self._initiateFilenames()
         if useDefaultParas == True:
-            self.setParametersForShots()
+            self.setParametersForAllShots()
         self._removeAllEmptyTraces()
         self._updateShots()
 
@@ -51,32 +50,36 @@ class Survey(object):
         print ("Total number of traces: %d \n" % self.countAllTraces())
 
     def _removeAllEmptyTraces(self):
-        filename = 'removeEmptyTraces.out'
+        '''
+        Removes traces of the dataset that are not found in the input receiver files.
+        '''
+        logfile = 'removeEmptyTraces.out'
         count = 0
         for shot in self.data.values():
             removed = shot.removeEmptyTraces()
             if removed is not None:
-                if count == 0: outfile = open(filename, 'w')
+                if count == 0: outfile = open(logfile, 'w')
                 count += 1
                 outfile.writelines('shot: %s, removed empty traces: %s\n'
                                    % (shot.getShotnumber(), removed))
         print ("\nremoveEmptyTraces: Finished! Removed %d traces" % count)
         if count > 0:
             print ("See %s for more information "
-                   "on removed traces." % (filename))
+                   "on removed traces." % (logfile))
             outfile.close()
 
     def _updateShots(self):
         '''
-        Removes traces that do not exist in the dataset for any reason.
+        Removes traces that do not exist in the dataset for any reason,
+        but were set in the input files.
         '''
-        filename = 'updateShots.out'
+        logfile = 'updateShots.out'
         count = 0;
         countTraces = 0
         for shot in self.data.values():
             del_traceIDs = shot.updateTraceList()
             if len(del_traceIDs) > 0:
-                if count == 0: outfile = open(filename, 'w')
+                if count == 0: outfile = open(logfile, 'w')
                 count += 1
                 countTraces += len(del_traceIDs)
                 outfile.writelines("shot: %s, removed traceID(s) %s because "
@@ -87,36 +90,37 @@ class Survey(object):
                "%d traces" % (count, countTraces))
         if count > 0:
             print ("See %s for more information "
-                   "on removed traces." % (filename))
+                   "on removed traces." % (logfile))
             outfile.close()
 
     def setArtificialPick(self, traceID, pick):
         '''
         Sets an artificial pick for a traceID of all shots in the survey object.
-        (This can be used to create a pick with t = 0 at the source origin)
+        (Commonly used to generate a travel time t = 0 at the source origin)
         '''
         for shot in self.data.values():
             shot.setPick(traceID, pick)
 
-    def setParametersForShots(self, cutwindow=(0, 0.2), tmovwind=0.3, tsignal=0.03, tgap=0.0007):
+    def setParametersForAllShots(self, cutwindow=(0, 0.2), tmovwind=0.3, tsignal=0.03, tgap=0.0007):
         if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
                     tsignal == 0.03 and tgap == 0.0007):
             print ("Warning: Standard values used for "
                    "setParamters. This might not be clever.")
-        # CHANGE this later. Parameters only needed for survey, not for each shot.
         for shot in self.data.values():
             shot.setCut(cutwindow)
             shot.setTmovwind(tmovwind)
             shot.setTsignal(tsignal)
             shot.setTgap(tgap)
             shot.setOrder(order=4)
-        print ("setParametersForShots: Parameters set to:\n"
+        print ("setParametersForAllShots: Parameters set to:\n"
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
                % (cutwindow, tmovwind, tsignal, tgap))
 
     def setManualPicksFromFiles(self, directory='picks'):
         '''
         Read manual picks from *.pck files in a directory.
+        Can be used for comparison of automatic and manual picks.
+
         The * must be identical with the shotnumber.
         '''
         for shot in self.data.values():
@@ -125,6 +129,7 @@ class Survey(object):
     def getDiffsFromManual(self):
         '''
         Returns a dictionary with the differences between manual and automatic pick for all shots.
+        Key: Seismicshot [object]
         '''
         diffs = {}
         for shot in self.data.values():
@@ -136,6 +141,10 @@ class Survey(object):
         return diffs
 
     def plotDiffs(self):
+        '''
+        Creates a plot of all Picks colored by the
+        difference between automatic and manual pick.
+        '''
         import matplotlib.pyplot as plt
         diffs = [];
         dists = [];
@@ -163,8 +172,12 @@ class Survey(object):
         ax.set_xlabel('Distance [m]')
         ax.set_ylabel('Time [s]')
         ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
+        plt.legend()
 
     def plotHist(self, nbins=20, ax=None):
+        '''
+        Plot a histogram of the difference between automatic and manual picks.
+        '''
         import matplotlib.pyplot as plt
         plt.interactive(True)
         diffs = []
@@ -180,9 +193,21 @@ class Survey(object):
         plt.xlabel('Difference in time (auto - manual) [s]')
         return diffs
 
-    def pickAllShots(self, windowsize, HosAic='hos', vmin=333, vmax=5500, folm=0.6):
+    def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos', aicwindow=(10, 0)):
         '''
         Automatically pick all traces of all shots of the survey.
+
+        :param: vmin, vmax, minimum (maximum) permitted apparent velocity on direct path between src and rec
+        :type: real
+
+        :param: folm, fraction of local maximum for HOS pick (0.6 = 60% of the highest maximum)
+        :type: real
+
+        :param: HosAic, pick with hos only ('hos') or use AIC ('aic')
+        :type: string
+
+        :param: aicwindow, window around the initial pick to search for local AIC min (samples)
+        :type: tuple
         '''
         from datetime import datetime
         starttime = datetime.now()
@@ -207,7 +232,7 @@ class Survey(object):
                     pickwin_used = (pwleft, pwright)
 
                 shot.setPickwindow(traceID, pickwin_used)
-                shot.pickTraces(traceID, windowsize, folm, HosAic)  # picker
+                shot.pickTraces(traceID, folm, HosAic, aicwindow)  # picker
 
                 shot.setSNR(traceID)
                 # if shot.getSNR(traceID)[0] < snrthreshold:
@@ -231,6 +256,9 @@ class Survey(object):
               % (pickedtraces, ntraces, float(pickedtraces) / float(ntraces) * 100.))
 
     def cleanBySPE(self, maxSPE):
+        '''
+        Sets all picks as invalid if they exceed a certain value of the symmetric pick error.
+        '''
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if shot.getPickFlag(traceID) == 1:
@@ -238,6 +266,9 @@ class Survey(object):
                         shot.setPickFlag(traceID, 0)
 
     def plotSPE(self):
+        '''
+        Plots the symmetric pick error sorted by magnitude.
+        '''
         import matplotlib.pyplot as plt
         spe = []
         for shot in self.data.values():
@@ -251,7 +282,7 @@ class Survey(object):
 
     def recover(self):
         '''
-        Recovers all (accidently) removed picks. Still regards SNR threshold.
+        Recovers all manually removed picks. Still regards SNR threshold.
         '''
         print('Recovering survey...')
         numpicks = 0
@@ -266,18 +297,28 @@ class Survey(object):
         print('Recovered %d picks' % numpicks)
 
     def setArtificialPick(self, traceID, pick):
+        '''
+        Sets an artificial pick for a certain receiver (traceID) for all shots.
+        '''
         for shot in self.data.values():
             shot.setPick(traceID, pick)
             shot.setPickwindow(traceID, shot.getCut())
 
     def countAllTraces(self):
+        '''
+        Returns the number of traces in total.
+        '''
         numtraces = 0
         for shot in self.getShotlist():
-            for rec in self.getReceiverlist():  ### shot.getReceiverlist etc.
+            for rec in self.getReceiverlist():
                 numtraces += 1
+
         return numtraces
 
     def getShotlist(self):
+        '''
+        Returns a list of all shotnumbers contained in the set Sourcefile.
+        '''
         filename = self.getPath() + self.getSourcefile()
         srcfile = open(filename, 'r')
         shotlist = []
@@ -288,6 +329,9 @@ class Survey(object):
         return shotlist
 
     def getReceiverlist(self):
+        '''
+        Returns a list of all trace IDs contained in the set Receiverfile.
+        '''
         filename = self.getPath() + self.getReceiverfile()
         recfile = open(filename, 'r')
         reclist = []
@@ -313,6 +357,12 @@ class Survey(object):
         return self._obsdir
 
     def getStats(self):
+        '''
+        Generates and returns a dictionary containing statistical information
+        of the survey.
+        
+        Key: shotnumber
+        '''
         info_dict = {}
         for shot in self.data.values():
             pickedTraces = 0
@@ -334,11 +384,17 @@ class Survey(object):
         return info_dict
 
     def getShotForShotnumber(self, shotnumber):
+        '''
+        Returns Seismicshot [object] of a certain shotnumber if possible.
+        '''
         for shot in self.data.values():
             if shot.getShotnumber() == shotnumber:
                 return shot
 
     def exportFMTOMO(self, directory='FMTOMO_export', sourcefile='input_sf.in', ttFileExtension='.tt'):
+        '''
+        Exports all picks into a directory as travel time files readable by FMTOMO obsdata.
+        '''
         def getAngle(distance):
             PI = np.pi
             R = 6371.
@@ -354,13 +410,13 @@ class Survey(object):
         srcfile.writelines('%10s\n' % len(self.data))  # number of sources
         for shotnumber in self.getShotlist():
             shot = self.getShotForShotnumber(shotnumber)
-            ttfilename = str(shotnumber) + ttFileExtension
+            ttfilename = str(shotnumber) + ttFileExtension # filename of travel time file for this shot
             (x, y, z) = shot.getSrcLoc()  # getSrcLoc returns (x, y, z)
-            srcfile.writelines('%10s %10s %10s\n' % (getAngle(y), getAngle(x), (-1) * z))  # lat, lon, depth
+            srcfile.writelines('%10s %10s %10s\n' % (getAngle(y), getAngle(x), (-1) * z))  # transform to lat, lon, depth
             LatAll.append(getAngle(y));
             LonAll.append(getAngle(x));
             DepthAll.append((-1) * z)
-            srcfile.writelines('%10s\n' % 1)  #
+            srcfile.writelines('%10s\n' % 1)
             srcfile.writelines('%10s %10s %10s\n' % (1, 1, ttfilename))
             ttfile = open(directory + '/' + ttfilename, 'w')
             traceIDlist = shot.getTraceIDlist()
@@ -393,6 +449,9 @@ class Survey(object):
         print(msg)
 
     def countPickedTraces(self, shot):
+        '''
+        Counts all picked traces of a shot (type Seismicshot).
+        '''
         count = 0
         for traceID in shot.getTraceIDlist():
             if shot.getPickFlag(traceID) is not 0:
@@ -400,6 +459,9 @@ class Survey(object):
         return count
 
     def countAllPickedTraces(self):
+        '''
+        Counts all picked traces of the survey.
+        '''
         count = 0
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
@@ -422,20 +484,9 @@ class Survey(object):
         figPerSubplot = columns * rows
 
         index = 1
-        # shotnames = []
-        # shotnumbers = []
-
-        # for shot in self.data.values():
-        #     shotnames.append(shot.getShotname())
-        #     shotnumbers.append(shot.getShotnumber())
-
-        # shotnumbers = [shotnumbers for (shotnumbers, shotnames) in sorted(zip(shotnumbers, shotnames))]
 
         for shotnumber in self.getShotlist():
             if index <= figPerSubplot:
-                # ax = fig.add_subplot(3,3,i, projection = '3d', title = 'shot:'
-                # +str(shot_dict[shotnumber].getShotnumber()), xlabel = 'X', ylabel = 'Y', zlabel = 'traveltime')
-                # shot_dict[shotnumber].plot3dttc(ax = ax, plotpicks = True)
                 ax = fig.add_subplot(rows, columns, index)
                 if mode == '3d':
                     self.getShot(shotnumber).matshow(ax=ax, colorbar=False, annotations=True, legend=False)
@@ -516,6 +567,9 @@ class Survey(object):
             return ax
 
     def createPlot(self, dist, pick, inkByVal, label, ax=None, cbar=None):
+        '''
+        Used by plotAllPicks.
+        '''
         import matplotlib.pyplot as plt
         plt.interactive(True)
         cm = plt.cm.jet
@@ -547,6 +601,10 @@ class Survey(object):
         sys.stdout.flush()
 
     def saveSurvey(self, filename='survey.pickle'):
+        '''
+        Save Survey object to a file. 
+        Can be loaded by using Survey.from_pickle(filename).
+        '''
         import cPickle
         cleanUp(self)
         outfile = open(filename, 'wb')

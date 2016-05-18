@@ -199,7 +199,7 @@ def picksdict_from_picks(evt):
     :param evt: Event object contain all available information
     :type evt: `~obspy.core.event.Event`
     :return: pick dictionary
-    '''
+    """
     picks = {}
     for pick in evt.picks:
         phase = {}
@@ -345,7 +345,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
 
 
 def writephases(arrivals, fformat, filename):
-    '''
+    """
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
 
@@ -363,7 +363,7 @@ def writephases(arrivals, fformat, filename):
 
     :param: filename, full path and name of phase file
     :type: string
-    '''
+    """
 
     if fformat == 'NLLoc':
         print ("Writing phases to %s for NLLoc" % filename)
@@ -425,7 +425,6 @@ def writephases(arrivals, fformat, filename):
                                                                                            sweight))
 
         fid.close()
-
     elif fformat == 'HYPO71':
         print ("Writing phases to %s for HYPO71" % filename)
         fid = open("%s" % filename, 'w')
