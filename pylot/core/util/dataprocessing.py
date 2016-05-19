@@ -25,6 +25,29 @@ def check_time(datetime):
     :param datetime: list of integers [year, month, day, hour, minute, second, microsecond]
     :type datetime: list
     :return: returns True if Values are in supposed range, returns False otherwise
+
+    >>> check_time([1999, 01, 01, 23, 59, 59, 999000])
+    True
+    >>> check_time([1999, 01, 01, 23, 59, 60, 999000])
+    False
+    >>> check_time([1999, 01, 01, 23, 59, 59, 1000000])
+    False
+    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    False
+    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    False
+    >>> check_time([1999, 01, 01, 24, 59, 59, 999000])
+    False
+    >>> check_time([1999, 01, 31, 23, 59, 59, 999000])
+    True
+    >>> check_time([1999, 02, 30, 23, 59, 59, 999000])
+    False
+    >>> check_time([1999, 02, 29, 23, 59, 59, 999000])
+    False
+    >>> check_time([2000, 02, 29, 23, 59, 59, 999000])
+    True
+    >>> check_time([2000, 13, 29, 23, 59, 59, 999000])
+    False
     """
     try:
         UTCDateTime(*datetime)
@@ -123,3 +146,9 @@ def evt_head_check(root_dir, out_dir = None):
                 out.writelines(lines)
                 out.close()
     print(nfiles)
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

@@ -232,7 +232,7 @@ def picksdict_from_picks(evt):
 def picks_from_picksdict(picks):
     picks_list = list()
     for station, onsets in picks.items():
-        print('Reading picks on station %s' % station)
+        #print('Reading picks on station %s' % station)
         for label, phase in onsets.items():
             if not isinstance(phase, dict) or len(phase) < 3:
                 continue
@@ -276,6 +276,7 @@ def reassess_pilot_db(root_dir, out_dir=None, fn_param=None):
         reassess_pilot_event(root_dir, evt, out_dir, fn_param)
 
 
+
 def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
     from obspy import read
 
@@ -292,9 +293,11 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
     if not phases_file:
         return
-    print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
+    #print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
     picks_dict = picks_from_pilot(phases_file[0])
-    print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
+    #print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
+    datacheck = list()
+    info = None
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
@@ -302,6 +305,20 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
         except TypeError as e:
             print(e.message)
             st = read(fn_pattern)
+        except ValueError as e:
+            if e.message == 'second must be in 0..59':
+                info = 'A known Error was raised. Please find the list of corrupted files and double-check these files.'
+                datacheck.append(fn_pattern + ' (time info)\n')
+                continue
+            else:
+                raise ValueError(e.message)
+        except Exception as e:
+            if 'No file matching file pattern:' in e.message:
+                warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                datacheck.append(fn_pattern + ' (no data)\n')
+                continue
+            else:
+                raise e
         for phase in picks_dict[station].keys():
             try:
                 mpp = picks_dict[station][phase]['mpp']
@@ -310,10 +327,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                 continue
             sel_st = select_for_phase(st, phase)
             if not sel_st:
-                raise warnings.formatwarning(
-                    'no waveform data found for station {station}'.format(
-                        station=station), category=RuntimeWarning)
-            print(sel_st)
+                warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
             stime, etime = getGlobalTimes(sel_st)
             rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
@@ -321,7 +335,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
                                            Pick1=rel_pick,
                                            iplot=None,
-                                           )
+                                           stealthMode=True)
             if epp is None or lpp is None:
                 continue
             epp = stime + epp
@@ -332,6 +346,13 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
             if mpp - epp < min_diff:
                 epp = mpp - min_diff
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
+    if datacheck:
+        if info:
+            print(info + ': {0}'.format(search_base))
+        fncheck = open(os.path.join(search_base, 'datacheck_list'), 'w')
+        fncheck.writelines(datacheck)
+        fncheck.close()
+        del datacheck
     # create Event object for export
     evt = ope.Event(resource_id=event_id)
     evt.picks = picks_from_picksdict(picks_dict)
