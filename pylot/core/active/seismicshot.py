@@ -283,7 +283,7 @@ class SeismicShot(object):
 
         # raise ValueError('ambigious or empty traceID: %s' % traceID)
 
-    def pickTraces(self, traceID, windowsize, folm, HosAic='hos'):  ########## input variables ##########
+    def pickTraces(self, traceID, folm, HosAic='hos', windowsize = (10, 0)):  ########## input variables ##########
         # LOCALMAX NOT IMPLEMENTED!
         '''
         Intitiate picking for a trace.
