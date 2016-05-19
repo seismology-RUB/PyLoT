@@ -64,11 +64,6 @@ class SeismicShot(object):
             if traceID == trace.stats.channel:
                 self.traces.remove(trace)
 
-                # for traceID in TraceIDs:
-                #     traces = [trace for trace in self.traces if int(trace.stats.channel) == traceID]
-                #     if len(traces) is not 1:
-                #         self.traces.remove(trace)
-
     def updateTraceList(self):
         '''
         Looks for empty traces, returns a list of deleted traceIDs.
@@ -151,7 +146,6 @@ class SeismicShot(object):
         if not self.getPickFlag(traceID) == 0:
             return self.picks[traceID]['mpp']
         if returnRemoved == True:
-            # print('getPick: Returned removed pick for shot %d, traceID %d' %(self.getShotnumber(), traceID))
             return self.picks[traceID]['mpp']
 
     def getPickIncludeRemoved(self, traceID):
@@ -281,10 +275,7 @@ class SeismicShot(object):
         self.setPick(traceID, None)
         print 'Warning: ambigious or empty traceID: %s' % traceID
 
-        # raise ValueError('ambigious or empty traceID: %s' % traceID)
-
     def pickTraces(self, traceID, folm, HosAic='hos', windowsize = (10, 0)):  ########## input variables ##########
-        # LOCALMAX NOT IMPLEMENTED!
         '''
         Intitiate picking for a trace.
 
@@ -335,11 +326,6 @@ class SeismicShot(object):
 
         if self.picks[traceID]['epp'] < 0:
             self.picks[traceID]['epp']
-            # print('setEarllatepick: Set epp to 0 because it was < 0')
-
-            # TEST OF 1/2 PICKERROR
-            # self.picks[traceID]['spe'] *= 0.5
-            # TEST OF 1/2 PICKERROR
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm):
         '''
@@ -368,12 +354,8 @@ class SeismicShot(object):
         leftb = int(pickwindow[0] / self.getCut()[1] * len(hoscflist))
         rightb = int(pickwindow[1] / self.getCut()[1] * len(hoscflist))
 
-        # threshold = folm * max(hoscflist[leftb : rightb]) # combination of local maximum and threshold
-
-        ### TEST TEST
         threshold = folm * (max(hoscflist[leftb: rightb]) - min(hoscflist[leftb: rightb])) + min(
             hoscflist[leftb: rightb])  # combination of local maximum and threshold
-        ### TEST TEST
 
         m = leftb
 
@@ -411,7 +393,6 @@ class SeismicShot(object):
             raise ValueError("Distance is NaN for traceID %s" % traceID)
 
         return dist
-        # return abs(float(self.getSrcLoc(traceID))-float(self.getRecLoc(traceID)))
 
     def getRecLoc(self, traceID):  ########## input FILENAME ##########
         '''
@@ -432,9 +413,7 @@ class SeismicShot(object):
                 z = coordlist[i].split()[3]
                 return float(x), float(y), float(z)
 
-        # print "WARNING: traceID %s not found" % traceID
         raise ValueError("traceID %s not found" % traceID)
-        # return float(self.getSingleStream(traceID)[0].stats.seg2['RECEIVER_LOCATION'])
 
     def getSrcLoc(self):  ########## input FILENAME ##########
         '''
@@ -476,26 +455,6 @@ class SeismicShot(object):
 
         if len(traceID_list) > 0:
             return traceID_list
-
-            # def setManualPicks(self, traceID, picklist): ########## picklist momentan nicht allgemein, nur testweise benutzt ##########
-            #     '''
-            #     Sets the manual picks for a receiver with the ID == traceID for comparison.
-
-            #     :param: traceID
-            #     :type: int
-
-            #     :param: picklist, list containing the manual picks (mostlikely, earliest, latest).
-            #     :type: list
-            #     '''
-            #     picks = picklist[traceID - 1].split()
-            #     mostlikely = float(picks[1])
-            #     earliest = float(picks[2])
-            #     latest = float(picks[3])
-
-            #     if not self.manualpicks.has_key(traceID):
-            #         self.manualpicks[traceID] = (mostlikely, earliest, latest)
-            # else:
-            #    raise KeyError('MANUAL pick to be set more than once for traceID %s' % traceID)
 
     def setManualPicksFromFile(self, directory='picks'):
         '''
@@ -565,7 +524,6 @@ class SeismicShot(object):
 
         :param: (tnoise, tgap, tsignal), as used in pylot SNR
         '''
-
         from pylot.core.pick.utils import getSNR
 
         tgap = self.getTgap()
@@ -591,7 +549,7 @@ class SeismicShot(object):
 
         return distancearray
 
-    def plot2dttc(self, ax=None):  ########## 2D ##########
+    def plot2dttc(self, ax=None):
         '''
         Function to plot the traveltime curve for automated picks of a shot. 2d only! ATM: X DIRECTION!!
         '''
@@ -617,7 +575,7 @@ class SeismicShot(object):
         ax.text(0.5, 0.9, 'shot: %s' % self.getShotnumber(), transform=ax.transAxes
                 , horizontalalignment='center')
 
-    def plotmanual2dttc(self, ax=None):  ########## 2D ##########
+    def plotmanual2dttc(self, ax=None):
         '''
         Function to plot the traveltime curve for manual picks of a shot. 2D only!
         '''
@@ -643,24 +601,6 @@ class SeismicShot(object):
             y.append(point[1])
         ax.plot(x, y, 'b', label="Manual Picks")
 
-    # def plotpickwindow(self):   ########## 2D ##########
-    #     '''
-    #     Plots the pickwindow of a shot for the 2nd iteration step of picking. 2D only!
-    #     '''
-    #     import matplotlib.pyplot as plt
-    #     plt.interactive('True')
-    #     pickwindowarray_lowerb = []
-    #     pickwindowarray_upperb = []
-
-    #     i = 1
-    #     for traceID in self.pwindow.keys():
-    #         pickwindowarray_lowerb.append(self.pwindow[traceID][0])
-    #         pickwindowarray_upperb.append(self.pwindow[traceID][1])
-    #         i += 1
-
-    #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_lowerb, ':k')
-    #     plt.plot(self.getDistArray4ttcPlot(), pickwindowarray_upperb, ':k')
-
     def plotTrace(self, traceID, plotSNR=True, lw=1):
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -679,7 +619,7 @@ class SeismicShot(object):
         ax.legend()
         ax.text(0.05, 0.9, 'SNR: %s' % snr, transform=ax.transAxes)
 
-    def plot_traces(self, traceID):  ########## 2D, muss noch mehr verbessert werden ##########
+    def plot_traces(self, traceID):
         from matplotlib.widgets import Button
 
         def onclick(event):
