@@ -77,11 +77,11 @@ def make_time_line(line, datetime):
     :type datetime: list
     :return: returns a string to write it into a file.
     """
-    insertion = '{hour:02d}:{min:02d}:{sec:02d}.{mic:03d}'
-    insertion.format(hour=int(datetime[3]),
-                     min=int(datetime[4]),
-                     sec=int(datetime[5]),
-                     mic=int(datetime[6]) * 1e-3)
+    ins_form = '{0:02d}:{1:02d}:{2:02d}.{3:03d}'
+    insertion = ins_form.format(int(datetime[3]),
+                                int(datetime[4]),
+                                int(datetime[5]),
+                                int(datetime[6] * 1e-3))
     newline = line[:16] + insertion + line[28:]
     return newline
 
