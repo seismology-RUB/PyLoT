@@ -9,7 +9,7 @@ from obspy.core import read, Stream, UTCDateTime
 from obspy import read_events, read_inventory
 from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
 
-from pylot.core.io.phases import readPILOTEvent, picks_from_dict
+from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
 from pylot.core.util.errors import FormatError, OverwriteError
 
@@ -411,19 +411,18 @@ class Data(object):
             :raise OverwriteError: raises an OverwriteError if the picks list is
              not empty. The GUI will then ask for a decision.
             """
-            firstonset = None
+
+            #firstonset = find_firstonset(picks)
             if self.getEvtData().picks:
                 raise OverwriteError('Actual picks would be overwritten!')
-            picks, firstonset = picks_from_dict(picks)
+            picks = picks_from_picksdict(picks)
             self.getEvtData().picks = picks
+            # if 'smi:local' in self.getID() and firstonset:
+            #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
+            #     ID = ResourceIdentifier('event/' + fonset_str)
+            #     ID.convertIDToQuakeMLURI(authority_id=authority_id)
+            #     self.getEvtData().resource_id = ID
 
-            if 'smi:local' in self.getID() and firstonset:
-                fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
-                ID = ResourceIdentifier('event/' + fonset_str)
-                ID.convertIDToQuakeMLURI(authority_id=authority_id)
-                self.getEvtData().resource_id = ID
-            else:
-                print('No picks to apply!')
 
         def applyArrivals(arrivals):
             """

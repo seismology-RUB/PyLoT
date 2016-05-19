@@ -4,14 +4,14 @@
 import argparse
 
 from pylot.core.util.version import get_git_version as _getVersionString
-from pylot.core.io.phases import reassess_pilot_event
+from pylot.core.io.phases import reassess_pilot_db
 
 __version__ = _getVersionString()
 __author__ = 'S. Wehling-Benatelli'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='reassess old PILOT event data in terms of consistent '
+        description='reassess old PILOT event data base in terms of consistent '
                     'automatic uncertainty estimation',
         epilog='Script written by {author} belonging to PyLoT version'
                ' {version}\n'.format(author=__author__,
@@ -23,9 +23,6 @@ if __name__ == '__main__':
                                             'most cases PILOT database folder)'
     )
     parser.add_argument(
-        'id', type=str, help='PILOT event identifier'
-    )
-    parser.add_argument(
         '--output', '-o', type=str, help='path to the output directory', dest='output'
     )
     parser.add_argument(
@@ -33,4 +30,4 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    reassess_pilot_event(args.dbroot, args.id, args.output, args.parfile)
+    reassess_pilot_db(args.dbroot, args.output, args.parfile)

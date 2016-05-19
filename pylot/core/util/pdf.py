@@ -256,9 +256,10 @@ class ProbabilityDensityFunction(object):
         '''
 
         rval = 0
-        for n, x in enumerate(self.axis):
+        axis = self.axis - self.x0
+        for n, x in enumerate(axis):
             rval += x * self.data[n]
-        return rval * self.incr
+        return rval * self.incr + self.x0
 
     def standard_deviation(self):
         mu = self.expectation()
