@@ -343,7 +343,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
                                            Pick1=rel_pick,
                                            iplot=None,
-                                           stealthMode=True)
+                                           stealth_mode=True)
             if epp is None or lpp is None:
                 continue
             epp = stime + epp
