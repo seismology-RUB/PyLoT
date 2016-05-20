@@ -36,7 +36,7 @@ class AutoPickParameter(object):
     ==========  ==========  =======================================
     '''
 
-    def __init__(self, fnin=None, fnout=None, **kwargs):
+    def __init__(self, fnin=None, fnout=None, verbosity=0, **kwargs):
         '''
         Initialize parameter object:
 
@@ -60,7 +60,8 @@ class AutoPickParameter(object):
                 parspl = line.split('\t')[:2]
                 parFileCont[parspl[0].strip()] = parspl[1]
         except IndexError as e:
-            self._printParameterError(e)
+            if verbosity > 0:
+                self._printParameterError(e)
             inputFile.seek(0)
             lines = inputFile.readlines()
             for line in lines:

@@ -262,18 +262,23 @@ def picks_from_picksdict(picks):
                 else:
                     pick.polarity = 'undecidable'
             except KeyError as e:
-                print(e.message, 'No polarity information found for %s' % phase)
+                if 'fm' in e.message: # no polarity information found for this phase
+                    pass
+                else:
+                    raise e
             picks_list.append(pick)
     return picks_list
 
 
-def reassess_pilot_db(root_dir, out_dir=None, fn_param=None):
+def reassess_pilot_db(root_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
 
     evt_list = glob.glob1(root_dir,'e????.???.??')
 
     for evt in evt_list:
-        reassess_pilot_event(root_dir, evt, out_dir, fn_param)
+        if verbosity > 0:
+            print('Reassessing event {0}'.format(evt))
+        reassess_pilot_event(root_dir, evt, out_dir, fn_param, verbosity)
 
 
 
@@ -287,15 +292,17 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
         import pylot.core.util.defaults as defaults
         fn_param = defaults.AUTOMATIC_DEFAULTS
 
-    default = AutoPickParameter(fn_param)
+    default = AutoPickParameter(fn_param, verbosity)
 
     search_base = os.path.join(root_dir, event_id)
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
     if not phases_file:
         return
-    #print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
+    if verbosity > 1:
+        print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
     picks_dict = picks_from_pilot(phases_file[0])
-    #print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
+    if verbosity > 0:
+        print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
     datacheck = list()
     info = None
     for station in picks_dict.keys():
@@ -314,7 +321,8 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                 raise ValueError(e.message)
         except Exception as e:
             if 'No file matching file pattern:' in e.message:
-                warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                if verbosity > 0:
+                    warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
                 datacheck.append(fn_pattern + ' (no data)\n')
                 continue
             else:
@@ -348,7 +356,8 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
     if datacheck:
         if info:
-            print(info + ': {0}'.format(search_base))
+            if verbosity > 0:
+                print(info + ': {0}'.format(search_base))
         fncheck = open(os.path.join(search_base, 'datacheck_list'), 'w')
         fncheck.writelines(datacheck)
         fncheck.close()
