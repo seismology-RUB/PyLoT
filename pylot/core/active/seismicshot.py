@@ -338,11 +338,15 @@ class SeismicShot(object):
         
         traceIDs = self.getTraceIDlist()
 
-        picks = worker(self.pickTrace, traceIDs, maxthreads)
+        # picks = worker(self.pickTrace, traceIDs, maxthreads)
 
-        for traceID, pick in picks:
+        # for traceID, pick in picks:
+        #     self.setPick(traceID, pick)
+
+        for traceID in traceIDs:
+            trID, pick = self.pickTrace(traceID)
             self.setPick(traceID, pick)
-        
+
     def pickTrace(self, traceID):
         '''
         Intitiate picking for a trace.
