@@ -216,44 +216,41 @@ class Survey(object):
 
         for shot in self.data.values():
             tstartpick = datetime.now();
+            shot.setVmin(vmin)
+            shot.setVmax(vmax)
             count += 1
-            for traceID in shot.getTraceIDlist():
-                distance = shot.getDistance(traceID)  # receive distance
+            shot.pickParallel(folm)
 
-                pickwin_used = shot.getCut()
-                cutwindow = shot.getCut()
+            # tpicksum += (datetime.now() - tstartpick);
+            # tpick = tpicksum / count
+            # tremain = (tpick * (len(self.getShotDict()) - count))
+            # tend = datetime.now() + tremain
+            # progress = float(count) / float(len(self.getShotDict())) * 100
+            # self._update_progress(shot.getShotname(), tend, progress)
 
-                # for higher distances use a linear vmin/vmax to cut out late/early regions with high noise
-                if distance > 5.:
-                    pwleft = distance / vmax  ################## TEST
-                    pwright = distance / vmin
-                    if pwright > cutwindow[1]:
-                        pwright = cutwindow[1]
-                    pickwin_used = (pwleft, pwright)
+        self.setSNR()
+        self.setEarllate()
 
-                shot.setPickwindow(traceID, pickwin_used)
-                shot.pickTraces(traceID, folm, HosAic, aicwindow)  # picker
-
-                shot.setSNR(traceID)
-                # if shot.getSNR(traceID)[0] < snrthreshold:
-                if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
-                    shot.removePick(traceID)
-
-                # set epp and lpp if SNR > 1 (else earllatepicker cant set values)
-                if shot.getSNR(traceID)[0] > 1:
-                    shot.setEarllatepick(traceID)
-
-            tpicksum += (datetime.now() - tstartpick);
-            tpick = tpicksum / count
-            tremain = (tpick * (len(self.getShotDict()) - count))
-            tend = datetime.now() + tremain
-            progress = float(count) / float(len(self.getShotDict())) * 100
-            self._update_progress(shot.getShotname(), tend, progress)
         print('\npickAllShots: Finished\n')
         ntraces = self.countAllTraces()
         pickedtraces = self.countAllPickedTraces()
         print('Picked %s / %s traces (%d %%)\n'
               % (pickedtraces, ntraces, float(pickedtraces) / float(ntraces) * 100.))
+
+    def setSNR(self):
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                shot.setSNR(traceID)
+                # if shot.getSNR(traceID)[0] < snrthreshold:
+                if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
+                    shot.removePick(traceID)
+
+    def setEarllate(self):
+        for shot in self.data.values():
+            for traceID in shot.getTraceIDlist():
+                # set epp and lpp if SNR > 1 (else earllatepicker cant set values)
+                if shot.getSNR(traceID)[0] > 1:
+                    shot.setEarllatepick(traceID)
 
     def cleanBySPE(self, maxSPE):
         '''
