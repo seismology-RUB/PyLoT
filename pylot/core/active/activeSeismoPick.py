@@ -4,6 +4,7 @@ import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
 
+
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
         '''
@@ -21,13 +22,13 @@ class Survey(object):
         self._sourcefile = sourcefile
         self._obsdir = path
         self._generateSurvey()
-        self._initiateFilenames()
+        self._initiate_fnames()
         if useDefaultParas == True:
             self.setParametersForAllShots()
         self._removeAllEmptyTraces()
         self._updateShots()
 
-    def _initiateFilenames(self):
+    def _initiate_fnames(self):
         for shot in self.data.values():
             shot.setRecfile(self.getPath() + self.getReceiverfile())
             shot.setSourcefile(self.getPath() + self.getSourcefile())
@@ -74,7 +75,7 @@ class Survey(object):
         but were set in the input files.
         '''
         logfile = 'updateShots.out'
-        count = 0;
+        count = 0
         countTraces = 0
         for shot in self.data.values():
             del_traceIDs = shot.updateTraceList()
@@ -93,15 +94,8 @@ class Survey(object):
                    "on removed traces." % (logfile))
             outfile.close()
 
-    def setArtificialPick(self, traceID, pick):
-        '''
-        Sets an artificial pick for a traceID of all shots in the survey object.
-        (Commonly used to generate a travel time t = 0 at the source origin)
-        '''
-        for shot in self.data.values():
-            shot.setPick(traceID, pick)
-
-    def setParametersForAllShots(self, cutwindow=(0, 0.2), tmovwind=0.3, tsignal=0.03, tgap=0.0007):
+    def setParametersForAllShots(self, cutwindow=(0, 0.2), tmovwind=0.3,
+                                 tsignal=0.03, tgap=0.0007):
         if (cutwindow == (0, 0.2) and tmovwind == 0.3 and
                     tsignal == 0.03 and tgap == 0.0007):
             print ("Warning: Standard values used for "
@@ -136,8 +130,10 @@ class Survey(object):
             if not shot in diffs.keys():
                 diffs[shot] = {}
             for traceID in shot.getTraceIDlist():
-                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
-                    diffs[shot][traceID] = shot.getPick(traceID) - shot.getManualPick(traceID)
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(
+                        traceID) == 1:
+                    diffs[shot][traceID] = shot.getPick(
+                        traceID) - shot.getManualPick(traceID)
         return diffs
 
     def plotDiffs(self):
@@ -146,14 +142,15 @@ class Survey(object):
         difference between automatic and manual pick.
         '''
         import matplotlib.pyplot as plt
-        diffs = [];
-        dists = [];
-        mpicks = [];
+        diffs = []
+        dists = []
+        mpicks = []
         picks = []
         diffsDic = self.getDiffsFromManual()
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(
+                        traceID) == 1:
                     dists.append(shot.getDistance(traceID))
                     mpicks.append(shot.getManualPick(traceID))
                     picks.append(shot.getPick(traceID))
@@ -165,13 +162,16 @@ class Survey(object):
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        sc_a = ax.scatter(dists, picks, c='0.5', s=10, edgecolors='none', label=labela, alpha=0.3)
-        sc = ax.scatter(dists, mpicks, c=diffs, s=5, edgecolors='none', label=labelm)
+        sc_a = ax.scatter(dists, picks, c='0.5', s=10, edgecolors='none',
+                          label=labela, alpha=0.3)
+        sc = ax.scatter(dists, mpicks, c=diffs, s=5, edgecolors='none',
+                        label=labelm)
         cbar = plt.colorbar(sc, fraction=0.05)
         cbar.set_label(labelm)
         ax.set_xlabel('Distance [m]')
         ax.set_ylabel('Time [s]')
-        ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes, horizontalalignment='center')
+        ax.text(0.5, 0.95, 'Plot of all MANUAL picks', transform=ax.transAxes,
+                horizontalalignment='center')
         plt.legend()
 
     def plotHist(self, nbins=20, ax=None):
@@ -186,14 +186,18 @@ class Survey(object):
             ax = fig.add_subplot(111)
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
-                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(traceID) == 1:
+                if shot.getPickFlag(traceID) == 1 and shot.getManualPickFlag(
+                        traceID) == 1:
                     diffs.append(self.getDiffsFromManual()[shot][traceID])
-        hist = plt.hist(diffs, nbins, histtype='step', normed=True, stacked=True)
-        plt.title('Histogram of the differences between automatic and manual pick')
+        hist = plt.hist(diffs, nbins, histtype='step', normed=True,
+                        stacked=True)
+        plt.title(
+            'Histogram of the differences between automatic and manual pick')
         plt.xlabel('Difference in time (auto - manual) [s]')
         return diffs
 
-    def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos', aicwindow=(10, 0)):
+    def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos',
+                     aicwindow=(10, 0)):
         '''
         Automatically pick all traces of all shots of the survey.
 
@@ -211,11 +215,11 @@ class Survey(object):
         '''
         from datetime import datetime
         starttime = datetime.now()
-        count = 0;
+        count = 0
         tpicksum = starttime - starttime
 
         for shot in self.data.values():
-            tstartpick = datetime.now();
+            tstartpick = datetime.now()
             shot.setVmin(vmin)
             shot.setVmax(vmax)
             count += 1
@@ -235,7 +239,8 @@ class Survey(object):
         ntraces = self.countAllTraces()
         pickedtraces = self.countAllPickedTraces()
         print('Picked %s / %s traces (%d %%)\n'
-              % (pickedtraces, ntraces, float(pickedtraces) / float(ntraces) * 100.))
+              % (pickedtraces, ntraces,
+                 float(pickedtraces) / float(ntraces) * 100.))
 
     def setSNR(self):
         for shot in self.data.values():
@@ -373,8 +378,11 @@ class Survey(object):
                     pickedTraces += 1
             info_dict[shot.getShotnumber()] = {'numtraces': numtraces,
                                                'picked traces': [pickedTraces,
-                                                                 '%2.2f %%' % (float(pickedTraces) /
-                                                                               float(numtraces) * 100)],
+                                                                 '%2.2f %%' % (
+                                                                 float(
+                                                                     pickedTraces) /
+                                                                 float(
+                                                                     numtraces) * 100)],
                                                'mean SNR': np.mean(snrlist),
                                                'mean distance': np.mean(dist)}
 
@@ -388,10 +396,12 @@ class Survey(object):
             if shot.getShotnumber() == shotnumber:
                 return shot
 
-    def exportFMTOMO(self, directory='FMTOMO_export', sourcefile='input_sf.in', ttFileExtension='.tt'):
+    def exportFMTOMO(self, directory='FMTOMO_export', sourcefile='input_sf.in',
+                     ttFileExtension='.tt'):
         '''
         Exports all picks into a directory as travel time files readable by FMTOMO obsdata.
         '''
+
         def getAngle(distance):
             PI = np.pi
             R = 6371.
@@ -400,18 +410,20 @@ class Survey(object):
 
         count = 0
         fmtomo_factor = 1000  # transforming [m/s] -> [km/s]
-        LatAll = [];
-        LonAll = [];
+        LatAll = []
+        LonAll = []
         DepthAll = []
         srcfile = open(directory + '/' + sourcefile, 'w')
         srcfile.writelines('%10s\n' % len(self.data))  # number of sources
         for shotnumber in self.getShotlist():
             shot = self.getShotForShotnumber(shotnumber)
-            ttfilename = str(shotnumber) + ttFileExtension # filename of travel time file for this shot
+            ttfilename = str(
+                shotnumber) + ttFileExtension  # filename of travel time file for this shot
             (x, y, z) = shot.getSrcLoc()  # getSrcLoc returns (x, y, z)
-            srcfile.writelines('%10s %10s %10s\n' % (getAngle(y), getAngle(x), (-1) * z))  # transform to lat, lon, depth
-            LatAll.append(getAngle(y));
-            LonAll.append(getAngle(x));
+            srcfile.writelines('%10s %10s %10s\n' % (
+            getAngle(y), getAngle(x), (-1) * z))  # transform to lat, lon, depth
+            LatAll.append(getAngle(y))
+            LonAll.append(getAngle(x))
             DepthAll.append((-1) * z)
             srcfile.writelines('%10s\n' % 1)
             srcfile.writelines('%10s %10s %10s\n' % (1, 1, ttfilename))
@@ -424,9 +436,10 @@ class Survey(object):
                     pick = shot.getPick(traceID) * fmtomo_factor
                     delta = shot.getSymmetricPickError(traceID) * fmtomo_factor
                     (x, y, z) = shot.getRecLoc(traceID)
-                    ttfile.writelines('%20s %20s %20s %10s %10s\n' % (getAngle(y), getAngle(x), (-1) * z, pick, delta))
-                    LatAll.append(getAngle(y));
-                    LonAll.append(getAngle(x));
+                    ttfile.writelines('%20s %20s %20s %10s %10s\n' % (
+                    getAngle(y), getAngle(x), (-1) * z, pick, delta))
+                    LatAll.append(getAngle(y))
+                    LonAll.append(getAngle(x))
                     DepthAll.append((-1) * z)
                     count += 1
             ttfile.close()
@@ -486,19 +499,24 @@ class Survey(object):
             if index <= figPerSubplot:
                 ax = fig.add_subplot(rows, columns, index)
                 if mode == '3d':
-                    self.getShot(shotnumber).matshow(ax=ax, colorbar=False, annotations=True, legend=False)
+                    self.getShot(shotnumber).matshow(ax=ax, colorbar=False,
+                                                     annotations=True,
+                                                     legend=False)
                 elif mode == '2d':
                     self.getShot(shotnumber).plot2dttc(ax)
                     self.getShot(shotnumber).plotmanual2dttc(ax)
                 index += 1
             if index > figPerSubplot:
-                fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+                fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0,
+                                    hspace=0)
                 fig = plt.figure()
                 index = 1
 
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0,
+                            hspace=0)
 
-    def plotAllPicks(self, plotRemoved=False, colorByVal='log10SNR', ax=None, cbar=None, refreshPlot=False):
+    def plotAllPicks(self, plotRemoved=False, colorByVal='log10SNR', ax=None,
+                     cbar=None, refreshPlot=False):
         '''
         Plots all picks over the distance between source and receiver. Returns (ax, region).
         Picks can be checked and removed by using region class (pylot.core.active.surveyPlotTools.regions)
@@ -542,7 +560,8 @@ class Survey(object):
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if plotRemoved == False:
-                    if shot.getPickFlag(traceID) is not 0 or plotRemoved == True:
+                    if shot.getPickFlag(
+                            traceID) is not 0 or plotRemoved == True:
                         dist.append(shot.getDistance(traceID))
                         pick.append(shot.getPick(traceID))
                         snrlog.append(math.log10(shot.getSNR(traceID)[0]))
@@ -554,12 +573,15 @@ class Survey(object):
                  'spe': spe}
         self.color = color
         if refreshPlot is False:
-            ax, cbar = self.createPlot(dist, pick, color[colorByVal], label='%s' % colorByVal)
+            ax, cbar = self.createPlot(dist, pick, color[colorByVal],
+                                       label='%s' % colorByVal)
             region = regions(ax, cbar, self)
             ax.legend()
             return (ax, region)
         if refreshPlot is True:
-            ax, cbar = self.createPlot(dist, pick, color[colorByVal], label='%s' % colorByVal, ax=ax, cbar=cbar)
+            ax, cbar = self.createPlot(dist, pick, color[colorByVal],
+                                       label='%s' % colorByVal, ax=ax,
+                                       cbar=cbar)
             ax.legend()
             return ax
 
@@ -574,27 +596,33 @@ class Survey(object):
             print('Generating new plot...')
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5, edgecolors='none', label=label)
+            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
+                            edgecolors='none', label=label)
             cbar = plt.colorbar(sc, fraction=0.05)
             cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')
-            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes, horizontalalignment='center')
+            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes,
+                    horizontalalignment='center')
         else:
-            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5, edgecolors='none', label=label)
+            sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
+                            edgecolors='none', label=label)
             cbar = plt.colorbar(sc, cax=cbar.ax)
             cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')
-            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes, horizontalalignment='center')
+            ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes,
+                    horizontalalignment='center')
         return (ax, cbar)
 
     def _update_progress(self, shotname, tend, progress):
-        sys.stdout.write('Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r' % (shotname,
-                                                                                     tend.hour,
-                                                                                     tend.minute,
-                                                                                     tend.second,
-                                                                                     progress))
+        sys.stdout.write(
+            'Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r' % (
+            shotname,
+            tend.hour,
+            tend.minute,
+            tend.second,
+            progress))
         sys.stdout.flush()
 
     def saveSurvey(self, filename='survey.pickle'):

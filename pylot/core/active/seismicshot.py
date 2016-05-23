@@ -11,6 +11,7 @@ from pylot.core.pick.charfuns import AICcf
 from pylot.core.pick.utils import getSNR
 from pylot.core.pick.utils import earllatepicker
 import matplotlib.pyplot as plt
+import warnings
 
 plt.interactive('True')
 
@@ -322,7 +323,7 @@ class SeismicShot(object):
         if len(traces) == 1:
             return Stream(traces)
         self.setPick(traceID, None)
-        print 'Warning: ambigious or empty traceID: %s' % traceID
+        warnings.warn('ambigious or empty traceID: %s' % traceID)
 
     def pickParallel(self, folm, method = 'hos', aicwindow = (10, 0)):
         import multiprocessing
@@ -336,7 +337,11 @@ class SeismicShot(object):
         
         traceIDs = self.getTraceIDlist()
 
-        pool.map(self.pickTrace, traceIDs)
+        picks = pool.map(self.pickTrace, traceIDs)
+
+        for traceID, pick in picks:
+            self.setPick(traceID, pick)
+
         
     def pickTrace(self, traceID):
         '''
@@ -373,7 +378,7 @@ class SeismicShot(object):
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
 
-        self.setPick(traceID, setHosAic[self.getMethod()])
+        return traceID, setHosAic[self.getMethod()]
 
     def setEarllatepick(self, traceID, nfac=1.5):
         tgap = self.getTgap()
