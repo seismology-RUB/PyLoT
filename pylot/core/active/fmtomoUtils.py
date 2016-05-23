@@ -430,7 +430,7 @@ class Tomo3d(object):
         a list of arrival times.
         '''
         directory = self.getProcDir(procID)
-        arrfile = open(os.path.join(directory, self.ttime), 'r')
+        arrfile = open(os.path.join(directory, self.ttim), 'r')
         sourceIDs = self.srcIDs4Kernel(procID)
         
         arrivals = []
@@ -493,7 +493,7 @@ class Tomo3d(object):
         Writes a source input file for a process with ID = procID.
         '''
         directory = self.getProcDir(procID)
-        srcfile = open(os.path,join(directory, self.csl), 'w')
+        srcfile = open(os.path.join(directory, self.csl), 'w')
         sourceIDs = self.srcIDs4Kernel(procID)
 
         srcfile.write('%s\n'%len(sourceIDs))
