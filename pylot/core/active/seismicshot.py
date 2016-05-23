@@ -327,6 +327,7 @@ class SeismicShot(object):
 
     def pickParallel(self, folm, method = 'hos', aicwindow = (10, 0)):
         import multiprocessing
+        from pylot.core.util.utils import worker
 
         self.setFolm(folm)
         self.setMethod(method)
@@ -337,11 +338,10 @@ class SeismicShot(object):
         
         traceIDs = self.getTraceIDlist()
 
-        picks = pool.map(self.pickTrace, traceIDs)
+        picks = worker(self.pickTrace, traceIDs, maxthreads)
 
         for traceID, pick in picks:
             self.setPick(traceID, pick)
-
         
     def pickTrace(self, traceID):
         '''
