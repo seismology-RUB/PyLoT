@@ -6,15 +6,19 @@ import datetime
 import numpy as np
 
 class Tomo3d(object):
-    def __init__(self, citer = 0, overwrite = False):
+    def __init__(self, fmtomodir, simuldir = 'fmtomo_simulation', citer = 0, overwrite = False):
         '''
         Class build from FMTOMO script tomo3d. Can be used to run several instances of FMM code in parallel.
 
         :param: citer, current iteration (default = 0: start new model)
         :type: integer
         '''
+        self.simuldir = simuldir
         self.setCWD()
+        self.buildFmtomodir(fmtomodir)
+        self.buildObsdata()
         self.defParas()
+        self.copyRef()
         self.citer = citer       # current iteration
         self.sources = self.readSrcFile()
         self.traces = self.readTraces()
@@ -24,6 +28,28 @@ class Tomo3d(object):
     def defParas(self):
         self.defFMMParas()
         self.defInvParas()
+
+    def buildFmtomodir(self, directory):
+        tomo_files = ['fm3d',
+        'frechgen',
+        'frechgen.in',
+        'invert3d',
+        'invert3d.in',
+        'mode_set.in',
+        'obsdata',
+        'obsdata.in',
+        'residuals',
+        'residuals.in',
+        'tomo3d',
+        'tomo3d.in']
+
+        for name in tomo_files:
+            filename = os.path.join(directory, name)
+            os.system('cp %s %s'%(filename, self.cwd))
+
+    def buildObsdata(self):
+        os.system('obsdata')
+        os.system('mv sources.in sourcesref.in')
 
     def defFMMParas(self):
         '''
@@ -89,8 +115,9 @@ class Tomo3d(object):
         Default: pwd
         '''
         if directory == None:
-            directory = subprocess.check_output(['pwd'])[0:-1]
+            directory = os.path.join(os.getcwd(), self.simuldir)
 
+        os.chdir(directory)
         self.cwd = directory
         print('Working directory is: %s'%self.cwd)
 
