@@ -450,6 +450,12 @@ def runProgram(cmd, parameter=None):
     output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
                                      shell=True)
 
+def worker(func, input, cores):
+    from multiprocessing import Pool
+    pool = Pool(cores)
+    result = pool.map(func, input)
+    pool.close()
+    return result
 
 if __name__ == "__main__":
     import doctest
