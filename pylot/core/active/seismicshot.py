@@ -78,6 +78,12 @@ class SeismicShot(object):
     def setParameters(self, name, value):
         self.paras[name] = value
 
+    def setVmin(self, vmin):
+        self.setParameters('vmin', vmin)
+
+    def setVmax(self, vmax):
+        self.setParameters('vmax', vmax)
+
     def setCut(self, cut):
         self.setParameters('cut', cut)
 
@@ -101,6 +107,43 @@ class SeismicShot(object):
 
     def setSourcefile(self, sourcefile):
         self.setParameters('sourcefile', sourcefile)
+
+    def setMethod(self, method):
+        self.setParameters('method', method)
+
+    def setAicwindow(self, aicwindow):
+        self.setParameters('aicwindow', aicwindow)
+
+    def setFolm(self, folm):
+        self.setParameters('folm', folm)
+
+    def setDynPickwindow(self, traceID, cutdist = 5.):
+        distance = self.getDistance(traceID)  # receive distance
+        
+        vmin = self.getVmin()
+        vmax = self.getVmax()
+
+        pickwin_used = self.getCut()
+        cutwindow = self.getCut()
+        
+        # for higher distances use a linear vmin/vmax to cut out late/early regions with high noise
+        if distance > cutdist:
+            pwleft = distance / vmax
+            pwright = distance / vmin
+            if pwright > cutwindow[1]:
+                pwright = cutwindow[1]
+            pickwin_used = (pwleft, pwright)
+
+        self.setPickwindow(traceID, pickwin_used)
+
+    def getMethod(self):
+        return self.paras['method']
+
+    def getAicwindow(self):
+        return self.paras['aicwindow']
+
+    def getFolm(self):
+        return self.paras['folm']
 
     def getParas(self):
         return self.paras
@@ -131,6 +174,12 @@ class SeismicShot(object):
 
     def getSourcefile(self):
         return self.paras['sourcefile']
+
+    def getVmin(self):
+        return self.paras['vmin']
+
+    def getVmax(self):
+        return self.paras['vmax']
 
     def getManualPick(self, traceID):
         if not self.getManualPickFlag(traceID) == 0:
@@ -275,7 +324,21 @@ class SeismicShot(object):
         self.setPick(traceID, None)
         print 'Warning: ambigious or empty traceID: %s' % traceID
 
-    def pickTraces(self, traceID, folm, HosAic='hos', windowsize = (10, 0)):  ########## input variables ##########
+    def pickParallel(self, folm, method = 'hos', aicwindow = (10, 0)):
+        import multiprocessing
+
+        self.setFolm(folm)
+        self.setMethod(method)
+        self.setAicwindow(aicwindow)
+
+        maxthreads = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(maxthreads)
+        
+        traceIDs = self.getTraceIDlist()
+
+        pool.map(self.pickTrace, traceIDs)
+        
+    def pickTrace(self, traceID):
         '''
         Intitiate picking for a trace.
 
@@ -300,17 +363,17 @@ class SeismicShot(object):
         :param: HosAic, get hos or aic pick (can be 'hos'(default) or 'aic')
         :type: 'string'
         '''
+        self.setDynPickwindow(traceID)
+        
         hoscf = self.getHOScf(traceID)  ### determination of both, HOS and AIC (need to change threshold-picker) ###
         aiccf = self.getAICcf(traceID)
 
-        self.folm = folm
-
         self.timeArray[traceID] = hoscf.getTimeArray()
-        aiccftime, hoscftime = self.threshold(hoscf, aiccf, windowsize, self.getPickwindow(traceID), folm)
+        aiccftime, hoscftime = self.threshold(hoscf, aiccf, self.getAicwindow(), self.getPickwindow(traceID), self.getFolm())
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
 
-        self.setPick(traceID, setHosAic[HosAic])
+        self.setPick(traceID, setHosAic[self.getMethod()])
 
     def setEarllatepick(self, traceID, nfac=1.5):
         tgap = self.getTgap()
