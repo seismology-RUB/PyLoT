@@ -280,7 +280,7 @@ class Tomo3d(object):
         '''
         Wipes a certain directory.
         '''
-        print('Wiping directory %s...'%directory)
+        #print('Wiping directory %s...'%directory)
         for filename in os.listdir(directory):
             filenp = os.path.join(directory, filename)
             os.remove(filenp)

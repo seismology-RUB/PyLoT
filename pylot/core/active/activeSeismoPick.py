@@ -3,7 +3,11 @@ import sys
 import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
+import copy_reg
+import types
+from pylot.core.util.utils import worker, _pickle_method
 
+copy_reg.pickle(types.MethodType, _pickle_method)
 
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
@@ -196,6 +200,12 @@ class Survey(object):
         plt.xlabel('Difference in time (auto - manual) [s]')
         return diffs
 
+    def pickShot(self, shTr):
+        shotnumber, traceID = shTr
+        shot = self.getShotForShotnumber(shotnumber)
+        traceID, pick = shot.pickTrace(traceID)
+        return shotnumber, traceID, pick
+
     def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos',
                      aicwindow=(10, 0)):
         '''
@@ -218,20 +228,30 @@ class Survey(object):
         count = 0
         tpicksum = starttime - starttime
 
+        shTr = []
+
         for shot in self.data.values():
             tstartpick = datetime.now()
             shot.setVmin(vmin)
             shot.setVmax(vmax)
             count += 1
-            shot.pickParallel(folm)
+            #shot.pickParallel(folm)
+            shot.setPickParameters(folm = folm, method = HosAic, aicwindow = aicwindow)
+            for traceID in shot.getTraceIDlist():
+                shTr.append((shot.getShotnumber(), traceID))
 
+        picks = worker(self.pickShot, shTr, async = True)
+
+        for shotnumber, traceID, pick in picks.get():
+            self.getShotForShotnumber(shotnumber).setPick(traceID, pick)
+            
             # tpicksum += (datetime.now() - tstartpick);
             # tpick = tpicksum / count
             # tremain = (tpick * (len(self.getShotDict()) - count))
             # tend = datetime.now() + tremain
             # progress = float(count) / float(len(self.getShotDict())) * 100
             # self._update_progress(shot.getShotname(), tend, progress)
-
+        
         self.setSNR()
         self.setEarllate()
 

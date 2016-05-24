@@ -12,9 +12,13 @@ from pylot.core.pick.utils import getSNR
 from pylot.core.pick.utils import earllatepicker
 import matplotlib.pyplot as plt
 import warnings
+import copy_reg
+import types
+from pylot.core.util.utils import worker, _pickle_method
+
+copy_reg.pickle(types.MethodType, _pickle_method)
 
 plt.interactive('True')
-
 
 class SeismicShot(object):
     '''
@@ -325,27 +329,24 @@ class SeismicShot(object):
         self.setPick(traceID, None)
         warnings.warn('ambigious or empty traceID: %s' % traceID)
 
-    def pickParallel(self, folm, method = 'hos', aicwindow = (10, 0)):
-        import multiprocessing
-        from pylot.core.util.utils import worker
-
+    def setPickParameters(self, folm, method = 'hos', aicwindow = (10, 0)):
         self.setFolm(folm)
         self.setMethod(method)
         self.setAicwindow(aicwindow)
 
-        maxthreads = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(maxthreads)
-        
-        traceIDs = self.getTraceIDlist()
+    # def pickParallel(self):
+    #     traceIDs = self.getTraceIDlist()
+    #     picks = []
+    #     #picks = worker(self.pickTrace, traceIDs)
 
-        # picks = worker(self.pickTrace, traceIDs, maxthreads)
+    #     # for traceID, pick in picks:
+    #     #     self.setPick(traceID, pick)
 
-        # for traceID, pick in picks:
-        #     self.setPick(traceID, pick)
-
-        for traceID in traceIDs:
-            trID, pick = self.pickTrace(traceID)
-            self.setPick(traceID, pick)
+    #     for traceID in traceIDs:
+    #         trID, pick = self.pickTrace(traceID)
+    #         picks.append([trID, pick])
+    #         #self.setPick(traceID, pick)
+    #     return picks
 
     def pickTrace(self, traceID):
         '''

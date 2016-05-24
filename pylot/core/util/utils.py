@@ -10,6 +10,25 @@ import numpy as np
 from obspy.core import UTCDateTime
 import obspy.core.event as ope
 
+def _pickle_method(m):
+    if m.im_self is None:
+        return getattr, (m.im_class, m.im_func.func_name)
+    else:
+        return getattr, (m.im_self, m.im_func.func_name)
+
+def worker(func, input, cores = 'max', async = False):
+    import multiprocessing
+
+    if cores == 'max':
+        cores = multiprocessing.cpu_count()
+
+    pool = multiprocessing.Pool(cores)
+    if async == True:
+        result = pool.map_async(func, input)
+    else:
+        result = pool.map(func, input)
+    pool.close()
+    return result
 
 def createAmplitude(pickID, amp, unit, category, cinfo):
     '''
@@ -449,13 +468,6 @@ def runProgram(cmd, parameter=None):
 
     output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
                                      shell=True)
-
-def worker(func, input, cores):
-    from multiprocessing import Pool
-    pool = Pool(cores)
-    result = pool.map(func, input)
-    pool.close()
-    return result
 
 if __name__ == "__main__":
     import doctest
