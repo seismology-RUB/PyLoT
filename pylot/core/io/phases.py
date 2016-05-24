@@ -270,19 +270,20 @@ def picks_from_picksdict(picks):
     return picks_list
 
 
-def reassess_pilot_db(root_dir, out_dir=None, fn_param=None, verbosity=0):
+def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
 
-    evt_list = glob.glob1(root_dir,'e????.???.??')
+    db_root = os.path.join(root_dir, db_dir)
+    evt_list = glob.glob1(db_root,'e????.???.??')
 
     for evt in evt_list:
         if verbosity > 0:
             print('Reassessing event {0}'.format(evt))
-        reassess_pilot_event(root_dir, evt, out_dir, fn_param, verbosity)
+        reassess_pilot_event(root_dir, db_dir, evt, out_dir, fn_param, verbosity)
 
 
 
-def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
+def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
     from obspy import read
 
     from pylot.core.io.inputs import AutoPickParameter
@@ -294,7 +295,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
 
     default = AutoPickParameter(fn_param, verbosity)
 
-    search_base = os.path.join(root_dir, event_id)
+    search_base = os.path.join(root_dir, db_dir, event_id)
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
     if not phases_file:
         return
@@ -335,7 +336,9 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                 continue
             sel_st = select_for_phase(st, phase)
             if not sel_st:
-                warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                msg = 'no waveform data found for station {station}'.format(station=station)
+                warnings.warn(msg, RuntimeWarning)
+                continue
             stime, etime = getGlobalTimes(sel_st)
             rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
@@ -367,8 +370,11 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
     evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
     if not out_dir:
-        fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(root_dir, db_dir, event_id, '{0}.'.format(event_id))
     else:
+        out_dir = os.path.join(out_dir, db_dir)
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir)
         fnout_prefix = os.path.join(out_dir, '{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
