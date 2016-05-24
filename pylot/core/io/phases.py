@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import glob
-import warnings
-import scipy.io as sio
 import obspy.core.event as ope
+import os
+import scipy.io as sio
+import warnings
 from obspy.core import UTCDateTime
 
+from pylot.core.io.location import create_arrival, create_event, \
+    create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, createPick, createArrival, \
-    createEvent, createOrigin, createMagnitude, getGlobalTimes
+from pylot.core.util.utils import getOwner, getGlobalTimes
+
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -75,14 +77,14 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
 
         stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = createEvent(eventDate, loccinfo, etype='earthquake', resID=eventNum,
-                            authority_id=authority_id)
+        event = create_event(eventDate, loccinfo, etype='earthquake', resID=eventNum,
+                             authority_id=authority_id)
 
         lat = float(loc['LAT'])
         lon = float(loc['LON'])
         dep = float(loc['DEP'])
 
-        origin = createOrigin(eventDate, loccinfo, lat, lon, dep)
+        origin = create_origin(eventDate, loccinfo, lat, lon, dep)
         for n, pick in enumerate(phases['Ptime']):
             if pick[0] > 0:
                 kwargs = {'year': int(pick[0]),
@@ -115,15 +117,15 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
                         wffn = os.path.join(sdir, '{0}*{1}*'.format(
                             stations[n].strip(), '[ne]'))
                 print(wffn)
-                pick = createPick(eventDate, np, picktime, eventNum, pickcinfo,
-                                  phase, stations[n], wffn, authority_id)
+                pick = create_pick(eventDate, np, picktime, eventNum, pickcinfo,
+                                   phase, stations[n], wffn, authority_id)
                 event.picks.append(pick)
                 pickID = pick.get('id')
-                arrival = createArrival(pickID, pickcinfo, phase)
+                arrival = create_arrival(pickID, pickcinfo, phase)
                 origin.arrivals.append(arrival)
                 np += 1
 
-        magnitude = createMagnitude(origin.get('id'), loccinfo)
+        magnitude = create_magnitude(origin.get('id'), loccinfo)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
 
