@@ -45,7 +45,8 @@ class Tomo3d(object):
 
         for name in tomo_files:
             filename = os.path.join(directory, name)
-            os.system('cp %s %s'%(filename, self.cwd))
+            linkname = os.path.join(self.cwd, name)
+            os.system('ln -s %s %s'%(filename, linkname))
 
     def buildObsdata(self):
         os.system('obsdata')
