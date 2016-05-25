@@ -51,7 +51,8 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.utils import fnConstructor, createEvent, getLogin, \
-    createCreationInfo, getGlobalTimes
+    getGlobalTimes
+from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
 from pylot.core.util.structure import DATASTRUCTURE
@@ -829,8 +830,8 @@ class MainWindow(QMainWindow):
             new = NewEventDlg()
             if new.exec_() != QDialog.Rejected:
                 evtpar = new.getValues()
-                cinfo = createCreationInfo(agency_id=self.agency)
-                event = createEvent(evtpar['origintime'], cinfo)
+                cinfo = create_creation_info(agency_id=self.agency)
+                event = create_event(evtpar['origintime'], cinfo)
                 self.data = Data(self, evtdata=event)
                 self.setDirty(True)
 

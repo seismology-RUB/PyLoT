@@ -395,7 +395,7 @@ class SeismicShot(object):
          self.picks[traceID]['spe']) = earllatepicker(self.getSingleStream(traceID),
                                                       nfac, (tnoise, tgap, tsignal),
                                                       self.getPickIncludeRemoved(traceID),
-                                                      stealthMode=True)
+                                                      stealth_mode=True)
 
         if self.picks[traceID]['epp'] < 0:
             self.picks[traceID]['epp']

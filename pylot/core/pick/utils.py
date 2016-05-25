@@ -16,7 +16,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -45,8 +45,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
     LPick = None
     EPick = None
     PickError = None
-    if stealthMode is False:
-        print 'earllatepicker: Get earliest and latest possible pick relative to most likely pick ...'
+    if stealth_mode is False:
+        print('earllatepicker: Get earliest and latest possible pick'
+              ' relative to most likely pick ...')
 
     x = X[0].data
     t = np.arange(0, X[0].stats.npts / X[0].stats.sampling_rate,
@@ -62,8 +63,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
     ilup, = np.where(x[isignal] > nlevel)
     ildown, = np.where(x[isignal] < -nlevel)
     if not ilup.size and not ildown.size:
-        print ("earllatepicker: Signal lower than noise level!")
-        print ("Skip this trace!")
+        if stealth_mode is False:
+            print ("earllatepicker: Signal lower than noise level!\n"
+                   "Skip this trace!")
         return LPick, EPick, PickError
     il = min(np.min(ilup) if ilup.size else float('inf'),
              np.min(ildown) if ildown.size else float('inf'))
@@ -78,7 +80,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
     # if EPick stays NaN the signal window size will be doubled
     while np.isnan(EPick):
         if count > 0:
-            if stealthMode is False:
+            if stealth_mode is False:
                 print("\nearllatepicker: Doubled signal window size %s time(s) "
                       "because of NaN for earliest pick." % count)
             isigDoubleWinStart = pis[-1] + 1
@@ -87,7 +89,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealthMode=False):
             if (isigDoubleWinStart + len(pis)) < X[0].data.size:
                 pis = np.concatenate((pis, isignalDoubleWin))
             else:
-                print("Could not double signal window. Index out of bounds.")
+                if stealth_mode is False:
+                    print("Could not double signal window. Index out of bounds.")
                 break
         count += 1
         # determine all zero crossings in signal window (demeaned)

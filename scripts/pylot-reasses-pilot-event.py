@@ -19,8 +19,10 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        'dbroot', type=str, help='specifies the root directory (in '
-                                            'most cases PILOT database folder)'
+        'root', type=str, help='specifies the root directory'
+    )
+    parser.add_argument(
+        'db', type=str, help='specifies the database name'
     )
     parser.add_argument(
         'id', type=str, help='PILOT event identifier'
@@ -33,4 +35,4 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    reassess_pilot_event(args.dbroot, args.id, args.output, args.parfile)
+    reassess_pilot_event(args.root, args.db, args.id, args.output, args.parfile)

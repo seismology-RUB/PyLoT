@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import glob
-import warnings
-import scipy.io as sio
 import obspy.core.event as ope
+import os
+import scipy.io as sio
+import warnings
 from obspy.core import UTCDateTime
 
+from pylot.core.io.location import create_arrival, create_event, \
+    create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, createPick, createArrival, \
-    createEvent, createOrigin, createMagnitude, getGlobalTimes
+from pylot.core.util.utils import getOwner, getGlobalTimes
+
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
     """
@@ -75,14 +77,14 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
 
         stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = createEvent(eventDate, loccinfo, etype='earthquake', resID=eventNum,
-                            authority_id=authority_id)
+        event = create_event(eventDate, loccinfo, etype='earthquake', resID=eventNum,
+                             authority_id=authority_id)
 
         lat = float(loc['LAT'])
         lon = float(loc['LON'])
         dep = float(loc['DEP'])
 
-        origin = createOrigin(eventDate, loccinfo, lat, lon, dep)
+        origin = create_origin(eventDate, loccinfo, lat, lon, dep)
         for n, pick in enumerate(phases['Ptime']):
             if pick[0] > 0:
                 kwargs = {'year': int(pick[0]),
@@ -115,15 +117,15 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
                         wffn = os.path.join(sdir, '{0}*{1}*'.format(
                             stations[n].strip(), '[ne]'))
                 print(wffn)
-                pick = createPick(eventDate, np, picktime, eventNum, pickcinfo,
-                                  phase, stations[n], wffn, authority_id)
+                pick = create_pick(eventDate, np, picktime, eventNum, pickcinfo,
+                                   phase, stations[n], wffn, authority_id)
                 event.picks.append(pick)
                 pickID = pick.get('id')
-                arrival = createArrival(pickID, pickcinfo, phase)
+                arrival = create_arrival(pickID, pickcinfo, phase)
                 origin.arrivals.append(arrival)
                 np += 1
 
-        magnitude = createMagnitude(origin.get('id'), loccinfo)
+        magnitude = create_magnitude(origin.get('id'), loccinfo)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
 
@@ -232,7 +234,7 @@ def picksdict_from_picks(evt):
 def picks_from_picksdict(picks):
     picks_list = list()
     for station, onsets in picks.items():
-        print('Reading picks on station %s' % station)
+        #print('Reading picks on station %s' % station)
         for label, phase in onsets.items():
             if not isinstance(phase, dict) or len(phase) < 3:
                 continue
@@ -262,21 +264,28 @@ def picks_from_picksdict(picks):
                 else:
                     pick.polarity = 'undecidable'
             except KeyError as e:
-                print(e.message, 'No polarity information found for %s' % phase)
+                if 'fm' in e.message: # no polarity information found for this phase
+                    pass
+                else:
+                    raise e
             picks_list.append(pick)
     return picks_list
 
 
-def reassess_pilot_db(root_dir, out_dir=None, fn_param=None):
+def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
 
-    evt_list = glob.glob1(root_dir,'e????.???.??')
+    db_root = os.path.join(root_dir, db_dir)
+    evt_list = glob.glob1(db_root,'e????.???.??')
 
     for evt in evt_list:
-        reassess_pilot_event(root_dir, evt, out_dir, fn_param)
+        if verbosity > 0:
+            print('Reassessing event {0}'.format(evt))
+        reassess_pilot_event(root_dir, db_dir, evt, out_dir, fn_param, verbosity)
 
 
-def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
+
+def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
     from obspy import read
 
     from pylot.core.io.inputs import AutoPickParameter
@@ -286,15 +295,19 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
         import pylot.core.util.defaults as defaults
         fn_param = defaults.AUTOMATIC_DEFAULTS
 
-    default = AutoPickParameter(fn_param)
+    default = AutoPickParameter(fn_param, verbosity)
 
-    search_base = os.path.join(root_dir, event_id)
+    search_base = os.path.join(root_dir, db_dir, event_id)
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
     if not phases_file:
         return
-    print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
+    if verbosity > 1:
+        print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
     picks_dict = picks_from_pilot(phases_file[0])
-    print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
+    if verbosity > 0:
+        print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
+    datacheck = list()
+    info = None
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
@@ -302,6 +315,21 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
         except TypeError as e:
             print(e.message)
             st = read(fn_pattern)
+        except ValueError as e:
+            if e.message == 'second must be in 0..59':
+                info = 'A known Error was raised. Please find the list of corrupted files and double-check these files.'
+                datacheck.append(fn_pattern + ' (time info)\n')
+                continue
+            else:
+                raise ValueError(e.message)
+        except Exception as e:
+            if 'No file matching file pattern:' in e.message:
+                if verbosity > 0:
+                    warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                datacheck.append(fn_pattern + ' (no data)\n')
+                continue
+            else:
+                raise e
         for phase in picks_dict[station].keys():
             try:
                 mpp = picks_dict[station][phase]['mpp']
@@ -310,10 +338,9 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                 continue
             sel_st = select_for_phase(st, phase)
             if not sel_st:
-                raise warnings.formatwarning(
-                    'no waveform data found for station {station}'.format(
-                        station=station), category=RuntimeWarning)
-            print(sel_st)
+                msg = 'no waveform data found for station {station}'.format(station=station)
+                warnings.warn(msg, RuntimeWarning)
+                continue
             stime, etime = getGlobalTimes(sel_st)
             rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
@@ -321,7 +348,7 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
                                            Pick1=rel_pick,
                                            iplot=None,
-                                           )
+                                           stealth_mode=True)
             if epp is None or lpp is None:
                 continue
             epp = stime + epp
@@ -332,13 +359,24 @@ def reassess_pilot_event(root_dir, event_id, out_dir=None, fn_param=None, verbos
             if mpp - epp < min_diff:
                 epp = mpp - min_diff
             picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
+    if datacheck:
+        if info:
+            if verbosity > 0:
+                print(info + ': {0}'.format(search_base))
+        fncheck = open(os.path.join(search_base, 'datacheck_list'), 'w')
+        fncheck.writelines(datacheck)
+        fncheck.close()
+        del datacheck
     # create Event object for export
     evt = ope.Event(resource_id=event_id)
     evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
     if not out_dir:
-        fnout_prefix = os.path.join(root_dir, event_id, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(root_dir, db_dir, event_id, '{0}.'.format(event_id))
     else:
+        out_dir = os.path.join(out_dir, db_dir)
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir)
         fnout_prefix = os.path.join(out_dir, '{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')

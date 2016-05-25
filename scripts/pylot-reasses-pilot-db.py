@@ -19,15 +19,23 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        'dbroot', type=str, help='specifies the root directory (in '
-                                            'most cases PILOT database folder)'
+        'root', type=str, help='specifies the root directory'
     )
     parser.add_argument(
-        '--output', '-o', type=str, help='path to the output directory', dest='output'
+        'db', type=str, help='specifies the database name'
     )
     parser.add_argument(
-        '--parameterfile', '-p', type=str, help='full path to the parameterfile', dest='parfile'
+        '--output', '-o', type=str, help='path to the output directory',
+        dest='output'
+    )
+    parser.add_argument(
+        '--parameterfile', '-p', type=str,
+        help='full path to the parameterfile', dest='parfile'
+    )
+    parser.add_argument(
+        '--verbosity', '-v', action='count', help='increase output verbosity',
+        default=0, dest='verbosity'
     )
 
     args = parser.parse_args()
-    reassess_pilot_db(args.dbroot, args.output, args.parfile)
+    reassess_pilot_db(args.root, args.db, args.output, args.parfile, args.verbosity)
