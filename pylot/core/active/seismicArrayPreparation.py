@@ -401,7 +401,7 @@ class SeisArray(object):
                                      customgrid='mygrid.in', writeVTK=True):
         '''
         Generate FMTOMO input files from the SeisArray dimensions.
-        Generates: vgrids.in, interfaces.in, propgrid.in
+        Generates: vgridsref.in, interfacesref.in, propgrid.in
 
         :param: nPointsPropgrid, number of points in each direction of the propagation grid (z, y, x)
         :type: tuple
@@ -473,10 +473,10 @@ class SeisArray(object):
         outfile.close()
 
     def generateInterfaces(self, nTheta, nPhi, depthmax, cushionfactor=0.1,
-                           outfilename='interfaces.in', method='linear',
+                           outfilename='interfacesref.in', method='linear',
                            returnInterfaces=False):
         '''
-        Create an interfaces.in file for FMTOMO from the SeisArray boundaries.
+        Create an interfacesref.in file for FMTOMO from the SeisArray boundaries.
         :param: nTheta, number of points in Theta
         type: int
 
@@ -610,7 +610,7 @@ class SeisArray(object):
 
     def generateVgrid(self, nTheta, nPhi, nR, Rbt, thetaSN=None,
                       phiWE=None, cushionfactor=0.1,
-                      outfilename='vgrids.in', method='linear',
+                      outfilename='vgridsref.in', method='linear',
                       infilename='mygrid.in', returnTopo=False):
         '''
         Generate a velocity grid for fmtomo regarding topography with a linear gradient starting at the topography with 0.34 [km/s].

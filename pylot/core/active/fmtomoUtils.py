@@ -6,23 +6,19 @@ import datetime
 import numpy as np
 
 class Tomo3d(object):
-    def __init__(self, nproc, iterations, citer = 0, overwrite = False):
+    def __init__(self, fmtomodir, simuldir = 'fmtomo_simulation', citer = 0, overwrite = False):
         '''
         Class build from FMTOMO script tomo3d. Can be used to run several instances of FMM code in parallel.
-        
-        :param: nproc, number of parallel processes
-        :type: integer
-
-        :param: iterations, number of iterations
-        :type: integer
 
         :param: citer, current iteration (default = 0: start new model)
         :type: integer
         '''
+        self.simuldir = simuldir
         self.setCWD()
+        self.buildFmtomodir(fmtomodir)
+        self.buildObsdata()
         self.defParas()
-        self.nproc = nproc
-        self.iter = iterations   # number of iterations
+        self.copyRef()
         self.citer = citer       # current iteration
         self.sources = self.readSrcFile()
         self.traces = self.readTraces()
@@ -33,22 +29,61 @@ class Tomo3d(object):
         self.defFMMParas()
         self.defInvParas()
 
+    def buildFmtomodir(self, directory):
+        tomo_files = ['fm3d',
+        'frechgen',
+        'frechgen.in',
+        'invert3d',
+        'invert3d.in',
+        'mode_set.in',
+        'obsdata',
+        'obsdata.in',
+        'residuals',
+        'residuals.in',
+        'tomo3d',
+        'tomo3d.in']
+
+        for name in tomo_files:
+            filename = os.path.join(directory, name)
+            linkname = os.path.join(self.cwd, name)
+            os.system('ln -s %s %s'%(filename, linkname))
+
+    def buildObsdata(self):
+        os.system('obsdata')
+        os.system('mv sources.in sourcesref.in')
+
     def defFMMParas(self):
+        '''
+        Initiates parameters for the forward calculation.
+        '''
+        # Name of fast marching program
         self.fmm = '{0}/fm3d'.format(self.cwd)
+        # Name of program calculating Frechet derivatives
         self.frechgen = '{0}/frechgen'.format(self.cwd)
+        # Name of current velocity/inversion grid
         self.cvg = 'vgrids.in'
+        # Name of current interfaces grid
         self.cig = 'interfaces.in'
+        # Name of file containing current source locations
         self.csl = 'sources.in'
+        # Name of file containing propagation grid
         self.pg = 'propgrid.in'
+        # Name of file containing receiver coordinates
         self.rec = 'receivers.in'
         self.frech = 'frechet.in'
         self.frechout = 'frechet.dat'
+        # Name of file containing measured data
         self.ot = 'otimes.dat'
+        # Name of file containing output velocity information
         self.ttim = 'arrivals.dat'
         self.mode = 'mode_set.in'
+        # Name of temporary folders created for each process
         self.folder = '.proc_'
 
     def defInvParas(self):
+        '''
+        Initiates inversion parameters for FMTOMO.
+        '''
         # Name of program for performing inversion
         self.inv = '{0}/invert3d'.format(self.cwd)
         # Name of file containing current model traveltimes
@@ -67,19 +102,42 @@ class Tomo3d(object):
         self.resout = 'residuals.dat'
 
     def copyRef(self):
-        # Copies reference grids to used grids (e.g. sourcesref.in to sources.in)
+        '''
+        Copies reference grids to used grids (e.g. sourcesref.in to sources.in)
+        '''
         os.system('cp %s %s'%(self.ivg, self.cvg))
         os.system('cp %s %s'%(self.iig, self.cig))
         os.system('cp %s %s'%(self.isl, self.csl))
 
-    def setCWD(self):
-        self.cwd = subprocess.check_output(['pwd'])[0:-1]
-        print('Working directory is pwd: %s'%self.cwd)
+    def setCWD(self, directory = None):
+        '''
+        Set working directory containing all necessary files.
+
+        Default: pwd
+        '''
+        if directory == None:
+            directory = os.path.join(os.getcwd(), self.simuldir)
+
+        os.chdir(directory)
+        self.cwd = directory
+        print('Working directory is: %s'%self.cwd)
 
     def runFrech(self):
         os.system(self.frechgen)
 
-    def runTOMO3D(self):
+    def runTOMO3D(self, nproc, iterations):
+        '''
+        Starts up the FMTOMO code for the set number of iterations on nproc parallel processes.
+        
+        :param: nproc, number of parallel processes
+        :type: integer
+
+        :param: iterations, number of iterations
+        :type: integer
+        '''
+        self.nproc = nproc
+        self.iter = iterations   # number of iterations
+
         starttime = datetime.datetime.now()
         print('Starting TOMO3D on %s parallel processes for %s iteration(s).'
               %(self.nproc, self.iter))
@@ -104,6 +162,10 @@ class Tomo3d(object):
         print('runTOMO3D: Finished %s iterations after %s.'%(self.iter, tdelta))
 
     def runFmm(self, directory, logfile, processes):
+        '''
+        Calls an instance of the FMM code in the process directory.
+        Requires a list of all active processes and returns an updated list.
+        '''
         os.chdir(directory)
         fout = open(logfile, 'w')
         processes.append(subprocess.Popen(self.fmm, stdout = fout))
@@ -112,6 +174,9 @@ class Tomo3d(object):
         return processes
 
     def startForward(self, logdir):
+        '''
+        Runs an instance of the FMM code in the process directory.
+        '''
         self._printLine()
         print('Starting forward simulation for iteration %s.'%(self.citer))
 
@@ -128,8 +193,8 @@ class Tomo3d(object):
             logfn = 'fm3dlog_' + str(procID) + '.out'
             log_out = os.path.join(logdir, logfn)
             
-            self.writeSrcFile(procID, directory)
-            self.writeTracesFile(procID, directory)
+            self.writeSrcFile(procID)
+            self.writeTracesFile(procID)
             os.system('cp {cvg} {cig} {mode} {pg} {frechin} {dest}'
                       .format(cvg=self.cvg, cig=self.cig, frechin=self.frech,
                               mode=self.mode, pg=self.pg, dest=directory))
@@ -149,10 +214,16 @@ class Tomo3d(object):
         print('Finished Forward calculation after %s'%tdelta)
 
     def startInversion(self):
+        '''
+        Simply calls the inversion program.
+        '''
         print('Calling %s...'%self.inv)
         os.system(self.inv)
 
     def calcRes(self):
+        '''
+        Calls residual calculation program.
+        '''
         resout = os.path.join(self.cwd, self.resout)
         if self.citer == 0:
             os.system('%s > %s'%(self.resid, resout))
@@ -185,11 +256,17 @@ class Tomo3d(object):
         raise RuntimeError('Could not create directory: %s'%directory)
 
     def makeDirectories(self):
+        '''
+        Makes temporary directories for all processes.
+        '''
         for procID in range(1, self.nproc + 1):
             directory = self.getProcDir(procID)
             self.makeDir(directory) 
 
     def makeInvIterDir(self):
+        '''
+        Makes directories for each iteration step for the output.
+        '''
         invIterDir = self.cwd + '/it_%s'%(self.citer)
         err = os.system('mkdir %s'%invIterDir)
         if err is 256:
@@ -200,12 +277,18 @@ class Tomo3d(object):
         self.cInvIterDir = invIterDir        
 
     def clearDir(self, directory):
-        print('Wiping directory %s...'%directory)
+        '''
+        Wipes a certain directory.
+        '''
+        #print('Wiping directory %s...'%directory)
         for filename in os.listdir(directory):
             filenp = os.path.join(directory, filename)
             os.remove(filenp)
         
     def clearDirectories(self):
+        '''
+        Wipes all generated temporary directories.
+        '''
         for directory in self.directories:
             self.clearDir(directory) 
 
@@ -214,14 +297,24 @@ class Tomo3d(object):
         return os.rmdir(directory)
 
     def removeDirectories(self):
+        '''
+        Removes all generated temporary directories.
+        '''
         for directory in self.directories:
             self.rmDir(directory) 
         self.directories = []
         
     def getProcDir(self, procID):
+        '''
+        Returns the temporary directory for a certain process
+        with procID = process number.
+        '''
         return os.path.join(self.cwd, self.folder) + str(procID)
 
     def getTraceIDs4Sources(self, sourceIDs):
+        '''
+        Returns corresponding trace IDs for a set of given source IDs.
+        '''
         traceIDs = []
         for traceID in self.traces.keys():
             if self.traces[traceID]['source'] in sourceIDs:
@@ -229,6 +322,9 @@ class Tomo3d(object):
         return traceIDs
 
     def getTraceIDs4Source(self, sourceID):
+        '''
+        Returns corresponding trace IDs for a source ID.
+        '''
         traceIDs = []
         for traceID in self.traces.keys():
             if self.traces[traceID]['source'] == sourceID:
@@ -236,22 +332,38 @@ class Tomo3d(object):
         return traceIDs
 
     def copyArrivals(self, target = None):
+        '''
+        Copies the FMM output file (self.ttim) to a specific target file.
+        Default target is self.mtrav (model travel times).
+        '''
         if target == None:
             target = os.path.join(self.cwd, self.mtrav)
         os.system('cp %s %s'%(os.path.join(
                     self.cInvIterDir, self.ttim), target))
 
     def saveVgrid(self):
-        vgpath = os.path.join(self.cwd, 'vgrids.in')
+        '''
+        Saves the current velocity grid for the current iteration step.
+        '''
+        vgpath = os.path.join(self.cwd, self.cvg)
         os.system('cp %s %s'%(vgpath, self.cInvIterDir))
 
     def calcSrcPerKernel(self):
+        '''
+        (Equally) distributes all sources depending on the number of processes (kernels).
+        Returns two integer values.
+        First: minimum number of sources for each process
+        Second: remaining sources (always less than number of processes)
+        '''
         nsrc = self.readNsrc()
         if self.nproc > nsrc:
             raise ValueError('Number of spawned processes higher than number of sources')
         return nsrc/self.nproc, nsrc%self.nproc
 
     def srcIDs4Kernel(self, procID):
+        '''
+        Calculates and returns all source IDs for a given process ID.
+        '''
         proc = procID - 1
         nsrc = self.readNsrc()
         srcPK, remain = self.calcSrcPerKernel()
@@ -274,12 +386,18 @@ class Tomo3d(object):
         return nsrc
 
     def readNtraces(self):
+        '''
+        Reads the total number of traces from self.rec header.
+        '''
         recfile = open(self.rec, 'r')
         nrec = int(recfile.readline())
         recfile.close()
         return nrec
 
     def readSrcFile(self):
+        '''
+        Reads the whole sourcefile and returns structured information in a dictionary.
+        '''
         nsrc = self.readNsrc()
         srcfile = open(self.csl, 'r')
 
@@ -309,6 +427,10 @@ class Tomo3d(object):
         return sources
 
     def readTraces(self):
+        '''
+        Reads the receiver input file and returns the information
+        in a structured dictionary.
+        '''
         recfile = open(self.rec, 'r')
         ntraces = self.readNtraces()
         
@@ -330,8 +452,13 @@ class Tomo3d(object):
         return traces
 
     def readArrivals(self, procID):
+        '''
+        Reads the arrival times from a temporary process directory,
+        changes local to global sourceIDs and traceIDs and returns
+        a list of arrival times.
+        '''
         directory = self.getProcDir(procID)
-        arrfile = open(directory + '/arrivals.dat', 'r')
+        arrfile = open(os.path.join(directory, self.ttim), 'r')
         sourceIDs = self.srcIDs4Kernel(procID)
         
         arrivals = []
@@ -347,6 +474,10 @@ class Tomo3d(object):
         return arrivals
 
     def readRays(self, procID):
+        '''
+        Reads rays output from a temporary process directory and returns
+        the information in a structured dictionary.
+        '''
         directory = self.getProcDir(procID)
         raysfile = open(directory + '/rays.dat', 'r')
         sourceIDs = self.srcIDs4Kernel(procID)
@@ -385,8 +516,12 @@ class Tomo3d(object):
                                      }
         return rays
 
-    def writeSrcFile(self, procID, directory):
-        srcfile = open('%s/sources.in'%directory, 'w')
+    def writeSrcFile(self, procID):
+        '''
+        Writes a source input file for a process with ID = procID.
+        '''
+        directory = self.getProcDir(procID)
+        srcfile = open(os.path.join(directory, self.csl), 'w')
         sourceIDs = self.srcIDs4Kernel(procID)
 
         srcfile.write('%s\n'%len(sourceIDs))
@@ -401,7 +536,11 @@ class Tomo3d(object):
             srcfile.write('%s %s\n'%(int(interactions[0]), int(interactions[1])))
             srcfile.write('%s\n'%source['veltype'])
 
-    def writeTracesFile(self, procID, directory):
+    def writeTracesFile(self, procID):
+        '''
+        Writes a receiver input file for a process with ID = procID.
+        '''
+        directory = self.getProcDir(procID)
         recfile = open('%s/receivers.in'%directory, 'w')
         sourceIDs = self.srcIDs4Kernel(procID)
         traceIDs = self.getTraceIDs4Sources(sourceIDs)
@@ -417,9 +556,12 @@ class Tomo3d(object):
             recfile.write('%s\n'%trace['path'])
 
     def mergeArrivals(self, directory):
+        '''
+        Merges the arrival times for all processes to self.cInvIterDir.
+        '''
         arrfn = os.path.join(directory, self.ttim)
         arrivalsOut = open(arrfn, 'w')
-        print('Merging arrivals.dat...')
+        print('Merging %s...'%self.ttim)
         for procID in range(1, self.nproc + 1):
             arrivals = self.readArrivals(procID)
             for line in arrivals:
@@ -428,6 +570,9 @@ class Tomo3d(object):
         os.system('ln -fs %s %s'%(arrfn, os.path.join(self.cwd, self.ttim)))
 
     def mergeRays(self, directory):
+        '''
+        Merges the ray paths for all processes to self.cInvIterDir.
+        '''
         print('Merging rays.dat...')
         with open(directory + '/rays.dat', 'w') as outfile:
             for procID in range(1, self.nproc + 1):
@@ -448,9 +593,11 @@ class Tomo3d(object):
                         outfile.writelines(raysec['raypoints'])
                                                   
     def mergeFrechet(self, directory):
-        print('Merging frechet.dat...')
-        
+        '''
+        Merges the frechet derivatives for all processes to self.cInvIterDir.
+        '''
         frechfnout = os.path.join(directory, self.frechout)
+        print('Merging %s...'%self.frechout)
         with open(frechfnout, 'w') as outfile:
             for procID in range(1, self.nproc + 1):
                 filename = os.path.join(self.getProcDir(procID), self.frechout)
@@ -465,6 +612,9 @@ class Tomo3d(object):
         os.system('ln -fs %s %s'%(frechfnout, os.path.join(self.cwd, self.frechout)))
 
     def mergeOutput(self, directory):
+        '''
+        Calls self.mergeArrivals, self.mergeFrechet and self.mergeRays.
+        '''
         self.mergeArrivals(directory)
         self.mergeFrechet(directory)
         self.mergeRays(directory)
