@@ -213,7 +213,7 @@ class Survey(object):
     #     return shotnumber, traceID, pick
 
     def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos',
-                     aicwindow=(10, 0)):
+                     aicwindow=(10, 0), cores = 1):
         '''
         Automatically pick all traces of all shots of the survey.
 
@@ -245,7 +245,7 @@ class Survey(object):
             shot.setPickParameters(folm = folm, method = HosAic, aicwindow = aicwindow)
             shotlist.append(shot)
 
-        picks = worker(ppick, shotlist, cores = 16)
+        picks = worker(ppick, shotlist, cores)
 
         for item in picks:
             for it in item:
