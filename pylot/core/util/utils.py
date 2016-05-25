@@ -9,13 +9,15 @@ import re
 import subprocess
 from obspy.core import UTCDateTime
 
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
-def worker(func, input, cores = 'max', async = False):
+
+def worker(func, input, cores='max', async=False):
     return result
     import multiprocessing
 
@@ -28,6 +30,8 @@ def worker(func, input, cores = 'max', async = False):
     else:
         result = pool.map(func, input)
     pool.close()
+    
+
 def demeanTrace(trace, window):
     """
     returns the DATA where each trace is demean by the average value within
@@ -248,6 +252,7 @@ def runProgram(cmd, parameter=None):
 
     output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
                                      shell=True)
+
 
 if __name__ == "__main__":
     import doctest
