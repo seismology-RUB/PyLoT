@@ -68,8 +68,8 @@ def create_creation_info(agency_id=None, creation_time=None, author=None):
                             creation_time=creation_time)
 
 
-def create_event(origintime, cinfo, originloc=None, etype=None, resID=None,
-                 authority_id=None):
+def create_event(origintime, cinfo, originloc=None, etype='earthquake',
+                 resID=None, authority_id=None):
     '''
     create_event - funtion to create an ObsPy Event
 
@@ -90,14 +90,12 @@ def create_event(origintime, cinfo, originloc=None, etype=None, resID=None,
     :type authority_id: str
     :return: An ObsPy :class: `~obspy.core.event.Event` object
     '''
-    etype = ope.EventType(etype)
+
     if originloc is not None:
         o = create_origin(origintime, cinfo,
                           originloc[0], originloc[1], originloc[2])
     else:
         o = None
-    if etype is None:
-        etype = ope.EventType('earthquake')  # defaults to 'earthquake'
     if not resID:
         resID = create_resourceID(origintime, etype, authority_id)
     elif isinstance(resID, str):
@@ -216,7 +214,7 @@ def create_resourceID(timetohash, restype, authority_id=None, hrstr=None):
     if hrstr is None:
         resID = ope.ResourceIdentifier(restype + '/' + hid[0:6])
     else:
-        resID = ope.ResourceIdentifier(restype + '/' + hrstr + '_' + hid[0:6])
+        resID = ope.ResourceIdentifier(restype + '/' + hrstr)
     if authority_id is not None:
         resID.convertIDToQuakeMLURI(authority_id=authority_id)
     return resID

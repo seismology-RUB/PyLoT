@@ -54,86 +54,86 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
                                 author=locauthor,
                                 creation_time=locctime)
     np = 0
-    try:
-        eventNum = loc['ID'][0]
+    #try:
+    eventNum = str(loc['ID'][0])
 
-        # retrieve eventID for the actual database
-        idsplit = eventNum.split('.')
+    # retrieve eventID for the actual database
+    idsplit = eventNum.split('.')
 
-        # retrieve date information
-        julday = int(idsplit[1])
-        year = int(idsplit[2])
-        hour = int(loc['hh'])
-        minute = int(loc['mm'])
-        second = int(loc['ss'])
+    # retrieve date information
+    julday = int(idsplit[1])
+    year = int(idsplit[2])
+    hour = int(loc['hh'])
+    minute = int(loc['mm'])
+    second = int(loc['ss'])
 
-        year = four_digits(year)
+    year = four_digits(year)
 
-        eventDate = UTCDateTime(year=year, julday=julday, hour=hour,
-                                minute=minute, second=second)
+    eventDate = UTCDateTime(year=year, julday=julday, hour=hour,
+                            minute=minute, second=second)
 
-        stations = [stat for stat in phases['stat'][0:-1:3]]
+    stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = create_event(eventDate, loccinfo, etype='earthquake',
-                             resID=eventNum, authority_id=authority_id)
+    lat = float(loc['LAT'])
+    lon = float(loc['LON'])
+    dep = float(loc['DEP'])
 
-        lat = float(loc['LAT'])
-        lon = float(loc['LON'])
-        dep = float(loc['DEP'])
+    event = create_event(eventDate, loccinfo, originloc=(lat, lon, dep),
+                         etype='earthquake', resID=eventNum,
+                         authority_id=authority_id)
 
-        origin = create_origin(eventDate, loccinfo, lat, lon, dep)
-        for n, pick in enumerate(phases['Ptime']):
-            if pick[0] > 0:
-                kwargs = {'year': int(pick[0]),
-                          'month': int(pick[1]),
-                          'day': int(pick[2]),
-                          'hour': int(pick[3]),
-                          'minute': int(pick[4]),
-                          'second': int(str(pick[5]).split('.')[0]),
-                          'microsecond': int(str(pick[5]).split('.')[1][0:6])}
-            spick = phases['Stime'][n]
-            if spick[0] > 0:
-                skwargs = {'year': int(spick[0]),
-                           'month': int(spick[1]),
-                           'day': int(spick[2]),
-                           'hour': int(spick[3]),
-                           'minute': int(spick[4]),
-                           'second': int(str(spick[5]).split('.')[0]),
-                           'microsecond': int(str(spick[5]).split('.')[1][0:6])}
-                spicktime = UTCDateTime(**skwargs)
-            else:
-                spicktime = None
-            ppicktime = UTCDateTime(**kwargs)
+    for n, pick in enumerate(phases['Ptime']):
+        if pick[0] > 0:
+            kwargs = {'year': int(pick[0]),
+                      'month': int(pick[1]),
+                      'day': int(pick[2]),
+                      'hour': int(pick[3]),
+                      'minute': int(pick[4]),
+                      'second': int(str(pick[5]).split('.')[0]),
+                      'microsecond': int(str(pick[5]).split('.')[1][0:6])}
+        spick = phases['Stime'][n]
+        if spick[0] > 0:
+            skwargs = {'year': int(spick[0]),
+                       'month': int(spick[1]),
+                       'day': int(spick[2]),
+                       'hour': int(spick[3]),
+                       'minute': int(spick[4]),
+                       'second': int(str(spick[5]).split('.')[0]),
+                       'microsecond': int(str(spick[5]).split('.')[1][0:6])}
+            spicktime = UTCDateTime(**skwargs)
+        else:
+            spicktime = None
+        ppicktime = UTCDateTime(**kwargs)
 
-            for picktime, phase in [(ppicktime, 'P'), (spicktime, 'S')]:
-                if picktime is not None:
-                    if phase == 'P':
-                        wffn = os.path.join(sdir, '{0}*{1}*'.format(
-                            stations[n].strip(), 'z'))
-                    else:
-                        wffn = os.path.join(sdir, '{0}*{1}*'.format(
-                            stations[n].strip(), '[ne]'))
-                print(wffn)
-                pick = create_pick(eventDate, np, picktime, eventNum, pickcinfo,
-                                   phase, stations[n], wffn, authority_id)
-                event.picks.append(pick)
-                pickID = pick.get('id')
-                arrival = create_arrival(pickID, pickcinfo, phase)
-                origin.arrivals.append(arrival)
-                event.picks.append(pick)
-                np += 1
+        for picktime, phase in [(ppicktime, 'P'), (spicktime, 'S')]:
+            if picktime is not None:
+                if phase == 'P':
+                    wffn = os.path.join(sdir, '{0}*{1}*'.format(
+                        stations[n].strip(), 'z'))
+                else:
+                    wffn = os.path.join(sdir, '{0}*{1}*'.format(
+                        stations[n].strip(), '[ne]'))
+            print(wffn)
+            pick = create_pick(eventDate, np, picktime, eventNum, pickcinfo,
+                               phase, stations[n], wffn, authority_id)
+            event.picks.append(pick)
+            pickID = pick.get('id')
+            arrival = create_arrival(pickID, pickcinfo, phase)
+            if event.origins:
+                event.origins[0].arrivals.append(arrival)
+            event.picks.append(pick)
 
+    if event.origins:
+        origin = event.origins[0]
         magnitude = create_magnitude(origin.get('id'), loccinfo)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
-
-        event.origins.append(origin)
         event.magnitudes.append(magnitude)
-        return event
+    return event
 
-    except AttributeError as e:
-        raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
-                              insufficient data!'.format(e, phasfn, locfn))
+    #except AttributeError as e:
+    #    raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
+    #                          insufficient data!'.format(e, phasfn, locfn))
 
 
 def picks_from_pilot(fn):

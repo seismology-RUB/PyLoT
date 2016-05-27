@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
                                                "Load location information on "
                                                "the actual event.")
         loadpilotevent = self.createAction(self, "Load PILOT &event ...",
-                                           self.load_pilot, "Ctrl+E",
+                                           self.load_pilotevent, "Ctrl+E",
                                            loadpiloticon,
                                            "Load PILOT event from information "
                                            "Matlab binary collections.")
@@ -397,17 +397,22 @@ class MainWindow(QMainWindow):
         filt = "PILOT location files (*.mat)"
         caption = "Select PILOT loaction file"
         fn_loc = QFileDialog().getOpenFileName(self, caption=caption,
-                                              filter=filt)
+                                              filter=filt, dir=self.getRoot())
+        fn_loc = fn_loc[0]
+        loc_dir = os.path.split(fn_loc)[0]
         filt = "PILOT phases files (*.mat)"
         caption = "Select PILOT phases file"
         fn_phases = QFileDialog().getOpenFileName(self, caption=caption,
-                                              filter=filt)
+                                              filter=filt, dir=loc_dir)
+        fn_phases = fn_phases[0]
         type = QInputDialog().getItem(self, self.tr("Select phases type"),
                                      self.tr("Type:"), [self.tr("manual"),
                                                         self.tr("automatic")])
 
-        if type.startswith('auto'):
+        if type[0].startswith('auto'):
             type = 'auto'
+        else:
+            type = type[0]
 
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
         self.load_data(fname_dict, type=type)
