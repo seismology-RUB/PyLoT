@@ -9,6 +9,12 @@ from pylot.core.util.utils import worker, _pickle_method
 
 copy_reg.pickle(types.MethodType, _pickle_method)
 
+def ppick(shot):
+    picks = []
+    for traceID in shot.getTraceIDlist():
+        picks.append((shot.getShotnumber(), traceID, shot.pickTrace(traceID)))
+    return picks
+
 class Survey(object):
     def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
         '''
@@ -200,14 +206,14 @@ class Survey(object):
         plt.xlabel('Difference in time (auto - manual) [s]')
         return diffs
 
-    def pickShot(self, shTr):
-        shotnumber, traceID = shTr
-        shot = self.getShotForShotnumber(shotnumber)
-        traceID, pick = shot.pickTrace(traceID)
-        return shotnumber, traceID, pick
+    # def pickShot(self, shTr):
+    #     shotnumber, traceID = shTr
+    #     shot = self.getShotForShotnumber(shotnumber)
+    #     traceID, pick = shot.pickTrace(traceID)
+    #     return shotnumber, traceID, pick
 
     def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos',
-                     aicwindow=(10, 0)):
+                     aicwindow=(10, 0), cores = 1):
         '''
         Automatically pick all traces of all shots of the survey.
 
@@ -228,7 +234,7 @@ class Survey(object):
         count = 0
         tpicksum = starttime - starttime
 
-        shTr = []
+        shotlist = []
 
         for shot in self.data.values():
             tstartpick = datetime.now()
@@ -237,13 +243,14 @@ class Survey(object):
             count += 1
             #shot.pickParallel(folm)
             shot.setPickParameters(folm = folm, method = HosAic, aicwindow = aicwindow)
-            for traceID in shot.getTraceIDlist():
-                shTr.append((shot.getShotnumber(), traceID))
+            shotlist.append(shot)
 
-        picks = worker(self.pickShot, shTr, async = True)
+        picks = worker(ppick, shotlist, cores)
 
-        for shotnumber, traceID, pick in picks.get():
-            self.getShotForShotnumber(shotnumber).setPick(traceID, pick)
+        for item in picks:
+            for it in item:
+                shotnumber, traceID, pick = it
+                self.getShotForShotnumber(shotnumber).setPick(traceID, pick)
             
             # tpicksum += (datetime.now() - tstartpick);
             # tpick = tpicksum / count

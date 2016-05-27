@@ -383,7 +383,7 @@ class SeismicShot(object):
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
 
-        return traceID, setHosAic[self.getMethod()]
+        return setHosAic[self.getMethod()]
 
     def setEarllatepick(self, traceID, nfac=1.5):
         tgap = self.getTgap()
