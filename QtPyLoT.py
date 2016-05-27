@@ -488,7 +488,9 @@ class MainWindow(QMainWindow):
     def setComponent(self, component):
         self.dispComponent = component
 
-    def getData(self):
+    def getData(self, type='manual'):
+        if type == 'auto':
+            return self.autodata
         return self.data
 
     def getPicks(self, type='manual'):
@@ -736,7 +738,7 @@ class MainWindow(QMainWindow):
         return rval
 
     def updatePicks(self, type='manual'):
-        picks = picksdict_from_picks(evt=self.getData().getEvtData())
+        picks = picksdict_from_picks(evt=self.getData(type).getEvtData())
         if type == 'manual':
             self.picks.update(picks)
         elif type == 'auto':
