@@ -11,10 +11,10 @@ from obspy.core import UTCDateTime
 from pylot.core.io.location import create_arrival, create_event, \
     create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, getGlobalTimes
+from pylot.core.util.utils import getOwner, getGlobalTimes, four_digits
 
 
-def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
+def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     """
     readPILOTEvent - function
 
@@ -67,18 +67,15 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
         minute = int(loc['mm'])
         second = int(loc['ss'])
 
-        if year + 2000 < UTCDateTime.utcnow().year:
-            year += 2000
-        else:
-            year += 1900
+        year = four_digits(year)
 
         eventDate = UTCDateTime(year=year, julday=julday, hour=hour,
                                 minute=minute, second=second)
 
         stations = [stat for stat in phases['stat'][0:-1:3]]
 
-        event = create_event(eventDate, loccinfo, etype='earthquake', resID=eventNum,
-                             authority_id=authority_id)
+        event = create_event(eventDate, loccinfo, etype='earthquake',
+                             resID=eventNum, authority_id=authority_id)
 
         lat = float(loc['LAT'])
         lon = float(loc['LON'])
@@ -123,13 +120,13 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id=None, **kwargs):
                 pickID = pick.get('id')
                 arrival = create_arrival(pickID, pickcinfo, phase)
                 origin.arrivals.append(arrival)
+                event.picks.append(pick)
                 np += 1
 
         magnitude = create_magnitude(origin.get('id'), loccinfo)
         magnitude.mag = float(loc['Mnet'])
         magnitude.magnitude_type = 'Ml'
 
-        event.picks.append(pick)
         event.origins.append(origin)
         event.magnitudes.append(magnitude)
         return event

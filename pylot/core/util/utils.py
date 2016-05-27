@@ -93,6 +93,14 @@ def fnConstructor(s):
     return fn
 
 
+def four_digits(year):
+    if year + 2000 < UTCDateTime.utcnow().year:
+        year += 2000
+    else:
+        year += 1900
+    return year
+
+
 def getGlobalTimes(stream):
     '''
 
