@@ -18,19 +18,19 @@ def _pickle_method(m):
 
 
 def worker(func, input, cores='max', async=False):
-    return result
     import multiprocessing
 
     if cores == 'max':
         cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(cores)
 
+    pool = multiprocessing.Pool(cores)
     if async == True:
         result = pool.map_async(func, input)
     else:
         result = pool.map(func, input)
     pool.close()
-    
+    return result
+
 
 def demeanTrace(trace, window):
     """
