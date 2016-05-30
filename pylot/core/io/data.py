@@ -9,7 +9,7 @@ from obspy.core.event import Event
 from obspy.io.xseed import Parser
 
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
-    picks_from_pilot
+    picksdict_from_pilot
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
 
@@ -50,7 +50,7 @@ class Data(object):
             except TypeError as e:
                 if 'Unknown format for file' in e.message:
                     if 'PHASES' in evtdata:
-                        picks = picks_from_pilot(evtdata)
+                        picks = picksdict_from_pilot(evtdata)
                         evtdata = Event()
                         evtdata.picks = picks_from_picksdict(picks)
                     elif 'LOC' in evtdata:

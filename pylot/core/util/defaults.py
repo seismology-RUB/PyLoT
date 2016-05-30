@@ -47,6 +47,10 @@ AUTOMATIC_DEFAULTS = os.path.join(os.path.expanduser('~'),
                                   '.pylot',
                                   'autoPyLoT.in')
 
+TIMEERROR_DEFAULTS = os.path.join(os.path.expanduser('~'),
+                                  '.pylot',
+                                  'PILOT_TimeErrors.in')
+
 OUTPUTFORMATS = {'.xml': 'QUAKEML',
                  '.cnv': 'CNV',
                  '.obs': 'NLLOC_OBS'}

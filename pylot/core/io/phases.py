@@ -8,6 +8,7 @@ import scipy.io as sio
 import warnings
 from obspy.core import UTCDateTime
 
+from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.io.location import create_arrival, create_event, \
     create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
@@ -30,7 +31,6 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     :param locfn: filename of the old PILOT Matlab LOC file
     :return event:  event object containing event and phase information
     """
-    sdir = os.path.split(phasfn)[0]
     if phasfn is not None and os.path.isfile(phasfn):
         phases = sio.loadmat(phasfn)
         phasctime = UTCDateTime(os.path.getmtime(phasfn))
@@ -53,8 +53,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     loccinfo = ope.CreationInfo(agency_id=authority_id,
                                 author=locauthor,
                                 creation_time=locctime)
-    np = 0
-    #try:
+
     eventNum = str(loc['ID'][0])
 
     # retrieve eventID for the actual database
@@ -82,46 +81,9 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
                          etype='earthquake', resID=eventNum,
                          authority_id=authority_id)
 
-    for n, pick in enumerate(phases['Ptime']):
-        if pick[0] > 0:
-            kwargs = {'year': int(pick[0]),
-                      'month': int(pick[1]),
-                      'day': int(pick[2]),
-                      'hour': int(pick[3]),
-                      'minute': int(pick[4]),
-                      'second': int(str(pick[5]).split('.')[0]),
-                      'microsecond': int(str(pick[5]).split('.')[1][0:6])}
-        spick = phases['Stime'][n]
-        if spick[0] > 0:
-            skwargs = {'year': int(spick[0]),
-                       'month': int(spick[1]),
-                       'day': int(spick[2]),
-                       'hour': int(spick[3]),
-                       'minute': int(spick[4]),
-                       'second': int(str(spick[5]).split('.')[0]),
-                       'microsecond': int(str(spick[5]).split('.')[1][0:6])}
-            spicktime = UTCDateTime(**skwargs)
-        else:
-            spicktime = None
-        ppicktime = UTCDateTime(**kwargs)
+    picks = picksdict_from_pilot(phasfn)
 
-        for picktime, phase in [(ppicktime, 'P'), (spicktime, 'S')]:
-            if picktime is not None:
-                if phase == 'P':
-                    wffn = os.path.join(sdir, '{0}*{1}*'.format(
-                        stations[n].strip(), 'z'))
-                else:
-                    wffn = os.path.join(sdir, '{0}*{1}*'.format(
-                        stations[n].strip(), '[ne]'))
-            print(wffn)
-            pick = create_pick(eventDate, np, picktime, eventNum, pickcinfo,
-                               phase, stations[n], wffn, authority_id)
-            event.picks.append(pick)
-            pickID = pick.get('id')
-            arrival = create_arrival(pickID, pickcinfo, phase)
-            if event.origins:
-                event.origins[0].arrivals.append(arrival)
-            event.picks.append(pick)
+    event.picks = picks_from_picksdict(picks, creation_info=pickcinfo)
 
     if event.origins:
         origin = event.origins[0]
@@ -131,15 +93,15 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
         event.magnitudes.append(magnitude)
     return event
 
-    #except AttributeError as e:
-    #    raise AttributeError('{0} - Matlab LOC files {1} and {2} contains \
-    #                          insufficient data!'.format(e, phasfn, locfn))
 
-
-def picks_from_pilot(fn):
+def picksdict_from_pilot(fn):
+    from pylot.core.util.defaults import TIMEERROR_DEFAULTS
     picks = dict()
     phases_pilot = sio.loadmat(fn)
     stations = stations_from_pilot(phases_pilot['stat'])
+    params = AutoPickParameter(TIMEERROR_DEFAULTS)
+    timeerrors = dict(P=params.get('timeerrorsP'),
+                      S=params.get('timeerrorsS'))
     for n, station in enumerate(stations):
         phases = dict()
         for onset_name in 'PS':
@@ -148,7 +110,14 @@ def picks_from_pilot(fn):
             if not pick[0]:
                 continue
             pick = convert_pilot_times(pick)
-            phases[onset_name] = dict(mpp=pick)
+            uncertainty_label = '{0}weight'.format(onset_name.lower())
+            ierror = phases_pilot[uncertainty_label][0, n]
+            try:
+                spe = timeerrors[onset_name][ierror]
+            except IndexError as e:
+                print(e.message + '\ntake two times the largest default error value')
+                spe = timeerrors[onset_name][-1] * 2
+            phases[onset_name] = dict(mpp=pick, spe=spe)
         picks[station] = phases
 
     return picks
@@ -228,27 +197,31 @@ def picksdict_from_picks(evt):
         picks[station] = onsets.copy()
     return picks
 
-def picks_from_picksdict(picks):
+def picks_from_picksdict(picks, creation_info=None):
     picks_list = list()
     for station, onsets in picks.items():
-        #print('Reading picks on station %s' % station)
         for label, phase in onsets.items():
-            if not isinstance(phase, dict) or len(phase) < 3:
+            if not isinstance(phase, dict):
                 continue
             onset = phase['mpp']
-            epp = phase['epp']
-            lpp = phase['lpp']
+            pick = ope.Pick()
+            if creation_info:
+                pick.creation_info = creation_info
+            pick.time = onset
             error = phase['spe']
+            pick.time_errors.uncertainty = error
+            try:
+                epp = phase['epp']
+                lpp = phase['lpp']
+                pick.time_errors.lower_uncertainty = onset - epp
+                pick.time_errors.upper_uncertainty = lpp - onset
+            except KeyError as e:
+                warnings.warn(e.message, RuntimeWarning)
             try:
                 picker = phase['picker']
             except KeyError as e:
-                warnings.warn(str(e), Warning)
+                warnings.warn(e.message, RuntimeWarning)
                 picker = 'Unknown'
-            pick = ope.Pick()
-            pick.time = onset
-            pick.time_errors.lower_uncertainty = onset - epp
-            pick.time_errors.upper_uncertainty = lpp - onset
-            pick.time_errors.uncertainty = error
             pick.phase_hint = label
             pick.method_id = ope.ResourceIdentifier(id=picker)
             pick.waveform_id = ope.WaveformStreamID(station_code=station)
@@ -300,7 +273,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
         return
     if verbosity > 1:
         print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
-    picks_dict = picks_from_pilot(phases_file[0])
+    picks_dict = picksdict_from_pilot(phases_file[0])
     if verbosity > 0:
         print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
     datacheck = list()
