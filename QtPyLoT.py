@@ -388,6 +388,18 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
+    def getType(self):
+        type = QInputDialog().getItem(self, self.tr("Select phases type"),
+                                      self.tr("Type:"), [self.tr("manual"),
+                                                         self.tr("automatic")])
+
+        if type[0].startswith('auto'):
+            type = 'auto'
+        else:
+            type = type[0]
+
+        return type
+
     def load_autopicks(self, fname=None):
         self.load_data(fname, type='auto')
 
@@ -396,7 +408,7 @@ class MainWindow(QMainWindow):
 
     def load_pilotevent(self):
         filt = "PILOT location files (*.mat)"
-        caption = "Select PILOT loaction file"
+        caption = "Select PILOT location file"
         fn_loc = QFileDialog().getOpenFileName(self, caption=caption,
                                               filter=filt, dir=self.getRoot())
         fn_loc = fn_loc[0]
@@ -406,14 +418,8 @@ class MainWindow(QMainWindow):
         fn_phases = QFileDialog().getOpenFileName(self, caption=caption,
                                               filter=filt, dir=loc_dir)
         fn_phases = fn_phases[0]
-        type = QInputDialog().getItem(self, self.tr("Select phases type"),
-                                     self.tr("Type:"), [self.tr("manual"),
-                                                        self.tr("automatic")])
 
-        if type[0].startswith('auto'):
-            type = 'auto'
-        else:
-            type = type[0]
+        type = self.getType()
 
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
         self.load_data(fname_dict, type=type)
