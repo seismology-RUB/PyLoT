@@ -127,10 +127,15 @@ def stations_from_pilot(stat_array):
     stations = list()
     cur_stat = None
     for stat in stat_array:
+        stat = stat.strip()
         if stat == cur_stat:
             continue
         cur_stat = stat
-        stations.append(stat.strip())
+        if stat not in stations:
+            stations.append(stat)
+        else:
+            warnings.warn('station {0} listed at least twice, might corrupt '
+                          'phase times', RuntimeWarning)
 
     return stations
 
