@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import glob
-
-from obspy.io.xseed import Parser
-from obspy.core import read, Stream, UTCDateTime
+import os
 from obspy import read_events, read_inventory
-from obspy.core.event import Event, ResourceIdentifier, Pick, WaveformStreamID
+from obspy.core import read, Stream, UTCDateTime
+from obspy.core.event import Event
+from obspy.io.xseed import Parser
 
-from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict
-from pylot.core.util.utils import fnConstructor, getGlobalTimes
+from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
+    picksdict_from_pilot
 from pylot.core.util.errors import FormatError, OverwriteError
+from pylot.core.util.utils import fnConstructor, getGlobalTimes
 
 
 class Data(object):
@@ -36,17 +36,36 @@ class Data(object):
             self.wfdata = Stream()
         self._new = False
         if isinstance(evtdata, Event):
-            self.evtdata = evtdata
+            pass
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
-            self.evtdata = evt
-        elif evtdata:
-            cat = read_events(evtdata)
-            self.evtdata = cat[0]
+            evtdata = evt
+        elif isinstance(evtdata, str):
+            try:
+                cat = read_events(evtdata)
+                if len(cat) is not 1:
+                    raise ValueError('ambiguous event information for file: '
+                                     '{file}'.format(file=evtdata))
+                evtdata = cat[0]
+            except TypeError as e:
+                if 'Unknown format for file' in e.message:
+                    if 'PHASES' in evtdata:
+                        picks = picksdict_from_pilot(evtdata)
+                        evtdata = Event()
+                        evtdata.picks = picks_from_picksdict(picks)
+                    elif 'LOC' in evtdata:
+                        raise NotImplementedError('PILOT location information '
+                                                  'read support not yet '
+                                                  'implemeted.')
+                    else:
+                        raise e
+                else:
+                    raise e
         else:  # create an empty Event object
             self.setNew()
-            self.evtdata = Event()
-            self.getEvtData().picks = []
+            evtdata = Event()
+            evtdata.picks = []
+        self.evtdata = evtdata
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False

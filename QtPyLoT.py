@@ -23,10 +23,9 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
+import matplotlib
 import os
 import sys
-
-import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -45,12 +44,12 @@ from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.loc.nll import locate as locateNll
-from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP,\
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
     AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.utils import fnConstructor, createEvent, getLogin, \
+from pylot.core.util.utils import fnConstructor, getLogin, \
     getGlobalTimes
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -81,8 +80,8 @@ class MainWindow(QMainWindow):
                                           "Enter authority name (e.g. BUG):",
                                           "Authority")
             settings.setValue("agency_id", agency)
-        self.recentEvents = settings.value("data/recentEvents", [])
-        self.fname = None
+        self.recentfiles = settings.value("data/recentEvents", [])
+        self.fname = dict(manual=None, auto=None, loc=None)
         self.fnames = None
         structure_setting = settings.value("data/Structure", "PILOT")
         self.dataStructure = DATASTRUCTURE[structure_setting]()
@@ -104,7 +103,7 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         # initialize event data
-        if self.recentEvents:
+        if self.recentfiles:
             lastEvent = self.getLastEvent()
             self.data = Data(self, lastEvent)
         else:
@@ -112,7 +111,7 @@ class MainWindow(QMainWindow):
 
         # load and display waveform data
         self.dirty = False
-        self.loadData()
+        self.load_data()
         if self.loadWaveformData():
             self.updateFilterOptions()
         else:
@@ -149,7 +148,10 @@ class MainWindow(QMainWindow):
                                   lambda event: self.tutorUser())
         _layout.addWidget(self.DataPlot)
 
-        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        manupicksicon = self.style().standardIcon(QStyle.SP_DialogYesButton)
+        autopicksicon = self.style().standardIcon(QStyle.SP_DialogNoButton)
+        locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        loadpiloticon = self.style().standardIcon(QStyle.SP_ComputerIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
@@ -179,18 +181,40 @@ class MainWindow(QMainWindow):
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
                                            "Create a new event.")
-        openEventAction = self.createAction(self, "&Open event ...",
-                                            self.loadData, QKeySequence.Open,
-                                            openIcon, "Open an event.")
-        openEventAction.setData(None)
+        openmanualpicksaction = self.createAction(self, "Load &picks ...",
+                                                  self.load_data,
+                                                  QKeySequence.Open,
+                                                  manupicksicon,
+                                                  "Load pick data for "
+                                                  "the actual event.")
+        openmanualpicksaction.setData(None)
+        openautopicksaction = self.createAction(self, "Load &automatic picks "
+                                                      "...",
+                                                self.load_autopicks,
+                                                "Ctrl+A",
+                                                autopicksicon,
+                                                "Load automatic pick data "
+                                                "for the actual event.")
+        openautopicksaction.setData(None)
+
+        loadlocationaction = self.createAction(self, "Load &location ...",
+                                               self.load_loc, "Ctrl+L",
+                                               locactionicon,
+                                               "Load location information on "
+                                               "the actual event.")
+        loadpilotevent = self.createAction(self, "Load PILOT &event ...",
+                                           self.load_pilotevent, "Ctrl+E",
+                                           loadpiloticon,
+                                           "Load PILOT event from information "
+                                           "Matlab binary collections.")
         saveEventAction = self.createAction(self, "&Save event ...",
                                             self.saveData, QKeySequence.Save,
                                             saveIcon, "Save actual event data.")
         openWFDataAction = self.createAction(self, "Open &waveforms ...",
                                              self.loadWaveformData,
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
-                                             """Open waveform data (event will
-                                             be closed).""")
+                                             "Open waveform data (event will "
+                                             "be closed)")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
                                              QKeySequence.Preferences,
@@ -228,7 +252,7 @@ class MainWindow(QMainWindow):
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (newEventAction, openEventAction,
+        self.fileMenuActions = (newEventAction, openmanualpicksaction,
                                 saveEventAction, openWFDataAction, None,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
@@ -245,7 +269,9 @@ class MainWindow(QMainWindow):
         self.addActions(self.helpMenu, helpActions)
 
         fileToolBar = self.addToolBar("FileTools")
-        fileToolActions = (newEventAction, openEventAction, saveEventAction)
+        fileToolActions = (newEventAction, openmanualpicksaction,
+                           openautopicksaction, loadlocationaction,
+                           loadpilotevent, saveEventAction)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
@@ -299,9 +325,11 @@ class MainWindow(QMainWindow):
         # self.addActions(pickToolBar, pickToolActions)
 
         locateEvent = self.createAction(parent=self, text='locateEvent',
-                                        slot=self.locateEvent, shortcut='Alt+Ctrl+L',
-                                        icon=locate_icon, tip='Locate the event using '
-                                                              'the picked arrivals.')
+                                        slot=self.locateEvent,
+                                        shortcut='Alt+Ctrl+L',
+                                        icon=locate_icon,
+                                        tip='Locate the event using '
+                                            'the picked arrivals.')
 
         locationToolBar = self.addToolBar("LocationTools")
         locationToolActions = (locateEvent,)
@@ -333,12 +361,12 @@ class MainWindow(QMainWindow):
         except AttributeError:
             current = None
         recentEvents = []
-        for eventID in self.recentEvents:
+        for eventID in self.recentfiles:
             fname = fnConstructor(eventID)
             if eventID != current and QFile.exists(fname):
                 recentEvents.append(eventID)
                 recentEvents.reverse()
-                self.recentEvents = recentEvents[0:5]
+                self.recentfiles = recentEvents[0:5]
                 settings = QSettings()
                 settings.setValue()
         if recentEvents:
@@ -350,7 +378,7 @@ class MainWindow(QMainWindow):
                                  self)
                 action.setData(fname)
                 self.connect(action, Signal("triggered()"),
-                             self.loadData)
+                             self.load_data)
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
@@ -359,34 +387,54 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
-    def loadAutoPicks(self):
-        self.loadData(type='auto')
+    def load_autopicks(self, fname=None):
+        self.load_data(fname, type='auto')
 
-    def loadData(self, fname=None, type='manual'):
+    def load_loc(self, fname=None):
+        self.load_data(fname, type='loc')
+
+    def load_pilotevent(self):
+        filt = "PILOT location files (*.mat)"
+        caption = "Select PILOT loaction file"
+        fn_loc = QFileDialog().getOpenFileName(self, caption=caption,
+                                              filter=filt, dir=self.getRoot())
+        fn_loc = fn_loc[0]
+        loc_dir = os.path.split(fn_loc)[0]
+        filt = "PILOT phases files (*.mat)"
+        caption = "Select PILOT phases file"
+        fn_phases = QFileDialog().getOpenFileName(self, caption=caption,
+                                              filter=filt, dir=loc_dir)
+        fn_phases = fn_phases[0]
+        type = QInputDialog().getItem(self, self.tr("Select phases type"),
+                                     self.tr("Type:"), [self.tr("manual"),
+                                                        self.tr("automatic")])
+
+        if type[0].startswith('auto'):
+            type = 'auto'
+        else:
+            type = type[0]
+
+        fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
+        self.load_data(fname_dict, type=type)
+
+    def load_data(self, fname=None, type='manual'):
         if not self.okToContinue():
             return
         if fname is None:
             action = self.sender()
             if isinstance(action, QAction):
-                if action.data() is None:
-                    filt = "Supported event formats (*.mat *.qml *.xml *.kor *.evt)"
-                    caption = "Open an event file"
-                    fname = QFileDialog().getOpenFileName(self,
-                                                          caption=caption,
-                                                          filter=filt)
-                    fname = fname[0]
-                else:
-                    fname = str(action.data().toString())
-        self.setFileName(fname)
-        self.data += Data(self, evtdata=self.getFileName())
-        self.updatePicks(type=type)
+                fname = self.filename_from_action(action)
+        self.set_fname(fname, type)
+        self.data += Data(self, evtdata=fname)
+        if 'loc' not in type:
+            self.updatePicks(type=type)
         self.drawPicks()
 
     def getLastEvent(self):
-        return self.recentEvents[0]
+        return self.recentfiles[0]
 
-    def addRecentEvent(self, event):
-        self.recentEvents.insert(0, event)
+    def add_recentfile(self, event):
+        self.recentfiles.insert(0, event)
 
     def getWFFnames(self):
         try:
@@ -422,27 +470,44 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getFileName(self):
+    def filename_from_action(self, action):
+        if action.data() is None:
+            filt = "Supported file formats" \
+                   " (*.mat *.qml *.xml *.kor *.evt)"
+            caption = "Open an event file"
+            fname = QFileDialog().getOpenFileName(self,
+                                                  caption=caption,
+                                                  filter=filt)
+            fname = fname[0]
+        else:
+            fname = str(action.data().toString())
+        return fname
+
+    def get_fnames(self):
         return self.fname
 
-    def setFileName(self, fname):
-        if self.getFileName() is not None:
-            self.addRecentEvent(self.getFileName())
-        self.fname = fname
+    def set_fname(self, fname, type):
+        if self.get_fnames()[type] is not None:
+            self.add_recentfile(self.get_fnames())
+        self.fname[type] = fname
 
     def getEventFileName(self):
-        if self.getFileName() is None:
-            self.setFileName(self.getData().getEventFileName())
-        return self.getFileName()
+        if self.get_fnames() is None:
+            self.set_fname(self.getData().getEventFileName())
+        return self.get_fnames()
 
     def saveData(self):
 
         def getSavePath(e):
             print('warning: {0}'.format(e))
             directory = os.path.join(self.getRoot(), self.getEventFileName())
-            file_filter = "QuakeML file (*.xml);;VELEST observation file format (*.cnv);;NonLinLoc observation file (*.obs)"
-            fname, selected_filter = QFileDialog.getSaveFileName(self, 'Save event data ...',
-                                                                 directory, file_filter)
+            file_filter = "QuakeML file (*.xml);;VELEST observation file " \
+                          "format (*.cnv);;NonLinLoc observation file (*.obs)"
+            title = 'Save event data ...'
+            fname, selected_filter = QFileDialog.getSaveFileName(self,
+                                                                 title,
+                                                                 directory,
+                                                                 file_filter)
 
             fbasename, exform = os.path.splitext(fname)
 
@@ -459,7 +524,8 @@ class MainWindow(QMainWindow):
         except OverwriteError:
             msgBox = QMessageBox()
             msgBox.setText("Picks have been modified!")
-            msgBox.setInformativeText("Do you want to save the changes and overwrite the picks?")
+            msgBox.setInformativeText(
+                "Do you want to save the changes and overwrite the picks?")
             msgBox.setDetailedText(self.getData().getPicksStr())
             msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
             msgBox.setDefaultButton(QMessageBox.Save)
@@ -488,7 +554,9 @@ class MainWindow(QMainWindow):
     def setComponent(self, component):
         self.dispComponent = component
 
-    def getData(self):
+    def getData(self, type='manual'):
+        if type == 'auto':
+            return self.autodata
         return self.data
 
     def getPicks(self, type='manual'):
@@ -687,7 +755,8 @@ class MainWindow(QMainWindow):
         self.setDirty(True)
         self.logDockWidget = QDockWidget("AutoPickLog", self)
         self.logDockWidget.setObjectName("LogDockWidget")
-        self.logDockWidget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.logDockWidget.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
@@ -736,7 +805,7 @@ class MainWindow(QMainWindow):
         return rval
 
     def updatePicks(self, type='manual'):
-        picks = picksdict_from_picks(evt=self.getData().getEvtData())
+        picks = picksdict_from_picks(evt=self.getData(type).getEvtData())
         if type == 'manual':
             self.picks.update(picks)
         elif type == 'auto':
@@ -752,8 +821,10 @@ class MainWindow(QMainWindow):
         plotID = self.getStationID(station)
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        phase_col = {'P': ('c', 'c--', 'b-', 'bv', 'b^'),
-                     'S': ('m', 'm--', 'r-', 'rv', 'r^')}
+        phase_col = {
+            'P': ('c', 'c--', 'b-', 'bv', 'b^'),
+            'S': ('m', 'm--', 'r-', 'rv', 'r^')
+        }
 
         stat_picks = self.getPicks(type=picktype)[station]
 

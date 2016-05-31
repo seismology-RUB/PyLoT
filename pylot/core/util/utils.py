@@ -22,8 +22,8 @@ def worker(func, input, cores='max', async=False):
 
     if cores == 'max':
         cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(cores)
 
+    pool = multiprocessing.Pool(cores)
     if async == True:
         result = pool.map_async(func, input)
     else:
@@ -91,6 +91,14 @@ def fnConstructor(s):
     if badsuffix.match(fn):
         fn = '_' + fn
     return fn
+
+
+def four_digits(year):
+    if year + 2000 < UTCDateTime.utcnow().year:
+        year += 2000
+    else:
+        year += 1900
+    return year
 
 
 def getGlobalTimes(stream):
