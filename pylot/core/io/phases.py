@@ -183,9 +183,15 @@ def picksdict_from_picks(evt):
             print(e)
             onsets = {}
         mpp = pick.time
-        lpp = mpp + pick.time_errors.upper_uncertainty
-        epp = mpp - pick.time_errors.lower_uncertainty
         spe = pick.time_errors.uncertainty
+        try:
+            lpp = mpp + pick.time_errors.upper_uncertainty
+            epp = mpp - pick.time_errors.lower_uncertainty
+        except TypeError as e:
+            msg = e.message + ',\n falling back to symmetric uncertainties'
+            warnings.warn(msg)
+            lpp = mpp + spe
+            epp = mpp - spe
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp

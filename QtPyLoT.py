@@ -577,7 +577,13 @@ class MainWindow(QMainWindow):
 
         ycoord = gui_event.ydata
 
-        statID = int(round(ycoord))
+        try:
+            statID = int(round(ycoord))
+        except TypeError as e:
+            if 'a float is required' in e.message:
+                return None
+            else:
+                raise e
 
         return statID
 
@@ -723,6 +729,8 @@ class MainWindow(QMainWindow):
     def pickOnStation(self, gui_event):
 
         wfID = self.getWFID(gui_event)
+
+        if not wfID: return
 
         station = self.getStationName(wfID)
         self.updateStatus('picking on station {0}'.format(station))
