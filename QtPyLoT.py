@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
         self.recentfiles = settings.value("data/recentEvents", [])
         self.fname = dict(manual=None, auto=None, loc=None)
         self.fnames = None
+        self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
         self.dataStructure = DATASTRUCTURE[structure_setting]()
         self.seismicPhase = str(settings.value("phase", "P"))
@@ -429,6 +430,7 @@ class MainWindow(QMainWindow):
         if 'loc' not in type:
             self.updatePicks(type=type)
         self.drawPicks()
+        self.draw()
 
     def getLastEvent(self):
         return self.recentfiles[0]
@@ -594,6 +596,9 @@ class MainWindow(QMainWindow):
                 return wfID
         return None
 
+    def getStime(self):
+        return self._stime
+
     def addActions(self, target, actions):
         for action in actions:
             if action is None:
@@ -612,6 +617,7 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
             ans = self.data.setWFData(self.getWFFnames())
+        self._stime = getGlobalTimes(self.getData().getWFData())[0]
         if ans:
             self.plotWaveformData()
             return ans
@@ -636,16 +642,19 @@ class MainWindow(QMainWindow):
         self.setComponent('Z')
         self.plotWaveformData()
         self.drawPicks()
+        self.draw()
 
     def plotN(self):
         self.setComponent('N')
         self.plotWaveformData()
         self.drawPicks()
+        self.draw()
 
     def plotE(self):
         self.setComponent('E')
         self.plotWaveformData()
         self.drawPicks()
+        self.draw()
 
     def pushFilterWF(self, param_args):
         self.getData().filterWFData(param_args)
@@ -661,6 +670,7 @@ class MainWindow(QMainWindow):
                 self.getData().resetWFData()
         self.plotWaveformData()
         self.drawPicks()
+        self.draw()
 
     def adjustFilterOptions(self):
         fstring = "Filter Options ({0})".format(self.getSeismicPhase())
@@ -745,8 +755,10 @@ class MainWindow(QMainWindow):
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
+                self.draw()
             else:
                 self.drawPicks(station)
+                self.draw()
         else:
             self.updateStatus('picks discarded ({0})'.format(station))
         if not self.getLocflag() and self.check4Loc():
@@ -782,6 +794,7 @@ class MainWindow(QMainWindow):
 
     def finalizeAutoPick(self):
         self.drawPicks(picktype='auto')
+        self.draw()
         self.thread.quit()
 
     def addPicks(self, station, picks, type='manual'):
@@ -836,13 +849,13 @@ class MainWindow(QMainWindow):
 
         stat_picks = self.getPicks(type=picktype)[station]
 
+        stime = self.getStime()
+
         for phase in stat_picks:
             picks = stat_picks[phase]
             if type(stat_picks[phase]) is not dict:
                 return
             colors = phase_col[phase[0].upper()]
-
-            stime = getGlobalTimes(self.getData().getWFData())[0]
 
             mpp = picks['mpp'] - stime
             epp = picks['epp'] - stime
@@ -860,7 +873,6 @@ class MainWindow(QMainWindow):
                         mpp, ylims[0], colors[4])
             else:
                 raise TypeError('Unknow picktype {0}'.format(picktype))
-        self.draw()
 
     def locateEvent(self):
         settings = QSettings()
