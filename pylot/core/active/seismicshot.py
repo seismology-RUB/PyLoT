@@ -383,6 +383,9 @@ class SeismicShot(object):
         setHosAic = {'hos': hoscftime,
                      'aic': aiccftime}
 
+        if aiccftime < self.getPickwindow(traceID)[0] and 'aic' in self.getMethod():
+            return 0
+
         return setHosAic[self.getMethod()]
 
     def setEarllatepick(self, traceID, nfac=1.5):
@@ -396,9 +399,6 @@ class SeismicShot(object):
                                                       nfac, (tnoise, tgap, tsignal),
                                                       self.getPickIncludeRemoved(traceID),
                                                       stealth_mode=True)
-
-        if self.picks[traceID]['epp'] < 0:
-            self.picks[traceID]['epp']
 
     def threshold(self, hoscf, aiccf, windowsize, pickwindow, folm):
         '''

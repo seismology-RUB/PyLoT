@@ -206,14 +206,8 @@ class Survey(object):
         plt.xlabel('Difference in time (auto - manual) [s]')
         return diffs
 
-    # def pickShot(self, shTr):
-    #     shotnumber, traceID = shTr
-    #     shot = self.getShotForShotnumber(shotnumber)
-    #     traceID, pick = shot.pickTrace(traceID)
-    #     return shotnumber, traceID, pick
-
     def pickAllShots(self, vmin=333, vmax=5500, folm=0.6, HosAic='hos',
-                     aicwindow=(10, 0), cores = 1):
+                     aicwindow=(15, 0), cores = 1):
         '''
         Automatically pick all traces of all shots of the survey.
 
@@ -241,15 +235,14 @@ class Survey(object):
             shot.setVmin(vmin)
             shot.setVmax(vmax)
             count += 1
-            #shot.pickParallel(folm)
             shot.setPickParameters(folm = folm, method = HosAic, aicwindow = aicwindow)
             shotlist.append(shot)
 
         picks = worker(ppick, shotlist, cores)
 
-        for item in picks:
-            for it in item:
-                shotnumber, traceID, pick = it
+        for shot in picks:
+            for item in shot:
+                shotnumber, traceID, pick = item
                 self.getShotForShotnumber(shotnumber).setPick(traceID, pick)
             
             # tpicksum += (datetime.now() - tstartpick);
@@ -259,7 +252,7 @@ class Survey(object):
             # progress = float(count) / float(len(self.getShotDict())) * 100
             # self._update_progress(shot.getShotname(), tend, progress)
         
-        self.setSNR()
+        self.filterSNR()
         self.setEarllate()
 
         print('\npickAllShots: Finished\n')
@@ -269,15 +262,19 @@ class Survey(object):
               % (pickedtraces, ntraces,
                  float(pickedtraces) / float(ntraces) * 100.))
 
-    def setSNR(self):
+    def filterSNR(self):
+        print('Starting filterSNR...')
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 shot.setSNR(traceID)
                 # if shot.getSNR(traceID)[0] < snrthreshold:
+                if shot.getPick(traceID) <= 0:
+                    shot.removePick(traceID)
                 if shot.getSNR(traceID)[0] < shot.getSNRthreshold(traceID):
                     shot.removePick(traceID)
 
     def setEarllate(self):
+        print('Starting setEarllate...')
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 # set epp and lpp if SNR > 1 (else earllatepicker cant set values)
