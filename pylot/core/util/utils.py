@@ -18,7 +18,6 @@ def _pickle_method(m):
 
 
 def worker(func, input, cores='max', async=False):
-    return result
     import multiprocessing
 
     if cores == 'max':
@@ -30,7 +29,8 @@ def worker(func, input, cores='max', async=False):
     else:
         result = pool.map(func, input)
     pool.close()
-    
+    return result
+
 
 def demeanTrace(trace, window):
     """
