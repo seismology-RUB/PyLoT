@@ -109,6 +109,7 @@ class MainWindow(QMainWindow):
             self.data = Data(self, lastEvent)
         else:
             self.data = Data(self)
+        self.autodata = Data(self)
 
         # load and display waveform data
         self.dirty = False
@@ -432,10 +433,11 @@ class MainWindow(QMainWindow):
             if isinstance(action, QAction):
                 fname = self.filename_from_action(action)
         self.set_fname(fname, type)
-        self.data += Data(self, evtdata=fname)
+        data = dict(auto=self.autodata, manual=self.data)
+        data[type] += Data(self, evtdata=fname)
         if 'loc' not in type:
             self.updatePicks(type=type)
-        self.drawPicks()
+        self.drawPicks(picktype=type)
         self.draw()
 
     def getLastEvent(self):
