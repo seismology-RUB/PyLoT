@@ -293,7 +293,7 @@ class Tomo3d(object):
             self.clearDir(directory) 
 
     def rmDir(self, directory):
-        print('Removing directory %s...'%directory)
+        #print('Removing directory %s...'%directory)
         return os.rmdir(directory)
 
     def removeDirectories(self):
@@ -357,7 +357,7 @@ class Tomo3d(object):
         '''
         nsrc = self.readNsrc()
         if self.nproc > nsrc:
-            raise ValueError('Number of spawned processes higher than number of sources')
+            print('Warning: Number of spawned processes higher than number of sources')
         return nsrc/self.nproc, nsrc%self.nproc
 
     def srcIDs4Kernel(self, procID):
