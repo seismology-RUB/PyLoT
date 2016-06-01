@@ -16,6 +16,7 @@ def readParameters(parfile, parameter):
 
     return value
 
+
 def fitSNR4dist(shot_dict, shiftdist=30, shiftSNR=100):
     """
     Approach to fit the decreasing SNR with wave travel distance.
