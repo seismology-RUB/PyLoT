@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
-import copy_reg
-import types
 from pylot.core.util.utils import worker, _pickle_method
-
-copy_reg.pickle(types.MethodType, _pickle_method)
 
 def ppick(shot):
     picks = []
@@ -120,6 +117,15 @@ class Survey(object):
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
                % (cutwindow, tmovwind, tsignal, tgap))
 
+
+    def loadArray(self, path, receiverfile, sourcefile):
+        from pylot.core.active.seismicArrayPreparation import SeisArray
+
+        array = SeisArray(os.path.join(path, receiverfile))
+        array.addSourceLocations(os.path.join(path, sourcefile))
+        self.seisArray = array
+
+        
     def setManualPicksFromFiles(self, directory='picks'):
         '''
         Read manual picks from *.pck files in a directory.
@@ -230,6 +236,7 @@ class Survey(object):
 
         shotlist = []
 
+        print('pickAllShots: Setting pick parameters...')
         for shot in self.data.values():
             tstartpick = datetime.now()
             shot.setVmin(vmin)
@@ -238,7 +245,9 @@ class Survey(object):
             shot.setPickParameters(folm = folm, method = HosAic, aicwindow = aicwindow)
             shotlist.append(shot)
 
+        print('pickAllShots: Starting to pick...')
         picks = worker(ppick, shotlist, cores)
+        print('Done!')
 
         for shot in picks:
             for item in shot:
