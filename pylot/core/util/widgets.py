@@ -20,7 +20,8 @@ from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
     QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
     QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
-    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog
+    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog, \
+    QInputDialog
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
@@ -31,6 +32,18 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
+
+
+def getDataType(parent):
+    type = QInputDialog().getItem(parent, "Select phases type", "Type:",
+                                  ["manual", "automatic"])
+
+    if type[0].startswith('auto'):
+        type = 'auto'
+    else:
+        type = type[0]
+
+    return type
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,

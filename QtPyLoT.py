@@ -53,7 +53,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     getGlobalTimes
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
-    MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg
+    MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg, getDataType
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -389,43 +389,32 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
-    def getType(self):
-        type = QInputDialog().getItem(self, self.tr("Select phases type"),
-                                      self.tr("Type:"), [self.tr("manual"),
-                                                         self.tr("automatic")])
-
-        if type[0].startswith('auto'):
-            type = 'auto'
-        else:
-            type = type[0]
-
-        return type
-
     def load_autopicks(self, fname=None):
         self.load_data(fname, type='auto')
 
     def load_loc(self, fname=None):
-        self.load_data(fname, type='loc')
+        type = getDataType(self)
+        self.load_data(fname, type=type, loc=True)
 
     def load_pilotevent(self):
-        filt = "PILOT location files (*.mat)"
+        filt = "PILOT location files (*LOC*.mat)"
         caption = "Select PILOT location file"
         fn_loc = QFileDialog().getOpenFileName(self, caption=caption,
                                               filter=filt, dir=self.getRoot())
         fn_loc = fn_loc[0]
         loc_dir = os.path.split(fn_loc)[0]
-        filt = "PILOT phases files (*.mat)"
+        filt = "PILOT phases files (*PHASES*.mat)"
         caption = "Select PILOT phases file"
         fn_phases = QFileDialog().getOpenFileName(self, caption=caption,
                                               filter=filt, dir=loc_dir)
         fn_phases = fn_phases[0]
 
-        type = self.getType()
+        type = getDataType(self)
 
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
         self.load_data(fname_dict, type=type)
 
-    def load_data(self, fname=None, type='manual'):
+    def load_data(self, fname=None, type='manual', loc=False):
         if not self.okToContinue():
             return
         if fname is None:
@@ -435,7 +424,7 @@ class MainWindow(QMainWindow):
         self.set_fname(fname, type)
         data = dict(auto=self.autodata, manual=self.data)
         data[type] += Data(self, evtdata=fname)
-        if 'loc' not in type:
+        if not loc:
             self.updatePicks(type=type)
         self.drawPicks(picktype=type)
         self.draw()
@@ -485,9 +474,9 @@ class MainWindow(QMainWindow):
             filt = "Supported file formats" \
                    " (*.mat *.qml *.xml *.kor *.evt)"
             caption = "Open an event file"
-            fname = QFileDialog().getOpenFileName(self,
-                                                  caption=caption,
-                                                  filter=filt)
+            fname = QFileDialog().getOpenFileName(self, caption=caption,
+                                                  filter=filt,
+                                                  dir=self.getRoot())
             fname = fname[0]
         else:
             fname = str(action.data().toString())
