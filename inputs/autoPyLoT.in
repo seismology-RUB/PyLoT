@@ -8,6 +8,7 @@
 EVENT_DATA/LOCAL		    #datapath#     %data path
 2013.02_Insheim                     #database#     %name of data base
 e0019.048.13                        #eventID#      %certain evnt ID for processing
+True                                #apverbose#
 PILOT				    #datastructure#  %choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1, partly, >1 everything
 AUTOPHASES_AIC_HOS4_ARH             #phasefile#    %name of autoPILOT output phase file 
