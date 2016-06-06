@@ -53,7 +53,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     getGlobalTimes
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
-    MPLWidget, PropertiesDlg, HelpForm, createAction, PickDlg, getDataType
+    WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, getDataType
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -142,8 +142,8 @@ class MainWindow(QMainWindow):
         plottitle = "Overview: {0} components ".format(self.getComponent())
 
         # create central matplotlib figure canvas widget
-        self.DataPlot = MPLWidget(parent=self, xlabel=xlab, ylabel=None,
-                                  title=plottitle)
+        self.DataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
+                                       title=plottitle)
         self.DataPlot.mpl_connect('button_press_event',
                                   self.pickOnStation)
         self.DataPlot.mpl_connect('axes_enter_event',
@@ -178,6 +178,8 @@ class MainWindow(QMainWindow):
         auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
         locate_icon = QIcon()
         locate_icon.addPixmap(QPixmap(':/icons/locate.png'))
+        compare_icon = QIcon()
+        compare_icon.addPixmap(QPixmap(':/icons/compare.png'))
 
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
@@ -244,6 +246,12 @@ class MainWindow(QMainWindow):
                                                "Alt+S",
                                                s_icon,
                                                "Toggle S phase", True)
+        self.compare_action = self.createAction(self, "&Compare picks...",
+                                                self.comparePicks, "Alt+C",
+                                                compare_icon, "Comparison of "
+                                                              "manual and "
+                                                              "automatic pick "
+                                                              "data.", False)
         printAction = self.createAction(self, "&Print event ...",
                                         self.printEvent, QKeySequence.Print,
                                         print_icon,
@@ -318,7 +326,7 @@ class MainWindow(QMainWindow):
                                                           ' displayed!')
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
-        autoPickActions = (auto_pick,)
+        autoPickActions = (auto_pick, self.compare_action)
         self.addActions(autoPickToolBar, autoPickActions)
 
         # pickToolBar = self.addToolBar("PickTools")
@@ -567,6 +575,10 @@ class MainWindow(QMainWindow):
             return self.getPicks(type)[station]
         except KeyError:
             return None
+
+    def comparePicks(self):
+        if self.check4Comparison():
+            compare_dlg = ComparisonDialog(self)
 
     def getPlotWidget(self):
         return self.DataPlot
@@ -828,6 +840,7 @@ class MainWindow(QMainWindow):
             self.picks.update(picks)
         elif type == 'auto':
             self.autopicks.update(picks)
+        self.check4Comparison()
 
     def drawPicks(self, station=None, picktype='manual'):
         # if picks to draw not specified, draw all picks available
@@ -882,9 +895,22 @@ class MainWindow(QMainWindow):
     def check4Loc(self):
         return self.picksNum() > 4
 
-    def picksNum(self):
+    def check4Comparison(self):
+        mpicks = self.getPicks()
+        apicks = self.getPicks('auto')
+        for station, phases in mpicks.items():
+            try:
+                aphases = apicks[station]
+                for phase in phases.keys():
+                    if phase in aphases.keys():
+                        return True
+            except KeyError:
+                continue
+        return False
+
+    def picksNum(self, type='manual'):
         num = 0
-        for phases in self.getPicks().values():
+        for phases in self.getPicks(type).values():
             num += len(phases)
         return num
 
