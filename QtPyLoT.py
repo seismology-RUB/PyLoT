@@ -42,6 +42,7 @@ from obspy import UTCDateTime
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
+from pylot.core.pick.compare import Comparison
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.loc.nll import locate as locateNll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
@@ -53,7 +54,8 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     getGlobalTimes
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
-    WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, getDataType
+    WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
+    getDataType, ComparisonDialog
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -578,7 +580,9 @@ class MainWindow(QMainWindow):
 
     def comparePicks(self):
         if self.check4Comparison():
-            compare_dlg = ComparisonDialog(self)
+            co = Comparison(auto=self.getPicks('auto'), manu=self.getPicks())
+            compare_dlg = ComparisonDialog(co, self)
+            compare_dlg.exec_()
 
     def getPlotWidget(self):
         return self.DataPlot

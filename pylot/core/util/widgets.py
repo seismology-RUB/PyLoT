@@ -64,16 +64,43 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
         action.setCheckable(True)
     return action
 
-class ComparsionDialog(QDialog):
+class ComparisonDialog(QDialog):
     def __init__(self, c, parent=None):
         self._data = c
         self._stats = c.keys()
-        self._canvas = PlotWidget(parent)
-        super(ComparsionDialog, self).__init__(parent)
-        self
+        self._canvas = PlotWidget(self)
+        super(ComparisonDialog, self).__init__(parent)
+        self.setupUI()
 
     def setupUI(self):
-        pass
+
+        _outerlayout = QVBoxLayout(self)
+        _innerlayout = QVBoxLayout(self)
+
+        _stats_combobox = QComboBox(self)
+        _stats_combobox.setEditable(True)
+        _stats_combobox.addItems(self.stations)
+        _stats_combobox.textChanged.connect(self.plotcomparison)
+
+        _phases_combobox = QComboBox(self)
+        _phases_combobox.addItems(['P', 'S'])
+
+        _toolbar = QToolBar(self)
+        _toolbar.addWidget(_stats_combobox)
+        _toolbar.addWidget(_phases_combobox)
+
+        _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
+
+        _innerlayout.addWidget(self.canvas)
+        _innerlayout.addWidget(_buttonbox)
+
+        _outerlayout.addWidget(_toolbar)
+        _outerlayout.addLayout(_innerlayout)
+
+        _buttonbox.rejected.connect(self.reject)
+
+        # finally layout the entire dialog
+        self.setLayout(_outerlayout)
 
     @property
     def canvas(self):
