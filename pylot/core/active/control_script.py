@@ -26,7 +26,7 @@ folm = 0.6                         # fraction of local maximum for threshold pic
 tsignal = 0.03
 tgap = 0.0007
 
-nproc = 32
+nproc = 16
 
 vmin = 333
 vmax = 5500
@@ -81,7 +81,8 @@ print('directory: %s\nsourcefile: %s\nreceiverfile: %s\nsurvey output filename: 
 if HosAic == 'aic': print('picking with AIC\n')
 if HosAic == 'hos': print('picking with HOS\n')
 
-survey = activeSeismoPick.Survey(obsdir, sourcefile, receiverfile, useDefaultParas = False)
+survey = activeSeismoPick.Survey(obsdir, os.path.join(obsdir, sourcefile),
+                                 os.path.join(obsdir, receiverfile), useDefaultParas = False)
 survey.setParametersForAllShots(cutwindow, tmovwind, tsignal, tgap)
 surveyUtils.setDynamicFittedSNR(survey.getShotDict())
 #surveyUtils.setConstantSNR(survey.getShotDict(), 0)

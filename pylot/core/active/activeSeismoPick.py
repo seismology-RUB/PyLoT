@@ -37,8 +37,8 @@ class Survey(object):
 
     def _initiate_fnames(self):
         for shot in self.data.values():
-            shot.setRecfile(self.getPath() + self.getReceiverfile())
-            shot.setSourcefile(self.getPath() + self.getSourcefile())
+            shot.setRecfile(self.getReceiverfile())
+            shot.setSourcefile(self.getSourcefile())
 
     def _generateSurvey(self):
         from obspy.core import read
@@ -47,7 +47,7 @@ class Survey(object):
         shotlist = self.getShotlist()
         for shotnumber in shotlist:  # loop over data files
             # generate filenames and read manual picks to a list
-            obsfile = self._obsdir + str(shotnumber) + '_pickle.dat'
+            obsfile = os.path.join(self._obsdir, str(shotnumber)) + '_pickle.dat'
             if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)
@@ -354,7 +354,7 @@ class Survey(object):
         '''
         Returns a list of all shotnumbers contained in the set Sourcefile.
         '''
-        filename = self.getPath() + self.getSourcefile()
+        filename = self.getSourcefile()
         srcfile = open(filename, 'r')
         shotlist = []
         for line in srcfile.readlines():
@@ -367,7 +367,7 @@ class Survey(object):
         '''
         Returns a list of all trace IDs contained in the set Receiverfile.
         '''
-        filename = self.getPath() + self.getReceiverfile()
+        filename = self.getReceiverfile()
         recfile = open(filename, 'r')
         reclist = []
         for line in recfile.readlines():
