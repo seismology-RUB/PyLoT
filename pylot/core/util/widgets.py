@@ -20,7 +20,8 @@ from matplotlib.widgets import MultiCursor
 from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
     QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
     QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
-    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog
+    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog, \
+    QInputDialog
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
@@ -31,6 +32,18 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex
+
+
+def getDataType(parent):
+    type = QInputDialog().getItem(parent, "Select phases type", "Type:",
+                                  ["manual", "automatic"])
+
+    if type[0].startswith('auto'):
+        type = 'auto'
+    else:
+        type = type[0]
+
+    return type
 
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
@@ -51,8 +64,86 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
         action.setCheckable(True)
     return action
 
+class ComparsionDialog(QDialog):
+    def __init__(self, c, parent=None):
+        self._data = c
+        self._stats = c.keys()
+        self._canvas = PlotWidget(parent)
+        super(ComparsionDialog, self).__init__(parent)
+        self
 
-class MPLWidget(FigureCanvas):
+    def setupUI(self):
+        pass
+
+    @property
+    def canvas(self):
+        return self._canvas
+
+    @property
+    def stations(self):
+        return self._stats
+
+    @stations.setter
+    def stations(self, stations):
+        self._stats = stations
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self.stations = data.keys()
+        self._data = data
+
+
+class PlotWidget(FigureCanvas):
+    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
+        self._parent = parent
+        self._fig = Figure()
+        self._xl = xlabel
+        self._yl = ylabel
+        self._title = title
+        super(PlotWidget, self).__init__(self.figure)
+
+    @property
+    def figure(self):
+        return self._fig
+
+    @figure.setter
+    def figure(self, fig):
+        self._fig = fig
+
+    @property
+    def xlabel(self):
+        return self._xl
+
+    @xlabel.setter
+    def xlabel(self, label):
+        self._xl = label
+
+    @property
+    def ylabel(self):
+        return self._yl
+
+    @ylabel.setter
+    def ylabel(self, label):
+        self._yl = label
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, title):
+        self._title = title
+
+    @property
+    def parent(self):
+        return self._parent
+
+
+class WaveformWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
 
         self._parent = None
@@ -66,7 +157,7 @@ class MPLWidget(FigureCanvas):
         # clear axes each time plot is called
         self.axes.hold(True)
         # initialize super class
-        super(MPLWidget, self).__init__(self.figure)
+        super(WaveformWidget, self).__init__(self.figure)
         # add an cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
                                        horizOn=True,
@@ -210,7 +301,7 @@ class PickDlg(QDialog):
         self.stime, self.etime = getGlobalTimes(self.getWFData())
 
         # initialize plotting widget
-        self.multicompfig = MPLWidget(self)
+        self.multicompfig = WaveformWidget(self)
 
         # setup ui
         self.setupUi()

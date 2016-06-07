@@ -29,7 +29,10 @@ class Comparison(object):
         names = list()
         self._pdfs = dict()
         for name, fn in kwargs.items():
-            self._pdfs[name] = PDFDictionary.from_quakeml(fn)
+            if not isinstance(PDFDictionary, fn):
+                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
+            else:
+                self._pdfs[name] = fn
             names.append(name)
         if len(names) > 2:
             raise ValueError('Comparison is only defined for two '
@@ -101,14 +104,19 @@ class Comparison(object):
 
         return compare_pdfs
 
-    def plot(self):
-        nstations = self.nstations
-        stations = self.stations
+    def plot(self, stations=None):
+        if stations is None:
+            nstations = self.nstations
+            stations = self.stations
+        else:
+            nstations = len(stations)
         istations = range(nstations)
         fig, axarr = plt.subplots(nstations, 2, sharex='col', sharey='row')
 
         for n in istations:
             station = stations[n]
+            if station not in self.comparison.keys():
+                continue
             compare_pdf = self.comparison[station]
             for l, phase in enumerate(compare_pdf.keys()):
                 axarr[n, l].plot(compare_pdf[phase].axis,
