@@ -28,6 +28,7 @@ from obspy import Stream, UTCDateTime
 from pylot.core.io.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
+from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
@@ -67,10 +68,15 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
 class ComparisonDialog(QDialog):
     def __init__(self, c, parent=None):
         self._data = c
-        self._stats = c.keys()
+        self._stats = c.stations
         self._canvas = PlotWidget(self)
+        self._widgets = dict(stationsComboBox=None,
+                             phasesComboBox=None)
+        self._phases = 'PS'
+        self._plotprops = dict(station=self.stations[0], phase=self.phases[0])
         super(ComparisonDialog, self).__init__(parent)
         self.setupUI()
+        self.plotcomparison()
 
     def setupUI(self):
 
@@ -78,12 +84,18 @@ class ComparisonDialog(QDialog):
         _innerlayout = QVBoxLayout(self)
 
         _stats_combobox = QComboBox(self)
+        _stats_combobox.setObjectName('stationsComboBox')
         _stats_combobox.setEditable(True)
+        _stats_combobox.setInsertPolicy(QComboBox.NoInsert)
         _stats_combobox.addItems(self.stations)
-        _stats_combobox.textChanged.connect(self.plotcomparison)
+        _stats_combobox.editTextChanged.connect(self.prepareplot)
+        self.widgets = _stats_combobox
 
         _phases_combobox = QComboBox(self)
+        _phases_combobox.setObjectName('phasesComboBox')
         _phases_combobox.addItems(['P', 'S'])
+        _phases_combobox.currentIndexChanged.connect(self.prepareplot)
+        self.widgets = _phases_combobox
 
         _toolbar = QToolBar(self)
         _toolbar.addWidget(_stats_combobox)
@@ -106,6 +118,10 @@ class ComparisonDialog(QDialog):
     def canvas(self):
         return self._canvas
 
+    @canvas.setter
+    def canvas(self, canvas_obj):
+        self._canvas = canvas_obj
+
     @property
     def stations(self):
         return self._stats
@@ -115,13 +131,84 @@ class ComparisonDialog(QDialog):
         self._stats = stations
 
     @property
+    def phases(self):
+        return self._phases
+
+    @phases.setter
+    def phases(self, value):
+        self._phases = value
+
+    @property
+    def plotprops(self):
+        return self._plotprops
+
+    @plotprops.setter
+    def plotprops(self, values):
+        try:
+            key, value = values
+            if key not in self.plotprops.keys():
+                raise KeyError("'key' {0} not found in "
+                               "ComparisonDialog.plotprops keys.".format(key))
+        except ValueError:
+            raise ValueError("Pass an iterable with two items")
+        else:
+            self._plotprops[key] = value
+
+    @property
     def data(self):
         return self._data
 
     @data.setter
     def data(self, data):
-        self.stations = data.keys()
+        assert not isinstance(data, Comparison)
+        self.stations = data.stations
         self._data = data
+
+    @property
+    def widgets(self):
+        return self._widgets
+
+    @widgets.setter
+    def widgets(self, widget):
+        name = widget.objectName
+        if name in self.widgets.keys():
+            self._widgets[name] = widget
+
+    def hasvalue(self, sender):
+        text = sender.currentText()
+        index = sender.findText(text.upper())
+        return index
+
+    def prepareplot(self):
+        try:
+            _widget = self.sender()
+            name = _widget.objectName()
+            text = _widget.currentText().upper()
+            index = self.hasvalue(_widget)
+            if name == 'stationsComboBox' and index is not -1:
+                _widget.setCurrentIndex(index)
+                self.plotprops = ('station', text)
+            elif name == 'phasesComboBox':
+                self.plotprops = ('phase', text)
+        except ValueError:
+            raise ValueError('No sender widget given!')
+        finally:
+            self.plotcomparison()
+
+    def plotcomparison(self):
+        _axes = self.canvas.figure.add_subplot(111)
+        station = self.plotprops['station']
+        phase = self.plotprops['phase']
+        pdf = self.data.comparison[station][phase]
+        x, y = pdf.axis, pdf.data
+        _axes.plot(x, y)
+        _axes.set_title(phase)
+        _axes.set_ylabel('propability density (qual.)')
+        _axes.set_xlabel('time difference [s]')
+        _anno = _axes.annotate(station, xy=(.05, .5), xycoords='axes fraction')
+        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+        _anno.set_bbox(bbox_props)
+        self.canvas.draw()
 
 
 class PlotWidget(FigureCanvas):

@@ -29,10 +29,12 @@ class Comparison(object):
         names = list()
         self._pdfs = dict()
         for name, fn in kwargs.items():
-            if not isinstance(PDFDictionary, fn):
-                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
-            else:
+            if isinstance(fn, PDFDictionary):
                 self._pdfs[name] = fn
+            elif isinstance(fn, dict):
+                self._pdfs[name] = PDFDictionary(fn)
+            else:
+                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
             names.append(name)
         if len(names) > 2:
             raise ValueError('Comparison is only defined for two '
