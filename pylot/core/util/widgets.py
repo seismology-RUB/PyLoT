@@ -197,15 +197,22 @@ class ComparisonDialog(QDialog):
 
     def plotcomparison(self):
         _axes = self.canvas.figure.add_subplot(111)
+        _axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
         pdf = self.data.comparison[station][phase]
-        x, y = pdf.axis, pdf.data
+        x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
+                         pdf.expectation()
         _axes.plot(x, y)
         _axes.set_title(phase)
         _axes.set_ylabel('propability density (qual.)')
         _axes.set_xlabel('time difference [s]')
-        _anno = _axes.annotate(station, xy=(.05, .5), xycoords='axes fraction')
+        annotation = "{phase} difference on {station}\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(station=station, phase=phase,
+                                          std=std, exp=exp)
+        _anno = _axes.annotate(annotation, xy=(.05, .5), xycoords='axes '
+                                                                  'fraction')
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
         _anno.set_bbox(bbox_props)
         self.canvas.draw()
