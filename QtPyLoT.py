@@ -753,7 +753,7 @@ class MainWindow(QMainWindow):
 
         wfID = self.getWFID(gui_event)
 
-        if not wfID: return
+        if wfID is None: return
 
         station = self.getStationName(wfID)
         self.updateStatus('picking on station {0}'.format(station))
