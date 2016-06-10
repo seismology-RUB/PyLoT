@@ -270,6 +270,8 @@ class PDFDictionary(object):
 
         for station, phases in pdf_picks.items():
             for phase, values in phases.items():
+                if phase not in 'PS':
+                    continue
                 phases[phase] = ProbabilityDensityFunction.from_pick(
                     values['epp'],
                     values['mpp'],
