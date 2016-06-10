@@ -140,6 +140,18 @@ class Comparison(object):
 
         plt.show()
 
+    def get_array(self, phase, method):
+        pdf_dict = self.comparison
+        exp_array = list()
+        for station, phases in pdf_dict.items():
+            try:
+                exp_array.append(phases[phase].expectation())
+            except KeyError as e:
+                print('{err_msg}; station = {station}, phase = {phase}'.format(
+                    err_msg=str(e), station=station, phase=phase))
+                continue
+        return exp_array
+
     def get_expectation_array(self, phase):
         pdf_dict = self.comparison
         exp_array = list()

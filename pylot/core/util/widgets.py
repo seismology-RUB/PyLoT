@@ -17,11 +17,11 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
-from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
-    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
-    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog, \
-    QInputDialog
+from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
+    QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
+    QGridLayout, QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, \
+    QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QWidget, \
+    QPushButton, QFileDialog, QInputDialog
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
@@ -71,7 +71,8 @@ class ComparisonDialog(QDialog):
         self._stats = c.stations
         self._canvas = PlotWidget(self)
         self._widgets = dict(stationsComboBox=None,
-                             phasesComboBox=None)
+                             phasesComboBox=None,
+                             histCheckBox=None)
         self._phases = 'PS'
         self._plotprops = dict(station=self.stations[0], phase=self.phases[0])
         super(ComparisonDialog, self).__init__(parent)
@@ -97,9 +98,15 @@ class ComparisonDialog(QDialog):
         _phases_combobox.currentIndexChanged.connect(self.prepareplot)
         self.widgets = _phases_combobox
 
+        _hist_checkbox = QCheckBox('Show histograms', self)
+        _hist_checkbox.setObjectName('histCheckBox')
+        _hist_checkbox.stateChanged.connect(self.plothist)
+        self.widgets = _hist_checkbox
+
         _toolbar = QToolBar(self)
         _toolbar.addWidget(_stats_combobox)
         _toolbar.addWidget(_phases_combobox)
+        _toolbar.addWidget(_hist_checkbox)
 
         _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
 
@@ -170,7 +177,7 @@ class ComparisonDialog(QDialog):
 
     @widgets.setter
     def widgets(self, widget):
-        name = widget.objectName
+        name = widget.objectName()
         if name in self.widgets.keys():
             self._widgets[name] = widget
 
@@ -218,37 +225,50 @@ class ComparisonDialog(QDialog):
         self.canvas.draw()
 
     def plothist(self):
-        self.canvas = PlotWidget(self)
-        _axPstd, _axPexp = self.canvas.figure.add_subplot(221), self.canvas.figure.add_subplot(223)
-        _axSstd, _axSexp = self.canvas.figure.add_subplot(222), self.canvas.figure.add_subplot(224)
-        axes_dict = dict(P=dict(std=_axPstd, exp=_axPexp),
-                         S=dict(std=_axSstd, exp=_axSexp))
-        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
-        for phase in self.phases:
-            std = self.data.get_std_array(phase)
-            stdxlims = [0., 1.2 * max(std)]
-            exp = self.data.get_expectation_array(phase)
-            eps_exp = 0.05 * (max(exp) - min(exp))
-            expxlims = [min(exp) - eps_exp, max(exp) + eps_exp]
-            axes_dict[phase][std].hist(std, range=stdxlims, bins=20, normed=False)
-            axes_dict[phase][exp].hist(std, range=expxlims, bins=20, normed=False)
-            std_annotation = "Distribution curve for {phase} differences'\n" \
-                             "standard deviations (all stations)\n" \
-                             "number of samples: {nsamples}".format(phase=phase, nsamples=len(std))
-            _anno_std = axes_dict[phase][std].annotate(std_annotation, xy=(.05, .8), xycoords='axes fraction')
-            _anno_std.set_bbox(bbox_props)
-            exp_annotation = "Distribution curve for {phase} differences'\n" \
-                             "expectations (all stations)\n" \
-                             "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
-            _anno_exp = axes_dict[phase][exp].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
-            _anno_exp.set_bbox(bbox_props)
-            axes_dict[phase]['exp'].set_xlabel('expectation [s]')
-            axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
+        name = self.sender().objectName()
+        if self.widgets[name].isChecked():
+            for wname, widget in self.widgets.items():
+                if wname != name:
+                    self.widgets[wname].setEnabled(False)
+            self.canvas.figure.clf()
+            _axPstd, _axPexp = self.canvas.figure.add_subplot(221), self.canvas.figure.add_subplot(223)
+            _axSstd, _axSexp = self.canvas.figure.add_subplot(222), self.canvas.figure.add_subplot(224)
+            axes_dict = dict(P=dict(std=_axPstd, exp=_axPexp),
+                             S=dict(std=_axSstd, exp=_axSexp))
+            bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+            for phase in self.phases:
+                std = self.data.get_std_array(phase)
+                stdxlims = [0., 1.2 * max(std)]
+                exp = self.data.get_expectation_array(phase)
+                eps_exp = 0.05 * (max(exp) - min(exp))
+                expxlims = [min(exp) - eps_exp, max(exp) + eps_exp]
+                axes_dict[phase]['std'].hist(std, range=stdxlims, bins=20, normed=False)
+                axes_dict[phase]['exp'].hist(exp, range=expxlims, bins=20,
+                                             normed=False)
+                std_annotation = "Distribution curve for {phase} differences'\n" \
+                                 "standard deviations (all stations)\n" \
+                                 "number of samples: {nsamples}".format(phase=phase, nsamples=len(std))
+                _anno_std = axes_dict[phase]['std'].annotate(std_annotation, xy=(.05, .8), xycoords='axes fraction')
+                _anno_std.set_bbox(bbox_props)
+                exp_annotation = "Distribution curve for {phase} differences'\n" \
+                                 "expectations (all stations)\n" \
+                                 "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
+                _anno_exp = axes_dict[phase]['exp'].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
+                _anno_exp.set_bbox(bbox_props)
+                axes_dict[phase]['exp'].set_xlabel('expectation [s]')
+                axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
 
-        for ax in axes_dict['P'].values():
-            ax.set_ylabel('frequency [-]')
+            for ax in axes_dict['P'].values():
+                ax.set_ylabel('frequency [-]')
 
-        self.canvas.draw()
+            self.canvas.draw()
+        else:
+            for wname, widget in self.widgets.items():
+                if wname != name:
+                    self.widgets[wname].setEnabled(True)
+            self.canvas.figure.clf()
+            self.plotcomparison()
+
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
