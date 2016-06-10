@@ -205,7 +205,7 @@ class ComparisonDialog(QDialog):
                          pdf.expectation()
         _axes.plot(x, y)
         _axes.set_title(phase)
-        _axes.set_ylabel('propability density (qual.)')
+        _axes.set_ylabel('propability density [-]')
         _axes.set_xlabel('time difference [s]')
         annotation = "{phase} difference on {station}\n" \
                       "expectation: {exp}\n" \
@@ -217,6 +217,38 @@ class ComparisonDialog(QDialog):
         _anno.set_bbox(bbox_props)
         self.canvas.draw()
 
+    def plothist(self):
+        self.canvas = PlotWidget(self)
+        _axPstd, _axPexp = self.canvas.figure.add_subplot(221), self.canvas.figure.add_subplot(223)
+        _axSstd, _axSexp = self.canvas.figure.add_subplot(222), self.canvas.figure.add_subplot(224)
+        axes_dict = dict(P=dict(std=_axPstd, exp=_axPexp),
+                         S=dict(std=_axSstd, exp=_axSexp))
+        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+        for phase in self.phases:
+            std = self.data.get_std_array(phase)
+            stdxlims = [0., 1.2 * max(std)]
+            exp = self.data.get_expectation_array(phase)
+            eps_exp = 0.05 * (max(exp) - min(exp))
+            expxlims = [min(exp) - eps_exp, max(exp) + eps_exp]
+            axes_dict[phase][std].hist(std, range=stdxlims, bins=20, normed=False)
+            axes_dict[phase][exp].hist(std, range=expxlims, bins=20, normed=False)
+            std_annotation = "Distribution curve for {phase} differences'\n" \
+                             "standard deviations (all stations)\n" \
+                             "number of samples: {nsamples}".format(phase=phase, nsamples=len(std))
+            _anno_std = axes_dict[phase][std].annotate(std_annotation, xy=(.05, .8), xycoords='axes fraction')
+            _anno_std.set_bbox(bbox_props)
+            exp_annotation = "Distribution curve for {phase} differences'\n" \
+                             "expectations (all stations)\n" \
+                             "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
+            _anno_exp = axes_dict[phase][exp].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
+            _anno_exp.set_bbox(bbox_props)
+            axes_dict[phase]['exp'].set_xlabel('expectation [s]')
+            axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
+
+        for ax in axes_dict['P'].values():
+            ax.set_ylabel('frequency [-]')
+
+        self.canvas.draw()
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
