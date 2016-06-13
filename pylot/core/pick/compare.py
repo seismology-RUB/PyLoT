@@ -29,10 +29,12 @@ class Comparison(object):
         names = list()
         self._pdfs = dict()
         for name, fn in kwargs.items():
-            if not isinstance(PDFDictionary, fn):
-                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
-            else:
+            if isinstance(fn, PDFDictionary):
                 self._pdfs[name] = fn
+            elif isinstance(fn, dict):
+                self._pdfs[name] = PDFDictionary(fn)
+            else:
+                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
             names.append(name)
         if len(names) > 2:
             raise ValueError('Comparison is only defined for two '
@@ -138,29 +140,28 @@ class Comparison(object):
 
         plt.show()
 
-    def get_expectation_array(self, phase):
+    def get_all(self, phasename):
         pdf_dict = self.comparison
-        exp_array = list()
-        for station, phases in pdf_dict.items():
+        rlist = list()
+        for phases in pdf_dict.values():
             try:
-                exp_array.append(phases[phase].expectation())
-            except KeyError as e:
-                print('{err_msg}; station = {station}, phase = {phase}'.format(
-                    err_msg=str(e), station=station, phase=phase))
+                rlist.append(phases[phasename])
+            except KeyError:
                 continue
-        return exp_array
+        return rlist
+
+    def get_array(self, phase, method_name):
+        import operator
+        method = operator.methodcaller(method_name)
+        pdf_list = self.get_all(phase)
+        rarray = map(method, pdf_list)
+        return np.array(rarray)
+
+    def get_expectation_array(self, phase):
+        return self.get_array(phase, 'expectation')
 
     def get_std_array(self, phase):
-        pdf_dict = self.comparison
-        std_array = list()
-        for station, phases in pdf_dict.items():
-            try:
-                std_array.append(phases[phase].standard_deviation())
-            except KeyError as e:
-                print('{err_msg}; station = {station}, phase = {phase}'.format(
-                    err_msg=str(e), station=station, phase=phase))
-                continue
-        return std_array
+        return self.get_array(phase, 'standard_deviation')
 
     def hist_expectation(self, phases='all', bins=20, normed=False):
         phases.strip()
@@ -222,6 +223,9 @@ class PDFDictionary(object):
         else:
             return True
 
+    def __getitem__(self, item):
+        return self.pdf_data[item]
+
     @property
     def pdf_data(self):
         return self._pdfdata
@@ -268,6 +272,8 @@ class PDFDictionary(object):
 
         for station, phases in pdf_picks.items():
             for phase, values in phases.items():
+                if phase not in 'PS':
+                    continue
                 phases[phase] = ProbabilityDensityFunction.from_pick(
                     values['epp'],
                     values['mpp'],

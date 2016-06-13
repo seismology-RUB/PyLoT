@@ -17,17 +17,18 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
-from PySide.QtGui import QAction, QApplication, QComboBox, QDateTimeEdit, \
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, QGridLayout, \
-    QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, QPixmap, QSpinBox, \
-    QTabWidget, QToolBar, QVBoxLayout, QWidget, QPushButton, QFileDialog, \
-    QInputDialog
+from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
+    QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
+    QGridLayout, QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, \
+    QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QWidget, \
+    QPushButton, QFileDialog, QInputDialog
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.io.inputs import FilterOptions
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
+from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
@@ -64,20 +65,69 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
         action.setCheckable(True)
     return action
 
-class ComparsionDialog(QDialog):
+class ComparisonDialog(QDialog):
     def __init__(self, c, parent=None):
         self._data = c
-        self._stats = c.keys()
-        self._canvas = PlotWidget(parent)
-        super(ComparsionDialog, self).__init__(parent)
-        self
+        self._stats = c.stations
+        self._canvas = PlotWidget(self)
+        self._widgets = dict(stationsComboBox=None,
+                             phasesComboBox=None,
+                             histCheckBox=None)
+        self._phases = 'PS'
+        self._plotprops = dict(station=self.stations[0], phase=self.phases[0])
+        super(ComparisonDialog, self).__init__(parent)
+        self.setupUI()
+        self.plotcomparison()
 
     def setupUI(self):
-        pass
+
+        _outerlayout = QVBoxLayout(self)
+        _innerlayout = QVBoxLayout(self)
+
+        _stats_combobox = QComboBox(self)
+        _stats_combobox.setObjectName('stationsComboBox')
+        _stats_combobox.setEditable(True)
+        _stats_combobox.setInsertPolicy(QComboBox.NoInsert)
+        _stats_combobox.addItems(self.stations)
+        _stats_combobox.editTextChanged.connect(self.prepareplot)
+        self.widgets = _stats_combobox
+
+        _phases_combobox = QComboBox(self)
+        _phases_combobox.setObjectName('phasesComboBox')
+        _phases_combobox.addItems(['P', 'S'])
+        _phases_combobox.currentIndexChanged.connect(self.prepareplot)
+        self.widgets = _phases_combobox
+
+        _hist_checkbox = QCheckBox('Show histograms', self)
+        _hist_checkbox.setObjectName('histCheckBox')
+        _hist_checkbox.stateChanged.connect(self.plothist)
+        self.widgets = _hist_checkbox
+
+        _toolbar = QToolBar(self)
+        _toolbar.addWidget(_stats_combobox)
+        _toolbar.addWidget(_phases_combobox)
+        _toolbar.addWidget(_hist_checkbox)
+
+        _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
+
+        _innerlayout.addWidget(self.canvas)
+        _innerlayout.addWidget(_buttonbox)
+
+        _outerlayout.addWidget(_toolbar)
+        _outerlayout.addLayout(_innerlayout)
+
+        _buttonbox.rejected.connect(self.reject)
+
+        # finally layout the entire dialog
+        self.setLayout(_outerlayout)
 
     @property
     def canvas(self):
         return self._canvas
+
+    @canvas.setter
+    def canvas(self, canvas_obj):
+        self._canvas = canvas_obj
 
     @property
     def stations(self):
@@ -88,13 +138,161 @@ class ComparsionDialog(QDialog):
         self._stats = stations
 
     @property
+    def phases(self):
+        return self._phases
+
+    @phases.setter
+    def phases(self, value):
+        self._phases = value
+
+    @property
+    def plotprops(self):
+        return self._plotprops
+
+    @plotprops.setter
+    def plotprops(self, values):
+        try:
+            key, value = values
+            if key not in self.plotprops.keys():
+                raise KeyError("'key' {0} not found in "
+                               "ComparisonDialog.plotprops keys.".format(key))
+        except ValueError:
+            raise ValueError("Pass an iterable with two items")
+        else:
+            self._plotprops[key] = value
+
+    @property
     def data(self):
         return self._data
 
     @data.setter
     def data(self, data):
-        self.stations = data.keys()
+        assert not isinstance(data, Comparison)
+        self.stations = data.stations
         self._data = data
+
+    @property
+    def widgets(self):
+        return self._widgets
+
+    @widgets.setter
+    def widgets(self, widget):
+        name = widget.objectName()
+        if name in self.widgets.keys():
+            self._widgets[name] = widget
+
+    def hasvalue(self, sender):
+        text = sender.currentText()
+        index = sender.findText(text.upper())
+        return index
+
+    def prepareplot(self):
+        try:
+            _widget = self.sender()
+            name = _widget.objectName()
+            text = _widget.currentText().upper()
+            index = self.hasvalue(_widget)
+            if name == 'stationsComboBox' and index is not -1:
+                _widget.setCurrentIndex(index)
+                self.plotprops = ('station', text)
+            elif name == 'phasesComboBox':
+                self.plotprops = ('phase', text)
+        except ValueError:
+            raise ValueError('No sender widget given!')
+        finally:
+            self.plotcomparison()
+
+    def plotcomparison(self):
+        from matplotlib import gridspec
+        _axes = self.canvas.figure.add_subplot(111)
+
+        _gs = gridspec.GridSpec(3, 2)
+        _axes = self.canvas.figure.add_subplot(_gs[0:2, :])
+        _ax1 = self.canvas.figure.add_subplot(_gs[2, 0])
+        _ax2 = self.canvas.figure.add_subplot(_gs[2, 1])
+
+        _axes.cla()
+        station = self.plotprops['station']
+        phase = self.plotprops['phase']
+        pdf = self.data.comparison[station][phase]
+        x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
+                         pdf.expectation()
+        _axes.plot(x, y)
+        _axes.set_title(phase)
+        _axes.set_ylabel('propability density [-]')
+        _axes.set_xlabel('time difference [s]')
+        annotation = "{phase} difference on {station}\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(station=station, phase=phase,
+                                          std=std, exp=exp)
+        _anno = _axes.annotate(annotation, xy=(.05, .5), xycoords='axes '
+                                                                  'fraction')
+        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+        _anno.set_bbox(bbox_props)
+
+        pdf_a = self.data.get('auto')[station][phase]
+        pdf_m = self.data.get('manu')[station][phase]
+        xauto, yauto, stdauto, expauto = pdf_a.axis, pdf_a.data, \
+                                         pdf_a.standard_deviation(), \
+                                         pdf_a.expectation()
+        xmanu, ymanu, stdmanu, expmanu = pdf_m.axis, pdf_m.data, \
+                                         pdf_m.standard_deviation(), \
+                                         pdf_m.expectation()
+
+        _ax1.plot(xauto, yauto)
+
+        _ax2.plot(xmanu, ymanu)
+
+        _gs.update(wspace=0.5, hspace=0.5)
+
+        self.canvas.draw()
+
+    def plothist(self):
+        name = self.sender().objectName()
+        if self.widgets[name].isChecked():
+            for wname, widget in self.widgets.items():
+                if wname != name:
+                    self.widgets[wname].setEnabled(False)
+            self.canvas.figure.clf()
+            _axPstd, _axPexp = self.canvas.figure.add_subplot(221), self.canvas.figure.add_subplot(223)
+            _axSstd, _axSexp = self.canvas.figure.add_subplot(222), self.canvas.figure.add_subplot(224)
+            axes_dict = dict(P=dict(std=_axPstd, exp=_axPexp),
+                             S=dict(std=_axSstd, exp=_axSexp))
+            bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+            for phase in self.phases:
+                std = self.data.get_std_array(phase)
+                std = std[np.isfinite(std)]
+                stdxlims = [0., 1.2 * max(std)]
+                exp = self.data.get_expectation_array(phase)
+                exp = exp[np.isfinite(exp)]
+                eps_exp = 0.05 * (max(exp) - min(exp))
+                expxlims = [min(exp) - eps_exp, max(exp) + eps_exp]
+                axes_dict[phase]['std'].hist(std, range=stdxlims, bins=20, normed=False)
+                axes_dict[phase]['exp'].hist(exp, range=expxlims, bins=20,
+                                             normed=False)
+                std_annotation = "Distribution curve for {phase} differences'\n" \
+                                 "standard deviations (all stations)\n" \
+                                 "number of samples: {nsamples}".format(phase=phase, nsamples=len(std))
+                _anno_std = axes_dict[phase]['std'].annotate(std_annotation, xy=(.05, .8), xycoords='axes fraction')
+                _anno_std.set_bbox(bbox_props)
+                exp_annotation = "Distribution curve for {phase} differences'\n" \
+                                 "expectations (all stations)\n" \
+                                 "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
+                _anno_exp = axes_dict[phase]['exp'].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
+                _anno_exp.set_bbox(bbox_props)
+                axes_dict[phase]['exp'].set_xlabel('expectation [s]')
+                axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
+
+            for ax in axes_dict['P'].values():
+                ax.set_ylabel('frequency [-]')
+
+            self.canvas.draw()
+        else:
+            for wname, widget in self.widgets.items():
+                if wname != name:
+                    self.widgets[wname].setEnabled(True)
+            self.canvas.figure.clf()
+            self.plotcomparison()
 
 
 class PlotWidget(FigureCanvas):
