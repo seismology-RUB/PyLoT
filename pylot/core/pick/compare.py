@@ -223,6 +223,9 @@ class PDFDictionary(object):
         else:
             return True
 
+    def __getitem__(self, item):
+        return self.pdf_data[item]
+
     @property
     def pdf_data(self):
         return self._pdfdata

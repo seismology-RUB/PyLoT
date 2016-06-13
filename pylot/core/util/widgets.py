@@ -203,7 +203,14 @@ class ComparisonDialog(QDialog):
             self.plotcomparison()
 
     def plotcomparison(self):
+        from matplotlib import gridspec
         _axes = self.canvas.figure.add_subplot(111)
+
+        _gs = gridspec.GridSpec(3, 2)
+        _axes = self.canvas.figure.add_subplot(_gs[0:2, :])
+        _ax1 = self.canvas.figure.add_subplot(_gs[2, 0])
+        _ax2 = self.canvas.figure.add_subplot(_gs[2, 1])
+
         _axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
@@ -222,6 +229,22 @@ class ComparisonDialog(QDialog):
                                                                   'fraction')
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
         _anno.set_bbox(bbox_props)
+
+        pdf_a = self.data.get('auto')[station][phase]
+        pdf_m = self.data.get('manu')[station][phase]
+        xauto, yauto, stdauto, expauto = pdf_a.axis, pdf_a.data, \
+                                         pdf_a.standard_deviation(), \
+                                         pdf_a.expectation()
+        xmanu, ymanu, stdmanu, expmanu = pdf_m.axis, pdf_m.data, \
+                                         pdf_m.standard_deviation(), \
+                                         pdf_m.expectation()
+
+        _ax1.plot(xauto, yauto)
+
+        _ax2.plot(xmanu, ymanu)
+
+        _gs.update(wspace=0.5, hspace=0.5)
+
         self.canvas.draw()
 
     def plothist(self):
