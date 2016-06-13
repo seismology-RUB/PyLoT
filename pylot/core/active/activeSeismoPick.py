@@ -6,7 +6,7 @@ from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
 from pylot.core.util.utils import worker, _pickle_method
 
-def ppick(shot):
+def picker(shot):
     picks = []
     for traceID in shot.getTraceIDlist():
         picks.append((shot.getShotnumber(), traceID, shot.pickTrace(traceID)))
@@ -24,6 +24,7 @@ class Survey(object):
         creating plots for all shots.
         '''
         self.data = {}
+        self.seisArray = None
         self._topography = None
         self._recfile = receiverfile
         self._sourcefile = sourcefile
@@ -34,6 +35,7 @@ class Survey(object):
             self.setParametersForAllShots()
         self._removeAllEmptyTraces()
         self._updateShots()
+        self.picked = False
 
     def _initiate_fnames(self):
         for shot in self.data.values():
@@ -117,6 +119,11 @@ class Survey(object):
                "cutwindow = %s, tMovingWindow = %f, tsignal = %f, tgap = %f"
                % (cutwindow, tmovwind, tsignal, tgap))
 
+
+    def loadArrayFromPickle(self, filename):
+        from pylot.core.active.seismicArrayPreparation import SeisArray
+        array = SeisArray.from_pickle(filename)
+        self.seisArray = array
 
     def loadArray(self, path, receiverfile, sourcefile):
         from pylot.core.active.seismicArrayPreparation import SeisArray
@@ -246,7 +253,16 @@ class Survey(object):
             shotlist.append(shot)
 
         print('pickAllShots: Starting to pick...')
-        picks = worker(ppick, shotlist, cores)
+        if cores > 1:
+            print('Picking parallel on %s cores.'%cores)
+            picks = worker(picker, shotlist, cores)
+        elif cores == 1:
+            print('Picking serial on one core.')
+            picks = []
+            for shot in shotlist:
+                picks.append(picker(shot))
+        else:
+            raise ValueError('cores must be >= 1')
         print('Done!')
 
         for shot in picks:
@@ -270,6 +286,7 @@ class Survey(object):
         print('Picked %s / %s traces (%d %%)\n'
               % (pickedtraces, ntraces,
                  float(pickedtraces) / float(ntraces) * 100.))
+        self.picked = True
 
     def filterSNR(self):
         print('Starting filterSNR...')
@@ -674,4 +691,6 @@ class Survey(object):
     def from_pickle(filename):
         import cPickle
         infile = open(filename, 'rb')
-        return cPickle.load(infile)
+        survey = cPickle.load(infile)
+        print('Loaded %s'%filename)
+        return survey 

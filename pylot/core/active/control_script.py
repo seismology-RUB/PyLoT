@@ -26,7 +26,7 @@ folm = 0.6                         # fraction of local maximum for threshold pic
 tsignal = 0.03
 tgap = 0.0007
 
-nproc = 16
+nproc = 1
 
 vmin = 333
 vmax = 5500
