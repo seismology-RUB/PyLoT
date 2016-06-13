@@ -1,6 +1,6 @@
 import os
 from PySide import QtCore, QtGui, QtCore
-from asp3d_designer_layout import *
+from asp3d_layout import *
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils
 
 class gui_control(object):
