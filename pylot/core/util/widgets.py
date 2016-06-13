@@ -238,8 +238,10 @@ class ComparisonDialog(QDialog):
             bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
             for phase in self.phases:
                 std = self.data.get_std_array(phase)
+                std = std[np.isfinite(std)]
                 stdxlims = [0., 1.2 * max(std)]
                 exp = self.data.get_expectation_array(phase)
+                exp = exp[np.isfinite(exp)]
                 eps_exp = 0.05 * (max(exp) - min(exp))
                 expxlims = [min(exp) - eps_exp, max(exp) + eps_exp]
                 axes_dict[phase]['std'].hist(std, range=stdxlims, bins=20, normed=False)
