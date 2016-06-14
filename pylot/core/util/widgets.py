@@ -88,7 +88,7 @@ class ComparisonDialog(QDialog):
         _stats_combobox.setObjectName('stationsComboBox')
         _stats_combobox.setEditable(True)
         _stats_combobox.setInsertPolicy(QComboBox.NoInsert)
-        _stats_combobox.addItems(self.stations)
+        _stats_combobox.addItems(sorted(self.stations))
         _stats_combobox.editTextChanged.connect(self.prepareplot)
         self.widgets = _stats_combobox
 
