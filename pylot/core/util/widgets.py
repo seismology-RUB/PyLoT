@@ -82,7 +82,7 @@ class ComparisonDialog(QDialog):
     def setupUI(self):
 
         _outerlayout = QVBoxLayout(self)
-        _innerlayout = QVBoxLayout(self)
+        _innerlayout = QVBoxLayout()
 
         _stats_combobox = QComboBox(self)
         _stats_combobox.setObjectName('stationsComboBox')
