@@ -142,7 +142,9 @@ class ProbabilityDensityFunction(object):
 
         x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
 
-        pdf = np.correlate(pdf_self, pdf_other, 'same') * incr
+        pdf = np.correlate(pdf_self, pdf_other, 'full') * incr
+
+        npts = len(pdf)
 
         # shift axis values for correct plotting
         midpoint = npts / 2

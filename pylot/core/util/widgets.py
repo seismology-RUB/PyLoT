@@ -181,6 +181,9 @@ class ComparisonDialog(QDialog):
         if name in self.widgets.keys():
             self._widgets[name] = widget
 
+    def clf(self):
+        self.canvas.figure.clf()
+
     def hasvalue(self, sender):
         text = sender.currentText()
         index = sender.findText(text.upper())
@@ -204,9 +207,9 @@ class ComparisonDialog(QDialog):
 
     def plotcomparison(self):
         from matplotlib import gridspec
-        _axes = self.canvas.figure.add_subplot(111)
 
         _gs = gridspec.GridSpec(3, 2)
+        self.clf()
         _axes = self.canvas.figure.add_subplot(_gs[0:2, :])
         _ax1 = self.canvas.figure.add_subplot(_gs[2, 0])
         _ax2 = self.canvas.figure.add_subplot(_gs[2, 1])
@@ -232,6 +235,7 @@ class ComparisonDialog(QDialog):
 
         pdf_a = self.data.get('auto')[station][phase]
         pdf_m = self.data.get('manu')[station][phase]
+
         xauto, yauto, stdauto, expauto = pdf_a.axis, pdf_a.data, \
                                          pdf_a.standard_deviation(), \
                                          pdf_a.expectation()
@@ -240,8 +244,23 @@ class ComparisonDialog(QDialog):
                                          pdf_m.expectation()
 
         _ax1.plot(xauto, yauto)
+        mannotation = "probability density for manual pick\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(std=stdmanu, exp=expmanu)
+        _anno = _ax1.annotate(mannotation, xy=(.05, .5), xycoords='axes '
+                                                                  'fraction')
+        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+        _anno.set_bbox(bbox_props)
+
 
         _ax2.plot(xmanu, ymanu)
+        aannotation = "probability density for automatic pick\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(std=stdauto, exp=expauto)
+        _anno = _ax2.annotate(aannotation, xy=(.05, .5), xycoords='axes '
+                                                                  'fraction')
+        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
+        _anno.set_bbox(bbox_props)
 
         _gs.update(wspace=0.5, hspace=0.5)
 
