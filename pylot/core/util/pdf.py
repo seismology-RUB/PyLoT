@@ -229,8 +229,7 @@ class ProbabilityDensityFunction(object):
         # calculate pdf values
         try:
             pdf = branches[type](create_axis(x0, incr, npts), barycentre, *params)
-        except TypeError as e:
-            print('Warning:\n' + e.message + '\n' + 'trying timestamp instead')
+        except TypeError:
             assert isinstance(barycentre, UTCDateTime), 'object not capable of' \
                                                     ' timestamp representation'
             pdf = branches[type](create_axis(x0, incr, npts),
