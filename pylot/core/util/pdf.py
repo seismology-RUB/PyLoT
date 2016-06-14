@@ -311,6 +311,12 @@ class ProbabilityDensityFunction(object):
         plt.title(title_str)
         plt.show()
 
+    def limits(self):
+        l1 = self.x0
+        r1 = l1 + self.incr * self.npts
+
+        return l1, r1
+
     def commonlimits(self, incr, other, max_npts=1e5):
         '''
         Takes an increment incr and two left and two right limits and returns
@@ -330,10 +336,8 @@ class ProbabilityDensityFunction(object):
         # >>> manu.commonlimits(0.01, auto)
         # (
 
-        l1 = self.x0
-        r1 = l1 + self.incr * self.npts
-        l2 = other.x0
-        r2 = l2 + other.incr * other.npts
+        l1, r1 = self.limits()
+        l2, r2 = other.limits()
 
         if l1 < l2:
             x0 = l1

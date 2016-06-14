@@ -243,7 +243,8 @@ class ComparisonDialog(QDialog):
                                          pdf_m.standard_deviation(), \
                                          pdf_m.expectation()
 
-        _ax1.plot(xauto, yauto)
+        _ax1.plot(xmanu, ymanu)
+        _ax1.set_xlim(pdf_m.limits())
         mannotation = "probability density for manual pick\n" \
                       "expectation: {exp}\n" \
                       "std: {std}".format(std=stdmanu, exp=expmanu)
@@ -252,8 +253,9 @@ class ComparisonDialog(QDialog):
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
         _anno.set_bbox(bbox_props)
 
-
-        _ax2.plot(xmanu, ymanu)
+        _ax2.plot(xauto, yauto)
+        _ax2.set_xlim(pdf_a.limits())
+        _ax2.set_ylabel('time [s]')
         aannotation = "probability density for automatic pick\n" \
                       "expectation: {exp}\n" \
                       "std: {std}".format(std=stdauto, exp=expauto)
