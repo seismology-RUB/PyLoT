@@ -6,6 +6,7 @@ Created on Wed Mar 19 11:27:35 2014
 """
 
 import warnings
+import copy
 import datetime
 import numpy as np
 
@@ -32,7 +33,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex
+    demeanTrace, isSorted, findComboBoxIndex, clims
 
 
 def getDataType(parent):
@@ -46,6 +47,19 @@ def getDataType(parent):
 
     return type
 
+def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
+             title=None):
+    _axes.plot(x, y)
+    if title:
+        _axes.set_title(title)
+    if xlabel:
+        _axes.set_xlabel(xlabel)
+    if ylabel:
+        _axes.set_ylabel(ylabel)
+    _anno = _axes.annotate(annotation, xy=(.05, .5), xycoords='axes fraction')
+    _anno.set_bbox(bbox_props)
+
+    return _axes
 
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
                  tip=None, checkable=False):
@@ -214,55 +228,63 @@ class ComparisonDialog(QDialog):
         _ax1 = self.canvas.figure.add_subplot(_gs[2, 0])
         _ax2 = self.canvas.figure.add_subplot(_gs[2, 1])
 
-        _axes.cla()
+        #_axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
         pdf = self.data.comparison[station][phase]
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
-        _axes.plot(x, y)
-        _axes.set_title(phase)
-        _axes.set_ylabel('propability density [-]')
-        _axes.set_xlabel('time difference [s]')
+
         annotation = "{phase} difference on {station}\n" \
-                      "expectation: {exp}\n" \
-                      "std: {std}".format(station=station, phase=phase,
-                                          std=std, exp=exp)
-        _anno = _axes.annotate(annotation, xy=(.05, .5), xycoords='axes '
-                                                                  'fraction')
+                     "expectation: {exp}\n" \
+                     "std: {std}".format(station=station, phase=phase,
+                                         std=std, exp=exp)
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
-        _anno.set_bbox(bbox_props)
 
-        pdf_a = self.data.get('auto')[station][phase]
-        pdf_m = self.data.get('manu')[station][phase]
+        plot_pdf(_axes, x, y, annotation, bbox_props, 'time difference [s]',
+                 'propability density [-]', phase)
 
-        xauto, yauto, stdauto, expauto = pdf_a.axis, pdf_a.data, \
-                                         pdf_a.standard_deviation(), \
-                                         pdf_a.expectation()
-        xmanu, ymanu, stdmanu, expmanu = pdf_m.axis, pdf_m.data, \
-                                         pdf_m.standard_deviation(), \
-                                         pdf_m.expectation()
+        pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
+        pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
 
-        _ax1.plot(xmanu, ymanu)
-        _ax1.set_xlim(pdf_m.limits())
+        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data, \
+                                               pdf_a.standard_deviation(), \
+                                               pdf_a.expectation(), \
+                                               pdf_a.limits()
+        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data, \
+                                               pdf_m.standard_deviation(), \
+                                               pdf_m.expectation(), \
+                                               pdf_m.limits()
+        # find common limits
+        lims = clims(alim, mlim)
+        # relative x axis
+        x0 = lims[0]
+        xmanu -= x0
+        xauto -= x0
+        lims = [lim - x0 for lim in lims]
+        x0 = UTCDateTime(x0)
+
+        # set annotation text
         mannotation = "probability density for manual pick\n" \
                       "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdmanu, exp=expmanu)
-        _anno = _ax1.annotate(mannotation, xy=(.05, .5), xycoords='axes '
-                                                                  'fraction')
-        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
-        _anno.set_bbox(bbox_props)
+                      "std: {std}".format(std=stdmanu,
+                                          exp=expmanu-x0.timestamp)
 
-        _ax2.plot(xauto, yauto)
-        _ax2.set_xlim(pdf_a.limits())
-        _ax2.set_ylabel('time [s]')
         aannotation = "probability density for automatic pick\n" \
                       "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdauto, exp=expauto)
-        _anno = _ax2.annotate(aannotation, xy=(.05, .5), xycoords='axes '
-                                                                  'fraction')
-        bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
-        _anno.set_bbox(bbox_props)
+                      "std: {std}".format(std=stdauto,
+                                          exp=expauto-x0.timestamp)
+
+        _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
+                        bbox_props=bbox_props, xlabel='seconds since '
+                                                      '{0}'.format(x0),
+                        ylabel='probability density [-]')
+        _ax1.set_xlim(lims)
+
+        _ax2 = plot_pdf(_ax2, xauto, yauto, aannotation,
+                        bbox_props=bbox_props, xlabel='seconds since '
+                                                      '{0}'.format(x0))
+        _ax2.set_xlim(lims)
 
         _gs.update(wspace=0.5, hspace=0.5)
 

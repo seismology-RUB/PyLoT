@@ -4,7 +4,7 @@
 import warnings
 import numpy as np
 from obspy import UTCDateTime
-from pylot.core.util.utils import find_nearest
+from pylot.core.util.utils import find_nearest, clims
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -329,28 +329,14 @@ class ProbabilityDensityFunction(object):
         :param r2:
         :param max_npts:
         :return:
-
         '''
-        # >>> manu = ProbabilityDensityFunction.from_pick(0.01, 0.3, 0.5, 0.54)
-        # >>> auto = ProbabilityDensityFunction.from_pick(0.01, 0.3, 0.34, 0.54)
-        # >>> manu.commonlimits(0.01, auto)
-        # (
 
-        l1, r1 = self.limits()
-        l2, r2 = other.limits()
-
-        if l1 < l2:
-            x0 = l1
-        else:
-            x0 = l2
+        x0, r = clims(self.limits(), other.limits())
 
         # calculate index for rounding
         ri = self.precision(incr)
 
-        if r1 < r2:
-            npts = int(round(r2 - x0, ri) // incr)
-        else:
-            npts = int(round(r1 - x0, ri) // incr)
+        npts = int(round(r - x0, ri) // incr)
 
         if npts > max_npts:
             raise ValueError('Maximum number of points exceeded:\n'
