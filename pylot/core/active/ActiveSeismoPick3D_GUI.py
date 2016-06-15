@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 from PySide import QtCore, QtGui, QtCore
 from asp3d_layout import *
@@ -164,11 +166,11 @@ class gui_control(object):
         if state == 'active':
             self.mainUI.survey_active.setCheckable(True)
             self.mainUI.survey_active.setChecked(True)
-            self.mainUI.survey_active.setCheckable(True)
+            self.mainUI.survey_active.setCheckable(False)
         elif state == 'inactive':
             self.mainUI.survey_active.setCheckable(True)
             self.mainUI.survey_active.setChecked(False)
-            self.mainUI.survey_active.setCheckable(True)
+            self.mainUI.survey_active.setCheckable(False)
 
     def checkSurveyState(self):
         if self.mainUI.survey_active.checkState() == QtCore.Qt.CheckState.Checked:
