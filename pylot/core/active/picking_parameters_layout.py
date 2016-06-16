@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'fmtomo_parameters.ui'
+#
+# Created: Wed Jun 15 11:56:04 2016
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
+#
+# WARNING! All changes made in this file will be lost!
+
+from PySide import QtCore, QtGui
+
 class Ui_Picking_parameters(object):
     def setupUi(self, Picking_parameters):
         Picking_parameters.setObjectName("Picking_parameters")

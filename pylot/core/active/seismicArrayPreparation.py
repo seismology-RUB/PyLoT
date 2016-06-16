@@ -316,6 +316,7 @@ class SeisArray(object):
     def interpolateAll(self):
         self._interpolateXY4rec()
         self.interpZcoords4rec()
+        print('Interpolated receiver locations.')
 
     def interpolateTopography(self, nTheta, nPhi, thetaSN, phiWE, elevation=0.25, method='linear'):
         '''

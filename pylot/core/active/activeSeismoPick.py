@@ -24,7 +24,7 @@ class Survey(object):
         creating plots for all shots.
         '''
         self.data = {}
-        self.seisArray = None
+        self.seisarray = None
         self._topography = None
         self._recfile = receiverfile
         self._sourcefile = sourcefile
@@ -123,16 +123,15 @@ class Survey(object):
     def loadArrayFromPickle(self, filename):
         from pylot.core.active.seismicArrayPreparation import SeisArray
         array = SeisArray.from_pickle(filename)
-        self.seisArray = array
+        self.seisarray = array
 
     def loadArray(self, path, receiverfile, sourcefile):
         from pylot.core.active.seismicArrayPreparation import SeisArray
 
         array = SeisArray(os.path.join(path, receiverfile))
         array.addSourceLocations(os.path.join(path, sourcefile))
-        self.seisArray = array
+        self.seisarray = array
 
-        
     def setManualPicksFromFiles(self, directory='picks'):
         '''
         Read manual picks from *.pck files in a directory.

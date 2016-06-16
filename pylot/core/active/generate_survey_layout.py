@@ -9,7 +9,7 @@
 
 from PySide import QtCore, QtGui
 
-class Ui_Dialog(object):
+class Ui_generate_survey(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(380, 160)
