@@ -31,6 +31,43 @@ def worker(func, input, cores='max', async=False):
     pool.close()
     return result
 
+def clims(lim1, lim2):
+    """
+    takes two pairs of limits and returns one pair of common limts
+    :param lim1:
+    :param lim2:
+    :return:
+
+    >>> clims([0, 4], [1, 3])
+    [0, 4]
+    >>> clims([1, 4], [0, 3])
+    [0, 4]
+    >>> clims([1, 3], [0, 4])
+    [0, 4]
+    >>> clims([0, 3], [1, 4])
+    [0, 4]
+    >>> clims([0, 3], [0, 4])
+    [0, 4]
+    >>> clims([1, 4], [0, 4])
+    [0, 4]
+    >>> clims([0, 4], [0, 4])
+    [0, 4]
+    >>> clims([0, 4], [1, 4])
+    [0, 4]
+    >>> clims([0, 4], [0, 3])
+    [0, 4]
+    """
+    lim = [None, None]
+    if lim1[0] < lim2[0]:
+        lim[0] = lim1[0]
+    else:
+        lim[0] = lim2[0]
+    if lim1[1] > lim2[1]:
+        lim[1] = lim1[1]
+    else:
+        lim[1] = lim2[1]
+    return lim
+
 
 def demeanTrace(trace, window):
     """
