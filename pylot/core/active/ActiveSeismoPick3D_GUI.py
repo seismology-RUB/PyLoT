@@ -79,8 +79,9 @@ class gui_control(object):
             self.setSurveyState(True)
 
     def interpolate_receivers(self):
-        if not self.seisarray:
+        if not self.checkSeisArrayState():
             print('No Seismic Array defined.')
+            return
         self.seisarray.interpolateAll()
 
     def getPickParameters(self, ui, Picking_parameters):
