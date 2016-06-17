@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'fmtomo_parameters_layout.ui'
 #
-# Created: Thu Jun 16 13:20:37 2016
+# Created: Fri Jun 17 10:24:38 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -47,8 +47,10 @@ class Ui_fmtomo_parameters(object):
         self.label_14 = QtGui.QLabel(fmtomo_parameters)
         self.label_14.setObjectName("label_14")
         self.horizontalLayout_2.addWidget(self.label_14)
-        self.nproc = QtGui.QLineEdit(fmtomo_parameters)
+        self.nproc = QtGui.QSpinBox(fmtomo_parameters)
         self.nproc.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.nproc.setMinimum(1)
+        self.nproc.setMaximum(10000)
         self.nproc.setObjectName("nproc")
         self.horizontalLayout_2.addWidget(self.nproc)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
@@ -236,7 +238,6 @@ class Ui_fmtomo_parameters(object):
 "installation", None, QtGui.QApplication.UnicodeUTF8))
         self.browse_tomodir.setText(QtGui.QApplication.translate("fmtomo_parameters", "Browse", None, QtGui.QApplication.UnicodeUTF8))
         self.label_14.setText(QtGui.QApplication.translate("fmtomo_parameters", "nproc", None, QtGui.QApplication.UnicodeUTF8))
-        self.nproc.setText(QtGui.QApplication.translate("fmtomo_parameters", "1", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("fmtomo_parameters", "Iterations", None, QtGui.QApplication.UnicodeUTF8))
         self.label_18.setText(QtGui.QApplication.translate("fmtomo_parameters", "Grid definitions from seismic Array:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("fmtomo_parameters", "Bottom boundary", None, QtGui.QApplication.UnicodeUTF8))

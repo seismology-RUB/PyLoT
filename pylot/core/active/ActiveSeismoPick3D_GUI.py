@@ -80,26 +80,26 @@ class gui_control(object):
 
     def interpolate_receivers(self):
         if not self.checkSeisArrayState():
-            print('No Seismic Array defined.')
+            self.printDialogMessage('No Seismic Array defined.')
             return
         self.seisarray.interpolateAll()
 
     def getPickParameters(self, ui, Picking_parameters):
         if Picking_parameters.exec_():
-            ncores = int(ui.lineEdit_ncores.text())
+            ncores = int(ui.ncores.value())
             vmin = float(ui.lineEdit_vmin.text())
             vmax = float(ui.lineEdit_vmax.text())
             folm = float(ui.lineEdit_folm.text())
-            AIC = ui.checkBox.isChecked()
-            aicwindow = [int(val) for val in ui.lineEdit_aicwindow.text().split(',')]
-            return ncores, vmin, vmax, folm, AIC, tuple(aicwindow)
+            AIC = ui.checkBox_AIC.isChecked()
+            aicwindow = (int(ui.lineEdit_aicleft.text()), int(ui.lineEdit_aicright.text()))
+            return ncores, vmin, vmax, folm, AIC, aicwindow
 
     def connect2Survey(self):
         if not self.checkSurveyState():
-            print('Survey not defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         if not self.checkSeisArrayState():
-            print('Got no Seismic Array.')
+            self.printDialogMessage('Got no Seismic Array.')
             return
         if self.checkConnected2SurveyState():
             if self.continueDialogMessage('Existing Survey already got Seismic Array object. Continue?'):
@@ -108,16 +108,21 @@ class gui_control(object):
         self.setConnected2SurveyState(True)
         print('Connected Seismic Array to active Survey object.')
 
+    def getMaxCPU(self):
+        import multiprocessing
+        return multiprocessing.cpu_count()
+
     def callPicker(self):
         if not self.checkSurveyState():
-            print('Survey not defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         if self.checkPickState():
             if not self.continueDialogMessage('Survey already picked. Continue?'):
                 return
         Picking_parameters = QtGui.QDialog(self.mainwindow)
-        ui = Ui_Picking_parameters()
+        ui = Ui_picking_parameters()
         ui.setupUi(Picking_parameters)
+        ui.ncores.setMaximum(self.getMaxCPU())
         try:
             ncores, vmin, vmax, folm, AIC, aicwindow = self.getPickParameters(ui, Picking_parameters)
         except TypeError:
@@ -135,11 +140,13 @@ class gui_control(object):
 
     def startFMTOMO(self):
         if not self.checkSurveyState():
-            print('Survey not defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         fmtomo_parameters = QtGui.QDialog(self.mainwindow)
         ui = Ui_fmtomo_parameters()
         ui.setupUi(fmtomo_parameters)                
+        ui.nproc.setMaximum(self.getMaxCPU())
+
         self.fmtomo_parameters_ui = ui
         self.connectButtons_startFMTOMO()
         self.getFMTOMOparameters(ui, fmtomo_parameters)
@@ -148,7 +155,7 @@ class gui_control(object):
         if fmtomo_parameters.exec_():
             fmtomo_dir = ui.fmtomo_dir.text()
             nIter = int(ui.nIter.value())
-            nproc = int(ui.nproc.text())
+            nproc = int(ui.nproc.value())
             btop = float(ui.btop.text())
             bbot = float(ui.bbot.text())
             propgrid = (int(ui.pgrid_x.text()), int(ui.pgrid_y.text()), int(ui.pgrid_z.text()))
@@ -178,7 +185,6 @@ class gui_control(object):
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_tomodir, QtCore.SIGNAL("clicked()"), self.chooseFMTOMOdir)
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_customgrid, QtCore.SIGNAL("clicked()"), self.chooseCustomgrid)
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_simuldir, QtCore.SIGNAL("clicked()"), self.chooseSimuldir)
-        QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_seisarray, QtCore.SIGNAL("clicked()"), self.chooseSeisarray)
 
     def chooseFMTOMOdir(self):
         self.fmtomo_parameters_ui.fmtomo_dir.setText(self.browseDir())
@@ -194,7 +200,7 @@ class gui_control(object):
 
     def postprocessing(self):
         if not self.checkSurveyState():
-            print('Survey not defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         self.survey.plotAllPicks()
         
@@ -205,7 +211,16 @@ class gui_control(object):
         filename = self.openFile()
         if filename is None:
             return
-        self.survey = activeSeismoPick.Survey.from_pickle(filename)
+        try:
+            survey = activeSeismoPick.Survey.from_pickle(filename)
+        except:
+            self.printDialogMessage('Could not load object %s.'%filename)
+            return
+        if not type(survey) == activeSeismoPick.Survey:
+            self.printDialogMessage('Wrong input file of type %s, expected %s.'
+                  %(type(survey), activeSeismoPick.Survey))
+            return
+        self.survey = survey
         self.setSurveyState(True)
         if self.survey.picked:
             self.setPickState(True)
@@ -215,7 +230,7 @@ class gui_control(object):
             self.seisarray = self.survey.seisarray
             self.setConnected2SurveyState(True)
             self.setSeisArrayState(True)
-            print('Loaded Survey with active Seismic Array.')
+            self.printDialogMessage('Loaded Survey with active Seismic Array.')
 
     def load_seisarray(self):
         if self.checkSeisArrayState():
@@ -224,12 +239,21 @@ class gui_control(object):
         filename = self.openFile()
         if filename is None:
             return
-        self.seisarray = seismicArrayPreparation.SeisArray.from_pickle(filename)
+        try:
+            seisarray = seismicArrayPreparation.SeisArray.from_pickle(filename)
+        except:
+            self.printDialogMessage('Could not load object %s.'%filename)
+            return
+        if not type(seisarray) == seismicArrayPreparation.SeisArray:
+            self.printDialogMessage('Wrong input file of type %s, expected %s.'
+                  %(type(survey), seismicArrayPreparation.SeisArray))
+            return
+        self.seisarray = seisarray
         self.setSeisArrayState(True)
 
     def save_seisarray(self):
         if not self.checkSeisArrayState():
-            print('No Seismic Array defined.')
+            self.printDialogMessage('No Seismic Array defined.')
             return
         filename = self.saveFile()
         if filename is None:
@@ -238,7 +262,7 @@ class gui_control(object):
 
     def save_survey(self):
         if not self.checkSurveyState():
-            print('No Survey defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         filename = self.saveFile()
         if filename is None:
@@ -268,7 +292,7 @@ class gui_control(object):
             self.mainUI.picked_active.setPixmap(self.applypixmap)
             self.survey.picked = True
         elif state == True and self.checkSurveyState() is False:
-            print('No Survey defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         elif state == False:
             self.mainUI.picked_active.setPixmap(self.cancelpixmap)
@@ -296,9 +320,16 @@ class gui_control(object):
 
     def checkPickState(self):
         if not self.survey:
-            print ('No Survey defined.')
+            self.printDialogMessage('No Survey defined.')
             return
         return self.survey.picked
+
+    def printDialogMessage(self, message):
+        qmb = QtGui.QMessageBox()
+        qmb.setText(message)
+        qmb.setStandardButtons(QtGui.QMessageBox.Ok)
+        qmb.setIcon(QtGui.QMessageBox.Warning)
+        qmb.exec_()
 
     def continueDialogExists(self, name):
         qmb = QtGui.QMessageBox()
