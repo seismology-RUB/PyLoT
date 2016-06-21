@@ -234,10 +234,10 @@ def prepTimeAxis(stime, trace):
     etime = stime + nsamp / srate
     time_ax = np.arange(stime, etime, tincr)
     if len(time_ax) < nsamp:
-        print 'elongate time axes by one datum'
+        print('elongate time axes by one datum')
         time_ax = np.arange(stime, etime + tincr, tincr)
     elif len(time_ax) > nsamp:
-        print 'shorten time axes by one datum'
+        print('shorten time axes by one datum')
         time_ax = np.arange(stime, etime - tincr, tincr)
     if len(time_ax) != nsamp:
         raise ValueError('{0} samples of data \n '
