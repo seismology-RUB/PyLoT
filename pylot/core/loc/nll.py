@@ -4,7 +4,7 @@
 import subprocess
 import os
 from pylot.core.io.phases import writephases
-from pylot.core.util.utils import getPatternLine
+from pylot.core.util.utils import getPatternLine, runProgram
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -79,7 +79,7 @@ def locate(call, fnin):
     '''
 
     # locate the event
-    subprocess.call([call, fnin])
+    runProgram(call, fnin)
 
 
 def readLocation(fn):
