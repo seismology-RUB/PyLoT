@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'asp3d_layout.ui'
 #
-# Created: Thu Jun 16 12:18:04 2016
+# Created: Tue Jun 21 13:22:35 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(300, 585)
+        MainWindow.resize(800, 600)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -27,7 +27,13 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout_5 = QtGui.QVBoxLayout(self.centralwidget)
+        self.horizontalLayout_4 = QtGui.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.horizontalLayout_outer = QtGui.QHBoxLayout()
+        self.horizontalLayout_outer.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
+        self.horizontalLayout_outer.setObjectName("horizontalLayout_outer")
+        self.verticalLayout_5 = QtGui.QVBoxLayout()
+        self.verticalLayout_5.setSizeConstraint(QtGui.QLayout.SetMinimumSize)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
@@ -204,12 +210,11 @@ class Ui_MainWindow(object):
         self.postprocessing = QtGui.QPushButton(self.centralwidget)
         self.postprocessing.setObjectName("postprocessing")
         self.verticalLayout_3.addWidget(self.postprocessing)
-        self.verticalLayout_5.addLayout(self.verticalLayout_3)
         self.line_2 = QtGui.QFrame(self.centralwidget)
         self.line_2.setFrameShape(QtGui.QFrame.HLine)
         self.line_2.setFrameShadow(QtGui.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
-        self.verticalLayout_5.addWidget(self.line_2)
+        self.verticalLayout_3.addWidget(self.line_2)
         self.verticalLayout_4 = QtGui.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.label_8 = QtGui.QLabel(self.centralwidget)
@@ -230,10 +235,17 @@ class Ui_MainWindow(object):
         self.fmtomo = QtGui.QPushButton(self.centralwidget)
         self.fmtomo.setObjectName("fmtomo")
         self.verticalLayout_4.addWidget(self.fmtomo)
-        self.verticalLayout_5.addLayout(self.verticalLayout_4)
+        self.verticalLayout_3.addLayout(self.verticalLayout_4)
+        self.verticalLayout_5.addLayout(self.verticalLayout_3)
+        self.horizontalLayout_outer.addLayout(self.verticalLayout_5)
+        self.verticalLayout_right = QtGui.QVBoxLayout()
+        self.verticalLayout_right.setSizeConstraint(QtGui.QLayout.SetMaximumSize)
+        self.verticalLayout_right.setObjectName("verticalLayout_right")
+        self.horizontalLayout_outer.addLayout(self.verticalLayout_right)
+        self.horizontalLayout_4.addLayout(self.horizontalLayout_outer)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 300, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 23))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)

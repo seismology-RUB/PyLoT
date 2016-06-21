@@ -783,11 +783,12 @@ class SeisArray(object):
         print "Exported coordinates for %s traces to file > %s" % (count, filename)
         recfile_out.close()
 
-    def plotArray2D(self, plot_topo=False, highlight_measured=False, annotations=True, pointsize=10):
+    def plotArray2D(self, ax = None, plot_topo=False, highlight_measured=False, annotations=True, pointsize=10):
         import matplotlib.pyplot as plt
-        plt.interactive(True)
-        fig = plt.figure()
-        ax = plt.axes()
+        if ax == None:
+            plt.interactive(True)
+            fig = plt.figure()
+            ax = plt.axes()
         xmt, ymt, zmt = self.getMeasuredTopoLists()
         xsc, ysc, zsc = self.getSourceLocsLists()
         xmr, ymr, zmr = self.getMeasuredReceiverLists()
@@ -803,11 +804,14 @@ class SeisArray(object):
         if highlight_measured == True:
             ax.plot(xmr, ymr, 'r.', markersize=pointsize, label='measured receivers')
 
-        plt.title('2D plot of seismic array %s' % self.recfile)
+        ax.text(0.5, 1.05,'2D plot of seismic array\n %s'%self.recfile,
+                horizontalalignment='center', verticalalignment='center',
+                transform=ax.transAxes)
+        #plt.title('2D plot of seismic array %s' % self.recfile)
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
         ax.set_aspect('equal')
-        plt.legend()
+        ax.legend()
         if annotations == True:
             for traceID in self.getReceiverCoordinates().keys():
                 ax.annotate((' ' + str(traceID)), xy=(self._getXreceiver(traceID), self._getYreceiver(traceID)),

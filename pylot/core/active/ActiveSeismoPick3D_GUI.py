@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import matplotlib
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4']='PySide'
+
 from PySide import QtCore, QtGui, QtCore
 from asp3d_layout import *
 from fmtomo_parameters_layout import *
@@ -8,6 +12,10 @@ from generate_survey_layout import *
 from generate_seisarray_layout import *
 from picking_parameters_layout import *
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
+
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 class gui_control(object):
     def __init__(self):
@@ -19,6 +27,7 @@ class gui_control(object):
         self.cancelpixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogCancelButton)
         self.applypixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogApplyButton)
         self.setInitStates()
+        self.addArrayPlot()
 
     def setInitStates(self):
         self.setPickState(False)
@@ -57,6 +66,7 @@ class gui_control(object):
                 self.seisarray.addSourceLocations(srcfile)
             if len(ptsfile) > 0:
                 self.seisarray.addMeasuredTopographyPoints(ptsfile)
+            self.reprintArray()
             self.setSeisArrayState(True)
 
     def gen_survey(self):
@@ -77,6 +87,12 @@ class gui_control(object):
             self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
             surveyUtils.setDynamicFittedSNR(self.survey.getShotDict())
             self.setSurveyState(True)
+
+    def addArrayPlot(self):
+        self.seisArrayFigure = Figure()
+        self.seisArrayCanvas = FigureCanvas(self.seisArrayFigure)
+        self.mainUI.verticalLayout_right.addWidget(self.seisArrayCanvas)
+        self.seisArrayAx = self.seisArrayFigure.add_subplot(111)
 
     def interpolate_receivers(self):
         if not self.checkSeisArrayState():
@@ -230,7 +246,12 @@ class gui_control(object):
             self.seisarray = self.survey.seisarray
             self.setConnected2SurveyState(True)
             self.setSeisArrayState(True)
+            self.reprintArray()
             self.printDialogMessage('Loaded Survey with active Seismic Array.')
+
+    def reprintArray(self):
+        self.seisArrayAx.clear()
+        self.seisarray.plotArray2D(self.seisArrayAx)
 
     def load_seisarray(self):
         if self.checkSeisArrayState():
@@ -249,6 +270,7 @@ class gui_control(object):
                   %(type(survey), seismicArrayPreparation.SeisArray))
             return
         self.seisarray = seisarray
+        self.reprintArray()
         self.setSeisArrayState(True)
 
     def save_seisarray(self):
