@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_seisarray_layout.ui'
 #
-# Created: Thu Jun 23 11:55:22 2016
+# Created: Thu Jun 23 11:58:52 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,12 +12,14 @@ from PySide import QtCore, QtGui
 class Ui_generate_seisarray(object):
     def setupUi(self, generate_seisarray):
         generate_seisarray.setObjectName("generate_seisarray")
-        generate_seisarray.resize(400, 220)
+        generate_seisarray.resize(400, 221)
         generate_seisarray.setMinimumSize(QtCore.QSize(400, 220))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("../asp3d_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         generate_seisarray.setWindowIcon(icon)
-        self.verticalLayout = QtGui.QVBoxLayout(generate_seisarray)
+        self.verticalLayout_5 = QtGui.QVBoxLayout(generate_seisarray)
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
+        self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtGui.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -58,7 +60,6 @@ class Ui_generate_seisarray(object):
         self.pushButton_src.setObjectName("pushButton_src")
         self.horizontalLayout_5.addWidget(self.pushButton_src)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
-        self.verticalLayout.addLayout(self.verticalLayout_2)
         self.verticalLayout_4 = QtGui.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.label_obs = QtGui.QLabel(generate_seisarray)
@@ -78,12 +79,14 @@ class Ui_generate_seisarray(object):
         self.pushButton_obs.setObjectName("pushButton_obs")
         self.horizontalLayout_6.addWidget(self.pushButton_obs)
         self.verticalLayout_4.addLayout(self.horizontalLayout_6)
-        self.verticalLayout.addLayout(self.verticalLayout_4)
+        self.verticalLayout_2.addLayout(self.verticalLayout_4)
+        self.verticalLayout.addLayout(self.verticalLayout_2)
+        self.verticalLayout_5.addLayout(self.verticalLayout)
         self.buttonBox = QtGui.QDialogButtonBox(generate_seisarray)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout.addWidget(self.buttonBox)
+        self.verticalLayout_5.addWidget(self.buttonBox)
 
         self.retranslateUi(generate_seisarray)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), generate_seisarray.reject)
