@@ -66,7 +66,6 @@ class gui_control(object):
                 self.seisarray.addSourceLocations(srcfile)
             if len(ptsfile) > 0:
                 self.seisarray.addMeasuredTopographyPoints(ptsfile)
-            self.reprintArray()
             self.setSeisArrayState(True)
 
     def gen_survey(self):
@@ -92,6 +91,9 @@ class gui_control(object):
         self.seisArrayFigure = Figure()
         self.seisArrayCanvas = FigureCanvas(self.seisArrayFigure)
         self.mainUI.verticalLayout_right.addWidget(self.seisArrayCanvas)
+        self.addArrayAxes()
+
+    def addArrayAxes(self):
         self.seisArrayAx = self.seisArrayFigure.add_subplot(111)
 
     def interpolate_receivers(self):
@@ -99,6 +101,7 @@ class gui_control(object):
             self.printDialogMessage('No Seismic Array defined.')
             return
         self.seisarray.interpolateAll()
+        self.replotArray()
 
     def getPickParameters(self, ui, Picking_parameters):
         if Picking_parameters.exec_():
@@ -246,12 +249,16 @@ class gui_control(object):
             self.seisarray = self.survey.seisarray
             self.setConnected2SurveyState(True)
             self.setSeisArrayState(True)
-            self.reprintArray()
             self.printDialogMessage('Loaded Survey with active Seismic Array.')
 
-    def reprintArray(self):
-        self.seisArrayAx.clear()
-        self.seisarray.plotArray2D(self.seisArrayAx)
+    def replotArray(self):
+        self.seisArrayFigure.clf()
+        self.addArrayAxes()
+        self.plotArray()
+        self.seisArrayCanvas.draw()
+
+    def plotArray(self):
+        self.seisarray.plotArray2D(self.seisArrayAx, highlight_measured = True)
 
     def load_seisarray(self):
         if self.checkSeisArrayState():
@@ -270,7 +277,7 @@ class gui_control(object):
                   %(type(survey), seismicArrayPreparation.SeisArray))
             return
         self.seisarray = seisarray
-        self.reprintArray()
+        self.replotArray()
         self.setSeisArrayState(True)
 
     def save_seisarray(self):
@@ -324,6 +331,7 @@ class gui_control(object):
     def setSeisArrayState(self, state):
         if state == True:
             self.mainUI.seisarray_active.setPixmap(self.applypixmap)
+            self.replotArray()
         elif state == False:
             self.mainUI.seisarray_active.setPixmap(self.cancelpixmap)
 
