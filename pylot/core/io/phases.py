@@ -292,23 +292,26 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     for station in picks_dict.keys():
         fn_pattern = os.path.join(search_base, '{0}*'.format(station))
         try:
-            st = read(fn_pattern, format='GSE2')
-        except TypeError as e:
-            print(e.message)
             st = read(fn_pattern)
-        except ValueError as e:
-            if e.message == 'second must be in 0..59':
-                info = 'A known Error was raised. Please find the list of corrupted files and double-check these files.'
-                datacheck.append(fn_pattern + ' (time info)\n')
-                continue
-            else:
-                raise ValueError(e.message)
-        except Exception as e:
-            if 'No file matching file pattern:' in e.message:
-                if verbosity > 0:
-                    warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
-                datacheck.append(fn_pattern + ' (no data)\n')
-                continue
+        except TypeError as e:
+            if 'Unknown format for file' in e.message:
+                try:
+                    st = read(fn_pattern, format='GSE2')
+                except ValueError as e:
+                    if e.message == 'second must be in 0..59':
+                        info = 'A known Error was raised. Please find the list of corrupted files and double-check these files.'
+                        datacheck.append(fn_pattern + ' (time info)\n')
+                        continue
+                    else:
+                        raise ValueError(e.message)
+                except Exception as e:
+                    if 'No file matching file pattern:' in e.message:
+                        if verbosity > 0:
+                            warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                        datacheck.append(fn_pattern + ' (no data)\n')
+                        continue
+                    else:
+                        raise e
             else:
                 raise e
         for phase in picks_dict[station].keys():
