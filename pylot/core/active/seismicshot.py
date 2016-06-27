@@ -33,6 +33,7 @@ class SeismicShot(object):
         :type: string
         '''
         self.traces = read(obsfile)
+        self.renameChannelIDs()
         self.recCoordlist = None
         self.srcCoordlist = None
         self.traceIDs = None
@@ -46,6 +47,11 @@ class SeismicShot(object):
         self.paras = {}
         self.paras['shotname'] = obsfile
         self.folm = None
+
+    def renameChannelIDs(self):
+        for trace in self.traces:
+            if trace.stats._format == 'SEG2':
+                trace.stats.channel = int(trace.stats.seg2['CHANNEL_NUMBER'])
 
     def removeEmptyTraces(self):
         traceIDs = []
@@ -495,7 +501,7 @@ class SeismicShot(object):
         '''
         coordlist = self.getSrcCoordlist()
         for i in range(0, len(coordlist)):
-            if int(coordlist[i].split()[0]) == self.paras['shotnumber']:
+            if coordlist[i].split()[0] == self.paras['shotnumber']:
                 x = coordlist[i].split()[1]
                 y = coordlist[i].split()[2]
                 z = coordlist[i].split()[3]

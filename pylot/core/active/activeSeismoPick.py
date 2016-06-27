@@ -49,7 +49,9 @@ class Survey(object):
         shotlist = self.getShotlist()
         for shotnumber in shotlist:  # loop over data files
             # generate filenames and read manual picks to a list
-            obsfile = os.path.join(self._obsdir, str(shotnumber)) + '_pickle.dat'
+            #fileending = '_pickle.dat'
+            fileending = '.sg2'
+            obsfile = os.path.join(self._obsdir, str(shotnumber)) + fileending
             if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)
@@ -375,7 +377,7 @@ class Survey(object):
         shotlist = []
         for line in srcfile.readlines():
             line = line.split()
-            shotlist.append(int(line[0]))
+            shotlist.append(line[0])
 
         return shotlist
 
