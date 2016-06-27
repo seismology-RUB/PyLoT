@@ -155,7 +155,7 @@ def cleanUp(survey):
     for shot in survey.data.values():
         shot.traces4plot = {}
 
-def plotScatterStats4Shots(survey, variable):
+def plotScatterStats4Shots(survey, variable, ax = None):
     """
     Statistics, scatter plot.
 
@@ -178,7 +178,9 @@ def plotScatterStats4Shots(survey, variable):
                                    'SPE': [],
                                    'picked traces': 0}
 
-            statsShot[shot]['SNR'].append(shot.getSNR(traceID)[0])
+            SNR = shot.getSNR(traceID)[0]
+            if not SNR == np.inf:
+                statsShot[shot]['SNR'].append(SNR)
             if shot.getPickFlag(traceID) == 1:
                 statsShot[shot]['picked traces'] += 1
                 statsShot[shot]['SPE'].append(shot.getSymmetricPickError(traceID))
@@ -194,18 +196,22 @@ def plotScatterStats4Shots(survey, variable):
         y.append(statsShot[shot]['y'])
         value.append(statsShot[shot][variable])
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
     size = []
     for val in value:
         size.append(100 * val / max(value))
 
     sc = ax.scatter(x, y, s=size, c=value)
-    plt.title('Plot of all shots')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    cbar = plt.colorbar(sc)
+    ax.text(0.5, 1.05,'Plot of all shots',
+            horizontalalignment='center', verticalalignment='center',
+            transform=ax.transAxes)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_aspect('equal')
+    cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)
 
     for shot in statsShot.keys():
@@ -213,7 +219,7 @@ def plotScatterStats4Shots(survey, variable):
                     fontsize='x-small', color='k')
 
 
-def plotScatterStats4Receivers(survey, variable):
+def plotScatterStats4Receivers(survey, variable, ax = None):
     """
     Statistics, scatter plot.
 
@@ -236,7 +242,9 @@ def plotScatterStats4Receivers(survey, variable):
                                      'SPE': [],
                                      'picked traces': 0}
 
-            statsRec[traceID]['SNR'].append(shot.getSNR(traceID)[0])
+            SNR = shot.getSNR(traceID)[0]
+            if not SNR == np.inf:
+                statsRec[traceID]['SNR'].append(SNR)
             if shot.getPickFlag(traceID) == 1:
                 statsRec[traceID]['picked traces'] += 1
                 statsRec[traceID]['SPE'].append(shot.getSymmetricPickError(traceID))
@@ -252,18 +260,22 @@ def plotScatterStats4Receivers(survey, variable):
         y.append(statsRec[traceID]['y'])
         value.append(statsRec[traceID][variable])
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
     size = []
     for val in value:
         size.append(100 * val / max(value))
 
     sc = ax.scatter(x, y, s=size, c=value)
-    plt.title('Plot of all receivers')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    cbar = plt.colorbar(sc)
+    ax.text(0.5, 1.05,'Plot of all receivers',
+            horizontalalignment='center', verticalalignment='center',
+            transform=ax.transAxes)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_aspect('equal')
+    cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)
 
     shot = survey.data.values()[0]

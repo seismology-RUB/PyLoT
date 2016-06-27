@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'fmtomo_parameters_layout.ui'
 #
-# Created: Fri Jun 17 10:24:38 2016
+# Created: Mon Jun 27 13:23:32 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,13 +12,13 @@ from PySide import QtCore, QtGui
 class Ui_fmtomo_parameters(object):
     def setupUi(self, fmtomo_parameters):
         fmtomo_parameters.setObjectName("fmtomo_parameters")
-        fmtomo_parameters.resize(380, 440)
+        fmtomo_parameters.resize(400, 440)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(fmtomo_parameters.sizePolicy().hasHeightForWidth())
         fmtomo_parameters.setSizePolicy(sizePolicy)
-        fmtomo_parameters.setMinimumSize(QtCore.QSize(380, 440))
+        fmtomo_parameters.setMinimumSize(QtCore.QSize(400, 440))
         fmtomo_parameters.setMaximumSize(QtCore.QSize(320000, 520000))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("../asp3d_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -234,37 +234,66 @@ class Ui_fmtomo_parameters(object):
 
     def retranslateUi(self, fmtomo_parameters):
         fmtomo_parameters.setWindowTitle(QtGui.QApplication.translate("fmtomo_parameters", "Choose FMTOMO parameters", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_17.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Directory containing a clean FMTOMO installation.", None, QtGui.QApplication.UnicodeUTF8))
         self.label_17.setText(QtGui.QApplication.translate("fmtomo_parameters", "FMTOMO\n"
-"installation", None, QtGui.QApplication.UnicodeUTF8))
+"installation [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.browse_tomodir.setText(QtGui.QApplication.translate("fmtomo_parameters", "Browse", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_14.setText(QtGui.QApplication.translate("fmtomo_parameters", "nproc", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("fmtomo_parameters", "Iterations", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_14.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Number of processes spawned for parallel forward simulation.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_14.setText(QtGui.QApplication.translate("fmtomo_parameters", "Number of processes [?]", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Number of inversion iterations.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("fmtomo_parameters", "Iterations [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.label_18.setText(QtGui.QApplication.translate("fmtomo_parameters", "Grid definitions from seismic Array:", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("fmtomo_parameters", "Bottom boundary", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_3.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Bottom boundary of the model.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_3.setText(QtGui.QApplication.translate("fmtomo_parameters", "Bottom boundary [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.bbot.setText(QtGui.QApplication.translate("fmtomo_parameters", "-50", None, QtGui.QApplication.UnicodeUTF8))
         self.label_11.setText(QtGui.QApplication.translate("fmtomo_parameters", "m", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("fmtomo_parameters", "Top boundary", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Top boundary of the model (must be greater than highest source or receiver position).\n"
+"Too low values will cause error.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("fmtomo_parameters", "Top boundary [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.btop.setText(QtGui.QApplication.translate("fmtomo_parameters", "5", None, QtGui.QApplication.UnicodeUTF8))
         self.label_10.setText(QtGui.QApplication.translate("fmtomo_parameters", "m", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_13.setText(QtGui.QApplication.translate("fmtomo_parameters", "Cushion factor", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_13.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Extension of the model around the maximum values of the receiver grid (X and Y).\n"
+"Too low values will cause error.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_13.setText(QtGui.QApplication.translate("fmtomo_parameters", "Cushion factor [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.cushion.setText(QtGui.QApplication.translate("fmtomo_parameters", "10", None, QtGui.QApplication.UnicodeUTF8))
         self.label_12.setText(QtGui.QApplication.translate("fmtomo_parameters", "%", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("fmtomo_parameters", "Number of Ponts", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("fmtomo_parameters", "X", None, QtGui.QApplication.UnicodeUTF8))
         self.label_6.setText(QtGui.QApplication.translate("fmtomo_parameters", "Y", None, QtGui.QApplication.UnicodeUTF8))
         self.label_7.setText(QtGui.QApplication.translate("fmtomo_parameters", "Z", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_8.setText(QtGui.QApplication.translate("fmtomo_parameters", "Propagation Grid", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_8.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Number of points for forward simulation in X, Y, Z.\n"
+"Must be higher than number of inversion grid points.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_8.setText(QtGui.QApplication.translate("fmtomo_parameters", "Propagation Grid [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.pgrid_x.setText(QtGui.QApplication.translate("fmtomo_parameters", "100", None, QtGui.QApplication.UnicodeUTF8))
         self.pgrid_y.setText(QtGui.QApplication.translate("fmtomo_parameters", "100", None, QtGui.QApplication.UnicodeUTF8))
         self.pgrid_z.setText(QtGui.QApplication.translate("fmtomo_parameters", "100", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_9.setText(QtGui.QApplication.translate("fmtomo_parameters", "Inversion Grid", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_9.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Number of inversion grid (velocity grid) points in X, Y, Z.\n"
+"Must be lower than for propagation grid.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_9.setText(QtGui.QApplication.translate("fmtomo_parameters", "Inversion Grid [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.invgrid_x.setText(QtGui.QApplication.translate("fmtomo_parameters", "50", None, QtGui.QApplication.UnicodeUTF8))
         self.invgrid_y.setText(QtGui.QApplication.translate("fmtomo_parameters", "50", None, QtGui.QApplication.UnicodeUTF8))
         self.invgrid_z.setText(QtGui.QApplication.translate("fmtomo_parameters", "50", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_15.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Sans\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Specifiy simple input velocity file from which linear gradients will be evaluated.</p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">For example:</span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">First gradient: Surface velocity: 0.5 km/s rising to 1.0 km/s at a depth of 5 m below the surface.</p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Second gradient: Continuous change to another gradient from 1.0 km/s to 4.0 km/s at 60 m depth below the surface.</p>\n"
+"<p align=\"justify\" style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p>\n"
+"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">0        0.5</p>\n"
+"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">-5       1.0</p>\n"
+"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">-5       1.0</p>\n"
+"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">-60     4.0</p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label_15.setText(QtGui.QApplication.translate("fmtomo_parameters", "Custom velocity\n"
-"grid (earthmodel)", None, QtGui.QApplication.UnicodeUTF8))
+"grid (earthmodel) [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.browse_customgrid.setText(QtGui.QApplication.translate("fmtomo_parameters", "Browse", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_16.setToolTip(QtGui.QApplication.translate("fmtomo_parameters", "Specifiy directory for FMTOMO simulation.", None, QtGui.QApplication.UnicodeUTF8))
         self.label_16.setText(QtGui.QApplication.translate("fmtomo_parameters", "Simulation\n"
-"Directory", None, QtGui.QApplication.UnicodeUTF8))
+"Directory  [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.browse_simuldir.setText(QtGui.QApplication.translate("fmtomo_parameters", "Browse", None, QtGui.QApplication.UnicodeUTF8))
 

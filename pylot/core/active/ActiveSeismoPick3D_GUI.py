@@ -24,10 +24,12 @@ class gui_control(object):
         self.connectButtons()
         self.survey = None
         self.seisarray = None
+        self.seisArrayFigure = None
         self.cancelpixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogCancelButton)
         self.applypixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogApplyButton)
         self.setInitStates()
         self.addArrayPlot()
+        self.addStatPlots()
 
     def setInitStates(self):
         self.setPickState(False)
@@ -47,11 +49,20 @@ class gui_control(object):
         QtCore.QObject.connect(self.mainUI.picker, QtCore.SIGNAL("clicked()"), self.callPicker)
         QtCore.QObject.connect(self.mainUI.postprocessing, QtCore.SIGNAL("clicked()"), self.postprocessing)
         QtCore.QObject.connect(self.mainUI.fmtomo, QtCore.SIGNAL("clicked()"), self.startFMTOMO)
+        QtCore.QObject.connect(self.mainUI.comboBox, QtCore.SIGNAL("activated(int)"), self.replotStat)
 
     def gen_seisarray(self):
+        disconnect = False
         if self.checkSeisArrayState():
             if not self.continueDialogExists('Seismic Array'):
                 return
+        if self.checkConnected2SurveyState():
+            if not self.continueDialogMessage('Seismic Array connected to present Survey.\n'
+                                              'Continuation will disconnect the Seismic Array.'):
+                return
+            else:
+                self.survey.seisarray = None
+                disconnect = True
         qdialog = QtGui.QDialog(self.mainwindow)
         ui = Ui_generate_seisarray()
         ui.setupUi(qdialog)
@@ -66,6 +77,8 @@ class gui_control(object):
                 self.seisarray.addSourceLocations(srcfile)
             if len(ptsfile) > 0:
                 self.seisarray.addMeasuredTopographyPoints(ptsfile)
+            if disconnect:
+                self.setConnected2SurveyState(False)
             self.setSeisArrayState(True)
 
     def gen_survey(self):
@@ -86,15 +99,59 @@ class gui_control(object):
             self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
             surveyUtils.setDynamicFittedSNR(self.survey.getShotDict())
             self.setSurveyState(True)
+            self.setPickState(False)
+            self.setConnected2SurveyState(False)
 
     def addArrayPlot(self):
         self.seisArrayFigure = Figure()
         self.seisArrayCanvas = FigureCanvas(self.seisArrayFigure)
-        self.mainUI.verticalLayout_right.addWidget(self.seisArrayCanvas)
-        self.addArrayAxes()
+        self.mainUI.horizontalLayout_tr.addWidget(self.seisArrayCanvas)
+
+    def addStatPlots(self):
+        self.statFigure_left = Figure()
+        self.statCanvas_left = FigureCanvas(self.statFigure_left)
+        self.mainUI.horizontalLayout_br.addWidget(self.statCanvas_left)
+        self.statFigure_right = Figure()
+        self.statCanvas_right = FigureCanvas(self.statFigure_right)
+        self.mainUI.horizontalLayout_br.addWidget(self.statCanvas_right)
+        self.addItems2ComboBox()
+
+    def addItems2ComboBox(self):
+        self.mainUI.comboBox.insertItem(0, 'picked traces')
+        self.mainUI.comboBox.insertItem(1, 'mean SNR')
+        self.mainUI.comboBox.insertItem(2, 'median SNR')
+        self.mainUI.comboBox.insertItem(3, 'mean SPE')
+        self.mainUI.comboBox.insertItem(4, 'median SPE')
+        self.mainUI.comboBox.setEnabled(False)
 
     def addArrayAxes(self):
         self.seisArrayAx = self.seisArrayFigure.add_subplot(111)
+
+    def addStatAxes(self):
+        self.statAx_left = self.statFigure_left.add_subplot(111)
+        self.statAx_right = self.statFigure_right.add_subplot(111)
+
+    def replotArray(self):
+        self.seisArrayFigure.clf()
+        self.addArrayAxes()
+        self.plotArray()
+        self.seisArrayCanvas.draw()
+
+    def plotArray(self):
+        self.seisarray.plotArray2D(self.seisArrayAx, highlight_measured = True)
+
+    def replotStat(self):
+        self.statFigure_left.clf()
+        self.statFigure_right.clf()
+        self.addStatAxes()
+        self.plotStat()
+        self.statCanvas_left.draw()
+        self.statCanvas_right.draw()
+
+    def plotStat(self):
+        if self.checkPickState():
+            surveyUtils.plotScatterStats4Receivers(self.survey, self.mainUI.comboBox.currentText(), self.statAx_left)
+            surveyUtils.plotScatterStats4Shots(self.survey, self.mainUI.comboBox.currentText(), self.statAx_right)
 
     def interpolate_receivers(self):
         if not self.checkSeisArrayState():
@@ -250,20 +307,24 @@ class gui_control(object):
             self.setConnected2SurveyState(True)
             self.setSeisArrayState(True)
             self.printDialogMessage('Loaded Survey with active Seismic Array.')
-
-    def replotArray(self):
-        self.seisArrayFigure.clf()
-        self.addArrayAxes()
-        self.plotArray()
-        self.seisArrayCanvas.draw()
-
-    def plotArray(self):
-        self.seisarray.plotArray2D(self.seisArrayAx, highlight_measured = True)
+        else:
+            self.setConnected2SurveyState(False)
+            self.setSeisArrayState(False)
+            self.printDialogMessage('Loaded Survey.')
 
     def load_seisarray(self):
+        disconnect = False
         if self.checkSeisArrayState():
             if not self.continueDialogExists('Seismic Array'):
                 return
+        if self.checkConnected2SurveyState():
+            if not self.continueDialogMessage('Seismic Array connected to present Survey.\n'
+                                              'Continuation will disconnect the Seismic Array.'):
+                return
+            else:
+                self.survey.seisarray = None
+                disconnect = True
+
         filename = self.openFile()
         if filename is None:
             return
@@ -276,6 +337,8 @@ class gui_control(object):
             self.printDialogMessage('Wrong input file of type %s, expected %s.'
                   %(type(survey), seismicArrayPreparation.SeisArray))
             return
+        if disconnect:
+            self.setConnected2SurveyState(False)
         self.seisarray = seisarray
         self.replotArray()
         self.setSeisArrayState(True)
@@ -319,6 +382,8 @@ class gui_control(object):
     def setPickState(self, state):
         if state == True and self.checkSurveyState():
             self.mainUI.picked_active.setPixmap(self.applypixmap)
+            self.replotStat()
+            self.mainUI.comboBox.setEnabled(True)
             self.survey.picked = True
         elif state == True and self.checkSurveyState() is False:
             self.printDialogMessage('No Survey defined.')
@@ -326,6 +391,9 @@ class gui_control(object):
         elif state == False:
             self.mainUI.picked_active.setPixmap(self.cancelpixmap)
             if self.checkSurveyState():
+                self.statFigure_left.clf()
+                self.statFigure_right.clf()
+                self.mainUI.comboBox.setEnabled(True)
                 self.survey.picked = False
 
     def setSeisArrayState(self, state):
@@ -334,6 +402,8 @@ class gui_control(object):
             self.replotArray()
         elif state == False:
             self.mainUI.seisarray_active.setPixmap(self.cancelpixmap)
+            if self.seisArrayFigure is not None:
+                self.seisArrayFigure.clf()
 
     def setConnected2SurveyState(self, state):
         if state == True:
@@ -394,37 +464,40 @@ class gui_control(object):
         QtCore.QObject.connect(self.gen_new_seisarray.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseMeasuredPts)
 
     def chooseMeasuredSrc(self):
-        self.gen_new_seisarray.lineEdit_src.setText(self.openFile())
+        self.gen_new_seisarray.lineEdit_src.setText(self.openFile('Open measured sources file.'))
 
     def chooseMeasuredRec(self):
-        self.gen_new_seisarray.lineEdit_rec.setText(self.openFile())
+        self.gen_new_seisarray.lineEdit_rec.setText(self.openFile('Open measured receivers file.'))
 
     def chooseMeasuredPts(self):
-        self.gen_new_seisarray.lineEdit_pts.setText(self.browseDir())
+        self.gen_new_seisarray.lineEdit_pts.setText(self.openFile('Open measured points file.'))
 
     def chooseSourcefile(self):
-        self.gen_new_survey.lineEdit_src.setText(self.openFile())
+        self.gen_new_survey.lineEdit_src.setText(self.openFile('Open sourcefile.'))
 
     def chooseReceiverfile(self):
-        self.gen_new_survey.lineEdit_rec.setText(self.openFile())
+        self.gen_new_survey.lineEdit_rec.setText(self.openFile('Open receiverfile.'))
 
     def chooseObsdir(self):
-        self.gen_new_survey.lineEdit_obs.setText(self.browseDir())
+        self.gen_new_survey.lineEdit_obs.setText(self.browseDir('Choose observation directory.'))
 
-    def openFile(self):
+    def openFile(self, name = 'Open'):
         dialog = QtGui.QFileDialog()
+        dialog.setWindowTitle(name)                #not working yet
         filename = dialog.getOpenFileName()
         if len(filename[0]) > 0:
             return filename[0]
 
-    def saveFile(self):
+    def saveFile(self, name = 'Save'):
         dialog = QtGui.QFileDialog()
+        dialog.setWindowTitle(name)
         filename = dialog.getSaveFileName()
         if len(filename[0]) > 0:
             return filename[0]
 
-    def browseDir(self):
+    def browseDir(self, name = 'Open Directory'):
         dialog = QtGui.QFileDialog()
+        dialog.setWindowTitle(name)
         directory = dialog.getExistingDirectory()
         if len(directory) > 0:
             return directory
