@@ -9,6 +9,7 @@ from PySide import QtCore, QtGui, QtCore
 from asp3d_layout import *
 from fmtomo_parameters_layout import *
 from generate_survey_layout import *
+from generate_survey_layout_minimal import *
 from generate_seisarray_layout import *
 from picking_parameters_layout import *
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
@@ -85,6 +86,34 @@ class gui_control(object):
         if self.checkSurveyState():
             if not self.continueDialogExists('Survey'):
                 return
+        if self.checkSeisArrayState():
+            if self.continueDialogMessage('Use geometry information of active Seismic Array?'):
+               if self.gen_survey_fromSeisArray():
+                   self.initNewSurvey()
+            else:
+                if self.gen_survey_fromSRfiles():
+                    self.initNewSurvey()
+
+    def initNewSurvey(self):
+        self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
+        surveyUtils.setDynamicFittedSNR(self.survey.getShotDict())
+        self.setSurveyState(True)
+        self.setPickState(False)
+
+    def gen_survey_fromSeisArray(self):
+        qdialog = QtGui.QDialog(self.mainwindow)
+        ui = Ui_generate_survey_minimal()
+        ui.setupUi(qdialog)
+        self.gen_new_survey_min = ui
+        self.connectButtons_gen_survey_min()
+        if qdialog.exec_():
+            obsdir = self.gen_new_survey_min.lineEdit_obs.text()
+            self.survey = activeSeismoPick.Survey(obsdir, seisArray = self.seisarray,
+                                                  useDefaultParas = True)
+            self.setConnected2SurveyState(True)
+            return True
+
+    def gen_survey_fromSRfiles(self):
         qdialog = QtGui.QDialog(self.mainwindow)
         ui = Ui_generate_survey()
         ui.setupUi(qdialog)
@@ -96,11 +125,8 @@ class gui_control(object):
             obsdir = self.gen_new_survey.lineEdit_obs.text()
             self.survey = activeSeismoPick.Survey(obsdir, srcfile, recfile,
                                                   useDefaultParas = True)
-            self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
-            surveyUtils.setDynamicFittedSNR(self.survey.getShotDict())
-            self.setSurveyState(True)
-            self.setPickState(False)
             self.setConnected2SurveyState(False)
+            return True
 
     def addArrayPlot(self):
         self.seisArrayFigure = Figure()
@@ -182,6 +208,7 @@ class gui_control(object):
                 pass
         self.survey.seisarray = self.seisarray
         self.setConnected2SurveyState(True)
+        self.survey._initiate_SRfiles()
         print('Connected Seismic Array to active Survey object.')
 
     def getMaxCPU(self):
@@ -393,7 +420,7 @@ class gui_control(object):
             if self.checkSurveyState():
                 self.statFigure_left.clf()
                 self.statFigure_right.clf()
-                self.mainUI.comboBox.setEnabled(True)
+                self.mainUI.comboBox.setEnabled(False)
                 self.survey.picked = False
 
     def setSeisArrayState(self, state):
@@ -458,6 +485,9 @@ class gui_control(object):
         QtCore.QObject.connect(self.gen_new_survey.pushButton_src, QtCore.SIGNAL("clicked()"), self.chooseSourcefile)
         QtCore.QObject.connect(self.gen_new_survey.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir)
 
+    def connectButtons_gen_survey_min(self):
+        QtCore.QObject.connect(self.gen_new_survey_min.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir_min)
+
     def connectButtons_gen_seisarray(self):
         QtCore.QObject.connect(self.gen_new_seisarray.pushButton_rec, QtCore.SIGNAL("clicked()"), self.chooseMeasuredRec)
         QtCore.QObject.connect(self.gen_new_seisarray.pushButton_src, QtCore.SIGNAL("clicked()"), self.chooseMeasuredSrc)
@@ -480,6 +510,9 @@ class gui_control(object):
 
     def chooseObsdir(self):
         self.gen_new_survey.lineEdit_obs.setText(self.browseDir('Choose observation directory.'))
+
+    def chooseObsdir_min(self):
+        self.gen_new_survey_min.lineEdit_obs.setText(self.browseDir('Choose observation directory.'))
 
     def openFile(self, name = 'Open'):
         dialog = QtGui.QFileDialog()
