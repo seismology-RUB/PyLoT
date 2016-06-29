@@ -180,7 +180,7 @@ def picksdict_from_picks(evt):
         try:
             onsets = picks[station]
         except KeyError as e:
-            print(e)
+            #print(e)
             onsets = {}
         mpp = pick.time
         spe = pick.time_errors.uncertainty

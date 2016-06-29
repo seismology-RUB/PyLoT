@@ -294,6 +294,29 @@ class ProbabilityDensityFunction(object):
             return None
         return self.data[find_nearest(self.axis, value)] * self.incr
 
+    def quantile(self, prob_value, eps=0.01):
+        l = self.axis[0]
+        r = self.axis[-1]
+        m = (r - l) / 2
+        diff = prob_value - self.prob_lt_val(m)
+        while abs(diff) > eps:
+            if diff > 0:
+                l = m
+            else:
+                r = m
+            m = (r - l) / 2
+            diff = prob_value - self.prob_lt_val(m)
+        return m
+
+
+        pass
+
+    def quantile_distance(self, prob_value):
+        ql = self.quantile(prob_value)
+        qu = self.quantile(1 - prob_value)
+
+        return qu - ql
+
     def plot(self, label=None):
         import matplotlib.pyplot as plt
 
