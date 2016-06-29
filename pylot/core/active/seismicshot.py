@@ -24,7 +24,6 @@ class SeismicShot(object):
     '''
     SuperClass for a seismic shot object.
     '''
-
     def __init__(self, obsfile):
         '''
         Initialize seismic shot object giving an inputfile.
@@ -34,8 +33,8 @@ class SeismicShot(object):
         '''
         self.traces = read(obsfile)
         self.renameChannelIDs()
-        self.recCoordlist = None
-        self.srcCoordlist = None
+        # self.recCoordlist = None
+        # self.srcCoordlist = None
         self.traceIDs = None
         self.picks = {}
         self.pwindow = {}
@@ -55,10 +54,8 @@ class SeismicShot(object):
 
     def removeEmptyTraces(self):
         traceIDs = []
-        coordlist = self.getRecCoordlist()
         removed = []
-        for i in range(0, len(coordlist)):
-            traceIDs.append(int(coordlist[i].split()[0]))
+        traceIDs = self.getReceiverCoords().keys()
 
         for trace in self.traces:
             try:
@@ -110,14 +107,14 @@ class SeismicShot(object):
     def setTgap(self, tgap):
         self.setParameters('tgap', tgap)
 
-    def setShotnumber(self, shotname):
-        self.setParameters('shotname', shotname)
+    def setShotnumber(self, shotnumber):
+        self.setParameters('shotnumber', shotnumber)
 
-    def setRecfile(self, recfile):
-        self.setParameters('recfile', recfile)
+    def setReceiverCoords(self, receiver):
+        self.setParameters('receiverLoc', receiver)
 
-    def setSourcefile(self, sourcefile):
-        self.setParameters('sourcefile', sourcefile)
+    def setSourceCoords(self, source):
+        self.setParameters('sourceLoc', source)
 
     def setMethod(self, method):
         self.setParameters('method', method)
@@ -159,8 +156,14 @@ class SeismicShot(object):
     def getParas(self):
         return self.paras
 
-    def getShotname(self):
-        return self.paras['shotname']
+    def getShotnumber(self):
+        return self.paras['shotnumber']
+
+    def getSourceCoords(self):
+        return self.paras['sourceLoc']
+
+    def getReceiverCoords(self):
+        return self.paras['receiverLoc']
 
     def getCut(self):
         return self.paras['cut']
@@ -179,12 +182,6 @@ class SeismicShot(object):
 
     def getShotnumber(self):
         return self.paras['shotnumber']
-
-    def getRecfile(self):
-        return self.paras['recfile']
-
-    def getSourcefile(self):
-        return self.paras['sourcefile']
 
     def getVmin(self):
         return self.paras['vmin']
@@ -237,15 +234,12 @@ class SeismicShot(object):
 
     def getTraceIDlist(self):
         '''
-        Returns a list containing the traceIDs read from the receiver inputfile.
+        Returns a list containing the traceIDs.
         '''
         traceIDs = []
         if self.traceIDs == None:
-            recCoordlist = self.getRecCoordlist()
-            for i in range(0, len(recCoordlist)):
-                traceIDs.append(int(recCoordlist[i].split()[0]))
+            traceIDs = self.getReceiverCoords().keys()
             self.traceIDs = traceIDs
-
         return self.traceIDs
 
     def getPickwindow(self, traceID):
@@ -262,19 +256,19 @@ class SeismicShot(object):
     def getSNRthreshold(self, traceID):
         return self.snrthreshold[traceID]
 
-    def getRecCoordlist(self):
-        if self.recCoordlist is None:
-            coordlist = open(self.getRecfile(), 'r').readlines()
-            # print 'Reading receiver coordinates from %s' %(self.getRecfile())
-            self.recCoordlist = coordlist
-        return self.recCoordlist
+    # def getRecCoordlist(self):
+    #     if self.recCoordlist is None:
+    #         coordlist = open(self.getRecfile(), 'r').readlines()
+    #         # print 'Reading receiver coordinates from %s' %(self.getRecfile())
+    #         self.recCoordlist = coordlist
+    #     return self.recCoordlist
 
-    def getSrcCoordlist(self):
-        if self.srcCoordlist is None:
-            coordlist = open(self.getSourcefile(), 'r').readlines()
-            # print 'Reading shot coordinates from %s' %(self.getSourcefile())
-            self.srcCoordlist = coordlist
-        return self.srcCoordlist
+    # def getSrcCoordlist(self):
+    #     if self.srcCoordlist is None:
+    #         coordlist = open(self.getSourcefile(), 'r').readlines()
+    #         # print 'Reading shot coordinates from %s' %(self.getSourcefile())
+    #         self.srcCoordlist = coordlist
+    #     return self.srcCoordlist
 
     def getTimeArray(self, traceID):
         return self.timeArray[traceID]
@@ -484,13 +478,7 @@ class SeismicShot(object):
         if traceID == 0:  # artificial traceID 0 with pick at t = 0
             return self.getSrcLoc()
 
-        coordlist = self.getRecCoordlist()
-        for i in range(0, len(coordlist)):
-            if int(coordlist[i].split()[0]) == traceID:
-                x = coordlist[i].split()[1]
-                y = coordlist[i].split()[2]
-                z = coordlist[i].split()[3]
-                return float(x), float(y), float(z)
+        return self.getReceiverCoords()[traceID]
 
         raise ValueError("traceID %s not found" % traceID)
 
@@ -499,14 +487,7 @@ class SeismicShot(object):
         Returns the location (x, y, z) of the shot.
         SOURCE FILE MUST BE SET FIRST, TO BE IMPROVED.
         '''
-        coordlist = self.getSrcCoordlist()
-        for i in range(0, len(coordlist)):
-            if coordlist[i].split()[0] == self.paras['shotnumber']:
-                x = coordlist[i].split()[1]
-                y = coordlist[i].split()[2]
-                z = coordlist[i].split()[3]
-                return float(x), float(y), float(z)
-                # return float(self.getSingleStream(traceID)[0].stats.seg2['SOURCE_LOCATION'])
+        return self.getSourceCoords()
 
     def getTraceIDs4Dist(self, distance=0,
                          distancebin=(0, 0)):  ########## nur fuer 2D benutzt, 'distance bins' ##########

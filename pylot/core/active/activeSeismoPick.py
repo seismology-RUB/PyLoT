@@ -13,7 +13,7 @@ def picker(shot):
     return picks
 
 class Survey(object):
-    def __init__(self, path, sourcefile, receiverfile, useDefaultParas=False):
+    def __init__(self, path, sourcefile = None, receiverfile = None, seisArray = None, useDefaultParas=False):
         '''
         The Survey Class contains all shots [class: Seismicshot] of a survey
         as well as the aquisition geometry and the topography.
@@ -24,23 +24,61 @@ class Survey(object):
         creating plots for all shots.
         '''
         self.data = {}
-        self.seisarray = None
+        self.seisarray = seisArray
         self._topography = None
         self._recfile = receiverfile
         self._sourcefile = sourcefile
         self._obsdir = path
         self._generateSurvey()
-        self._initiate_fnames()
+        self._initiate_SRfiles()
         if useDefaultParas == True:
             self.setParametersForAllShots()
         self._removeAllEmptyTraces()
         self._updateShots()
         self.picked = False
 
-    def _initiate_fnames(self):
-        for shot in self.data.values():
-            shot.setRecfile(self.getReceiverfile())
-            shot.setSourcefile(self.getSourcefile())
+    def _coordsFromSeisArray(self):
+        self._receiverCoords = self.seisarray.getReceiverCoordinates()
+        self._sourceCoords = self.seisarray.getSourceCoordinates()
+
+    def _coordsFromFiles(self):
+        self._receiversFromFile()
+        self._sourcesFromFile()
+
+    def _receiversFromFile(self):
+        self._receiverCoords = {}
+        reclist = open(self.getReceiverfile(), 'r').readlines()
+        for line in reclist:
+            line = line.split()
+            traceID = int(line[0])
+            x = float(line[1])
+            y = float(line[2])
+            z = float(line[3])
+            self._receiverCoords[traceID] = (x, y, z)
+
+    def _sourcesFromFile(self):
+        self._sourceCoords = {}
+        reclist = open(self.getSourcefile(), 'r').readlines()
+        for line in reclist:
+            line = line.split()
+            sourceID = int(line[0])
+            x = float(line[1])
+            y = float(line[2])
+            z = float(line[3])
+            self._sourceCoords[sourceID] = (x, y, z)
+
+    def _initiate_SRfiles(self):
+        if self._recfile == None and self._sourcefile == None:
+            if self.seisarray == None:
+                raise RuntimeError('No SeisArray defined. No source or receiver file given.')
+            self._coordsFromSeisArray()
+        else:
+            self._coordsFromFiles()
+        for shotnumber in self.data.keys():
+            shot = self.data[shotnumber]
+            shot.setShotnumber(shotnumber)
+            shot.setReceiverCoords(self._receiverCoords)
+            shot.setSourceCoords(self._sourceCoords[shotnumber])
 
     def _generateSurvey(self):
         from obspy.core import read
@@ -49,8 +87,8 @@ class Survey(object):
         shotlist = self.getShotlist()
         for shotnumber in shotlist:  # loop over data files
             # generate filenames and read manual picks to a list
-            #fileending = '_pickle.dat'
-            fileending = '.sg2'
+            fileending = '_pickle.dat'
+            #fileending = '.sg2'
             obsfile = os.path.join(self._obsdir, str(shotnumber)) + fileending
             if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
@@ -372,12 +410,17 @@ class Survey(object):
         '''
         Returns a list of all shotnumbers contained in the set Sourcefile.
         '''
+        if self._recfile == None and self._sourcefile == None:
+            if self.seisarray == None:
+                raise RuntimeError('No SeisArray defined. No source or receiver file given.')
+            return self.seisarray.getSourceCoordinates().keys()
+
         filename = self.getSourcefile()
         srcfile = open(filename, 'r')
         shotlist = []
         for line in srcfile.readlines():
             line = line.split()
-            shotlist.append(line[0])
+            shotlist.append(int(line[0]))
 
         return shotlist
 
@@ -385,6 +428,11 @@ class Survey(object):
         '''
         Returns a list of all trace IDs contained in the set Receiverfile.
         '''
+        if self._recfile == None and self._sourcefile == None:
+            if self.seisarray == None:
+                raise RuntimeError('No SeisArray defined. No source or receiver file given.')
+            return self.seisarray.getReceiverCoordinates().keys()
+
         filename = self.getReceiverfile()
         recfile = open(filename, 'r')
         reclist = []

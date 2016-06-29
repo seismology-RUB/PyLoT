@@ -23,7 +23,7 @@ class SeisArray(object):
         self._receiverCoords = {}
         self._measuredReceivers = {}
         self._measuredTopo = {}
-        self._sourceLocs = {}
+        self._sourceCoords = {}
         self._geophoneNumbers = {}
         self._receiverlist = open(self.recfile, 'r').readlines()
         self._generateReceiverlines()
@@ -79,13 +79,13 @@ class SeisArray(object):
         return self._receiverCoords[traceID][2]
 
     def _getXshot(self, shotnumber):
-        return self._sourceLocs[shotnumber][0]
+        return self._sourceCoords[shotnumber][0]
 
     def _getYshot(self, shotnumber):
-        return self._sourceLocs[shotnumber][1]
+        return self._sourceCoords[shotnumber][1]
 
     def _getZshot(self, shotnumber):
-        return self._sourceLocs[shotnumber][2]
+        return self._sourceCoords[shotnumber][2]
 
     def _getReceiverValue(self, traceID, coordinate):
         setCoordinate = {'X': self._getXreceiver,
@@ -102,8 +102,8 @@ class SeisArray(object):
     def getMeasuredTopo(self):
         return self._measuredTopo
 
-    def getSourceLocations(self):
-        return self._sourceLocs
+    def getSourceCoordinates(self):
+        return self._sourceCoords
 
     def _setXvalue(self, traceID, value):
         self._checkKey(traceID)
@@ -209,7 +209,7 @@ class SeisArray(object):
             x = float(line[1])
             y = float(line[2])
             z = float(line[3])
-            self._sourceLocs[pointID] = (x, y, z)
+            self._sourceCoords[pointID] = (x, y, z)
 
     def interpZcoords4rec(self, method='linear'):
         '''
@@ -274,10 +274,10 @@ class SeisArray(object):
         x = [];
         y = [];
         z = []
-        for pointID in self.getSourceLocations().keys():
-            x.append(self.getSourceLocations()[pointID][0])
-            y.append(self.getSourceLocations()[pointID][1])
-            z.append(self.getSourceLocations()[pointID][2])
+        for pointID in self.getSourceCoordinates().keys():
+            x.append(self.getSourceCoordinates()[pointID][0])
+            y.append(self.getSourceCoordinates()[pointID][1])
+            z.append(self.getSourceCoordinates()[pointID][2])
         return x, y, z
 
     def getAllMeasuredPointsLists(self):
@@ -457,7 +457,7 @@ class SeisArray(object):
         outfile = open(outfilename, 'w')
 
         recx, recy, recz = self.getReceiverLists()
-        nsrc = len(self.getSourceLocations())
+        nsrc = len(self.getSourceCoordinates())
         outfile.write('%s\n' % (len(zip(recx, recy, recz)) * nsrc))
 
         for index in range(nsrc):
@@ -816,7 +816,7 @@ class SeisArray(object):
             for traceID in self.getReceiverCoordinates().keys():
                 ax.annotate((' ' + str(traceID)), xy=(self._getXreceiver(traceID), self._getYreceiver(traceID)),
                             fontsize='x-small', color='k')
-            for shotnumber in self.getSourceLocations().keys():
+            for shotnumber in self.getSourceCoordinates().keys():
                 ax.annotate(('  ' + str(shotnumber)), xy=(self._getXshot(shotnumber), self._getYshot(shotnumber)),
                             fontsize='x-small', color='b')
 
@@ -994,7 +994,7 @@ class SeisArray(object):
         outfile = open(filename, 'w')
         shotnumbers = []
 
-        for shotnumber in self.getSourceLocations():
+        for shotnumber in self.getSourceCoordinates():
             shotnumbers.append(shotnumber)
 
         nPoints = len(shotnumbers)
