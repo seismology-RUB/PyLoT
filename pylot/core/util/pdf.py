@@ -297,19 +297,17 @@ class ProbabilityDensityFunction(object):
     def quantile(self, prob_value, eps=0.01):
         l = self.axis[0]
         r = self.axis[-1]
-        m = (r - l) / 2
+        m = (r + l) / 2
         diff = prob_value - self.prob_lt_val(m)
         while abs(diff) > eps:
             if diff > 0:
                 l = m
             else:
                 r = m
-            m = (r - l) / 2
+            m = (r + l) / 2
             diff = prob_value - self.prob_lt_val(m)
+            print(m, prob_value, self.prob_lt_val(m))
         return m
-
-
-        pass
 
     def quantile_distance(self, prob_value):
         ql = self.quantile(prob_value)
