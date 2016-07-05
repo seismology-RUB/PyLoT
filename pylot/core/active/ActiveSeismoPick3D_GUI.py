@@ -90,9 +90,11 @@ class gui_control(object):
             if self.continueDialogMessage('Use geometry information of active Seismic Array?'):
                if self.gen_survey_fromSeisArray():
                    self.initNewSurvey()
-            else:
-                if self.gen_survey_fromSRfiles():
-                    self.initNewSurvey()
+                   return
+               else:
+                   return
+        if self.gen_survey_fromSRfiles():
+            self.initNewSurvey()
 
     def initNewSurvey(self):
         self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
@@ -204,8 +206,8 @@ class gui_control(object):
             self.printDialogMessage('Got no Seismic Array.')
             return
         if self.checkConnected2SurveyState():
-            if self.continueDialogMessage('Existing Survey already got Seismic Array object. Continue?'):
-                pass
+            if not self.continueDialogMessage('Existing Survey already got Seismic Array object. Continue?'):
+                return
         self.survey.seisarray = self.seisarray
         self.setConnected2SurveyState(True)
         self.survey._initiate_SRfiles()
@@ -323,6 +325,10 @@ class gui_control(object):
             self.printDialogMessage('Wrong input file of type %s, expected %s.'
                   %(type(survey), activeSeismoPick.Survey))
             return
+        if self.checkSeisArrayState() and survey.seisarray is not None:
+            if not self.continueDialogMessage('Survey got existing Seismic Array.'
+                                              ' Do you want to overwrite the current Seismic Array?'):
+                return
         self.survey = survey
         self.setSurveyState(True)
         if self.survey.picked:
