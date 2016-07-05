@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'asp3d_layout.ui'
 #
-# Created: Tue Jun 28 14:40:06 2016
+# Created: Tue Jul  5 13:55:55 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -27,8 +27,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.horizontalLayout_4 = QtGui.QHBoxLayout(self.centralwidget)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.gridLayout = QtGui.QGridLayout(self.centralwidget)
+        self.gridLayout.setObjectName("gridLayout")
         self.formLayout = QtGui.QFormLayout()
         self.formLayout.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
         self.formLayout.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
@@ -237,6 +237,24 @@ class Ui_MainWindow(object):
         self.fmtomo = QtGui.QPushButton(self.centralwidget)
         self.fmtomo.setObjectName("fmtomo")
         self.verticalLayout_4.addWidget(self.fmtomo)
+        self.label_9 = QtGui.QLabel(self.centralwidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_9.sizePolicy().hasHeightForWidth())
+        self.label_9.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily("Sans Serif")
+        font.setPointSize(10)
+        font.setWeight(75)
+        font.setBold(True)
+        self.label_9.setFont(font)
+        self.label_9.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_9.setObjectName("label_9")
+        self.verticalLayout_4.addWidget(self.label_9)
+        self.vtk_tools = QtGui.QPushButton(self.centralwidget)
+        self.vtk_tools.setObjectName("vtk_tools")
+        self.verticalLayout_4.addWidget(self.vtk_tools)
         self.verticalLayout_3.addLayout(self.verticalLayout_4)
         self.verticalLayout_5.addLayout(self.verticalLayout_3)
         self.formLayout.setLayout(0, QtGui.QFormLayout.LabelRole, self.verticalLayout_5)
@@ -259,7 +277,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_br.setObjectName("horizontalLayout_br")
         self.verticalLayout_right.addLayout(self.horizontalLayout_br)
         self.formLayout.setLayout(0, QtGui.QFormLayout.FieldRole, self.verticalLayout_right)
-        self.horizontalLayout_4.addLayout(self.formLayout)
+        self.gridLayout.addLayout(self.formLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 905, 23))
@@ -304,4 +322,7 @@ class Ui_MainWindow(object):
         self.label_8.setText(QtGui.QApplication.translate("MainWindow", "Simulation", None, QtGui.QApplication.UnicodeUTF8))
         self.fmtomo.setToolTip(QtGui.QApplication.translate("MainWindow", "Set parameters and call Fast Marching Tomography algorithm.", None, QtGui.QApplication.UnicodeUTF8))
         self.fmtomo.setText(QtGui.QApplication.translate("MainWindow", "FMTOMO Simulation", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_9.setText(QtGui.QApplication.translate("MainWindow", "Visualization", None, QtGui.QApplication.UnicodeUTF8))
+        self.vtk_tools.setToolTip(QtGui.QApplication.translate("MainWindow", "Set parameters and call Fast Marching Tomography algorithm.", None, QtGui.QApplication.UnicodeUTF8))
+        self.vtk_tools.setText(QtGui.QApplication.translate("MainWindow", "VTK tools", None, QtGui.QApplication.UnicodeUTF8))
 

@@ -12,6 +12,7 @@ from generate_survey_layout import *
 from generate_survey_layout_minimal import *
 from generate_seisarray_layout import *
 from picking_parameters_layout import *
+from vtk_tools_layout import *
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -50,6 +51,7 @@ class gui_control(object):
         QtCore.QObject.connect(self.mainUI.picker, QtCore.SIGNAL("clicked()"), self.callPicker)
         QtCore.QObject.connect(self.mainUI.postprocessing, QtCore.SIGNAL("clicked()"), self.postprocessing)
         QtCore.QObject.connect(self.mainUI.fmtomo, QtCore.SIGNAL("clicked()"), self.startFMTOMO)
+        QtCore.QObject.connect(self.mainUI.vtk_tools, QtCore.SIGNAL("clicked()"), self.startVTKtools)
         QtCore.QObject.connect(self.mainUI.comboBox, QtCore.SIGNAL("activated(int)"), self.replotStat)
 
     def gen_seisarray(self):
@@ -73,7 +75,10 @@ class gui_control(object):
             srcfile = self.gen_new_seisarray.lineEdit_src.text()
             recfile = self.gen_new_seisarray.lineEdit_rec.text()
             ptsfile = self.gen_new_seisarray.lineEdit_pts.text()
-            self.seisarray = seismicArrayPreparation.SeisArray(recfile)
+            if self.gen_new_seisarray.radioButton_interpolatable.isChecked():
+                self.seisarray = seismicArrayPreparation.SeisArray(recfile, True)
+            elif self.gen_new_seisarray.radioButton_normal.isChecked():
+                self.seisarray = seismicArrayPreparation.SeisArray(recfile, False)
             if len(srcfile) > 0:
                 self.seisarray.addSourceLocations(srcfile)
             if len(ptsfile) > 0:
@@ -247,6 +252,9 @@ class gui_control(object):
         if not self.checkSurveyState():
             self.printDialogMessage('No Survey defined.')
             return
+        if not self.checkPickState():
+            self.printDialogMessage('Survey not picked.')
+            return
         fmtomo_parameters = QtGui.QDialog(self.mainwindow)
         ui = Ui_fmtomo_parameters()
         ui.setupUi(fmtomo_parameters)                
@@ -255,6 +263,15 @@ class gui_control(object):
         self.fmtomo_parameters_ui = ui
         self.connectButtons_startFMTOMO()
         self.getFMTOMOparameters(ui, fmtomo_parameters)
+
+    def startVTKtools(self):
+        vtk_tools = QtGui.QDialog(self.mainwindow)
+        ui = Ui_vtk_tools()
+        ui.setupUi(vtk_tools)
+
+        self.vtk_tools_ui = ui
+        self.connectButtons_vtk_tools()
+        #self.getFMTOMOparameters(ui, fmtomo_parameters)
 
     def getFMTOMOparameters(self, ui, fmtomo_parameters):
         if fmtomo_parameters.exec_():
@@ -290,6 +307,40 @@ class gui_control(object):
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_tomodir, QtCore.SIGNAL("clicked()"), self.chooseFMTOMOdir)
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_customgrid, QtCore.SIGNAL("clicked()"), self.chooseCustomgrid)
         QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_simuldir, QtCore.SIGNAL("clicked()"), self.chooseSimuldir)
+
+    def connectButtons_vtk_tools(self):
+        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vg, QtCore.SIGNAL("clicked()"), self.chooseVgrid)
+        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vgref, QtCore.SIGNAL("clicked()"), self.chooseVgridref)
+        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_rays, QtCore.SIGNAL("clicked()"), self.chooseRaysIn)
+        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_raysout, QtCore.SIGNAL("clicked()"), self.chooseRaysOutDir)
+        QtCore.QObject.connect(self.vtk_tools_ui.start_vg, QtCore.SIGNAL("clicked()"), self.startvgvtk)
+        QtCore.QObject.connect(self.vtk_tools_ui.start_rays, QtCore.SIGNAL("clicked()"), self.startraysvtk)
+
+    def chooseVgrid(self):
+        self.vtk_tools_ui.lineEdit_vg.setText(self.openFile())
+
+    def chooseVgridref(self):
+        self.vtk_tools_ui.lineEdit_vgref.setText(self.openFile())
+
+    def chooseRaysIn(self):
+        self.vtk_tools_ui.lineEdit_rays.setText(self.openFile())
+
+    def chooseRaysOutDir(self):
+        self.vtk_tools_ui.lineEdit_raysout.setText(self.browseDir())
+
+    def startvgvtk(self):
+        if self.vtk_tools_ui.radioButton_abs.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = self.vtk_tools_ui.lineEdit_vg.text(),
+                                   outputfile = 'vgrids_rel.vtk',
+                                   absOrRel='abs')
+        elif self.vtk_tools_ui.radioButton_rel.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = self.vtk_tools_ui.lineEdit_vg.text(),
+                                   outputfile = 'vgrids_rel.vtk',
+                                   absOrRel='rel',
+                                   inputfileref = self.vtk_tools_ui.lineEdit_vgref.text())
+
+    def startraysvtk(self):
+        fmtomoUtils.rays2VTK()
 
     def chooseFMTOMOdir(self):
         self.fmtomo_parameters_ui.fmtomo_dir.setText(self.browseDir())
