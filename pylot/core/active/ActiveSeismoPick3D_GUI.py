@@ -271,7 +271,10 @@ class gui_control(object):
 
         self.vtk_tools_ui = ui
         self.connectButtons_vtk_tools()
-        #self.getFMTOMOparameters(ui, fmtomo_parameters)
+        self.openVTKdialog(ui, vtk_tools)
+
+    def openVTKdialog(self, ui, vtk_tools):
+        vtk_tools.exec_()
 
     def getFMTOMOparameters(self, ui, fmtomo_parameters):
         if fmtomo_parameters.exec_():
@@ -313,34 +316,77 @@ class gui_control(object):
         QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vgref, QtCore.SIGNAL("clicked()"), self.chooseVgridref)
         QtCore.QObject.connect(self.vtk_tools_ui.pushButton_rays, QtCore.SIGNAL("clicked()"), self.chooseRaysIn)
         QtCore.QObject.connect(self.vtk_tools_ui.pushButton_raysout, QtCore.SIGNAL("clicked()"), self.chooseRaysOutDir)
+        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_parav, QtCore.SIGNAL("clicked()"), self.openFileParaview)
         QtCore.QObject.connect(self.vtk_tools_ui.start_vg, QtCore.SIGNAL("clicked()"), self.startvgvtk)
         QtCore.QObject.connect(self.vtk_tools_ui.start_rays, QtCore.SIGNAL("clicked()"), self.startraysvtk)
+        QtCore.QObject.connect(self.vtk_tools_ui.radioButton_rel, QtCore.SIGNAL("clicked()"), self.activateVgref)
+        QtCore.QObject.connect(self.vtk_tools_ui.radioButton_abs, QtCore.SIGNAL("clicked()"), self.deactivateVgref)
+
+    def openFileParaview(self):
+        os.system('paraview %s &'%self.vtk_tools_ui.lineEdit_vgout.text())
+
+    def activateVgref(self):
+        self.vtk_tools_ui.lineEdit_vgref.setEnabled(True)
+        self.vtk_tools_ui.pushButton_vgref.setEnabled(True)
+
+    def deactivateVgref(self):
+        self.vtk_tools_ui.lineEdit_vgref.setEnabled(False)
+        self.vtk_tools_ui.pushButton_vgref.setEnabled(False)
+
+    def checkVgStartButton(self):
+        ui = self.vtk_tools_ui
+        if ui.radioButton_rel.isChecked():
+            if ui.lineEdit_vg.text() != '' and ui.lineEdit_vgref.text() != '':
+                ui.start_vg.setEnabled(True)
+            else:
+                ui.start_vg.setEnabled(False)
+        if ui.radioButton_abs.isChecked():
+            if ui.lineEdit_vg.text() != '':
+                ui.start_vg.setEnabled(True)
+            else:
+                ui.start_vg.setEnabled(False)                
+
+    def checkRaysStartButton(self):
+        ui = self.vtk_tools_ui
+        if ui.lineEdit_rays.text() != '' and ui.lineEdit_raysout.text() != '':
+            ui.start_rays.setEnabled(True)
+        else:
+            ui.start_rays.setEnabled(False)
 
     def chooseVgrid(self):
         self.vtk_tools_ui.lineEdit_vg.setText(self.openFile())
+        self.checkVgStartButton()
 
     def chooseVgridref(self):
         self.vtk_tools_ui.lineEdit_vgref.setText(self.openFile())
+        self.checkVgStartButton()
 
     def chooseRaysIn(self):
         self.vtk_tools_ui.lineEdit_rays.setText(self.openFile())
+        self.checkRaysStartButton()
 
     def chooseRaysOutDir(self):
         self.vtk_tools_ui.lineEdit_raysout.setText(self.browseDir())
+        self.checkRaysStartButton()
 
     def startvgvtk(self):
-        if self.vtk_tools_ui.radioButton_abs.isChecked():
-            fmtomoUtils.vgrids2VTK(inputfile = self.vtk_tools_ui.lineEdit_vg.text(),
-                                   outputfile = 'vgrids_rel.vtk',
+        ui = self.vtk_tools_ui
+        if ui.lineEdit_vgout.text() == '':
+            if not self.printDialogMessage('Please specify output filename.'):
+                return            
+        if ui.radioButton_abs.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
+                                   outputfile = ui.lineEdit_vgout.text(),
                                    absOrRel='abs')
-        elif self.vtk_tools_ui.radioButton_rel.isChecked():
-            fmtomoUtils.vgrids2VTK(inputfile = self.vtk_tools_ui.lineEdit_vg.text(),
-                                   outputfile = 'vgrids_rel.vtk',
+        elif ui.radioButton_rel.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
+                                   outputfile = ui.lineEdit_vgout.text(),
                                    absOrRel='rel',
-                                   inputfileref = self.vtk_tools_ui.lineEdit_vgref.text())
+                                   inputfileref = ui.lineEdit_vgref.text())
 
     def startraysvtk(self):
-        fmtomoUtils.rays2VTK()
+        ui = self.vtk_tools_ui
+        fmtomoUtils.rays2VTK(ui.lineEdit_rays.text(), ui.lineEdit_raysout.text())
 
     def chooseFMTOMOdir(self):
         self.fmtomo_parameters_ui.fmtomo_dir.setText(self.browseDir())

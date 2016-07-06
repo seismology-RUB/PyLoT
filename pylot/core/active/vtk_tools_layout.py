@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'vtk_tools_layout.ui'
 #
-# Created: Tue Jul  5 13:55:56 2016
+# Created: Wed Jul  6 11:39:58 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_vtk_tools(object):
     def setupUi(self, vtk_tools):
         vtk_tools.setObjectName("vtk_tools")
-        vtk_tools.resize(406, 407)
+        vtk_tools.resize(362, 432)
         self.verticalLayout_8 = QtGui.QVBoxLayout(vtk_tools)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -27,6 +27,10 @@ class Ui_vtk_tools(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_rec.sizePolicy().hasHeightForWidth())
         self.label_rec.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setWeight(75)
+        font.setBold(True)
+        self.label_rec.setFont(font)
         self.label_rec.setToolTip("")
         self.label_rec.setObjectName("label_rec")
         self.horizontalLayout.addWidget(self.label_rec)
@@ -71,6 +75,19 @@ class Ui_vtk_tools(object):
         self.pushButton_vgref.setObjectName("pushButton_vgref")
         self.horizontalLayout_4.addWidget(self.pushButton_vgref)
         self.verticalLayout_7.addLayout(self.horizontalLayout_4)
+        self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.label_5 = QtGui.QLabel(vtk_tools)
+        self.label_5.setObjectName("label_5")
+        self.horizontalLayout_3.addWidget(self.label_5)
+        self.lineEdit_vgout = QtGui.QLineEdit(vtk_tools)
+        self.lineEdit_vgout.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.lineEdit_vgout.setObjectName("lineEdit_vgout")
+        self.horizontalLayout_3.addWidget(self.lineEdit_vgout)
+        self.pushButton_parav = QtGui.QPushButton(vtk_tools)
+        self.pushButton_parav.setObjectName("pushButton_parav")
+        self.horizontalLayout_3.addWidget(self.pushButton_parav)
+        self.verticalLayout_7.addLayout(self.horizontalLayout_3)
         self.start_vg = QtGui.QPushButton(vtk_tools)
         self.start_vg.setEnabled(False)
         self.start_vg.setObjectName("start_vg")
@@ -90,6 +107,10 @@ class Ui_vtk_tools(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_src.sizePolicy().hasHeightForWidth())
         self.label_src.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setWeight(75)
+        font.setBold(True)
+        self.label_src.setFont(font)
         self.label_src.setObjectName("label_src")
         self.verticalLayout_2.addWidget(self.label_src)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
@@ -130,7 +151,7 @@ class Ui_vtk_tools(object):
         self.verticalLayout_8.addLayout(self.verticalLayout)
         self.buttonBox = QtGui.QDialogButtonBox(vtk_tools)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout_8.addWidget(self.buttonBox)
 
@@ -176,6 +197,14 @@ class Ui_vtk_tools(object):
         self.pushButton_vg.setText(QtGui.QApplication.translate("vtk_tools", "Browse", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("vtk_tools", "Browse for reference velocity grid file (\'vgridsref.in\'):", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_vgref.setText(QtGui.QApplication.translate("vtk_tools", "Browse", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_5.setText(QtGui.QApplication.translate("vtk_tools", "Output Filename", None, QtGui.QApplication.UnicodeUTF8))
+        self.lineEdit_vgout.setText(QtGui.QApplication.translate("vtk_tools", "vgrids.vtk", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton_parav.setToolTip(QtGui.QApplication.translate("vtk_tools", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Sans\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Call Paraview (Shell command: <span style=\" font-style:italic;\">paraview</span>) for the specified output filename in the current directory.</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton_parav.setText(QtGui.QApplication.translate("vtk_tools", "<- Paraview", None, QtGui.QApplication.UnicodeUTF8))
         self.start_vg.setText(QtGui.QApplication.translate("vtk_tools", "Start", None, QtGui.QApplication.UnicodeUTF8))
         self.label_src.setToolTip(QtGui.QApplication.translate("vtk_tools", "Create VTK files from the FMTOMO output file \'rays.dat\'.\n"
 "This will generate one file of ray paths for each individual source.", None, QtGui.QApplication.UnicodeUTF8))

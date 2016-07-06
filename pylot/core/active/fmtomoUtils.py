@@ -498,7 +498,7 @@ class Tomo3d(object):
                         raypoints = []
                     
                         for j in range(int(npoints)):
-                            raypoints.append(raysfile.readline() + '\n')
+                            raypoints.append(raysfile.readline())
 
                         raysecs[sec] = {'npoints': npoints,
                                         'region': region,
@@ -739,10 +739,12 @@ def rays2VTK(fnin, fdirout='./vtk_files/', nthPoint=50):
     while True:
         raynumber += 1
         firstline = infile.readline()
-        if firstline == '': break  # break at EOF
-        raynumber = int(firstline.split()[0])
-        shotnumber = int(firstline.split()[1])
-        rayValid = int(firstline.split()[4])  # is zero if the ray is invalid
+        if firstline == '': 
+            break  # break at EOF
+        fl_list = firstline.split()
+        raynumber = int(fl_list[0])
+        shotnumber = int(fl_list[1])
+        rayValid = int(fl_list[4])  # is zero if the ray is invalid
         if rayValid == 0:
             print('Invalid ray number %d for shot number %d' % (raynumber, shotnumber))
             continue
