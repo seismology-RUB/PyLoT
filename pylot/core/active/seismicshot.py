@@ -908,15 +908,16 @@ class SeismicShot(object):
                   alpha=0.85)
         ax.text(0.5, 0.95, 'shot: %s' % self.getShotnumber(), transform=ax.transAxes
                 , horizontalalignment='center')
-        sc = ax.scatter(x, y, c=z, s=30, label='picked shots', vmin=tmin, vmax=tmax, cmap=cmap, linewidths=1.5)
-        label = None
+        sc = ax.scatter(x, y, c=z, s=30, label='active traces', vmin=tmin, vmax=tmax, cmap=cmap, linewidths=1.5)
         for xyz in zip(xcut, ycut, zcut):
             x, y, z = xyz
+            count += 1
             if z > tmax:
-                count += 1
                 z = 'w'
-                if count == 1:
-                    label = 'cut out shots'
+            if count == 1:
+                label = 'inactive traces'
+            else:
+                label = None
             ax.scatter(x, y, c=z, s=30, edgecolor='m', label=label, vmin=tmin, vmax=tmax, cmap=cmap, linewidths=1.5)
         if colorbar == True:
             cbar = plt.colorbar(sc)

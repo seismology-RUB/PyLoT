@@ -837,10 +837,10 @@ class SeisArray(object):
         if highlight_measured == True:
             ax.plot(xmr, ymr, 'r.', markersize=pointsize, label='measured receivers')
 
-        ax.text(0.5, 1.05,'2D plot of seismic array\n %s'%self.recfile,
-                horizontalalignment='center', verticalalignment='center',
-                transform=ax.transAxes)
-        #plt.title('2D plot of seismic array %s' % self.recfile)
+        ax.figure.text(0.5, 0.95,'2D plot of seismic array\n %s'%self.recfile,
+                       horizontalalignment='center', verticalalignment='center',
+                       transform = ax.figure.transFigure)
+
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
         ax.set_aspect('equal')
@@ -853,12 +853,12 @@ class SeisArray(object):
                 ax.annotate(('  ' + str(shotnumber)), xy=(self._getXshot(shotnumber), self._getYshot(shotnumber)),
                             fontsize='x-small', color='b')
 
-    def plotArray3D(self, ax=None):
+    def plotArray3D(self, ax=None, legend = True, markersize = 10):
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
-        plt.interactive(True)
 
         if ax == None:
+            plt.interactive(True)
             fig = plt.figure()
             ax = plt.axes(projection='3d')
 
@@ -867,19 +867,23 @@ class SeisArray(object):
         xrc, yrc, zrc = self.getReceiverLists()
         xsc, ysc, zsc = self.getSourceLocsLists()
 
-        plt.title('3D plot of seismic array.')
+        ax.figure.text(0.5, 0.95,'3D plot of seismic array\n %s'%self.recfile,
+                       horizontalalignment='center', verticalalignment='center',
+                       transform = ax.figure.transFigure)
+
         if len(xmt) > 0:
-            ax.plot(xmt, ymt, zmt, 'b.', markersize=10, label='measured topo points')
+            ax.plot(xmt, ymt, zmt, 'b.', markersize=markersize, label='measured topo points')
         if len(xrc) > 0:
-            ax.plot(xrc, yrc, zrc, 'k.', markersize=10, label='all receivers')
+            ax.plot(xrc, yrc, zrc, 'k.', markersize=markersize, label='all receivers')
         if len(xmr) > 0:
-            ax.plot(xmr, ymr, zmr, 'ro', label='measured receivers')
+            ax.plot(xmr, ymr, zmr, 'ro',  markersize=markersize, label='measured receivers')
         if len(xsc) > 0:
-            ax.plot(xsc, ysc, zsc, 'b*', label='shot locations')
+            ax.plot(xsc, ysc, zsc, 'b*',  markersize=markersize, label='shot locations')
         ax.set_xlabel('X [m]');
         ax.set_ylabel('Y [m]');
         ax.set_zlabel('Z [m]')
-        ax.legend()
+        if legend == True:
+            ax.legend()
 
         return ax
 
@@ -887,9 +891,9 @@ class SeisArray(object):
         from matplotlib import cm
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
-        plt.interactive(True)
 
         if ax == None:
+            plt.interactive(True)
             fig = plt.figure()
             ax = plt.axes(projection='3d')
 
@@ -908,7 +912,7 @@ class SeisArray(object):
         zgrid = griddata((x, y), z, (xgrid, ygrid), method=method)
 
         surf = ax.plot_surface(xgrid, ygrid, zgrid, linewidth=0, cmap=cm.jet, vmin=min(z), vmax=max(z))
-        cbar = plt.colorbar(surf)
+        cbar = ax.figure.colorbar(surf)
         cbar.set_label('Elevation [m]')
 
         if exag == False:

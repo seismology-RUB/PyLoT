@@ -208,8 +208,8 @@ def plotScatterStats4Shots(survey, variable, ax = None):
     ax.text(0.5, 1.05,'Plot of all shots',
             horizontalalignment='center', verticalalignment='center',
             transform=ax.transAxes)
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
     ax.set_aspect('equal')
     cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)
@@ -272,8 +272,8 @@ def plotScatterStats4Receivers(survey, variable, ax = None):
     ax.text(0.5, 1.05,'Plot of all receivers',
             horizontalalignment='center', verticalalignment='center',
             transform=ax.transAxes)
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
     ax.set_aspect('equal')
     cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)

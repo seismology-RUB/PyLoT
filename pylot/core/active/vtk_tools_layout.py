@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'vtk_tools_layout.ui'
 #
-# Created: Wed Jul  6 11:39:58 2016
+# Created: Thu Jul  7 14:25:26 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,9 +12,9 @@ from PySide import QtCore, QtGui
 class Ui_vtk_tools(object):
     def setupUi(self, vtk_tools):
         vtk_tools.setObjectName("vtk_tools")
-        vtk_tools.resize(362, 432)
-        self.verticalLayout_8 = QtGui.QVBoxLayout(vtk_tools)
-        self.verticalLayout_8.setObjectName("verticalLayout_8")
+        vtk_tools.resize(422, 471)
+        self.verticalLayout_9 = QtGui.QVBoxLayout(vtk_tools)
+        self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_4 = QtGui.QVBoxLayout()
@@ -75,15 +75,21 @@ class Ui_vtk_tools(object):
         self.pushButton_vgref.setObjectName("pushButton_vgref")
         self.horizontalLayout_4.addWidget(self.pushButton_vgref)
         self.verticalLayout_7.addLayout(self.horizontalLayout_4)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.verticalLayout_8 = QtGui.QVBoxLayout()
+        self.verticalLayout_8.setObjectName("verticalLayout_8")
+        self.verticalLayout_7.addLayout(self.verticalLayout_8)
         self.label_5 = QtGui.QLabel(vtk_tools)
         self.label_5.setObjectName("label_5")
-        self.horizontalLayout_3.addWidget(self.label_5)
+        self.verticalLayout_7.addWidget(self.label_5)
+        self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.lineEdit_vgout = QtGui.QLineEdit(vtk_tools)
         self.lineEdit_vgout.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_vgout.setObjectName("lineEdit_vgout")
         self.horizontalLayout_3.addWidget(self.lineEdit_vgout)
+        self.pushButton_vtkout = QtGui.QPushButton(vtk_tools)
+        self.pushButton_vtkout.setObjectName("pushButton_vtkout")
+        self.horizontalLayout_3.addWidget(self.pushButton_vtkout)
         self.pushButton_parav = QtGui.QPushButton(vtk_tools)
         self.pushButton_parav.setObjectName("pushButton_parav")
         self.horizontalLayout_3.addWidget(self.pushButton_parav)
@@ -148,12 +154,12 @@ class Ui_vtk_tools(object):
         self.verticalLayout_5.addWidget(self.start_rays)
         self.verticalLayout_2.addLayout(self.verticalLayout_5)
         self.verticalLayout.addLayout(self.verticalLayout_2)
-        self.verticalLayout_8.addLayout(self.verticalLayout)
+        self.verticalLayout_9.addLayout(self.verticalLayout)
         self.buttonBox = QtGui.QDialogButtonBox(vtk_tools)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout_8.addWidget(self.buttonBox)
+        self.verticalLayout_9.addWidget(self.buttonBox)
 
         self.retranslateUi(vtk_tools)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), vtk_tools.accept)
@@ -197,8 +203,9 @@ class Ui_vtk_tools(object):
         self.pushButton_vg.setText(QtGui.QApplication.translate("vtk_tools", "Browse", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("vtk_tools", "Browse for reference velocity grid file (\'vgridsref.in\'):", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_vgref.setText(QtGui.QApplication.translate("vtk_tools", "Browse", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_5.setText(QtGui.QApplication.translate("vtk_tools", "Output Filename", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_5.setText(QtGui.QApplication.translate("vtk_tools", "Output Filename:", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_vgout.setText(QtGui.QApplication.translate("vtk_tools", "vgrids.vtk", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton_vtkout.setText(QtGui.QApplication.translate("vtk_tools", "Browse", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_parav.setToolTip(QtGui.QApplication.translate("vtk_tools", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"

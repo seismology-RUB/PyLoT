@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'picking_parameters_layout.ui'
 #
-# Created: Wed Jul  6 11:39:58 2016
+# Created: Thu Jul  7 14:25:26 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,10 +12,10 @@ from PySide import QtCore, QtGui
 class Ui_picking_parameters(object):
     def setupUi(self, picking_parameters):
         picking_parameters.setObjectName("picking_parameters")
-        picking_parameters.resize(325, 400)
-        picking_parameters.setMinimumSize(QtCore.QSize(325, 400))
-        self.verticalLayout_3 = QtGui.QVBoxLayout(picking_parameters)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        picking_parameters.resize(321, 253)
+        picking_parameters.setMinimumSize(QtCore.QSize(0, 0))
+        self.gridLayout = QtGui.QGridLayout(picking_parameters)
+        self.gridLayout.setObjectName("gridLayout")
         self.label_7 = QtGui.QLabel(picking_parameters)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -28,7 +28,7 @@ class Ui_picking_parameters(object):
         font.setBold(True)
         self.label_7.setFont(font)
         self.label_7.setObjectName("label_7")
-        self.verticalLayout_3.addWidget(self.label_7)
+        self.gridLayout.addWidget(self.label_7, 0, 0, 1, 1)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.label = QtGui.QLabel(picking_parameters)
@@ -45,7 +45,7 @@ class Ui_picking_parameters(object):
         self.ncores.setMaximum(10000)
         self.ncores.setObjectName("ncores")
         self.horizontalLayout.addWidget(self.ncores)
-        self.verticalLayout_3.addLayout(self.horizontalLayout)
+        self.gridLayout.addLayout(self.horizontalLayout, 1, 0, 1, 1)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.verticalLayout_2 = QtGui.QVBoxLayout()
@@ -78,7 +78,7 @@ class Ui_picking_parameters(object):
         self.lineEdit_vmax.setObjectName("lineEdit_vmax")
         self.verticalLayout.addWidget(self.lineEdit_vmax)
         self.horizontalLayout_3.addLayout(self.verticalLayout)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
+        self.gridLayout.addLayout(self.horizontalLayout_3, 2, 0, 1, 1)
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.label_4 = QtGui.QLabel(picking_parameters)
@@ -93,7 +93,7 @@ class Ui_picking_parameters(object):
         self.lineEdit_folm.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_folm.setObjectName("lineEdit_folm")
         self.horizontalLayout_4.addWidget(self.lineEdit_folm)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
+        self.gridLayout.addLayout(self.horizontalLayout_4, 3, 0, 1, 1)
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.label_5 = QtGui.QLabel(picking_parameters)
@@ -109,7 +109,7 @@ class Ui_picking_parameters(object):
         self.checkBox_AIC.setChecked(True)
         self.checkBox_AIC.setObjectName("checkBox_AIC")
         self.horizontalLayout_5.addWidget(self.checkBox_AIC)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_5)
+        self.gridLayout.addLayout(self.horizontalLayout_5, 4, 0, 1, 1)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.label_6 = QtGui.QLabel(picking_parameters)
@@ -131,12 +131,12 @@ class Ui_picking_parameters(object):
         self.lineEdit_aicright.setObjectName("lineEdit_aicright")
         self.horizontalLayout_7.addWidget(self.lineEdit_aicright)
         self.horizontalLayout_6.addLayout(self.horizontalLayout_7)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_6)
+        self.gridLayout.addLayout(self.horizontalLayout_6, 5, 0, 1, 1)
         self.buttonBox = QtGui.QDialogButtonBox(picking_parameters)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout_3.addWidget(self.buttonBox)
+        self.gridLayout.addWidget(self.buttonBox, 6, 0, 1, 1)
 
         self.retranslateUi(picking_parameters)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), picking_parameters.accept)
@@ -146,15 +146,21 @@ class Ui_picking_parameters(object):
     def retranslateUi(self, picking_parameters):
         picking_parameters.setWindowTitle(QtGui.QApplication.translate("picking_parameters", "Dialog", None, QtGui.QApplication.UnicodeUTF8))
         self.label_7.setText(QtGui.QApplication.translate("picking_parameters", "Choose parameters for FMTOMO simulation", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("picking_parameters", "nproc", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("picking_parameters", "vmin [m/s]", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setToolTip(QtGui.QApplication.translate("picking_parameters", "Amount of CPU kernels used.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("picking_parameters", "nproc [?]", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setToolTip(QtGui.QApplication.translate("picking_parameters", "Minimum permitted direct velocity (apparent velocity!).", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("picking_parameters", "vmin [m/s] [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_vmin.setText(QtGui.QApplication.translate("picking_parameters", "333", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("picking_parameters", "vmax [m/s]", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_3.setToolTip(QtGui.QApplication.translate("picking_parameters", "Maximum permitted direct velocity (apparent velocity!).", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_3.setText(QtGui.QApplication.translate("picking_parameters", "vmax [m/s] [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_vmax.setText(QtGui.QApplication.translate("picking_parameters", "5000", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_4.setText(QtGui.QApplication.translate("picking_parameters", "Fraction of local maximum", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setToolTip(QtGui.QApplication.translate("picking_parameters", "Value between 0 and 1 for threshold picking algorithm (Default = 0.6).", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setText(QtGui.QApplication.translate("picking_parameters", "Fraction of local maximum [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_folm.setText(QtGui.QApplication.translate("picking_parameters", "0.6", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_5.setText(QtGui.QApplication.translate("picking_parameters", "AIC", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_6.setText(QtGui.QApplication.translate("picking_parameters", "AIC window indices\n"
+        self.label_5.setToolTip(QtGui.QApplication.translate("picking_parameters", "Use additional Akaike Information Criterion for picking.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_5.setText(QtGui.QApplication.translate("picking_parameters", "AIC [?]", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_6.setToolTip(QtGui.QApplication.translate("picking_parameters", "Samples before and after initial HOS pick.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_6.setText(QtGui.QApplication.translate("picking_parameters", "AIC window samples\n"
 "(only if AIC checked)", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_aicleft.setText(QtGui.QApplication.translate("picking_parameters", "15", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_aicright.setText(QtGui.QApplication.translate("picking_parameters", "0", None, QtGui.QApplication.UnicodeUTF8))

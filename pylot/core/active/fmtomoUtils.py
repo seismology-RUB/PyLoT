@@ -763,7 +763,7 @@ def rays2VTK(fnin, fdirout='./vtk_files/', nthPoint=50):
     infile.close()
 
     for shotnumber in rays.keys():
-        fnameout = fdirout + 'rays%03d.vtk' % (shotnumber)
+        fnameout = os.path.join(fdirout, 'rays%03d.vtk'%(shotnumber))
         outfile = open(fnameout, 'w')
 
         nPoints = 0

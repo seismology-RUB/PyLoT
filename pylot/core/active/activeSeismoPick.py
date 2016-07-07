@@ -320,12 +320,12 @@ class Survey(object):
         self.setEarllate()
 
         print('\npickAllShots: Finished\n')
+        self.picked = True
         ntraces = self.countAllTraces()
         pickedtraces = self.countAllPickedTraces()
         print('Picked %s / %s traces (%d %%)\n'
               % (pickedtraces, ntraces,
                  float(pickedtraces) / float(ntraces) * 100.))
-        self.picked = True
 
     def filterSNR(self):
         print('Starting filterSNR...')
@@ -572,6 +572,9 @@ class Survey(object):
         Counts all picked traces of the survey.
         '''
         count = 0
+        if not self.picked:
+            return count
+
         for shot in self.data.values():
             for traceID in shot.getTraceIDlist():
                 if shot.getPickFlag(traceID) is not 0:
