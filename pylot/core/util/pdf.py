@@ -56,7 +56,7 @@ def exp_parameter(te, tm, tl, eta):
     return sig1, sig2, a
 
 
-def gauss_branches(x, mu, sig1, sig2, a1, a2):
+def gauss_branches(k, mu, sig1, sig2, a1, a2):
     '''
     function gauss_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and two scaling factors a1 and a2 and return a
@@ -75,16 +75,16 @@ def gauss_branches(x, mu, sig1, sig2, a1, a2):
     :param a2:
     :returns fun_vals: list with function values along axes x
     '''
-    fun_vals = []
-    for k in x:
-        if k < mu:
-            fun_vals.append(a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2))
-        else:
-            fun_vals.append(a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) / sig2) ** 2 / 2))
-    return np.array(fun_vals)
+
+    if k < mu:
+        rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
+    else:
+        rval = a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) /
+                                                               sig2) ** 2 / 2)
+    return rval
 
 
-def exp_branches(x, mu, sig1, sig2, a):
+def exp_branches(k, mu, sig1, sig2, a):
     '''
     function exp_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and a scaling factor a and return a
@@ -97,13 +97,11 @@ def exp_branches(x, mu, sig1, sig2, a):
     :param a:
     :returns fun_vals: list with function values along axes x:
     '''
-    fun_vals = []
-    for k in x:
-        if k < mu:
-            fun_vals.append(a * np.exp(sig1 * (k - mu)))
-        else:
-            fun_vals.append(a * np.exp(-sig2 * (k - mu)))
-    return np.array(fun_vals)
+    if k < mu:
+        rval = a * np.exp(sig1 * (k - mu))
+    else:
+        rval = a * np.exp(-sig2 * (k - mu))
+    return rval
 
 # define container dictionaries for different types of pdfs
 parameter = dict(gauss=gauss_parameter, exp=exp_parameter)
@@ -117,12 +115,14 @@ class ProbabilityDensityFunction(object):
 
     version = __version__
 
-    def __init__(self, x0, incr, npts, pdf):
+    def __init__(self, x0, incr, npts, pdf, mu, params):
         self.x0 = x0
         self.incr = incr
         self.npts = npts
         self.axis = create_axis(x0, incr, npts)
-        self.data = pdf
+        self.mu = mu
+        self._pdf = pdf
+        self.params = params
 
     def __add__(self, other):
         assert isinstance(other, ProbabilityDensityFunction), \
@@ -154,25 +154,30 @@ class ProbabilityDensityFunction(object):
 
     def __nonzero__(self):
         prec = self.precision(self.incr)
-        gtzero = np.all(self.data >= 0)
+        data = np.array([self.data(t) for t in self.axis])
+        gtzero = np.all(data >= 0)
         probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
         return bool(gtzero and probone)
 
     def __str__(self):
-        return str(self.data)
+        return str([self.data(val) for val in create_axis(self.x0, self.incr,
+                                                          self.npts)])
 
     @staticmethod
     def precision(incr):
         prec = int(np.ceil(np.abs(np.log10(incr)))) - 2
         return prec if prec >= 0 else 0
 
-    @property
-    def data(self):
-        return self._pdf
+    def data(self, value):
+        return self._pdf(value, self.mu, *self.params)
 
-    @data.setter
-    def data(self, pdf):
-        self._pdf = np.array(pdf)
+    @property
+    def mu(self):
+        return self._mu
+
+    @mu.setter
+    def mu(self, mu):
+        self._mu = mu
 
     @property
     def axis(self):
@@ -226,17 +231,12 @@ class ProbabilityDensityFunction(object):
         # calculate parameter for pdf representing function
         params = parameter[type](lbound, barycentre, rbound, decfact)
 
-        # calculate pdf values
-        try:
-            pdf = branches[type](create_axis(x0, incr, npts), barycentre, *params)
-        except TypeError:
-            assert isinstance(barycentre, UTCDateTime), 'object not capable of' \
-                                                    ' timestamp representation'
-            pdf = branches[type](create_axis(x0, incr, npts),
-                                 barycentre.timestamp, *params)
+        # select pdf type
+        pdf = branches[type]
 
         # return the object
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        return ProbabilityDensityFunction(x0, incr, npts, pdf, barycentre,
+                                          params)
 
     def broadcast(self, pdf, si, ei, data):
         try:
@@ -259,14 +259,14 @@ class ProbabilityDensityFunction(object):
         rval = 0
         axis = self.axis - self.x0
         for n, x in enumerate(axis):
-            rval += x * self.data[n]
+            rval += x * self.data(n)
         return rval * self.incr + self.x0
 
     def standard_deviation(self):
-        mu = self.expectation()
+        mu = self.mu
         rval = 0
         for n, x in enumerate(self.axis):
-            rval += (x - mu) ** 2 * self.data[n]
+            rval += (x - mu) ** 2 * self.data(n)
         return rval * self.incr
 
     def prob_lt_val(self, value):
@@ -280,8 +280,8 @@ class ProbabilityDensityFunction(object):
         return self.prob_limits((value, self.axis[-1]))
 
     def prob_limits(self, limits):
-        lim_ind = np.logical_and(limits[0] <= self.axis, self.axis <= limits[1])
-        data = self.data[lim_ind]
+        lim = np.arange(limits[0], limits[1], self.incr)
+        data = [self.data(t) for t in lim]
         min_est, max_est = 0., 0.
         for n in range(len(data) - 1):
             min_est += min(data[n], data[n + 1])
@@ -292,29 +292,11 @@ class ProbabilityDensityFunction(object):
         if not (self.axis[0] <= value <= self.axis[-1]):
             Warning('{0} not on axis'.format(value))
             return None
-        return self.data[find_nearest(self.axis, value)] * self.incr
+        return self.data(value) * self.incr
 
     def quantile(self, prob_value, eps=0.01):
         '''
-        Function can loop infinite because the pdf does not have enough resolution for small epsilon.
-        example:
-
-        pdfs[1]['P'].quantile(0.4)
-        printing (l, r,  m,  prob_value, self.prob_lt_val(m), diff)
-        (1413410073.2067008, 1413410073.3557007, 1413410073.2812009, 0.4, 0.1439571627967223, 0.2560428372032777)
-        (1413410073.2812009, 1413410073.3557007, 1413410073.3184509, 0.4, 1.0029471675557042, -0.60294716755570421)
-        (1413410073.2812009, 1413410073.3184509, 1413410073.2998259, 0.4, 0.95737816620865313, -0.5573781662086531)
-        (1413410073.2812009, 1413410073.2998259, 1413410073.2905135, 0.4, 0.43642464167700817, -0.036424641677008152)
-        (1413410073.2812009, 1413410073.2905135, 1413410073.2858572, 0.4, 0.26658460954149427, 0.13341539045850576)
-        (1413410073.2858572, 1413410073.2905135, 1413410073.2881854, 0.4, 0.34109285366651082, 0.058907146333489202)
-        (1413410073.2881854, 1413410073.2905135, 1413410073.2893496, 0.4, 0.38582585185826251, 0.014174148141737508)
-        (1413410073.2893496, 1413410073.2905135, 1413410073.2899315, 0.4, 0.43642464167700817, -0.036424641677008152)
-        (1413410073.2893496, 1413410073.2899315, 1413410073.2896404, 0.4, 0.38582585185826251, 0.014174148141737508)
-        (1413410073.2896404, 1413410073.2899315, 1413410073.2897859, 0.4, 0.43642464167700817, -0.036424641677008152)
-        (1413410073.2896404, 1413410073.2897859, 1413410073.2897131, 0.4, 0.43642464167700817, -0.036424641677008152)
-        (1413410073.2896404, 1413410073.2897131, 1413410073.2896767, 0.4, 0.38582585185826251, 0.014174148141737508)
-        (1413410073.2896767, 1413410073.2897131, 1413410073.2896948, 0.4, 0.38582585185826251, 0.014174148141737508)
-
+        
         :param prob_value:
         :param eps:
         :return:
@@ -325,14 +307,12 @@ class ProbabilityDensityFunction(object):
         diff = prob_value - self.prob_lt_val(m)
 
         while abs(diff) > eps:
-            print (l,r,m,prob_value,self.prob_lt_val(m),diff)
             if diff > 0:
                 l = m
             else:
                 r = m
             m = (r + l) / 2
             diff = prob_value - self.prob_lt_val(m)
-            #print(m, prob_value, self.prob_lt_val(m))
         return m
 
     def quantile_distance(self, prob_value):
