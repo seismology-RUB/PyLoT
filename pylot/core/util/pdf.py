@@ -128,8 +128,18 @@ class ProbabilityDensityFunction(object):
         assert isinstance(other, ProbabilityDensityFunction), \
             'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
-        pdf = np.convolve(pdf_self, pdf_other, 'full') * incr
+        if not self.incr == other.incr:
+            raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
+        else:
+            incr = self.incr
+
+        x0, npts = self.commonlimits(incr, other)
+
+        axis = create_axis(x0, incr, npts)
+        pdf_self = np.array([self.data(x) for x in axis])
+        pdf_other = np.array([other.data(x) for x in axis])
+
+        pdf = lambda x: np.convolve(pdf_self, pdf_other, 'full') * incr
 
         # shift axis values for correct plotting
         npts = pdf.size
@@ -169,7 +179,10 @@ class ProbabilityDensityFunction(object):
         return prec if prec >= 0 else 0
 
     def data(self, value):
-        return self._pdf(value, self.mu, *self.params)
+        try:
+            return [self._pdf(k, self.mu, *self.params) for k in iter(value)]
+        except TypeError:
+            return self._pdf(value, self.mu, *self.params)
 
     @property
     def mu(self):
@@ -296,7 +309,7 @@ class ProbabilityDensityFunction(object):
 
     def quantile(self, prob_value, eps=0.01):
         '''
-        
+
         :param prob_value:
         :param eps:
         :return:
@@ -324,7 +337,9 @@ class ProbabilityDensityFunction(object):
     def plot(self, label=None):
         import matplotlib.pyplot as plt
 
-        plt.plot(self.axis, self.data)
+        axis = self.axis
+
+        plt.plot(axis, self.data(axis))
         plt.xlabel('x')
         plt.ylabel('f(x)')
         plt.autoscale(axis='x', tight=True)
@@ -388,15 +403,10 @@ class ProbabilityDensityFunction(object):
         :return:
         '''
 
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
+        x0 = self.x0
+        incr = self.incr
+        npts = self.npts
 
-        if not self.incr == other.incr:
-            raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
-        else:
-            incr = self.incr
-
-        x0, npts = self.commonlimits(incr, other)
 
         pdf_self = np.zeros(npts)
         pdf_other = np.zeros(npts)
