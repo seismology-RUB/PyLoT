@@ -3,6 +3,7 @@
 
 import warnings
 import numpy as np
+import scipy.optimize
 from obspy import UTCDateTime
 from pylot.core.util.utils import find_nearest, clims
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -34,7 +35,7 @@ def gauss_parameter(te, tm, tl, eta):
     a1 = 2 / (1 + sig2 / sig1)
     a2 = 2 / (1 + sig1 / sig2)
 
-    return sig1, sig2, a1, a2
+    return tm, sig1, sig2, a1, a2
 
 
 def exp_parameter(te, tm, tl, eta):
@@ -53,7 +54,7 @@ def exp_parameter(te, tm, tl, eta):
     sig2 = np.log(eta) / (tm - tl)
     a = 1 / (1 / sig1 + 1 / sig2)
 
-    return sig1, sig2, a
+    return tm, sig1, sig2, a
 
 
 def gauss_branches(k, mu, sig1, sig2, a1, a2):
@@ -76,12 +77,18 @@ def gauss_branches(k, mu, sig1, sig2, a1, a2):
     :returns fun_vals: list with function values along axes x
     '''
 
-    if k < mu:
-        rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
-    else:
-        rval = a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) /
-                                                               sig2) ** 2 / 2)
-    return rval
+    def _func(k, mu, sig1, sig2, a1, a2):
+        if k < mu:
+            rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
+        else:
+            rval = a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) /
+                                                                   sig2) ** 2 / 2)
+        return rval
+
+    try:
+        return [_func(x, mu, sig1, sig2, a1, a2) for x in iter(k)]
+    except TypeError:
+        return _func(k, mu, sig1, sig2, a1, a2)
 
 
 def exp_branches(k, mu, sig1, sig2, a):
@@ -97,11 +104,19 @@ def exp_branches(k, mu, sig1, sig2, a):
     :param a:
     :returns fun_vals: list with function values along axes x:
     '''
-    if k < mu:
-        rval = a * np.exp(sig1 * (k - mu))
-    else:
-        rval = a * np.exp(-sig2 * (k - mu))
-    return rval
+
+    def _func(k, mu, sig1, sig2, a):
+        if k < mu:
+            rval = a * np.exp(sig1 * (k - mu))
+        else:
+            rval = a * np.exp(-sig2 * (k - mu))
+        return rval
+
+    try:
+        return [_func(x, mu, sig1, sig2, a) for x in iter(k)]
+    except TypeError:
+        return _func(k, mu, sig1, sig2, a)
+
 
 # define container dictionaries for different types of pdfs
 parameter = dict(gauss=gauss_parameter, exp=exp_parameter)
@@ -125,42 +140,52 @@ class ProbabilityDensityFunction(object):
         self.params = params
 
     def __add__(self, other):
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
 
-        if not self.incr == other.incr:
-            raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
-        else:
-            incr = self.incr
-
-        x0, npts = self.commonlimits(incr, other)
+        x0, incr, npts = self.commonparameter(other)
 
         axis = create_axis(x0, incr, npts)
         pdf_self = np.array([self.data(x) for x in axis])
         pdf_other = np.array([other.data(x) for x in axis])
 
-        pdf = lambda x: np.convolve(pdf_self, pdf_other, 'full') * incr
+        pdf = np.convolve(pdf_self, pdf_other, 'full') * incr
 
         # shift axis values for correct plotting
         npts = pdf.size
         x0 *= 2
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        axis = create_axis(x0, incr, npts)
+
+        params, pcov = scipy.optimize.curve_fit(branches['gauss'], axis, pdf)
+
+        mu = axis[np.where(pdf == max(pdf))]
+
+        return ProbabilityDensityFunction(x0, incr, npts, branches['gauss'], mu,
+                                          params)
 
     def __sub__(self, other):
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        x0, incr, npts = self.commonparameter(other)
+
+        axis = create_axis(x0, incr, npts)
+        pdf_self = np.array([self.data(x) for x in axis])
+        pdf_other = np.array([other.data(x) for x in axis])
 
         pdf = np.correlate(pdf_self, pdf_other, 'full') * incr
 
-        npts = len(pdf)
-
         # shift axis values for correct plotting
+        npts = len(pdf)
         midpoint = npts / 2
         x0 = -incr * midpoint
+        axis = create_axis(x0, incr, npts)
 
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        mu = axis[np.where(pdf == max(pdf))][0]
+
+        bounds = ([mu, 0., 0., 0., 0.],[mu, np.inf, np.inf, np.inf, np.inf])
+
+        params, pcov = scipy.optimize.curve_fit(branches['gauss'], axis, pdf,
+                                                bounds=bounds)
+
+        return ProbabilityDensityFunction(x0, incr, npts, branches['gauss'], mu,
+                                          params)
 
     def __nonzero__(self):
         prec = self.precision(self.incr)
@@ -179,10 +204,7 @@ class ProbabilityDensityFunction(object):
         return prec if prec >= 0 else 0
 
     def data(self, value):
-        try:
-            return [self._pdf(k, self.mu, *self.params) for k in iter(value)]
-        except TypeError:
-            return self._pdf(value, self.mu, *self.params)
+        return self._pdf(value, *self.params)
 
     @property
     def mu(self):
@@ -359,6 +381,13 @@ class ProbabilityDensityFunction(object):
 
         return l1, r1
 
+    def cincr(self, other):
+        if not self.incr == other.incr:
+            raise NotImplementedError(
+                'Upsampling of the lower sampled PDF not implemented yet!')
+        else:
+            return self.incr
+
     def commonlimits(self, incr, other, max_npts=1e5):
         '''
         Takes an increment incr and two left and two right limits and returns
@@ -392,6 +421,15 @@ class ProbabilityDensityFunction(object):
 
         return x0, npts
 
+    def commonparameter(self, other):
+        assert isinstance(other, ProbabilityDensityFunction), \
+            'both operands must be of type ProbabilityDensityFunction'
+
+        incr = self.cincr(other)
+
+        x0, npts = self.commonlimits(incr, other)
+
+        return x0, incr, npts
 
     def rearrange(self, other):
         '''
