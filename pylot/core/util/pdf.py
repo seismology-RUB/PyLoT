@@ -3,6 +3,7 @@
 
 import warnings
 import numpy as np
+import scipy.optimize
 from obspy import UTCDateTime
 from pylot.core.util.utils import find_nearest, clims
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -34,7 +35,7 @@ def gauss_parameter(te, tm, tl, eta):
     a1 = 2 / (1 + sig2 / sig1)
     a2 = 2 / (1 + sig1 / sig2)
 
-    return sig1, sig2, a1, a2
+    return tm, sig1, sig2, a1, a2
 
 
 def exp_parameter(te, tm, tl, eta):
@@ -53,10 +54,10 @@ def exp_parameter(te, tm, tl, eta):
     sig2 = np.log(eta) / (tm - tl)
     a = 1 / (1 / sig1 + 1 / sig2)
 
-    return sig1, sig2, a
+    return tm, sig1, sig2, a
 
 
-def gauss_branches(x, mu, sig1, sig2, a1, a2):
+def gauss_branches(k, mu, sig1, sig2, a1, a2):
     '''
     function gauss_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and two scaling factors a1 and a2 and return a
@@ -75,16 +76,22 @@ def gauss_branches(x, mu, sig1, sig2, a1, a2):
     :param a2:
     :returns fun_vals: list with function values along axes x
     '''
-    fun_vals = []
-    for k in x:
+
+    def _func(k, mu, sig1, sig2, a1, a2):
         if k < mu:
-            fun_vals.append(a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2))
+            rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
         else:
-            fun_vals.append(a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) / sig2) ** 2 / 2))
-    return np.array(fun_vals)
+            rval = a2 * 1 / (np.sqrt(2 * np.pi) * sig2) * np.exp(-((k - mu) /
+                                                                   sig2) ** 2 / 2)
+        return rval
+
+    try:
+        return [_func(x, mu, sig1, sig2, a1, a2) for x in iter(k)]
+    except TypeError:
+        return _func(k, mu, sig1, sig2, a1, a2)
 
 
-def exp_branches(x, mu, sig1, sig2, a):
+def exp_branches(k, mu, sig1, sig2, a):
     '''
     function exp_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and a scaling factor a and return a
@@ -97,13 +104,19 @@ def exp_branches(x, mu, sig1, sig2, a):
     :param a:
     :returns fun_vals: list with function values along axes x:
     '''
-    fun_vals = []
-    for k in x:
+
+    def _func(k, mu, sig1, sig2, a):
         if k < mu:
-            fun_vals.append(a * np.exp(sig1 * (k - mu)))
+            rval = a * np.exp(sig1 * (k - mu))
         else:
-            fun_vals.append(a * np.exp(-sig2 * (k - mu)))
-    return np.array(fun_vals)
+            rval = a * np.exp(-sig2 * (k - mu))
+        return rval
+
+    try:
+        return [_func(x, mu, sig1, sig2, a) for x in iter(k)]
+    except TypeError:
+        return _func(k, mu, sig1, sig2, a)
+
 
 # define container dictionaries for different types of pdfs
 parameter = dict(gauss=gauss_parameter, exp=exp_parameter)
@@ -117,62 +130,89 @@ class ProbabilityDensityFunction(object):
 
     version = __version__
 
-    def __init__(self, x0, incr, npts, pdf):
+    def __init__(self, x0, incr, npts, pdf, mu, params):
         self.x0 = x0
         self.incr = incr
         self.npts = npts
         self.axis = create_axis(x0, incr, npts)
-        self.data = pdf
+        self.mu = mu
+        self._pdf = pdf
+        self.params = params
 
     def __add__(self, other):
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        x0, incr, npts = self.commonparameter(other)
+
+        axis = create_axis(x0, incr, npts)
+        pdf_self = np.array([self.data(x) for x in axis])
+        pdf_other = np.array([other.data(x) for x in axis])
+
         pdf = np.convolve(pdf_self, pdf_other, 'full') * incr
 
         # shift axis values for correct plotting
         npts = pdf.size
         x0 *= 2
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        axis = create_axis(x0, incr, npts)
+
+        params, pcov = scipy.optimize.curve_fit(branches['gauss'], axis, pdf)
+
+        mu = axis[np.where(pdf == max(pdf))]
+
+        return ProbabilityDensityFunction(x0, incr, npts, branches['gauss'], mu,
+                                          params)
 
     def __sub__(self, other):
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
 
-        x0, incr, npts, pdf_self, pdf_other = self.rearrange(other)
+        x0, incr, npts = self.commonparameter(other)
+
+        axis = create_axis(x0, incr, npts)
+        pdf_self = np.array([self.data(x) for x in axis])
+        pdf_other = np.array([other.data(x) for x in axis])
 
         pdf = np.correlate(pdf_self, pdf_other, 'full') * incr
 
-        npts = len(pdf)
-
         # shift axis values for correct plotting
+        npts = len(pdf)
         midpoint = npts / 2
         x0 = -incr * midpoint
+        axis = create_axis(x0, incr, npts)
 
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        mu = axis[np.where(pdf == max(pdf))][0]
+
+        bounds = ([mu, 0., 0., 0., 0.],[mu, np.inf, np.inf, np.inf, np.inf])
+
+        params, pcov = scipy.optimize.curve_fit(branches['gauss'], axis, pdf,
+                                                bounds=bounds)
+
+        return ProbabilityDensityFunction(x0, incr, npts, branches['gauss'], mu,
+                                          params)
 
     def __nonzero__(self):
         prec = self.precision(self.incr)
-        gtzero = np.all(self.data >= 0)
+        data = np.array([self.data(t) for t in self.axis])
+        gtzero = np.all(data >= 0)
         probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
         return bool(gtzero and probone)
 
     def __str__(self):
-        return str(self.data)
+        return str([self.data(val) for val in create_axis(self.x0, self.incr,
+                                                          self.npts)])
 
     @staticmethod
     def precision(incr):
         prec = int(np.ceil(np.abs(np.log10(incr)))) - 2
         return prec if prec >= 0 else 0
 
-    @property
-    def data(self):
-        return self._pdf
+    def data(self, value):
+        return self._pdf(value, *self.params)
 
-    @data.setter
-    def data(self, pdf):
-        self._pdf = np.array(pdf)
+    @property
+    def mu(self):
+        return self._mu
+
+    @mu.setter
+    def mu(self, mu):
+        self._mu = mu
 
     @property
     def axis(self):
@@ -226,17 +266,12 @@ class ProbabilityDensityFunction(object):
         # calculate parameter for pdf representing function
         params = parameter[type](lbound, barycentre, rbound, decfact)
 
-        # calculate pdf values
-        try:
-            pdf = branches[type](create_axis(x0, incr, npts), barycentre, *params)
-        except TypeError:
-            assert isinstance(barycentre, UTCDateTime), 'object not capable of' \
-                                                    ' timestamp representation'
-            pdf = branches[type](create_axis(x0, incr, npts),
-                                 barycentre.timestamp, *params)
+        # select pdf type
+        pdf = branches[type]
 
         # return the object
-        return ProbabilityDensityFunction(x0, incr, npts, pdf)
+        return ProbabilityDensityFunction(x0, incr, npts, pdf, barycentre,
+                                          params)
 
     def broadcast(self, pdf, si, ei, data):
         try:
@@ -259,14 +294,14 @@ class ProbabilityDensityFunction(object):
         rval = 0
         axis = self.axis - self.x0
         for n, x in enumerate(axis):
-            rval += x * self.data[n]
+            rval += x * self.data(n)
         return rval * self.incr + self.x0
 
     def standard_deviation(self):
-        mu = self.expectation()
+        mu = self.mu
         rval = 0
         for n, x in enumerate(self.axis):
-            rval += (x - mu) ** 2 * self.data[n]
+            rval += (x - mu) ** 2 * self.data(n)
         return rval * self.incr
 
     def prob_lt_val(self, value):
@@ -280,8 +315,8 @@ class ProbabilityDensityFunction(object):
         return self.prob_limits((value, self.axis[-1]))
 
     def prob_limits(self, limits):
-        lim_ind = np.logical_and(limits[0] <= self.axis, self.axis <= limits[1])
-        data = self.data[lim_ind]
+        lim = np.arange(limits[0], limits[1], self.incr)
+        data = [self.data(t) for t in lim]
         min_est, max_est = 0., 0.
         for n in range(len(data) - 1):
             min_est += min(data[n], data[n + 1])
@@ -292,13 +327,20 @@ class ProbabilityDensityFunction(object):
         if not (self.axis[0] <= value <= self.axis[-1]):
             Warning('{0} not on axis'.format(value))
             return None
-        return self.data[find_nearest(self.axis, value)] * self.incr
+        return self.data(value) * self.incr
 
     def quantile(self, prob_value, eps=0.01):
+        '''
+
+        :param prob_value:
+        :param eps:
+        :return:
+        '''
         l = self.axis[0]
         r = self.axis[-1]
         m = (r + l) / 2
         diff = prob_value - self.prob_lt_val(m)
+
         while abs(diff) > eps:
             if diff > 0:
                 l = m
@@ -306,7 +348,6 @@ class ProbabilityDensityFunction(object):
                 r = m
             m = (r + l) / 2
             diff = prob_value - self.prob_lt_val(m)
-            print(m, prob_value, self.prob_lt_val(m))
         return m
 
     def quantile_distance(self, prob_value):
@@ -318,7 +359,9 @@ class ProbabilityDensityFunction(object):
     def plot(self, label=None):
         import matplotlib.pyplot as plt
 
-        plt.plot(self.axis, self.data)
+        axis = self.axis
+
+        plt.plot(axis, self.data(axis))
         plt.xlabel('x')
         plt.ylabel('f(x)')
         plt.autoscale(axis='x', tight=True)
@@ -337,6 +380,13 @@ class ProbabilityDensityFunction(object):
         r1 = l1 + self.incr * self.npts
 
         return l1, r1
+
+    def cincr(self, other):
+        if not self.incr == other.incr:
+            raise NotImplementedError(
+                'Upsampling of the lower sampled PDF not implemented yet!')
+        else:
+            return self.incr
 
     def commonlimits(self, incr, other, max_npts=1e5):
         '''
@@ -371,6 +421,15 @@ class ProbabilityDensityFunction(object):
 
         return x0, npts
 
+    def commonparameter(self, other):
+        assert isinstance(other, ProbabilityDensityFunction), \
+            'both operands must be of type ProbabilityDensityFunction'
+
+        incr = self.cincr(other)
+
+        x0, npts = self.commonlimits(incr, other)
+
+        return x0, incr, npts
 
     def rearrange(self, other):
         '''
@@ -382,15 +441,10 @@ class ProbabilityDensityFunction(object):
         :return:
         '''
 
-        assert isinstance(other, ProbabilityDensityFunction), \
-            'both operands must be of type ProbabilityDensityFunction'
+        x0 = self.x0
+        incr = self.incr
+        npts = self.npts
 
-        if not self.incr == other.incr:
-            raise NotImplementedError('Upsampling of the lower sampled PDF not implemented yet!')
-        else:
-            incr = self.incr
-
-        x0, npts = self.commonlimits(incr, other)
 
         pdf_self = np.zeros(npts)
         pdf_other = np.zeros(npts)
