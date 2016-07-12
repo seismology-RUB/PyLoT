@@ -3,6 +3,7 @@
 
 import hashlib
 import numpy as np
+from scipy.interpolate import splrep, splev
 import os
 import pwd
 import re
@@ -16,6 +17,17 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+def fit_curve(x, y):
+
+    return splev, splrep(x, y)
+
+def getindexbounds(f, eta):
+    mi = f.argmax()
+    m = max(f)
+    b = m * eta
+    l = find_nearest(f[:mi], b)
+    u = find_nearest(f[mi:], b) + mi
+    return mi, l, u
 
 def worker(func, input, cores='max', async=False):
     import multiprocessing
