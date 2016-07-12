@@ -187,7 +187,7 @@ class ProbabilityDensityFunction(object):
 
         func, params = fit_curve(axis, pdf)
 
-        return ProbabilityDensityFunction(x0, incr, npts, branches['gauss'], mu,
+        return ProbabilityDensityFunction(x0, incr, npts, func, mu,
                                           params, eta)
 
     def __nonzero__(self):
@@ -303,16 +303,15 @@ class ProbabilityDensityFunction(object):
         '''
 
         rval = 0
-        axis = self.axis - self.x0
-        for n, x in enumerate(axis):
-            rval += x * self.data(n)
-        return rval * self.incr + self.x0
+        for x in self.axis:
+            rval += x * self.data(x)
+        return rval * self.incr
 
     def standard_deviation(self):
         mu = self.mu
         rval = 0
-        for n, x in enumerate(self.axis):
-            rval += (x - mu) ** 2 * self.data(n)
+        for x in self.axis:
+            rval += (x - mu) ** 2 * self.data(x)
         return rval * self.incr
 
     def prob_lt_val(self, value):
