@@ -16,6 +16,7 @@ from vtk_tools_layout import *
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
@@ -29,10 +30,10 @@ class gui_control(object):
         self.seisArrayFigure = None
         self.cancelpixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogCancelButton)
         self.applypixmap = self.mainwindow.style().standardPixmap(QtGui.QStyle.SP_DialogApplyButton)
-        self.setInitStates()
         self.addArrayPlot()
         self.addSurfacePlot()
         self.addStatPlots()
+        self.setInitStates()
         self.mainUI.progressBar.setVisible(False)
         self.printSurveyTextbox()
         self.printSeisArrayTextbox()
@@ -122,9 +123,13 @@ class gui_control(object):
         self.connectButtons_gen_survey_min()
         if qdialog.exec_():
             obsdir = self.gen_new_survey_min.lineEdit_obs.text()
+            fstart = self.gen_new_survey_min.fstart.text()
+            fend = self.gen_new_survey_min.fend.text()
             self.survey = activeSeismoPick.Survey(obsdir, seisArray = self.seisarray,
-                                                  useDefaultParas = True)
+                                                  useDefaultParas = True, fstart = fstart,
+                                                  fend = fend)
             self.setConnected2SurveyState(True)
+            self.setPickState(False)
             return True
 
     def gen_survey_fromSRfiles(self):
@@ -137,15 +142,20 @@ class gui_control(object):
             srcfile = self.gen_new_survey.lineEdit_src.text()
             recfile = self.gen_new_survey.lineEdit_rec.text()
             obsdir = self.gen_new_survey.lineEdit_obs.text()
+            fstart = self.gen_new_survey.fstart.text()
+            fend = self.gen_new_survey.fend.text()
             self.survey = activeSeismoPick.Survey(obsdir, srcfile, recfile,
-                                                  useDefaultParas = True)
+                                                  useDefaultParas = True,
+                                                  fstart = fstart, fend = fend)
             self.setConnected2SurveyState(False)
             return True
 
     def addArrayPlot(self):
         self.seisArrayFigure = Figure()
         self.seisArrayCanvas = FigureCanvas(self.seisArrayFigure)
-        self.mainUI.horizontalLayout_tr.addWidget(self.seisArrayCanvas)
+        self.mainUI.verticalLayout_tr1.addWidget(self.seisArrayCanvas)
+        self.seisArrayToolbar = NavigationToolbar(self.seisArrayCanvas, self.mainwindow)
+        self.mainUI.verticalLayout_tr1.addWidget(self.seisArrayToolbar)
 
     def addSurfacePlot(self):
         self.surfaceFigure = Figure()
@@ -155,10 +165,17 @@ class gui_control(object):
     def addStatPlots(self):
         self.statFigure_left = Figure()
         self.statCanvas_left = FigureCanvas(self.statFigure_left)
-        self.mainUI.horizontalLayout_br.addWidget(self.statCanvas_left)
+        self.mainUI.verticalLayout_br1.addWidget(self.statCanvas_left)
+        self.statToolbar_left = NavigationToolbar(self.statCanvas_left, self.mainwindow)
+        self.mainUI.verticalLayout_br1.addWidget(self.statToolbar_left)
+
+
         self.statFigure_right = Figure()
         self.statCanvas_right = FigureCanvas(self.statFigure_right)
-        self.mainUI.horizontalLayout_br.addWidget(self.statCanvas_right)
+        self.mainUI.verticalLayout_br2.addWidget(self.statCanvas_right)
+        self.statToolbar_right = NavigationToolbar(self.statCanvas_right, self.mainwindow)
+        self.mainUI.verticalLayout_br2.addWidget(self.statToolbar_right)
+
         self.addItems2StatsComboBox()
 
     def addItems2StatsComboBox(self):
@@ -206,12 +223,15 @@ class gui_control(object):
         self.statAx_left = self.statFigure_left.add_subplot(111)
         self.statAx_right = self.statFigure_right.add_subplot(111)
 
-    def enablePickedTools(self, bool):
+    def enablePickedTools(self, bool, twoDim = False):
         self.mainUI.comboBox_stats.setEnabled(bool)
-        self.mainUI.comboBox_shots.setEnabled(bool)
-        self.mainUI.shot_left.setEnabled(bool)
-        self.mainUI.shot_right.setEnabled(bool)
-        self.mainUI.plot_shot.setEnabled(bool)
+        self.statToolbar_left.setEnabled(bool)
+        self.statToolbar_right.setEnabled(bool)
+        if not twoDim:
+            self.mainUI.comboBox_shots.setEnabled(bool)
+            self.mainUI.shot_left.setEnabled(bool)
+            self.mainUI.shot_right.setEnabled(bool)
+            self.mainUI.plot_shot.setEnabled(bool)
         if bool == False:
             self.mainUI.comboBox_shots.clear()
 
@@ -228,10 +248,11 @@ class gui_control(object):
         self.surfaceCanvas.draw()
 
     def plotArray(self):
-        self.seisarray.plotArray2D(self.seisArrayAx, highlight_measured = True, plot_topo = True)
+        self.seisarray.plotArray2D(self.seisArrayAx, highlight_measured = True, plot_topo = True, twoDim = self.seisarray.twoDim)
 
     def plotSurface(self):
-        self.seisarray.plotSurface3D(ax = self.surfaceAx, exag = True)
+        if not self.seisarray.twoDim:
+            self.seisarray.plotSurface3D(ax = self.surfaceAx, exag = True)
         self.seisarray.plotArray3D(ax = self.surfaceAx, legend = False, markersize = 3)
 
     def refreshPickedWidgets(self):
@@ -244,8 +265,10 @@ class gui_control(object):
 
     def InitPickedWidgets(self):
         if self.checkPickState():
-            surveyUtils.plotScatterStats4Receivers(self.survey, self.mainUI.comboBox_stats.currentText(), self.statAx_left)
-            surveyUtils.plotScatterStats4Shots(self.survey, self.mainUI.comboBox_stats.currentText(), self.statAx_right)
+            surveyUtils.plotScatterStats4Receivers(self.survey, self.mainUI.comboBox_stats.currentText(),
+                                                   self.statAx_left, twoDim = self.survey.twoDim)
+            surveyUtils.plotScatterStats4Shots(self.survey, self.mainUI.comboBox_stats.currentText(),
+                                               self.statAx_right, twoDim = self.survey.twoDim)
             self.addItems2ShotsComboBox()
 
     def printSurveyTextbox(self, init = True):
@@ -294,7 +317,7 @@ class gui_control(object):
             ncores = int(ui.ncores.value())
             vmin = float(ui.lineEdit_vmin.text())
             vmax = float(ui.lineEdit_vmax.text())
-            folm = float(ui.lineEdit_folm.text())
+            folm = float(ui.slider_folm.value())/100.
             AIC = ui.checkBox_AIC.isChecked()
             aicwindow = (int(ui.lineEdit_aicleft.text()), int(ui.lineEdit_aicright.text()))
             return ncores, vmin, vmax, folm, AIC, aicwindow
@@ -312,11 +335,15 @@ class gui_control(object):
         self.survey.seisarray = self.seisarray
         self.setConnected2SurveyState(True)
         self.survey._initiate_SRfiles()
+        self.printSurveyTextbox(init = False)
         print('Connected Seismic Array to active Survey object.')
 
     def getMaxCPU(self):
         import multiprocessing
         return multiprocessing.cpu_count()
+
+    def refreshFolm(self):
+        self.picker_ui.label_folm.setText('%s %%'%self.picker_ui.slider_folm.value())
 
     def callPicker(self):
         if not self.checkSurveyState():
@@ -329,6 +356,8 @@ class gui_control(object):
         ui = Ui_picking_parameters()
         ui.setupUi(Picking_parameters)
         ui.ncores.setMaximum(self.getMaxCPU())
+        self.picker_ui = ui
+        QtCore.QObject.connect(self.picker_ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
         try:
             ncores, vmin, vmax, folm, AIC, aicwindow = self.getPickParameters(ui, Picking_parameters)
         except TypeError:
@@ -343,6 +372,7 @@ class gui_control(object):
                                  folm = folm, HosAic = HosAic,
                                  aicwindow = aicwindow, cores = ncores)
         self.setPickState(True)
+        self.printSurveyTextbox(init = False)
 
     def startFMTOMO(self):
         if not self.checkSurveyState():
@@ -614,7 +644,7 @@ class gui_control(object):
         if state == True and self.checkSurveyState():
             self.mainUI.picked_active.setPixmap(self.applypixmap)
             self.refreshPickedWidgets()
-            self.enablePickedTools(True)
+            self.enablePickedTools(True, self.survey.twoDim)
             self.survey.picked = True
         elif state == True and self.checkSurveyState() is False:
             self.printDialogMessage('No Survey defined.')
@@ -631,8 +661,10 @@ class gui_control(object):
         if state == True:
             self.mainUI.seisarray_active.setPixmap(self.applypixmap)
             self.refreshSeisArrayWidgets()
+            self.seisArrayToolbar.setEnabled(True)
         elif state == False:
             self.mainUI.seisarray_active.setPixmap(self.cancelpixmap)
+            self.seisArrayToolbar.setEnabled(False)
             if self.seisArrayFigure is not None:
                 self.seisArrayFigure.clf()
 

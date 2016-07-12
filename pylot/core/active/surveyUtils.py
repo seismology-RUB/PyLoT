@@ -155,7 +155,7 @@ def cleanUp(survey):
     for shot in survey.data.values():
         shot.traces4plot = {}
 
-def plotScatterStats4Shots(survey, variable, ax = None):
+def plotScatterStats4Shots(survey, variable, ax = None, twoDim = False):
     """
     Statistics, scatter plot.
 
@@ -210,7 +210,8 @@ def plotScatterStats4Shots(survey, variable, ax = None):
             transform=ax.transAxes)
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
-    ax.set_aspect('equal')
+    if not twoDim:
+        ax.set_aspect('equal')
     cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)
 
@@ -219,7 +220,7 @@ def plotScatterStats4Shots(survey, variable, ax = None):
                     fontsize='x-small', color='k')
 
 
-def plotScatterStats4Receivers(survey, variable, ax = None):
+def plotScatterStats4Receivers(survey, variable, ax = None, twoDim = False):
     """
     Statistics, scatter plot.
 
@@ -274,7 +275,8 @@ def plotScatterStats4Receivers(survey, variable, ax = None):
             transform=ax.transAxes)
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
-    ax.set_aspect('equal')
+    if not twoDim:
+        ax.set_aspect('equal')
     cbar = ax.figure.colorbar(sc)
     cbar.set_label(variable)
 

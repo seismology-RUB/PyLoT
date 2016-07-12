@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'asp3d_layout.ui'
 #
-# Created: Thu Jul  7 14:25:26 2016
+# Created: Tue Jul 12 14:03:29 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(1029, 858)
+        MainWindow.resize(1029, 1074)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -27,8 +27,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout_10 = QtGui.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.gridLayout = QtGui.QGridLayout(self.centralwidget)
+        self.gridLayout.setObjectName("gridLayout")
         self.formLayout = QtGui.QFormLayout()
         self.formLayout.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
         self.formLayout.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
@@ -288,7 +288,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_right.setSizeConstraint(QtGui.QLayout.SetMaximumSize)
         self.verticalLayout_right.setObjectName("verticalLayout_right")
         self.horizontalLayout_tr = QtGui.QHBoxLayout()
+        self.horizontalLayout_tr.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
         self.horizontalLayout_tr.setObjectName("horizontalLayout_tr")
+        self.verticalLayout_tr1 = QtGui.QVBoxLayout()
+        self.verticalLayout_tr1.setObjectName("verticalLayout_tr1")
+        self.horizontalLayout_tr.addLayout(self.verticalLayout_tr1)
         self.verticalLayout_right.addLayout(self.horizontalLayout_tr)
         self.line_4 = QtGui.QFrame(self.centralwidget)
         self.line_4.setFrameShape(QtGui.QFrame.HLine)
@@ -352,9 +356,15 @@ class Ui_MainWindow(object):
         self.verticalLayout_right.addLayout(self.horizontalLayout_3)
         self.horizontalLayout_br = QtGui.QHBoxLayout()
         self.horizontalLayout_br.setObjectName("horizontalLayout_br")
+        self.verticalLayout_br1 = QtGui.QVBoxLayout()
+        self.verticalLayout_br1.setObjectName("verticalLayout_br1")
+        self.horizontalLayout_br.addLayout(self.verticalLayout_br1)
+        self.verticalLayout_br2 = QtGui.QVBoxLayout()
+        self.verticalLayout_br2.setObjectName("verticalLayout_br2")
+        self.horizontalLayout_br.addLayout(self.verticalLayout_br2)
         self.verticalLayout_right.addLayout(self.horizontalLayout_br)
         self.formLayout.setLayout(0, QtGui.QFormLayout.FieldRole, self.verticalLayout_right)
-        self.verticalLayout_10.addLayout(self.formLayout)
+        self.gridLayout.addLayout(self.formLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1029, 23))

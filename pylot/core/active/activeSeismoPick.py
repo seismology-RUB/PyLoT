@@ -13,7 +13,7 @@ def picker(shot):
     return picks
 
 class Survey(object):
-    def __init__(self, path, sourcefile = None, receiverfile = None, seisArray = None, useDefaultParas=False):
+    def __init__(self, path, sourcefile = None, receiverfile = None, seisArray = None, useDefaultParas=False, fstart = None, fend = None):
         '''
         The Survey Class contains all shots [class: Seismicshot] of a survey
         as well as the aquisition geometry and the topography.
@@ -29,7 +29,7 @@ class Survey(object):
         self._recfile = receiverfile
         self._sourcefile = sourcefile
         self._obsdir = path
-        self._generateSurvey()
+        self._generateSurvey(fstart, fend)
         self._initiate_SRfiles()
         if useDefaultParas == True:
             self.setParametersForAllShots()
@@ -74,27 +74,34 @@ class Survey(object):
             self._coordsFromSeisArray()
         else:
             self._coordsFromFiles()
+            self.loadArray(self._obsdir, self._recile, self._sourcefile)
         for shotnumber in self.data.keys():
             shot = self.data[shotnumber]
             shot.setShotnumber(shotnumber)
             shot.setReceiverCoords(self._receiverCoords)
             shot.setSourceCoords(self._sourceCoords[shotnumber])
 
-    def _generateSurvey(self):
+    def _generateSurvey(self, fstart = None, fend = None):
         from obspy.core import read
 
         shot_dict = {}
         shotlist = self.getShotlist()
         for shotnumber in shotlist:  # loop over data files
             # generate filenames and read manual picks to a list
-            fileending = '_pickle.dat'
             #fileending = '.sg2'
-            obsfile = os.path.join(self._obsdir, str(shotnumber)) + fileending
+            if fend == None:
+                fend = '_pickle.dat'
+            obsfile = fstart + os.path.join(self._obsdir, str(shotnumber)) + fend
             if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)
             shot_dict[shotnumber].setParameters('shotnumber', shotnumber)
 
+        if self._check2D():
+            print('Survey is two dimensional!')
+            self.twoDim = True
+        else:
+            self.twoDim = False
         self.data = shot_dict
         print ("Generated Survey object for %d shots" % len(shotlist))
         print ("Total number of traces: %d \n" % self.countAllTraces())
@@ -143,6 +150,22 @@ class Survey(object):
                    "on removed traces." % (logfile))
             outfile.close()
 
+    def _check2D(self):
+        if self.seisarray is None:
+            print('Check2D: No SeisArray defined')
+            return
+        if self.seisarray.check2D():
+            return True
+        else:
+            return False
+
+    def updateSeisArray(self, SeisArray):
+        if not type(SeisArray) == pylot.core.active.seismicArrayPreparation.SeisArray:
+            print('Wrong data type.')
+            return
+        self.seisarray = SeisArray
+        self._initiate_SRfiles()
+        
     def setParametersForAllShots(self, cutwindow=(0, 0.2), tmovwind=0.3,
                                  tsignal=0.03, tgap=0.0007):
         if (cutwindow == (0, 0.2) and tmovwind == 0.3 and

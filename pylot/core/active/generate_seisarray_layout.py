@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_seisarray_layout.ui'
 #
-# Created: Thu Jul  7 14:25:26 2016
+# Created: Tue Jul 12 14:03:29 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!

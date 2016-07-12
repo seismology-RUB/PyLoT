@@ -28,6 +28,7 @@ class SeisArray(object):
             self._init_interpolatable()
         elif interpolatable == False:
             self._init_normal()
+        self.set2D()
 
     def _init_normal(self):
         self.interpolatable = False
@@ -83,6 +84,27 @@ class SeisArray(object):
             traceID = int(line.split()[0])
             gphoneNum = float(line.split()[2])
             self._geophoneNumbers[traceID] = gphoneNum
+
+    def check2D(self):
+        x, y, z = self.getAllMeasuredPointsLists()
+        if self._check0(x) or self._check0(y):
+            return True
+        else:
+            return False
+
+    def set2D(self):
+        if self.check2D():
+            self.twoDim = True
+        else:
+            self.twoDim = False
+
+    def _check0(self, lst):
+        for element in lst:
+            if element == 0:
+                pass
+            else:
+                return False
+        return True
 
     def _getReceiverlines(self):
         return self._receiverlines
@@ -816,7 +838,7 @@ class SeisArray(object):
         print "Exported coordinates for %s traces to file > %s" % (count, filename)
         recfile_out.close()
 
-    def plotArray2D(self, ax = None, plot_topo=False, highlight_measured=False, annotations=True, pointsize=10):
+    def plotArray2D(self, ax = None, plot_topo=False, highlight_measured=False, annotations=True, pointsize=10, twoDim = False):
         import matplotlib.pyplot as plt
         if ax == None:
             plt.interactive(True)
@@ -843,7 +865,8 @@ class SeisArray(object):
 
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
-        ax.set_aspect('equal')
+        if twoDim == False:
+            ax.set_aspect('equal')
         ax.legend(prop={'size':7})
         if annotations == True:
             for traceID in self.getReceiverCoordinates().keys():
@@ -887,7 +910,7 @@ class SeisArray(object):
 
         return ax
 
-    def plotSurface3D(self, ax=None, step=0.5, method='linear', exag=False):
+    def plotSurface3D(self, ax=None, step=0.5, method='linear', exag=False, twoDim = False):
         from matplotlib import cm
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
@@ -917,7 +940,8 @@ class SeisArray(object):
 
         if exag == False:
             ax.set_zlim(-(max(x) - min(x) / 2), (max(x) - min(x) / 2))
-        ax.set_aspect('equal')
+        if twoDim == False:
+            ax.set_aspect('equal')
 
         ax.set_xlabel('X [m]');
         ax.set_ylabel('Y [m]');
