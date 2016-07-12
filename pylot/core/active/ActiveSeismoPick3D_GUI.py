@@ -424,6 +424,8 @@ class gui_control(object):
             cwd = os.getcwd()
             interpolationMethod = 'linear'
             os.chdir(simuldir)
+            if self.seisarray.twoDim:
+                interpolationMethod = 'nearest'
             self.survey.seisarray.generateFMTOMOinputFromArray(propgrid, vgrid, (bbot, btop), cushionfactor,
                                                           interpolationMethod, customgrid = customgrid,
                                                           writeVTK = False)

@@ -440,6 +440,7 @@ class SeisArray(object):
             for phi in phiGrid:
                 xval = self._getDistance(phi)
                 yval = self._getDistance(theta)
+
                 z = griddata((measured_x, measured_y), measured_z, (xval, yval), method=method)
                 # in case the point lies outside, nan will be returned. Find nearest:
                 if np.isnan(z) == True:
@@ -601,6 +602,11 @@ class SeisArray(object):
         theta_min, theta_max = (self._getAngle(min(y)), self._getAngle(max(y)))
         cushionPhi = abs(phi_max - phi_min) * cushionfactor
         cushionTheta = abs(theta_max - theta_min) * cushionfactor
+        # 2D Case only:
+        if cushionPhi == 0.:
+            cushionPhi = 0.05
+        if cushionTheta == 0.:
+            cushionTheta = 0.05
         phiWE = (phi_min - cushionPhi, phi_max + cushionPhi)
         thetaSN = (theta_min - cushionTheta, theta_max + cushionTheta)
         return thetaSN, phiWE
