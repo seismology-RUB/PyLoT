@@ -307,7 +307,7 @@ class PDFDictionary(object):
             pdfs = self.pdf_data[station]
             for l, phase in enumerate(pdfs.keys()):
                 try:
-                    axarr[n, l].plot(pdfs[phase].axis, pdfs[phase].data)
+                    axarr[n, l].plot(pdfs[phase].axis, pdfs[phase].data())
                     if n is 0:
                         axarr[n, l].set_title(phase)
                     if l is 0:
@@ -322,7 +322,7 @@ class PDFDictionary(object):
                 except IndexError as e:
                     print('trying aligned plotting\n{0}'.format(e))
                     hide_labels = False
-                    axarr[l].plot(pdfs[phase].axis, pdfs[phase].data)
+                    axarr[l].plot(pdfs[phase].axis, pdfs[phase].data())
                     axarr[l].set_title(phase)
                     if l is 0:
                         axann = axarr[l].annotate(station, xy=(.05, .5),
