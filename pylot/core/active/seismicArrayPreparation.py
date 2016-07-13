@@ -604,9 +604,9 @@ class SeisArray(object):
         cushionTheta = abs(theta_max - theta_min) * cushionfactor
         # 2D Case only:
         if cushionPhi == 0.:
-            cushionPhi = 0.05
+            cushionPhi = 0.1
         if cushionTheta == 0.:
-            cushionTheta = 0.05
+            cushionTheta = 0.1
         phiWE = (phi_min - cushionPhi, phi_max + cushionPhi)
         thetaSN = (theta_min - cushionTheta, theta_max + cushionTheta)
         return thetaSN, phiWE
@@ -648,6 +648,11 @@ class SeisArray(object):
               % (Rbt[0], Rbt[1]))
 
         thetaSN, phiWE = self.getThetaPhiFromArray(cushionfactor)
+
+        # +2 cushion nodes
+        nTheta += 2
+        nPhi += 2
+        nR += 2
 
         thetaS = thetaSN[0] + cushionpropgrid
         thetaN = thetaSN[1] - cushionpropgrid

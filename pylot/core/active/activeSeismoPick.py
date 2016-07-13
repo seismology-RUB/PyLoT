@@ -74,7 +74,7 @@ class Survey(object):
             self._coordsFromSeisArray()
         else:
             self._coordsFromFiles()
-            self.loadArray(self._obsdir, self._recile, self._sourcefile)
+            self.loadArray(self._obsdir, self._recfile, self._sourcefile)
         for shotnumber in self.data.keys():
             shot = self.data[shotnumber]
             shot.setShotnumber(shotnumber)
@@ -91,7 +91,7 @@ class Survey(object):
             #fileending = '.sg2'
             if fend == None:
                 fend = '_pickle.dat'
-            obsfile = fstart + os.path.join(self._obsdir, str(shotnumber)) + fend
+            obsfile = os.path.join(self._obsdir, fstart + str(shotnumber)) + fend
             if obsfile not in shot_dict.keys():
                 shot_dict[shotnumber] = []
             shot_dict[shotnumber] = seismicshot.SeismicShot(obsfile)

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'picking_parameters_layout.ui'
 #
-# Created: Tue Jul 12 14:03:30 2016
+# Created: Tue Jul 12 21:41:13 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -171,7 +171,7 @@ class Ui_picking_parameters(object):
         self.label_3.setToolTip(QtGui.QApplication.translate("picking_parameters", "Maximum permitted direct velocity (apparent velocity!).", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("picking_parameters", "vmax [m/s] [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.lineEdit_vmax.setText(QtGui.QApplication.translate("picking_parameters", "5000", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_4.setToolTip(QtGui.QApplication.translate("picking_parameters", "Value between 0 and 1 for threshold picking algorithm (Default = 60%).", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setToolTip(QtGui.QApplication.translate("picking_parameters", "Value between 1 and 100 % for threshold picking algorithm (Default = 60%).", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("picking_parameters", "Fraction of local maximum [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.label_folm.setText(QtGui.QApplication.translate("picking_parameters", "60 %", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setToolTip(QtGui.QApplication.translate("picking_parameters", "Use additional Akaike Information Criterion for picking.", None, QtGui.QApplication.UnicodeUTF8))

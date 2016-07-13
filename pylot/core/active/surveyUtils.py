@@ -97,7 +97,7 @@ def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist():  ### IMPROVE
             dist = shot.getDistance(traceID) + shiftdist
-            snrthreshold = (1 / (fit_fn(dist) ** 2)) - shiftSNR * np.exp(-0.05 * dist)
+            snrthreshold = snr_fit_func(fit_fn, dist, shiftSNR)
             if snrthreshold < minSNR:
                 print('WARNING: SNR threshold %s lower %s. Set SNR threshold to %s.'
                       % (snrthreshold, minSNR, minSNR))
@@ -106,6 +106,10 @@ def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0
                 shot.setSNRthreshold(traceID, snrthreshold)
     print("setDynamicFittedSNR: Finished setting of fitted SNR-threshold")
 
+def snr_fit_func(fit_fn, dist, shiftSNR):
+    import numpy as np
+    snrthreshold = (1 / (fit_fn(dist) ** 2)) - shiftSNR * np.exp(-0.05 * dist)
+    return snrthreshold
 
 def setConstantSNR(shot_dict, snrthreshold=2.5):
     """
