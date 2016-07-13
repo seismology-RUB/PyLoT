@@ -342,62 +342,53 @@ class PDFstatistics(object):
     '''
     To do:
     plots for std, quantiles,
-    calc: quantiles
-    encountering error when trying to get quantile... float.. utcdatetime error
     '''
     def __init__(self, directory):
         self.directory = directory
+        self.arraylen = 0
         self.stations = {}
         self.p_std = {}
         self.s_std = {}
         self.theta015 = []
         self.theta1 = []
         self.theta2 = []
-        self.dirlist = list()
-        self.evtdict = {}
-        #self.makeDirlist()
-        #self.getData()
-        #self.getStatistics()
+        self.makefilelist()
+        self.getData()
+        self.getStatistics()
 
         #self.showData()
 
 
-    def makeDirlist(self, fn_pattern='*'):
-        self.dirlist = glob.glob1(self.directory, fn_pattern)
-        self.evtdict = {}
-        for rd in self.dirlist:
-            self.evtdict[rd] = glob.glob1((os.path.join(self.directory, rd)), '*.xml')
+    def makefilelist(self, fn_pattern='*'):
+        self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
 
     def getData(self):
-        arraylen = 0
-        for dir in self.dirlist:
-            for evt in self.evtdict[dir]:
-                print evt
-                self.stations[evt] = []
-                self.p_std[evt] = []
-                self.s_std[evt] = []
-                self.getPDFDict(dir, evt)
-                for station, pdfs in self.pdfdict.pdf_data.items():
-                    # print station, pdfs
-                    try:
-                        p_std = pdfs['P'].standard_deviation()
-                        self.theta015.append(pdfs['P'].qtile_dist_quot(0.015))
-                        self.theta1.append(pdfs['P'].qtile_dist_quot(0.1))
-                        self.theta2.append(pdfs['P'].qtile_dist_quot(0.2))
-                    except KeyError:
-                        p_std = np.nan
-                    try:
-                        s_std = pdfs['S'].standard_deviation()
-                        self.theta015.append(pdfs['S'].qtile_dist_quot(0.015))
-                        self.theta1.append(pdfs['S'].qtile_dist_quot(0.1))
-                        self.theta2.append(pdfs['S'].qtile_dist_quot(0.2))
-                    except KeyError:
-                        s_std = np.nan
-                    self.stations[evt].append(station)
-                    self.p_std[evt].append(p_std)
-                    self.s_std[evt].append(s_std)
-                    arraylen += 1
-        self.arraylen = arraylen
+        for evt in self.evtlist:
+            print evt
+            self.stations[evt] = []
+            self.p_std[evt] = []
+            self.s_std[evt] = []
+            self.getPDFDict(self.directory, evt)
+            for station, pdfs in self.pdfdict.pdf_data.items():
+                # print station, pdfs
+                try:
+                    p_std = pdfs['P'].standard_deviation()
+                    self.theta015.append(pdfs['P'].qtile_dist_quot(0.015))
+                    self.theta1.append(pdfs['P'].qtile_dist_quot(0.1))
+                    self.theta2.append(pdfs['P'].qtile_dist_quot(0.2))
+                except KeyError:
+                    p_std = np.nan
+                try:
+                    s_std = pdfs['S'].standard_deviation()
+                    self.theta015.append(pdfs['S'].qtile_dist_quot(0.015))
+                    self.theta1.append(pdfs['S'].qtile_dist_quot(0.1))
+                    self.theta2.append(pdfs['S'].qtile_dist_quot(0.2))
+                except KeyError:
+                    s_std = np.nan
+                self.stations[evt].append(station)
+                self.p_std[evt].append(p_std)
+                self.s_std[evt].append(s_std)
+                self.arraylen += 1
         self.makeArray()
 
 
@@ -414,14 +405,23 @@ class PDFstatistics(object):
 
 
 
-    def showData(self):
-        #figure(p, s) = plt.pyplot.subplots(2)
-        #p.hist(self.p_stdarray, Bins=100, range=[min(self.p_stdarray),max(self.p_stdarray)/256])
-        #s.hist(self.s_stdarray, Bins=100, range=[min(self.s_stdarray),max(self.s_stdarray)/256])
-        #p.set_title('Histogramm der P-Wellen-Standartabweichung')
-        #s.set_title('Histogramm der S-Wellen-Standartabweichung')
-        # plt.show()
-        pass
+    def histplot(self ,array , bins = 100, label=None):
+        # baustelle
+        import matplotlib.pyplot as plt
+
+        plt.hist(self.axis, self.data())
+        plt.xlabel('x')
+        plt.ylabel('f(x)')
+        plt.autoscale(axis='x', tight=True)
+        if self:
+            title_str = 'Probability density function '
+            if label:
+                title_str += label
+            title_str.strip()
+        else:
+            title_str = 'Function not suitable as probability density function'
+        plt.title(title_str)
+        plt.show()
 
 
     def getPDFDict(self, month, evt):
@@ -440,9 +440,6 @@ class PDFstatistics(object):
 if __name__ == "__main__":
     rootdir = '/home/sebastianp/Data/Reassessment/Insheim/2012.10/'
     Insheim = PDFstatistics(rootdir)
-    Insheim.dirlist = [rootdir]
-    Insheim.evtdict[rootdir] = ['e0002.294.12.xml']
+    Insheim.makefilelist()
     Insheim.getData()
-    print Insheim.theta015
-    print Insheim.theta1
-    print Insheim.theta2
+
