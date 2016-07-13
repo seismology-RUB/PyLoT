@@ -350,13 +350,15 @@ class PDFstatistics(object):
         self.stations = {}
         self.p_std = {}
         self.s_std = {}
-        self.makeDirlist()
-        self.getData()
-        self.getStatistics()
-        self.arraylen = 0
-        self.Theta015 = []
-        self.Theta25 = []
-        self.Theta485 = []
+        self.theta015 = []
+        self.theta1 = []
+        self.theta2 = []
+        self.dirlist = list()
+        self.evtdict = {}
+        #self.makeDirlist()
+        #self.getData()
+        #self.getStatistics()
+
         #self.showData()
 
 
@@ -367,8 +369,10 @@ class PDFstatistics(object):
             self.evtdict[rd] = glob.glob1((os.path.join(self.directory, rd)), '*.xml')
 
     def getData(self):
+        arraylen = 0
         for dir in self.dirlist:
             for evt in self.evtdict[dir]:
+                print evt
                 self.stations[evt] = []
                 self.p_std[evt] = []
                 self.s_std[evt] = []
@@ -377,16 +381,24 @@ class PDFstatistics(object):
                     # print station, pdfs
                     try:
                         p_std = pdfs['P'].standard_deviation()
+                        self.theta015.append(pdfs['P'].qtile_dist_quot(0.015))
+                        self.theta1.append(pdfs['P'].qtile_dist_quot(0.1))
+                        self.theta2.append(pdfs['P'].qtile_dist_quot(0.2))
                     except KeyError:
                         p_std = np.nan
                     try:
                         s_std = pdfs['S'].standard_deviation()
+                        self.theta015.append(pdfs['S'].qtile_dist_quot(0.015))
+                        self.theta1.append(pdfs['S'].qtile_dist_quot(0.1))
+                        self.theta2.append(pdfs['S'].qtile_dist_quot(0.2))
                     except KeyError:
                         s_std = np.nan
                     self.stations[evt].append(station)
                     self.p_std[evt].append(p_std)
                     self.s_std[evt].append(s_std)
-                    self.arraylen += 1
+                    arraylen += 1
+        self.arraylen = arraylen
+        self.makeArray()
 
 
     def makeArray(self):
@@ -426,5 +438,11 @@ class PDFstatistics(object):
 
 
 if __name__ == "__main__":
-    rootdir = '/home/sebastianp/Data/Reassessment/Insheim/'
+    rootdir = '/home/sebastianp/Data/Reassessment/Insheim/2012.10/'
     Insheim = PDFstatistics(rootdir)
+    Insheim.dirlist = [rootdir]
+    Insheim.evtdict[rootdir] = ['e0002.294.12.xml']
+    Insheim.getData()
+    print Insheim.theta015
+    print Insheim.theta1
+    print Insheim.theta2

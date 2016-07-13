@@ -325,14 +325,15 @@ class ProbabilityDensityFunction(object):
             raise ValueError('value out of bounds: {0}'.format(value))
         return self.prob_limits((value, self.axis[-1]))
 
-    def prob_limits(self, limits):
-        lim = np.arange(limits[0], limits[1], self.incr)
+    def prob_limits(self, limits, oversampling=1.):
+        sampling = self.incr / oversampling
+        lim = np.arange(limits[0], limits[1], sampling)
         data = [self.data(t) for t in lim]
         min_est, max_est = 0., 0.
         for n in range(len(data) - 1):
             min_est += min(data[n], data[n + 1])
             max_est += max(data[n], data[n + 1])
-        return (min_est + max_est) / 2. * self.incr
+        return (min_est + max_est) / 2. * sampling
 
     def prob_val(self, value):
         if not (self.axis[0] <= value <= self.axis[-1]):
@@ -352,7 +353,7 @@ class ProbabilityDensityFunction(object):
         m = (r + l) / 2
         diff = prob_value - self.prob_lt_val(m)
 
-        while abs(diff) > eps:
+        while abs(diff) > eps and ((r - l) > self.incr):
             if diff > 0:
                 l = m
             else:
@@ -366,6 +367,13 @@ class ProbabilityDensityFunction(object):
         qu = self.quantile(1 - prob_value)
 
         return qu - ql
+
+
+    def qtile_dist_quot(self,x):
+        if x <= 0 or x >= 0.5:
+            raise ValueError('Value out of range.')
+        return self.quantile_distance(0.5-x)/self.quantile_distance(x)
+
 
     def plot(self, label=None):
         import matplotlib.pyplot as plt
