@@ -460,10 +460,10 @@ class SeisArray(object):
         Generate FMTOMO input files from the SeisArray dimensions.
         Generates: vgridsref.in, interfacesref.in, propgrid.in
 
-        :param: nPointsPropgrid, number of points in each direction of the propagation grid (z, y, x)
+        :param: nPointsPropgrid, number of points in each direction of the propagation grid (x, y, z)
         :type: tuple
 
-        :param: nPointsInvgrid, number of points in each direction of the inversion grid (z, y, x)
+        :param: nPointsInvgrid, number of points in each direction of the inversion grid (x, y, z)
         :type: tuple
 
         :param: zBotTop, (bottom, top) dimensions of the model
@@ -473,8 +473,8 @@ class SeisArray(object):
         :type: float
         '''
 
-        nRP, nThetaP, nPhiP = nPointsPropgrid
-        nRI, nThetaI, nPhiI = nPointsInvgrid
+        nPhiP, nThetaP, nRP = nPointsPropgrid
+        nPhiI, nThetaI, nRI = nPointsInvgrid
 
         print('\n------------------------------------------------------------')
         print('Automatically generating input for FMTOMO from array size.')
