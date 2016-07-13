@@ -339,6 +339,12 @@ class PDFDictionary(object):
 
 
 class PDFstatistics(object):
+    '''
+    To do:
+    plots for std, quantiles,
+    calc: quantiles
+    encountering error when trying to get quantile... float.. utcdatetime error
+    '''
     def __init__(self, directory):
         self.directory = directory
         self.stations = {}
@@ -347,19 +353,20 @@ class PDFstatistics(object):
         self.makeDirlist()
         self.getData()
         self.getStatistics()
+        self.arraylen = 0
+        self.Theta015 = []
+        self.Theta25 = []
+        self.Theta485 = []
         #self.showData()
+
 
     def makeDirlist(self, fn_pattern='*'):
         self.dirlist = glob.glob1(self.directory, fn_pattern)
-        #print self.dirlist
         self.evtdict = {}
         for rd in self.dirlist:
-            #print rd
             self.evtdict[rd] = glob.glob1((os.path.join(self.directory, rd)), '*.xml')
-            #print rd, self.evtdict[rd]
 
     def getData(self):
-        arraylen = 0
         for dir in self.dirlist:
             for evt in self.evtdict[dir]:
                 self.stations[evt] = []
@@ -367,30 +374,33 @@ class PDFstatistics(object):
                 self.s_std[evt] = []
                 self.getPDFDict(dir, evt)
                 for station, pdfs in self.pdfdict.pdf_data.items():
-                    #print station, pdfs
+                    # print station, pdfs
                     try:
                         p_std = pdfs['P'].standard_deviation()
                     except KeyError:
-                        p_std = 0
+                        p_std = np.nan
                     try:
                         s_std = pdfs['S'].standard_deviation()
                     except KeyError:
-                        s_std = 0
+                        s_std = np.nan
                     self.stations[evt].append(station)
                     self.p_std[evt].append(p_std)
                     self.s_std[evt].append(s_std)
-                    arraylen += 1
-        self.makeArray(arraylen)
+                    self.arraylen += 1
 
-    def makeArray(self, arraylen):
+
+    def makeArray(self):
         index = 0
-        self.p_stdarray = np.zeros(arraylen)
-        self.s_stdarray = np.zeros(arraylen)
+        self.p_stdarray = np.zeros(self.arraylen)
+        self.s_stdarray = np.zeros(self.arraylen)
         for evt in self.p_std.keys():
             for n in range(len(self.p_std[evt])):
                 self.p_stdarray[index] = self.p_std[evt][n]
                 self.s_stdarray[index] = self.s_std[evt][n]
                 index += 1
+
+
+
 
     def showData(self):
         #figure(p, s) = plt.pyplot.subplots(2)
@@ -405,6 +415,7 @@ class PDFstatistics(object):
     def getPDFDict(self, month, evt):
         self.pdfdict = PDFDictionary.from_quakeml(os.path.join(self.directory,month,evt))
 
+
     def getStatistics(self):
         self.p_mean = self.p_stdarray.mean()
         self.p_std_std = self.p_stdarray.std()
@@ -412,3 +423,8 @@ class PDFstatistics(object):
         self.s_mean = self.s_stdarray.mean()
         self.s_std_std = self.s_stdarray.std()
         self.s_median = np.median(self.s_stdarray)
+
+
+if __name__ == "__main__":
+    rootdir = '/home/sebastianp/Data/Reassessment/Insheim/'
+    Insheim = PDFstatistics(rootdir)
