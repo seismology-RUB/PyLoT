@@ -105,6 +105,7 @@ def exp_branches(k, (mu, sig1, sig2, a)):
     '''
 
     def _func(k, mu, sig1, sig2, a):
+        mu = float(mu)
         if k < mu:
             rval = a * np.exp(sig1 * (k - mu))
         else:
@@ -311,7 +312,7 @@ class ProbabilityDensityFunction(object):
         mu = self.mu
         rval = 0
         for x in self.axis:
-            rval += (x - mu) ** 2 * self.data(x)
+            rval += (x - float(mu)) ** 2 * self.data(x)
         return rval * self.incr
 
     def prob_lt_val(self, value):
