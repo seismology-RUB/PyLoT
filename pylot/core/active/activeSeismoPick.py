@@ -74,7 +74,7 @@ class Survey(object):
             self._coordsFromSeisArray()
         else:
             self._coordsFromFiles()
-            self.loadArray(self._obsdir, self._recile, self._sourcefile)
+            self.loadArray(self._obsdir, self._recfile, self._sourcefile)
         for shotnumber in self.data.keys():
             shot = self.data[shotnumber]
             shot.setShotnumber(shotnumber)
