@@ -110,8 +110,7 @@ class gui_control(object):
             self.initNewSurvey()
 
     def initNewSurvey(self):
-        self.survey.setArtificialPick(0, 0) # artificial pick at source origin                                         
-        surveyUtils.setDynamicFittedSNR(self.survey.getShotDict())
+        self.survey.setArtificialPick(0, 0) # artificial pick at source origin
         self.setSurveyState(True)
         self.setPickState(False)
 
@@ -147,7 +146,9 @@ class gui_control(object):
             self.survey = activeSeismoPick.Survey(obsdir, srcfile, recfile,
                                                   useDefaultParas = True,
                                                   fstart = fstart, fend = fend)
-            self.setConnected2SurveyState(False)
+            self.setConnected2SurveyState(True)
+            self.seisarray = self.survey.seisarray
+            self.setSeisArrayState(True)
             return True
 
     def addArrayPlot(self):
@@ -313,11 +314,15 @@ class gui_control(object):
         self.printSeisArrayTextbox(init = False)
         
     def getPickParameters(self, ui, Picking_parameters):
+        self.initDynSNRplot()
+        self.plotDynSNR()
+
         if Picking_parameters.exec_():
             ncores = int(ui.ncores.value())
             vmin = float(ui.lineEdit_vmin.text())
             vmax = float(ui.lineEdit_vmax.text())
             folm = float(ui.slider_folm.value())/100.
+            print('folm =', folm)
             AIC = ui.checkBox_AIC.isChecked()
             aicwindow = (int(ui.lineEdit_aicleft.text()), int(ui.lineEdit_aicright.text()))
             return ncores, vmin, vmax, folm, AIC, aicwindow
@@ -358,6 +363,10 @@ class gui_control(object):
         ui.ncores.setMaximum(self.getMaxCPU())
         self.picker_ui = ui
         QtCore.QObject.connect(self.picker_ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
+        QtCore.QObject.connect(self.picker_ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
+        QtCore.QObject.connect(self.picker_ui.shift_dist, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
+        QtCore.QObject.connect(self.picker_ui.p1, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
+        QtCore.QObject.connect(self.picker_ui.p2, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
         try:
             ncores, vmin, vmax, folm, AIC, aicwindow = self.getPickParameters(ui, Picking_parameters)
         except TypeError:
@@ -368,11 +377,54 @@ class gui_control(object):
         else:
             HosAic = 'hos'
 
+        shiftSNR = float(self.picker_ui.shift_snr.value())
+        shiftDist = float(self.picker_ui.shift_dist.value())
+        p1 = float(self.picker_ui.p1.value())
+        p2 = float(self.picker_ui.p2.value())
+
+        surveyUtils.setDynamicFittedSNR(self.survey.getShotDict(), shiftdist = shiftDist,
+                                        shiftSNR = shiftSNR, p1 = p1, p2 = p2)
+
         self.survey.pickAllShots(vmin = vmin, vmax = vmax,
                                  folm = folm, HosAic = HosAic,
                                  aicwindow = aicwindow, cores = ncores)
+        QtGui.qApp.processEvents() # test
         self.setPickState(True)
         self.printSurveyTextbox(init = False)
+
+    def plotDynSNR(self):
+        fig = self.snrFig
+        fig.clear()
+        ax = fig.add_subplot(111)
+        snrthresholds = []
+        dists_p = []; snr_p = []
+        shiftSNR = float(self.picker_ui.shift_snr.value())
+        shiftDist = float(self.picker_ui.shift_dist.value())
+        p1 = float(self.picker_ui.p1.value())
+        p2 = float(self.picker_ui.p2.value())
+        dists = range(200)
+        if self.checkPickState():
+            for shot in self.survey.data.values():
+                for traceID in shot.getTraceIDlist():
+                    dists_p.append(shot.getDistance(traceID))
+                    snr_p.append(shot.getSNR(traceID)[0])
+
+            ax.scatter(dists_p, snr_p, s = 0.5, c='k')
+            
+        for dist in dists:
+            dist += shiftDist
+            snrthresholds.append(surveyUtils.snr_fit_func(surveyUtils.get_fit_fn(p1, p2), dist, shiftSNR))
+        ax.plot(dists, snrthresholds)
+        ax.set_xlabel('Distance [m]')
+        ax.set_ylabel('SNR')
+        self.snrCanvas.draw()
+
+    def initDynSNRplot(self):
+        self.snrFig = Figure()
+        self.snrCanvas = FigureCanvas(self.snrFig)
+        self.picker_ui.vlayout_plot.addWidget(self.snrCanvas)
+        self.snrToolbar = NavigationToolbar(self.snrCanvas, self.mainwindow)
+        self.picker_ui.vlayout_plot.addWidget(self.snrToolbar)
 
     def startFMTOMO(self):
         if not self.checkSurveyState():
