@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_seisarray_layout.ui'
 #
-# Created: Thu Jul 14 13:36:38 2016
+# Created: Mon Jul 18 11:26:32 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -138,7 +138,7 @@ class Ui_generate_seisarray(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Third geophone on the second receiver line with the trace ID 50 and the coordinates (10.5 [m], 20.4 [m], 30.3 [m]).</p>\n"
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">50  2  3  10.5  20.4  30.3</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.radioButton_interpolatable.setText(QtGui.QApplication.translate("generate_seisarray", "interpolatable [?]", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton_interpolatable.setText(QtGui.QApplication.translate("generate_seisarray", "interpolation [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_rec.setText(QtGui.QApplication.translate("generate_seisarray", "Browse", None, QtGui.QApplication.UnicodeUTF8))
         self.label_src.setToolTip(QtGui.QApplication.translate("generate_seisarray", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"

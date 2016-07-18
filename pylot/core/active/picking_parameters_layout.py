@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'picking_parameters_layout.ui'
 #
-# Created: Thu Jul 14 13:36:38 2016
+# Created: Mon Jul 18 11:26:33 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!

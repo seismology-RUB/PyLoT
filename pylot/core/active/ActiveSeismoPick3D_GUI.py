@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import sys
 import matplotlib
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4']='PySide'
@@ -45,22 +46,23 @@ class gui_control(object):
         self.setConnected2SurveyState(False)
 
     def connectButtons(self):
-        QtCore.QObject.connect(self.mainUI.gen_new_seisarray, QtCore.SIGNAL("clicked()"), self.gen_seisarray)
-        QtCore.QObject.connect(self.mainUI.load_seisarray, QtCore.SIGNAL("clicked()"), self.load_seisarray)
-        QtCore.QObject.connect(self.mainUI.save_seisarray, QtCore.SIGNAL("clicked()"), self.save_seisarray)
-        QtCore.QObject.connect(self.mainUI.connect_to_survey, QtCore.SIGNAL("clicked()"), self.connect2Survey)
-        QtCore.QObject.connect(self.mainUI.interpolate_receivers, QtCore.SIGNAL("clicked()"), self.interpolate_receivers)
-        QtCore.QObject.connect(self.mainUI.gen_new_survey, QtCore.SIGNAL("clicked()"), self.gen_survey)
-        QtCore.QObject.connect(self.mainUI.load_survey, QtCore.SIGNAL("clicked()"), self.load_survey)
-        QtCore.QObject.connect(self.mainUI.save_survey, QtCore.SIGNAL("clicked()"), self.save_survey)
-        QtCore.QObject.connect(self.mainUI.picker, QtCore.SIGNAL("clicked()"), self.callPicker)
-        QtCore.QObject.connect(self.mainUI.postprocessing, QtCore.SIGNAL("clicked()"), self.postprocessing)
-        QtCore.QObject.connect(self.mainUI.fmtomo, QtCore.SIGNAL("clicked()"), self.startFMTOMO)
-        QtCore.QObject.connect(self.mainUI.vtk_tools, QtCore.SIGNAL("clicked()"), self.startVTKtools)
+        QtCore.QObject.connect(self.mainUI.actionGenerate_new_Seismic_Array, QtCore.SIGNAL("triggered()"), self.gen_seisarray)
+        QtCore.QObject.connect(self.mainUI.actionLoad_Seismic_Array, QtCore.SIGNAL("triggered()"), self.load_seisarray)
+        QtCore.QObject.connect(self.mainUI.actionSave_Seismic_Array, QtCore.SIGNAL("triggered()"), self.save_seisarray)
+        QtCore.QObject.connect(self.mainUI.actionLoad_Survey, QtCore.SIGNAL("triggered()"), self.load_survey)
+        QtCore.QObject.connect(self.mainUI.actionSave_Survey, QtCore.SIGNAL("triggered()"), self.save_survey)
+        QtCore.QObject.connect(self.mainUI.actionConnect_to_Survey, QtCore.SIGNAL("triggered()"), self.connect2Survey)
+        QtCore.QObject.connect(self.mainUI.actionInterpolate_Receivers, QtCore.SIGNAL("triggered()"), self.interpolate_receivers)
+        QtCore.QObject.connect(self.mainUI.actionGenerate_new_Survey, QtCore.SIGNAL("triggered()"), self.gen_survey)
+        QtCore.QObject.connect(self.mainUI.actionAutomatic_Picking, QtCore.SIGNAL("triggered()"), self.callPicker)
+        QtCore.QObject.connect(self.mainUI.actionPostprocessing, QtCore.SIGNAL("triggered()"), self.postprocessing)
+        QtCore.QObject.connect(self.mainUI.actionStart_FMTOMO_Simulation, QtCore.SIGNAL("triggered()"), self.startFMTOMO)
+        QtCore.QObject.connect(self.mainUI.actionVTK_Visualization, QtCore.SIGNAL("triggered()"), self.startVTKtools)
+        QtCore.QObject.connect(self.mainUI.actionExit, QtCore.SIGNAL("triggered()"), self.exitApp)
         QtCore.QObject.connect(self.mainUI.comboBox_stats, QtCore.SIGNAL("activated(int)"), self.refreshPickedWidgets)
         QtCore.QObject.connect(self.mainUI.shot_left, QtCore.SIGNAL("clicked()"), self.decreaseShotnumber)
         QtCore.QObject.connect(self.mainUI.shot_right, QtCore.SIGNAL("clicked()"), self.increaseShotnumber)
-        QtCore.QObject.connect(self.mainUI.plot_shot, QtCore.SIGNAL("clicked()"), self.plotShot)
+
 
     def gen_seisarray(self):
         disconnect = False
@@ -394,8 +396,15 @@ class gui_control(object):
 
     def plotDynSNR(self):
         fig = self.snrFig
-        fig.clear()
-        ax = fig.add_subplot(111)
+        if fig.axes == []:
+            ax = fig.add_subplot(111)
+            xlim = None
+            ylim = None
+        else:
+            ax = fig.axes[0]
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+        ax.clear()
         snrthresholds = []
         dists_p = []; snr_p = []
         shiftSNR = float(self.picker_ui.shift_snr.value())
@@ -417,6 +426,8 @@ class gui_control(object):
         ax.plot(dists, snrthresholds)
         ax.set_xlabel('Distance [m]')
         ax.set_ylabel('SNR')
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
         self.snrCanvas.draw()
 
     def initDynSNRplot(self):
@@ -825,8 +836,10 @@ class gui_control(object):
         if len(directory) > 0:
             return directory
 
+    def exitApp(self):
+        QtCore.QCoreApplication.instance().quit()
+
 if __name__ == "__main__":
-    import sys
     app = QtGui.QApplication(sys.argv)
     MainWindow = QtGui.QMainWindow()
     ui = Ui_MainWindow()
