@@ -149,8 +149,8 @@ class ProbabilityDensityFunction(object):
         x0, incr, npts = self.commonparameter(other)
 
         axis = create_axis(x0, incr, npts)
-        pdf_self = np.array([self.data(x) for x in axis])
-        pdf_other = np.array([other.data(x) for x in axis])
+        pdf_self = np.array(self.data(axis))
+        pdf_other = np.array(other.data(axis))
 
         pdf = np.convolve(pdf_self, pdf_other, 'full') * incr
 
@@ -174,8 +174,8 @@ class ProbabilityDensityFunction(object):
         x0, incr, npts = self.commonparameter(other)
 
         axis = create_axis(x0, incr, npts)
-        pdf_self = np.array([self.data(x) for x in axis])
-        pdf_other = np.array([other.data(x) for x in axis])
+        pdf_self = np.array(self.data(axis))
+        pdf_other = np.array(other.data(axis))
 
         pdf = np.correlate(pdf_self, pdf_other, 'full') * incr
 
@@ -193,21 +193,22 @@ class ProbabilityDensityFunction(object):
 
     def __nonzero__(self):
         prec = self.precision(self.incr)
-        data = np.array([self.data(t) for t in self.axis])
+        data = np.array(self.data())
         gtzero = np.all(data >= 0)
         probone = bool(np.round(self.prob_gt_val(self.axis[0]), prec) == 1.)
         return bool(gtzero and probone)
 
     def __str__(self):
-        return str([self.data(val) for val in create_axis(self.x0, self.incr,
-                                                          self.npts)])
+        return str([self.data()])
 
     @staticmethod
     def precision(incr):
         prec = int(np.ceil(np.abs(np.log10(incr)))) - 2
         return prec if prec >= 0 else 0
 
-    def data(self, value):
+    def data(self, value=None):
+        if value is None:
+            return self._pdf(self.axis, self.params)
         return self._pdf(value, self.params)
 
     @property
@@ -325,14 +326,15 @@ class ProbabilityDensityFunction(object):
             raise ValueError('value out of bounds: {0}'.format(value))
         return self.prob_limits((value, self.axis[-1]))
 
-    def prob_limits(self, limits):
-        lim = np.arange(limits[0], limits[1], self.incr)
-        data = [self.data(t) for t in lim]
+    def prob_limits(self, limits, oversampling=1.):
+        sampling = self.incr / oversampling
+        lim = np.arange(limits[0], limits[1], sampling)
+        data = self.data(lim)
         min_est, max_est = 0., 0.
         for n in range(len(data) - 1):
             min_est += min(data[n], data[n + 1])
             max_est += max(data[n], data[n + 1])
-        return (min_est + max_est) / 2. * self.incr
+        return (min_est + max_est) / 2. * sampling
 
     def prob_val(self, value):
         if not (self.axis[0] <= value <= self.axis[-1]):
@@ -352,7 +354,7 @@ class ProbabilityDensityFunction(object):
         m = (r + l) / 2
         diff = prob_value - self.prob_lt_val(m)
 
-        while abs(diff) > eps:
+        while abs(diff) > eps and ((r - l) > self.incr):
             if diff > 0:
                 l = m
             else:
@@ -367,12 +369,17 @@ class ProbabilityDensityFunction(object):
 
         return qu - ql
 
+
+    def qtile_dist_quot(self,x):
+        if x < 0 or x > 0.5:
+            raise ValueError('Value out of range.')
+        return self.quantile_distance(0.5-x)/self.quantile_distance(x)
+
+
     def plot(self, label=None):
         import matplotlib.pyplot as plt
 
-        axis = self.axis
-
-        plt.plot(axis, self.data(axis))
+        plt.plot(self.axis, self.data())
         plt.xlabel('x')
         plt.ylabel('f(x)')
         plt.autoscale(axis='x', tight=True)
@@ -442,32 +449,3 @@ class ProbabilityDensityFunction(object):
 
         return x0, incr, npts
 
-    def rearrange(self, other):
-        '''
-        Method rearrange takes another Probability Density Function and returns
-        a new axis with mid-point 0 and covering positive and negative range
-        of axis values, either containing the maximum value of both axis or
-        the sum of the maxima
-        :param other:
-        :return:
-        '''
-
-        x0 = self.x0
-        incr = self.incr
-        npts = self.npts
-
-
-        pdf_self = np.zeros(npts)
-        pdf_other = np.zeros(npts)
-
-        x = create_axis(x0, incr, npts)
-
-        sstart = find_nearest(x, self.x0)
-        s_end = sstart + self.data.size
-        ostart = find_nearest(x, other.x0)
-        o_end = ostart + other.data.size
-
-        pdf_self = self.broadcast(pdf_self, sstart, s_end, self.data)
-        pdf_other = self.broadcast(pdf_other, ostart, o_end, other.data)
-
-        return x0, incr, npts, pdf_self, pdf_other
