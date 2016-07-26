@@ -507,7 +507,7 @@ class SeisArray(object):
             self.surface2VTK(interf2, filename='interface2.vtk')
             self.receivers2VTK()
             self.sources2VTK()
-            fmtomoUtils.vgrids2VTK()
+            #fmtomoUtils.vgrids2VTK()
 
     def generateReceiversIn(self, outfilename='receivers.in'):
         outfile = open(outfilename, 'w')

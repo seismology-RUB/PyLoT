@@ -6,14 +6,11 @@ import matplotlib
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4']='PySide'
 
-from PySide import QtCore, QtGui, QtCore
-from asp3d_layout import *
-from fmtomo_parameters_layout import *
-from generate_survey_layout import *
-from generate_survey_layout_minimal import *
-from generate_seisarray_layout import *
-from picking_parameters_layout import *
-from vtk_tools_layout import *
+from PySide import QtCore, QtGui
+from pylot.core.active.gui.asp3d_layout import *
+from pylot.core.active.gui.fmtomo_parameters_layout import *
+from pylot.core.active.gui.vtk_tools_layout import *
+from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -62,6 +59,7 @@ class gui_control(object):
         self.gsa = None
         self.gssa = None
         self.gssr = None
+        self.autopicker = None
 
     def setInitStates(self):
         self.setPickState(False)
@@ -88,186 +86,6 @@ class gui_control(object):
         QtCore.QObject.connect(self.mainUI.shot_right, QtCore.SIGNAL("clicked()"), self.increaseShotnumber)
         QtCore.QObject.connect(self.mainUI.plot_shot, QtCore.SIGNAL("clicked()"), self.plotShot)
 
-    class Gen_SeisArray(object):
-        def __init__(self, mainwindow):
-            self.mainwindow = mainwindow
-            self.seisarray = None
-            self.srcfile = None
-            self.recfile = None
-            self.ptsfile = None
-            self.init_dialog()
-            self.start_dialog()
-
-        def init_dialog(self):
-            qdialog = QtGui.QDialog(self.mainwindow)
-            ui = Ui_generate_seisarray()
-            ui.setupUi(qdialog)
-            self.ui = ui
-            self.qdialog = qdialog
-            self.connectButtons()
-            
-        def start_dialog(self):
-            self.init_last_selection()
-            if self.qdialog.exec_():
-                self.refresh_filenames()
-                if self.ui.radioButton_interpolatable.isChecked():
-                    self.seisarray = seismicArrayPreparation.SeisArray(self.recfile, True)
-                elif self.ui.radioButton_normal.isChecked():
-                    self.seisarray = seismicArrayPreparation.SeisArray(self.recfile, False)
-                if len(self.srcfile) > 0:
-                    self.seisarray.addSourceLocations(self.srcfile)
-                if len(self.ptsfile) > 0:
-                    self.seisarray.addMeasuredTopographyPoints(self.ptsfile)
-                self.executed = True
-            else:
-                self.refresh_filenames()
-                self.executed = False
-
-        def refresh_filenames(self):
-            self.srcfile = self.ui.lineEdit_src.text()
-            self.recfile = self.ui.lineEdit_rec.text()
-            self.ptsfile = self.ui.lineEdit_pts.text()
-
-        def init_last_selection(self):
-            self.ui.lineEdit_src.setText(self.srcfile)
-            self.ui.lineEdit_rec.setText(self.recfile)
-            self.ui.lineEdit_pts.setText(self.ptsfile)
-
-        def get_seisarray(self):
-            if self.seisarray is not None:
-                return self.seisarray
-
-        def connectButtons(self):
-            QtCore.QObject.connect(self.ui.pushButton_rec, QtCore.SIGNAL("clicked()"), self.chooseMeasuredRec)
-            QtCore.QObject.connect(self.ui.pushButton_src, QtCore.SIGNAL("clicked()"), self.chooseMeasuredSrc)
-            QtCore.QObject.connect(self.ui.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseMeasuredPts)
-
-        def chooseMeasuredSrc(self):
-            self.ui.lineEdit_src.setText(openFile('Open measured sources file.'))
-
-        def chooseMeasuredRec(self):
-            self.ui.lineEdit_rec.setText(openFile('Open measured receivers file.'))
-
-        def chooseMeasuredPts(self):
-            self.ui.lineEdit_pts.setText(openFile('Open measured points file.'))
-
-
-
-    class Gen_Survey_from_SA(object):
-        def __init__(self, mainwindow, seisarray):
-            self.mainwindow = mainwindow
-            self.seisarray = seisarray
-            self.survey = None
-            self.obsdir = None
-            self.fstart = 'shot'
-            self.fend = '.dat'
-            self.init_dialog()
-            self.start_dialog()
-
-        def init_dialog(self):
-            qdialog = QtGui.QDialog(self.mainwindow)
-            ui = Ui_generate_survey_minimal()
-            ui.setupUi(qdialog)
-            self.ui = ui
-            self.qdialog = qdialog
-            self.connectButtons()
-            
-        def start_dialog(self):
-            self.init_last_selection()
-            if self.qdialog.exec_():
-                self.refresh_filenames()
-                self.survey = activeSeismoPick.Survey(self.obsdir, seisArray = self.seisarray,
-                                                      useDefaultParas = True, fstart = self.fstart,
-                                                      fend = self.fend)
-                self.executed = True
-            else:
-                self.refresh_filenames()
-                self.executed = False
-        
-        def refresh_filenames(self):
-            self.obsdir = self.ui.lineEdit_obs.text()
-            self.fstart = self.ui.fstart.text()
-            self.fend = self.ui.fend.text()
-
-        def init_last_selection(self):
-            self.ui.lineEdit_obs.setText(self.obsdir)
-            self.ui.fstart.setText(self.fstart)
-            self.ui.fend.setText(self.fend)
-        
-        def get_survey(self):
-            return self.survey
-
-        def connectButtons(self):
-            QtCore.QObject.connect(self.ui.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir)
-
-        def chooseObsdir(self):
-            self.ui.lineEdit_obs.setText(browseDir('Choose observation directory.'))
-
-
-    class Gen_Survey_from_SR(object):
-        def __init__(self, mainwindow):
-            self.mainwindow = mainwindow
-            self.survey = None
-            self.obsdir = None
-            self.srcfile = None
-            self.recfile = None
-            self.fstart = 'shot'
-            self.fend = '.dat'
-            self.init_dialog()
-            self.start_dialog()
-
-        def init_dialog(self):
-            qdialog = QtGui.QDialog(self.mainwindow)
-            ui = Ui_generate_survey()
-            ui.setupUi(qdialog)
-            self.ui = ui
-            self.qdialog = qdialog
-            self.connectButtons()
-            
-        def start_dialog(self):
-            self.init_last_selection()
-            if self.qdialog.exec_():
-                self.refresh_filenames()
-                self.survey = activeSeismoPick.Survey(self.obsdir, self.srcfile, self.recfile,
-                                                      useDefaultParas = True,
-                                                      fstart = self.fstart, fend = self.fend)
-                self.executed = True
-            else:
-                self.refresh_filenames()
-                self.executed = False
-        
-        def refresh_filenames(self):
-            self.obsdir = self.ui.lineEdit_obs.text()
-            self.srcfile = self.ui.lineEdit_src.text()
-            self.recfile = self.ui.lineEdit_rec.text()
-            self.fstart = self.ui.fstart.text()
-            self.fend = self.ui.fend.text()
-
-        def init_last_selection(self):
-            self.ui.lineEdit_obs.setText(self.obsdir)
-            self.ui.lineEdit_src.setText(self.srcfile)
-            self.ui.lineEdit_rec.setText(self.recfile)
-            self.ui.fstart.setText(self.fstart)
-            self.ui.fend.setText(self.fend)
-        
-        def get_survey(self):
-            return self.survey
-
-        def connectButtons(self):
-            QtCore.QObject.connect(self.ui.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir)
-            QtCore.QObject.connect(self.ui.pushButton_src, QtCore.SIGNAL("clicked()"), self.chooseSourcefile)
-            QtCore.QObject.connect(self.ui.pushButton_rec, QtCore.SIGNAL("clicked()"), self.chooseRecfile)
-
-        def chooseObsdir(self):
-            self.ui.lineEdit_obs.setText(browseDir('Choose observation directory.'))
-
-        def chooseSourcefile(self):
-            self.ui.lineEdit_src.setText(openFile('Open sourcefile.'))
-
-        def chooseRecfile(self):
-            self.ui.lineEdit_rec.setText(openFile('Open receiverfile.'))
-
-
     def gen_seisarray(self):
         disconnect = False
         if self.checkSeisArrayState():
@@ -282,7 +100,7 @@ class gui_control(object):
                 disconnect = True
         
         if self.gsa is None:
-            self.gsa = self.Gen_SeisArray(self.mainwindow)
+            self.gsa = Gen_SeisArray(self.mainwindow)
         else:
             self.gsa.start_dialog()
 
@@ -301,7 +119,7 @@ class gui_control(object):
             if len(self.seisarray.getSourceCoordinates()) > 0:
                 if self.continueDialogMessage('Use geometry information of active Seismic Array?'):
                     if self.gssa is None:
-                        self.gssa = self.Gen_Survey_from_SA(self.mainwindow, self.seisarray)
+                        self.gssa = Gen_Survey_from_SA(self.mainwindow, self.seisarray)
                     else:
                         self.gssa.start_dialog()
                     if self.gssa.executed:
@@ -315,7 +133,7 @@ class gui_control(object):
                                                   ' because there are no sources given.'):
                     return
         if self.gssr is None:
-            self.gssr = self.Gen_Survey_from_SR(self.mainwindow)
+            self.gssr = Gen_Survey_from_SR(self.mainwindow)
         else:
             self.gssr.start_dialog()
         if self.gssr.executed:
@@ -517,21 +335,6 @@ class gui_control(object):
         self.printSeisArrayTextbox(init = False)
 
         
-    def getPickParameters(self, ui, Picking_parameters):
-        self.initDynSNRplot()
-        self.plotDynSNR()
-
-        if Picking_parameters.exec_():
-            ncores = int(ui.ncores.value())
-            vmin = float(ui.lineEdit_vmin.text())
-            vmax = float(ui.lineEdit_vmax.text())
-            folm = float(ui.slider_folm.value())/100.
-            print('folm =', folm)
-            AIC = ui.checkBox_AIC.isChecked()
-            aicwindow = (int(ui.lineEdit_aicleft.text()), int(ui.lineEdit_aicright.text()))
-            return ncores, vmin, vmax, folm, AIC, aicwindow
-
-
     def connect2Survey(self):
         if not self.checkSurveyState():
             self.printDialogMessage('No Survey defined.')
@@ -549,13 +352,9 @@ class gui_control(object):
         print('Connected Seismic Array to active Survey object.')
 
 
-    def getMaxCPU(self):
+    def getMaxCPU(self): ### OLD
         import multiprocessing
         return multiprocessing.cpu_count()
-
-
-    def refreshFolm(self):
-        self.picker_ui.label_folm.setText('%s %%'%self.picker_ui.slider_folm.value())
 
 
     def callPicker(self):
@@ -565,85 +364,15 @@ class gui_control(object):
         if self.checkPickState():
             if not self.continueDialogMessage('Survey already picked. Continue?'):
                 return
-        Picking_parameters = QtGui.QDialog(self.mainwindow)
-        ui = Ui_picking_parameters()
-        ui.setupUi(Picking_parameters)
-        ui.ncores.setMaximum(self.getMaxCPU())
-        self.picker_ui = ui
-        QtCore.QObject.connect(self.picker_ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
-        QtCore.QObject.connect(self.picker_ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.picker_ui.shift_dist, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.picker_ui.p1, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.picker_ui.p2, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
-        try:
-            ncores, vmin, vmax, folm, AIC, aicwindow = self.getPickParameters(ui, Picking_parameters)
-        except TypeError:
-            return
+
+        if self.autopicker is None:
+            self.autopicker = Call_autopicker(self.mainwindow, self.survey)
+        else:
+            self.autopicker.start_dialog()
         
-        if AIC == True:
-            HosAic = 'aic'
-        else:
-            HosAic = 'hos'
-
-        shiftSNR = float(self.picker_ui.shift_snr.value())
-        shiftDist = float(self.picker_ui.shift_dist.value())
-        p1 = float(self.picker_ui.p1.value())
-        p2 = float(self.picker_ui.p2.value())
-
-        surveyUtils.setDynamicFittedSNR(self.survey.getShotDict(), shiftdist = shiftDist,
-                                        shiftSNR = shiftSNR, p1 = p1, p2 = p2)
-
-        self.survey.pickAllShots(vmin = vmin, vmax = vmax,
-                                 folm = folm, HosAic = HosAic,
-                                 aicwindow = aicwindow, cores = ncores)
-        QtGui.qApp.processEvents() # test
-        self.setPickState(True)
-        self.printSurveyTextbox(init = False)
-
-
-    def plotDynSNR(self):
-        fig = self.snrFig
-        if fig.axes == []:
-            ax = fig.add_subplot(111)
-            xlim = None
-            ylim = None
-        else:
-            ax = fig.axes[0]
-            xlim = ax.get_xlim()
-            ylim = ax.get_ylim()
-        ax.clear()
-        snrthresholds = []
-        dists_p = []; snr_p = []
-        shiftSNR = float(self.picker_ui.shift_snr.value())
-        shiftDist = float(self.picker_ui.shift_dist.value())
-        p1 = float(self.picker_ui.p1.value())
-        p2 = float(self.picker_ui.p2.value())
-        dists = range(200) # CHANGE
-        if self.checkPickState():
-            for shot in self.survey.data.values():
-                for traceID in shot.getTraceIDlist():
-                    dists_p.append(shot.getDistance(traceID))
-                    snr_p.append(shot.getSNR(traceID)[0])
-
-            ax.scatter(dists_p, snr_p, s = 0.5, c='k')
-            
-        for dist in dists:
-            dist += shiftDist
-            snrthresholds.append(surveyUtils.snr_fit_func(surveyUtils.get_fit_fn(p1, p2), dist, shiftSNR))
-        ax.plot(dists, snrthresholds)
-        ax.set_xlabel('Distance [m]')
-        ax.set_ylabel('SNR')
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        self.snrCanvas.draw()
-
-
-    def initDynSNRplot(self):
-        self.snrFig = Figure()
-        self.snrCanvas = FigureCanvas(self.snrFig)
-        self.picker_ui.vlayout_plot.addWidget(self.snrCanvas)
-        self.snrToolbar = NavigationToolbar(self.snrCanvas, self.mainwindow)
-        self.picker_ui.vlayout_plot.addWidget(self.snrToolbar)
+        if self.autopicker.executed:
+            self.setPickState(True)
+            self.printSurveyTextbox(init = False)
 
 
     def startFMTOMO(self):
@@ -703,7 +432,7 @@ class gui_control(object):
                 interpolationMethod = 'nearest'
             self.survey.seisarray.generateFMTOMOinputFromArray(propgrid, vgrid, (bbot, btop), cushionfactor,
                                                           interpolationMethod, customgrid = customgrid,
-                                                          writeVTK = False)
+                                                          writeVTK = True)
             os.chdir(cwd)
 
             tomo = fmtomoUtils.Tomo3d(fmtomo_dir, simuldir)
