@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 from PySide import QtCore, QtGui
-from pylot.core.active import surveyUtils, activeSeismoPick, seismicArrayPreparation
-from generate_survey_layout import *
-from generate_survey_layout_minimal import *
-from generate_seisarray_layout import *
-from picking_parameters_layout import *
+from pylot.core.active import surveyUtils, activeSeismoPick, seismicArrayPreparation, fmtomoUtils
+from generate_survey_layout import Ui_generate_survey
+from generate_survey_layout_minimal import Ui_generate_survey_minimal
+from generate_seisarray_layout import Ui_generate_seisarray
+from picking_parameters_layout import Ui_picking_parameters
+from fmtomo_parameters_layout import Ui_fmtomo_parameters
 
 import numpy as np
 import matplotlib
@@ -62,7 +64,7 @@ class Gen_SeisArray(object):
     def start_dialog(self):
         self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_filenames()
+            self.refresh_selection()
             if self.ui.radioButton_interpolatable.isChecked():
                 self.seisarray = seismicArrayPreparation.SeisArray(self.recfile, True)
             elif self.ui.radioButton_normal.isChecked():
@@ -73,10 +75,10 @@ class Gen_SeisArray(object):
                 self.seisarray.addMeasuredTopographyPoints(self.ptsfile)
             self.executed = True
         else:
-            self.refresh_filenames()
+            self.refresh_selection()
             self.executed = False
 
-    def refresh_filenames(self):
+    def refresh_selection(self):
         self.srcfile = self.ui.lineEdit_src.text()
         self.recfile = self.ui.lineEdit_rec.text()
         self.ptsfile = self.ui.lineEdit_pts.text()
@@ -128,16 +130,16 @@ class Gen_Survey_from_SA(object):
     def start_dialog(self):
         self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_filenames()
+            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, seisArray = self.seisarray,
                                                   useDefaultParas = True, fstart = self.fstart,
                                                   fend = self.fend)
             self.executed = True
         else:
-            self.refresh_filenames()
+            self.refresh_selection()
             self.executed = False
 
-    def refresh_filenames(self):
+    def refresh_selection(self):
         self.obsdir = self.ui.lineEdit_obs.text()
         self.fstart = self.ui.fstart.text()
         self.fend = self.ui.fend.text()
@@ -180,16 +182,16 @@ class Gen_Survey_from_SR(object):
     def start_dialog(self):
         self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_filenames()
+            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, self.srcfile, self.recfile,
                                                   useDefaultParas = True,
                                                   fstart = self.fstart, fend = self.fend)
             self.executed = True
         else:
-            self.refresh_filenames()
+            self.refresh_selection()
             self.executed = False
 
-    def refresh_filenames(self):
+    def refresh_selection(self):
         self.obsdir = self.ui.lineEdit_obs.text()
         self.srcfile = self.ui.lineEdit_src.text()
         self.recfile = self.ui.lineEdit_rec.text()
@@ -347,9 +349,6 @@ class Call_autopicker(object):
         self.ui.p1.setValue(self.p1)
         self.ui.p2.setValue(self.p2)
 
-    def get_survey(self):
-        return self.survey
-
     def connectButtons(self):
         QtCore.QObject.connect(self.ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
         QtCore.QObject.connect(self.ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
@@ -366,3 +365,96 @@ class Call_autopicker(object):
     def chooseRecfile(self):
         self.ui.lineEdit_rec.setText(openFile('Open receiverfile.'))
 
+
+
+class Call_FMTOMO(object):
+    def __init__(self, mainwindow, survey):
+        self.mainwindow = mainwindow
+        self.survey = survey
+        self.init_dialog()
+        self.refresh_selection()                                        
+        self.start_dialog()
+
+    def init_dialog(self):
+        qdialog = QtGui.QDialog(self.mainwindow)
+        ui = Ui_fmtomo_parameters()
+        ui.setupUi(qdialog)
+        ui.nproc.setMaximum(getMaxCPU())
+        self.ui = ui
+        self.qdialog = qdialog
+        self.connectButtons()
+        
+    def start_dialog(self):
+        self.init_last_selection()
+        if self.qdialog.exec_():
+            self.refresh_selection()
+
+            if not os.path.isdir(self.picks_dir):
+                err = os.mkdir(self.picks_dir) # error not handled yet
+
+            self.survey.exportFMTOMO(self.picks_dir)
+
+            cwd = os.getcwd()
+            interpolationMethod = 'linear'
+            os.chdir(self.simuldir)
+            if self.survey.seisarray.twoDim:
+                interpolationMethod = 'nearest'
+            self.survey.seisarray.generateFMTOMOinputFromArray(self.propgrid, self.vgrid, (self.bbot, self.btop),
+                                                               self.cushionfactor/100., interpolationMethod,
+                                                               customgrid = self.customgrid, writeVTK = True)
+            os.chdir(cwd)
+
+            tomo = fmtomoUtils.Tomo3d(self.fmtomo_dir, self.simuldir)
+            tomo.runTOMO3D(self.nproc, self.nIter)
+
+            self.executed = True
+        else:
+            self.refresh_selection()
+            self.executed = False
+
+    def refresh_selection(self):
+        self.fmtomo_dir = self.ui.fmtomo_dir.text()
+        self.nIter = int(self.ui.nIter.value())
+        self.nproc = int(self.ui.nproc.value())
+        self.btop = float(self.ui.btop.text())
+        self.bbot = float(self.ui.bbot.text())
+        self.propgrid = (int(self.ui.pgrid_x.value()), int(self.ui.pgrid_y.value()), int(self.ui.pgrid_z.value()))
+        self.vgrid = (int(self.ui.invgrid_x.value()), int(self.ui.invgrid_y.value()), int(self.ui.invgrid_z.value()))
+        self.cushionfactor = float(self.ui.cushion.value())
+        self.customgrid = self.ui.customgrid.text()
+        self.simuldir = self.ui.simuldir.text()
+        self.picks_dir = os.path.join(self.simuldir, 'picks')
+        
+    def init_last_selection(self):
+        self.ui.fmtomo_dir.setText(self.fmtomo_dir)
+        self.ui.nIter.setValue(self.nIter)
+        self.ui.nproc.setValue(self.nproc)
+        self.ui.btop.setText(str(self.btop))
+        self.ui.bbot.setText(str(self.bbot))
+        self.ui.pgrid_x.setValue(self.propgrid[0])
+        self.ui.pgrid_y.setValue(self.propgrid[1])
+        self.ui.pgrid_z.setValue(self.propgrid[2])
+        self.ui.invgrid_x.setValue(self.vgrid[0])
+        self.ui.invgrid_y.setValue(self.vgrid[1])
+        self.ui.invgrid_z.setValue(self.vgrid[2])
+        self.ui.cushion.setValue(self.cushionfactor)
+        self.ui.customgrid.setText(self.customgrid)
+        self.ui.simuldir.setText(self.simuldir)
+
+    def connectButtons(self):
+        QtCore.QObject.connect(self.ui.browse_tomodir, QtCore.SIGNAL("clicked()"), self.chooseFMTOMOdir)
+        QtCore.QObject.connect(self.ui.browse_customgrid, QtCore.SIGNAL("clicked()"), self.chooseCustomgrid)
+        QtCore.QObject.connect(self.ui.browse_simuldir, QtCore.SIGNAL("clicked()"), self.chooseSimuldir)
+
+    def chooseFMTOMOdir(self):
+        self.ui.fmtomo_dir.setText(browseDir())
+
+    def chooseCustomgrid(self):
+        self.ui.customgrid.setText(openFile())
+
+    def chooseSimuldir(self):
+        self.ui.simuldir.setText(browseDir())
+
+
+
+        

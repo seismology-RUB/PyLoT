@@ -9,9 +9,8 @@ matplotlib.rcParams['backend.qt4']='PySide'
 from PySide import QtCore, QtGui
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 from pylot.core.active.gui.asp3d_layout import *
-from pylot.core.active.gui.fmtomo_parameters_layout import *
 from pylot.core.active.gui.vtk_tools_layout import *
-from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker
+from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO
 from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,10 +35,14 @@ class gui_control(object):
         self.mainUI.progressBar.setVisible(False)
         self.printSurveyTextbox()
         self.printSeisArrayTextbox()
+        self.initWindowObjects()
+
+    def initWindowObjects(self):
         self.gsa = None
         self.gssa = None
         self.gssr = None
         self.autopicker = None
+        self.fmtomo = None
 
     def setInitStates(self):
         self.setPickState(False)
@@ -56,7 +59,7 @@ class gui_control(object):
         QtCore.QObject.connect(self.mainUI.actionConnect_to_Survey, QtCore.SIGNAL("triggered()"), self.connect2Survey)
         QtCore.QObject.connect(self.mainUI.actionInterpolate_Receivers, QtCore.SIGNAL("triggered()"), self.interpolate_receivers)
         QtCore.QObject.connect(self.mainUI.actionGenerate_new_Survey, QtCore.SIGNAL("triggered()"), self.gen_survey)
-        QtCore.QObject.connect(self.mainUI.actionAutomatic_Picking, QtCore.SIGNAL("triggered()"), self.callPicker)
+        QtCore.QObject.connect(self.mainUI.actionAutomatic_Picking, QtCore.SIGNAL("triggered()"), self.startPicker)
         QtCore.QObject.connect(self.mainUI.actionPostprocessing, QtCore.SIGNAL("triggered()"), self.postprocessing)
         QtCore.QObject.connect(self.mainUI.actionStart_FMTOMO_Simulation, QtCore.SIGNAL("triggered()"), self.startFMTOMO)
         QtCore.QObject.connect(self.mainUI.actionVTK_Visualization, QtCore.SIGNAL("triggered()"), self.startVTKtools)
@@ -331,7 +334,7 @@ class gui_control(object):
         print('Connected Seismic Array to active Survey object.')
 
 
-    def callPicker(self):
+    def startPicker(self):
         if not self.checkSurveyState():
             self.printDialogMessage('No Survey defined.')
             return
@@ -356,15 +359,14 @@ class gui_control(object):
         if not self.checkPickState():
             self.printDialogMessage('Survey not picked.')
             return
-        fmtomo_parameters = QtGui.QDialog(self.mainwindow)
-        ui = Ui_fmtomo_parameters()
-        ui.setupUi(fmtomo_parameters)                
-        ui.nproc.setMaximum(getMaxCPU())
 
-        self.fmtomo_parameters_ui = ui
-        self.connectButtons_startFMTOMO()
-        self.getFMTOMOparameters(ui, fmtomo_parameters)
+        if self.fmtomo is None:
+            self.fmtomo = Call_FMTOMO(self.mainwindow, self.survey)
+        else:
+            self.fmtomo.start_dialog()
 
+        #if self.fmtomo.executed:
+        
 
     def startVTKtools(self):
         vtk_tools = QtGui.QDialog(self.mainwindow)
@@ -378,45 +380,6 @@ class gui_control(object):
 
     def openVTKdialog(self, ui, vtk_tools):
         vtk_tools.exec_()
-
-
-    def getFMTOMOparameters(self, ui, fmtomo_parameters):
-        if fmtomo_parameters.exec_():
-            fmtomo_dir = ui.fmtomo_dir.text()
-            nIter = int(ui.nIter.value())
-            nproc = int(ui.nproc.value())
-            btop = float(ui.btop.text())
-            bbot = float(ui.bbot.text())
-            propgrid = (int(ui.pgrid_x.text()), int(ui.pgrid_y.text()), int(ui.pgrid_z.text()))
-            vgrid = (int(ui.invgrid_x.text()), int(ui.invgrid_y.text()), int(ui.invgrid_z.text()))
-            cushionfactor = float(ui.cushion.text())/100.
-            customgrid = ui.customgrid.text()
-            simuldir = ui.simuldir.text()
-            picks_dir = os.path.join(simuldir, 'picks')
-
-            if not os.path.isdir(picks_dir):
-                err = os.mkdir(picks_dir)
-
-            self.survey.exportFMTOMO(picks_dir)
-
-            cwd = os.getcwd()
-            interpolationMethod = 'linear'
-            os.chdir(simuldir)
-            if self.seisarray.twoDim:
-                interpolationMethod = 'nearest'
-            self.survey.seisarray.generateFMTOMOinputFromArray(propgrid, vgrid, (bbot, btop), cushionfactor,
-                                                          interpolationMethod, customgrid = customgrid,
-                                                          writeVTK = True)
-            os.chdir(cwd)
-
-            tomo = fmtomoUtils.Tomo3d(fmtomo_dir, simuldir)
-            tomo.runTOMO3D(nproc, nIter)
-
-                            
-    def connectButtons_startFMTOMO(self):
-        QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_tomodir, QtCore.SIGNAL("clicked()"), self.chooseFMTOMOdir)
-        QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_customgrid, QtCore.SIGNAL("clicked()"), self.chooseCustomgrid)
-        QtCore.QObject.connect(self.fmtomo_parameters_ui.browse_simuldir, QtCore.SIGNAL("clicked()"), self.chooseSimuldir)
 
 
     def connectButtons_vtk_tools(self):
@@ -511,22 +474,6 @@ class gui_control(object):
 
     def newFileVTK(self):
         self.vtk_tools_ui.lineEdit_vgout.setText(saveFile())
-
-
-    def chooseFMTOMOdir(self):
-        self.fmtomo_parameters_ui.fmtomo_dir.setText(browseDir())
-
-
-    def chooseCustomgrid(self):
-        self.fmtomo_parameters_ui.customgrid.setText(openFile())
-
-
-    def chooseSimuldir(self):
-        self.fmtomo_parameters_ui.simuldir.setText(browseDir())
-
-
-    def chooseSeisarray(self):
-        self.fmtomo_parameters_ui.seisarray.setText(openFile())
 
 
     def postprocessing(self):
