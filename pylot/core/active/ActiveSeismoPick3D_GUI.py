@@ -7,37 +7,17 @@ matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4']='PySide'
 
 from PySide import QtCore, QtGui
+from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 from pylot.core.active.gui.asp3d_layout import *
 from pylot.core.active.gui.fmtomo_parameters_layout import *
 from pylot.core.active.gui.vtk_tools_layout import *
 from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker
-from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
+from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-
-def openFile(name = 'Open'):
-    dialog = QtGui.QFileDialog()
-    dialog.setWindowTitle(name)                #not working yet
-    filename = dialog.getOpenFileName()
-    if len(filename[0]) > 0:
-        return filename[0]
-
-def saveFile(name = 'Save'):
-    dialog = QtGui.QFileDialog()
-    dialog.setWindowTitle(name)
-    filename = dialog.getSaveFileName()
-    if len(filename[0]) > 0:
-        return filename[0]
-
-def browseDir(name = 'Open Directory'):
-    dialog = QtGui.QFileDialog()
-    dialog.setWindowTitle(name)
-    directory = dialog.getExistingDirectory()
-    if len(directory) > 0:
-        return directory
 
 class gui_control(object):
     def __init__(self):
@@ -140,9 +120,8 @@ class gui_control(object):
             self.survey = self.gssr.get_survey()
             self.seisarray = self.survey.seisarray
             self.initNewSurvey()
+            self.setSeisArrayState(True)
             self.setConnected2SurveyState(True)
-            self.setPickState(False)
-
 
 
     def initNewSurvey(self):
@@ -352,11 +331,6 @@ class gui_control(object):
         print('Connected Seismic Array to active Survey object.')
 
 
-    def getMaxCPU(self): ### OLD
-        import multiprocessing
-        return multiprocessing.cpu_count()
-
-
     def callPicker(self):
         if not self.checkSurveyState():
             self.printDialogMessage('No Survey defined.')
@@ -385,7 +359,7 @@ class gui_control(object):
         fmtomo_parameters = QtGui.QDialog(self.mainwindow)
         ui = Ui_fmtomo_parameters()
         ui.setupUi(fmtomo_parameters)                
-        ui.nproc.setMaximum(self.getMaxCPU())
+        ui.nproc.setMaximum(getMaxCPU())
 
         self.fmtomo_parameters_ui = ui
         self.connectButtons_startFMTOMO()

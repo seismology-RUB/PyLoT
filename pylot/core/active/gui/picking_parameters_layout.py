@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'picking_parameters_layout.ui'
 #
-# Created: Mon Jul 18 11:26:33 2016
+# Created: Wed Jul 27 11:15:06 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,8 +12,8 @@ from PySide import QtCore, QtGui
 class Ui_picking_parameters(object):
     def setupUi(self, picking_parameters):
         picking_parameters.setObjectName("picking_parameters")
-        picking_parameters.resize(400, 550)
-        picking_parameters.setMinimumSize(QtCore.QSize(0, 550))
+        picking_parameters.resize(400, 700)
+        picking_parameters.setMinimumSize(QtCore.QSize(0, 700))
         self.verticalLayout_4 = QtGui.QVBoxLayout(picking_parameters)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.label_7 = QtGui.QLabel(picking_parameters)

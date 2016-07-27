@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from PySide import QtCore, QtGui
+from pylot.core.active import surveyUtils, activeSeismoPick, seismicArrayPreparation
 from generate_survey_layout import *
 from generate_survey_layout_minimal import *
 from generate_seisarray_layout import *
-from pylot.core.active.gui.picking_parameters_layout import *
-from pylot.core.active import surveyUtils
+from picking_parameters_layout import *
 
 import numpy as np
 import matplotlib
@@ -15,6 +15,27 @@ matplotlib.rcParams['backend.qt4']='PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+
+def openFile(name = 'Open'):
+    dialog = QtGui.QFileDialog()
+    dialog.setWindowTitle(name)                #not working yet
+    filename = dialog.getOpenFileName()
+    if len(filename[0]) > 0:
+        return filename[0]
+
+def saveFile(name = 'Save'):
+    dialog = QtGui.QFileDialog()
+    dialog.setWindowTitle(name)
+    filename = dialog.getSaveFileName()
+    if len(filename[0]) > 0:
+        return filename[0]
+
+def browseDir(name = 'Open Directory'):
+    dialog = QtGui.QFileDialog()
+    dialog.setWindowTitle(name)
+    directory = dialog.getExistingDirectory()
+    if len(directory) > 0:
+        return directory
 
 def getMaxCPU():
     import multiprocessing

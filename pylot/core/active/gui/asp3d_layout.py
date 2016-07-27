@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'asp3d_layout.ui'
 #
-# Created: Mon Jul 18 11:26:32 2016
+# Created: Wed Jul 27 11:15:05 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -354,7 +354,7 @@ class Ui_MainWindow(object):
         self.label_3.setText(QtGui.QApplication.translate("MainWindow", "Survey", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("MainWindow", "active", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("MainWindow", "picked", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_11.setText(QtGui.QApplication.translate("MainWindow", "Plot Receiver and Shots of the Array colord by:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_11.setText(QtGui.QApplication.translate("MainWindow", "Plot Receiver and Shots of the Array colored by:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_10.setText(QtGui.QApplication.translate("MainWindow", "Plot a single Shot:", None, QtGui.QApplication.UnicodeUTF8))
         self.shot_left.setText(QtGui.QApplication.translate("MainWindow", "<", None, QtGui.QApplication.UnicodeUTF8))
         self.shot_right.setText(QtGui.QApplication.translate("MainWindow", ">", None, QtGui.QApplication.UnicodeUTF8))
@@ -363,7 +363,7 @@ class Ui_MainWindow(object):
         self.menuSeismic_Array.setTitle(QtGui.QApplication.translate("MainWindow", "Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
         self.menuSurvey.setTitle(QtGui.QApplication.translate("MainWindow", "Survey", None, QtGui.QApplication.UnicodeUTF8))
         self.menuPicking.setTitle(QtGui.QApplication.translate("MainWindow", "Picking", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuSimulation.setTitle(QtGui.QApplication.translate("MainWindow", "Simulation", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuSimulation.setTitle(QtGui.QApplication.translate("MainWindow", "Inversion", None, QtGui.QApplication.UnicodeUTF8))
         self.menuTools.setTitle(QtGui.QApplication.translate("MainWindow", "Tools", None, QtGui.QApplication.UnicodeUTF8))
         self.actionLoad_Seismic_Array.setText(QtGui.QApplication.translate("MainWindow", "Load Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSave_Seismic_Array.setText(QtGui.QApplication.translate("MainWindow", "Save Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
