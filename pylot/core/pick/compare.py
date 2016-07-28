@@ -405,23 +405,42 @@ class PDFstatistics(object):
 
 
 
-    def histplot(self ,array , bins = 100, label=None):
+    def histplot(self, array, label=None):
         # baustelle
+        binlist = []
+        if array[-1] == '5':
+            bfactor = 0.001
+            badd = 0
+        elif array[-1] == '1':
+            bfactor = 0.003
+            badd = 0
+        else:
+            bfactor = 0.006
+            badd = 0.4
+
+        for i in range(100):
+            binlist.append(badd+bfactor*i)
         import matplotlib.pyplot as plt
 
-        plt.hist(self.axis, self.data())
-        plt.xlabel('x')
-        plt.ylabel('f(x)')
-        plt.autoscale(axis='x', tight=True)
-        if self:
-            title_str = 'Probability density function '
-            if label:
-                title_str += label
-            title_str.strip()
-        else:
-            title_str = 'Function not suitable as probability density function'
+        plt.hist(eval('self.'+array),bins = binlist)
+        plt.xlabel('Values')
+        plt.ylabel('Frequency')
+        #plt.autoscale(axis='x', tight=True)
+        title_str = 'Quantile distance quotient distribution'
+        if label:
+            title_str += ' (' + label + ')'
         plt.title(title_str)
         plt.show()
+
+
+    def getTheta(self,number):
+        if number == 0:
+            return self.theta015
+        elif number == 1:
+            return self.theta1
+        elif number == 2:
+            return self.theta2
+
 
 
     def getPDFDict(self, month, evt):

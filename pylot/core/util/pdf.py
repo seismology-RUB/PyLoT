@@ -326,7 +326,7 @@ class ProbabilityDensityFunction(object):
             raise ValueError('value out of bounds: {0}'.format(value))
         return self.prob_limits((value, self.axis[-1]))
 
-    def prob_limits(self, limits, oversampling=1.):
+    def prob_limits(self, limits, oversampling=10.):
         sampling = self.incr / oversampling
         lim = np.arange(limits[0], limits[1], sampling)
         data = self.data(lim)
@@ -353,7 +353,6 @@ class ProbabilityDensityFunction(object):
         r = self.axis[-1]
         m = (r + l) / 2
         diff = prob_value - self.prob_lt_val(m)
-
         while abs(diff) > eps and ((r - l) > self.incr):
             if diff > 0:
                 l = m
@@ -366,12 +365,11 @@ class ProbabilityDensityFunction(object):
     def quantile_distance(self, prob_value):
         ql = self.quantile(prob_value)
         qu = self.quantile(1 - prob_value)
-
         return qu - ql
 
 
     def qtile_dist_quot(self,x):
-        if x < 0 or x > 0.5:
+        if x <= 0 or x >= 0.5:
             raise ValueError('Value out of range.')
         return self.quantile_distance(0.5-x)/self.quantile_distance(x)
 
