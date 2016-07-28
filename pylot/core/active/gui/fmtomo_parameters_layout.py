@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'fmtomo_parameters_layout.ui'
 #
-# Created: Tue Jul 12 21:41:12 2016
+# Created: Wed Jul 27 11:15:05 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -270,7 +270,7 @@ class Ui_fmtomo_parameters(object):
 "Too low values will cause error.", None, QtGui.QApplication.UnicodeUTF8))
         self.label_13.setText(QtGui.QApplication.translate("fmtomo_parameters", "Cushion factor [?]", None, QtGui.QApplication.UnicodeUTF8))
         self.label_12.setText(QtGui.QApplication.translate("fmtomo_parameters", "%", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_4.setText(QtGui.QApplication.translate("fmtomo_parameters", "Number of Ponts", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setText(QtGui.QApplication.translate("fmtomo_parameters", "Number of Points", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("fmtomo_parameters", "X", None, QtGui.QApplication.UnicodeUTF8))
         self.label_6.setText(QtGui.QApplication.translate("fmtomo_parameters", "Y", None, QtGui.QApplication.UnicodeUTF8))
         self.label_7.setText(QtGui.QApplication.translate("fmtomo_parameters", "Z", None, QtGui.QApplication.UnicodeUTF8))

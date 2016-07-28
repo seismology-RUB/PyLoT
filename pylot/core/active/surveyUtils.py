@@ -1,5 +1,5 @@
 from __future__ import print_function
-
+import numpy as np
 
 def readParameters(parfile, parameter):
     """
@@ -90,10 +90,9 @@ def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0
     :type p2: float
     :return:
     """
-    import numpy as np
     minSNR = 2.5
     # fit_fn = fitSNR4dist(shot_dict)
-    fit_fn = np.poly1d([p1, p2])
+    fit_fn = get_fit_fn(p1, p2)
     for shot in shot_dict.values():
         for traceID in shot.getTraceIDlist():  ### IMPROVE
             dist = shot.getDistance(traceID) + shiftdist
@@ -104,12 +103,16 @@ def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0
                 shot.setSNRthreshold(traceID, minSNR)
             else:
                 shot.setSNRthreshold(traceID, snrthreshold)
-    print("setDynamicFittedSNR: Finished setting of fitted SNR-threshold")
+    print("setDynamicFittedSNR: Finished setting of fitted SNR-threshold.\n"
+          "Parameters: ShiftDist = %s, ShiftSNR = %s, p1 = %s, p2 = %s"
+          %(shiftdist, shiftSNR, p1, p2))
 
 def snr_fit_func(fit_fn, dist, shiftSNR):
-    import numpy as np
     snrthreshold = (1 / (fit_fn(dist) ** 2)) - shiftSNR * np.exp(-0.05 * dist)
     return snrthreshold
+
+def get_fit_fn(p1, p2):
+    return np.poly1d([p1, p2])
 
 def setConstantSNR(shot_dict, snrthreshold=2.5):
     """

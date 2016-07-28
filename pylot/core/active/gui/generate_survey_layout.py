@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'generate_survey_layout.ui'
 #
-# Created: Tue Jul 12 21:41:13 2016
+# Created: Wed Jul 27 11:15:06 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_generate_survey(object):
     def setupUi(self, generate_survey):
         generate_survey.setObjectName("generate_survey")
-        generate_survey.resize(382, 211)
+        generate_survey.resize(382, 220)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("../asp3d_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         generate_survey.setWindowIcon(icon)
@@ -50,6 +50,11 @@ class Ui_generate_survey(object):
         self.verticalLayout_2.addLayout(self.gridLayout)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
+        self.line_2 = QtGui.QFrame(generate_survey)
+        self.line_2.setFrameShape(QtGui.QFrame.HLine)
+        self.line_2.setFrameShadow(QtGui.QFrame.Sunken)
+        self.line_2.setObjectName("line_2")
+        self.verticalLayout.addWidget(self.line_2)
         self.label = QtGui.QLabel(generate_survey)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
