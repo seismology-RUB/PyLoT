@@ -8,6 +8,8 @@ from generate_survey_layout_minimal import Ui_generate_survey_minimal
 from generate_seisarray_layout import Ui_generate_seisarray
 from picking_parameters_layout import Ui_picking_parameters
 from fmtomo_parameters_layout import Ui_fmtomo_parameters
+from pylot.core.active.gui.vtk_tools_layout import Ui_vtk_tools
+
 
 import numpy as np
 import matplotlib
@@ -62,9 +64,7 @@ class Gen_SeisArray(object):
         self.connectButtons()
 
     def start_dialog(self):
-        self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_selection()
             if self.ui.radioButton_interpolatable.isChecked():
                 self.seisarray = seismicArrayPreparation.SeisArray(self.recfile, True)
             elif self.ui.radioButton_normal.isChecked():
@@ -75,18 +75,7 @@ class Gen_SeisArray(object):
                 self.seisarray.addMeasuredTopographyPoints(self.ptsfile)
             self.executed = True
         else:
-            self.refresh_selection()
             self.executed = False
-
-    def refresh_selection(self):
-        self.srcfile = self.ui.lineEdit_src.text()
-        self.recfile = self.ui.lineEdit_rec.text()
-        self.ptsfile = self.ui.lineEdit_pts.text()
-
-    def init_last_selection(self):
-        self.ui.lineEdit_src.setText(self.srcfile)
-        self.ui.lineEdit_rec.setText(self.recfile)
-        self.ui.lineEdit_pts.setText(self.ptsfile)
 
     def get_seisarray(self):
         if self.seisarray is not None:
@@ -128,26 +117,13 @@ class Gen_Survey_from_SA(object):
         self.connectButtons()
 
     def start_dialog(self):
-        self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, seisArray = self.seisarray,
                                                   useDefaultParas = True, fstart = self.fstart,
                                                   fend = self.fend)
             self.executed = True
         else:
-            self.refresh_selection()
             self.executed = False
-
-    def refresh_selection(self):
-        self.obsdir = self.ui.lineEdit_obs.text()
-        self.fstart = self.ui.fstart.text()
-        self.fend = self.ui.fend.text()
-
-    def init_last_selection(self):
-        self.ui.lineEdit_obs.setText(self.obsdir)
-        self.ui.fstart.setText(self.fstart)
-        self.ui.fend.setText(self.fend)
 
     def get_survey(self):
         return self.survey
@@ -180,30 +156,13 @@ class Gen_Survey_from_SR(object):
         self.connectButtons()
 
     def start_dialog(self):
-        self.init_last_selection()
         if self.qdialog.exec_():
-            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, self.srcfile, self.recfile,
                                                   useDefaultParas = True,
                                                   fstart = self.fstart, fend = self.fend)
             self.executed = True
         else:
-            self.refresh_selection()
             self.executed = False
-
-    def refresh_selection(self):
-        self.obsdir = self.ui.lineEdit_obs.text()
-        self.srcfile = self.ui.lineEdit_src.text()
-        self.recfile = self.ui.lineEdit_rec.text()
-        self.fstart = self.ui.fstart.text()
-        self.fend = self.ui.fend.text()
-
-    def init_last_selection(self):
-        self.ui.lineEdit_obs.setText(self.obsdir)
-        self.ui.lineEdit_src.setText(self.srcfile)
-        self.ui.lineEdit_rec.setText(self.recfile)
-        self.ui.fstart.setText(self.fstart)
-        self.ui.fend.setText(self.fend)
 
     def get_survey(self):
         return self.survey
@@ -221,7 +180,6 @@ class Gen_Survey_from_SR(object):
 
     def chooseRecfile(self):
         self.ui.lineEdit_rec.setText(openFile('Open receiverfile.'))
-
 
 
 class Call_autopicker(object):
@@ -456,5 +414,115 @@ class Call_FMTOMO(object):
         self.ui.simuldir.setText(browseDir())
 
 
+class Call_VTK_dialog(object):
+    def __init__(self, mainwindow):
+        self.mainwindow = mainwindow
+        self.init_dialog()
+        #self.refresh_selection()                                        
+        self.start_dialog()
 
+    def init_dialog(self):
+        qdialog = QtGui.QDialog(self.mainwindow)
+        ui = Ui_vtk_tools()
+        ui.setupUi(qdialog)
+        self.ui = ui
+        self.qdialog = qdialog
+        self.connectButtons()
         
+    def start_dialog(self):
+        #self.init_last_selection()
+        self.qdialog.exec_()
+        #self.refresh_selection()
+
+    # def refresh_selection(self):
+    #     self.vg = self.ui.lineEdit_vg.text()
+    #     self.vgout = self.ui.lineEdit_vgout.text()
+    #     self.rays = self.ui.lineEdit_rays.text()
+    #     self.raysout = self.ui.lineEdit_raysout.text()
+        
+    # def init_last_selection(self):
+    #     self.ui.lineEdit_vg.setText(self.vg)
+    #     self.ui.lineEdit_vgout.setText(self.vgout)
+    #     self.ui.lineEdit_rays.setText(self.rays)
+    #     self.ui.lineEdit_raysout.setText(self.raysout)
+
+    def checkVgStartButton(self):
+        ui = self.ui
+        if ui.radioButton_rel.isChecked():
+            if ui.lineEdit_vg.text() != '' and ui.lineEdit_vgref.text() != '':
+                ui.start_vg.setEnabled(True)
+            else:
+                ui.start_vg.setEnabled(False)
+        if ui.radioButton_abs.isChecked():
+            if ui.lineEdit_vg.text() != '':
+                ui.start_vg.setEnabled(True)
+            else:
+                ui.start_vg.setEnabled(False)                
+
+    def checkRaysStartButton(self):
+        ui = self.ui
+        if ui.lineEdit_rays.text() != '' and ui.lineEdit_raysout.text() != '':
+            ui.start_rays.setEnabled(True)
+        else:
+            ui.start_rays.setEnabled(False)
+
+    def connectButtons(self):
+        QtCore.QObject.connect(self.ui.pushButton_vg, QtCore.SIGNAL("clicked()"), self.chooseVgrid)
+        QtCore.QObject.connect(self.ui.pushButton_vgref, QtCore.SIGNAL("clicked()"), self.chooseVgridref)
+        QtCore.QObject.connect(self.ui.pushButton_rays, QtCore.SIGNAL("clicked()"), self.chooseRaysIn)
+        QtCore.QObject.connect(self.ui.pushButton_raysout, QtCore.SIGNAL("clicked()"), self.chooseRaysOutDir)
+        QtCore.QObject.connect(self.ui.pushButton_vtkout, QtCore.SIGNAL("clicked()"), self.newFileVTK)
+        QtCore.QObject.connect(self.ui.pushButton_parav, QtCore.SIGNAL("clicked()"), self.openFileParaview)
+        QtCore.QObject.connect(self.ui.start_vg, QtCore.SIGNAL("clicked()"), self.startvgvtk)
+        QtCore.QObject.connect(self.ui.start_rays, QtCore.SIGNAL("clicked()"), self.startraysvtk)
+        QtCore.QObject.connect(self.ui.radioButton_rel, QtCore.SIGNAL("clicked()"), self.activateVgref)
+        QtCore.QObject.connect(self.ui.radioButton_abs, QtCore.SIGNAL("clicked()"), self.deactivateVgref)
+
+    def openFileParaview(self):
+        os.system('paraview %s &'%self.ui.lineEdit_vgout.text())
+
+    def activateVgref(self):
+        self.ui.lineEdit_vgref.setEnabled(True)
+        self.ui.pushButton_vgref.setEnabled(True)
+
+    def deactivateVgref(self):
+        self.ui.lineEdit_vgref.setEnabled(False)
+        self.ui.pushButton_vgref.setEnabled(False)
+
+    def chooseVgrid(self):
+        self.ui.lineEdit_vg.setText(openFile())
+        self.checkVgStartButton()
+
+    def chooseVgridref(self):
+        self.ui.lineEdit_vgref.setText(openFile())
+        self.checkVgStartButton()
+
+    def chooseRaysIn(self):
+        self.ui.lineEdit_rays.setText(openFile())
+        self.checkRaysStartButton()
+
+    def chooseRaysOutDir(self):
+        self.ui.lineEdit_raysout.setText(browseDir())
+        self.checkRaysStartButton()
+
+    def startvgvtk(self):
+        ui = self.ui
+        if ui.lineEdit_vgout.text() == '':
+            return            
+        if ui.radioButton_abs.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
+                                   outputfile = ui.lineEdit_vgout.text(),
+                                   absOrRel='abs')
+        elif ui.radioButton_rel.isChecked():
+            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
+                                   outputfile = ui.lineEdit_vgout.text(),
+                                   absOrRel='rel',
+                                   inputfileref = ui.lineEdit_vgref.text())
+
+    def startraysvtk(self):
+        ui = self.ui
+        fmtomoUtils.rays2VTK(ui.lineEdit_rays.text(), ui.lineEdit_raysout.text())
+
+    def newFileVTK(self):
+        self.ui.lineEdit_vgout.setText(saveFile())
+

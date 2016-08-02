@@ -9,8 +9,7 @@ matplotlib.rcParams['backend.qt4']='PySide'
 from PySide import QtCore, QtGui
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 from pylot.core.active.gui.asp3d_layout import *
-from pylot.core.active.gui.vtk_tools_layout import *
-from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO
+from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO, Call_VTK_dialog
 from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -43,6 +42,7 @@ class gui_control(object):
         self.gssr = None
         self.autopicker = None
         self.fmtomo = None
+        self.vtktools = None
 
     def setInitStates(self):
         self.setPickState(False)
@@ -369,111 +369,10 @@ class gui_control(object):
         
 
     def startVTKtools(self):
-        vtk_tools = QtGui.QDialog(self.mainwindow)
-        ui = Ui_vtk_tools()
-        ui.setupUi(vtk_tools)
-
-        self.vtk_tools_ui = ui
-        self.connectButtons_vtk_tools()
-        self.openVTKdialog(ui, vtk_tools)
-
-
-    def openVTKdialog(self, ui, vtk_tools):
-        vtk_tools.exec_()
-
-
-    def connectButtons_vtk_tools(self):
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vg, QtCore.SIGNAL("clicked()"), self.chooseVgrid)
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vgref, QtCore.SIGNAL("clicked()"), self.chooseVgridref)
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_rays, QtCore.SIGNAL("clicked()"), self.chooseRaysIn)
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_raysout, QtCore.SIGNAL("clicked()"), self.chooseRaysOutDir)
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_vtkout, QtCore.SIGNAL("clicked()"), self.newFileVTK)
-        QtCore.QObject.connect(self.vtk_tools_ui.pushButton_parav, QtCore.SIGNAL("clicked()"), self.openFileParaview)
-        QtCore.QObject.connect(self.vtk_tools_ui.start_vg, QtCore.SIGNAL("clicked()"), self.startvgvtk)
-        QtCore.QObject.connect(self.vtk_tools_ui.start_rays, QtCore.SIGNAL("clicked()"), self.startraysvtk)
-        QtCore.QObject.connect(self.vtk_tools_ui.radioButton_rel, QtCore.SIGNAL("clicked()"), self.activateVgref)
-        QtCore.QObject.connect(self.vtk_tools_ui.radioButton_abs, QtCore.SIGNAL("clicked()"), self.deactivateVgref)
-
-
-    def openFileParaview(self):
-        os.system('paraview %s &'%self.vtk_tools_ui.lineEdit_vgout.text())
-
-
-    def activateVgref(self):
-        self.vtk_tools_ui.lineEdit_vgref.setEnabled(True)
-        self.vtk_tools_ui.pushButton_vgref.setEnabled(True)
-
-
-    def deactivateVgref(self):
-        self.vtk_tools_ui.lineEdit_vgref.setEnabled(False)
-        self.vtk_tools_ui.pushButton_vgref.setEnabled(False)
-
-
-    def checkVgStartButton(self):
-        ui = self.vtk_tools_ui
-        if ui.radioButton_rel.isChecked():
-            if ui.lineEdit_vg.text() != '' and ui.lineEdit_vgref.text() != '':
-                ui.start_vg.setEnabled(True)
-            else:
-                ui.start_vg.setEnabled(False)
-        if ui.radioButton_abs.isChecked():
-            if ui.lineEdit_vg.text() != '':
-                ui.start_vg.setEnabled(True)
-            else:
-                ui.start_vg.setEnabled(False)                
-
-
-    def checkRaysStartButton(self):
-        ui = self.vtk_tools_ui
-        if ui.lineEdit_rays.text() != '' and ui.lineEdit_raysout.text() != '':
-            ui.start_rays.setEnabled(True)
+        if self.vtktools is None:
+            self.vtktools = Call_VTK_dialog(self.mainwindow)
         else:
-            ui.start_rays.setEnabled(False)
-
-
-    def chooseVgrid(self):
-        self.vtk_tools_ui.lineEdit_vg.setText(openFile())
-        self.checkVgStartButton()
-
-
-    def chooseVgridref(self):
-        self.vtk_tools_ui.lineEdit_vgref.setText(openFile())
-        self.checkVgStartButton()
-
-
-    def chooseRaysIn(self):
-        self.vtk_tools_ui.lineEdit_rays.setText(openFile())
-        self.checkRaysStartButton()
-
-
-    def chooseRaysOutDir(self):
-        self.vtk_tools_ui.lineEdit_raysout.setText(browseDir())
-        self.checkRaysStartButton()
-
-
-    def startvgvtk(self):
-        ui = self.vtk_tools_ui
-        if ui.lineEdit_vgout.text() == '':
-            if not self.printDialogMessage('Please specify output filename.'):
-                return            
-        if ui.radioButton_abs.isChecked():
-            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
-                                   outputfile = ui.lineEdit_vgout.text(),
-                                   absOrRel='abs')
-        elif ui.radioButton_rel.isChecked():
-            fmtomoUtils.vgrids2VTK(inputfile = ui.lineEdit_vg.text(),
-                                   outputfile = ui.lineEdit_vgout.text(),
-                                   absOrRel='rel',
-                                   inputfileref = ui.lineEdit_vgref.text())
-
-
-    def startraysvtk(self):
-        ui = self.vtk_tools_ui
-        fmtomoUtils.rays2VTK(ui.lineEdit_rays.text(), ui.lineEdit_raysout.text())
-
-
-    def newFileVTK(self):
-        self.vtk_tools_ui.lineEdit_vgout.setText(saveFile())
+            self.vtktools.start_dialog()
 
 
     def postprocessing(self):
