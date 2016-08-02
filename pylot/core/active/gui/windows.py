@@ -45,6 +45,7 @@ def getMaxCPU():
     import multiprocessing
     return multiprocessing.cpu_count()
 
+
 class Gen_SeisArray(object):
     def __init__(self, mainwindow):
         self.mainwindow = mainwindow
@@ -65,6 +66,7 @@ class Gen_SeisArray(object):
 
     def start_dialog(self):
         if self.qdialog.exec_():
+            self.refresh_selection()
             if self.ui.radioButton_interpolatable.isChecked():
                 self.seisarray = seismicArrayPreparation.SeisArray(self.recfile, True)
             elif self.ui.radioButton_normal.isChecked():
@@ -75,7 +77,13 @@ class Gen_SeisArray(object):
                 self.seisarray.addMeasuredTopographyPoints(self.ptsfile)
             self.executed = True
         else:
+            self.refresh_selection()
             self.executed = False
+
+    def refresh_selection(self):
+        self.srcfile = self.ui.lineEdit_src.text()
+        self.recfile = self.ui.lineEdit_rec.text()
+        self.ptsfile = self.ui.lineEdit_pts.text()
 
     def get_seisarray(self):
         if self.seisarray is not None:
@@ -94,7 +102,6 @@ class Gen_SeisArray(object):
 
     def chooseMeasuredPts(self):
         self.ui.lineEdit_pts.setText(openFile('Open measured points file.'))
-
 
 
 class Gen_Survey_from_SA(object):
@@ -118,12 +125,19 @@ class Gen_Survey_from_SA(object):
 
     def start_dialog(self):
         if self.qdialog.exec_():
+            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, seisArray = self.seisarray,
                                                   useDefaultParas = True, fstart = self.fstart,
                                                   fend = self.fend)
             self.executed = True
         else:
+            self.refresh_selection()
             self.executed = False
+
+    def refresh_selection(self):
+        self.obsdir = self.ui.lineEdit_obs.text()
+        self.fstart = self.ui.fstart.text()
+        self.fend = self.ui.fend.text()
 
     def get_survey(self):
         return self.survey
@@ -157,12 +171,21 @@ class Gen_Survey_from_SR(object):
 
     def start_dialog(self):
         if self.qdialog.exec_():
+            self.refresh_selection()
             self.survey = activeSeismoPick.Survey(self.obsdir, self.srcfile, self.recfile,
                                                   useDefaultParas = True,
                                                   fstart = self.fstart, fend = self.fend)
             self.executed = True
         else:
+            self.refresh_selection()
             self.executed = False
+
+    def refresh_selection(self):
+        self.obsdir = self.ui.lineEdit_obs.text()
+        self.srcfile = self.ui.lineEdit_src.text()
+        self.recfile = self.ui.lineEdit_rec.text()
+        self.fstart = self.ui.fstart.text()
+        self.fend = self.ui.fend.text()
 
     def get_survey(self):
         return self.survey
@@ -256,7 +279,6 @@ class Call_autopicker(object):
         self.snrCanvas.draw()
 
     def start_dialog(self):
-        self.init_last_selection()
         self.plotDynSNR()
         if self.qdialog.exec_():
             self.refresh_selection()
@@ -294,19 +316,6 @@ class Call_autopicker(object):
         self.p1 = float(self.ui.p1.value())
         self.p2 = float(self.ui.p2.value())
 
-    def init_last_selection(self):
-        self.ui.ncores.setValue(self.ncores)
-        self.ui.lineEdit_vmin.setText(str(self.vmin))
-        self.ui.lineEdit_vmax.setText(str(self.vmax))
-        self.ui.slider_folm.setValue(self.folm)
-        self.ui.checkBox_AIC.setChecked(self.AIC)
-        self.ui.lineEdit_aicleft.setText(str(self.aicwindow[0]))
-        self.ui.lineEdit_aicright.setText(str(self.aicwindow[1]))
-        self.ui.shift_snr.setValue(self.shiftSNR)
-        self.ui.shift_snr.setValue(self.shiftDist)
-        self.ui.p1.setValue(self.p1)
-        self.ui.p2.setValue(self.p2)
-
     def connectButtons(self):
         QtCore.QObject.connect(self.ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
         QtCore.QObject.connect(self.ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
@@ -322,7 +331,6 @@ class Call_autopicker(object):
 
     def chooseRecfile(self):
         self.ui.lineEdit_rec.setText(openFile('Open receiverfile.'))
-
 
 
 class Call_FMTOMO(object):
@@ -343,7 +351,6 @@ class Call_FMTOMO(object):
         self.connectButtons()
         
     def start_dialog(self):
-        self.init_last_selection()
         if self.qdialog.exec_():
             self.refresh_selection()
 
@@ -383,22 +390,6 @@ class Call_FMTOMO(object):
         self.simuldir = self.ui.simuldir.text()
         self.picks_dir = os.path.join(self.simuldir, 'picks')
         
-    def init_last_selection(self):
-        self.ui.fmtomo_dir.setText(self.fmtomo_dir)
-        self.ui.nIter.setValue(self.nIter)
-        self.ui.nproc.setValue(self.nproc)
-        self.ui.btop.setText(str(self.btop))
-        self.ui.bbot.setText(str(self.bbot))
-        self.ui.pgrid_x.setValue(self.propgrid[0])
-        self.ui.pgrid_y.setValue(self.propgrid[1])
-        self.ui.pgrid_z.setValue(self.propgrid[2])
-        self.ui.invgrid_x.setValue(self.vgrid[0])
-        self.ui.invgrid_y.setValue(self.vgrid[1])
-        self.ui.invgrid_z.setValue(self.vgrid[2])
-        self.ui.cushion.setValue(self.cushionfactor)
-        self.ui.customgrid.setText(self.customgrid)
-        self.ui.simuldir.setText(self.simuldir)
-
     def connectButtons(self):
         QtCore.QObject.connect(self.ui.browse_tomodir, QtCore.SIGNAL("clicked()"), self.chooseFMTOMOdir)
         QtCore.QObject.connect(self.ui.browse_customgrid, QtCore.SIGNAL("clicked()"), self.chooseCustomgrid)
@@ -418,7 +409,7 @@ class Call_VTK_dialog(object):
     def __init__(self, mainwindow):
         self.mainwindow = mainwindow
         self.init_dialog()
-        #self.refresh_selection()                                        
+        self.refresh_selection()                                        
         self.start_dialog()
 
     def init_dialog(self):
@@ -430,22 +421,15 @@ class Call_VTK_dialog(object):
         self.connectButtons()
         
     def start_dialog(self):
-        #self.init_last_selection()
         self.qdialog.exec_()
-        #self.refresh_selection()
+        self.refresh_selection()
 
-    # def refresh_selection(self):
-    #     self.vg = self.ui.lineEdit_vg.text()
-    #     self.vgout = self.ui.lineEdit_vgout.text()
-    #     self.rays = self.ui.lineEdit_rays.text()
-    #     self.raysout = self.ui.lineEdit_raysout.text()
+    def refresh_selection(self):
+        self.vg = self.ui.lineEdit_vg.text()
+        self.vgout = self.ui.lineEdit_vgout.text()
+        self.rays = self.ui.lineEdit_rays.text()
+        self.raysout = self.ui.lineEdit_raysout.text()
         
-    # def init_last_selection(self):
-    #     self.ui.lineEdit_vg.setText(self.vg)
-    #     self.ui.lineEdit_vgout.setText(self.vgout)
-    #     self.ui.lineEdit_rays.setText(self.rays)
-    #     self.ui.lineEdit_raysout.setText(self.raysout)
-
     def checkVgStartButton(self):
         ui = self.ui
         if ui.radioButton_rel.isChecked():
