@@ -210,8 +210,12 @@ class Call_autopicker(object):
         self.mainwindow = mainwindow
         self.survey = survey
         self.maxSRdist = None
+        self.dists_p = []
+        self.snr_p = []
+        self.lines = []
         self.init_dialog()
-        self.refresh_selection()                                        
+        self.refresh_selection()
+        self.enableDynSNR(False)                
         self.start_dialog()
         
     def init_dialog(self):
@@ -221,7 +225,7 @@ class Call_autopicker(object):
         ui.ncores.setMaximum(getMaxCPU())
         self.ui = ui
         self.qdialog = qdialog
-        self.initDynSNRplot()
+        self.initSNRplot()
         self.connectButtons()
 
     def getMaxSRdist(self):
@@ -235,14 +239,14 @@ class Call_autopicker(object):
             self.maxSRdist = max(SRdists)
             return self.maxSRdist
         
-    def initDynSNRplot(self):
+    def initSNRplot(self):
         self.snrFig = Figure()
         self.snrCanvas = FigureCanvas(self.snrFig)
         self.ui.vlayout_plot.addWidget(self.snrCanvas)
         self.snrToolbar = NavigationToolbar(self.snrCanvas, self.mainwindow)
         self.ui.vlayout_plot.addWidget(self.snrToolbar)
 
-    def plotDynSNR(self):
+    def prepFigure(self, refresh = True):
         fig = self.snrFig
         if fig.axes == []:
             ax = fig.add_subplot(111)
@@ -252,34 +256,96 @@ class Call_autopicker(object):
             ax = fig.axes[0]
             xlim = ax.get_xlim()
             ylim = ax.get_ylim()
-        ax.clear()
+        #ax.clear()
+        if not refresh:
+            self.plotPicks(ax)
+        else:
+            for line in self.lines:
+                line.remove()
+            self.lines = []
+
+        return fig, ax, xlim, ylim
+
+    def finishFigure(self, ax, xlim, ylim):
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+
+    def finishNewFigure(self, ax):
+        xlim = None
+        ylim = None
+        ax.set_xlabel('Distance [m]')
+        ax.set_ylabel('SNR')
+        return xlim, ylim
+        
+    def plotPicks(self, ax):
+        if self.survey.picked:
+            if self.dists_p == [] or self.snr_p == []:
+                for shot in self.survey.data.values():
+                    for traceID in shot.getTraceIDlist():
+                        self.dists_p.append(shot.getDistance(traceID))
+                        self.snr_p.append(shot.getSNR(traceID)[0])
+
+            ax.scatter(self.dists_p, self.snr_p, s = 0.5, c='k')
+        
+    def plotConstSNR(self, refresh = True):
+        fig, ax, xlim, ylim = self.prepFigure(refresh)
+            
+        snrthreshold = float(self.ui.doubleSpinBox_constSNR.text())
+        line = ax.hlines(snrthreshold, 0, self.getMaxSRdist(), 'b')
+        self.lines.append(line)
+
+        if refresh == False:
+            xlim, ylim = self.finishNewFigure(ax)
+
+        self.finishFigure(ax, xlim, ylim)
+        self.snrCanvas.draw()
+            
+    def plotDynSNR(self, refresh = True):
+        fig, ax, xlim, ylim = self.prepFigure(refresh)
         snrthresholds = []
-        dists_p = []; snr_p = []
         shiftSNR = float(self.ui.shift_snr.value())
         shiftDist = float(self.ui.shift_dist.value())
         p1 = float(self.ui.p1.value())
         p2 = float(self.ui.p2.value())
         dists = np.arange(0, self.getMaxSRdist() + 1, 1)
-        if self.survey.picked:
-            for shot in self.survey.data.values():
-                for traceID in shot.getTraceIDlist():
-                    dists_p.append(shot.getDistance(traceID))
-                    snr_p.append(shot.getSNR(traceID)[0])
-
-            ax.scatter(dists_p, snr_p, s = 0.5, c='k')
-            
+        
         for dist in dists:
             dist += shiftDist
             snrthresholds.append(surveyUtils.snr_fit_func(surveyUtils.get_fit_fn(p1, p2), dist, shiftSNR))
-        ax.plot(dists, snrthresholds)
-        ax.set_xlabel('Distance [m]')
-        ax.set_ylabel('SNR')
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
+        self.lines = ax.plot(dists, snrthresholds, 'b')
+
+        if refresh == False:
+            xlim, ylim = self.finishNewFigure(ax)
+
+        self.finishFigure(ax, xlim, ylim)
         self.snrCanvas.draw()
 
+    def plotSNR(self, refresh = True):
+        if self.ui.radioButton_const.isChecked():
+            self.plotConstSNR(refresh)
+        if self.ui.radioButton_dyn.isChecked():
+            self.plotDynSNR(refresh)
+
+    def snr_toggle(self):
+        if self.ui.radioButton_const.isChecked():
+            self.enableDynSNR(False)
+            self.enableConstSNR(True)
+        if self.ui.radioButton_dyn.isChecked():
+            self.enableConstSNR(False)
+            self.enableDynSNR(True)
+        self.plotSNR(refresh = True)
+
+    def enableDynSNR(self, bool):
+        self.ui.shift_dist.setEnabled(bool)
+        self.ui.shift_snr.setEnabled(bool)
+        self.ui.p1.setEnabled(bool)
+        self.ui.p2.setEnabled(bool)
+            
+    def enableConstSNR(self, bool):
+        self.ui.doubleSpinBox_constSNR.setEnabled(bool)
+        
     def start_dialog(self):
-        self.plotDynSNR()
+        self.plotSNR(refresh = False)
         if self.qdialog.exec_():
             self.refresh_selection()
 
@@ -318,10 +384,13 @@ class Call_autopicker(object):
 
     def connectButtons(self):
         QtCore.QObject.connect(self.ui.slider_folm, QtCore.SIGNAL("valueChanged(int)"), self.refreshFolm)
-        QtCore.QObject.connect(self.ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.ui.shift_dist, QtCore.SIGNAL("valueChanged(int)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.ui.p1, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
-        QtCore.QObject.connect(self.ui.p2, QtCore.SIGNAL("valueChanged(double)"), self.plotDynSNR)
+        QtCore.QObject.connect(self.ui.shift_snr, QtCore.SIGNAL("valueChanged(int)"), self.plotSNR)
+        QtCore.QObject.connect(self.ui.shift_dist, QtCore.SIGNAL("valueChanged(int)"), self.plotSNR)
+        QtCore.QObject.connect(self.ui.p1, QtCore.SIGNAL("valueChanged(double)"), self.plotSNR)
+        QtCore.QObject.connect(self.ui.p2, QtCore.SIGNAL("valueChanged(double)"), self.plotSNR)
+        QtCore.QObject.connect(self.ui.doubleSpinBox_constSNR, QtCore.SIGNAL("valueChanged(double)"), self.plotSNR)
+        QtCore.QObject.connect(self.ui.radioButton_const, QtCore.SIGNAL("clicked()"), self.snr_toggle)
+        QtCore.QObject.connect(self.ui.radioButton_dyn, QtCore.SIGNAL("clicked()"), self.snr_toggle)
 
     def chooseObsdir(self):
         self.ui.lineEdit_obs.setText(browseDir('Choose observation directory.'))
