@@ -345,13 +345,13 @@ class PDFstatistics(object):
     '''
     def __init__(self, directory):
         self.directory = directory
-        self.arraylen = 0
-        self.stations = {}
-        self.p_std = {}
-        self.s_std = {}
-        self.theta0 = []
-        self.theta1 = []
-        self.theta2 = []
+        #self.arraylen = 0
+       # self.stations = {}
+       # self.p_std = {}
+        #self.s_std = {}
+       # self.theta0 = []
+       # self.theta1 = []
+       # self.theta2 = []
 
 
     def readTheta(self, arname, dir, fnpattern):
@@ -374,6 +374,31 @@ class PDFstatistics(object):
 
     def makeFileList(self, fn_pattern='*'):
         self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
+
+    def nextPDF(self):
+
+        for evt in self.evtlist:
+            self.getPDFDict(self.directory, evt)
+            for station, pdfs in self.pdfdict.pdf_data.items():
+                try:
+                    yield pdfs['P']
+                except KeyError:
+                    yield np.nan
+                try:
+                    yield pdfs['S']
+                except KeyError:
+                    yield np.nan
+
+    def getQD(self,value):
+        pdfgen = self.nextPDF()
+        QDlist = []
+        for pdf in pdfgen:
+            if pdf == np.nan:
+                continue
+            QD = pdf.quantile_distance(value)
+            QDlist.append(QD)
+        return QDlist
+
 
 
     def getData(self):
@@ -470,6 +495,12 @@ class PDFstatistics(object):
             fid.write(str(val)+'\n')
         fid.close()
 
+def main():
+    root_dir ='/home/sebastianp/Codetesting/xmls/'
+    Insheim = PDFstatistics(root_dir)
+    Insheim.makeFileList()
+    qdlist = Insheim.getQD(0.3)
+    print qdlist
 
-
-#if __name__ == "__main__":
+if __name__ == "__main__":
+    main()
