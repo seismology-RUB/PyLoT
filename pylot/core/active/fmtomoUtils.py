@@ -50,13 +50,14 @@ class Tomo3d(object):
 
     def buildObsdata(self):
         p = subprocess.Popen(os.path.join(self.cwd, 'obsdata'), shell=True)
-        os.waitpid(p.pid)
+        p.wait()
         os.system('mv sources.in sourcesref.in')
 
     def defFMMParas(self):
         '''
         Initiates parameters for the forward calculation.
         '''
+        # Comments coppied from FMTOMO.
         # Name of fast marching program
         self.fmm = os.path.join(self.cwd, 'fm3d')
         # Name of program calculating Frechet derivatives
