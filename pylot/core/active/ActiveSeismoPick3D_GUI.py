@@ -64,11 +64,18 @@ class gui_control(object):
         QtCore.QObject.connect(self.mainUI.actionStart_FMTOMO_Simulation, QtCore.SIGNAL("triggered()"), self.startFMTOMO)
         QtCore.QObject.connect(self.mainUI.actionVTK_Visualization, QtCore.SIGNAL("triggered()"), self.startVTKtools)
         QtCore.QObject.connect(self.mainUI.actionExit, QtCore.SIGNAL("triggered()"), self.exitApp)
+        QtCore.QObject.connect(self.mainUI.actionFullscreen, QtCore.SIGNAL("triggered()"), self.fullscreen)
         QtCore.QObject.connect(self.mainUI.comboBox_stats, QtCore.SIGNAL("activated(int)"), self.refreshPickedWidgets)
         QtCore.QObject.connect(self.mainUI.shot_left, QtCore.SIGNAL("clicked()"), self.decreaseShotnumber)
         QtCore.QObject.connect(self.mainUI.shot_right, QtCore.SIGNAL("clicked()"), self.increaseShotnumber)
         QtCore.QObject.connect(self.mainUI.plot_shot, QtCore.SIGNAL("clicked()"), self.plotShot)
 
+    def fullscreen(self):
+        if self.mainUI.actionFullscreen.isChecked():
+            MainWindow.showFullScreen()
+        else:
+            MainWindow.showNormal()                    
+        
     def gen_seisarray(self):
         disconnect = False
         if self.checkSeisArrayState():
@@ -104,6 +111,7 @@ class gui_control(object):
                         self.gssa = Gen_Survey_from_SA(self.mainwindow, self.seisarray)
                     else:
                         self.gssa.start_dialog()
+                        self.update_seisarray(self.seisarray)
                     if self.gssa.executed:
                         self.survey = self.gssa.get_survey()
                         self.initNewSurvey()
@@ -321,6 +329,7 @@ class gui_control(object):
             self.autopicker = Call_autopicker(self.mainwindow, self.survey)
         else:
             self.autopicker.start_dialog()
+            self.autopicker.update_survey(self.survey)
         
         if self.autopicker.executed:
             self.setPickState(True)
@@ -338,6 +347,7 @@ class gui_control(object):
             self.fmtomo = Call_FMTOMO(self.mainwindow, self.survey)
         else:
             self.fmtomo.start_dialog()
+            self.fmtomo.update_survey(self.survey)
 
         #if self.fmtomo.executed:
         
@@ -544,7 +554,7 @@ if __name__ == "__main__":
     MainWindow = QtGui.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
-    MainWindow.show()
+    MainWindow.showMaximized()
     gui = gui_control()
     sys.exit(app.exec_())
 

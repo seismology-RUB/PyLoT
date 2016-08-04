@@ -134,6 +134,9 @@ class Gen_Survey_from_SA(object):
             self.refresh_selection()
             self.executed = False
 
+    def update_seisarray(self, seisarray):
+        self.seisarray = seisarray
+        
     def refresh_selection(self):
         self.obsdir = self.ui.lineEdit_obs.text()
         self.fstart = self.ui.fstart.text()
@@ -238,6 +241,9 @@ class Call_autopicker(object):
                     SRdists.append(shot.getDistance(traceID))
             self.maxSRdist = max(SRdists)
             return self.maxSRdist
+
+    def update_survey(self, survey):
+        self.survey = survey
         
     def initSNRplot(self):
         self.snrFig = Figure()
@@ -260,12 +266,15 @@ class Call_autopicker(object):
         if not refresh:
             self.plotPicks(ax)
         else:
-            for line in self.lines:
-                line.remove()
-            self.lines = []
+            self.clear_lines()
 
         return fig, ax, xlim, ylim
 
+    def clear_lines(self):
+        for line in self.lines:
+            line.remove()
+        self.lines = []
+        
     def finishFigure(self, ax, xlim, ylim):
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
@@ -297,7 +306,9 @@ class Call_autopicker(object):
         if refresh == False:
             xlim, ylim = self.finishNewFigure(ax)
 
-        self.finishFigure(ax, xlim, ylim)
+        if self.survey.picked:
+            self.finishFigure(ax, xlim, ylim)
+            
         self.snrCanvas.draw()
             
     def plotDynSNR(self, refresh = True):
@@ -317,7 +328,9 @@ class Call_autopicker(object):
         if refresh == False:
             xlim, ylim = self.finishNewFigure(ax)
 
-        self.finishFigure(ax, xlim, ylim)
+        if self.survey.picked:
+            self.finishFigure(ax, xlim, ylim)
+            
         self.snrCanvas.draw()
 
     def plotSNR(self, refresh = True):
@@ -363,9 +376,11 @@ class Call_autopicker(object):
             
             #QtGui.qApp.processEvents() # test
             self.executed = True
+            self.clear_lines()
         else:
             self.refresh_selection()
             self.executed = False
+            self.clear_lines()
 
     def refreshFolm(self):
         self.ui.label_folm.setText('%s %%'%self.ui.slider_folm.value())
@@ -446,6 +461,9 @@ class Call_FMTOMO(object):
             self.refresh_selection()
             self.executed = False
 
+    def update_survey(self, survey):
+        self.survey = survey
+        
     def refresh_selection(self):
         self.fmtomo_dir = self.ui.fmtomo_dir.text()
         self.nIter = int(self.ui.nIter.value())
