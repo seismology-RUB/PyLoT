@@ -49,17 +49,19 @@ class Tomo3d(object):
             os.system('ln -s %s %s'%(filename, linkname))
 
     def buildObsdata(self):
-        os.system('obsdata')
+        p = subprocess.Popen(os.path.join(self.cwd, 'obsdata'), shell=True)
+        p.wait()
         os.system('mv sources.in sourcesref.in')
 
     def defFMMParas(self):
         '''
         Initiates parameters for the forward calculation.
         '''
+        # Comments coppied from FMTOMO.
         # Name of fast marching program
-        self.fmm = '{0}/fm3d'.format(self.cwd)
+        self.fmm = os.path.join(self.cwd, 'fm3d')
         # Name of program calculating Frechet derivatives
-        self.frechgen = '{0}/frechgen'.format(self.cwd)
+        self.frechgen = os.path.join(self.cwd, 'frechgen')
         # Name of current velocity/inversion grid
         self.cvg = 'vgrids.in'
         # Name of current interfaces grid
@@ -116,7 +118,7 @@ class Tomo3d(object):
         Default: pwd
         '''
         if directory == None:
-            directory = os.path.join(os.getcwd(), self.simuldir)
+            directory = self.simuldir
 
         os.chdir(directory)
         self.cwd = directory

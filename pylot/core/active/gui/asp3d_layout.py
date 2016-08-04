@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'asp3d_layout.ui'
 #
-# Created: Wed Jul 27 11:15:05 2016
+# Created: Thu Aug  4 13:55:47 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(1029, 1074)
+        MainWindow.resize(1280, 1024)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -273,7 +273,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addLayout(self.formLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1029, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1280, 23))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -287,6 +287,8 @@ class Ui_MainWindow(object):
         self.menuSimulation.setObjectName("menuSimulation")
         self.menuTools = QtGui.QMenu(self.menubar)
         self.menuTools.setObjectName("menuTools")
+        self.menuView = QtGui.QMenu(self.menubar)
+        self.menuView.setObjectName("menuView")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -321,6 +323,9 @@ class Ui_MainWindow(object):
         self.actionSeismic_Array = QtGui.QAction(MainWindow)
         self.actionSeismic_Array.setEnabled(False)
         self.actionSeismic_Array.setObjectName("actionSeismic_Array")
+        self.actionFullscreen = QtGui.QAction(MainWindow)
+        self.actionFullscreen.setCheckable(True)
+        self.actionFullscreen.setObjectName("actionFullscreen")
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
         self.menuSeismic_Array.addAction(self.actionGenerate_new_Seismic_Array)
@@ -336,12 +341,14 @@ class Ui_MainWindow(object):
         self.menuPicking.addAction(self.actionPostprocessing)
         self.menuSimulation.addAction(self.actionStart_FMTOMO_Simulation)
         self.menuTools.addAction(self.actionVTK_Visualization)
+        self.menuView.addAction(self.actionFullscreen)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuSurvey.menuAction())
         self.menubar.addAction(self.menuSeismic_Array.menuAction())
         self.menubar.addAction(self.menuPicking.menuAction())
         self.menubar.addAction(self.menuSimulation.menuAction())
         self.menubar.addAction(self.menuTools.menuAction())
+        self.menubar.addAction(self.menuView.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -365,6 +372,7 @@ class Ui_MainWindow(object):
         self.menuPicking.setTitle(QtGui.QApplication.translate("MainWindow", "Picking", None, QtGui.QApplication.UnicodeUTF8))
         self.menuSimulation.setTitle(QtGui.QApplication.translate("MainWindow", "Inversion", None, QtGui.QApplication.UnicodeUTF8))
         self.menuTools.setTitle(QtGui.QApplication.translate("MainWindow", "Tools", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuView.setTitle(QtGui.QApplication.translate("MainWindow", "View", None, QtGui.QApplication.UnicodeUTF8))
         self.actionLoad_Seismic_Array.setText(QtGui.QApplication.translate("MainWindow", "Load Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSave_Seismic_Array.setText(QtGui.QApplication.translate("MainWindow", "Save Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
         self.actionLoad_Survey.setText(QtGui.QApplication.translate("MainWindow", "Load Survey", None, QtGui.QApplication.UnicodeUTF8))
@@ -379,4 +387,5 @@ class Ui_MainWindow(object):
         self.actionStart_FMTOMO_Simulation.setText(QtGui.QApplication.translate("MainWindow", "Start FMTOMO Simulation", None, QtGui.QApplication.UnicodeUTF8))
         self.actionVTK_Visualization.setText(QtGui.QApplication.translate("MainWindow", "VTK Visualization", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSeismic_Array.setText(QtGui.QApplication.translate("MainWindow", "Seismic Array", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionFullscreen.setText(QtGui.QApplication.translate("MainWindow", "Fullscreen", None, QtGui.QApplication.UnicodeUTF8))
 
