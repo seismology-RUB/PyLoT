@@ -388,24 +388,16 @@ class PDFstatistics(object):
     def getQD(self,value):
         QDlist = []
         for pdf in self:
-            try:
-                QD = pdf.quantile_distance(value)
-                QDlist.append(QD)
-            except AttributeError as e:
-                if e.message == "'float' object has no attribute 'quantile_distance'":
-                    continue
+            QD = pdf.quantile_distance(value)
+            QDlist.append(QD)
         return QDlist
 
 
     def getQDQ(self,value):
         QDQlist = []
         for pdf in self:
-            try:
-                QDQ = pdf.qtile_dist_quot(value)
-                QDQlist.append(QDQ)
-            except AttributeError as e:
-                if e.message == "'float' object has no attribute 'quantile_distance'":
-                    continue
+            QDQ = pdf.qtile_dist_quot(value)
+            QDQlist.append(QDQ)
         return QDQlist
 
 
@@ -418,6 +410,7 @@ class PDFstatistics(object):
                 continue
         std = np.array(std)
         self.set_stdarray(std)
+
 
     def set_stdarray(self, array):
         if self.return_phase == 'P':
@@ -477,7 +470,6 @@ def main():
     Insheim.getSTD()
     qdlist = Insheim.getQDQ(0.3)
     binlist = Insheim.getBinList(0.,3.)
-    Insheim.histplot(qdlist,binlist)
     print qdlist
 
 
