@@ -345,7 +345,7 @@ class PDFstatistics(object):
     '''
     def __init__(self, directory):
         self.directory = directory
-
+        self.return_phase = None
 
     def readTheta(self, arname, dir, fnpattern):
         exec('self.' + arname +' = []')
@@ -363,24 +363,25 @@ class PDFstatistics(object):
         self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
 
 
-    def nextPDF(self):
+    def __iter__(self):
+        assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
         for evt in self.evtlist:
             self.getPDFDict(self.directory, evt)
             for station, pdfs in self.pdfdict.pdf_data.items():
                 try:
-                    yield pdfs['P']
+                    yield pdfs[self.return_phase]
                 except KeyError:
-                    yield np.nan
-                try:
-                    yield pdfs['S']
-                except KeyError:
-                    yield np.nan
+                    continue
 
+    def set_return_phase(self, type):
+        if type.upper() not in 'PS':
+            raise ValueError("phase type must be either 'P' or 'S'!")
+        else:
+            self.return_phase = type.upper()
 
     def getQD(self,value):
-        pdfgen = self.nextPDF()
         QDlist = []
-        for pdf in pdfgen:
+        for pdf in self:
             try:
                 QD = pdf.quantile_distance(value)
                 QDlist.append(QD)
@@ -391,9 +392,8 @@ class PDFstatistics(object):
 
 
     def getQDQ(self,value):
-        pdfgen = self.nextPDF()
         QDQlist = []
-        for pdf in pdfgen:
+        for pdf in self:
             try:
                 QDQ = pdf.qtile_dist_quot(value)
                 QDQlist.append(QDQ)
@@ -404,24 +404,23 @@ class PDFstatistics(object):
 
 
     def getSTD(self):
-        pdfgen = self.nextPDF()
-        self.p_std = []
-        self.s_std = []
-        for pdf in pdfgen:
+        std = []
+        for pdf in self:
             try:
-                self.p_std.append(pdf['P'].standard_deviation())
+                std.append(pdf.standard_deviation())
             except KeyError:
-                pass
-            try:
-                self.s_std.append(pdf['S'].standard_deviation())
-            except KeyError:
-                pass
-        self.makeArray()
+                continue
+        std = np.array(std)
+        self.set_stdarray(std)
 
-
-    def makeArray(self):
-        self.p_stdarray = np.array(self.p_std)
-        self.s_stdarray = np.array(self.s_std)
+    def set_stdarray(self, array):
+        if self.return_phase == 'P':
+            self.p_stdarray = array
+        elif self.return_phase == 'S':
+            self.s_stdarray = array
+        else:
+            raise ValueError('phase type not set properly...\n'
+                             'Actual phase type: {0}'.format(self.return_phase))
 
 
     def getBinList(self,l_boundary,u_boundary,nbins = 100):
@@ -468,9 +467,11 @@ def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
     Insheim.makeFileList()
+    Insheim.set_return_phase('p')
     Insheim.getSTD()
-    Insheim.getStatistics()
     qdlist = Insheim.getQDQ(0.3)
+    binlist = Insheim.getBinList(0.,3.)
+    Insheim.histplot(qdlist,binlist)
     print qdlist
 
 
