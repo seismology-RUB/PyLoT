@@ -345,13 +345,6 @@ class PDFstatistics(object):
     '''
     def __init__(self, directory):
         self.directory = directory
-        self.arraylen = 0
-        self.stations = {}
-        self.p_std = {}
-        self.s_std = {}
-        self.theta0 = []
-        self.theta1 = []
-        self.theta2 = []
 
 
     def readTheta(self, arname, dir, fnpattern):
@@ -366,89 +359,90 @@ class PDFstatistics(object):
             fid.close()
 
 
-    def fromFileList(self):
-        self.makeFileList()
-        self.getData()
-        self.getStatistics()
-
-
     def makeFileList(self, fn_pattern='*'):
         self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
 
 
-    def getData(self):
+    def nextPDF(self):
         for evt in self.evtlist:
-            print evt
-            self.stations[evt] = []
-            self.p_std[evt] = []
-            self.s_std[evt] = []
             self.getPDFDict(self.directory, evt)
             for station, pdfs in self.pdfdict.pdf_data.items():
-                # print station, pdfs
                 try:
-                    p_std = pdfs['P'].standard_deviation()
-                    self.theta0.append(pdfs['P'].qtile_dist_quot(0.015))
-                    self.theta1.append(pdfs['P'].qtile_dist_quot(0.1))
-                    self.theta2.append(pdfs['P'].qtile_dist_quot(0.2))
+                    yield pdfs['P']
                 except KeyError:
-                    p_std = np.nan
+                    yield np.nan
                 try:
-                    s_std = pdfs['S'].standard_deviation()
-                    self.theta0.append(pdfs['S'].qtile_dist_quot(0.015))
-                    self.theta1.append(pdfs['S'].qtile_dist_quot(0.1))
-                    self.theta2.append(pdfs['S'].qtile_dist_quot(0.2))
+                    yield pdfs['S']
                 except KeyError:
-                    s_std = np.nan
-                self.stations[evt].append(station)
-                self.p_std[evt].append(p_std)
-                self.s_std[evt].append(s_std)
-                self.arraylen += 1
+                    yield np.nan
+
+
+    def getQD(self,value):
+        pdfgen = self.nextPDF()
+        QDlist = []
+        for pdf in pdfgen:
+            try:
+                QD = pdf.quantile_distance(value)
+                QDlist.append(QD)
+            except AttributeError as e:
+                if e.message == "'float' object has no attribute 'quantile_distance'":
+                    continue
+        return QDlist
+
+
+    def getQDQ(self,value):
+        pdfgen = self.nextPDF()
+        QDQlist = []
+        for pdf in pdfgen:
+            try:
+                QDQ = pdf.qtile_dist_quot(value)
+                QDQlist.append(QDQ)
+            except AttributeError as e:
+                if e.message == "'float' object has no attribute 'quantile_distance'":
+                    continue
+        return QDQlist
+
+
+    def getSTD(self):
+        pdfgen = self.nextPDF()
+        self.p_std = []
+        self.s_std = []
+        for pdf in pdfgen:
+            try:
+                self.p_std.append(pdf['P'].standard_deviation())
+            except KeyError:
+                pass
+            try:
+                self.s_std.append(pdf['S'].standard_deviation())
+            except KeyError:
+                pass
         self.makeArray()
 
 
     def makeArray(self):
-        index = 0
-        self.p_stdarray = np.zeros(self.arraylen)
-        self.s_stdarray = np.zeros(self.arraylen)
-        for evt in self.p_std.keys():
-            for n in range(len(self.p_std[evt])):
-                self.p_stdarray[index] = self.p_std[evt][n]
-                self.s_stdarray[index] = self.s_std[evt][n]
-                index += 1
+        self.p_stdarray = np.array(self.p_std)
+        self.s_stdarray = np.array(self.s_std)
 
 
-    def histplot(self, num, label=None):
+    def getBinList(self,l_boundary,u_boundary,nbins = 100):
         binlist = []
-        if num == 0:
-            bfactor = 0.001
-            badd = 0
-        elif num == 1:
-            bfactor = 0.003
-            badd = 0
-        else:
-            bfactor = 0.006
-            badd = 0.4
-        for i in range(100):
-            binlist.append(badd+bfactor*i)
-        import matplotlib.pyplot as plt
+        for i in range(nbins):
+            binlist.append(l_boundary + i*(u_boundary-l_boundary)/nbins)
+        return  binlist
 
-        plt.hist(self.getTheta(num),bins = binlist)
+
+    def histplot(self, array, binlist, xlab = 'Values',
+                 ylab = 'Frequency', title = None, label=None):
+        import matplotlib.pyplot as plt
+        plt.hist(array,bins = binlist)
         plt.xlabel('Values')
         plt.ylabel('Frequency')
-        title_str = 'Quantile distance quotient distribution'
-        if label:
-            title_str += ' (' + label + ')'
-        plt.title(title_str)
+        if title:
+            title_str = 'Quantile distance quotient distribution'
+            if label:
+                title_str += ' (' + label + ')'
+            plt.title(title_str)
         plt.show()
-
-
-    def getTheta(self,number):
-        if number == 0:
-            return self.theta0
-        elif number == 1:
-            return self.theta1
-        elif number == 2:
-            return self.theta2
 
 
     def getPDFDict(self, month, evt):
@@ -470,6 +464,15 @@ class PDFstatistics(object):
             fid.write(str(val)+'\n')
         fid.close()
 
+def main():
+    root_dir ='/home/sebastianp/Codetesting/xmls/'
+    Insheim = PDFstatistics(root_dir)
+    Insheim.makeFileList()
+    Insheim.getSTD()
+    Insheim.getStatistics()
+    qdlist = Insheim.getQDQ(0.3)
+    print qdlist
 
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
+    main()
