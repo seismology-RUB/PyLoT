@@ -9,7 +9,7 @@ matplotlib.rcParams['backend.qt4']='PySide'
 from PySide import QtCore, QtGui
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 from pylot.core.active.gui.asp3d_layout import *
-from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO, Call_VTK_dialog
+from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO, Call_VTK_dialog, Postprocessing
 from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -43,6 +43,7 @@ class gui_control(object):
         self.autopicker = None
         self.fmtomo = None
         self.vtktools = None
+        self.postprocessing = None
 
     def setInitStates(self):
         self.setPickState(False)
@@ -362,8 +363,9 @@ class gui_control(object):
         if not self.checkSurveyState():
             self.printDialogMessage('No Survey defined.')
             return
-        self.survey.plotAllPicks()
-        self.refreshPickedWidgets() # wait until finished
+        self.postprocessing = Postprocessing(self.mainwindow, self.survey)
+        #self.survey.plotAllPicks()
+        #self.refreshPickedWidgets() # wait until finished
 
         
     def load_survey(self):

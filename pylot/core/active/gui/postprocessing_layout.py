@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'postprocessing_layout.ui'
 #
-# Created: Tue Aug  9 10:36:58 2016
+# Created: Tue Aug  9 11:40:27 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_postprocessing(object):
     def setupUi(self, postprocessing):
         postprocessing.setObjectName("postprocessing")
-        postprocessing.resize(640, 479)
+        postprocessing.resize(640, 480)
         self.verticalLayout_2 = QtGui.QVBoxLayout(postprocessing)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -91,19 +91,15 @@ class Ui_postprocessing(object):
         self.horizontalLayout_3.addWidget(self.pushButton_spe)
         self.gridLayout.addLayout(self.horizontalLayout_3, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
+        self.verticalLayout_2.addLayout(self.verticalLayout)
+        self.verticalLayout_plot = QtGui.QVBoxLayout()
+        self.verticalLayout_plot.setObjectName("verticalLayout_plot")
         self.horizontalLayout_plot = QtGui.QHBoxLayout()
         self.horizontalLayout_plot.setObjectName("horizontalLayout_plot")
-        self.verticalLayout.addLayout(self.horizontalLayout_plot)
-        self.verticalLayout_2.addLayout(self.verticalLayout)
-        self.buttonBox = QtGui.QDialogButtonBox(postprocessing)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout_2.addWidget(self.buttonBox)
+        self.verticalLayout_plot.addLayout(self.horizontalLayout_plot)
+        self.verticalLayout_2.addLayout(self.verticalLayout_plot)
 
         self.retranslateUi(postprocessing)
-        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), postprocessing.accept)
-        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), postprocessing.reject)
         QtCore.QMetaObject.connectSlotsByName(postprocessing)
 
     def retranslateUi(self, postprocessing):

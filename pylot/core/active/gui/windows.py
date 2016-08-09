@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 from PySide import QtCore, QtGui
 from pylot.core.active import surveyUtils, activeSeismoPick, seismicArrayPreparation, fmtomoUtils
 from generate_survey_layout import Ui_generate_survey
@@ -8,11 +11,9 @@ from generate_survey_layout_minimal import Ui_generate_survey_minimal
 from generate_seisarray_layout import Ui_generate_seisarray
 from picking_parameters_layout import Ui_picking_parameters
 from fmtomo_parameters_layout import Ui_fmtomo_parameters
-from pylot.core.active.gui.vtk_tools_layout import Ui_vtk_tools
+from vtk_tools_layout import Ui_vtk_tools
+from postprocessing_layout import Ui_postprocessing
 
-
-import numpy as np
-import matplotlib
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4']='PySide'
 
@@ -597,3 +598,60 @@ class Call_VTK_dialog(object):
     def newFileVTK(self):
         self.ui.lineEdit_vgout.setText(saveFile())
 
+class Postprocessing(object):
+    def __init__(self, mainwindow, survey):
+        self.mainwindow = mainwindow
+        self.survey = survey
+        self.init_dialog()
+        self.start_dialog()
+
+    def init_dialog(self):
+        qwidget = QtGui.QWidget()#
+        ui = Ui_postprocessing()
+        ui.setupUi(qwidget)
+        self.ui = ui
+        self.qwidget = qwidget
+        self.initPlot()
+        self.plot()
+        #self.connectButtons()
+
+    def start_dialog(self):
+        self.qwidget.show()
+        # if self.qwidget.exec_():
+        #     #self.refresh_selection()
+        #     self.executed = True
+        # else:
+        #     self.refresh_selection()
+        #     self.executed = False
+
+    def initPlot(self):
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.ui.verticalLayout_plot.addWidget(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas, self.mainwindow)
+        self.ui.verticalLayout_plot.addWidget(self.toolbar)
+        
+    def plot(self):
+        survey = self.survey
+        ax = self.figure.add_subplot(111)
+        dist, pick, snrlog, pickerror, spe = survey.preparePlotAllPicks(plotRemoved = False)
+        ax, cbar, sc = survey.createPlot(dist, pick, snrlog, '123', ax = ax, cbar = None)
+        self.cbar = self.figure.colorbar(sc, fraction=0.05)
+        self.ax = ax
+        
+    # def refresh_selection(self):
+    #     self.obsdir = self.ui.lineEdit_obs.text()
+    #     self.fstart = self.ui.fstart.text()
+    #     self.fend = self.ui.fend.text()
+
+    def update_survey(self, survey):
+        self.survey = survey
+        
+    def get_survey(self):
+        return self.survey
+
+    # def connectButtons(self):
+    #     QtCore.QObject.connect(self.ui.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir)
+
+    # def chooseObsdir(self):
+    #     self.ui.lineEdit_obs.setText(browseDir('Choose observation directory.'))
