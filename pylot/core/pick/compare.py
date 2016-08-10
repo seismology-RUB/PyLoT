@@ -345,7 +345,8 @@ class PDFstatistics(object):
     '''
     def __init__(self, directory):
         self.directory = directory
-
+        self.evtlist = list()
+        self.return_phase = None
 
     def readTheta(self, arname, dir, fnpattern):
         exec('self.' + arname +' = []')
@@ -358,70 +359,67 @@ class PDFstatistics(object):
             exec('self.' + arname + ' += list')
             fid.close()
 
+    def makeFileList(self, fn_pattern='*.xml'):
+        evtlist = list()
+        evtlist = glob.glob1((os.path.join(self.directory)), fn_pattern)
+        if not evtlist:
+             for root, _, files in os.walk(self.directory):
+                 for file in files:
+                     if file.endswith(fn_pattern[1:]):
+                         evtlist.append(os.path.join(root, file))
+        self.evtlist = evtlist
 
-    def makeFileList(self, fn_pattern='*'):
-        self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
-
-
-    def nextPDF(self):
+    def __iter__(self):
+        assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
         for evt in self.evtlist:
             self.getPDFDict(self.directory, evt)
             for station, pdfs in self.pdfdict.pdf_data.items():
                 try:
-                    yield pdfs['P']
+                    yield pdfs[self.return_phase]
                 except KeyError:
-                    yield np.nan
-                try:
-                    yield pdfs['S']
-                except KeyError:
-                    yield np.nan
+                    continue
 
+    def set_return_phase(self, type):
+        if type.upper() not in 'PS':
+            raise ValueError("phase type must be either 'P' or 'S'!")
+        else:
+            self.return_phase = type.upper()
 
     def getQD(self,value):
-        pdfgen = self.nextPDF()
         QDlist = []
-        for pdf in pdfgen:
-            try:
-                QD = pdf.quantile_distance(value)
-                QDlist.append(QD)
-            except AttributeError as e:
-                if e.message == "'float' object has no attribute 'quantile_distance'":
-                    continue
+        for pdf in self:
+            QD = pdf.quantile_distance(value)
+            QDlist.append(QD)
         return QDlist
 
 
     def getQDQ(self,value):
-        pdfgen = self.nextPDF()
         QDQlist = []
-        for pdf in pdfgen:
-            try:
-                QDQ = pdf.qtile_dist_quot(value)
-                QDQlist.append(QDQ)
-            except AttributeError as e:
-                if e.message == "'float' object has no attribute 'quantile_distance'":
-                    continue
+        for pdf in self:
+            QDQ = pdf.qtile_dist_quot(value)
+            QDQlist.append(QDQ)
         return QDQlist
 
 
     def getSTD(self):
-        pdfgen = self.nextPDF()
-        self.p_std = []
-        self.s_std = []
-        for pdf in pdfgen:
+        std = []
+        for pdf in self:
             try:
-                self.p_std.append(pdf['P'].standard_deviation())
+                std.append(pdf.standard_deviation())
             except KeyError:
-                pass
-            try:
-                self.s_std.append(pdf['S'].standard_deviation())
-            except KeyError:
-                pass
-        self.makeArray()
+                continue
+        std = np.array(std)
+        self.set_stdarray(std)
 
 
-    def makeArray(self):
-        self.p_stdarray = np.array(self.p_std)
-        self.s_stdarray = np.array(self.s_std)
+    def set_stdarray(self, array):
+        if self.return_phase == 'P':
+            self.p_stdarray = array
+        elif self.return_phase == 'S':
+            self.s_stdarray = array
+        else:
+            raise ValueError('phase type not set properly...\n'
+                             'Actual phase type: {0}'.format(self.return_phase))
 
 
     def getBinList(self,l_boundary,u_boundary,nbins = 100):
@@ -432,7 +430,8 @@ class PDFstatistics(object):
 
 
     def histplot(self, array, binlist, xlab = 'Values',
-                 ylab = 'Frequency', title = None, label=None):
+                 ylab = 'Frequency', title = None, label=None,
+                 fnout = None):
         import matplotlib.pyplot as plt
         plt.hist(array,bins = binlist)
         plt.xlabel('Values')
@@ -442,7 +441,10 @@ class PDFstatistics(object):
             if label:
                 title_str += ' (' + label + ')'
             plt.title(title_str)
-        plt.show()
+        if fnout:
+            plt.savefig(fnout+'histplot.png')
+        else:
+            plt.show()
 
 
     def getPDFDict(self, month, evt):
@@ -468,9 +470,10 @@ def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
     Insheim.makeFileList()
+    Insheim.set_return_phase('p')
     Insheim.getSTD()
-    Insheim.getStatistics()
     qdlist = Insheim.getQDQ(0.3)
+    binlist = Insheim.getBinList(0.,3.)
     print qdlist
 
 
