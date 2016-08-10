@@ -18,7 +18,6 @@ def _pickle_method(m):
         return getattr, (m.im_self, m.im_func.func_name)
 
 def fit_curve(x, y):
-
     return splev, splrep(x, y)
 
 def getindexbounds(f, eta):
@@ -180,18 +179,18 @@ def getHash(time):
 
 def getLogin():
     '''
-
-    :return:
+    returns the actual user's login id
+    :return: User ID
     '''
     return pwd.getpwuid(os.getuid())[0]
 
 
 def getOwner(fn):
     '''
-
-    :param fn:
-    :type fn:
-    :return:
+    takes filename and returns the User ID of the owner of the file
+    :param fn: filename
+    :type fn: str
+    :return: User ID
     '''
     return pwd.getpwuid(os.stat(fn).st_uid).pw_name
 
@@ -200,12 +199,11 @@ def getPatternLine(fn, pattern):
     """
     Takes a file name and a pattern string to search for in the file and
     returns the first line which contains the pattern string otherwise None.
-
-    :param fn: file name
+    :param fn: filename
     :type fn: str
     :param pattern: pattern string to search for
     :type pattern: str
-    :return: the complete line containing pattern or None
+    :return: the complete line containing the pattern string or None
 
     >>> getPatternLine('utils.py', 'python')
     '#!/usr/bin/env python\\n'
@@ -223,8 +221,8 @@ def getPatternLine(fn, pattern):
 
 def isSorted(iterable):
     '''
-
-    :param iterable:
+    takes a python variable and returns True if the iterable is sorted and False otherwise
+    :param iterable: a python variable
     :type iterable:
     :return:
     '''
@@ -233,12 +231,12 @@ def isSorted(iterable):
 
 def prepTimeAxis(stime, trace):
     '''
-
+    takes a starttime 'stime' and a trace object 'trace' and return a vector containing as much time stamps as data values in the trace object are available
     :param stime:
     :type stime:
     :param trace:
-     :type trace:
-    :return:
+    :type trace:
+    :return: time axis
     '''
     nsamp = trace.stats.npts
     srate = trace.stats.sampling_rate
@@ -294,7 +292,6 @@ def runProgram(cmd, parameter=None):
     """
     run an external program specified by cmd with parameters input returning the
     stdout output
-
     :param cmd: name of the command to run
     :type cmd: str
     :param parameter: filename of parameter file  or parameter string
