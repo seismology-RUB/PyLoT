@@ -14,6 +14,8 @@ from fmtomo_parameters_layout import Ui_fmtomo_parameters
 from vtk_tools_layout import Ui_vtk_tools
 from postprocessing_layout import Ui_postprocessing
 
+from pylot.core.active.surveyPlotTools import regions
+
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4']='PySide'
 
@@ -602,27 +604,22 @@ class Postprocessing(object):
     def __init__(self, mainwindow, survey):
         self.mainwindow = mainwindow
         self.survey = survey
-        self.init_dialog()
-        self.start_dialog()
-
-    def init_dialog(self):
+        self.init_widget()
+        self.start_widget()
+        
+    def init_widget(self):
         qwidget = QtGui.QWidget()#
         ui = Ui_postprocessing()
         ui.setupUi(qwidget)
         self.ui = ui
         self.qwidget = qwidget
         self.initPlot()
-        self.plot()
-        #self.connectButtons()
-
-    def start_dialog(self):
+        self.newPlot()
+        self.connectButtons()
+        self.region = regions(self.ax, self.cbar, self.survey, qt_interface = True)
+        
+    def start_widget(self):
         self.qwidget.show()
-        # if self.qwidget.exec_():
-        #     #self.refresh_selection()
-        #     self.executed = True
-        # else:
-        #     self.refresh_selection()
-        #     self.executed = False
 
     def initPlot(self):
         self.figure = Figure()
@@ -631,27 +628,60 @@ class Postprocessing(object):
         self.toolbar = NavigationToolbar(self.canvas, self.mainwindow)
         self.ui.verticalLayout_plot.addWidget(self.toolbar)
         
-    def plot(self):
-        survey = self.survey
+    def newPlot(self):
         ax = self.figure.add_subplot(111)
-        dist, pick, snrlog, pickerror, spe = survey.preparePlotAllPicks(plotRemoved = False)
-        ax, cbar, sc = survey.createPlot(dist, pick, snrlog, '123', ax = ax, cbar = None)
-        self.cbar = self.figure.colorbar(sc, fraction=0.05)
+        dists, picks, snrlog, pe, spe = self.survey.preparePlotAllPicks(plotRemoved = False)
+        self.dists = dists
+        self.picks = picks
+        self.inkDict = {'snrlog': snrlog,
+                        'pe': pe,
+                        'spe': spe}
+                   
+        ax, cbar, sc = self.survey.createPlot(dists, picks, snrlog, 'log10(SNR)', ax = ax, cbar = None)
+        self.cbar = self.figure.colorbar(sc, ax = ax, fraction=0.05)
         self.ax = ax
-        
-    # def refresh_selection(self):
-    #     self.obsdir = self.ui.lineEdit_obs.text()
-    #     self.fstart = self.ui.fstart.text()
-    #     self.fend = self.ui.fend.text()
+        self.draw()
 
+    def refreshPlot(self, inkByVal = 'snrlog'):
+        self.ax.clear()
+        ax = self.ax
+        ax, cbar, sc = self.survey.createPlot(self.dists, self.picks, self.inkDict[inkByVal],
+                                              inkByVal, ax = ax, cbar = self.cbar)
+        #self.cbar = self.figure.colorbar(sc, fraction=0.05)
+        self.draw()
+        
     def update_survey(self, survey):
         self.survey = survey
         
     def get_survey(self):
         return self.survey
 
-    # def connectButtons(self):
-    #     QtCore.QObject.connect(self.ui.pushButton_obs, QtCore.SIGNAL("clicked()"), self.chooseObsdir)
+    def draw(self):
+        self.canvas.draw()
+        
+    def connectButtons(self):
+        QtCore.QObject.connect(self.ui.pushButton_rect, QtCore.SIGNAL("clicked()"), self.chooseRect)
+        QtCore.QObject.connect(self.ui.pushButton_poly, QtCore.SIGNAL("clicked()"), self.choosePoly)
+        QtCore.QObject.connect(self.ui.pushButton_plot, QtCore.SIGNAL("clicked()"), self.plotPicks)
+        QtCore.QObject.connect(self.ui.pushButton_snr, QtCore.SIGNAL("clicked()"), self.refrSNR)
+        QtCore.QObject.connect(self.ui.pushButton_pe, QtCore.SIGNAL("clicked()"), self.refrPE)
+        QtCore.QObject.connect(self.ui.pushButton_spe, QtCore.SIGNAL("clicked()"), self.refrSPE)
 
-    # def chooseObsdir(self):
-    #     self.ui.lineEdit_obs.setText(browseDir('Choose observation directory.'))
+    def chooseRect(self):
+        self.region.chooseRectangles()
+
+    def choosePoly(self):
+        self.region.choosePolygon()
+
+    def plotPicks(self):
+        self.region.plotTracesInActiveRegions()
+
+    def refrSNR(self):
+        self.refreshPlot('snrlog')
+
+    def refrPE(self):
+        self.refreshPlot('pe')
+
+    def refrSPE(self):
+        self.refreshPlot('spe')
+

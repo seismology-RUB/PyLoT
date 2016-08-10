@@ -721,7 +721,7 @@ class Survey(object):
         Used by plotAllPicks.
         '''
         import matplotlib.pyplot as plt
-        plt.interactive(True)
+        #plt.interactive(True)
         cm = plt.cm.jet
         if ax is None:
             print('Generating new plot...')
@@ -729,7 +729,7 @@ class Survey(object):
             ax = fig.add_subplot(111)
             sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
                             edgecolors='none', label=label)
-            cbar = plt.colorbar(sc, fraction=0.05)
+            cbar = fig.colorbar(sc, fraction=0.05)
             cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')
@@ -739,7 +739,8 @@ class Survey(object):
             sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
                             edgecolors='none', label=label)
             if cbar is not None:
-                cbar = plt.colorbar(sc, cax=cbar.ax)
+                cbar.ax.clear()
+                cbar = ax.figure.colorbar(sc, cax=cbar.ax)
                 cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')

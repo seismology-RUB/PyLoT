@@ -29,7 +29,7 @@ class regions(object):
 
     '''
 
-    def __init__(self, ax, cbar, survey):
+    def __init__(self, ax, cbar, survey, qt_interface = False):
         self.ax = ax
         self.cbar = cbar
         self.cbv = 'log10SNR'
@@ -45,12 +45,13 @@ class regions(object):
         self._y1 = []
         self._polyx = []
         self._polyy = []
-        self.buttons = {}
         self._allpicks = None
         self.shots_found = {}
         self.shots_for_deletion = {}
         self._generateList()
-        self._addButtons()
+        if not qt_interface:
+            self.buttons = {}
+            self._addButtons()
         self.addTextfield()
         self.drawFigure()
 
@@ -525,4 +526,5 @@ class regions(object):
         if resetAxes == True:
             self.ax.set_xlim(self._xlim)
             self.ax.set_ylim(self._ylim)
-        plt.draw()
+        self.ax.figure.canvas.draw()
+        
