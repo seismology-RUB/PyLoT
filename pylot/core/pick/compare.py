@@ -345,6 +345,7 @@ class PDFstatistics(object):
     '''
     def __init__(self, directory):
         self.directory = directory
+        self.evtlist = list()
         self.return_phase = None
 
     def readTheta(self, arname, dir, fnpattern):
@@ -358,10 +359,15 @@ class PDFstatistics(object):
             exec('self.' + arname + ' += list')
             fid.close()
 
-
-    def makeFileList(self, fn_pattern='*'):
-        self.evtlist = glob.glob1((os.path.join(self.directory)), '*.xml')
-
+    def makeFileList(self, fn_pattern='*.xml'):
+        evtlist = list()
+        evtlist = glob.glob1((os.path.join(self.directory)), fn_pattern)
+        if not evtlist:
+             for root, _, files in os.walk(self.directory):
+                 for file in files:
+                     if file.endswith(fn_pattern[1:]):
+                         evtlist.append(os.path.join(root, file))
+        self.evtlist = evtlist
 
     def __iter__(self):
         assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
