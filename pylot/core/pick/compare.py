@@ -424,7 +424,8 @@ class PDFstatistics(object):
 
 
     def histplot(self, array, binlist, xlab = 'Values',
-                 ylab = 'Frequency', title = None, label=None):
+                 ylab = 'Frequency', title = None, label=None,
+                 fnout = None):
         import matplotlib.pyplot as plt
         plt.hist(array,bins = binlist)
         plt.xlabel('Values')
@@ -434,7 +435,10 @@ class PDFstatistics(object):
             if label:
                 title_str += ' (' + label + ')'
             plt.title(title_str)
-        plt.show()
+        if fnout:
+            plt.savefig(fnout+'histplot.png')
+        else:
+            plt.show()
 
 
     def getPDFDict(self, month, evt):
