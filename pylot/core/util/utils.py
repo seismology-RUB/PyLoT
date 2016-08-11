@@ -223,10 +223,10 @@ def getPatternLine(fn, pattern):
 
 def isSorted(iterable):
     '''
-
-    :param iterable:
-    :type iterable:
-    :return:
+    Takes an iterable and checks if args* are in order.
+    :param iterable: any with defined __ls__() and __gs__()
+    :type iterable: list
+    :return: Boolean
     '''
     return sorted(iterable) == iterable
 
