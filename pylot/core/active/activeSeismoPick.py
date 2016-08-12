@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import math
 import numpy as np
 from pylot.core.active import seismicshot
 from pylot.core.active.surveyUtils import cleanUp
@@ -672,10 +673,29 @@ class Survey(object):
         '''
 
         import matplotlib.pyplot as plt
-        import math
         plt.interactive(True)
         from pylot.core.active.surveyPlotTools import regions
 
+        dist, pick, snrlog, pickerror, spe = self.preparePlotAllPicks(plotRemoved)
+        
+        color = {'log10SNR': snrlog,
+                 'pickerror': pickerror,
+                 'spe': spe}
+        self.color = color
+        if refreshPlot is False:
+            ax, cbar, sc = self.createPlot(dist, pick, color[colorByVal],
+                                       label='%s' % colorByVal)
+            region = regions(ax, cbar, self)
+            ax.legend()
+            return (ax, region)
+        if refreshPlot is True:
+            ax, cbar, sc = self.createPlot(dist, pick, color[colorByVal],
+                                       label='%s' % colorByVal, ax=ax,
+                                       cbar=cbar)
+            ax.legend()
+            return ax
+
+    def preparePlotAllPicks(self, plotRemoved = False):
         dist = []
         pick = []
         snrlog = []
@@ -693,29 +713,15 @@ class Survey(object):
                         pickerror.append(shot.getPickError(traceID))
                         spe.append(shot.getSymmetricPickError(traceID))
 
-        color = {'log10SNR': snrlog,
-                 'pickerror': pickerror,
-                 'spe': spe}
-        self.color = color
-        if refreshPlot is False:
-            ax, cbar = self.createPlot(dist, pick, color[colorByVal],
-                                       label='%s' % colorByVal)
-            region = regions(ax, cbar, self)
-            ax.legend()
-            return (ax, region)
-        if refreshPlot is True:
-            ax, cbar = self.createPlot(dist, pick, color[colorByVal],
-                                       label='%s' % colorByVal, ax=ax,
-                                       cbar=cbar)
-            ax.legend()
-            return ax
+        return dist, pick, snrlog, pickerror, spe
 
+                            
     def createPlot(self, dist, pick, inkByVal, label, ax=None, cbar=None):
         '''
         Used by plotAllPicks.
         '''
         import matplotlib.pyplot as plt
-        plt.interactive(True)
+        #plt.interactive(True)
         cm = plt.cm.jet
         if ax is None:
             print('Generating new plot...')
@@ -723,7 +729,7 @@ class Survey(object):
             ax = fig.add_subplot(111)
             sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
                             edgecolors='none', label=label)
-            cbar = plt.colorbar(sc, fraction=0.05)
+            cbar = fig.colorbar(sc, fraction=0.05)
             cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')
@@ -732,14 +738,16 @@ class Survey(object):
         else:
             sc = ax.scatter(dist, pick, cmap=cm, c=inkByVal, s=5,
                             edgecolors='none', label=label)
-            cbar = plt.colorbar(sc, cax=cbar.ax)
-            cbar.set_label(label)
+            if cbar is not None:
+                cbar.ax.clear()
+                cbar = ax.figure.colorbar(sc, cax=cbar.ax)
+                cbar.set_label(label)
             ax.set_xlabel('Distance [m]')
             ax.set_ylabel('Time [s]')
             ax.text(0.5, 0.95, 'Plot of all picks', transform=ax.transAxes,
                     horizontalalignment='center')
-        return (ax, cbar)
-
+        return ax, cbar, sc
+    
     def _update_progress(self, shotname, tend, progress):
         sys.stdout.write(
             'Working on shot %s. ETC is %02d:%02d:%02d [%2.2f %%]\r' % (

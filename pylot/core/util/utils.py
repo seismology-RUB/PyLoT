@@ -82,8 +82,8 @@ def clims(lim1, lim2):
 
 def demeanTrace(trace, window):
     """
-    returns the DATA where each trace is demean by the average value within
-    WINDOW
+    takes a trace object and returns the same trace object but with data
+    demeaned within a certain time window
     :param trace: waveform trace object
     :type trace: `~obspy.core.stream.Trace`
     :param window:
@@ -100,9 +100,9 @@ def findComboBoxIndex(combo_box, val):
     Function findComboBoxIndex takes a QComboBox object and a string and
     returns either 0 or the index throughout all QComboBox items.
     :param combo_box: Combo box object.
-    :type combo_box: QComboBox
+    :type combo_box: `~QComboBox`
     :param val: Name of a combo box to search for.
-    :type val:
+    :type val: basestring
     :return: index value of item with name val or 0
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
@@ -110,21 +110,35 @@ def findComboBoxIndex(combo_box, val):
 
 def find_nearest(array, value):
     '''
-    Function find_nearest takes an array and a value and returns the
-    index of the nearest value found in the array.
-    :param array:
-    :param value:
-    :return:
+    function find_nearest takes an array and a value and returns the
+    index of the nearest value found in the array
+    :param array: array containing values
+    :type array: `~numpy.ndarray`
+    :param value: number searched for
+    :return: index of the array item being nearest to the value
+
+    >>> a = np.array([ 1.80339578, -0.72546654,  0.95769195, -0.98320759, 0.85922623])
+    >>> find_nearest(a, 1.3)
+    2
+    >>> find_nearest(a, 0)
+    1
+    >>> find_nearest(a, 2)
+    0
+    >>> find_nearest(a, -1)
+    3
+    >>> a = np.array([ 1.1, -0.7,  0.9, -0.9, 0.8])
+    >>> find_nearest(a, 0.849)
+    4
     '''
     return (np.abs(array - value)).argmin()
 
 
 def fnConstructor(s):
     '''
-
-    :param s:
-    :type s:
-    :return:
+    takes a string and returns a valid filename (especially on windows machines)
+    :param s: desired filename
+    :type s: str
+    :return: valid filename
     '''
     if type(s) is str:
         s = s.split(':')[-1]
@@ -142,7 +156,21 @@ def fnConstructor(s):
 
 
 def four_digits(year):
-    if year + 2000 < UTCDateTime.utcnow().year:
+    """
+    takes a two digit year integer and returns the correct four digit equivalent
+    from the last 100 years
+    :param year: two digit year
+    :type year: int
+    :return: four digit year correspondant
+
+    >>> four_digits(20)
+    1920
+    >>> four_digits(16)
+    2016
+    >>> four_digits(00)
+    2000
+    """
+    if year + 2000 <= UTCDateTime.utcnow().year:
         year += 2000
     else:
         year += 1900
@@ -151,10 +179,11 @@ def four_digits(year):
 
 def getGlobalTimes(stream):
     '''
-
-    :param stream:
-    :type stream
-    :return:
+    takes a stream object and returns the latest end and the earliest start
+    time of all contained trace objects
+    :param stream: seismological data stream
+    :type stream: `~obspy.core.stream.Stream`
+    :return: minimum start time and maximum end time
     '''
     min_start = UTCDateTime()
     max_end = None
@@ -168,6 +197,8 @@ def getGlobalTimes(stream):
 
 def getHash(time):
     '''
+    takes a time object and returns the corresponding SHA1 hash of the
+    formatted date string
     :param time: time object for which a hash should be calculated
     :type time: :class: `~obspy.core.utcdatetime.UTCDateTime` object
     :return: str
@@ -179,27 +210,27 @@ def getHash(time):
 
 def getLogin():
     '''
-    returns the actual user's login id
-    :return: User ID
+    returns the actual user's login ID
+    :return: login ID
     '''
     return pwd.getpwuid(os.getuid())[0]
 
 
 def getOwner(fn):
     '''
-    takes filename and returns the User ID of the owner of the file
-    :param fn: filename
+    takes a filename and return the login ID of the actual owner of the file
+    :param fn: filename of the file tested
     :type fn: str
-    :return: User ID
+    :return: login ID of the file's owner
     '''
     return pwd.getpwuid(os.stat(fn).st_uid).pw_name
 
 
 def getPatternLine(fn, pattern):
     """
-    Takes a file name and a pattern string to search for in the file and
-    returns the first line which contains the pattern string otherwise None.
-    :param fn: filename
+    takes a file name and a pattern string to search for in the file and
+    returns the first line which contains the pattern string otherwise 'None'
+    :param fn: file name
     :type fn: str
     :param pattern: pattern string to search for
     :type pattern: str
@@ -221,22 +252,52 @@ def getPatternLine(fn, pattern):
 
 def isSorted(iterable):
     '''
-    takes a python variable and returns True if the iterable is sorted and False otherwise
-    :param iterable: a python variable
+    takes an iterable and returns 'True' if the items are in order otherwise
+    'False'
+    :param iterable: an iterable object
     :type iterable:
-    :return:
+    :return: Boolean
+
+    >>> isSorted(1)
+    Traceback (most recent call last):
+    ...
+    AssertionError: object is not iterable; object: 1
+    >>> isSorted([1,2,3,4])
+    True
+    >>> isSorted('abcd')
+    True
+    >>> isSorted('bcad')
+    False
+    >>> isSorted([2,3,1,4])
+    False
     '''
+    assert isIterable(iterable), 'object is not iterable; object: {' \
+                                 '0}'.format(iterable)
+    if type(iterable) is str:
+        iterable = [s for s in iterable]
     return sorted(iterable) == iterable
 
 
+def isIterable(obj):
+    """
+    takes a python object and returns 'True' is the object is iterable and
+    'False' otherwise
+    :param obj: a python object
+    :return: True of False
+    """
+    try:
+        iterator = iter(obj)
+    except TypeError as te:
+        return False
+    return True
+
 def prepTimeAxis(stime, trace):
     '''
-    takes a starttime 'stime' and a trace object 'trace' and return a vector containing as much time stamps as data values in the trace object are available
-    :param stime:
-    :type stime:
-    :param trace:
-    :type trace:
-    :return: time axis
+    takes a starttime and a trace object and returns a valid time axis for
+    plotting
+    :param stime: start time of the actual seismogram as UTCDateTime
+    :param trace: seismic trace object
+    :return: valid numpy array with time stamps for plotting
     '''
     nsamp = trace.stats.npts
     srate = trace.stats.sampling_rate

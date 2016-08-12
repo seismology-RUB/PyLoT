@@ -339,16 +339,30 @@ class PDFDictionary(object):
 
 
 class PDFstatistics(object):
-    '''
-    To do:
-    plots for std, quantiles,
-    '''
+    """
+    This object can be used to get various statistic values from probabillity density functions.
+    Takes a path as argument.
+    """
+
+
     def __init__(self, directory):
+        """Initiates some values needed when dealing with pdfs later"""
         self.directory = directory
         self.evtlist = list()
         self.return_phase = None
 
+
     def readTheta(self, arname, dir, fnpattern):
+        """
+        Loads an array from file into object instance.
+        :param arname: Name of Array beeing created.
+        :type  arname: string
+        :param dir: Directory where file is to be found.
+        :type  dir: string
+        :param fnpattern: file name pattern for reading multiple files into one array.
+        :type  fnpattern: string
+        :return: a list with all args* from the files.
+        """
         exec('self.' + arname +' = []')
         filelist = glob.glob1(dir, fnpattern)
         for file in filelist:
@@ -359,8 +373,14 @@ class PDFstatistics(object):
             exec('self.' + arname + ' += list')
             fid.close()
 
+
     def makeFileList(self, fn_pattern='*.xml'):
-        evtlist = list()
+        """
+        Takes a file pattern and searches for that recursively in the set path for the object.
+        :param fn_pattern: A pattern that can identify all datafiles. Default Value = '*.xml'
+        :type  fn_pattern: string
+        :return: creates a list of events saved in the PDFstatistics object.
+        """
         evtlist = glob.glob1((os.path.join(self.directory)), fn_pattern)
         if not evtlist:
              for root, _, files in os.walk(self.directory):
@@ -369,7 +389,9 @@ class PDFstatistics(object):
                          evtlist.append(os.path.join(root, file))
         self.evtlist = evtlist
 
+
     def __iter__(self):
+        """Iterating over the PDFstatistics object yields every single pdf from the list of events"""
         assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
         for evt in self.evtlist:
             self.getPDFDict(self.directory, evt)
@@ -379,13 +401,30 @@ class PDFstatistics(object):
                 except KeyError:
                     continue
 
+
     def set_return_phase(self, type):
+        """
+        Sets the phase typ of event data that is returned on iteration over the object.
+        :param type: can be either p (p-phase) or s (s-phase).
+        :type  type: string
+        :return: -
+        """
         if type.upper() not in 'PS':
             raise ValueError("phase type must be either 'P' or 'S'!")
         else:
             self.return_phase = type.upper()
 
+
     def getQD(self,value):
+        """
+        Takes a probability value and and returns the distance
+        between two complementary quantiles.
+        For example: getQD(0.3) yields Quantile(1-0.3) - Quantile(0.3)
+        :param value: 0 < value < 0.5
+        :type  value: float
+        :return: returns a list of all quantile distances for all pdfs in
+                 the list of events.
+        """
         QDlist = []
         for pdf in self:
             QD = pdf.quantile_distance(value)
@@ -394,6 +433,16 @@ class PDFstatistics(object):
 
 
     def getQDQ(self,value):
+        """
+        Takes a probability value and and returns the fraction of
+        two quantile distances.
+        For example:
+        getQDQ(x) = getQD(0.5-x)/getQD(x)
+        (Quantile(1-0.5-x) - Quantile(x)) / (Quantile(1-x) - Quantile(x))
+        :param value: 0 < value < 0.25
+        :return: returns a list of all quantile fractions for all pdfs in
+                 the list of events.
+        """
         QDQlist = []
         for pdf in self:
             QDQ = pdf.qtile_dist_quot(value)
@@ -402,6 +451,12 @@ class PDFstatistics(object):
 
 
     def getSTD(self):
+        """
+        Iterates over PDFstatistics object and returns the standard
+        deviation of all pdfs in the list of events.
+        :return: saves an instance of self.p_stdarray or
+                 self.s_stdarray, depending on set phase.
+        """
         std = []
         for pdf in self:
             try:
@@ -413,6 +468,10 @@ class PDFstatistics(object):
 
 
     def set_stdarray(self, array):
+        """
+        Helper function for self.getSTD(). This function
+        should not be called directly.
+        """
         if self.return_phase == 'P':
             self.p_stdarray = array
         elif self.return_phase == 'S':
@@ -423,6 +482,22 @@ class PDFstatistics(object):
 
 
     def getBinList(self,l_boundary,u_boundary,nbins = 100):
+        """
+        Helper function for self.histplot(). Takes in two boundaries and
+        a number of bins and creates a list of bins which can be passed
+        to self.histplot().
+        :param l_boundary: Any number.
+        :type  l_boundary: float
+        :param u_boundary: Any number that is greater than l_boundary.
+        :type  u_boundary: float
+        :param nbins: Any positive integer.
+        :type  nbins: int
+        :return: A list of equidistant bins.
+        """
+        if u_boundary <= l_boundary:
+            raise ValueError('Upper boundary must be greather than lower!')
+        elif nbins <= 0:
+            raise ValueError('Number of bins is not valid.')
         binlist = []
         for i in range(nbins):
             binlist.append(l_boundary + i*(u_boundary-l_boundary)/nbins)
@@ -430,24 +505,57 @@ class PDFstatistics(object):
 
 
     def histplot(self, array, binlist, xlab = 'Values',
-                 ylab = 'Frequency', title = None, label=None):
+                 ylab = 'Frequency', title = None, fnout = None):
+        """
+        Method to quickly show some distribution of data. Takes array like data,
+        and a list of bins. Editing detail and inserting a legend is not possible.
+        :param array: List of values.
+        :type  array: Array like
+        :param binlist: List of bins.
+        :type  binlist: list
+        :param xlab: A label for the x-axes.
+        :type  xlab: str
+        :param ylab: A label for the y-axes.
+        :type  ylab: str
+        :param title: A title for the Plot.
+        :type  title: str
+        :param fnout: A path to save the plot instead of showing.
+                      Has to contain filename and type. Like: 'path/to/file.png'
+        :type  fnout. str
+        :return: -
+        """
         import matplotlib.pyplot as plt
         plt.hist(array,bins = binlist)
-        plt.xlabel('Values')
-        plt.ylabel('Frequency')
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
         if title:
-            title_str = 'Quantile distance quotient distribution'
-            if label:
-                title_str += ' (' + label + ')'
-            plt.title(title_str)
-        plt.show()
+            plt.title(title)
+        if fnout:
+            plt.savefig(fnout)
+        else:
+            plt.show()
 
 
     def getPDFDict(self, month, evt):
+        """
+        Helper function for __iter__(). Should not be called directly.
+        """
         self.pdfdict = PDFDictionary.from_quakeml(os.path.join(self.directory,month,evt))
 
 
     def getStatistics(self):
+        """
+        On call function will get mean, median and standard deviation values
+        from self.p_stdarray and self.s_stdarray. Both must be
+        instances before calling this function.
+        :return: Creates instances of self.p_mean, self.p_std_std and self.p_median
+                 for both phases (simultaneously) for the PDFstatistics object.
+        """
+        if not self.p_stdarray or not self.s_stdarray:
+            raise NotImplementedError('Arrays are not properly set yet!')
+        elif type(self.p_stdarray) != type(np.zeros(1)) or type(self.s_stdarray) != type(np.zeros(1)):
+            raise TypeError('Array is not a proper numpy array.')
+
         self.p_mean = self.p_stdarray.mean()
         self.p_std_std = self.p_stdarray.std()
         self.p_median = np.median(self.p_stdarray)
@@ -456,11 +564,21 @@ class PDFstatistics(object):
         self.s_median = np.median(self.s_stdarray)
 
 
-    def writeThetaToFile(self,array,out_dir,filename = None):
-        fid = open(os.path.join(out_dir,filename), 'w')
+    def writeThetaToFile(self,array,out_dir):
+        """
+        Method to write array like data to file. Useful since acquiring can take
+        serious amount of time when dealing with large databases.
+        :param array: List of values.
+        :type  array: list
+        :param out_dir: Path to save file to including file name.
+        :type  out_dir: str
+        :return: Saves a file at given output directory.
+        """
+        fid = open(os.path.join(out_dir), 'w')
         for val in array:
             fid.write(str(val)+'\n')
         fid.close()
+
 
 def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
