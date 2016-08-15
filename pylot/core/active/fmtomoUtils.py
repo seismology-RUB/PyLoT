@@ -6,17 +6,24 @@ import datetime
 import numpy as np
 
 class Tomo3d(object):
-    def __init__(self, fmtomodir, simuldir = 'fmtomo_simulation', citer = 0, overwrite = False):
+    def __init__(self, fmtomodir, simuldir = 'fmtomo_simulation', citer = 0, overwrite = False, buildObs = True):
         '''
         Class build from FMTOMO script tomo3d. Can be used to run several instances of FMM code in parallel.
 
         :param: citer, current iteration (default = 0: start new model)
         :type: integer
+
+        :param: fmtomodir, directory containing a clean FMTOMO installation (v. 1.0)
+        :type: string (path)
+
+        :param: simuldir, simulation directory (must contain FMTOMO input grid files)
+        :type: string (path)
         '''
         self.simuldir = simuldir
         self.setCWD()
         self.buildFmtomodir(fmtomodir)
-        self.buildObsdata()
+        if buildObs:
+            self.buildObsdata()
         self.defParas()
         self.copyRef()
         self.citer = citer       # current iteration
@@ -87,7 +94,7 @@ class Tomo3d(object):
         Initiates inversion parameters for FMTOMO.
         '''
         # Name of program for performing inversion
-        self.inv = '{0}/invert3d'.format(self.cwd)
+        self.inv = os.path.join(self.cwd, 'invert3d')
         # Name of file containing current model traveltimes
         self.mtrav = 'mtimes.dat'
         # Name of file containing reference model traveltimes
@@ -99,7 +106,7 @@ class Tomo3d(object):
         # Name of file containing initial source locations
         self.isl = 'sourcesref.in'
         # Name of program for calculating traveltime residuals
-        self.resid = '{0}/residuals'.format(self.cwd)
+        self.resid = os.path.join(self.cwd, 'residuals')
         # Name of output file for calculating traveltime residuals
         self.resout = 'residuals.dat'
 
