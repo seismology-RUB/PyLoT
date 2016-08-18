@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import operator
 import os
 import numpy as np
 import glob
@@ -151,7 +152,6 @@ class Comparison(object):
         return rlist
 
     def get_array(self, phase, method_name):
-        import operator
         method = operator.methodcaller(method_name)
         pdf_list = self.get_all(phase)
         rarray = map(method, pdf_list)
@@ -258,6 +258,15 @@ class PDFDictionary(object):
                                       'time is not implemented yet! Sorry!')
         return PDFDictionary(picksdict_from_picks(cat[0]))
 
+    def get_all(self, phase):
+        rlist = list()
+        for phases in self.pdf_data.values():
+            try:
+                rlist.append(phases[phase])
+            except KeyError:
+                continue
+        return rlist
+
     def generate_pdf_data(self, type='exp'):
         """
         Returns probabiliy density function dictionary containing the
@@ -350,31 +359,9 @@ class PDFstatistics(object):
         self.directory = directory
         self.evtlist = list()
         self.return_phase = None
+        self.make_fnlist()
 
-
-    def readTheta(self, arname, dir, fnpattern):
-        """
-        Loads an array from file into object instance.
-        :param arname: Name of Array beeing created.
-        :type  arname: string
-        :param dir: Directory where file is to be found.
-        :type  dir: string
-        :param fnpattern: file name pattern for reading multiple files into one array.
-        :type  fnpattern: string
-        :return: a list with all args* from the files.
-        """
-        exec('self.' + arname +' = []')
-        filelist = glob.glob1(dir, fnpattern)
-        for file in filelist:
-            fid = open(os.path.join(dir,file), 'r')
-            list = []
-            for line in fid.readlines():
-                list.append(eval(line))
-            exec('self.' + arname + ' += list')
-            fid.close()
-
-
-    def makeFileList(self, fn_pattern='*.xml'):
+    def make_fnlist(self, fn_pattern='*.xml'):
         """
         Takes a file pattern and searches for that recursively in the set path for the object.
         :param fn_pattern: A pattern that can identify all datafiles. Default Value = '*.xml'
@@ -389,7 +376,6 @@ class PDFstatistics(object):
                          evtlist.append(os.path.join(root, file))
         self.evtlist = evtlist
 
-
     def __iter__(self):
         """Iterating over the PDFstatistics object yields every single pdf from the list of events"""
         assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
@@ -400,7 +386,6 @@ class PDFstatistics(object):
                     yield pdfs[self.return_phase]
                 except KeyError:
                     continue
-
 
     def set_return_phase(self, type):
         """
@@ -414,40 +399,45 @@ class PDFstatistics(object):
         else:
             self.return_phase = type.upper()
 
-
-    def getQD(self,value):
+    def quantile_distances(self, value):
         """
-        Takes a probability value and and returns the distance
-        between two complementary quantiles.
-        For example: getQD(0.3) yields Quantile(1-0.3) - Quantile(0.3)
-        :param value: 0 < value < 0.5
+        takes a probability value and and returns the distance
+        between two complementary quantiles
+
+        .. math::
+
+            QA_\alpha = Q(1 - \alpha) - Q(\alpha)
+
+        :param value: probability value :math:\alpha
         :type  value: float
-        :return: returns a list of all quantile distances for all pdfs in
+        :return: list of all quantile distances for all pdfs in
                  the list of events.
         """
-        QDlist = []
+        rlist = []
         for pdf in self:
-            QD = pdf.quantile_distance(value)
-            QDlist.append(QD)
-        return QDlist
+            rval = pdf.quantile_distance(value)
+            rlist.append(rval)
+        return rlist
 
 
-    def getQDQ(self,value):
+    def quantile_distance_fractions(self, value):
         """
-        Takes a probability value and and returns the fraction of
-        two quantile distances.
-        For example:
-        getQDQ(x) = getQD(0.5-x)/getQD(x)
-        (Quantile(1-0.5-x) - Quantile(x)) / (Quantile(1-x) - Quantile(x))
-        :param value: 0 < value < 0.25
+        takes a probability value and returns the fraction of two
+        corresponding quantile distances
+
+        .. math::
+
+            Q\Theta_\alpha = \frac{QA(0.5 - \alpha)}{QA(\alpha)}
+
+        :param value: probability value :math:\alpha
         :return: returns a list of all quantile fractions for all pdfs in
                  the list of events.
         """
-        QDQlist = []
+        rlist = list()
         for pdf in self:
-            QDQ = pdf.qtile_dist_quot(value)
-            QDQlist.append(QDQ)
-        return QDQlist
+            rval = pdf.quantile_dist_frac(value)
+            rlist.append(rval)
+        return rlist
 
 
     def getSTD(self):
@@ -479,61 +469,6 @@ class PDFstatistics(object):
         else:
             raise ValueError('phase type not set properly...\n'
                              'Actual phase type: {0}'.format(self.return_phase))
-
-
-    def getBinList(self,l_boundary,u_boundary,nbins = 100):
-        """
-        Helper function for self.histplot(). Takes in two boundaries and
-        a number of bins and creates a list of bins which can be passed
-        to self.histplot().
-        :param l_boundary: Any number.
-        :type  l_boundary: float
-        :param u_boundary: Any number that is greater than l_boundary.
-        :type  u_boundary: float
-        :param nbins: Any positive integer.
-        :type  nbins: int
-        :return: A list of equidistant bins.
-        """
-        if u_boundary <= l_boundary:
-            raise ValueError('Upper boundary must be greather than lower!')
-        elif nbins <= 0:
-            raise ValueError('Number of bins is not valid.')
-        binlist = []
-        for i in range(nbins):
-            binlist.append(l_boundary + i*(u_boundary-l_boundary)/nbins)
-        return  binlist
-
-
-    def histplot(self, array, binlist, xlab = 'Values',
-                 ylab = 'Frequency', title = None, fnout = None):
-        """
-        Method to quickly show some distribution of data. Takes array like data,
-        and a list of bins. Editing detail and inserting a legend is not possible.
-        :param array: List of values.
-        :type  array: Array like
-        :param binlist: List of bins.
-        :type  binlist: list
-        :param xlab: A label for the x-axes.
-        :type  xlab: str
-        :param ylab: A label for the y-axes.
-        :type  ylab: str
-        :param title: A title for the Plot.
-        :type  title: str
-        :param fnout: A path to save the plot instead of showing.
-                      Has to contain filename and type. Like: 'path/to/file.png'
-        :type  fnout. str
-        :return: -
-        """
-        import matplotlib.pyplot as plt
-        plt.hist(array,bins = binlist)
-        plt.xlabel(xlab)
-        plt.ylabel(ylab)
-        if title:
-            plt.title(title)
-        if fnout:
-            plt.savefig(fnout)
-        else:
-            plt.show()
 
 
     def getPDFDict(self, month, evt):
@@ -583,13 +518,19 @@ class PDFstatistics(object):
 def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
-    Insheim.makeFileList()
+    Insheim.make_fnlist()
     Insheim.set_return_phase('p')
     Insheim.getSTD()
-    qdlist = Insheim.getQDQ(0.3)
-    binlist = Insheim.getBinList(0.,3.)
+    qdlist = Insheim.quantile_distance_fractions(0.2)
     print qdlist
 
 
 if __name__ == "__main__":
+    import cProfile
+
+    pr = cProfile.Profile()
+    pr.enable()
     main()
+    pr.disable()
+    # after your program ends
+    pr.print_stats(sort="calls")
