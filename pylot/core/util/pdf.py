@@ -326,7 +326,7 @@ class ProbabilityDensityFunction(object):
             raise ValueError('value out of bounds: {0}'.format(value))
         return self.prob_limits((value, self.axis[-1]))
 
-    def prob_limits(self, limits, oversampling=10.):
+    def prob_limits(self, limits, oversampling=1.):
         sampling = self.incr / oversampling
         lim = np.arange(limits[0], limits[1], sampling)
         data = self.data(lim)
