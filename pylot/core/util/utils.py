@@ -107,6 +107,34 @@ def findComboBoxIndex(combo_box, val):
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
 
+def find_in_list(list, str):
+    """
+    takes a list of strings and a string and returns the first list item
+    matching the string pattern
+    :param list: list to search in
+    :param str: pattern to search for
+    :return: first list item containing pattern
+
+    .. example::
+
+    >>> l = ['/dir/e1234.123.12', '/dir/e2345.123.12', 'abc123', 'def456']
+    >>> find_in_list(l, 'dir')
+    '/dir/e1234.123.12'
+    >>> find_in_list(l, 'e1234')
+    '/dir/e1234.123.12'
+    >>> find_in_list(l, 'e2')
+    '/dir/e2345.123.12'
+    >>> find_in_list(l, 'ABC')
+    'abc123'
+    >>> find_in_list(l, 'f456')
+    'def456'
+    >>> find_in_list(l, 'gurke')
+
+    """
+    rlist = [s for s in list if str.lower() in s.lower()]
+    if rlist:
+        return rlist[0]
+    return None
 
 def find_nearest(array, value):
     '''
