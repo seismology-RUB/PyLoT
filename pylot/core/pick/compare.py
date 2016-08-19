@@ -12,6 +12,7 @@ from obspy import read_events
 
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
+from pylot.core.util.utils import find_in_list
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -356,9 +357,9 @@ class PDFstatistics(object):
 
     def __init__(self, directory):
         """Initiates some values needed when dealing with pdfs later"""
-        self.directory = directory
-        self.evtlist = list()
-        self.return_phase = None
+        self._rootdir = directory
+        self._evtlist = list()
+        self._rphase = None
         self.make_fnlist()
 
     def make_fnlist(self, fn_pattern='*.xml'):
@@ -368,136 +369,97 @@ class PDFstatistics(object):
         :type  fn_pattern: string
         :return: creates a list of events saved in the PDFstatistics object.
         """
-        evtlist = glob.glob1((os.path.join(self.directory)), fn_pattern)
-        if not evtlist:
-             for root, _, files in os.walk(self.directory):
-                 for file in files:
-                     if file.endswith(fn_pattern[1:]):
-                         evtlist.append(os.path.join(root, file))
-        self.evtlist = evtlist
+        evtlist = list()
+        for root, _, files in os.walk(self.root):
+            for file in files:
+                if file.endswith(fn_pattern[1:]):
+                    evtlist.append(os.path.join(root, file))
+        self._evtlist = evtlist
 
     def __iter__(self):
-        """Iterating over the PDFstatistics object yields every single pdf from the list of events"""
-        assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
-        for evt in self.evtlist:
-            self.getPDFDict(self.directory, evt)
-            for station, pdfs in self.pdfdict.pdf_data.items():
-                try:
-                    yield pdfs[self.return_phase]
-                except KeyError:
-                    continue
+        for evt in self._evtlist:
+            yield PDFDictionary.from_quakeml(evt)
 
-    def set_return_phase(self, type):
+    def __getitem__(self, item):
+        evt = find_in_list(self._evtlist, item)
+        if evt:
+            return PDFDictionary.from_quakeml(evt)
+        return None
+
+    @property
+    def root(self):
+        return self._rootdir
+
+    @root.setter
+    def root(self, value):
+        if os.path.exists(value):
+            self._rootdir = value
+        else:
+            raise ValueError("path doesn't exist: %s" % value)
+
+    @property
+    def curphase(self):
         """
-        Sets the phase typ of event data that is returned on iteration over the object.
-        :param type: can be either p (p-phase) or s (s-phase).
-        :type  type: string
+        return the current phase type of interest
+        :return: current phase
+        """
+        return self._rphase
+
+    @curphase.setter
+    def curphase(self, type):
+        """
+        setter method for property curphase
+        :param type: specify the phase type of interest
+        :type  type: string ('p' or 's')
         :return: -
         """
         if type.upper() not in 'PS':
             raise ValueError("phase type must be either 'P' or 'S'!")
         else:
-            self.return_phase = type.upper()
+            self._rphase = type.upper()
 
-    def quantile_distances(self, value):
+    def get(self, property='std', value=None):
         """
-        takes a probability value and and returns the distance
-        between two complementary quantiles
+        takes a property str and a probability value and returns all
+        property's values for the current phase of interest
+        :func:`self.curphase`
 
-        .. math::
-
-            QA_\alpha = Q(1 - \alpha) - Q(\alpha)
-
+        :param property: property name (default: 'std')
+        :type property: str
         :param value: probability value :math:\alpha
         :type  value: float
-        :return: list of all quantile distances for all pdfs in
-                 the list of events.
+        :return: list containing all property's values
         """
+        assert isinstance(self.curphase,
+                          str), 'phase has to be set before being ' \
+                                'able to iterate over items...'
         rlist = []
-        for pdf in self:
-            rval = pdf.quantile_distance(value)
-            rlist.append(rval)
-        return rlist
+        method_options = dict(STD='standard_deviation',
+                              Q='quantile',
+                              QD='quantile_distance',
+                              QDF='quantile_dist_frac')
 
-
-    def quantile_distance_fractions(self, value):
-        """
-        takes a probability value and returns the fraction of two
-        corresponding quantile distances
-
-        .. math::
-
-            Q\Theta_\alpha = \frac{QA(0.5 - \alpha)}{QA(\alpha)}
-
-        :param value: probability value :math:\alpha
-        :return: returns a list of all quantile fractions for all pdfs in
-                 the list of events.
-        """
-        rlist = list()
-        for pdf in self:
-            rval = pdf.quantile_dist_frac(value)
-            rlist.append(rval)
-        return rlist
-
-
-    def getSTD(self):
-        """
-        Iterates over PDFstatistics object and returns the standard
-        deviation of all pdfs in the list of events.
-        :return: saves an instance of self.p_stdarray or
-                 self.s_stdarray, depending on set phase.
-        """
-        std = []
-        for pdf in self:
+        # create method caller for easy mapping
+        if property.upper() == 'STD':
+            method = operator.methodcaller(method_options[property.upper()])
+        elif value is not None:
             try:
-                std.append(pdf.standard_deviation())
+                method = operator.methodcaller(method_options[property.upper()],
+                                               value)
             except KeyError:
-                continue
-        std = np.array(std)
-        self.set_stdarray(std)
-
-
-    def set_stdarray(self, array):
-        """
-        Helper function for self.getSTD(). This function
-        should not be called directly.
-        """
-        if self.return_phase == 'P':
-            self.p_stdarray = array
-        elif self.return_phase == 'S':
-            self.s_stdarray = array
+                raise KeyError('unknwon property: {0}'.format(property.upper()))
         else:
-            raise ValueError('phase type not set properly...\n'
-                             'Actual phase type: {0}'.format(self.return_phase))
+            raise ValueError("for call to method {0} value has to be "
+                             "defined but is 'None' ".format(method_options[
+                                                             property.upper()]))
 
+        for pdf_dict in self:
+            # create worklist
+            wlist = pdf_dict.get_all(self.curphase)
+            # map method calls to object in worklist
+            rlist += map(method, wlist)
 
-    def getPDFDict(self, month, evt):
-        """
-        Helper function for __iter__(). Should not be called directly.
-        """
-        self.pdfdict = PDFDictionary.from_quakeml(os.path.join(self.directory,month,evt))
-
-
-    def getStatistics(self):
-        """
-        On call function will get mean, median and standard deviation values
-        from self.p_stdarray and self.s_stdarray. Both must be
-        instances before calling this function.
-        :return: Creates instances of self.p_mean, self.p_std_std and self.p_median
-                 for both phases (simultaneously) for the PDFstatistics object.
-        """
-        if not self.p_stdarray or not self.s_stdarray:
-            raise NotImplementedError('Arrays are not properly set yet!')
-        elif type(self.p_stdarray) != type(np.zeros(1)) or type(self.s_stdarray) != type(np.zeros(1)):
-            raise TypeError('Array is not a proper numpy array.')
-
-        self.p_mean = self.p_stdarray.mean()
-        self.p_std_std = self.p_stdarray.std()
-        self.p_median = np.median(self.p_stdarray)
-        self.s_mean = self.s_stdarray.mean()
-        self.s_std_std = self.s_stdarray.std()
-        self.s_median = np.median(self.s_stdarray)
-
+        return rlist
 
     def writeThetaToFile(self,array,out_dir):
         """
@@ -518,10 +480,8 @@ class PDFstatistics(object):
 def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
-    Insheim.make_fnlist()
-    Insheim.set_return_phase('p')
-    Insheim.getSTD()
-    qdlist = Insheim.quantile_distance_fractions(0.2)
+    Insheim.curphase = 'p'
+    qdlist = Insheim.get('qdf', 0.2)
     print qdlist
 
 
