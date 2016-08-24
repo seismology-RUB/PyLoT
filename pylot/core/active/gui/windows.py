@@ -48,6 +48,35 @@ def getMaxCPU():
     import multiprocessing
     return multiprocessing.cpu_count()
 
+def printDialogMessage(message):
+    qmb = QtGui.QMessageBox()
+    qmb.setText(message)
+    qmb.setStandardButtons(QtGui.QMessageBox.Ok)
+    qmb.setIcon(QtGui.QMessageBox.Warning)
+    qmb.exec_()
+
+def continueDialogExists(name):
+    qmb = QtGui.QMessageBox()
+    qmb.setText('%s object already exists. Overwrite?'%name)
+    qmb.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
+    qmb.setIcon(QtGui.QMessageBox.Warning)
+    answer = qmb.exec_()
+    if answer == 1024:
+        return True
+    else:
+        return False
+
+def continueDialogMessage(message):
+    qmb = QtGui.QMessageBox()
+    qmb.setText(message)
+    qmb.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
+    qmb.setIcon(QtGui.QMessageBox.Warning)
+    answer = qmb.exec_()
+    if answer == 1024:
+        return True
+    else:
+        return False
+
 
 class Gen_SeisArray(object):
     def __init__(self, mainwindow):
@@ -606,6 +635,7 @@ class Postprocessing(object):
         self.survey = survey
         self.init_widget()
         self.start_widget()
+        self.inkByVal = 'snrlog'
         
     def init_widget(self):
         qwidget = QtGui.QWidget()#
@@ -642,11 +672,11 @@ class Postprocessing(object):
         self.ax = ax
         self.draw()
 
-    def refreshPlot(self, inkByVal = 'snrlog'):
+    def refreshPlot(self):
         self.ax.clear()
         ax = self.ax
-        ax, cbar, sc = self.survey.createPlot(self.dists, self.picks, self.inkDict[inkByVal],
-                                              inkByVal, ax = ax, cbar = self.cbar)
+        ax, cbar, sc = self.survey.createPlot(self.dists, self.picks, self.inkDict[self.inkByVal],
+                                              self.inkByVal, ax = ax, cbar = self.cbar)
         #self.cbar = self.figure.colorbar(sc, fraction=0.05)
         self.draw()
         
@@ -663,6 +693,8 @@ class Postprocessing(object):
         QtCore.QObject.connect(self.ui.pushButton_rect, QtCore.SIGNAL("clicked()"), self.chooseRect)
         QtCore.QObject.connect(self.ui.pushButton_poly, QtCore.SIGNAL("clicked()"), self.choosePoly)
         QtCore.QObject.connect(self.ui.pushButton_plot, QtCore.SIGNAL("clicked()"), self.plotPicks)
+        QtCore.QObject.connect(self.ui.pushButton_delete, QtCore.SIGNAL("clicked()"), self.deleteSelected)
+        QtCore.QObject.connect(self.ui.pushButton_undo, QtCore.SIGNAL("clicked()"), self.undoSelection)
         QtCore.QObject.connect(self.ui.pushButton_snr, QtCore.SIGNAL("clicked()"), self.refrSNR)
         QtCore.QObject.connect(self.ui.pushButton_pe, QtCore.SIGNAL("clicked()"), self.refrPE)
         QtCore.QObject.connect(self.ui.pushButton_spe, QtCore.SIGNAL("clicked()"), self.refrSPE)
@@ -673,15 +705,32 @@ class Postprocessing(object):
     def choosePoly(self):
         self.region.choosePolygon()
 
+    def disconnectRect(self):
+        self.region.disconnectRect()
+
+    def disconnectPoly(self):
+        self.region.disconnectPoly()
+
     def plotPicks(self):
         self.region.plotTracesInActiveRegions()
 
+    def deleteSelected(self):
+        self.region.setAllActiveRegionsForDeletion()
+        message = 'Are you sure you want to delete all marked picks?'
+        if continueDialogMessage(message):
+            self.region.deleteAllMarkedPicks()
+        else:
+            self.region.refreshFigure()
+
+    def undoSelection(self):
+        self.region.deselectLastSelection()
+        
     def refrSNR(self):
-        self.refreshPlot('snrlog')
+        self.region.refreshLog10SNR()
 
     def refrPE(self):
-        self.refreshPlot('pe')
+        self.region.refreshPickerror()
 
     def refrSPE(self):
-        self.refreshPlot('spe')
+        self.region.refreshSPE()
 

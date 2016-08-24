@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'postprocessing_layout.ui'
 #
-# Created: Wed Aug 24 13:12:00 2016
+# Created: Wed Aug 24 14:38:13 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -38,8 +38,11 @@ class Ui_postprocessing(object):
         sizePolicy.setHeightForWidth(self.pushButton_rect.sizePolicy().hasHeightForWidth())
         self.pushButton_rect.setSizePolicy(sizePolicy)
         self.pushButton_rect.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.pushButton_rect.setCheckable(True)
+        self.pushButton_rect.setCheckable(False)
         self.pushButton_rect.setObjectName("pushButton_rect")
+        self.buttonGroup = QtGui.QButtonGroup(postprocessing)
+        self.buttonGroup.setObjectName("buttonGroup")
+        self.buttonGroup.addButton(self.pushButton_rect)
         self.horizontalLayout_4.addWidget(self.pushButton_rect)
         self.pushButton_poly = QtGui.QPushButton(postprocessing)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
@@ -48,9 +51,20 @@ class Ui_postprocessing(object):
         sizePolicy.setHeightForWidth(self.pushButton_poly.sizePolicy().hasHeightForWidth())
         self.pushButton_poly.setSizePolicy(sizePolicy)
         self.pushButton_poly.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.pushButton_poly.setCheckable(True)
+        self.pushButton_poly.setCheckable(False)
         self.pushButton_poly.setObjectName("pushButton_poly")
+        self.buttonGroup.addButton(self.pushButton_poly)
         self.horizontalLayout_4.addWidget(self.pushButton_poly)
+        self.pushButton_undo = QtGui.QPushButton(postprocessing)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_undo.sizePolicy().hasHeightForWidth())
+        self.pushButton_undo.setSizePolicy(sizePolicy)
+        self.pushButton_undo.setMaximumSize(QtCore.QSize(16777215, 30))
+        self.pushButton_undo.setCheckable(False)
+        self.pushButton_undo.setObjectName("pushButton_undo")
+        self.horizontalLayout_4.addWidget(self.pushButton_undo)
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_2.addLayout(self.verticalLayout_3)
         self.line = QtGui.QFrame(postprocessing)
@@ -153,6 +167,7 @@ class Ui_postprocessing(object):
         self.label.setText(QtGui.QApplication.translate("postprocessing", "Selection", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_rect.setText(QtGui.QApplication.translate("postprocessing", "Rectangle", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_poly.setText(QtGui.QApplication.translate("postprocessing", "Polygon", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton_undo.setText(QtGui.QApplication.translate("postprocessing", "Undo", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("postprocessing", "Action", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_plot.setText(QtGui.QApplication.translate("postprocessing", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_delete.setText(QtGui.QApplication.translate("postprocessing", "Delete", None, QtGui.QApplication.UnicodeUTF8))

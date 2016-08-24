@@ -10,7 +10,7 @@ from PySide import QtCore, QtGui
 from pylot.core.active import activeSeismoPick, surveyUtils, fmtomoUtils, seismicArrayPreparation
 from pylot.core.active.gui.asp3d_layout import *
 from pylot.core.active.gui.windows import Gen_SeisArray, Gen_Survey_from_SA, Gen_Survey_from_SR, Call_autopicker, Call_FMTOMO, Call_VTK_dialog, Postprocessing
-from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU
+from pylot.core.active.gui.windows import openFile, saveFile, browseDir, getMaxCPU, printDialogMessage, continueDialogExists, continueDialogMessage
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -80,10 +80,10 @@ class gui_control(object):
     def gen_seisarray(self):
         disconnect = False
         if self.checkSeisArrayState():
-            if not self.continueDialogExists('Seismic Array'):
+            if not continueDialogExists('Seismic Array'):
                 return
         if self.checkConnected2SurveyState():
-            if not self.continueDialogMessage('Seismic Array connected to present Survey.\n'
+            if not continueDialogMessage('Seismic Array connected to present Survey.\n'
                                               'Continuation will disconnect the Seismic Array.'):
                 return
             else:
@@ -103,11 +103,11 @@ class gui_control(object):
 
     def gen_survey(self):
         if self.checkSurveyState():
-            if not self.continueDialogExists('Survey'):
+            if not continueDialogExists('Survey'):
                 return
         if self.checkSeisArrayState():
             if len(self.seisarray.getSourceCoordinates()) > 0:
-                if self.continueDialogMessage('Use geometry information of active Seismic Array?'):
+                if continueDialogMessage('Use geometry information of active Seismic Array?'):
                     if self.gssa is None:
                         self.gssa = Gen_Survey_from_SA(self.mainwindow, self.seisarray)
                     else:
@@ -120,7 +120,7 @@ class gui_control(object):
                         self.setPickState(False)
                     return
             else:
-                if not self.continueDialogMessage('Can not use current Seismic Array,'
+                if not continueDialogMessage('Can not use current Seismic Array,'
                                                   ' because there are no sources given.'):
                     return
         if self.gssr is None:
@@ -291,7 +291,7 @@ class gui_control(object):
 
     def interpolate_receivers(self):
         if not self.checkSeisArrayState():
-            self.printDialogMessage('No Seismic Array defined.')
+            printDialogMessage('No Seismic Array defined.')
             return
         self.seisarray.interpolateAll()
         self.refreshSeisArrayWidgets()
@@ -304,13 +304,13 @@ class gui_control(object):
         
     def connect2Survey(self):
         if not self.checkSurveyState():
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         if not self.checkSeisArrayState():
-            self.printDialogMessage('Got no Seismic Array.')
+            printDialogMessage('Got no Seismic Array.')
             return
         if self.checkConnected2SurveyState():
-            if not self.continueDialogMessage('Existing Survey already got Seismic Array object. Continue?'):
+            if not continueDialogMessage('Existing Survey already got Seismic Array object. Continue?'):
                 return
         self.survey.seisarray = self.seisarray
         self.setConnected2SurveyState(True)
@@ -320,10 +320,10 @@ class gui_control(object):
 
     def startPicker(self):
         if not self.checkSurveyState():
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         if self.checkPickState():
-            if not self.continueDialogMessage('Survey already picked. Continue?'):
+            if not continueDialogMessage('Survey already picked. Continue?'):
                 return
 
         if self.autopicker is None:
@@ -338,10 +338,10 @@ class gui_control(object):
 
     def startFMTOMO(self):
         if not self.checkSurveyState():
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         if not self.checkPickState():
-            self.printDialogMessage('Survey not picked.')
+            printDialogMessage('Survey not picked.')
             return
 
         if self.fmtomo is None:
@@ -361,7 +361,7 @@ class gui_control(object):
 
     def postprocessing(self):
         if not self.checkSurveyState():
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         self.postprocessing = Postprocessing(self.mainwindow, self.survey)
         #self.survey.plotAllPicks()
@@ -370,7 +370,7 @@ class gui_control(object):
         
     def load_survey(self):
         if self.checkSurveyState():
-            if not self.continueDialogExists('Survey'):
+            if not continueDialogExists('Survey'):
                 return
         filename = openFile()
         if filename is None:
@@ -378,14 +378,14 @@ class gui_control(object):
         try:
             survey = activeSeismoPick.Survey.from_pickle(filename)
         except:
-            self.printDialogMessage('Could not load object %s.'%filename)
+            printDialogMessage('Could not load object %s.'%filename)
             return
         if not type(survey) == activeSeismoPick.Survey:
-            self.printDialogMessage('Wrong input file of type %s, expected %s.'
+            printDialogMessage('Wrong input file of type %s, expected %s.'
                   %(type(survey), activeSeismoPick.Survey))
             return
         if self.checkSeisArrayState() and survey.seisarray is not None:
-            if not self.continueDialogMessage('Survey got existing Seismic Array.'
+            if not continueDialogMessage('Survey got existing Seismic Array.'
                                               ' Do you want to overwrite the current Seismic Array?'):
                 return
         self.survey = survey
@@ -398,19 +398,19 @@ class gui_control(object):
             self.seisarray = self.survey.seisarray
             self.setConnected2SurveyState(True)
             self.setSeisArrayState(True)
-            self.printDialogMessage('Loaded Survey with active Seismic Array.')
+            printDialogMessage('Loaded Survey with active Seismic Array.')
         else:
             self.setConnected2SurveyState(False)
             self.setSeisArrayState(False)
-            self.printDialogMessage('Loaded Survey.')
+            printDialogMessage('Loaded Survey.')
 
     def load_seisarray(self):
         disconnect = False
         if self.checkSeisArrayState():
-            if not self.continueDialogExists('Seismic Array'):
+            if not continueDialogExists('Seismic Array'):
                 return
         if self.checkConnected2SurveyState():
-            if not self.continueDialogMessage('Seismic Array connected to present Survey.\n'
+            if not continueDialogMessage('Seismic Array connected to present Survey.\n'
                                               'Continuation will disconnect the Seismic Array.'):
                 return
             else:
@@ -423,10 +423,10 @@ class gui_control(object):
         try:
             seisarray = seismicArrayPreparation.SeisArray.from_pickle(filename)
         except:
-            self.printDialogMessage('Could not load object %s.'%filename)
+            printDialogMessage('Could not load object %s.'%filename)
             return
         if not type(seisarray) == seismicArrayPreparation.SeisArray:
-            self.printDialogMessage('Wrong input file of type %s, expected %s.'
+            printDialogMessage('Wrong input file of type %s, expected %s.'
                   %(type(seisarray), seismicArrayPreparation.SeisArray))
             return
         if disconnect:
@@ -436,7 +436,7 @@ class gui_control(object):
 
     def save_seisarray(self):
         if not self.checkSeisArrayState():
-            self.printDialogMessage('No Seismic Array defined.')
+            printDialogMessage('No Seismic Array defined.')
             return
         filename = saveFile()
         if filename is None:
@@ -445,7 +445,7 @@ class gui_control(object):
 
     def save_survey(self):
         if not self.checkSurveyState():
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         filename = saveFile()
         if filename is None:
@@ -478,7 +478,7 @@ class gui_control(object):
             self.enablePickedTools(True, self.survey.twoDim)
             self.survey.picked = True
         elif state == True and self.checkSurveyState() is False:
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         elif state == False:
             self.mainUI.picked_active.setPixmap(self.cancelpixmap)
@@ -514,38 +514,9 @@ class gui_control(object):
 
     def checkPickState(self):
         if not self.survey:
-            self.printDialogMessage('No Survey defined.')
+            printDialogMessage('No Survey defined.')
             return
         return self.survey.picked
-
-    def printDialogMessage(self, message):
-        qmb = QtGui.QMessageBox()
-        qmb.setText(message)
-        qmb.setStandardButtons(QtGui.QMessageBox.Ok)
-        qmb.setIcon(QtGui.QMessageBox.Warning)
-        qmb.exec_()
-
-    def continueDialogExists(self, name):
-        qmb = QtGui.QMessageBox()
-        qmb.setText('%s object already exists. Overwrite?'%name)
-        qmb.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
-        qmb.setIcon(QtGui.QMessageBox.Warning)
-        answer = qmb.exec_()
-        if answer == 1024:
-            return True
-        else:
-            return False
-
-    def continueDialogMessage(self, message):
-        qmb = QtGui.QMessageBox()
-        qmb.setText(message)
-        qmb.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
-        qmb.setIcon(QtGui.QMessageBox.Warning)
-        answer = qmb.exec_()
-        if answer == 1024:
-            return True
-        else:
-            return False
 
     def exitApp(self):
         QtCore.QCoreApplication.instance().quit()

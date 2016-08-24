@@ -250,7 +250,8 @@ class regions(object):
             return
         key = max(self.shots_found.keys())
         self.deselectSelection(key)
-
+        self.refreshFigure()
+        
     def deselectSelection(self, key, color='green', alpha=0.1):
         if key not in self.shots_found.keys():
             self.printOutput('No selection found.')
@@ -498,16 +499,19 @@ class regions(object):
 
     def refreshLog10SNR(self, event=None):
         cbv = 'log10SNR'
+        self.cbv = cbv
         self.refreshFigure(self, colorByVal=cbv)
 
     def refreshPickerror(self, event=None):
         cbv = 'pickerror'
+        self.cbv = cbv
         self.refreshFigure(self, colorByVal=cbv)
-
+        
     def refreshSPE(self, event=None):
         cbv = 'spe'
+        self.cbv = cbv
         self.refreshFigure(self, colorByVal=cbv)
-
+        
     def refreshFigure(self, event=None, colorByVal=None):
         if colorByVal == None:
             colorByVal = self.cbv
