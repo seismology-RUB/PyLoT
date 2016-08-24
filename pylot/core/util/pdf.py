@@ -326,7 +326,7 @@ class ProbabilityDensityFunction(object):
             raise ValueError('value out of bounds: {0}'.format(value))
         return self.prob_limits((value, self.axis[-1]))
 
-    def prob_limits(self, limits, oversampling=10.):
+    def prob_limits(self, limits, oversampling=1.):
         sampling = self.incr / oversampling
         lim = np.arange(limits[0], limits[1], sampling)
         data = self.data(lim)
@@ -363,13 +363,40 @@ class ProbabilityDensityFunction(object):
         return m
 
     def quantile_distance(self, prob_value):
+        """
+        takes a probability value and and returns the distance
+        between two complementary quantiles
+
+        .. math::
+
+            QA_\alpha = Q(1 - \alpha) - Q(\alpha)
+
+        :param value: probability value :math:\alpha
+        :type  value: float
+        :return: quantile distance
+        """
+        if 0 >= prob_value or prob_value >= 0.5:
+            raise ValueError('Value out of range.')
         ql = self.quantile(prob_value)
         qu = self.quantile(1 - prob_value)
         return qu - ql
 
 
-    def qtile_dist_quot(self,x):
-        if x <= 0 or x >= 0.5:
+    def quantile_dist_frac(self, x):
+        """
+        takes a probability value and returns the fraction of two
+        corresponding quantile distances (
+        :func:`pylot.core.util.pdf.ProbabilityDensityFunction
+        #quantile_distance`)
+
+        .. math::
+
+            Q\Theta_\alpha = \frac{QA(0.5 - \alpha)}{QA(\alpha)}
+
+        :param value: probability value :math:\alpha
+        :return: quantile distance fraction
+        """
+        if x <= 0 or x >= 0.25:
             raise ValueError('Value out of range.')
         return self.quantile_distance(0.5-x)/self.quantile_distance(x)
 

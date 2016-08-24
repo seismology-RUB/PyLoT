@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import operator
 import os
 import numpy as np
 import glob
@@ -11,6 +12,7 @@ from obspy import read_events
 
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
+from pylot.core.util.utils import find_in_list
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -151,7 +153,6 @@ class Comparison(object):
         return rlist
 
     def get_array(self, phase, method_name):
-        import operator
         method = operator.methodcaller(method_name)
         pdf_list = self.get_all(phase)
         rarray = map(method, pdf_list)
@@ -258,6 +259,15 @@ class PDFDictionary(object):
                                       'time is not implemented yet! Sorry!')
         return PDFDictionary(picksdict_from_picks(cat[0]))
 
+    def get_all(self, phase):
+        rlist = list()
+        for phases in self.pdf_data.values():
+            try:
+                rlist.append(phases[phase])
+            except KeyError:
+                continue
+        return rlist
+
     def generate_pdf_data(self, type='exp'):
         """
         Returns probabiliy density function dictionary containing the
@@ -339,143 +349,148 @@ class PDFDictionary(object):
 
 
 class PDFstatistics(object):
-    '''
-    To do:
-    plots for std, quantiles,
-    '''
+    """
+    This object can be used to get various statistic values from probabillity density functions.
+    Takes a path as argument.
+    """
+
+
     def __init__(self, directory):
-        self.directory = directory
-        self.evtlist = list()
-        self.return_phase = None
+        """Initiates some values needed when dealing with pdfs later"""
+        self._rootdir = directory
+        self._evtlist = list()
+        self._rphase = None
+        self.make_fnlist()
 
-    def readTheta(self, arname, dir, fnpattern):
-        exec('self.' + arname +' = []')
-        filelist = glob.glob1(dir, fnpattern)
-        for file in filelist:
-            fid = open(os.path.join(dir,file), 'r')
-            list = []
-            for line in fid.readlines():
-                list.append(eval(line))
-            exec('self.' + arname + ' += list')
-            fid.close()
-
-    def makeFileList(self, fn_pattern='*.xml'):
+    def make_fnlist(self, fn_pattern='*.xml'):
+        """
+        Takes a file pattern and searches for that recursively in the set path for the object.
+        :param fn_pattern: A pattern that can identify all datafiles. Default Value = '*.xml'
+        :type  fn_pattern: string
+        :return: creates a list of events saved in the PDFstatistics object.
+        """
         evtlist = list()
-        evtlist = glob.glob1((os.path.join(self.directory)), fn_pattern)
-        if not evtlist:
-             for root, _, files in os.walk(self.directory):
-                 for file in files:
-                     if file.endswith(fn_pattern[1:]):
-                         evtlist.append(os.path.join(root, file))
-        self.evtlist = evtlist
+        for root, _, files in os.walk(self.root):
+            for file in files:
+                if file.endswith(fn_pattern[1:]):
+                    evtlist.append(os.path.join(root, file))
+        self._evtlist = evtlist
 
     def __iter__(self):
-        assert isinstance(self.return_phase, str), 'phase has to be set before being able to iterate over items...'
-        for evt in self.evtlist:
-            self.getPDFDict(self.directory, evt)
-            for station, pdfs in self.pdfdict.pdf_data.items():
-                try:
-                    yield pdfs[self.return_phase]
-                except KeyError:
-                    continue
+        for evt in self._evtlist:
+            yield PDFDictionary.from_quakeml(evt)
 
-    def set_return_phase(self, type):
+    def __getitem__(self, item):
+        evt = find_in_list(self._evtlist, item)
+        if evt:
+            return PDFDictionary.from_quakeml(evt)
+        return None
+
+    @property
+    def root(self):
+        return self._rootdir
+
+    @root.setter
+    def root(self, value):
+        if os.path.exists(value):
+            self._rootdir = value
+        else:
+            raise ValueError("path doesn't exist: %s" % value)
+
+    @property
+    def curphase(self):
+        """
+        return the current phase type of interest
+        :return: current phase
+        """
+        return self._rphase
+
+    @curphase.setter
+    def curphase(self, type):
+        """
+        setter method for property curphase
+        :param type: specify the phase type of interest
+        :type  type: string ('p' or 's')
+        :return: -
+        """
         if type.upper() not in 'PS':
             raise ValueError("phase type must be either 'P' or 'S'!")
         else:
-            self.return_phase = type.upper()
+            self._rphase = type.upper()
 
-    def getQD(self,value):
-        QDlist = []
-        for pdf in self:
-            QD = pdf.quantile_distance(value)
-            QDlist.append(QD)
-        return QDlist
+    def get(self, property='std', value=None):
+        """
+        takes a property str and a probability value and returns all
+        property's values for the current phase of interest
+        :func:`self.curphase`
 
+        :param property: property name (default: 'std')
+        :type property: str
+        :param value: probability value :math:\alpha
+        :type  value: float
+        :return: list containing all property's values
+        """
+        assert isinstance(self.curphase,
+                          str), 'phase has to be set before being ' \
+                                'able to iterate over items...'
+        rlist = []
+        method_options = dict(STD='standard_deviation',
+                              Q='quantile',
+                              QD='quantile_distance',
+                              QDF='quantile_dist_frac')
 
-    def getQDQ(self,value):
-        QDQlist = []
-        for pdf in self:
-            QDQ = pdf.qtile_dist_quot(value)
-            QDQlist.append(QDQ)
-        return QDQlist
-
-
-    def getSTD(self):
-        std = []
-        for pdf in self:
+        # create method caller for easy mapping
+        if property.upper() == 'STD':
+            method = operator.methodcaller(method_options[property.upper()])
+        elif value is not None:
             try:
-                std.append(pdf.standard_deviation())
+                method = operator.methodcaller(method_options[property.upper()],
+                                               value)
             except KeyError:
-                continue
-        std = np.array(std)
-        self.set_stdarray(std)
-
-
-    def set_stdarray(self, array):
-        if self.return_phase == 'P':
-            self.p_stdarray = array
-        elif self.return_phase == 'S':
-            self.s_stdarray = array
+                raise KeyError('unknwon property: {0}'.format(property.upper()))
         else:
-            raise ValueError('phase type not set properly...\n'
-                             'Actual phase type: {0}'.format(self.return_phase))
+            raise ValueError("for call to method {0} value has to be "
+                             "defined but is 'None' ".format(method_options[
+                                                             property.upper()]))
 
+        for pdf_dict in self:
+            # create worklist
+            wlist = pdf_dict.get_all(self.curphase)
+            # map method calls to object in worklist
+            rlist += map(method, wlist)
 
-    def getBinList(self,l_boundary,u_boundary,nbins = 100):
-        binlist = []
-        for i in range(nbins):
-            binlist.append(l_boundary + i*(u_boundary-l_boundary)/nbins)
-        return  binlist
+        return rlist
 
-
-    def histplot(self, array, binlist, xlab = 'Values',
-                 ylab = 'Frequency', title = None, label=None,
-                 fnout = None):
-        import matplotlib.pyplot as plt
-        plt.hist(array,bins = binlist)
-        plt.xlabel('Values')
-        plt.ylabel('Frequency')
-        if title:
-            title_str = 'Quantile distance quotient distribution'
-            if label:
-                title_str += ' (' + label + ')'
-            plt.title(title_str)
-        if fnout:
-            plt.savefig(fnout+'histplot.png')
-        else:
-            plt.show()
-
-
-    def getPDFDict(self, month, evt):
-        self.pdfdict = PDFDictionary.from_quakeml(os.path.join(self.directory,month,evt))
-
-
-    def getStatistics(self):
-        self.p_mean = self.p_stdarray.mean()
-        self.p_std_std = self.p_stdarray.std()
-        self.p_median = np.median(self.p_stdarray)
-        self.s_mean = self.s_stdarray.mean()
-        self.s_std_std = self.s_stdarray.std()
-        self.s_median = np.median(self.s_stdarray)
-
-
-    def writeThetaToFile(self,array,out_dir,filename = None):
-        fid = open(os.path.join(out_dir,filename), 'w')
+    def writeThetaToFile(self,array,out_dir):
+        """
+        Method to write array like data to file. Useful since acquiring can take
+        serious amount of time when dealing with large databases.
+        :param array: List of values.
+        :type  array: list
+        :param out_dir: Path to save file to including file name.
+        :type  out_dir: str
+        :return: Saves a file at given output directory.
+        """
+        fid = open(os.path.join(out_dir), 'w')
         for val in array:
             fid.write(str(val)+'\n')
         fid.close()
 
+
 def main():
     root_dir ='/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
-    Insheim.makeFileList()
-    Insheim.set_return_phase('p')
-    Insheim.getSTD()
-    qdlist = Insheim.getQDQ(0.3)
-    binlist = Insheim.getBinList(0.,3.)
+    Insheim.curphase = 'p'
+    qdlist = Insheim.get('qdf', 0.2)
     print qdlist
 
 
 if __name__ == "__main__":
+    import cProfile
+
+    pr = cProfile.Profile()
+    pr.enable()
     main()
+    pr.disable()
+    # after your program ends
+    pr.print_stats(sort="calls")
