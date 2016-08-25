@@ -120,8 +120,8 @@ def autoPyLoT(inputfile):
                     evID = event[string.rfind(event, "/") + 1: len(events) - 1]
                     nllocout = '%s_%s' % (evID, nllocoutpatter)
                     # create comment line for NLLoc-control file
-                    nll.modifyInputFile(ctrf, nllocroot, nllocout, phasef,
-                                        ttpat)
+                    nll.modify_inputs(ctrf, nllocroot, nllocout, phasef,
+                                      ttpat)
 
                     # locate the event
                     nll.locate(ctrfile)
@@ -202,13 +202,9 @@ def autoPyLoT(inputfile):
                 # write phase files for various location routines
                 # HYPO71
                 hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
-                if hasattr(finalpicks, 'getpicdic'):
-                    if finalpicks.getpicdic() is not None:
-                        hsat.export(finalpicks.getpicdic(), hypo71file)
-                        data.applyEVTData(finalpicks.getpicdic())
-                    else:
-                        hsat.export(picks, hypo71file)
-                        data.applyEVTData(picks)
+                if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
+                    hsat.export(finalpicks.getpicdic(), hypo71file)
+                    data.applyEVTData(finalpicks.getpicdic())
                 else:
                     hsat.export(picks, hypo71file)
                     data.applyEVTData(picks)
@@ -243,7 +239,7 @@ def autoPyLoT(inputfile):
                 # For locating the event the NLLoc-control file has to be modified!
                 nllocout = '%s_%s' % (parameter.get('eventID'), nllocoutpatter)
                 # create comment line for NLLoc-control file
-                nll.modifyInputFile(ctrf, nllocroot, nllocout, phasef, ttpat)
+                nll.modify_inputs(ctrf, nllocroot, nllocout, phasef, ttpat)
 
                 # locate the event
                 nll.locate(ctrfile)
@@ -323,13 +319,9 @@ def autoPyLoT(inputfile):
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.get('eventID'))
-            if hasattr(finalpicks, 'getpicdic'):
-                if finalpicks.getpicdic() is not None:
-                    hsat.export(finalpicks.getpicdic(), hypo71file)
-                    data.applyEVTData(finalpicks.getpicdic())
-                else:
-                    hsat.export(picks, hypo71file)
-                    data.applyEVTData(picks)
+            if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
+                hsat.export(finalpicks.getpicdic(), hypo71file)
+                data.applyEVTData(finalpicks.getpicdic())
             else:
                 hsat.export(picks, hypo71file)
                 data.applyEVTData(picks)

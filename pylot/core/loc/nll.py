@@ -28,7 +28,7 @@ def export(picks, fnout):
     writephases(picks, 'NLLoc', fnout)
 
 
-def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
+def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     '''
     :param ctrfn: name of NLLoc-control file
     :type: str
@@ -82,7 +82,7 @@ def locate(fnin):
     try:
         runProgram(exe_path, fnin)
     except subprocess.CalledProcessError as e:
-        print(e.output)
+        raise RuntimeError(e.output)
 
 
 def readLocation(fn):

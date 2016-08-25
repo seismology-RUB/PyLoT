@@ -37,6 +37,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget
 import numpy as np
+import subprocess
 from obspy import UTCDateTime
 
 from pylot.core.io.data import Data
@@ -630,6 +631,8 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
             ans = self.data.setWFData(self.getWFFnames())
+        else:
+            ans = False
         self._stime = getGlobalTimes(self.getData().getWFData())[0]
         if ans:
             self.plotWaveformData()
@@ -889,6 +892,12 @@ class MainWindow(QMainWindow):
                 raise TypeError('Unknow picktype {0}'.format(picktype))
 
     def locateEvent(self):
+        """
+        locate event using the manually picked phases
+        :return:
+        """
+        if not self.okToContinue():
+            return
         settings = QSettings()
         # get location tool hook
         loctool = settings.value("loc/tool", "nll")
@@ -896,9 +905,22 @@ class MainWindow(QMainWindow):
         # get working directory
         locroot = settings.value("{0}/rootPath".format(loctool), None)
         infile = settings.value("{0}/inputFile".format(loctool), None)
-        lt.locate(infile)
+        outfile = settings.value("{0}/outputFile".format(loctool), None)
+        phasepath = os.tempnam(os.path.join(locroot, 'obs'), loctool)
+        locpath = os.path.join(locroot, 'loc', outfile)
+        lt.export(self.getPicks(), phasepath)
+        phasefile = os.path.split(phasepath)[-1]
+        args = lt.modify_inputs(infile, locroot, outfile, phasefile, )
         if locroot is None:
             self.PyLoTprefs()
+        try:
+            lt.locate(infile)
+        except RuntimeError as e:
+            print(e.message)
+        finally:
+            os.remove(phasepath)
+
+        self.getData().applyEVTData(lt.read_location(locpath), type='event')
 
     def check4Loc(self):
         return self.picksNum() > 4
