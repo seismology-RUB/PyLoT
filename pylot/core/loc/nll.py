@@ -3,14 +3,17 @@
 
 import subprocess
 import os
+from obspy import read_events
 from pylot.core.io.phases import writephases
-from pylot.core.util.utils import getPatternLine, runProgram
+from pylot.core.util.utils import getPatternLine, runProgram, which
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
+class NLLocError(EnvironmentError):
+    pass
 
-def picksExport(picks, locrt, phasefile):
+def export(picks, fnout):
     '''
     Take <picks> dictionary and exports picking data to a NLLOC-obs
     <phasefile> without creating an ObsPy event object.
@@ -18,14 +21,11 @@ def picksExport(picks, locrt, phasefile):
     :param picks: picking data dictionary
     :type picks: dict
 
-    :param locrt: choose location routine
-    :type locrt: str
-
-    :param phasefile: complete path to the exporting obs file
-    :type phasefile: str
+    :param fnout: complete path to the exporting obs file
+    :type fnout: str
     '''
     # write phases to NLLoc-phase file
-    writephases(picks, locrt, phasefile)
+    writephases(picks, 'NLLoc', fnout)
 
 
 def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
@@ -66,24 +66,27 @@ def modifyInputFile(ctrfn, root, nllocoutn, phasefn, tttn):
     nllfile.close()
 
 
-def locate(call, fnin):
-    '''
-    Takes paths to NLLoc executable <call> and input parameter file <fnin>
-    and starts the location calculation.
+def locate(fnin):
+    """
+    takes an external program name
+    :param fnin:
+    :return:
+    """
 
-    :param call: full path to NLLoc executable
-    :type call: str
+    exe_path = which('NLLoc')
+    if exe_path is None:
+        raise NLLocError('NonLinLoc executable not found; check your '
+                         'environment variables')
 
-    :param fnin: full path to input parameter file
-    :type fnin: str
-    '''
-
-    # locate the event
-    runProgram(call, fnin)
+    # locate the event utilizing external NonLinLoc installation
+    try:
+        runProgram(exe_path, fnin)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
 
 
 def readLocation(fn):
-    pass
+    return read_events(fn)
 
 
 if __name__ == '__main__':

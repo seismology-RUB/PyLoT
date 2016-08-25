@@ -44,7 +44,7 @@ from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
 from pylot.core.io.phases import picksdict_from_picks
-from pylot.core.loc.nll import locate as locateNll
+import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
     AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
@@ -61,7 +61,7 @@ from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
-locateTool = dict(nll=locateNll)
+locateTool = dict(nll=nll)
 
 
 class MainWindow(QMainWindow):
@@ -890,10 +890,14 @@ class MainWindow(QMainWindow):
 
     def locateEvent(self):
         settings = QSettings()
+        # get location tool hook
         loctool = settings.value("loc/tool", "nll")
-        extlocpath = settings.value("%s/binPath".format(loctool), None)
-        locroot = settings.value("%s/rootPath".format(loctool), None)
-        if extlocpath is None or locroot is None:
+        lt = locateTool[loctool]
+        # get working directory
+        locroot = settings.value("{0}/rootPath".format(loctool), None)
+        infile = settings.value("{0}/inputFile".format(loctool), None)
+        lt.locate(infile)
+        if locroot is None:
             self.PyLoTprefs()
 
     def check4Loc(self):

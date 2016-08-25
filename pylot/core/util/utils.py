@@ -277,6 +277,15 @@ def getPatternLine(fn, pattern):
 
     return None
 
+def is_executable(fn):
+    """
+    takes a filename and returns True if the file is executable on the system
+    and False otherwise
+    :param fn: path to the file to be tested
+    :return: True or False
+    """
+    return os.path.isfile(fn) and os.access(fn, os.X_OK)
+
 
 def isSorted(iterable):
     '''
@@ -393,9 +402,36 @@ def runProgram(cmd, parameter=None):
         cmd.strip()
         cmd += ' %s 2>&1' % parameter
 
-    output = subprocess.check_output('{} | tee /dev/stderr'.format(cmd),
-                                     shell=True)
+    subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
+def which(program):
+    """
+    takes a program name and returns the full path to the executable or None
+    found on: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    :param program: name of the desired external program
+    :return: full path of the executable file
+    """
+
+    def is_exe(fpath):
+        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+    def ext_candidates(fpath):
+        yield fpath
+        for ext in os.environ.get("PATHEXT", "").split(os.pathsep):
+            yield fpath + ext
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            for candidate in ext_candidates(exe_file):
+                if is_exe(candidate):
+                    return candidate
+
+    return None
 
 if __name__ == "__main__":
     import doctest
