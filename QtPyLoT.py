@@ -907,10 +907,21 @@ class MainWindow(QMainWindow):
         if locroot is None:
             self.PyLoTprefs()
             self.locateEvent()
+
         infile = settings.value("{0}/inputFile".format(loctool), None)
+
+        if not infile:
+            caption = 'Select {0} input file'.format(loctool)
+            filt = "Supported file formats" \
+                   " (*.in *.ini *.conf *.cfg)"
+            ans = QFileDialog().getOpenFileName(self, caption=caption,
+                                                filter=filt, dir=locroot)
+            infile = ans[0]
+            settings.setValue("{0}/inputFile".format(loctool), infile)
+            settings.sync()
         outfile = settings.value("{0}/outputFile".format(loctool), None)
-        phasepath = os.tempnam(os.path.join(locroot, 'obs'), loctool)
-        phasefile = os.path.split(phasepath)[-1]
+        phasefile = os.path.split(os.tempnam())[-1]
+        phasepath = os.path.join(locroot, 'obs', phasefile)
         locpath = os.path.join(locroot, 'loc', outfile)
         lt.export(self.getPicks(), phasepath)
         lt.modify_inputs(infile, locroot, outfile, phasefile, )
