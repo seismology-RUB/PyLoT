@@ -1337,8 +1337,8 @@ class LocalisationTab(PropTab):
 
         self.locToolComboBox.setCurrentIndex(toolind)
 
-        curroot = settings.value("%s/rootPath".format(curtool), None)
-        curbin = settings.value("%s/binPath".format(curtool), None)
+        curroot = settings.value("{0}/rootPath".format(curtool), None)
+        curbin = settings.value("{0}/binPath".format(curtool), None)
 
         self.rootlabel = QLabel("root directory")
         self.binlabel = QLabel("bin directory")
@@ -1385,8 +1385,8 @@ class LocalisationTab(PropTab):
 
     def getValues(self):
         loctool = self.locToolComboBox.currentText()
-        values = {"%s/rootPath".format(loctool): self.rootedit.text(),
-                  "%s/binPath".format(loctool): self.binedit.text(),
+        values = {"{0}/rootPath".format(loctool): self.rootedit.text(),
+                  "{0}/binPath".format(loctool): self.binedit.text(),
                   "loc/tool": loctool}
         return values
 

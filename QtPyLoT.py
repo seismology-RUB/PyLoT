@@ -904,15 +904,16 @@ class MainWindow(QMainWindow):
         lt = locateTool[loctool]
         # get working directory
         locroot = settings.value("{0}/rootPath".format(loctool), None)
+        if locroot is None:
+            self.PyLoTprefs()
+            self.locateEvent()
         infile = settings.value("{0}/inputFile".format(loctool), None)
         outfile = settings.value("{0}/outputFile".format(loctool), None)
         phasepath = os.tempnam(os.path.join(locroot, 'obs'), loctool)
+        phasefile = os.path.split(phasepath)[-1]
         locpath = os.path.join(locroot, 'loc', outfile)
         lt.export(self.getPicks(), phasepath)
-        phasefile = os.path.split(phasepath)[-1]
-        args = lt.modify_inputs(infile, locroot, outfile, phasefile, )
-        if locroot is None:
-            self.PyLoTprefs()
+        lt.modify_inputs(infile, locroot, outfile, phasefile, )
         try:
             lt.locate(infile)
         except RuntimeError as e:

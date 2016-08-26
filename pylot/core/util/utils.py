@@ -407,10 +407,18 @@ def runProgram(cmd, parameter=None):
 def which(program):
     """
     takes a program name and returns the full path to the executable or None
-    found on: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     :param program: name of the desired external program
     :return: full path of the executable file
     """
+    try:
+        from PySide.QtCore import QSettings
+        settings = QSettings()
+        for key in settings.allKeys():
+            if 'binPath' in key:
+                os.environ['PATH'] += ':{0}'.format(settings.value(key))
+    except ImportError as e:
+        print(e.message)
 
     def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
