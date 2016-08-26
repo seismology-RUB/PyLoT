@@ -373,7 +373,7 @@ class regions(object):
                     self.highlightPick(self.shot_dict[shotnumber], traceID)
         self.drawFigure()
 
-    def plotTracesInActiveRegions(self, event=None, keys='all', maxfigures=20):
+    def plotTracesInActiveRegions(self, event=None, keys='all', maxfigures=20, qt = False):
         '''
         Plots all traces in the active region or for all specified keys.
 
@@ -383,6 +383,9 @@ class regions(object):
         :param: maxfigures, maximum value of figures opened
         :type: int
         '''
+        if qt:
+            from pylot.core.active.gui import Repicking
+            
         count = 0
         if keys == 'all':
             keys = self.shots_found.keys()

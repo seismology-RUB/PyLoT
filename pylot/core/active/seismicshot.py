@@ -679,7 +679,7 @@ class SeismicShot(object):
         ax.legend()
         ax.text(0.05, 0.9, 'SNR: %s' % snr, transform=ax.transAxes)
 
-    def plot_traces(self, traceID):
+    def plot_traces(self, traceID, figure = None, buttons = True):
         from matplotlib.widgets import Button
 
         def onclick(event):
@@ -704,17 +704,33 @@ class SeismicShot(object):
         def cleanup(event):
             self.traces4plot[traceID] = {}
 
+        def addButtons(fig):
+            axb1 = fig.add_axes([0.15, 0.91, 0.05, 0.03])
+            axb2 = fig.add_axes([0.22, 0.91, 0.05, 0.03])
+            button1 = Button(axb1, 'repick', color='red', hovercolor='grey')
+            button1.on_clicked(connectButton)
+            button2 = Button(axb2, 'delete', color='green', hovercolor='grey')
+            button2.on_clicked(rmPick)
+            return axb1, axb2, button1, button2
+            
         folm = self.folm
 
-        fig = plt.figure()
+        if figure == None:
+            fig = plt.figure()
+        else:
+            fig = figure
+            
         ax1 = fig.add_subplot(2, 1, 1)
         ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-        axb1 = fig.add_axes([0.15, 0.91, 0.05, 0.03])
-        axb2 = fig.add_axes([0.22, 0.91, 0.05, 0.03])
-        button1 = Button(axb1, 'repick', color='red', hovercolor='grey')
-        button1.on_clicked(connectButton)
-        button2 = Button(axb2, 'delete', color='green', hovercolor='grey')
-        button2.on_clicked(rmPick)
+
+        if buttons:
+            axb1, axb2, button1, button2 = addButtons(fig)
+        else:
+            axb1 = None
+            axb2 = None
+            button1 = None
+            button2 = None
+        
         fig.canvas.mpl_connect('close_event', cleanup)
 
         self.traces4plot[traceID] = dict(fig=fig, ax1=ax1, ax2=ax2, axb1=axb1, axb2=axb2, button1=button1,

@@ -13,6 +13,7 @@ from picking_parameters_layout import Ui_picking_parameters
 from fmtomo_parameters_layout import Ui_fmtomo_parameters
 from vtk_tools_layout import Ui_vtk_tools
 from postprocessing_layout import Ui_postprocessing
+from repicking_layout import Ui_repicking
 
 from pylot.core.active.surveyPlotTools import regions
 
@@ -734,3 +735,39 @@ class Postprocessing(object):
     def refrSPE(self):
         self.region.refreshSPE()
 
+
+class Repicking(object):
+    def __init__(self, mainwindow, region, shot, traceID):
+        self.mainwindow = mainwindow
+        self.region = region
+        self.shot = shot
+        self.traceID = traceID
+        self.init_dialog()
+        self.start_dialog()
+
+    def init_dialog(self):
+        qdialog = QtGui.QDialog(self.mainwindow)
+        ui = Ui_repicking()
+        ui.setupUi(qdialog)
+        self.ui = ui
+        self.qdialog = qdialog
+        self.connectButtons()
+        
+    def start_dialog(self):
+        self.qdialog.exec_()
+
+    def connectButtons(self):
+        QtCore.QObject.connect(self.ui.pushButton_repick, QtCore.SIGNAL("clicked()"), self.repick)
+        QtCore.QObject.connect(self.ui.pushButton_delete, QtCore.SIGNAL("clicked()"), self.delete)
+
+    def initPlot(self):
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.ui.verticalLayout_plot.addWidget(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas, self.mainwindow)
+        self.ui.verticalLayout_plot.addWidget(self.toolbar)
+        
+    def plot(self):
+        self.shot.plot_traces(self.traceID, figure = self.figure, buttons = False)
+        self.ax = ax
+        self.draw()

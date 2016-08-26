@@ -72,7 +72,7 @@ def plotFittedSNR(dists, snrthresholds, snrs, snrBestFit):
     plt.ylabel('SNR')
     plt.legend()
 
-
+    
 def setDynamicFittedSNR(shot_dict, shiftdist=30, shiftSNR=100, p1=0.004, p2=-0.0007):
     """
     Set SNR values for a dictionary containing Seismicshots (e.g. survey.getShotDict())
