@@ -3,6 +3,7 @@
 
 import subprocess
 import os
+import glob
 from obspy import read_events
 from pylot.core.io.phases import writephases
 from pylot.core.util.utils import getPatternLine, runProgram, which
@@ -85,7 +86,12 @@ def locate(fnin):
         raise RuntimeError(e.output)
 
 
-def readLocation(fn):
+def read_location(fn):
+    path, file = os.path.split(fn)
+    file = glob.glob1(path, file +  '.[0-9]*.grid0.loc.hyp')
+    if len(file) > 1:
+        raise IOError('ambiguous location name {0}'.format(file))
+    fn = os.path.join(path, file[0])
     return read_events(fn)
 
 

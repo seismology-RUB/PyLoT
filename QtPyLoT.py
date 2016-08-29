@@ -35,7 +35,7 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QDockWidget
+    QActionGroup, QListWidget, QDockWidget, QLineEdit
 import numpy as np
 import subprocess
 from obspy import UTCDateTime
@@ -919,12 +919,24 @@ class MainWindow(QMainWindow):
             infile = ans[0]
             settings.setValue("{0}/inputFile".format(loctool), infile)
             settings.sync()
-        outfile = settings.value("{0}/outputFile".format(loctool), None)
+        if loctool == 'nll':
+            ttt = settings.value("{0}/travelTimeTables", None)
+            ok = False
+            if ttt is None:
+                while not ok:
+                    text, ok = QInputDialog.getText(self, 'Pattern for travel time tables',
+                                                    'Base name of travel time tables',
+                                                    echo=QLineEdit.Normal,
+                                                    text="ttime")
+                ttt = text
+
+        outfile = settings.value("{0}/outputFile".format(loctool),
+                                 os.path.split(os.tempnam())[-1])
         phasefile = os.path.split(os.tempnam())[-1]
         phasepath = os.path.join(locroot, 'obs', phasefile)
         locpath = os.path.join(locroot, 'loc', outfile)
         lt.export(self.getPicks(), phasepath)
-        lt.modify_inputs(infile, locroot, outfile, phasefile, )
+        lt.modify_inputs(infile, locroot, outfile, phasefile, ttt)
         try:
             lt.locate(infile)
         except RuntimeError as e:
