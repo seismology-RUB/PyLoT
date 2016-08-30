@@ -35,8 +35,9 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QDockWidget
+    QActionGroup, QListWidget, QDockWidget, QLineEdit
 import numpy as np
+import subprocess
 from obspy import UTCDateTime
 
 from pylot.core.io.data import Data
@@ -44,7 +45,7 @@ from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
 from pylot.core.io.phases import picksdict_from_picks
-from pylot.core.loc.nll import locate as locateNll
+import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
     AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
@@ -61,7 +62,7 @@ from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
-locateTool = dict(nll=locateNll)
+locateTool = dict(nll=nll)
 
 
 class MainWindow(QMainWindow):
@@ -630,6 +631,8 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.fnames)
         elif self.fnames is None and self.okToContinue():
             ans = self.data.setWFData(self.getWFFnames())
+        else:
+            ans = False
         self._stime = getGlobalTimes(self.getData().getWFData())[0]
         if ans:
             self.plotWaveformData()
@@ -889,12 +892,59 @@ class MainWindow(QMainWindow):
                 raise TypeError('Unknow picktype {0}'.format(picktype))
 
     def locateEvent(self):
+        """
+        locate event using the manually picked phases
+        :return:
+        """
+        if not self.okToContinue():
+            return
         settings = QSettings()
+        # get location tool hook
         loctool = settings.value("loc/tool", "nll")
-        extlocpath = settings.value("%s/binPath".format(loctool), None)
-        locroot = settings.value("%s/rootPath".format(loctool), None)
-        if extlocpath is None or locroot is None:
+        lt = locateTool[loctool]
+        # get working directory
+        locroot = settings.value("{0}/rootPath".format(loctool), None)
+        if locroot is None:
             self.PyLoTprefs()
+            self.locateEvent()
+
+        infile = settings.value("{0}/inputFile".format(loctool), None)
+
+        if not infile:
+            caption = 'Select {0} input file'.format(loctool)
+            filt = "Supported file formats" \
+                   " (*.in *.ini *.conf *.cfg)"
+            ans = QFileDialog().getOpenFileName(self, caption=caption,
+                                                filter=filt, dir=locroot)
+            infile = ans[0]
+            settings.setValue("{0}/inputFile".format(loctool), infile)
+            settings.sync()
+        if loctool == 'nll':
+            ttt = settings.value("{0}/travelTimeTables", None)
+            ok = False
+            if ttt is None:
+                while not ok:
+                    text, ok = QInputDialog.getText(self, 'Pattern for travel time tables',
+                                                    'Base name of travel time tables',
+                                                    echo=QLineEdit.Normal,
+                                                    text="ttime")
+                ttt = text
+
+        outfile = settings.value("{0}/outputFile".format(loctool),
+                                 os.path.split(os.tempnam())[-1])
+        phasefile = os.path.split(os.tempnam())[-1]
+        phasepath = os.path.join(locroot, 'obs', phasefile)
+        locpath = os.path.join(locroot, 'loc', outfile)
+        lt.export(self.getPicks(), phasepath)
+        lt.modify_inputs(infile, locroot, outfile, phasefile, ttt)
+        try:
+            lt.locate(infile)
+        except RuntimeError as e:
+            print(e.message)
+        finally:
+            os.remove(phasepath)
+
+        self.getData().applyEVTData(lt.read_location(locpath), type='event')
 
     def check4Loc(self):
         return self.picksNum() > 4
