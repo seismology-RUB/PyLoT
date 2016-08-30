@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import copy
 import glob
 import os
 from obspy import read_events, read_inventory
@@ -434,7 +435,8 @@ class Data(object):
             #firstonset = find_firstonset(picks)
             if self.getEvtData().picks:
                 raise OverwriteError('Actual picks would be overwritten!')
-            picks = picks_from_picksdict(picks)
+            else:
+                picks = picks_from_picksdict(picks)
             self.getEvtData().picks = picks
             # if 'smi:local' in self.getID() and firstonset:
             #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
@@ -443,25 +445,22 @@ class Data(object):
             #     self.getEvtData().resource_id = ID
 
 
-        def applyArrivals(arrivals):
-            """
-
-            :param arrivals:
-            """
-            pass
-
         def applyEvent(event):
             """
-
+            takes an `obspy.core.event.Event` object and applies all new
+            information on the event to the actual data
             :param event:
             """
             if not self.isNew():
                 self.setEvtData(event)
             else:
-                raise OverwriteError('Acutal event would be overwritten!')
+                # prevent overwriting uncertainty information
+                picks =  copy.deepcopy(self.getEvtData().picks)
+                event.picks = picks
+                # apply event information from location
+                self.getEvtData().update(event)
 
         applydata = {'pick': applyPicks,
-                     'arrival': applyArrivals,
                      'event': applyEvent}
 
         applydata[type](data)

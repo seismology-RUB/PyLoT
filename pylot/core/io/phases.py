@@ -117,7 +117,7 @@ def picksdict_from_pilot(fn):
             except IndexError as e:
                 print(e.message + '\ntake two times the largest default error value')
                 spe = timeerrors[onset_name][-1] * 2
-            phases[onset_name] = dict(mpp=pick, spe=spe)
+            phases[onset_name] = dict(mpp=pick, spe=spe, weight=ierror)
         picks[station] = phases
 
     return picks
@@ -395,7 +395,11 @@ def writephases(arrivals, fformat, filename):
         for key in arrivals:
             # P onsets
             if arrivals[key]['P']:
-                fm = arrivals[key]['P']['fm']
+                try:
+                    fm = arrivals[key]['P']['fm']
+                except KeyError as e:
+                    print(e)
+                    fm = None
                 if fm == None:
                     fm = '?'
                 onset = arrivals[key]['P']['mpp']
@@ -407,10 +411,12 @@ def writephases(arrivals, fformat, filename):
                 ss = onset.second
                 ms = onset.microsecond
                 ss_ms = ss + ms / 1000000.0
-                if arrivals[key]['P']['weight'] < 4:
-                    pweight = 1  # use pick
-                else:
-                    pweight = 0  # do not use pick
+                pweight = 1 # use pick
+                try:
+                    if arrivals[key]['P']['weight'] >= 4:
+                        pweight = 0  # do not use pick
+                except KeyError as e:
+                    print(e.message + '; no weight set during processing')
                 fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
                                                                                            fm,
                                                                                            year,
@@ -421,7 +427,7 @@ def writephases(arrivals, fformat, filename):
                                                                                            ss_ms,
                                                                                            pweight))
             # S onsets
-            if arrivals[key]['S']:
+            if arrivals[key].has_key('S') and arrivals[key]['S']:
                 fm = '?'
                 onset = arrivals[key]['S']['mpp']
                 year = onset.year
@@ -432,10 +438,12 @@ def writephases(arrivals, fformat, filename):
                 ss = onset.second
                 ms = onset.microsecond
                 ss_ms = ss + ms / 1000000.0
-                if arrivals[key]['S']['weight'] < 4:
-                    sweight = 1  # use pick
-                else:
-                    sweight = 0  # do not use pick
+                sweight = 1 # use pick
+                try:
+                    if arrivals[key]['S']['weight'] >= 4:
+                        sweight = 0  # do not use pick
+                except KeyError as e:
+                    print(str(e) + '; no weight set during processing')
                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
                                                                                            fm,
                                                                                            year,

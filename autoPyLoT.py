@@ -6,13 +6,15 @@ from __future__ import print_function
 import argparse
 import glob
 import string
+import os
 
 import numpy as np
 
 from pylot.core.analysis.magnitude import M0Mw
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
-from pylot.core.loc.nll import *
+import pylot.core.loc.nll as nll
+import pylot.core.loc.hsat as hsat
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -112,16 +114,17 @@ def autoPyLoT(inputfile):
                 # locating
                 if locflag == 1:
                     # write phases to NLLoc-phase file
-                    picksExport(picks, 'NLLoc', phasefile)
+                    nll.export(picks, phasefile)
 
                     # For locating the event the NLLoc-control file has to be modified!
                     evID = event[string.rfind(event, "/") + 1: len(events) - 1]
                     nllocout = '%s_%s' % (evID, nllocoutpatter)
                     # create comment line for NLLoc-control file
-                    modifyInputFile(ctrf, nllocroot, nllocout, phasef, ttpat)
+                    nll.modify_inputs(ctrf, nllocroot, nllocout, phasef,
+                                      ttpat)
 
                     # locate the event
-                    locate(nlloccall, ctrfile)
+                    nll.locate(ctrfile)
 
                     # !iterative picking if traces remained unpicked or occupied with bad picks!
                     # get theoretical onset times for picks with weights >= 4
@@ -162,11 +165,11 @@ def autoPyLoT(inputfile):
                                 print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
                                 picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                                 # write phases to NLLoc-phase file
-                                picksExport(picks, 'NLLoc', phasefile)
+                                nll.export(picks, phasefile)
                                 # remove actual NLLoc-location file to keep only the last
                                 os.remove(nllocfile)
                                 # locate the event
-                                locate(nlloccall, ctrfile)
+                                nll.locate(ctrfile)
                                 print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
                                 # get updated NLLoc-location file
                                 nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
@@ -199,15 +202,11 @@ def autoPyLoT(inputfile):
                 # write phase files for various location routines
                 # HYPO71
                 hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
-                if hasattr(finalpicks, 'getpicdic'):
-                    if finalpicks.getpicdic() is not None:
-                        writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
-                        data.applyEVTData(finalpicks.getpicdic())
-                    else:
-                        writephases(picks, 'HYPO71', hypo71file)
-                        data.applyEVTData(picks)
+                if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
+                    hsat.export(finalpicks.getpicdic(), hypo71file)
+                    data.applyEVTData(finalpicks.getpicdic())
                 else:
-                    writephases(picks, 'HYPO71', hypo71file)
+                    hsat.export(picks, hypo71file)
                     data.applyEVTData(picks)
                 fnqml = '%s/autoPyLoT' % event
                 data.exportEvent(fnqml)
@@ -235,15 +234,15 @@ def autoPyLoT(inputfile):
             # locating
             if locflag == 1:
                 # write phases to NLLoc-phase file
-                picksExport(picks, 'NLLoc', phasefile)
+                nll.export(picks, phasefile)
 
                 # For locating the event the NLLoc-control file has to be modified!
                 nllocout = '%s_%s' % (parameter.get('eventID'), nllocoutpatter)
                 # create comment line for NLLoc-control file
-                modifyInputFile(ctrf, nllocroot, nllocout, phasef, ttpat)
+                nll.modify_inputs(ctrf, nllocroot, nllocout, phasef, ttpat)
 
                 # locate the event
-                locate(nlloccall, ctrfile)
+                nll.locate(ctrfile)
                 # !iterative picking if traces remained unpicked or occupied with bad picks!
                 # get theoretical onset times for picks with weights >= 4
                 # in order to reprocess them using smaller time windows around theoretical onset
@@ -283,11 +282,11 @@ def autoPyLoT(inputfile):
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
                             picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                             # write phases to NLLoc-phase file
-                            picksExport(picks, 'NLLoc', phasefile)
+                            nll.export(picks, phasefile)
                             # remove actual NLLoc-location file to keep only the last
                             os.remove(nllocfile)
                             # locate the event
-                            locate(nlloccall, ctrfile)
+                            nll.locate(ctrfile)
                             print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
                             # get updated NLLoc-location file
                             nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
@@ -320,15 +319,11 @@ def autoPyLoT(inputfile):
             # write phase files for various location routines
             # HYPO71
             hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.get('eventID'))
-            if hasattr(finalpicks, 'getpicdic'):
-                if finalpicks.getpicdic() is not None:
-                    writephases(finalpicks.getpicdic(), 'HYPO71', hypo71file)
-                    data.applyEVTData(finalpicks.getpicdic())
-                else:
-                    writephases(picks, 'HYPO71', hypo71file)
-                    data.applyEVTData(picks)
+            if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
+                hsat.export(finalpicks.getpicdic(), hypo71file)
+                data.applyEVTData(finalpicks.getpicdic())
             else:
-                writephases(picks, 'HYPO71', hypo71file)
+                hsat.export(picks, hypo71file)
                 data.applyEVTData(picks)
             fnqml =  '%s/%s/autoPyLoT' % (datapath, parameter.get('eventID'))
             data.exportEvent(fnqml)
