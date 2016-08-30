@@ -35,6 +35,7 @@ class gui_control(object):
         self.printSurveyTextbox()
         self.printSeisArrayTextbox()
         self.initWindowObjects()
+        app.aboutToQuit.connect(self.exitApp)
 
     def initWindowObjects(self):
         self.gsa = None
@@ -519,6 +520,11 @@ class gui_control(object):
         return self.survey.picked
 
     def exitApp(self):
+        if self.checkSurveyState():
+            if continueDialogMessage('Do you want to save the current Survey?'):
+                self.save_survey()
+            else:
+                return
         QtCore.QCoreApplication.instance().quit()
 
 

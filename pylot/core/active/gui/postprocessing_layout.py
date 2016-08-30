@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'postprocessing_layout.ui'
 #
-# Created: Wed Aug 24 14:38:13 2016
+# Created: Mon Aug 29 10:26:23 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -167,7 +167,7 @@ class Ui_postprocessing(object):
         self.label.setText(QtGui.QApplication.translate("postprocessing", "Selection", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_rect.setText(QtGui.QApplication.translate("postprocessing", "Rectangle", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_poly.setText(QtGui.QApplication.translate("postprocessing", "Polygon", None, QtGui.QApplication.UnicodeUTF8))
-        self.pushButton_undo.setText(QtGui.QApplication.translate("postprocessing", "Undo", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton_undo.setText(QtGui.QApplication.translate("postprocessing", "Unselect", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("postprocessing", "Action", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_plot.setText(QtGui.QApplication.translate("postprocessing", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_delete.setText(QtGui.QApplication.translate("postprocessing", "Delete", None, QtGui.QApplication.UnicodeUTF8))
