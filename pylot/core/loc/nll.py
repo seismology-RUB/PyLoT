@@ -92,7 +92,7 @@ def read_location(fn):
     if len(file) > 1:
         raise IOError('ambiguous location name {0}'.format(file))
     fn = os.path.join(path, file[0])
-    return read_events(fn)
+    return read_events(fn)[0]
 
 
 if __name__ == '__main__':
