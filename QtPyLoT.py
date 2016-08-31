@@ -947,7 +947,14 @@ class MainWindow(QMainWindow):
         self.getData().applyEVTData(lt.read_location(locpath), type='event')
 
     def calc_magnitude(self):
-        if self.getData().getEvtData().origins:
+        e = self.getData().getEvtData()
+        if e.origins:
+            o = e.origins[0]
+            for a in o.arrivals:
+                pid = a.pick_id
+                pick = pid.get_referred_object()
+                station = self.getStationID(pick.waveform_id.station_code)
+                wf = self.getData().getWFData().select(station=station)
             mag = None
             return mag
         else:
