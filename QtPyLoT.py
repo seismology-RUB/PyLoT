@@ -337,8 +337,8 @@ class MainWindow(QMainWindow):
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
 
-        locateEvent = self.createAction(parent=self, text='locateEvent',
-                                        slot=self.locateEvent,
+        locateEvent = self.createAction(parent=self, text='locate_event',
+                                        slot=self.locate_event,
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
                                         tip='Locate the event using '
@@ -891,7 +891,7 @@ class MainWindow(QMainWindow):
             else:
                 raise TypeError('Unknow picktype {0}'.format(picktype))
 
-    def locateEvent(self):
+    def locate_event(self):
         """
         locate event using the manually picked phases
         :return:
@@ -906,7 +906,7 @@ class MainWindow(QMainWindow):
         locroot = settings.value("{0}/rootPath".format(loctool), None)
         if locroot is None:
             self.PyLoTprefs()
-            self.locateEvent()
+            self.locate_event()
 
         infile = settings.value("{0}/inputFile".format(loctool), None)
 
@@ -945,6 +945,13 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.getData().applyEVTData(lt.read_location(locpath), type='event')
+
+    def calc_magnitude(self):
+        if self.getData().getEvtData().origins:
+            mag = None
+            return mag
+        else:
+            return
 
     def check4Loc(self):
         return self.picksNum() > 4
