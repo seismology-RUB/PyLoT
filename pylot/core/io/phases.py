@@ -527,3 +527,26 @@ def writephases(arrivals, fformat, filename):
                                                                                              Ao))
 
         fid.close()
+
+
+def merge_picks(event, picks):
+    """
+    takes an event object and a list of picks and searches for matching
+    entries by comparing station name and phase_hint and overwrites the time
+    and time_errors value of the event picks' with those from the picks
+    without changing the resource identifiers
+    :param event: `obspy.core.event.Event` object (e.g. from NLLoc output)
+    :param picks: list of `obspy.core.event.Pick` objects containing the
+    original time and time_errors values
+    :return: merged `obspy.core.event.Event` object
+    """
+    for pick in picks:
+        time = pick.time
+        err = pick.time_errors
+        phase = pick.phase_hint
+        station = pick.waveform_id.station_code
+        for p in event.picks:
+            if p.waveform_id.station_code == station and p.phase_hint == phase:
+                p.time, p.time_errors = time, err
+        del time, err, phase, station
+    return event

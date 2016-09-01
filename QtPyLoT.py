@@ -40,6 +40,7 @@ import numpy as np
 import subprocess
 from obspy import UTCDateTime
 
+from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
@@ -945,16 +946,31 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.getData().applyEVTData(lt.read_location(locpath), type='event')
+        self.calc_magnitude()
 
     def calc_magnitude(self):
         e = self.getData().getEvtData()
+        settings = QSettings()
         if e.origins:
             o = e.origins[0]
+            mags = dict()
             for a in o.arrivals:
-                pid = a.pick_id
-                pick = pid.get_referred_object()
-                station = self.getStationID(pick.waveform_id.station_code)
+                pick = a.pick_id.get_referred_object()
+                station = pick.waveform_id.station_code
                 wf = self.getData().getWFData().select(station=station)
+                onset = pick.time
+                fninv = settings.value("inventoryFile", None)
+                if fninv is None:
+                    fninv = QFileDialog.getOpenFileName()
+                    ans = QMessageBox.question(self, self.tr("Make default..."),
+                               self.tr("New inventory filename set.\n" + \
+                                  "Do you want to make it the default value?"),
+                               QMessageBox.Yes | QMessageBox.No,
+                               QMessageBox.No)
+                    print(ans)
+                    settings.setValue("inventoryFile", fninv)
+                #w0, fc = calcsourcespec(wf, onset, )
+                #mags[station] =
             mag = None
             return mag
         else:

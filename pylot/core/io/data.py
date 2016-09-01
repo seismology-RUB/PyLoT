@@ -10,7 +10,7 @@ from obspy.core.event import Event
 from obspy.io.xseed import Parser
 
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
-    picksdict_from_pilot
+    picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.utils import fnConstructor, getGlobalTimes
 
@@ -454,9 +454,9 @@ class Data(object):
             if not self.isNew():
                 self.setEvtData(event)
             else:
-                # prevent overwriting uncertainty information
+                # prevent overwriting original pick information
                 picks =  copy.deepcopy(self.getEvtData().picks)
-                event.picks = picks
+                event = merge_picks(event, picks)
                 # apply event information from location
                 self.getEvtData().update(event)
 
