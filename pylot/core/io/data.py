@@ -77,17 +77,17 @@ class Data(object):
     def __add__(self, other):
         assert isinstance(other, Data), "operands must be of same type 'Data'"
         if other.isNew() and not self.isNew():
-            picks_to_add = other.getEvtData().picks
-            old_picks = self.getEvtData().picks
+            picks_to_add = other.get_evt_data().picks
+            old_picks = self.get_evt_data().picks
             for pick in picks_to_add:
                 if pick not in old_picks:
                     old_picks.append(pick)
         elif not other.isNew() and self.isNew():
             new = other + self
-            self.evtdata = new.getEvtData()
+            self.evtdata = new.get_evt_data()
         elif self.isNew() and other.isNew():
             pass
-        elif self.getEvtData().get('id') == other.getEvtData().get('id'):
+        elif self.get_evt_data().get('id') == other.get_evt_data().get('id'):
             other.setNew()
             return self + other
         else:
@@ -97,7 +97,7 @@ class Data(object):
 
     def getPicksStr(self):
         picks_str = ''
-        for pick in self.getEvtData().picks:
+        for pick in self.get_evt_data().picks:
             picks_str += str(pick) + '\n'
         return picks_str
 
@@ -166,7 +166,7 @@ class Data(object):
 
         # try exporting event via ObsPy
         try:
-            self.getEvtData().write(fnout + fnext, format=evtformat)
+            self.get_evt_data().write(fnout + fnext, format=evtformat)
         except KeyError as e:
             raise KeyError('''{0} export format
                               not implemented: {1}'''.format(evtformat, e))
@@ -267,7 +267,7 @@ class Data(object):
 
 
         """
-        self.getEvtData().picks = []
+        self.get_evt_data().picks = []
 
     def restituteWFData(self, invdlpath, streams=None):
         """
@@ -402,7 +402,7 @@ class Data(object):
 
         return st, restflag
 
-    def getEvtData(self):
+    def get_evt_data(self):
         """
 
 
@@ -433,16 +433,16 @@ class Data(object):
             """
 
             #firstonset = find_firstonset(picks)
-            if self.getEvtData().picks:
+            if self.get_evt_data().picks:
                 raise OverwriteError('Actual picks would be overwritten!')
             else:
                 picks = picks_from_picksdict(picks)
-            self.getEvtData().picks = picks
+            self.get_evt_data().picks = picks
             # if 'smi:local' in self.getID() and firstonset:
             #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
             #     ID = ResourceIdentifier('event/' + fonset_str)
             #     ID.convertIDToQuakeMLURI(authority_id=authority_id)
-            #     self.getEvtData().resource_id = ID
+            #     self.get_evt_data().resource_id = ID
 
 
         def applyEvent(event):
@@ -455,10 +455,10 @@ class Data(object):
                 self.setEvtData(event)
             else:
                 # prevent overwriting original pick information
-                picks =  copy.deepcopy(self.getEvtData().picks)
+                picks =  copy.deepcopy(self.get_evt_data().picks)
                 event = merge_picks(event, picks)
                 # apply event information from location
-                self.getEvtData().update(event)
+                self.get_evt_data().update(event)
 
         applydata = {'pick': applyPicks,
                      'event': applyEvent}

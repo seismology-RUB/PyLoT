@@ -530,7 +530,7 @@ class PickDlg(QDialog):
         # set attribute holding data
         if data is None:
             try:
-                data = parent.getData().getWFData().copy()
+                data = parent.get_data().getWFData().copy()
                 self.data = data.select(station=station)
             except AttributeError as e:
                 errmsg = 'You either have to put in a data or an appropriate ' \
