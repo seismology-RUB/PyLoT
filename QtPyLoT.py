@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         self.DataPlot.mpl_connect('button_press_event',
                                   self.pickOnStation)
         self.DataPlot.mpl_connect('axes_enter_event',
-                                  lambda event: self.tutorUser())
+                                  lambda event: self.tutor_user())
         _layout.addWidget(self.DataPlot)
 
         manupicksicon = self.style().standardIcon(QStyle.SP_DialogYesButton)
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         printAction = self.createAction(self, "&Print event ...",
-                                        self.printEvent, QKeySequence.Print,
+                                        self.show_event_information, QKeySequence.Print,
                                         print_icon,
                                         "Print waveform overview.")
         helpAction = self.createAction(self, "&Help ...", self.helpHelp,
@@ -448,7 +448,7 @@ class MainWindow(QMainWindow):
 
     def getWFFnames(self):
         try:
-            evt = self.getData().getEvtData()
+            evt = self.get_data().get_evt_data()
             if evt.picks:
                 for pick in evt.picks:
                     try:
@@ -503,7 +503,7 @@ class MainWindow(QMainWindow):
 
     def getEventFileName(self):
         if self.get_fnames() is None:
-            self.set_fname(self.getData().getEventFileName())
+            self.set_fname(self.get_data().getEventFileName())
         return self.get_fnames()
 
     def saveData(self):
@@ -530,32 +530,32 @@ class MainWindow(QMainWindow):
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
         try:
-            self.getData().applyEVTData(self.getPicks())
+            self.get_data().applyEVTData(self.getPicks())
         except OverwriteError:
             msgBox = QMessageBox()
             msgBox.setText("Picks have been modified!")
             msgBox.setInformativeText(
                 "Do you want to save the changes and overwrite the picks?")
-            msgBox.setDetailedText(self.getData().getPicksStr())
+            msgBox.setDetailedText(self.get_data().getPicksStr())
             msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
             msgBox.setDefaultButton(QMessageBox.Save)
             ret = msgBox.exec_()
             if ret == QMessageBox.Save:
-                self.getData().resetPicks()
+                self.get_data().resetPicks()
                 return self.saveData()
             elif ret == QMessageBox.Cancel:
                 return False
         try:
-            self.getData().exportEvent(fbasename, exform)
+            self.get_data().exportEvent(fbasename, exform)
         except FormatError as e:
             fbasename, exform = getSavePath(e)
         except AttributeError as e:
             fbasename, exform = getSavePath(e)
         if not fbasename:
             return False
-        self.getData().exportEvent(fbasename, exform)
+        self.get_data().exportEvent(fbasename, exform)
         self.setDirty(False)
-        self.updateStatus('Event saved as %s' % (fbasename + exform))
+        self.update_status('Event saved as %s' % (fbasename + exform))
         return True
 
     def getComponent(self):
@@ -564,7 +564,7 @@ class MainWindow(QMainWindow):
     def setComponent(self, component):
         self.dispComponent = component
 
-    def getData(self, type='manual'):
+    def get_data(self, type='manual'):
         if type == 'auto':
             return self.autodata
         return self.data
@@ -633,7 +633,7 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.getWFFnames())
         else:
             ans = False
-        self._stime = getGlobalTimes(self.getData().getWFData())[0]
+        self._stime = getGlobalTimes(self.get_data().getWFData())[0]
         if ans:
             self.plotWaveformData()
             return ans
@@ -645,8 +645,8 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         alter_comp = COMPNAME_MAP[comp]
-        wfst = self.getData().getWFData().select(component=comp)
-        wfst += self.getData().getWFData().select(component=alter_comp)
+        wfst = self.get_data().getWFData().select(component=comp)
+        wfst += self.get_data().getWFData().select(component=alter_comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
         self.draw()
         plotDict = self.getPlotWidget().getPlotDict()
@@ -673,17 +673,17 @@ class MainWindow(QMainWindow):
         self.draw()
 
     def pushFilterWF(self, param_args):
-        self.getData().filterWFData(param_args)
+        self.get_data().filterWFData(param_args)
 
     def filterWaveformData(self):
-        if self.getData():
+        if self.get_data():
             if self.getFilterOptions() and self.filterAction.isChecked():
                 kwargs = self.getFilterOptions().parseFilterOptions()
                 self.pushFilterWF(kwargs)
             elif self.filterAction.isChecked():
                 self.adjustFilterOptions()
             else:
-                self.getData().resetWFData()
+                self.get_data().resetWFData()
         self.plotWaveformData()
         self.drawPicks()
         self.draw()
@@ -727,11 +727,11 @@ class MainWindow(QMainWindow):
                 for key, value in settings.value("filterdefaults"):
                     self.setFilterOptions(FilterOptions(**value), key)
         except Exception as e:
-            self.updateStatus('Error ...')
+            self.update_status('Error ...')
             emsg = QErrorMessage(self)
             emsg.showMessage('Error: {0}'.format(e))
         else:
-            self.updateStatus('Filter loaded ... '
+            self.update_status('Filter loaded ... '
                               '[{0}: {1} Hz]'.format(
                 self.getFilterOptions().getFilterType(),
                 self.getFilterOptions().getFreq()))
@@ -749,7 +749,7 @@ class MainWindow(QMainWindow):
 
     def setSeismicPhase(self, phase):
         self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
-        self.updateStatus('Seismic phase changed to '
+        self.update_status('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
 
     def pickOnStation(self, gui_event):
@@ -759,14 +759,14 @@ class MainWindow(QMainWindow):
         if wfID is None: return
 
         station = self.getStationName(wfID)
-        self.updateStatus('picking on station {0}'.format(station))
-        data = self.getData().getWFData()
+        self.update_status('picking on station {0}'.format(station))
+        data = self.get_data().getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
                           station=station,
                           picks=self.getPicksOnStation(station))
         if pickDlg.exec_():
             self.setDirty(True)
-            self.updateStatus('picks accepted ({0})'.format(station))
+            self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
@@ -776,11 +776,11 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station)
                 self.draw()
         else:
-            self.updateStatus('picks discarded ({0})'.format(station))
-        if not self.getLocflag() and self.check4Loc():
-            self.setLocflag(True)
-        elif self.getLocflag() and not self.check4Loc():
-            self.setLocflag(False)
+            self.update_status('picks discarded ({0})'.format(station))
+        if not self.get_loc_flag() and self.check4Loc():
+            self.set_loc_flag(True)
+        elif self.get_loc_flag() and not self.check4Loc():
+            self.set_loc_flag(False)
 
     def addListItem(self, text):
         self.listWidget.addItem(text)
@@ -802,7 +802,7 @@ class MainWindow(QMainWindow):
         # Create the worker thread and run it
         self.thread = AutoPickThread(parent=self,
                                      func=autopickevent,
-                                     data=self.getData().getWFData(),
+                                     data=self.get_data().getWFData(),
                                      param=autopick_parameter)
         self.thread.message.connect(self.addListItem)
         self.thread.start()
@@ -842,7 +842,7 @@ class MainWindow(QMainWindow):
         return rval
 
     def updatePicks(self, type='manual'):
-        picks = picksdict_from_picks(evt=self.getData(type).getEvtData())
+        picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
         if type == 'manual':
             self.picks.update(picks)
         elif type == 'auto':
@@ -944,7 +944,38 @@ class MainWindow(QMainWindow):
         finally:
             os.remove(phasepath)
 
-        self.getData().applyEVTData(lt.read_location(locpath), type='event')
+        self.get_data().applyEVTData(lt.read_location(locpath), type='event')
+        self.get_data().get_evt_data().magnitudes.append(self.calc_magnitude())
+
+    def calc_magnitude(self):
+        e = self.get_data().get_evt_data()
+        settings = QSettings()
+        if e.origins:
+            o = e.origins[0]
+            mags = dict()
+            for a in o.arrivals:
+                pick = a.pick_id.get_referred_object()
+                station = pick.waveform_id.station_code
+                wf = self.get_data().getWFData().select(station=station)
+                onset = pick.time
+                fninv = settings.value("inventoryFile", None)
+                if fninv is None:
+                    fninv = QFileDialog.getOpenFileName()
+                    ans = QMessageBox.question(self, self.tr("Make default..."),
+                               self.tr("New inventory filename set.\n" + \
+                                  "Do you want to make it the default value?"),
+                               QMessageBox.Yes | QMessageBox.No,
+                               QMessageBox.No)
+                    if ans == QMessageBox.Yes:
+                        settings.setValue("inventoryFile", fninv)
+                        settings.sync()
+                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance, a.azimuth, a.takeoff_angle, 60., 0)
+                stat_mags = calcMoMw(wf, w0, 2700., 3000., a.distance, fninv)
+                mags[station] = stat_mags
+            mag = np.median([M[1] for M in mags.values()])
+            return Magnitude(mag=mag, magnitude_type='Mw')
+        else:
+            return None
 
     def check4Loc(self):
         return self.picksNum() > 4
@@ -968,29 +999,35 @@ class MainWindow(QMainWindow):
             num += len(phases)
         return num
 
-    def getLocflag(self):
+    def get_loc_flag(self):
         return self.loc
 
-    def setLocflag(self, value):
+    def set_loc_flag(self, value):
         self.loc = value
 
-    def updateStatus(self, message, duration=5000):
+    def check_loc_plt(self):
+        evt = self.get_data().get_evt_data()
+        if evt.origins and evt.magnitudes:
+            return True
+        return False
+
+    def update_status(self, message, duration=5000):
         self.statusBar().showMessage(message, duration)
-        if self.getData() is not None:
-            if not self.getData().isNew():
+        if self.get_data() is not None:
+            if not self.get_data().isNew():
                 self.setWindowTitle(
-                    "PyLoT - processing event %s[*]" % self.getData().getID())
-            elif self.getData().isNew():
+                    "PyLoT - processing event %s[*]" % self.get_data().getID())
+            elif self.get_data().isNew():
                 self.setWindowTitle("PyLoT - New event [*]")
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
         self.setWindowModified(self.dirty)
 
-    def tutorUser(self):
-        self.updateStatus('select trace to pick on station ...', 10000)
+    def tutor_user(self):
+        self.update_status('select trace to pick on station ...', 10000)
 
-    def printEvent(self):
+    def show_event_information(self):
         pass
 
     def createNewEvent(self):
