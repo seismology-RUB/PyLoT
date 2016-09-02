@@ -39,6 +39,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 import subprocess
 from obspy import UTCDateTime
+from obspy.core.event import Magnitude
 
 from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
 from pylot.core.io.data import Data
@@ -946,7 +947,7 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.getData().applyEVTData(lt.read_location(locpath), type='event')
-        self.calc_magnitude()
+        self.getData().getEvtData().magnitudes.append(self.calc_magnitude())
 
     def calc_magnitude(self):
         e = self.getData().getEvtData()
@@ -967,14 +968,16 @@ class MainWindow(QMainWindow):
                                   "Do you want to make it the default value?"),
                                QMessageBox.Yes | QMessageBox.No,
                                QMessageBox.No)
-                    print(ans)
-                    settings.setValue("inventoryFile", fninv)
-                #w0, fc = calcsourcespec(wf, onset, )
-                #mags[station] =
-            mag = None
-            return mag
+                    if ans == QMessageBox.Yes:
+                        settings.setValue("inventoryFile", fninv)
+                        settings.sync()
+                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance, a.azimuth, a.takeoff_angle, 60., 0)
+                stat_mags = calcMoMw(wf, w0, 2700., 3000., a.distance, fninv)
+                mags[station] = stat_mags
+            mag = np.median([M[1] for M in mags.values()])
+            return Magnitude(mag=mag, magnitude_type='Mw')
         else:
-            return
+            return None
 
     def check4Loc(self):
         return self.picksNum() > 4
