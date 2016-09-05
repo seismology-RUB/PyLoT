@@ -962,7 +962,8 @@ class MainWindow(QMainWindow):
                 onset = pick.time
                 fninv = settings.value("inventoryFile", None)
                 if fninv is None:
-                    fninv = QFileDialog.getOpenFileName(self, self.tr("Select inventory..."), self.tr("Select file"))
+                    fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
+                        "Select inventory..."), self.tr("Select file"))
                     ans = QMessageBox.question(self, self.tr("Make default..."),
                                self.tr("New inventory filename set.\n" + \
                                   "Do you want to make it the default value?"),
@@ -971,7 +972,9 @@ class MainWindow(QMainWindow):
                     if ans == QMessageBox.Yes:
                         settings.setValue("inventoryFile", fninv)
                         settings.sync()
-                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance, a.azimuth, a.takeoff_angle, 60., 0)
+                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance,
+                                        a.azimuth, a.takeoff_angle,
+                                        "300f**0.8", 0)
                 stat_mags = calcMoMw(wf, w0, 2700., 3000., a.distance, fninv)
                 mags[station] = stat_mags
             mag = np.median([M[1] for M in mags.values()])
