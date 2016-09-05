@@ -962,7 +962,7 @@ class MainWindow(QMainWindow):
                 onset = pick.time
                 fninv = settings.value("inventoryFile", None)
                 if fninv is None:
-                    fninv = QFileDialog.getOpenFileName()
+                    fninv = QFileDialog.getOpenFileName(self, self.tr("Select inventory..."), self.tr("Select file"))
                     ans = QMessageBox.question(self, self.tr("Make default..."),
                                self.tr("New inventory filename set.\n" + \
                                   "Do you want to make it the default value?"),
