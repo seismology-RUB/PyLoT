@@ -779,7 +779,7 @@ class PickDlg(QDialog):
                 trace = selectTrace(trace, '12')
                 if trace:
                     wfdata.append(trace)
-        elif component == 'Z':
+        else:
             wfdata = self.getWFData().select(component=component)
         return wfdata
 
