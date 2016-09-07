@@ -39,6 +39,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 import subprocess
 from obspy import UTCDateTime
+from obspy.geodetics import degrees2kilometers
 from obspy.core.event import Magnitude
 
 from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
@@ -955,27 +956,29 @@ class MainWindow(QMainWindow):
         if e.origins:
             o = e.origins[0]
             mags = dict()
+            fninv = settings.value("inventoryFile", None)
+            if fninv is None:
+                fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
+                    "Select inventory..."), self.tr("Select file"))
+                ans = QMessageBox.question(self, self.tr("Make default..."),
+                                           self.tr(
+                                               "New inventory filename set.\n" + \
+                                               "Do you want to make it the default value?"),
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+                if ans == QMessageBox.Yes:
+                    settings.setValue("inventoryFile", fninv)
+                    settings.sync()
             for a in o.arrivals:
                 pick = a.pick_id.get_referred_object()
                 station = pick.waveform_id.station_code
                 wf = self.get_data().getWFData().select(station=station)
                 onset = pick.time
-                fninv = settings.value("inventoryFile", None)
-                if fninv is None:
-                    fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
-                        "Select inventory..."), self.tr("Select file"))
-                    ans = QMessageBox.question(self, self.tr("Make default..."),
-                               self.tr("New inventory filename set.\n" + \
-                                  "Do you want to make it the default value?"),
-                               QMessageBox.Yes | QMessageBox.No,
-                               QMessageBox.No)
-                    if ans == QMessageBox.Yes:
-                        settings.setValue("inventoryFile", fninv)
-                        settings.sync()
-                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance,
+                dist = degrees2kilometers(a.distance)
+                w0, fc = calcsourcespec(wf, onset, fninv, 3000., dist,
                                         a.azimuth, a.takeoff_angle,
                                         "300f**0.8", 0)
-                stat_mags = calcMoMw(wf, w0, 2700., 3000., a.distance, fninv)
+                stat_mags = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
                 mags[station] = stat_mags
             mag = np.median([M[1] for M in mags.values()])
             return Magnitude(mag=mag, magnitude_type='Mw')
