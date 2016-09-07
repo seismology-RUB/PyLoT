@@ -942,7 +942,8 @@ class PickDlg(QDialog):
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
-        wfdata.filter(**filteroptions)
+        if filteroptions:
+            wfdata.filter(**filteroptions)
 
         # get earliest and latest possible pick and symmetric pick error
         [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
