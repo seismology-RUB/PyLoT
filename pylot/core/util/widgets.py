@@ -33,7 +33,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims
+    demeanTrace, isSorted, findComboBoxIndex, clims, find_horizontals
 
 
 def getDataType(parent):
@@ -898,14 +898,9 @@ class PickDlg(QDialog):
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
-        # account for non-oriented horizontal waveforms
-        try:
-            horiz_comp = ('n', 'e')
-            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
-        except IndexError as e:
-            print('warning: {0}'.format(e))
-            horiz_comp = ('1', '2')
-            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        # scale waveform for plotting
+        horiz_comp = find_horizontals(data)
+        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
         x_res = getResolutionWindow(snr)
 

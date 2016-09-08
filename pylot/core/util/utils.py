@@ -8,7 +8,7 @@ import os
 import pwd
 import re
 import subprocess
-from obspy.core import UTCDateTime
+from obspy import UTCDateTime, read
 
 
 def _pickle_method(m):
@@ -352,6 +352,29 @@ def prepTimeAxis(stime, trace):
                          '{1} length of time vector \n'
                          'delta: {2}'.format(nsamp, len(time_ax), tincr))
     return time_ax
+
+
+def find_horizontals(data):
+    """
+    takes `obspy.core.stream.Stream` object and returns a list containing the component labels of the horizontal components available
+    :param data: waveform data
+    :type data: `obspy.core.stream.Stream`
+    :return: components list
+    :rtype: list
+
+    ..example::
+
+    >>> st = read()
+    >>> find_horizontals(st)
+    [u'N', u'E']
+    """
+    rval = []
+    for tr in data:
+        if tr.stats.channel[-1].upper() in ['Z', '3']:
+            continue
+        else:
+            rval.append(tr.stats.channel[-1].upper())
+    return rval
 
 
 def scaleWFData(data, factor=None, components='all'):
