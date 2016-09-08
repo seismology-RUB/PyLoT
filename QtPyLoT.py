@@ -76,7 +76,10 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
 
         self.createAction = createAction
+        # read settings
         settings = QSettings()
+        infile = os.path.join(os.path.expanduser('~'), 'pylot.in')
+        self._inputs = AutoPickParameter(infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
@@ -799,6 +802,9 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
+        # may become obsolete if generalized input parameter a read from disc
+        #  during initialization
+        # TODO double check for obsolete read in of parameters
         autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
         self.addListItem(str(autopick_parameter))
 
