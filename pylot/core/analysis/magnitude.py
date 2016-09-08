@@ -304,7 +304,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     return Mo, Mw
 
 
-def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, Qp, iplot):
+def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -342,11 +342,8 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, Qp
     print ("Calculating source spectrum ....")
 
     # get Q value
-    qu = Qp.split('f**')
-    # constant Q
-    Q = int(qu[0])
-    # A, i.e. power of frequency
-    A = float(qu[1])
+    Q, A = qp
+
     delta = delta * 1000  # hypocentral distance in [m]
 
     fc = None

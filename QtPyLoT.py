@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self.createAction = createAction
         # read settings
         settings = QSettings()
-        infile = os.path.join(os.path.expanduser('~'), 'pylot.in')
+        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         self._inputs = AutoPickParameter(infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
@@ -401,6 +401,10 @@ class MainWindow(QMainWindow):
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
+
+    @property
+    def inputs(self):
+        return self._inputs
 
     def getRoot(self):
         settings = QSettings()
@@ -989,9 +993,9 @@ class MainWindow(QMainWindow):
                 wf = self.get_data().getWFData().select(station=station)
                 onset = pick.time
                 dist = degrees2kilometers(a.distance)
-                w0, fc = calcsourcespec(wf, onset, fninv, 3000., dist,
+                w0, fc = calcsourcespec(wf, onset, fninv, self.inputs.get('vp'), dist,
                                         a.azimuth, a.takeoff_angle,
-                                        "300f**0.8", 0)
+                                        self.inputs.get('Qp'), 0)
                 stat_mags = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
                 mags[station] = stat_mags
             mag = np.median([M[1] for M in mags.values()])
