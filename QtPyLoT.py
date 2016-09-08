@@ -925,7 +925,13 @@ class MainWindow(QMainWindow):
                    " (*.in *.ini *.conf *.cfg)"
             ans = QFileDialog().getOpenFileName(self, caption=caption,
                                                 filter=filt, dir=locroot)
-            infile = ans[0]
+            if ans[0]:
+                infile = ans[0]
+            else:
+                QMessageBox.information(self,
+                                        self.tr('No infile selected'),
+                                        self.tr('Inputfile necessary for localization.'))
+                return
             settings.setValue("{0}/inputFile".format(loctool), infile)
             settings.sync()
         if loctool == 'nll':
