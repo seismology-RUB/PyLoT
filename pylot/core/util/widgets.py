@@ -33,7 +33,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims
+    demeanTrace, isSorted, findComboBoxIndex, clims, find_horizontals
 
 
 def getDataType(parent):
@@ -779,7 +779,7 @@ class PickDlg(QDialog):
                 trace = selectTrace(trace, '12')
                 if trace:
                     wfdata.append(trace)
-        elif component == 'Z':
+        else:
             wfdata = self.getWFData().select(component=component)
         return wfdata
 
@@ -898,14 +898,9 @@ class PickDlg(QDialog):
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
-        # account for non-oriented horizontal waveforms
-        try:
-            horiz_comp = ('n', 'e')
-            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
-        except IndexError as e:
-            print('warning: {0}'.format(e))
-            horiz_comp = ('1', '2')
-            data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        # scale waveform for plotting
+        horiz_comp = find_horizontals(data)
+        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
         x_res = getResolutionWindow(snr)
 
@@ -942,7 +937,8 @@ class PickDlg(QDialog):
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
-        wfdata.filter(**filteroptions)
+        if filteroptions:
+            wfdata.filter(**filteroptions)
 
         # get earliest and latest possible pick and symmetric pick error
         [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)

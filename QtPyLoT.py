@@ -495,18 +495,18 @@ class MainWindow(QMainWindow):
             fname = str(action.data().toString())
         return fname
 
-    def get_fnames(self):
-        return self.fname
+    def get_fnames(self, type='manual'):
+        return self.fname[type]
 
     def set_fname(self, fname, type):
-        if self.get_fnames()[type] is not None:
-            self.add_recentfile(self.get_fnames())
+        if self.get_fnames(type) is not None:
+            self.add_recentfile(self.get_fnames(type))
         self.fname[type] = fname
 
-    def getEventFileName(self):
-        if self.get_fnames() is None:
-            self.set_fname(self.get_data().getEventFileName())
-        return self.get_fnames()
+    def getEventFileName(self, type='manual'):
+        if self.get_fnames(type) is None:
+            self.set_fname(self.get_data().getEventFileName(), type)
+        return self.get_fnames(type)
 
     def saveData(self):
 
@@ -553,9 +553,26 @@ class MainWindow(QMainWindow):
             fbasename, exform = getSavePath(e)
         except AttributeError as e:
             fbasename, exform = getSavePath(e)
+
+        # catch all possible cases before going on
         if not fbasename:
             return False
+        # warn overwriting
+        elif os.path.exists(fbasename + exform):
+            ans = QMessageBox.question(self, self.tr("Overwrite file..."),
+                               self.tr("File already exists: {0}\n".format(fbasename + exform) + \
+                                  "Overwrite file anyway?"),
+                               QMessageBox.Cancel, QMessageBox.Yes | QMessageBox.No,
+                               QMessageBox.Cancel)
+            # only negative answers have to be caught
+            if ans == QMessageBox.No:
+                self.saveData()
+            elif ans == QMessageBox.Cancel:
+                return False
+
+        # export to given path
         self.get_data().exportEvent(fbasename, exform)
+        # all files save (ui clean)
         self.setDirty(False)
         self.update_status('Event saved as %s' % (fbasename + exform))
         return True
