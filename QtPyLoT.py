@@ -876,6 +876,8 @@ class MainWindow(QMainWindow):
             return
         # plotting picks
         plotID = self.getStationID(station)
+        if not plotID:
+            return
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
         phase_col = {
