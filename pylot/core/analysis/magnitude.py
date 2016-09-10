@@ -14,6 +14,7 @@ from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 from scipy import integrate, signal
 from pylot.core.io.data import Data
+from pylot.core.util.dataprocessing import restitute_data
 
 
 class Magnitude(object):
@@ -351,7 +352,7 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
     data = Data()
     wf_copy = wfstream.copy()
 
-    [cordat, restflag] = data.restituteWFData(inventory, wf_copy)
+    [cordat, restflag] = restitute_data(wf_copy, inventory)
     if restflag == 1:
         zdat = cordat.select(component="Z")
         if len(zdat) == 0:

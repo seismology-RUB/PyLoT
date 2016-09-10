@@ -3,8 +3,10 @@
 
 import os
 import glob
-from obspy import UTCDateTime
+from obspy import UTCDateTime, read_inventory
 import sys
+from obspy.io.xseed import Parser
+
 
 def time_from_header(header):
     """
@@ -146,6 +148,140 @@ def evt_head_check(root_dir, out_dir = None):
                 out.writelines(lines)
                 out.close()
     print(nfiles)
+
+
+def restitute_data(data, invdlpath):
+    """
+
+    :param invdlpath:
+    :param data:
+    :return:
+    """
+
+    restflag = False
+
+    for tr in data:
+        # remove underscores
+        if len(tr.stats.station) > 3 and tr.stats.station[3] == '_':
+            tr.stats.station = tr.stats.station[0:3]
+    dlfile = list()
+    invfile = list()
+    respfile = list()
+    inv = dict(dless=dlfile, xml=invfile, resp=respfile)
+    if os.path.isfile(invdlpath):
+        ext = os.path.splitext(invdlpath)[1].split('.')[1]
+        inv[ext] += [invdlpath]
+    else:
+        for ext in inv.keys():
+            inv[ext] += glob.glob1(invdlpath,'*.{}'.format(ext))
+
+    # check for dataless-SEED file
+    # TODO ineffective loop -> better concatenate inventory entries and
+    # loop over traces
+    if len(dlfile) >= 1:
+        print("Found dataless-SEED file(s)!")
+        print("Reading meta data information ...")
+        for j in range(len(dlfile)):
+            print("Found dataless-SEED file %s" % dlfile[j])
+            parser = Parser('%s' % dlfile[j])
+            for i in range(len(data)):
+                # check, whether this trace has already been corrected
+                try:
+                    data[i].stats.processing
+                except:
+                    try:
+                        print(
+                            "Correcting %s, %s for instrument response "
+                            "..." % (data[i].stats.station,
+                                     data[i].stats.channel))
+                        # get corner frequencies for pre-filtering
+                        fny = data[i].stats.sampling_rate / 2
+                        fc21 = fny - (fny * 0.05)
+                        fc22 = fny - (fny * 0.02)
+                        prefilt = [0.5, 0.9, fc21, fc22]
+                        # instrument correction
+                        data[i].simulate(pre_filt=prefilt,
+                                       seedresp={'filename': parser,
+                                                 'date': data[
+                                                     i].stats.starttime,
+                                                 'units': "VEL"})
+                        restflag = True
+                    except ValueError as e:
+                        vmsg = '{0}'.format(e)
+                        print(vmsg)
+                else:
+                    print("Trace has already been corrected!")
+    # check for inventory-xml file
+    if len(invfile) >= 1:
+        print("Found inventory-xml file(s)!")
+        print("Reading meta data information ...")
+        for j in range(len(invfile)):
+            print("Found inventory-xml file %s" % invfile[j])
+            inv = read_inventory(invfile[j], format="STATIONXML")
+            for i in range(len(data)):
+                # check, whether this trace has already been corrected
+                try:
+                    data[i].stats.processing
+                except:
+                    try:
+                        print("Correcting %s, %s for instrument response "
+                              "..." % (data[i].stats.station,
+                                       data[i].stats.channel))
+                        # get corner frequencies for pre-filtering
+                        fny = data[i].stats.sampling_rate / 2
+                        fc21 = fny - (fny * 0.05)
+                        fc22 = fny - (fny * 0.02)
+                        prefilt = [0.5, 0.9, fc21, fc22]
+                        # instrument correction
+                        data[i].attach_response(inv)
+                        data[i].remove_response(output='VEL',
+                                              pre_filt=prefilt)
+                        restflag = True
+                    except ValueError as e:
+                        vmsg = '{0}'.format(e)
+                        print(vmsg)
+                else:
+                    print("Trace has already been corrected!")
+    # check for RESP-file
+    if len(respfile) >= 1:
+        print("Found response file(s)!")
+        print("Reading meta data information ...")
+        for j in range(len(respfile)):
+            print("Found RESP-file %s" % respfile[j])
+            for i in range(len(data)):
+                # check, whether this trace has already been corrected
+                try:
+                    data[i].stats.processing
+                except:
+                    try:
+                        print("Correcting %s, %s for instrument response "
+                              "..." % (data[i].stats.station,
+                                       data[i].stats.channel))
+                        # get corner frequencies for pre-filtering
+                        fny = data[i].stats.sampling_rate / 2
+                        fc21 = fny - (fny * 0.05)
+                        fc22 = fny - (fny * 0.02)
+                        prefilt = [0.5, 0.9, fc21, fc22]
+                        # instrument correction
+                        seedresp = {'filename': respfile[0],
+                                    'date': data[0].stats.starttime,
+                                    'units': "VEL"}
+                        data[i].simulate(paz_remove=None, pre_filt=prefilt,
+                                       seedresp=seedresp)
+                        restflag = True
+                    except ValueError as e:
+                        vmsg = '{0}'.format(e)
+                        print(vmsg)
+                else:
+                    print("Trace has already been corrected!")
+
+    if len(respfile) < 1 and len(invfile) < 1 and len(dlfile) < 1:
+        print("No dataless-SEED file,inventory-xml file nor RESP-file "
+              "found!")
+        print("Go on processing data without source parameter "
+              "determination!")
+
+    return data, restflag
 
 
 if __name__ == "__main__":
