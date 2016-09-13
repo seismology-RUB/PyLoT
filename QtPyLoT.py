@@ -39,7 +39,10 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 import subprocess
 from obspy import UTCDateTime
+from obspy.geodetics import degrees2kilometers
+from obspy.core.event import Magnitude
 
+from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
@@ -73,7 +76,10 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
 
         self.createAction = createAction
+        # read settings
         settings = QSettings()
+        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        self._inputs = AutoPickParameter(infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
@@ -337,8 +343,8 @@ class MainWindow(QMainWindow):
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
 
-        locateEvent = self.createAction(parent=self, text='locateEvent',
-                                        slot=self.locateEvent,
+        locateEvent = self.createAction(parent=self, text='locate_event',
+                                        slot=self.locate_event,
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
                                         tip='Locate the event using '
@@ -395,6 +401,10 @@ class MainWindow(QMainWindow):
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
+
+    @property
+    def inputs(self):
+        return self._inputs
 
     def getRoot(self):
         settings = QSettings()
@@ -813,6 +823,9 @@ class MainWindow(QMainWindow):
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         self.addListItem('loading default values for local data ...')
+        # may become obsolete if generalized input parameter a read from disc
+        #  during initialization
+        # TODO double check for obsolete read in of parameters
         autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
         self.addListItem(str(autopick_parameter))
 
@@ -874,6 +887,8 @@ class MainWindow(QMainWindow):
             return
         # plotting picks
         plotID = self.getStationID(station)
+        if not plotID:
+            return
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
         phase_col = {
@@ -908,7 +923,7 @@ class MainWindow(QMainWindow):
             else:
                 raise TypeError('Unknow picktype {0}'.format(picktype))
 
-    def locateEvent(self):
+    def locate_event(self):
         """
         locate event using the manually picked phases
         :return:
@@ -923,7 +938,7 @@ class MainWindow(QMainWindow):
         locroot = settings.value("{0}/rootPath".format(loctool), None)
         if locroot is None:
             self.PyLoTprefs()
-            self.locateEvent()
+            self.locate_event()
 
         infile = settings.value("{0}/inputFile".format(loctool), None)
 
@@ -933,7 +948,13 @@ class MainWindow(QMainWindow):
                    " (*.in *.ini *.conf *.cfg)"
             ans = QFileDialog().getOpenFileName(self, caption=caption,
                                                 filter=filt, dir=locroot)
-            infile = ans[0]
+            if ans[0]:
+                infile = ans[0]
+            else:
+                QMessageBox.information(self,
+                                        self.tr('No infile selected'),
+                                        self.tr('Inputfile necessary for localization.'))
+                return
             settings.setValue("{0}/inputFile".format(loctool), infile)
             settings.sync()
         if loctool == 'nll':
@@ -970,24 +991,29 @@ class MainWindow(QMainWindow):
         if e.origins:
             o = e.origins[0]
             mags = dict()
+            fninv = settings.value("inventoryFile", None)
+            if fninv is None:
+                fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
+                    "Select inventory..."), self.tr("Select file"))
+                ans = QMessageBox.question(self, self.tr("Make default..."),
+                                           self.tr(
+                                               "New inventory filename set.\n" + \
+                                               "Do you want to make it the default value?"),
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+                if ans == QMessageBox.Yes:
+                    settings.setValue("inventoryFile", fninv)
+                    settings.sync()
             for a in o.arrivals:
                 pick = a.pick_id.get_referred_object()
                 station = pick.waveform_id.station_code
                 wf = self.get_data().getWFData().select(station=station)
                 onset = pick.time
-                fninv = settings.value("inventoryFile", None)
-                if fninv is None:
-                    fninv = QFileDialog.getOpenFileName()
-                    ans = QMessageBox.question(self, self.tr("Make default..."),
-                               self.tr("New inventory filename set.\n" + \
-                                  "Do you want to make it the default value?"),
-                               QMessageBox.Yes | QMessageBox.No,
-                               QMessageBox.No)
-                    if ans == QMessageBox.Yes:
-                        settings.setValue("inventoryFile", fninv)
-                        settings.sync()
-                w0, fc = calcsourcespec(wf, onset, fninv, 3000., a.distance, a.azimuth, a.takeoff_angle, 60., 0)
-                stat_mags = calcMoMw(wf, w0, 2700., 3000., a.distance, fninv)
+                dist = degrees2kilometers(a.distance)
+                w0, fc = calcsourcespec(wf, onset, fninv, self.inputs.get('vp'), dist,
+                                        a.azimuth, a.takeoff_angle,
+                                        self.inputs.get('Qp'), 0)
+                stat_mags = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
                 mags[station] = stat_mags
             mag = np.median([M[1] for M in mags.values()])
             return Magnitude(mag=mag, magnitude_type='Mw')

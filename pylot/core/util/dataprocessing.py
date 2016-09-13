@@ -3,8 +3,15 @@
 
 import os
 import glob
-from obspy import UTCDateTime
 import sys
+
+import numpy as np
+
+from obspy import UTCDateTime, read_inventory, read
+from obspy.io.xseed import Parser
+from pylot.core.util.utils import key_for_set_value, find_in_list, \
+    remove_underscores
+
 
 def time_from_header(header):
     """
@@ -146,6 +153,129 @@ def evt_head_check(root_dir, out_dir = None):
                 out.writelines(lines)
                 out.close()
     print(nfiles)
+
+
+def restitute_data(data, path_to_inventory, unit='VEL', force=False):
+    """
+    takes a data stream and a path_to_inventory and returns the corrected
+    waveform data stream
+    :param data: seismic data stream
+    :param path_to_inventory: path to inventory folder or file
+    :param unit: unit to correct for (default: 'VEL')
+    :param force: force restitution for already corrected traces (default:
+    False)
+    :return: corrected data stream
+    """
+
+    restflag = list()
+
+    data = remove_underscores(data)
+
+    dlfile = list()
+    invfile = list()
+    respfile = list()
+    inv = dict(dless=dlfile, xml=invfile, resp=respfile)
+    if os.path.isfile(path_to_inventory):
+        ext = os.path.splitext(path_to_inventory)[1].split('.')[1]
+        inv[ext] += [path_to_inventory]
+    else:
+        for ext in inv.keys():
+            inv[ext] += glob.glob1(path_to_inventory, '*.{0}'.format(ext))
+
+    invtype = key_for_set_value(inv)
+
+    if invtype is None:
+        print("Neither dataless-SEED file,inventory-xml file nor RESP-file "
+              "found!")
+        return data, False
+
+    # loop over traces
+    for tr in data:
+        seed_id = tr.get_id()
+        # check, whether this trace has already been corrected
+        if 'processing' in tr.stats.keys() and not force:
+            print("Trace {0} has already been corrected!".format(seed_id))
+            continue
+        stime = tr.stats.starttime
+        seedresp = None
+        prefilt = get_prefilt(tr)
+        if invtype == 'resp':
+            fresp = find_in_list(inv[invtype], seed_id)
+            if not fresp:
+                raise IOError('no response file found '
+                              'for trace {0}'.format(seed_id))
+            fname = fresp
+            seedresp = dict(filename=fname,
+                            date=stime,
+                            units=unit)
+            kwargs = dict(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+        elif invtype == 'dless':
+            if len(inv[invtype]) > 1:
+                fname = Parser(find_in_list(inv[invtype], seed_id))
+            else:
+                fname = Parser(inv[invtype][0])
+            seedresp = dict(filename=fname,
+                            date=stime,
+                            units=unit)
+            kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
+        elif invtype == 'xml':
+            invlist = inv[invtype]
+            if len(invlist) > 1:
+                finv = find_in_list(invlist, seed_id)
+            else:
+                finv = invlist[0]
+            inventory = read_inventory(finv, format='STATIONXML')
+        # apply restitution to data
+        if invtype in ['resp', 'dless']:
+            tr.simulate(**kwargs)
+        else:
+            tr.attach_response(inventory)
+            tr.remove_response(output=unit,
+                               pre_filt=prefilt)
+        restflag.append(True)
+    # check if ALL traces could be restituted, take care of large datasets
+    # better try restitution for smaller subsets of data (e.g. station by
+    # station)
+    if len(restflag) > 0:
+        restflag = np.all(restflag)
+    else:
+        restflag = False
+    return data, restflag
+
+
+def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
+    """
+    takes a `obspy.core.stream.Trace` object, taper parameters tlow and thi and
+    returns the pre-filtering corner frequencies for the cosine taper for
+    further processing
+    :param trace: seismic data trace
+    :type trace: `obspy.core.stream.Trace`
+    :param tlow: tuple or list containing the desired lower corner
+    frequenices for a cosine taper
+    :type tlow: tuple or list
+    :param thi: tuple or list containing the percentage values of the
+    Nyquist frequency for the desired upper corner frequencies of the cosine
+    taper
+    :type thi: tuple or list
+    :param verbosity: verbosity level
+    :type verbosity: int
+    :return: pre-filt cosine taper corner frequencies
+    :rtype: tuple
+
+    ..example::
+
+    >>> st = read()
+    >>> get_prefilt(st[0])
+    (0.5, 0.9, 47.5, 49.0)
+    """
+    if verbosity:
+        print("Calculating pre-filter values for %s, %s ..." % (
+            trace.stats.station, trace.stats.channel))
+    # get corner frequencies for pre-filtering
+    fny = trace.stats.sampling_rate / 2
+    fc21 = fny - (fny * thi[0]/100.)
+    fc22 = fny - (fny * thi[1]/100.)
+    return (tlow[0], tlow[1], fc21, fc22)
 
 
 if __name__ == "__main__":

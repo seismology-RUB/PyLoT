@@ -17,6 +17,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
+from pylot.core.util.dataprocessing import restitute_data
 from pylot.core.util.utils import getPatternLine
 from pylot.core.io.data import Data
 from pylot.core.analysis.magnitude import WApp
@@ -564,10 +565,10 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 hdat = edat.copy()
                 hdat += ndat
                 h_copy = hdat.copy()
-                [cordat, restflag] = data.restituteWFData(invdir, h_copy)
+                [cordat, restflag] = restitute_data(h_copy, invdir)
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
-                if restflag == 1:
+                if restflag:
                     if Sweight < 4:
                         wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
                     else:
@@ -577,6 +578,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
                                     (0.5 * (mpickP + sstop)), iplot)
 
                     Ao = wapp.getwapp()
+                else:
+                    print("Go on processing data without source parameter "
+                          "determination!")
 
         else:
             msg = 'Bad initial (AIC) S-pick, skipping this onset!\n' \
@@ -598,7 +602,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             hdat = edat.copy()
             hdat += ndat
             h_copy = hdat.copy()
-            [cordat, restflag] = data.restituteWFData(invdir, h_copy)
+            [cordat, restflag] = restitute_data(h_copy, invdir)
             if restflag == 1:
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
