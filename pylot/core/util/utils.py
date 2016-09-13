@@ -328,6 +328,23 @@ def isIterable(obj):
         return False
     return True
 
+
+def key_for_set_value(d):
+    """
+    takes a dictionary and returns the first key for which's value the
+    boolean is True
+    :param d: dictionary containing values
+    :type d: dict
+    :return: key to the first non-False value found; None if no value's
+    boolean equals True
+    """
+    r = None
+    for k, v in d.items():
+        if v:
+            return k
+    return r
+
+
 def prepTimeAxis(stime, trace):
     '''
     takes a starttime and a trace object and returns a valid time axis for
@@ -352,6 +369,20 @@ def prepTimeAxis(stime, trace):
                          '{1} length of time vector \n'
                          'delta: {2}'.format(nsamp, len(time_ax), tincr))
     return time_ax
+
+
+def remove_underscores(data):
+    """
+    takes a `obspy.core.stream.Stream` object and removes all underscores
+    from stationnames
+    :param data: stream of seismic data
+    :type data: `obspy.core.stream.Stream`
+    :return: data stream
+    """
+    for tr in data:
+        # remove underscores
+        tr.stats.station = tr.stats.station.strip('_')
+    return data
 
 
 def scaleWFData(data, factor=None, components='all'):

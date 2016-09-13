@@ -568,7 +568,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 [cordat, restflag] = restitute_data(h_copy, invdir)
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
-                if restflag == 1:
+                if restflag:
                     if Sweight < 4:
                         wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
                     else:
@@ -578,6 +578,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
                                     (0.5 * (mpickP + sstop)), iplot)
 
                     Ao = wapp.getwapp()
+                else:
+                    print("Go on processing data without source parameter "
+                          "determination!")
 
         else:
             msg = 'Bad initial (AIC) S-pick, skipping this onset!\n' \
