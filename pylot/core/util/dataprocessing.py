@@ -213,7 +213,7 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
             if len(inv[invtype]) > 1:
                 fname = Parser(find_in_list(inv[invtype], seed_id))
             else:
-                fname = Parser(inv[invtype][0])
+                fname = Parser(path_to_inventory + '/' + inv[invtype][0])
             seedresp = dict(filename=fname,
                             date=stime,
                             units=unit)
