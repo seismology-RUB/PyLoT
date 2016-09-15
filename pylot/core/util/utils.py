@@ -9,6 +9,7 @@ import pwd
 import re
 import subprocess
 from obspy import UTCDateTime, read
+from pylot.core.io.inputs import AutoPickParameter
 
 
 def _pickle_method(m):
@@ -471,6 +472,8 @@ def which(program):
         for key in settings.allKeys():
             if 'binPath' in key:
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
+        bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'autoPyLoT.in')
+        os.environ['PATH'] += AutoPickParameter(bpath)['nllocbin']
     except ImportError as e:
         print(e.message)
 
