@@ -353,7 +353,7 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
     wf_copy = wfstream.copy()
 
     [cordat, restflag] = restitute_data(wf_copy, inventory)
-    if restflag == 1:
+    if restflag is True:
         zdat = cordat.select(component="Z")
         if len(zdat) == 0:
             zdat = cordat.select(component="3")

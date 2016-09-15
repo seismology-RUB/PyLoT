@@ -155,7 +155,7 @@ def evt_head_check(root_dir, out_dir = None):
     print(nfiles)
 
 
-def restitute_data(data, path_to_inventory, unit='VEL', force=False):
+def restitute_data(data, path_to_inventory, unit='VEL', force=True):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -163,7 +163,7 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     :param path_to_inventory: path to inventory folder or file
     :param unit: unit to correct for (default: 'VEL')
     :param force: force restitution for already corrected traces (default:
-    False)
+    True)
     :return: corrected data stream
     """
 
@@ -193,6 +193,10 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     for tr in data:
         seed_id = tr.get_id()
         # check, whether this trace has already been corrected
+        # TODO read actual value of processing key in Trace's stats instead
+        # of just looking for thr key: if processing is setit doesn't
+        # necessarily mean that the trace has been corrected so far but only
+        # processed in some way, e.g. normalized
         if 'processing' in tr.stats.keys() and not force:
             print("Trace {0} has already been corrected!".format(seed_id))
             continue
@@ -225,6 +229,9 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
             else:
                 finv = invlist[0]
             inventory = read_inventory(finv, format='STATIONXML')
+        else:
+            restflag.append(False)
+            continue
         # apply restitution to data
         if invtype in ['resp', 'dless']:
             tr.simulate(**kwargs)
@@ -237,7 +244,7 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
     if len(restflag) > 0:
-        restflag = np.all(restflag)
+        restflag = bool(np.all(restflag))
     else:
         restflag = False
     return data, restflag
