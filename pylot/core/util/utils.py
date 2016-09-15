@@ -473,7 +473,8 @@ def which(program):
             if 'binPath' in key:
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
         bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'autoPyLoT.in')
-        os.environ['PATH'] += AutoPickParameter(bpath)['nllocbin']
+        if os.path.exists(bpath):
+            os.environ['PATH'] += AutoPickParameter(bpath).get('nllocbin')
     except ImportError as e:
         print(e.message)
 
