@@ -991,6 +991,8 @@ class MainWindow(QMainWindow):
                 pick = a.pick_id.get_referred_object()
                 station = pick.waveform_id.station_code
                 wf = self.get_data().getWFData().select(station=station)
+                if not wf:
+                    continue
                 onset = pick.time
                 dist = degrees2kilometers(a.distance)
                 w0, fc = calcsourcespec(wf, onset, fninv, self.inputs.get('vp'), dist,
