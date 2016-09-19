@@ -380,10 +380,10 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
 
             # integrate to displacement
             # unrotated vertical component (for copmarison)
-            inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, \
+            inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None,
                                                        zdat[0].stats.delta))
             # rotated component Z => L
-            Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, \
+            Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None,
                                                      ldat[0].stats.delta))
 
             # get window after P pulse for
@@ -455,7 +455,8 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
 
                 # use of implicit scipy otimization function
                 fit = synthsourcespec(F, w0in, Fcin)
-                [optspecfit, pcov] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
+                [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in,
+                                                                        Fcin])
                 w01 = optspecfit[0]
                 fc1 = optspecfit[1]
                 print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
