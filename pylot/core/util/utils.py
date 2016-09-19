@@ -207,7 +207,25 @@ def four_digits(year):
     return year
 
 
-def getGlobalTimes(stream):
+def common_range(stream):
+    '''
+    takes a stream object and returns the earliest end and the latest start
+    time of all contained trace objects
+    :param stream: seismological data stream
+    :type stream: `~obspy.core.stream.Stream`
+    :return: maximum start time and minimum end time
+    '''
+    max_start = None
+    min_end = None
+    for trace in stream:
+        if max_start is None or trace.stats.starttime > max_start:
+            max_start = trace.stats.starttime
+        if min_end is None or trace.stats.endtime < min_end:
+            min_end = trace.stats.endtime
+    return max_start, min_end
+
+
+def full_range(stream):
     '''
     takes a stream object and returns the latest end and the earliest start
     time of all contained trace objects

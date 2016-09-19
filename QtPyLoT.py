@@ -55,7 +55,7 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    getGlobalTimes
+    full_range
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow):
             ans = self.data.setWFData(self.getWFFnames())
         else:
             ans = False
-        self._stime = getGlobalTimes(self.get_data().getWFData())[0]
+        self._stime = full_range(self.get_data().getWFData())[0]
         if ans:
             self.plotWaveformData()
             return ans

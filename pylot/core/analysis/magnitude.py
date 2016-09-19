@@ -15,6 +15,7 @@ from scipy.optimize import curve_fit
 from scipy import integrate, signal
 from pylot.core.io.data import Data
 from pylot.core.util.dataprocessing import restitute_data
+from pylot.core.util.utils import common_range
 
 
 class Magnitude(object):
@@ -360,25 +361,8 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
         cordat_copy = cordat.copy()
         # get equal time stamps and lengths of traces
         # necessary for rotation of traces
-        tr0start = cordat_copy[0].stats.starttime
-        tr0start = tr0start.timestamp
-        tr0end = cordat_copy[0].stats.endtime
-        tr0end = tr0end.timestamp
-        tr1start = cordat_copy[1].stats.starttime
-        tr1start = tr1start.timestamp
-        tr1end = cordat_copy[1].stats.endtime
-        tr1end = tr1end.timestamp
-        tr2start = cordat_copy[2].stats.starttime
-        tr2start = tr2start.timestamp
-        tr2end = cordat_copy[0].stats.endtime
-        tr2end = tr2end.timestamp
-        trstart = UTCDateTime(max([tr0start, tr1start, tr2start]))
-        trend = UTCDateTime(min([tr0end, tr1end, tr2end]))
+        trstart, trend = common_range(cordat_copy)
         cordat_copy.trim(trstart, trend)
-        minlen = min([len(cordat_copy[0]), len(cordat_copy[1]), len(cordat_copy[2])])
-        cordat_copy[0].data = cordat_copy[0].data[0:minlen]
-        cordat_copy[1].data = cordat_copy[1].data[0:minlen]
-        cordat_copy[2].data = cordat_copy[2].data[0:minlen]
         try:
             # rotate into LQT (ray-coordindate-) system using Obspy's rotate
             # L: P-wave direction

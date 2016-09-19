@@ -740,11 +740,11 @@ class SeismicShot(object):
         self._drawCFs(traceID, folm)
 
     def _drawStream(self, traceID, refresh=False, ax=None):
-        from pylot.core.util.utils import getGlobalTimes
+        from pylot.core.util.utils import full_range
         from pylot.core.util.utils import prepTimeAxis
 
         stream = self.getSingleStream(traceID)
-        stime = getGlobalTimes(stream)[0]
+        stime = full_range(stream)[0]
         timeaxis = prepTimeAxis(stime, stream[0])
         timeaxis -= stime
 
