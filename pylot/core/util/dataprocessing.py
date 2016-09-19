@@ -155,7 +155,7 @@ def evt_head_check(root_dir, out_dir = None):
     print(nfiles)
 
 
-def restitute_data(data, path_to_inventory, unit='VEL', force=True):
+def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -188,6 +188,9 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=True):
         print("Neither dataless-SEED file,inventory-xml file nor RESP-file "
               "found!")
         return data, False
+    elif invtype == 'dless': # prevent multiple read of large dlsv
+        if len(inv[invtype]) == 1:
+            fname = Parser(inv[invtype][0])
 
     # loop over traces
     for tr in data:
@@ -197,11 +200,12 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=True):
         # of just looking for thr key: if processing is setit doesn't
         # necessarily mean that the trace has been corrected so far but only
         # processed in some way, e.g. normalized
-        if 'processing' in tr.stats.keys() and not force:
+        if 'processing' in tr.stats.keys() \
+                and np.all(['remove' in p for p in tr.stats.processing]) \
+                and not force:
             print("Trace {0} has already been corrected!".format(seed_id))
             continue
         stime = tr.stats.starttime
-        seedresp = None
         prefilt = get_prefilt(tr)
         if invtype == 'resp':
             fresp = find_in_list(inv[invtype], seed_id)
@@ -216,8 +220,6 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=True):
         elif invtype == 'dless':
             if len(inv[invtype]) > 1:
                 fname = Parser(find_in_list(inv[invtype], seed_id))
-            else:
-                fname = Parser(inv[invtype][0])
             seedresp = dict(filename=fname,
                             date=stime,
                             units=unit)
@@ -233,12 +235,21 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=True):
             restflag.append(False)
             continue
         # apply restitution to data
-        if invtype in ['resp', 'dless']:
-            tr.simulate(**kwargs)
-        else:
-            tr.attach_response(inventory)
-            tr.remove_response(output=unit,
-                               pre_filt=prefilt)
+        try:
+            if invtype in ['resp', 'dless']:
+                tr.simulate(**kwargs)
+            else:
+                tr.attach_response(inventory)
+                tr.remove_response(output=unit,
+                                   pre_filt=prefilt)
+        except ValueError as e:
+            msg0 = 'Response for {0} not found in Parser'.format(seed_id)
+            msg1 = 'evalresp failed to calculate response'
+            if msg0 not in e.message or msg1 not in e.message:
+                raise
+            else:
+                restflag.append(False)
+                continue
         restflag.append(True)
     # check if ALL traces could be restituted, take care of large datasets
     # better try restitution for smaller subsets of data (e.g. station by
