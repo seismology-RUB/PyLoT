@@ -205,7 +205,7 @@ def four_digits(year):
     return year
 
 
-def getGlobalTimes(stream):
+def full_range(stream):
     '''
     takes a stream object and returns the latest end and the earliest start
     time of all contained trace objects

@@ -12,7 +12,7 @@ from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.io.location import create_arrival, create_event, \
     create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, getGlobalTimes, four_digits
+from pylot.core.util.utils import getOwner, full_range, four_digits
 
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
@@ -325,7 +325,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
                 msg = 'no waveform data found for station {station}'.format(station=station)
                 warnings.warn(msg, RuntimeWarning)
                 continue
-            stime, etime = getGlobalTimes(sel_st)
+            stime, etime = full_range(sel_st)
             rel_pick = mpp - stime
             epp, lpp, spe = earllatepicker(sel_st,
                                            default.get('nfac{0}'.format(phase)),

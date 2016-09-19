@@ -32,7 +32,7 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
-from pylot.core.util.utils import prepTimeAxis, getGlobalTimes, scaleWFData, \
+from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 
 
@@ -425,7 +425,7 @@ class WaveformWidget(FigureCanvas):
                    noiselevel=None, scaleddata=False, mapping=True):
         self.getAxes().cla()
         self.clearPlotDict()
-        wfstart, wfend = getGlobalTimes(wfdata)
+        wfstart, wfend = full_range(wfdata)
         nmax = 0
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
@@ -539,7 +539,7 @@ class PickDlg(QDialog):
         else:
             self.data = data
 
-        self.stime, self.etime = getGlobalTimes(self.getWFData())
+        self.stime, self.etime = full_range(self.getWFData())
 
         # initialize plotting widget
         self.multicompfig = WaveformWidget(self)

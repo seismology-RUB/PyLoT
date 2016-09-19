@@ -10,7 +10,7 @@ from obspy.core.event import Event
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
-from pylot.core.util.utils import fnConstructor, getGlobalTimes
+from pylot.core.util.utils import fnConstructor, full_range
 
 
 class Data(object):
@@ -133,7 +133,7 @@ class Data(object):
 
 
         """
-        self.cuttimes = getGlobalTimes(self.getWFData())
+        self.cuttimes = full_range(self.getWFData())
 
     def getEventFileName(self):
         """
