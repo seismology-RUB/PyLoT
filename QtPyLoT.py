@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
 
         def getSavePath(e):
             print('warning: {0}'.format(e))
-            directory = os.path.join(self.getRoot(), self.getEventFileName())
+            directory = os.path.realpath(self.getRoot())
             file_filter = "QuakeML file (*.xml);;VELEST observation file " \
                           "format (*.cnv);;NonLinLoc observation file (*.obs)"
             title = 'Save event data ...'
