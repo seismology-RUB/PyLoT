@@ -4,6 +4,7 @@
 import hashlib
 import numpy as np
 from scipy.interpolate import splrep, splev
+import pdb
 import os
 import pwd
 import re
@@ -474,7 +475,8 @@ def which(program):
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
         bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'autoPyLoT.in')
         if os.path.exists(bpath):
-            os.environ['PATH'] += AutoPickParameter(bpath).get('nllocbin')
+            nllocpath = ":" + AutoPickParameter(bpath).get('nllocbin')
+            os.environ['PATH'] += nllocpath
     except ImportError as e:
         print(e.message)
 
