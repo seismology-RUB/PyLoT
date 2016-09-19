@@ -6,8 +6,8 @@
 #main settings#
 /DATA/Insheim                       #rootpath#     %project path
 EVENT_DATA/LOCAL		    #datapath#     %data path
-2013.02_Insheim                     #database#     %name of data base
-e0019.048.13                        #eventID#      %event ID for single event processing
+2016.08_Insheim                     #database#     %name of data base
+e0007.224.16                        #eventID#      %event ID for single event processing
 /DATA/Insheim/STAT_INFO             #invdir#       %full path to inventory or dataless-seed file
 PILOT				    #datastructure#%choose data structure
 0                                   #iplot#        %flag for plotting: 0 none, 1 partly, >1 everything
@@ -18,7 +18,7 @@ True                                #apverbose#    %choose 'True' or 'False' for
 /home/ludger/NLLOC/Insheim          #nllocroot#    %root of NLLoc-processing directory
 AUTOPHASES.obs                      #phasefile#    %name of autoPyLoT-output phase file for NLLoc
                                                    %(in nllocroot/obs)
-Insheim_min1d2015_auto.in           #ctrfile#      %name of autoPyLoT-output control file for NLLoc
+Insheim_min1d032016_auto.in         #ctrfile#      %name of autoPyLoT-output control file for NLLoc
                                                    %(in nllocroot/run)
 ttime                               #ttpatter#     %pattern of NLLoc ttimes from grid
                                                    %(in nllocroot/times)
@@ -28,7 +28,7 @@ AUTOLOC_nlloc                       #outpatter#    %pattern of NLLoc-output file
 #parameters for seismic moment estimation#
 3530                                #vp#           %average P-wave velocity
 2500                                #rho#          %average rock density [kg/m^3]
-300f**0.8                           #Qp#           %quality factor for P waves (Qp*f^a)
+300 0.8                             #Qp#           %quality factor for P waves ([Qp, ap], Qp*f^a)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AUTOFOCMEC_AIC_HOS4_ARH.in          #focmecin#     %name of focmec input file containing derived polarities
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
