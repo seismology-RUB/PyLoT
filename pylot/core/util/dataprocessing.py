@@ -182,12 +182,14 @@ def read_metadata(path_to_inventory):
         raise IOError("Neither dataless-SEED file, inventory-xml file nor "
                       "RESP-file found!")
     elif invtype == 'dless':  # prevent multiple read of large dlsv
+        print("Reading metadata information from dataless-SEED file ...")
         if len(inv[invtype]) == 1:
             fullpath_inv = os.path.join(path_to_inventory, inv[invtype][0])
             robj = Parser(fullpath_inv)
         else:
             robj = inv[invtype]
     else:
+        print("Reading metadata information from inventory-xml file ...")
         robj = inv[invtype]
     return invtype, robj
 
