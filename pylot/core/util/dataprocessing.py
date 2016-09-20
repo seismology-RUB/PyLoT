@@ -183,7 +183,8 @@ def read_metadata(path_to_inventory):
                       "RESP-file found!")
     elif invtype == 'dless':  # prevent multiple read of large dlsv
         if len(inv[invtype]) == 1:
-            robj = Parser(inv[invtype][0])
+            fullpath_inv = os.path.join(path_to_inventory, inv[invtype][0])
+            robj = Parser(fullpath_inv)
         else:
             robj = inv[invtype]
     else:
