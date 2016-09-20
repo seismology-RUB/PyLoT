@@ -6,7 +6,6 @@ Created autumn/winter 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 
-import pdb
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
