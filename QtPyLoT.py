@@ -988,6 +988,8 @@ class MainWindow(QMainWindow):
                     settings.setValue("inventoryFile", fninv)
                     settings.sync()
             for a in o.arrivals:
+                if a.phase in 'sS':
+                    continue
                 pick = a.pick_id.get_referred_object()
                 station = pick.waveform_id.station_code
                 wf = self.get_data().getWFData().select(station=station)
