@@ -6,6 +6,7 @@ Created autumn/winter 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 
+import pdb
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
@@ -14,7 +15,7 @@ from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 from scipy import integrate, signal
 from pylot.core.io.data import Data
-from pylot.core.util.dataprocessing import restitute_data
+from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import common_range
 
 
@@ -306,7 +307,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     return Mo, Mw
 
 
-def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
+def calcsourcespec(wfstream, onset, invdir, vp, delta, azimuth, incidence,
                    qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
@@ -321,7 +322,7 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     :param: onset, P-phase onset time
     :type: float
 
-    :param: inventory, path/name of inventory or dataless-SEED file
+    :param: invdir, path to inventory or dataless-SEED file
     :type:  string
 
     :param: vp, Vp-wave velocity
@@ -354,7 +355,7 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     data = Data()
     wf_copy = wfstream.copy()
 
-    invtype, inventory = metadata
+    invtype, inventory = read_metadata(invdir)
 
     [cordat, restflag] = restitute_data(wf_copy, invtype, inventory)
     if restflag is True:
