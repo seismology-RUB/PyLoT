@@ -155,22 +155,16 @@ def evt_head_check(root_dir, out_dir = None):
     print(nfiles)
 
 
-def restitute_data(data, path_to_inventory, unit='VEL', force=False):
+def read_metadata(path_to_inventory):
     """
-    takes a data stream and a path_to_inventory and returns the corrected
-    waveform data stream
-    :param data: seismic data stream
-    :param path_to_inventory: path to inventory folder or file
-    :param unit: unit to correct for (default: 'VEL')
-    :param force: force restitution for already corrected traces (default:
-    True)
-    :return: corrected data stream
+    take path_to_inventory and return either the corresponding list of files
+    found or the Parser object for a network dataless seed volume to prevent
+    read overhead for large dataless seed volumes
+    :param path_to_inventory:
+    :return: tuple containing a either list of files or `obspy.io.xseed.Parser`
+    object and the inventory type found
+    :rtype: tuple
     """
-
-    restflag = list()
-
-    data = remove_underscores(data)
-
     dlfile = list()
     invfile = list()
     respfile = list()
@@ -185,12 +179,35 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     invtype = key_for_set_value(inv)
 
     if invtype is None:
-        print("Neither dataless-SEED file,inventory-xml file nor RESP-file "
-              "found!")
-        return data, False
-    elif invtype == 'dless': # prevent multiple read of large dlsv
+        raise IOError("Neither dataless-SEED file, inventory-xml file nor "
+                      "RESP-file found!")
+    elif invtype == 'dless':  # prevent multiple read of large dlsv
         if len(inv[invtype]) == 1:
-            fname = Parser(inv[invtype][0])
+            robj = Parser(inv[invtype][0])
+        else:
+            robj = inv[invtype]
+    else:
+        robj = inv[invtype]
+    return invtype, robj
+
+
+def restitute_data(data, invtype, inobj, unit='VEL', force=False):
+    """
+    takes a data stream and a path_to_inventory and returns the corrected
+    waveform data stream
+    :param data: seismic data stream
+    :param invtype: type of found metadata
+    :param inobj: either list of metadata files or `obspy.io.xseed.Parser`
+    object
+    :param unit: unit to correct for (default: 'VEL')
+    :param force: force restitution for already corrected traces (default:
+    False)
+    :return: corrected data stream
+    """
+
+    restflag = list()
+
+    data = remove_underscores(data)
 
     # loop over traces
     for tr in data:
@@ -208,7 +225,7 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
         stime = tr.stats.starttime
         prefilt = get_prefilt(tr)
         if invtype == 'resp':
-            fresp = find_in_list(inv[invtype], seed_id)
+            fresp = find_in_list(inobj, seed_id)
             if not fresp:
                 raise IOError('no response file found '
                               'for trace {0}'.format(seed_id))
@@ -218,14 +235,16 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
                             units=unit)
             kwargs = dict(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
         elif invtype == 'dless':
-            if len(inv[invtype]) > 1:
-                fname = Parser(find_in_list(inv[invtype], seed_id))
+            if type(inobj) is list:
+                fname = Parser(find_in_list(inobj, seed_id))
+            else:
+                fname = inobj
             seedresp = dict(filename=fname,
                             date=stime,
                             units=unit)
             kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
         elif invtype == 'xml':
-            invlist = inv[invtype]
+            invlist = inobj
             if len(invlist) > 1:
                 finv = find_in_list(invlist, seed_id)
             else:
