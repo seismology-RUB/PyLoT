@@ -390,21 +390,11 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
                                                      ldat[0].stats.delta))
 
             # get window after P pulse for
-            # calculating source spectrum
-            if zdat[0].stats.sampling_rate <= 100:
-                winzc = zdat[0].stats.sampling_rate
-            elif zdat[0].stats.sampling_rate > 100 and \
-                            zdat[0].stats.sampling_rate <= 200:
-                winzc = 0.5 * zdat[0].stats.sampling_rate
-            elif zdat[0].stats.sampling_rate > 200 and \
-                            zdat[0].stats.sampling_rate <= 400:
-                winzc = 0.2 * zdat[0].stats.sampling_rate
-            elif zdat[0].stats.sampling_rate > 400:
-                winzc = zdat[0].stats.sampling_rate
+            # calculating source spectrum 
             tstart = UTCDateTime(zdat[0].stats.starttime)
             tonset = onset.timestamp - tstart.timestamp
             impickP = tonset * zdat[0].stats.sampling_rate
-            wfzc = Ldat[impickP: impickP + winzc]
+            wfzc = Ldat[impickP: len(Ldat) - 1]
             # get time array
             t = np.arange(0, len(inttrz) * zdat[0].stats.delta, \
                           zdat[0].stats.delta)
