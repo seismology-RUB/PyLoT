@@ -306,7 +306,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     return Mo, Mw
 
 
-def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp, iplot):
+def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
+                   qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -353,8 +354,10 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
     data = Data()
     wf_copy = wfstream.copy()
 
-    [cordat, restflag] = restitute_data(wf_copy, inventory)
-    if restflag == 1:
+    invtype, inventory = metadata
+
+    [cordat, restflag] = restitute_data(wf_copy, invtype, inventory)
+    if restflag is True:
         zdat = cordat.select(component="Z")
         if len(zdat) == 0:
             zdat = cordat.select(component="3")
@@ -380,10 +383,10 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
 
             # integrate to displacement
             # unrotated vertical component (for copmarison)
-            inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, \
+            inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None,
                                                        zdat[0].stats.delta))
             # rotated component Z => L
-            Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, \
+            Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None,
                                                      ldat[0].stats.delta))
 
             # get window after P pulse for
@@ -445,7 +448,8 @@ def calcsourcespec(wfstream, onset, inventory, vp, delta, azimuth, incidence, qp
 
                 # use of implicit scipy otimization function
                 fit = synthsourcespec(F, w0in, Fcin)
-                [optspecfit, pcov] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
+                [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in,
+                                                                        Fcin])
                 w01 = optspecfit[0]
                 fc1 = optspecfit[1]
                 print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"

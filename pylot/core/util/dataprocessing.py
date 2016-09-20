@@ -155,22 +155,16 @@ def evt_head_check(root_dir, out_dir = None):
     print(nfiles)
 
 
-def restitute_data(data, path_to_inventory, unit='VEL', force=False):
+def read_metadata(path_to_inventory):
     """
-    takes a data stream and a path_to_inventory and returns the corrected
-    waveform data stream
-    :param data: seismic data stream
-    :param path_to_inventory: path to inventory folder or file
-    :param unit: unit to correct for (default: 'VEL')
-    :param force: force restitution for already corrected traces (default:
-    False)
-    :return: corrected data stream
+    take path_to_inventory and return either the corresponding list of files
+    found or the Parser object for a network dataless seed volume to prevent
+    read overhead for large dataless seed volumes
+    :param path_to_inventory:
+    :return: tuple containing a either list of files or `obspy.io.xseed.Parser`
+    object and the inventory type found
+    :rtype: tuple
     """
-
-    restflag = list()
-
-    data = remove_underscores(data)
-
     dlfile = list()
     invfile = list()
     respfile = list()
@@ -185,22 +179,53 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
     invtype = key_for_set_value(inv)
 
     if invtype is None:
-        print("Neither dataless-SEED file,inventory-xml file nor RESP-file "
-              "found!")
-        return data, False
+        raise IOError("Neither dataless-SEED file, inventory-xml file nor "
+                      "RESP-file found!")
+    elif invtype == 'dless':  # prevent multiple read of large dlsv
+        if len(inv[invtype]) == 1:
+            robj = Parser(inv[invtype][0])
+        else:
+            robj = inv[invtype]
+    else:
+        robj = inv[invtype]
+    return invtype, robj
+
+
+def restitute_data(data, invtype, inobj, unit='VEL', force=False):
+    """
+    takes a data stream and a path_to_inventory and returns the corrected
+    waveform data stream
+    :param data: seismic data stream
+    :param invtype: type of found metadata
+    :param inobj: either list of metadata files or `obspy.io.xseed.Parser`
+    object
+    :param unit: unit to correct for (default: 'VEL')
+    :param force: force restitution for already corrected traces (default:
+    False)
+    :return: corrected data stream
+    """
+
+    restflag = list()
+
+    data = remove_underscores(data)
 
     # loop over traces
     for tr in data:
         seed_id = tr.get_id()
         # check, whether this trace has already been corrected
-        if 'processing' in tr.stats.keys() and not force:
+        # TODO read actual value of processing key in Trace's stats instead
+        # of just looking for thr key: if processing is setit doesn't
+        # necessarily mean that the trace has been corrected so far but only
+        # processed in some way, e.g. normalized
+        if 'processing' in tr.stats.keys() \
+                and np.all(['remove' in p for p in tr.stats.processing]) \
+                and not force:
             print("Trace {0} has already been corrected!".format(seed_id))
             continue
         stime = tr.stats.starttime
-        seedresp = None
         prefilt = get_prefilt(tr)
         if invtype == 'resp':
-            fresp = find_in_list(inv[invtype], seed_id)
+            fresp = find_in_list(inobj, seed_id)
             if not fresp:
                 raise IOError('no response file found '
                               'for trace {0}'.format(seed_id))
@@ -210,35 +235,46 @@ def restitute_data(data, path_to_inventory, unit='VEL', force=False):
                             units=unit)
             kwargs = dict(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
         elif invtype == 'dless':
-            if len(inv[invtype]) > 1:
-                fname = Parser(find_in_list(inv[invtype], seed_id))
+            if type(inobj) is list:
+                fname = Parser(find_in_list(inobj, seed_id))
             else:
-                fullpath = os.path.join(path_to_inventory, inv[invtype][0])
-                fname = Parser(fullpath)
+                fname = inobj
             seedresp = dict(filename=fname,
                             date=stime,
                             units=unit)
             kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
         elif invtype == 'xml':
-            invlist = inv[invtype]
+            invlist = inobj
             if len(invlist) > 1:
                 finv = find_in_list(invlist, seed_id)
             else:
                 finv = invlist[0]
             inventory = read_inventory(finv, format='STATIONXML')
-        # apply restitution to data
-        if invtype in ['resp', 'dless']:
-            tr.simulate(**kwargs)
         else:
-            tr.attach_response(inventory)
-            tr.remove_response(output=unit,
-                               pre_filt=prefilt)
+            restflag.append(False)
+            continue
+        # apply restitution to data
+        try:
+            if invtype in ['resp', 'dless']:
+                tr.simulate(**kwargs)
+            else:
+                tr.attach_response(inventory)
+                tr.remove_response(output=unit,
+                                   pre_filt=prefilt)
+        except ValueError as e:
+            msg0 = 'Response for {0} not found in Parser'.format(seed_id)
+            msg1 = 'evalresp failed to calculate response'
+            if msg0 not in e.message or msg1 not in e.message:
+                raise
+            else:
+                restflag.append(False)
+                continue
         restflag.append(True)
     # check if ALL traces could be restituted, take care of large datasets
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
     if len(restflag) > 0:
-        restflag = np.all(restflag)
+        restflag = bool(np.all(restflag))
     else:
         restflag = False
     return data, restflag

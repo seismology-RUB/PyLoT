@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
 
         def getSavePath(e):
             print('warning: {0}'.format(e))
-            directory = os.path.join(self.getRoot(), self.getEventFileName())
+            directory = os.path.realpath(self.getRoot())
             file_filter = "QuakeML file (*.xml);;VELEST observation file " \
                           "format (*.cnv);;NonLinLoc observation file (*.obs)"
             title = 'Save event data ...'
@@ -1005,17 +1005,28 @@ class MainWindow(QMainWindow):
                     settings.setValue("inventoryFile", fninv)
                     settings.sync()
             for a in o.arrivals:
+                if a.phase in 'sS':
+                    continue
                 pick = a.pick_id.get_referred_object()
                 station = pick.waveform_id.station_code
                 wf = self.get_data().getWFData().select(station=station)
+                if not wf:
+                    continue
                 onset = pick.time
                 dist = degrees2kilometers(a.distance)
                 w0, fc = calcsourcespec(wf, onset, fninv, self.inputs.get('vp'), dist,
                                         a.azimuth, a.takeoff_angle,
                                         self.inputs.get('Qp'), 0)
-                stat_mags = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
-                mags[station] = stat_mags
+                if w0 is None or fc is None:
+                    continue
+                station_mag = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
+                mags[station] = station_mag
             mag = np.median([M[1] for M in mags.values()])
+            # give some information on the processing
+            print('number of stations used: {0}\n'.format(len(mags.values())))
+            print('stations used:\n')
+            for s in mags.keys(): print('\t{0}'.format(s))
+
             return Magnitude(mag=mag, magnitude_type='Mw')
         else:
             return None

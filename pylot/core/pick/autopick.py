@@ -17,7 +17,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.dataprocessing import restitute_data
+from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import getPatternLine
 from pylot.core.io.data import Data
 from pylot.core.analysis.magnitude import WApp
@@ -122,6 +122,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     zfac = pickparam.get('zfac')
     # path to inventory-, dataless- or resp-files
     invdir = pickparam.get('invdir')
+    invtype, inventory = read_metadata(invdir)
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -565,7 +566,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 hdat = edat.copy()
                 hdat += ndat
                 h_copy = hdat.copy()
-                [cordat, restflag] = restitute_data(h_copy, invdir)
+                [cordat, restflag] = restitute_data(h_copy, invtype, inventory)
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
                 if restflag:
@@ -602,7 +603,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             hdat = edat.copy()
             hdat += ndat
             h_copy = hdat.copy()
-            [cordat, restflag] = restitute_data(h_copy, invdir)
+            [cordat, restflag] = restitute_data(h_copy, invtype, inventory)
             if restflag == 1:
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
