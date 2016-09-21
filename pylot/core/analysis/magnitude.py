@@ -141,8 +141,8 @@ class Magnitude(object):
     def setinvdir(self, invdir):
         self.invdir = invdir
 
-    def getinvdir(self):
-        return self.invdir
+    def get_metadata(self):
+        return read_metadata(self.invdir)
 
     def getpicdic(self):
         return self.picdic
@@ -243,7 +243,7 @@ class M0Mw(Magnitude):
                 # call subfunction to estimate source spectrum
                 # and to derive w0 and fc
                 [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                                          self.getinvdir(), self.getvp(), delta, az, \
+                                          self.get_metadata(), self.getvp(), delta, az, \
                                           inc, self.getQp(), self.getiplot())
 
                 if w0 is not None:
@@ -251,8 +251,8 @@ class M0Mw(Magnitude):
                     zdat = selwf.select(component="Z")
                     if len(zdat) == 0:  # check for other components
                         zdat = selwf.select(component="3")
-                    [Mo, Mw] = calcMoMw(zdat, w0, self.getrho(), self.getvp(), \
-                                        delta, self.getinvdir())
+                    [Mo, Mw] = calcMoMw(zdat, w0, self.getrho(), self.getvp(),
+                                        delta)
                 else:
                     Mo = None
                     Mw = None
@@ -265,7 +265,7 @@ class M0Mw(Magnitude):
                 self.picdic = picks
 
 
-def calcMoMw(wfstream, w0, rho, vp, delta, inv):
+def calcMoMw(wfstream, w0, rho, vp, delta):
     '''
     Subfunction of run_calcMoMw to calculate individual
     seismic moments and corresponding moment magnitudes.
@@ -306,7 +306,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, inv):
     return Mo, Mw
 
 
-def calcsourcespec(wfstream, onset, invdir, vp, delta, azimuth, incidence,
+def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
                    qp, iplot):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
@@ -321,8 +321,9 @@ def calcsourcespec(wfstream, onset, invdir, vp, delta, azimuth, incidence,
     :param: onset, P-phase onset time
     :type: float
 
-    :param: invdir, path to inventory or dataless-SEED file
-    :type:  string
+    :param: metadata, tuple or list containing type of inventory and either
+    list of files or inventory object
+    :type:  tuple or list
 
     :param: vp, Vp-wave velocity
     :type:  float
@@ -354,7 +355,7 @@ def calcsourcespec(wfstream, onset, invdir, vp, delta, azimuth, incidence,
     data = Data()
     wf_copy = wfstream.copy()
 
-    invtype, inventory = read_metadata(invdir)
+    invtype, inventory = metadata
 
     [cordat, restflag] = restitute_data(wf_copy, invtype, inventory)
     if restflag is True:

@@ -54,6 +54,7 @@ from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
+from pylot.core.util.dataprocessing import read_metadata
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range
 from pylot.core.io.location import create_creation_info, create_event
@@ -1004,6 +1005,7 @@ class MainWindow(QMainWindow):
                 if ans == QMessageBox.Yes:
                     settings.setValue("inventoryFile", fninv)
                     settings.sync()
+            metadata = read_metadata(fninv)
             for a in o.arrivals:
                 if a.phase in 'sS':
                     continue
@@ -1014,12 +1016,13 @@ class MainWindow(QMainWindow):
                     continue
                 onset = pick.time
                 dist = degrees2kilometers(a.distance)
-                w0, fc = calcsourcespec(wf, onset, fninv, self.inputs.get('vp'), dist,
+                w0, fc = calcsourcespec(wf, onset, metadata, self.inputs.get('vp'), dist,
                                         a.azimuth, a.takeoff_angle,
                                         self.inputs.get('Qp'), 0)
                 if w0 is None or fc is None:
                     continue
-                station_mag = calcMoMw(wf, w0, 2700., 3000., dist, fninv)
+                station_mag = calcMoMw(wf, w0, self.inputs.get('rho'),
+                                       self.inputs.get('vp'), dist)
                 mags[station] = station_mag
             mag = np.median([M[1] for M in mags.values()])
             # give some information on the processing
