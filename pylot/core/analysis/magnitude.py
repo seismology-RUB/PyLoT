@@ -321,8 +321,9 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     :param: onset, P-phase onset time
     :type: float
 
-    :param: inventory, path/name of inventory or dataless-SEED file
-    :type:  string
+    :param: metadata, tuple or list containing type of inventory and either
+    list of files or inventory object
+    :type:  tuple or list
 
     :param: vp, Vp-wave velocity
     :type:  float
