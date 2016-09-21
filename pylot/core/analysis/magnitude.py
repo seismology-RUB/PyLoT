@@ -14,7 +14,7 @@ from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 from scipy import integrate, signal
 from pylot.core.io.data import Data
-from pylot.core.util.dataprocessing import restitute_data
+from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import common_range
 
 
@@ -141,8 +141,8 @@ class Magnitude(object):
     def setinvdir(self, invdir):
         self.invdir = invdir
 
-    def getinvdir(self):
-        return self.invdir
+    def get_metadata(self):
+        return read_metadata(self.invdir)
 
     def getpicdic(self):
         return self.picdic
@@ -243,7 +243,7 @@ class M0Mw(Magnitude):
                 # call subfunction to estimate source spectrum
                 # and to derive w0 and fc
                 [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                                          self.getinvdir(), self.getvp(), delta, az, \
+                                          self.get_metadata(), self.getvp(), delta, az, \
                                           inc, self.getQp(), self.getiplot())
 
                 if w0 is not None:
@@ -251,8 +251,8 @@ class M0Mw(Magnitude):
                     zdat = selwf.select(component="Z")
                     if len(zdat) == 0:  # check for other components
                         zdat = selwf.select(component="3")
-                    [Mo, Mw] = calcMoMw(zdat, w0, self.getrho(), self.getvp(), \
-                                        delta, self.getinvdir())
+                    [Mo, Mw] = calcMoMw(zdat, w0, self.getrho(), self.getvp(),
+                                        delta)
                 else:
                     Mo = None
                     Mw = None
@@ -265,7 +265,7 @@ class M0Mw(Magnitude):
                 self.picdic = picks
 
 
-def calcMoMw(wfstream, w0, rho, vp, delta, inv):
+def calcMoMw(wfstream, w0, rho, vp, delta):
     '''
     Subfunction of run_calcMoMw to calculate individual
     seismic moments and corresponding moment magnitudes.

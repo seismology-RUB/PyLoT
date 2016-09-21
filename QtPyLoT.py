@@ -1004,9 +1004,8 @@ class MainWindow(QMainWindow):
                                         self.inputs.get('Qp'), 0)
                 if w0 is None or fc is None:
                     continue
-                station_mag = calcMoMw(wf, w0, self.inputs.get('rho'), self.inputs.get('vp'),
-                                       dist,
-                                       fninv)
+                station_mag = calcMoMw(wf, w0, self.inputs.get('rho'),
+                                       self.inputs.get('vp'), dist)
                 mags[station] = station_mag
             mag = np.median([M[1] for M in mags.values()])
             # give some information on the processing
