@@ -103,7 +103,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     # by weighting latest possible pick two times earliest possible pick
     diffti_tl = LPick - Pick1
     diffti_te = Pick1 - EPick
-    PickError = (diffti_te + 2 * diffti_tl) / 3
+    PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
         p = plt.figure(iplot)
@@ -323,6 +323,17 @@ def crossings_nonzero_all(data):
     pos = data > 0
     npos = ~pos
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+
+
+def symmetrize_error(dte, dtl):
+    """
+    takes earliest and latest possible pick and returns the symmetrized pick
+    uncertainty value
+    :param dte: relative lower uncertainty
+    :param dtl: relative upper uncertainty
+    :return: symmetrized error
+    """
+    return (dte + 2 * dtl) / 3
 
 
 def getSNR(X, TSNR, t1, tracenum=0):

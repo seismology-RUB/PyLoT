@@ -47,6 +47,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
+from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
@@ -894,6 +895,8 @@ class MainWindow(QMainWindow):
             epp = picks['epp'] - stime
             lpp = picks['lpp'] - stime
             spe = picks['spe']
+            if not spe:
+                spe = symmetrize_error(mpp - epp, lpp - mpp)
 
             if picktype == 'manual':
                 ax.fill_between([epp, lpp], ylims[0], ylims[1],
