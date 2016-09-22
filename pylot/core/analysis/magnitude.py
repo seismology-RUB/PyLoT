@@ -271,6 +271,41 @@ class M0Mw(Magnitude):
                 self.picdic = picks
 
 
+def calc_woodanderson_pp(st, T0, win=10., verbosity=False):
+    if verbosity:
+        print ("Getting Wood-Anderson peak-to-peak amplitude ...")
+        print ("Simulating Wood-Anderson seismograph ...")
+
+    # poles, zeros and sensitivity of WA seismograph
+    # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
+    paz_wa = {
+        'poles': [5.6089 - 5.4978j, -5.6089 - 5.4978j],
+        'zeros': [0j, 0j],
+        'gain': 2080,
+        'sensitivity': 1
+    }
+
+    stime, etime = common_range(st)
+    st.trim(stime, etime)
+
+    dt = st[0].stats.delta
+
+    st.simulate(paz_remove=None, paz_simulate=paz_wa)
+
+    # get RMS of both horizontal components
+    sqH = np.sqrt(np.sum([np.power(tr.data, 2) for tr in st if
+                          tr.stats.channel[-1] not in 'Z3']))
+    # get time array
+    th = np.arange(0, len(sqH) * dt, dt)
+    # get maximum peak within pick window
+    iwin = getsignalwin(th, T0, win)
+    wapp = np.max(sqH[iwin])
+    if verbosity:
+        print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
+              "mm".format(wapp))
+    return wapp
+
+
 def calcMoMw(wfstream, w0, rho, vp, delta):
     '''
     Subfunction of run_calcMoMw to calculate individual
@@ -358,7 +393,6 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
 
     fc = None
     w0 = None
-    data = Data()
     wf_copy = wfstream.copy()
 
     invtype, inventory = metadata

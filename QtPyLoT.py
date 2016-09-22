@@ -42,12 +42,13 @@ from obspy import UTCDateTime
 from obspy.geodetics import degrees2kilometers
 from obspy.core.event import Magnitude
 
-from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
+from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw, \
+    calc_woodanderson_pp, gutenberg_richter_relation
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error
+from pylot.core.pick.utils import symmetrize_error, select_for_phase
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
@@ -972,7 +973,47 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
         self.get_data().get_evt_data().magnitudes.append(self.calc_magnitude())
 
-    def calc_magnitude(self):
+
+    def calc_magnitude(self, type='ML'):
+        if type == 'ML':
+            return self.calc_richter_magnitude()
+        elif type == 'Mw':
+            return self.calc_moment_magnitude()
+        else:
+            return None
+
+
+    def calc_richter_magnitude(self):
+        e = self.get_data().get_evt_data()
+        if e.origins:
+            o = e.origins[0]
+            mags = dict()
+            for a in o.arrivals:
+                if a.phase not in 'sS':
+                    continue
+                pick = a.pick_id.get_referred_object()
+                station = pick.waveform_id.station_code
+                wf = select_for_phase(self.get_data().getWFData().select(
+                    station=station), a.phase)
+                delta = degrees2kilometers(a.distance)
+                wapp = calc_woodanderson_pp(wf, pick.time, self.inputs.get(
+                    'sstop'))
+                # using standard Gutenberg-Richter relation
+                # TODO make the ML calculation more flexible by allowing
+                # use of custom relation functions
+                mag = np.log10(wapp) + gutenberg_richter_relation(delta)
+                mags[station] = mag
+            mag = np.median([M[1] for M in mags.values()])
+            # give some information on the processing
+            print('number of stations used: {0}\n'.format(len(mags.values())))
+            print('stations used:\n')
+            for s in mags.keys(): print('\t{0}'.format(s))
+
+            return Magnitude(mag=mag, magnitude_type='ML')
+        else:
+            return None
+
+    def calc_moment_magnitude(self):
         e = self.get_data().get_evt_data()
         settings = QSettings()
         if e.origins:
