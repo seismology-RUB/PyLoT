@@ -271,7 +271,7 @@ class M0Mw(Magnitude):
                 self.picdic = picks
 
 
-def calc_woodanderson_pp(st, T0, win=10., verbosity=False):
+def calc_woodanderson_pp(st, metadata, T0, win=10., verbosity=False):
     if verbosity:
         print ("Getting Wood-Anderson peak-to-peak amplitude ...")
         print ("Simulating Wood-Anderson seismograph ...")
@@ -288,17 +288,27 @@ def calc_woodanderson_pp(st, T0, win=10., verbosity=False):
     stime, etime = common_range(st)
     st.trim(stime, etime)
 
+    invtype, inventory = metadata
+
+    st = restitute_data(st, invtype, inventory)
+
     dt = st[0].stats.delta
 
     st.simulate(paz_remove=None, paz_simulate=paz_wa)
 
     # get RMS of both horizontal components
-    sqH = np.sqrt(np.sum([np.power(tr.data, 2) for tr in st if
-                          tr.stats.channel[-1] not in 'Z3']))
+    power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
+              in 'Z3']
+    if len(power) != 2:
+        raise ValueError('Wood-Anderson amplitude defintion only valid for '
+                         'two horizontals: {0} given'.format(len(power)))
+    power_sum = power[0] + power[1]
+    sqH = np.sqrt(power_sum)
+
     # get time array
     th = np.arange(0, len(sqH) * dt, dt)
     # get maximum peak within pick window
-    iwin = getsignalwin(th, T0, win)
+    iwin = getsignalwin(th, T0 - stime, win)
     wapp = np.max(sqH[iwin])
     if verbosity:
         print("Determined Wood-Anderson peak-to-peak amplitude: {0} "

@@ -126,6 +126,11 @@ class MainWindow(QMainWindow):
         # load and display waveform data
         self.dirty = False
         self.load_data()
+        finv = settings.value("inventoryFile", None)
+        if finv is not None:
+            self._metadata = read_metadata(finv)
+        else:
+            self._metadata = None
         if self.loadWaveformData():
             self.updateFilterOptions()
         else:
@@ -369,6 +374,17 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
+
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
 
     def updateFileMenu(self):
 
@@ -996,14 +1012,14 @@ class MainWindow(QMainWindow):
                 wf = select_for_phase(self.get_data().getWFData().select(
                     station=station), a.phase)
                 delta = degrees2kilometers(a.distance)
-                wapp = calc_woodanderson_pp(wf, pick.time, self.inputs.get(
-                    'sstop'))
+                wapp = calc_woodanderson_pp(wf, self.metadata, pick.time,
+                                            self.inputs.get('sstop'))
                 # using standard Gutenberg-Richter relation
                 # TODO make the ML calculation more flexible by allowing
                 # use of custom relation functions
                 mag = np.log10(wapp) + gutenberg_richter_relation(delta)
                 mags[station] = mag
-            mag = np.median([M[1] for M in mags.values()])
+            mag = np.median([M for M in mags.values()])
             # give some information on the processing
             print('number of stations used: {0}\n'.format(len(mags.values())))
             print('stations used:\n')
@@ -1020,7 +1036,7 @@ class MainWindow(QMainWindow):
             o = e.origins[0]
             mags = dict()
             fninv = settings.value("inventoryFile", None)
-            if fninv is None:
+            if fninv is None and not self.metadata:
                 fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
                     "Select inventory..."), self.tr("Select file"))
                 ans = QMessageBox.question(self, self.tr("Make default..."),
@@ -1032,7 +1048,7 @@ class MainWindow(QMainWindow):
                 if ans == QMessageBox.Yes:
                     settings.setValue("inventoryFile", fninv)
                     settings.sync()
-            metadata = read_metadata(fninv)
+                self.metadata = read_metadata(fninv)
             for a in o.arrivals:
                 if a.phase in 'sS':
                     continue

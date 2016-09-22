@@ -604,7 +604,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
             hdat += ndat
             h_copy = hdat.copy()
             [cordat, restflag] = restitute_data(h_copy, invtype, inventory)
-            if restflag == 1:
+            if restflag is True:
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
                 wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
