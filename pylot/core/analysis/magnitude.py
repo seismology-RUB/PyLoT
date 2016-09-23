@@ -198,7 +198,7 @@ class WApp(Magnitude):
         self.wapp = np.max(sqH[iwin])
         print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
 
-        if self.getiplot() == 0:
+        if self.getiplot() > 1:
             stream.plot()
             f = plt.figure(2)
             plt.plot(th, sqH)
@@ -346,7 +346,7 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     :param: Qp, quality factor for P-waves
     :type:  integer
 
-    :param: iplot, show results (iplot>1) or not (iplot(<2)
+    :param: iplot, show results (iplot>1) or not (iplot<1)
     :type:  integer
     '''
     print ("Calculating source spectrum ....")
@@ -474,7 +474,7 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
         except TypeError as er:
             raise TypeError('''{0}'''.format(er))
 
-        if iplot == 0:
+        if iplot > 1:
             f1 = plt.figure()
             tLdat = np.arange(0, len(Ldat) * zdat[0].stats.delta, \
                               zdat[0].stats.delta)
@@ -595,7 +595,7 @@ def fitSourceModel(f, S, fc0, iplot):
     print("fitSourceModel: best fc: %fHz, best w0: %e m/Hz" \
           % (fc, w0))
 
-    if iplot == 0:
+    if iplot > 1:
         plt.figure(iplot)
         plt.loglog(f, S, 'k')
         plt.loglog([f[0], fc], [w0, w0], 'g')
