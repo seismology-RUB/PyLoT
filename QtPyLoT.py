@@ -23,9 +23,10 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import matplotlib
 import os
 import sys
+
+import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -37,18 +38,14 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget, QLineEdit
 import numpy as np
-import subprocess
 from obspy import UTCDateTime
-from obspy.geodetics import degrees2kilometers
-from obspy.core.event import Magnitude
 
-from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw, \
-    calc_woodanderson_pp, gutenberg_richter_relation
+from pylot.core.analysis.magnitude import calc_richter_magnitude, calc_moment_magnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, select_for_phase
+from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
@@ -66,7 +63,6 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
-import icons_rc
 
 locateTool = dict(nll=nll)
 
@@ -991,89 +987,25 @@ class MainWindow(QMainWindow):
 
 
     def calc_magnitude(self, type='ML'):
-        if type == 'ML':
-            return self.calc_richter_magnitude()
-        elif type == 'Mw':
-            return self.calc_moment_magnitude()
-        else:
-            return None
-
-
-    def calc_richter_magnitude(self):
-        e = self.get_data().get_evt_data()
-        if e.origins:
-            o = e.origins[0]
-            mags = dict()
-            for a in o.arrivals:
-                if a.phase not in 'sS':
-                    continue
-                pick = a.pick_id.get_referred_object()
-                station = pick.waveform_id.station_code
-                wf = select_for_phase(self.get_data().getWFData().select(
-                    station=station), a.phase)
-                delta = degrees2kilometers(a.distance)
-                wapp = calc_woodanderson_pp(wf, self.metadata, pick.time,
-                                            self.inputs.get('sstop'))
-                # using standard Gutenberg-Richter relation
-                # TODO make the ML calculation more flexible by allowing
-                # use of custom relation functions
-                mag = np.log10(wapp) + gutenberg_richter_relation(delta)
-                mags[station] = mag
-            mag = np.median([M for M in mags.values()])
-            # give some information on the processing
-            print('number of stations used: {0}\n'.format(len(mags.values())))
-            print('stations used:\n')
-            for s in mags.keys(): print('\t{0}'.format(s))
-
-            return Magnitude(mag=mag, magnitude_type='ML')
-        else:
-            return None
-
-    def calc_moment_magnitude(self):
-        e = self.get_data().get_evt_data()
         settings = QSettings()
-        if e.origins:
-            o = e.origins[0]
-            mags = dict()
-            fninv = settings.value("inventoryFile", None)
-            if fninv is None and not self.metadata:
-                fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
-                    "Select inventory..."), self.tr("Select file"))
-                ans = QMessageBox.question(self, self.tr("Make default..."),
-                                           self.tr(
-                                               "New inventory filename set.\n" + \
-                                               "Do you want to make it the default value?"),
-                                           QMessageBox.Yes | QMessageBox.No,
-                                           QMessageBox.No)
-                if ans == QMessageBox.Yes:
-                    settings.setValue("inventoryFile", fninv)
-                    settings.sync()
-                self.metadata = read_metadata(fninv)
-            for a in o.arrivals:
-                if a.phase in 'sS':
-                    continue
-                pick = a.pick_id.get_referred_object()
-                station = pick.waveform_id.station_code
-                wf = self.get_data().getWFData().select(station=station)
-                if not wf:
-                    continue
-                onset = pick.time
-                dist = degrees2kilometers(a.distance)
-                w0, fc = calcsourcespec(wf, onset, metadata, self.inputs.get('vp'), dist,
-                                        a.azimuth, a.takeoff_angle,
-                                        self.inputs.get('Qp'), 0)
-                if w0 is None or fc is None:
-                    continue
-                station_mag = calcMoMw(wf, w0, self.inputs.get('rho'),
-                                       self.inputs.get('vp'), dist)
-                mags[station] = station_mag
-            mag = np.median([M[1] for M in mags.values()])
-            # give some information on the processing
-            print('number of stations used: {0}\n'.format(len(mags.values())))
-            print('stations used:\n')
-            for s in mags.keys(): print('\t{0}'.format(s))
-
-            return Magnitude(mag=mag, magnitude_type='Mw')
+        fninv = settings.value("inventoryFile", None)
+        if fninv is None and not self.metadata:
+            fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
+                "Select inventory..."), self.tr("Select file"))
+            ans = QMessageBox.question(self, self.tr("Make default..."),
+                                       self.tr(
+                                           "New inventory filename set.\n" + \
+                                           "Do you want to make it the default value?"),
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.No)
+            if ans == QMessageBox.Yes:
+                settings.setValue("inventoryFile", fninv)
+                settings.sync()
+            self.metadata = read_metadata(fninv)
+        if type == 'ML':
+            return calc_richter_magnitude(self.get_data().get_evt_data(), self.get_data().getWFData(), self.metadata, self.inputs.get('sstop'))
+        elif type == 'Mw':
+            return calc_moment_magnitude(self.get_data().get_evt_data(), self.get_data().getWFData(), self.metadata, self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'))
         else:
             return None
 

@@ -9,11 +9,13 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
-from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all
+from obspy.core.event import Magnitude
+from obspy.geodetics import degrees2kilometers
+
+from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, select_for_phase
 from pylot.core.util.utils import getPatternLine
 from scipy.optimize import curve_fit
 from scipy import integrate, signal
-from pylot.core.io.data import Data
 from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import common_range, fit_curve
 
@@ -441,7 +443,7 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
                                                      ldat[0].stats.delta))
 
             # get window after P pulse for
-            # calculating source spectrum 
+            # calculating source spectrum
             tstart = UTCDateTime(zdat[0].stats.starttime)
             tonset = onset.timestamp - tstart.timestamp
             impickP = tonset * zdat[0].stats.sampling_rate
@@ -667,3 +669,62 @@ def fitSourceModel(f, S, fc0, iplot):
         plt.close()
 
     return w0, fc
+
+
+def calc_richter_magnitude(e, wf, metadata, amp_win):
+    if e.origins:
+        o = e.origins[0]
+        mags = dict()
+        for a in o.arrivals:
+            if a.phase not in 'sS':
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            wf = select_for_phase(wf.select(
+                station=station), a.phase)
+            delta = degrees2kilometers(a.distance)
+            wapp = calc_woodanderson_pp(wf, metadata, pick.time,
+                                        amp_win)
+            # using standard Gutenberg-Richter relation
+            # TODO make the ML calculation more flexible by allowing
+            # use of custom relation functions
+            mag = np.log10(wapp) + gutenberg_richter_relation(delta)
+            mags[station] = mag
+        mag = np.median([M for M in mags.values()])
+        # give some information on the processing
+        print('number of stations used: {0}\n'.format(len(mags.values())))
+        print('stations used:\n')
+        for s in mags.keys(): print('\t{0}'.format(s))
+
+        return Magnitude(mag=mag, magnitude_type='ML')
+    else:
+        return None
+
+
+def calc_moment_magnitude(e, wf, metadata, vp, Qp, rho):
+    if e.origins:
+        o = e.origins[0]
+        mags = dict()
+        for a in o.arrivals:
+            if a.phase in 'sS':
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            wf = wf.select(station=station)
+            if not wf:
+                continue
+            onset = pick.time
+            dist = degrees2kilometers(a.distance)
+            w0, fc = calcsourcespec(wf, onset, metadata, vp, dist, a.azimuth, a.takeoff_angle, Qp, 0)
+            if w0 is None or fc is None:
+                continue
+            station_mag = calcMoMw(wf, w0, rho, vp, dist)
+            mags[station] = station_mag
+        mag = np.median([M[1] for M in mags.values()])
+        # give some information on the processing
+        print('number of stations used: {0}\n'.format(len(mags.values())))
+        print('stations used:\n')
+        for s in mags.keys(): print('\t{0}'.format(s))
+        return Magnitude(mag=mag, magnitude_type='Mw')
+    else:
+        return None
