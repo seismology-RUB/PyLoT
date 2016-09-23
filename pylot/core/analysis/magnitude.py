@@ -17,9 +17,9 @@ from pylot.core.io.data import Data
 from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import common_range, fit_curve
 
-def gutenberg_richter_relation(delta):
+def richter_magnitude_scaling(delta):
     relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
-                            '.pylot', 'gutenberg_richter.data'))
+                            '.pylot', 'richter_scaling.data'))
     # prepare spline interpolation to calculate return value
     func, params = fit_curve(relation[:,0], relation[:, 1])
     return func(delta, params)
