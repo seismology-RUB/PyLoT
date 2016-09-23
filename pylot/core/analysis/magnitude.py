@@ -9,7 +9,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
-from obspy.core.event import Magnitude
+from obspy.core.event import Magnitude as Obspymagnitude
 from obspy.geodetics import degrees2kilometers
 
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, select_for_phase
@@ -688,7 +688,7 @@ def calc_richter_magnitude(e, wf, metadata, amp_win):
             # using standard Gutenberg-Richter relation
             # TODO make the ML calculation more flexible by allowing
             # use of custom relation functions
-            mag = np.log10(wapp) + gutenberg_richter_relation(delta)
+            mag = np.log10(wapp) + richter_magnitude_scaling(delta)
             mags[station] = mag
         mag = np.median([M for M in mags.values()])
         # give some information on the processing
@@ -696,7 +696,7 @@ def calc_richter_magnitude(e, wf, metadata, amp_win):
         print('stations used:\n')
         for s in mags.keys(): print('\t{0}'.format(s))
 
-        return Magnitude(mag=mag, magnitude_type='ML')
+        return Obspymagnitude(mag=mag, magnitude_type='ML')
     else:
         return None
 
@@ -725,6 +725,6 @@ def calc_moment_magnitude(e, wf, metadata, vp, Qp, rho):
         print('number of stations used: {0}\n'.format(len(mags.values())))
         print('stations used:\n')
         for s in mags.keys(): print('\t{0}'.format(s))
-        return Magnitude(mag=mag, magnitude_type='Mw')
+        return Obspymagnitude(mag=mag, magnitude_type='Mw')
     else:
         return None
