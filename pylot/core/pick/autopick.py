@@ -20,7 +20,7 @@ from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
 from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import getPatternLine
 from pylot.core.io.data import Data
-from pylot.core.analysis.magnitude import WApp
+from pylot.core.analysis.magnitude import RichterMagnitude
 
 
 def autopickevent(data, param):
@@ -571,12 +571,12 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 # using subclass WApp of superclass Magnitude
                 if restflag:
                     if Sweight < 4:
-                        wapp = WApp(cordat, mpickS, mpickP + sstop, iplot)
+                        wapp = RichterMagnitude(cordat, mpickS, mpickP + sstop, iplot)
                     else:
                         # use larger window for getting peak-to-peak amplitude
                         # as the S pick is quite unsure
-                        wapp = WApp(cordat, mpickP, mpickP + sstop +
-                                    (0.5 * (mpickP + sstop)), iplot)
+                        wapp = RichterMagnitude(cordat, mpickP, mpickP + sstop +
+                                                (0.5 * (mpickP + sstop)), iplot)
 
                     Ao = wapp.getwapp()
                 else:
@@ -607,9 +607,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
             if restflag is True:
                 # calculate WA-peak-to-peak amplitude
                 # using subclass WApp of superclass Magnitude
-                wapp = WApp(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
-                                                                     + sstop)),
-                            iplot)
+                wapp = RichterMagnitude(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
+                                                                                 + sstop)),
+                                        iplot)
                 Ao = wapp.getwapp()
 
     else:

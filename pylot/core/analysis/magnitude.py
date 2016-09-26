@@ -9,7 +9,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
-from obspy.core.event import Magnitude as Obspymagnitude
+from obspy.core.event import Magnitude as ObspyMagnitude
 from obspy.geodetics import degrees2kilometers
 
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, select_for_phase
@@ -33,16 +33,16 @@ class Magnitude(object):
     and moment magnitudes.
     '''
 
-    def __init__(self, wfstream, To, pwin, iplot, NLLocfile=None, \
+    def __init__(self, wfstream, t0, pwin, iplot, NLLocfile=None, \
                  picks=None, rho=None, vp=None, Qp=None, invdir=None):
         '''
         :param: wfstream
         :type: `~obspy.core.stream.Stream
 
-        :param: To, onset time, P- or S phase
+        :param: t0, onset time, P- or S phase
         :type:  float
 
-        :param: pwin, pick window [To To+pwin] to get maximum
+        :param: pwin, pick window [t0 t0+pwin] to get maximum
                 peak-to-peak amplitude (WApp) or to calculate
                 source spectrum (DCfc) around P onset
         :type:  float
@@ -69,37 +69,51 @@ class Magnitude(object):
 
         assert isinstance(wfstream, Stream), "%s is not a stream object" % str(wfstream)
 
-        self.setwfstream(wfstream)
-        self.setTo(To)
-        self.setpwin(pwin)
+        self._stream = wfstream
+        self._invdir = invdir
+        self._t0 = t0
+        self._pwin = pwin
         self.setiplot(iplot)
         self.setNLLocfile(NLLocfile)
         self.setrho(rho)
         self.setpicks(picks)
         self.setvp(vp)
         self.setQp(Qp)
-        self.setinvdir(invdir)
         self.calcwapp()
         self.calcsourcespec()
         self.run_calcMoMw()
 
-    def getwfstream(self):
-        return self.wfstream
+    @property
+    def stream(self):
+        return self._stream
 
-    def setwfstream(self, wfstream):
-        self.wfstream = wfstream
+    @stream.setter
+    def stream(self, wfstream):
+        self._stream = wfstream
 
-    def getTo(self):
-        return self.To
+    @property
+    def t0(self):
+        return self._t0
 
-    def setTo(self, To):
-        self.To = To
+    @t0.setter
+    def t0(self, value):
+        self._t0 = value
 
-    def getpwin(self):
-        return self.pwin
+    @property
+    def invdir(self):
+        return self._invdir
 
-    def setpwin(self, pwin):
-        self.pwin = pwin
+    @invdir.setter
+    def invdir(self, value):
+        self._invdir = value
+
+    @property
+    def pwin(self):
+        return self._pwin
+
+    @pwin.setter
+    def pwin(self, value):
+        self._pwin = value
 
     def getiplot(self):
         return self.iplot
@@ -146,11 +160,11 @@ class Magnitude(object):
     def getfc(self):
         return self.fc
 
-    def setinvdir(self, invdir):
-        self.invdir = invdir
-
     def get_metadata(self):
         return read_metadata(self.invdir)
+
+    def plot(self):
+        pass
 
     def getpicdic(self):
         return self.picdic
@@ -165,7 +179,7 @@ class Magnitude(object):
         self.pickdic = None
 
 
-class WApp(Magnitude):
+class RichterMagnitude(Magnitude):
     '''
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
     seismograph. Has to be derived from instrument corrected traces!
@@ -176,7 +190,7 @@ class WApp(Magnitude):
         print ("Simulating Wood-Anderson seismograph ...")
 
         self.wapp = None
-        stream = self.getwfstream()
+        stream = self.stream
 
         # poles, zeros and sensitivity of WA seismograph
         # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
@@ -196,7 +210,7 @@ class WApp(Magnitude):
         # get time array
         th = np.arange(0, len(sqH) * stream[0].stats.delta, stream[0].stats.delta)
         # get maximum peak within pick window
-        iwin = getsignalwin(th, self.getTo(), self.getpwin())
+        iwin = getsignalwin(th, self.t0, self.pwin)
         self.wapp = np.max(sqH[iwin])
         print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
 
@@ -205,7 +219,7 @@ class WApp(Magnitude):
             f = plt.figure(2)
             plt.plot(th, sqH)
             plt.plot(th[iwin], sqH[iwin], 'g')
-            plt.plot([self.getTo(), self.getTo()], [0, max(sqH)], 'r', linewidth=2)
+            plt.plot([self.t0, self.t0], [0, max(sqH)], 'r', linewidth=2)
             plt.title('Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
                       % (stream[0].stats.station, self.wapp))
             plt.xlabel('Time [s]')
@@ -215,7 +229,7 @@ class WApp(Magnitude):
             plt.close(f)
 
 
-class M0Mw(Magnitude):
+class MomentMagnitude(Magnitude):
     '''
     Method to calculate seismic moment Mo and moment magnitude Mw.
     Requires results of class calcsourcespec for calculating plateau w0
@@ -229,7 +243,7 @@ class M0Mw(Magnitude):
 
         picks = self.getpicks()
         nllocfile = self.getNLLocfile()
-        wfdat = self.getwfstream()
+        wfdat = self.stream
         self.picdic = None
 
         for key in picks:
@@ -696,7 +710,7 @@ def calc_richter_magnitude(e, wf, metadata, amp_win):
         print('stations used:\n')
         for s in mags.keys(): print('\t{0}'.format(s))
 
-        return Obspymagnitude(mag=mag, magnitude_type='ML')
+        return ObspyMagnitude(mag=mag, magnitude_type='ML')
     else:
         return None
 
@@ -725,6 +739,6 @@ def calc_moment_magnitude(e, wf, metadata, vp, Qp, rho):
         print('number of stations used: {0}\n'.format(len(mags.values())))
         print('stations used:\n')
         for s in mags.keys(): print('\t{0}'.format(s))
-        return Obspymagnitude(mag=mag, magnitude_type='Mw')
+        return ObspyMagnitude(mag=mag, magnitude_type='Mw')
     else:
         return None

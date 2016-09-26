@@ -10,7 +10,7 @@ import os
 
 import numpy as np
 
-from pylot.core.analysis.magnitude import M0Mw
+from pylot.core.analysis.magnitude import MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
 import pylot.core.loc.nll as nll
@@ -143,10 +143,10 @@ def autoPyLoT(inputfile):
                             # get latest NLLoc-location file if several are available
                             nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
                             # calculating seismic moment Mo and moment magnitude Mw
-                            finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                              nllocfile, picks, parameter.get('rho'), \
-                                              parameter.get('vp'), parameter.get('Qp'), \
-                                              parameter.get('invdir'))
+                            finalpicks = MomentMagnitude(wfdat, None, None, parameter.get('iplot'), \
+                                                         nllocfile, picks, parameter.get('rho'), \
+                                                         parameter.get('vp'), parameter.get('Qp'), \
+                                                         parameter.get('invdir'))
                         else:
                             print("autoPyLoT: No NLLoc-location file available!")
                             print("No source parameter estimation possible!")
@@ -185,10 +185,10 @@ def autoPyLoT(inputfile):
                                     nlloccounter = maxnumit
 
                             # calculating seismic moment Mo and moment magnitude Mw
-                            finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                              nllocfile, picks, parameter.get('rho'), \
-                                              parameter.get('vp'), parameter.get('Qp'), \
-                                              parameter.get('invdir'))
+                            finalpicks = MomentMagnitude(wfdat, None, None, parameter.get('iplot'), \
+                                                         nllocfile, picks, parameter.get('rho'), \
+                                                         parameter.get('vp'), parameter.get('Qp'), \
+                                                         parameter.get('invdir'))
                             # get network moment magntiude
                             netMw = []
                             for key in finalpicks.getpicdic():
@@ -260,10 +260,10 @@ def autoPyLoT(inputfile):
                         # get latest NLLOc-location file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
                         # calculating seismic moment Mo and moment magnitude Mw
-                        finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                          nllocfile, picks, parameter.get('rho'), \
-                                          parameter.get('vp'), parameter.get('Qp'), \
-                                          parameter.get('invdir'))
+                        finalpicks = MomentMagnitude(wfdat, None, None, parameter.get('iplot'), \
+                                                     nllocfile, picks, parameter.get('rho'), \
+                                                     parameter.get('vp'), parameter.get('Qp'), \
+                                                     parameter.get('invdir'))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -302,10 +302,10 @@ def autoPyLoT(inputfile):
                                 nlloccounter = maxnumit
 
                         # calculating seismic moment Mo and moment magnitude Mw
-                        finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                          nllocfile, picks, parameter.get('rho'), \
-                                          parameter.get('vp'), parameter.get('Qp'), \
-                                          parameter.get('invdir'))
+                        finalpicks = MomentMagnitude(wfdat, None, None, parameter.get('iplot'), \
+                                                     nllocfile, picks, parameter.get('rho'), \
+                                                     parameter.get('vp'), parameter.get('Qp'), \
+                                                     parameter.get('invdir'))
                         # get network moment magntiude
                         netMw = []
                         for key in finalpicks.getpicdic():
