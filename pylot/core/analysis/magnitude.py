@@ -32,9 +32,25 @@ class Magnitude(object):
     Base class object for Magnitude calculation within PyLoT.
     """
 
-    def __init__(self, stream):
+    def __init__(self, stream, event, verbosity=False):
+        self._plot_flag = False
+        self._verbosity = verbosity
+        self._event = event
         self._stream = stream
         self._magnitudes = dict()
+
+    def __str__(self):
+        print('number of stations used: {0}\n'.format(len(self.magnitudes.values())))
+        print('\tstation\tmagnitude')
+        for s, m in self.magnitudes.items(): print('\t{0}\t{1}'.format(s, m))
+
+    @property
+    def plot_flag(self):
+        return self._plot_flag
+
+    @plot_flag.setter
+    def plot_flag(self, value):
+        self._plot_flag = value
 
     @property
     def stream(self):
@@ -43,6 +59,14 @@ class Magnitude(object):
     @stream.setter
     def stream(self, value):
         self._stream = value
+
+    @property
+    def event(self):
+        return self._event
+
+    @property
+    def arrivals(self):
+        return self._event.origins[0].arrivals
 
     @property
     def magnitudes(self):
@@ -233,8 +257,8 @@ class RichterMagnitude(Magnitude):
         'sensitivity': 1
     }
 
-    def __init__(self, stream, t0, calc_win):
-        super(RichterMagnitude, self).__init__(stream)
+    def __init__(self, stream, event, t0, calc_win, verbosity=False):
+        super(RichterMagnitude, self).__init__(stream, event, verbosity)
 
         self._t0 = t0
         self._calc_win = calc_win
