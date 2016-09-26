@@ -279,9 +279,7 @@ class RichterMagnitude(Magnitude):
     def calc_win(self, value):
         self._calc_win = value
 
-    def get(self):
-
-        st = self.stream
+    def peak_to_peak(self, st):
 
         # simulate Wood-Anderson response
         st.simulate(paz_remove=None, paz_simulate=self._paz)
@@ -302,42 +300,51 @@ class RichterMagnitude(Magnitude):
         #
         sqH = np.sqrt(power_sum)
 
-
-
-    def calcwapp(self):
-        print ("Getting Wood-Anderson peak-to-peak amplitude ...")
-        print ("Simulating Wood-Anderson seismograph ...")
-
-        self.wapp = None
-        stream = self.stream
-
-        stream.simulate(paz_remove=None, paz_simulate=paz_wa)
-
-        trH1 = stream[0].data
-        trH2 = stream[1].data
-        ilen = min([len(trH1), len(trH2)])
-        # get RMS of both horizontal components
-        sqH = np.sqrt(np.power(trH1[0:ilen], 2) + np.power(trH2[0:ilen], 2))
         # get time array
-        th = np.arange(0, len(sqH) * stream[0].stats.delta, stream[0].stats.delta)
+        th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
-        iwin = getsignalwin(th, self.t0, self.pwin)
-        self.wapp = np.max(sqH[iwin])
-        print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
+        iwin = getsignalwin(th, self.t0 - stime, self.calc_win)
+        wapp = np.max(sqH[iwin])
+        if self._verbosity:
+            print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
+                  "mm".format(wapp))
 
+        # check for plot flag (for debugging only)
         if self.plot_flag > 1:
-            stream.plot()
+            st.plot()
             f = plt.figure(2)
             plt.plot(th, sqH)
             plt.plot(th[iwin], sqH[iwin], 'g')
             plt.plot([self.t0, self.t0], [0, max(sqH)], 'r', linewidth=2)
             plt.title('Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
-                      % (stream[0].stats.station, self.wapp))
+                      % (st[0].stats.station, wapp))
             plt.xlabel('Time [s]')
             plt.ylabel('Displacement [mm]')
             plt.show()
             raw_input()
             plt.close(f)
+
+        return wapp
+
+    def get(self):
+        for a in self.arrivals:
+            if a.phase not in 'sS':
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            wf = select_for_phase(self.stream.select(
+                station=station), a.phase)
+            delta = degrees2kilometers(a.distance)
+            wapp = self.peak_to_peak(wf)
+            # using standard Gutenberg-Richter relation
+            # TODO make the ML calculation more flexible by allowing
+            # use of custom relation functions
+            mag = np.log10(wapp) + richter_magnitude_scaling(delta)
+            self.magnitudes = (station, mag)
+        return self.magnitudes
+
+    def net_magnitude(self):
+        return np.median([M for M in self.magnitudes.values()])
 
 
 class MomentMagnitude(Magnitude):
