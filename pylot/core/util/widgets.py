@@ -1381,7 +1381,9 @@ class LocalisationTab(PropTab):
 
     def selectDirectory(self, edit):
         selected_directory = QFileDialog.getExistingDirectory()
-        edit.setText(selected_directory)
+        # check if string is empty
+        if selected_directory:
+            edit.setText(selected_directory)
 
     def getValues(self):
         loctool = self.locToolComboBox.currentText()
