@@ -26,6 +26,43 @@ def richter_magnitude_scaling(delta):
     func, params = fit_curve(relation[:,0], relation[:, 1])
     return func(delta, params)
 
+
+class Magnitude(object):
+    """
+    Base class object for Magnitude calculation within PyLoT.
+    """
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._magnitudes = dict()
+
+    @property
+    def stream(self):
+        return self._stream
+
+    @stream.setter
+    def stream(self, value):
+        self._stream = value
+
+    @property
+    def magnitudes(self):
+        return self._magnitudes
+
+    @magnitudes.setter
+    def magnitudes(self, value):
+        """
+        takes a tuple and saves the key value pair to private
+        attribute _magnitudes
+        :param value: station, magnitude value pair
+        :type value: tuple or list
+        :return:
+        """
+        station, magnitude = value
+        self._magnitudes[station] = magnitude
+
+    def get(self):
+        return self.magnitudes
+
 class Magnitude(object):
     '''
     Superclass for calculating Wood-Anderson peak-to-peak
@@ -73,7 +110,7 @@ class Magnitude(object):
         self._invdir = invdir
         self._t0 = t0
         self._pwin = pwin
-        self.setiplot(iplot)
+        self._iplot = iplot
         self.setNLLocfile(NLLocfile)
         self.setrho(rho)
         self.setpicks(picks)
@@ -115,11 +152,13 @@ class Magnitude(object):
     def pwin(self, value):
         self._pwin = value
 
-    def getiplot(self):
+    @property
+    def plot_flag(self):
         return self.iplot
 
-    def setiplot(self, iplot):
-        self.iplot = iplot
+    @plot_flag.setter
+    def plot_flag(self, value):
+        self._iplot = value
 
     def setNLLocfile(self, NLLocfile):
         self.NLLocfile = NLLocfile
@@ -185,20 +224,68 @@ class RichterMagnitude(Magnitude):
     seismograph. Has to be derived from instrument corrected traces!
     '''
 
+    # poles, zeros and sensitivity of WA seismograph
+    # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
+    _paz = {
+        'poles': [5.6089 - 5.4978j, -5.6089 - 5.4978j],
+        'zeros': [0j, 0j],
+        'gain': 2080,
+        'sensitivity': 1
+    }
+
+    def __init__(self, stream, t0, calc_win):
+        super(RichterMagnitude, self).__init__(stream)
+
+        self._t0 = t0
+        self._calc_win = calc_win
+
+    @property
+    def t0(self):
+        return self._t0
+
+    @t0.setter
+    def t0(self, value):
+        self._t0 = value
+
+    @property
+    def calc_win(self):
+        return self._calc_win
+
+    @calc_win.setter
+    def calc_win(self, value):
+        self._calc_win = value
+
+    def get(self):
+
+        st = self.stream
+
+        # simulate Wood-Anderson response
+        st.simulate(paz_remove=None, paz_simulate=self._paz)
+
+        # trim waveform to common range
+        stime, etime = common_range(st)
+        st.trim(stime, etime)
+
+        # get time delta from waveform data
+        dt = st[0].stats.delta
+
+        power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
+                 in 'Z3']
+        if len(power) != 2:
+            raise ValueError('Wood-Anderson amplitude defintion only valid for '
+                             'two horizontals: {0} given'.format(len(power)))
+        power_sum = power[0] + power[1]
+        #
+        sqH = np.sqrt(power_sum)
+
+
+
     def calcwapp(self):
         print ("Getting Wood-Anderson peak-to-peak amplitude ...")
         print ("Simulating Wood-Anderson seismograph ...")
 
         self.wapp = None
         stream = self.stream
-
-        # poles, zeros and sensitivity of WA seismograph
-        # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
-        paz_wa = {
-            'poles': [5.6089 - 5.4978j, -5.6089 - 5.4978j],
-            'zeros': [0j, 0j],
-            'gain': 2080,
-            'sensitivity': 1}
 
         stream.simulate(paz_remove=None, paz_simulate=paz_wa)
 
@@ -214,7 +301,7 @@ class RichterMagnitude(Magnitude):
         self.wapp = np.max(sqH[iwin])
         print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
 
-        if self.getiplot() > 1:
+        if self.plot_flag > 1:
             stream.plot()
             f = plt.figure(2)
             plt.plot(th, sqH)
@@ -266,7 +353,7 @@ class MomentMagnitude(Magnitude):
                 # and to derive w0 and fc
                 [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
                                           self.get_metadata(), self.getvp(), delta, az, \
-                                          inc, self.getQp(), self.getiplot())
+                                          inc, self.getQp(), self.plot_flag)
 
                 if w0 is not None:
                     # call subfunction to calculate Mo and Mw

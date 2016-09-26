@@ -34,7 +34,7 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
-
+import icons_rc
 
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",

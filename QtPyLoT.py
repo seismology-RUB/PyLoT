@@ -63,6 +63,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
+import icons_rc
 
 locateTool = dict(nll=nll)
 
