@@ -6,24 +6,23 @@ Created autumn/winter 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-from obspy.core import Stream, UTCDateTime
 from obspy.core.event import Magnitude as ObspyMagnitude
 from obspy.geodetics import degrees2kilometers
+from scipy import integrate, signal
+from scipy.optimize import curve_fit
 
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, select_for_phase
-from pylot.core.util.utils import getPatternLine
-from scipy.optimize import curve_fit
-from scipy import integrate, signal
-from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import common_range, fit_curve
+
 
 def richter_magnitude_scaling(delta):
     relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
-                            '.pylot', 'richter_scaling.data'))
+                                       '.pylot', 'richter_scaling.data'))
     # prepare spline interpolation to calculate return value
-    func, params = fit_curve(relation[:,0], relation[:, 1])
+    func, params = fit_curve(relation[:, 0], relation[:, 1])
     return func(delta, params)
 
 
@@ -33,57 +32,52 @@ class Magnitude(object):
     """
 
     def __init__(self, stream, event, verbosity=False):
+        self._type = "M"
         self._plot_flag = False
         self._verbosity = verbosity
         self._event = event
         self._stream = stream
         self._magnitudes = dict()
 
-
     def __str__(self):
         print('number of stations used: {0}\n'.format(len(self.magnitudes.values())))
         print('\tstation\tmagnitude')
         for s, m in self.magnitudes.items(): print('\t{0}\t{1}'.format(s, m))
 
-
     def __nonzero__(self):
         return bool(self.magnitudes)
 
+    @property
+    def type(self):
+        return self._type
 
     @property
     def plot_flag(self):
         return self._plot_flag
 
-
     @plot_flag.setter
     def plot_flag(self, value):
         self._plot_flag = value
-
 
     @property
     def stream(self):
         return self._stream
 
-
     @stream.setter
     def stream(self, value):
         self._stream = value
-
 
     @property
     def event(self):
         return self._event
 
-
     @property
     def arrivals(self):
         return self._event.origins[0].arrivals
 
-
     @property
     def magnitudes(self):
         return self._magnitudes
-
 
     @magnitudes.setter
     def magnitudes(self, value):
@@ -97,14 +91,12 @@ class Magnitude(object):
         station, magnitude = value
         self._magnitudes[station] = magnitude
 
-
-    def get(self):
-        return self.magnitudes
-
+    def calc(self):
+        pass
 
     def net_magnitude(self):
         if self:
-            return np.median([M["mag"] for M in self.magnitudes.values()])
+            return ObspyMagnitude(mag=np.median([M["mag"] for M in self.magnitudes.values()]), type=self.type)
         return None
 
 
@@ -127,17 +119,16 @@ class RichterMagnitude(Magnitude):
         super(RichterMagnitude, self).__init__(stream, event, verbosity)
 
         self._calc_win = calc_win
-
+        self._type = 'ML'
+        self.calc()
 
     @property
     def calc_win(self):
         return self._calc_win
 
-
     @calc_win.setter
     def calc_win(self, value):
         self._calc_win = value
-
 
     def peak_to_peak(self, st, t0):
 
@@ -186,8 +177,7 @@ class RichterMagnitude(Magnitude):
 
         return wapp
 
-
-    def get(self):
+    def calc(self):
         for a in self.arrivals:
             if a.phase not in 'sS':
                 continue
@@ -207,7 +197,6 @@ class RichterMagnitude(Magnitude):
             # use of custom relation functions
             mag = dict(mag=np.log10(wapp) + richter_magnitude_scaling(delta))
             self.magnitudes = (station, mag)
-        return self.magnitudes
 
 
 class MomentMagnitude(Magnitude):
@@ -226,72 +215,22 @@ class MomentMagnitude(Magnitude):
         self._vp = vp
         self._Qp = Qp
         self._density = density
-
+        self._type = 'Mw'
+        self.calc()
 
     @property
     def p_velocity(self):
         return self._vp
 
-
     @property
     def p_attenuation(self):
         return self._Qp
-
 
     @property
     def rock_density(self):
         return self._density
 
-
-    def run_calcMoMw(self):
-
-        picks = self.getpicks()
-        nllocfile = self.getNLLocfile()
-        wfdat = self.stream
-        self.picdic = None
-
-        for key in picks:
-            if picks[key]['P']['weight'] < 4:
-                # select waveform
-                selwf = wfdat.select(station=key)
-                if len(key) > 4:
-                    Ppattern = '%s  ?    ?    ? P' % key
-                elif len(key) == 4:
-                    Ppattern = '%s   ?    ?    ? P' % key
-                elif len(key) < 4:
-                    Ppattern = '%s    ?    ?    ? P' % key
-                nllocline = getPatternLine(nllocfile, Ppattern)
-                # get hypocentral distance, station azimuth and
-                # angle of incidence from NLLoc-location file
-                delta = float(nllocline.split(None)[21])
-                az = float(nllocline.split(None)[22])
-                inc = float(nllocline.split(None)[24])
-                # call subfunction to estimate source spectrum
-                # and to derive w0 and fc
-                [w0, fc] = calcsourcespec(selwf, picks[key]['P']['mpp'], \
-                                          self.get_metadata(), self.getvp(), delta, az, \
-                                          inc, self.getQp(), self.plot_flag)
-
-                if w0 is not None:
-                    # call subfunction to calculate Mo and Mw
-                    zdat = selwf.select(component="Z")
-                    if len(zdat) == 0:  # check for other components
-                        zdat = selwf.select(component="3")
-                    [Mo, Mw] = calcMoMw(zdat, w0, self.getrho(), self.getvp(),
-                                        delta)
-                else:
-                    Mo = None
-                    Mw = None
-
-                # add w0, fc, Mo and Mw to dictionary
-                picks[key]['P']['w0'] = w0
-                picks[key]['P']['fc'] = fc
-                picks[key]['P']['Mo'] = Mo
-                picks[key]['P']['Mw'] = Mw
-                self.picdic = picks
-
-
-    def get(self):
+    def calc(self):
         for a in self.arrivals:
             if a.phase not in 'pP':
                 continue
@@ -314,52 +253,6 @@ class MomentMagnitude(Magnitude):
             M0, Mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance)
             mag = dict(w0=w0, fc=fc, M0=M0, mag=Mw)
             self.magnitudes = (station, mag)
-        return self.magnitudes
-
-
-def calc_woodanderson_pp(st, metadata, T0, win=10., verbosity=False):
-    if verbosity:
-        print ("Getting Wood-Anderson peak-to-peak amplitude ...")
-        print ("Simulating Wood-Anderson seismograph ...")
-
-    # poles, zeros and sensitivity of WA seismograph
-    # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
-    paz_wa = {
-        'poles': [5.6089 - 5.4978j, -5.6089 - 5.4978j],
-        'zeros': [0j, 0j],
-        'gain': 2080,
-        'sensitivity': 1
-    }
-
-    stime, etime = common_range(st)
-    st.trim(stime, etime)
-
-    invtype, inventory = metadata
-
-    st = restitute_data(st, invtype, inventory)
-
-    dt = st[0].stats.delta
-
-    st.simulate(paz_remove=None, paz_simulate=paz_wa)
-
-    # get RMS of both horizontal components
-    power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
-              in 'Z3']
-    if len(power) != 2:
-        raise ValueError('Wood-Anderson amplitude defintion only valid for '
-                         'two horizontals: {0} given'.format(len(power)))
-    power_sum = power[0] + power[1]
-    sqH = np.sqrt(power_sum)
-
-    # get time array
-    th = np.arange(0, len(sqH) * dt, dt)
-    # get maximum peak within pick window
-    iwin = getsignalwin(th, T0 - stime, win)
-    wapp = np.max(sqH[iwin])
-    if verbosity:
-        print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
-              "mm".format(wapp))
-    return wapp
 
 
 def calcMoMw(wfstream, w0, rho, vp, delta):
@@ -697,70 +590,3 @@ def fitSourceModel(f, S, fc0, iplot):
         plt.close()
 
     return w0, fc
-
-
-def calc_richter_magnitude(e, wf, metadata, amp_win):
-    if e.origins:
-        o = e.origins[0]
-        mags = dict()
-        for a in o.arrivals:
-            if a.phase not in 'sS':
-                continue
-            pick = a.pick_id.get_referred_object()
-            station = pick.waveform_id.station_code
-            wf = select_for_phase(wf.select(
-                station=station), a.phase)
-            delta = degrees2kilometers(a.distance)
-            wapp = calc_woodanderson_pp(wf, metadata, pick.time,
-                                        amp_win)
-            # using standard Gutenberg-Richter relation
-            # TODO make the ML calculation more flexible by allowing
-            # use of custom relation functions
-            mag = np.log10(wapp) + richter_magnitude_scaling(delta)
-            mags[station] = mag
-        mag = np.median([M for M in mags.values()])
-        # give some information on the processing
-        print('number of stations used: {0}\n'.format(len(mags.values())))
-        print('stations used:\n')
-        for s in mags.keys(): print('\t{0}'.format(s))
-
-        return ObspyMagnitude(mag=mag, magnitude_type='ML')
-    else:
-        return None
-
-
-def calc_moment_magnitude(e, wf, metadata, vp, Qp, rho):
-    if e.origins:
-        o = e.origins[0]
-        mags = dict()
-        for a in o.arrivals:
-            if a.phase in 'sS':
-                continue
-            pick = a.pick_id.get_referred_object()
-            station = pick.waveform_id.station_code
-            wf = wf.select(station=station)
-            if not wf:
-                continue
-            onset = pick.time
-            dist = degrees2kilometers(a.distance)
-            invtype, inventory = metadata
-            [corr_wf, rest_flag] = restitute_data(wf, invtype, inventory)
-            if not rest_flag:
-                print("WARNING: data for {0} could not be corrected".format(
-                    station))
-                continue
-            w0, fc = calcsourcespec(corr_wf, onset, vp, dist, a.azimuth,
-                                    a.takeoff_angle, Qp, 0)
-            if w0 is None or fc is None:
-                continue
-            wf = select_for_phase(corr_wf, "P")
-            station_mag = calcMoMw(wf, w0, rho, vp, dist)
-            mags[station] = station_mag
-        mag = np.median([M[1] for M in mags.values()])
-        # give some information on the processing
-        print('number of stations used: {0}\n'.format(len(mags.values())))
-        print('stations used:\n')
-        for s in mags.keys(): print('\t{0}'.format(s))
-        return ObspyMagnitude(mag=mag, magnitude_type='Mw')
-    else:
-        return None
