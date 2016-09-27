@@ -39,38 +39,51 @@ class Magnitude(object):
         self._stream = stream
         self._magnitudes = dict()
 
+
     def __str__(self):
         print('number of stations used: {0}\n'.format(len(self.magnitudes.values())))
         print('\tstation\tmagnitude')
         for s, m in self.magnitudes.items(): print('\t{0}\t{1}'.format(s, m))
 
+
+    def __nonzero__(self):
+        return bool(self.magnitudes)
+
+
     @property
     def plot_flag(self):
         return self._plot_flag
+
 
     @plot_flag.setter
     def plot_flag(self, value):
         self._plot_flag = value
 
+
     @property
     def stream(self):
         return self._stream
+
 
     @stream.setter
     def stream(self, value):
         self._stream = value
 
+
     @property
     def event(self):
         return self._event
+
 
     @property
     def arrivals(self):
         return self._event.origins[0].arrivals
 
+
     @property
     def magnitudes(self):
         return self._magnitudes
+
 
     @magnitudes.setter
     def magnitudes(self, value):
@@ -84,169 +97,22 @@ class Magnitude(object):
         station, magnitude = value
         self._magnitudes[station] = magnitude
 
+
     def get(self):
         return self.magnitudes
 
-class Magnitude(object):
-    '''
-    Superclass for calculating Wood-Anderson peak-to-peak
-    amplitudes, local magnitudes, source spectra, seismic moments
-    and moment magnitudes.
-    '''
 
-    def __init__(self, wfstream, t0, pwin, iplot, NLLocfile=None, \
-                 picks=None, rho=None, vp=None, Qp=None, invdir=None):
-        '''
-        :param: wfstream
-        :type: `~obspy.core.stream.Stream
-
-        :param: t0, onset time, P- or S phase
-        :type:  float
-
-        :param: pwin, pick window [t0 t0+pwin] to get maximum
-                peak-to-peak amplitude (WApp) or to calculate
-                source spectrum (DCfc) around P onset
-        :type:  float
-
-        :param: iplot, no. of figure window for plotting interims results
-        :type:  integer
-
-        :param: NLLocfile, name and full path to NLLoc-location file
-                needed when calling class MoMw
-        :type:  string
-
-        :param: picks, dictionary containing picking results
-        :type:  dictionary
-
-        :param: rho [kg/m³], rock density, parameter from autoPyLoT.in
-        :type:  integer
-
-        :param: vp [m/s], P-velocity
-        :param: integer
-
-        :param: invdir, name and path to inventory or dataless-SEED file
-        :type:  string
-        '''
-
-        assert isinstance(wfstream, Stream), "%s is not a stream object" % str(wfstream)
-
-        self._stream = wfstream
-        self._invdir = invdir
-        self._t0 = t0
-        self._pwin = pwin
-        self._iplot = iplot
-        self.setNLLocfile(NLLocfile)
-        self.setrho(rho)
-        self.setpicks(picks)
-        self.setvp(vp)
-        self.setQp(Qp)
-        self.calcwapp()
-        self.calcsourcespec()
-        self.run_calcMoMw()
-
-    @property
-    def stream(self):
-        return self._stream
-
-    @stream.setter
-    def stream(self, wfstream):
-        self._stream = wfstream
-
-    @property
-    def t0(self):
-        return self._t0
-
-    @t0.setter
-    def t0(self, value):
-        self._t0 = value
-
-    @property
-    def invdir(self):
-        return self._invdir
-
-    @invdir.setter
-    def invdir(self, value):
-        self._invdir = value
-
-    @property
-    def pwin(self):
-        return self._pwin
-
-    @pwin.setter
-    def pwin(self, value):
-        self._pwin = value
-
-    @property
-    def plot_flag(self):
-        return self.iplot
-
-    @plot_flag.setter
-    def plot_flag(self, value):
-        self._iplot = value
-
-    def setNLLocfile(self, NLLocfile):
-        self.NLLocfile = NLLocfile
-
-    def getNLLocfile(self):
-        return self.NLLocfile
-
-    def setrho(self, rho):
-        self.rho = rho
-
-    def getrho(self):
-        return self.rho
-
-    def setvp(self, vp):
-        self.vp = vp
-
-    def getvp(self):
-        return self.vp
-
-    def setQp(self, Qp):
-        self.Qp = Qp
-
-    def getQp(self):
-        return self.Qp
-
-    def setpicks(self, picks):
-        self.picks = picks
-
-    def getpicks(self):
-        return self.picks
-
-    def getwapp(self):
-        return self.wapp
-
-    def getw0(self):
-        return self.w0
-
-    def getfc(self):
-        return self.fc
-
-    def get_metadata(self):
-        return read_metadata(self.invdir)
-
-    def plot(self):
-        pass
-
-    def getpicdic(self):
-        return self.picdic
-
-    def calcwapp(self):
-        self.wapp = None
-
-    def calcsourcespec(self):
-        self.sourcespek = None
-
-    def run_calcMoMw(self):
-        self.pickdic = None
+    def net_magnitude(self):
+        if self:
+            return np.median([M["mag"] for M in self.magnitudes.values()])
+        return None
 
 
 class RichterMagnitude(Magnitude):
-    '''
+    """
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
     seismograph. Has to be derived from instrument corrected traces!
-    '''
+    """
 
     # poles, zeros and sensitivity of WA seismograph
     # (see Uhrhammer & Collins, 1990, BSSA, pp. 702-716)
@@ -257,29 +123,23 @@ class RichterMagnitude(Magnitude):
         'sensitivity': 1
     }
 
-    def __init__(self, stream, event, t0, calc_win, verbosity=False):
+    def __init__(self, stream, event, calc_win, verbosity=False):
         super(RichterMagnitude, self).__init__(stream, event, verbosity)
 
-        self._t0 = t0
         self._calc_win = calc_win
 
-    @property
-    def t0(self):
-        return self._t0
-
-    @t0.setter
-    def t0(self, value):
-        self._t0 = value
 
     @property
     def calc_win(self):
         return self._calc_win
 
+
     @calc_win.setter
     def calc_win(self, value):
         self._calc_win = value
 
-    def peak_to_peak(self, st):
+
+    def peak_to_peak(self, st, t0):
 
         # simulate Wood-Anderson response
         st.simulate(paz_remove=None, paz_simulate=self._paz)
@@ -303,7 +163,7 @@ class RichterMagnitude(Magnitude):
         # get time array
         th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
-        iwin = getsignalwin(th, self.t0 - stime, self.calc_win)
+        iwin = getsignalwin(th, t0 - stime, self.calc_win)
         wapp = np.max(sqH[iwin])
         if self._verbosity:
             print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
@@ -315,7 +175,7 @@ class RichterMagnitude(Magnitude):
             f = plt.figure(2)
             plt.plot(th, sqH)
             plt.plot(th[iwin], sqH[iwin], 'g')
-            plt.plot([self.t0, self.t0], [0, max(sqH)], 'r', linewidth=2)
+            plt.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
             plt.title('Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
                       % (st[0].stats.station, wapp))
             plt.xlabel('Time [s]')
@@ -326,6 +186,7 @@ class RichterMagnitude(Magnitude):
 
         return wapp
 
+
     def get(self):
         for a in self.arrivals:
             if a.phase not in 'sS':
@@ -334,17 +195,19 @@ class RichterMagnitude(Magnitude):
             station = pick.waveform_id.station_code
             wf = select_for_phase(self.stream.select(
                 station=station), a.phase)
+            if not wf:
+                print('WARNING: no waveform data found for station {0}'.format(
+                    station))
+                continue
             delta = degrees2kilometers(a.distance)
-            wapp = self.peak_to_peak(wf)
+            onset = pick.time
+            wapp = self.peak_to_peak(wf, onset)
             # using standard Gutenberg-Richter relation
             # TODO make the ML calculation more flexible by allowing
             # use of custom relation functions
-            mag = np.log10(wapp) + richter_magnitude_scaling(delta)
+            mag = dict(mag=np.log10(wapp) + richter_magnitude_scaling(delta))
             self.magnitudes = (station, mag)
         return self.magnitudes
-
-    def net_magnitude(self):
-        return np.median([M for M in self.magnitudes.values()])
 
 
 class MomentMagnitude(Magnitude):
@@ -356,6 +219,29 @@ class MomentMagnitude(Magnitude):
     Dc-value, corner frequency fc, seismic moment Mo and
     corresponding moment magntiude Mw.
     '''
+
+    def __init__(self, stream, event, vp, Qp, density, verbosity=False):
+        super(MomentMagnitude, self).__init__(stream, event)
+
+        self._vp = vp
+        self._Qp = Qp
+        self._density = density
+
+
+    @property
+    def p_velocity(self):
+        return self._vp
+
+
+    @property
+    def p_attenuation(self):
+        return self._Qp
+
+
+    @property
+    def rock_density(self):
+        return self._density
+
 
     def run_calcMoMw(self):
 
@@ -403,6 +289,32 @@ class MomentMagnitude(Magnitude):
                 picks[key]['P']['Mo'] = Mo
                 picks[key]['P']['Mw'] = Mw
                 self.picdic = picks
+
+
+    def get(self):
+        for a in self.arrivals:
+            if a.phase not in 'pP':
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            wf = select_for_phase(self.stream.select(
+                station=station), a.phase)
+            if not wf:
+                continue
+            onset = pick.time
+            distance = degrees2kilometers(a.distance)
+            azimuth = a.azimuth
+            incidence = a.takeoff_angle
+            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance, azimuth,
+                                    incidence, self.p_attenuation)
+            if w0 is None or fc is None:
+                print("WARNING: insufficient frequency information")
+                continue
+            wf = select_for_phase(wf, "P")
+            M0, Mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance)
+            mag = dict(w0=w0, fc=fc, M0=M0, mag=Mw)
+            self.magnitudes = (station, mag)
+        return self.magnitudes
 
 
 def calc_woodanderson_pp(st, metadata, T0, win=10., verbosity=False):
@@ -491,8 +403,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta):
     return Mo, Mw
 
 
-def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
-                   qp, iplot):
+def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
+                   qp, iplot=0):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -500,15 +412,11 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     thus restitution and integration necessary! Integrated traces are rotated
     into ray-coordinate system ZNE => LQT using Obspy's rotate modul!
 
-    :param: wfstream
+    :param: wfstream (corrected for instrument)
     :type:  `~obspy.core.stream.Stream`
 
     :param: onset, P-phase onset time
     :type: float
-
-    :param: metadata, tuple or list containing type of inventory and either
-    list of files or inventory object
-    :type:  tuple or list
 
     :param: vp, Vp-wave velocity
     :type:  float
@@ -533,163 +441,151 @@ def calcsourcespec(wfstream, onset, metadata, vp, delta, azimuth, incidence,
     # get Q value
     Q, A = qp
 
-    delta = delta * 1000  # hypocentral distance in [m]
+    dist = delta * 1000  # hypocentral distance in [m]
 
     fc = None
     w0 = None
-    wf_copy = wfstream.copy()
 
-    invtype, inventory = metadata
+    zdat = select_for_phase(wfstream, "P")
 
-    [cordat, restflag] = restitute_data(wf_copy, invtype, inventory)
-    if restflag is True:
-        zdat = cordat.select(component="Z")
-        if len(zdat) == 0:
-            zdat = cordat.select(component="3")
-        cordat_copy = cordat.copy()
-        # get equal time stamps and lengths of traces
-        # necessary for rotation of traces
-        trstart, trend = common_range(cordat_copy)
-        cordat_copy.trim(trstart, trend)
-        try:
-            # rotate into LQT (ray-coordindate-) system using Obspy's rotate
-            # L: P-wave direction
-            # Q: SV-wave direction
-            # T: SH-wave direction
-            LQT = cordat_copy.rotate('ZNE->LQT', azimuth, incidence)
-            ldat = LQT.select(component="L")
-            if len(ldat) == 0:
-                # if horizontal channels are 2 and 3
-                # no azimuth information is available and thus no
-                # rotation is possible!
-                print("calcsourcespec: Azimuth information is missing, "
-                      "no rotation of components possible!")
-                ldat = LQT.select(component="Z")
+    dt = zdat[0].stats.delta
 
-            # integrate to displacement
-            # unrotated vertical component (for copmarison)
-            inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None,
-                                                       zdat[0].stats.delta))
-            # rotated component Z => L
-            Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None,
-                                                     ldat[0].stats.delta))
+    freq = zdat[0].stats.sampling_rate
 
-            # get window after P pulse for
-            # calculating source spectrum
-            tstart = UTCDateTime(zdat[0].stats.starttime)
-            tonset = onset.timestamp - tstart.timestamp
-            impickP = tonset * zdat[0].stats.sampling_rate
-            wfzc = Ldat[impickP: len(Ldat) - 1]
-            # get time array
-            t = np.arange(0, len(inttrz) * zdat[0].stats.delta, \
-                          zdat[0].stats.delta)
-            # calculate spectrum using only first cycles of
-            # waveform after P onset!
-            zc = crossings_nonzero_all(wfzc)
-            if np.size(zc) == 0 or len(zc) <= 3:
-                print ("calcsourcespec: Something is wrong with the waveform, "
-                       "no zero crossings derived!")
-                print ("No calculation of source spectrum possible!")
-                plotflag = 0
-            else:
-                plotflag = 1
-                index = min([3, len(zc) - 1])
-                calcwin = (zc[index] - zc[0]) * zdat[0].stats.delta
-                iwin = getsignalwin(t, tonset, calcwin)
-                xdat = Ldat[iwin]
+    # trim traces to common range (for rotation)
+    trstart, trend = common_range(wfstream)
+    wfstream.trim(trstart, trend)
 
-                # fft
-                fny = zdat[0].stats.sampling_rate / 2
-                l = len(xdat) / zdat[0].stats.sampling_rate
-                # number of fft bins after Bath
-                n = zdat[0].stats.sampling_rate * l
-                # find next power of 2 of data length
-                m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
-                N = int(np.power(m, 2))
-                y = zdat[0].stats.delta * np.fft.fft(xdat, N)
-                Y = abs(y[: N / 2])
-                L = (N - 1) / zdat[0].stats.sampling_rate
-                f = np.arange(0, fny, 1 / L)
+    # rotate into LQT (ray-coordindate-) system using Obspy's rotate
+    # L: P-wave direction
+    # Q: SV-wave direction
+    # T: SH-wave direction
+    LQT = wfstream.rotate('ZNE->LQT', azimuth, incidence)
+    ldat = LQT.select(component="L")
+    if len(ldat) == 0:
+        # if horizontal channels are 2 and 3
+        # no azimuth information is available and thus no
+        # rotation is possible!
+        print("calcsourcespec: Azimuth information is missing, "
+              "no rotation of components possible!")
+        ldat = LQT.select(component="Z")
 
-                # remove zero-frequency and frequencies above
-                # corner frequency of seismometer (assumed
-                # to be 100 Hz)
-                fi = np.where((f >= 1) & (f < 100))
-                F = f[fi]
-                YY = Y[fi]
+    # integrate to displacement
+    # unrotated vertical component (for comparison)
+    inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, dt))
 
-                # correction for attenuation
-                wa = 2 * np.pi * F  # angular frequency
-                D = np.exp((wa * delta) / (2 * vp * Q * F ** A))
-                YYcor = YY.real * D
+    # rotated component Z => L
+    Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, dt))
 
-                # get plateau (DC value) and corner frequency
-                # initial guess of plateau
-                w0in = np.mean(YYcor[0:100])
-                # initial guess of corner frequency
-                # where spectral level reached 50% of flat level
-                iin = np.where(YYcor >= 0.5 * w0in)
-                Fcin = F[iin[0][np.size(iin) - 1]]
+    # get window after P pulse for
+    # calculating source spectrum
+    rel_onset = onset - trstart
+    impickP = int(rel_onset * freq)
+    wfzc = Ldat[impickP: len(Ldat) - 1]
+    # get time array
+    t = np.arange(0, len(inttrz) * dt, dt)
+    # calculate spectrum using only first cycles of
+    # waveform after P onset!
+    zc = crossings_nonzero_all(wfzc)
+    if np.size(zc) == 0 or len(zc) <= 3:
+        print ("calcsourcespec: Something is wrong with the waveform, "
+               "no zero crossings derived!")
+        print ("No calculation of source spectrum possible!")
+        plotflag = 0
+    else:
+        plotflag = 1
+        index = min([3, len(zc) - 1])
+        calcwin = (zc[index] - zc[0]) * dt
+        iwin = getsignalwin(t, rel_onset, calcwin)
+        xdat = Ldat[iwin]
 
-                # use of implicit scipy otimization function
-                fit = synthsourcespec(F, w0in, Fcin)
-                [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in,
-                                                                        Fcin])
-                w01 = optspecfit[0]
-                fc1 = optspecfit[1]
-                print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                       "Determined corner frequency: %f Hz" % (w01, fc1))
+        # fft
+        fny = freq / 2
+        l = len(xdat) / freq
+        # number of fft bins after Bath
+        n = freq * l
+        # find next power of 2 of data length
+        m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
+        N = int(np.power(m, 2))
+        y = dt * np.fft.fft(xdat, N)
+        Y = abs(y[: N / 2])
+        L = (N - 1) / freq
+        f = np.arange(0, fny, 1 / L)
 
-                # use of conventional fitting
-                [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot)
+        # remove zero-frequency and frequencies above
+        # corner frequency of seismometer (assumed
+        # to be 100 Hz)
+        fi = np.where((f >= 1) & (f < 100))
+        F = f[fi]
+        YY = Y[fi]
 
-                # get w0 and fc as median of both
-                # source spectrum fits
-                w0 = np.median([w01, w02])
-                fc = np.median([fc1, fc2])
-                print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))
+        # correction for attenuation
+        wa = 2 * np.pi * F  # angular frequency
+        D = np.exp((wa * dist) / (2 * vp * Q * F ** A))
+        YYcor = YY.real * D
 
-        except TypeError as er:
-            raise TypeError('''{0}'''.format(er))
+        # get plateau (DC value) and corner frequency
+        # initial guess of plateau
+        w0in = np.mean(YYcor[0:100])
+        # initial guess of corner frequency
+        # where spectral level reached 50% of flat level
+        iin = np.where(YYcor >= 0.5 * w0in)
+        Fcin = F[iin[0][np.size(iin) - 1]]
 
-        if iplot > 1:
-            f1 = plt.figure()
-            tLdat = np.arange(0, len(Ldat) * zdat[0].stats.delta, \
-                              zdat[0].stats.delta)
-            plt.subplot(2, 1, 1)
-            # show displacement in mm
-            p1, = plt.plot(t, np.multiply(inttrz, 1000), 'k')
-            p2, = plt.plot(tLdat, np.multiply(Ldat, 1000))
-            plt.legend([p1, p2], ['Displacement', 'Rotated Displacement'])
-            if plotflag == 1:
-                plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
-                plt.title('Seismogram and P Pulse, Station %s-%s' \
-                          % (zdat[0].stats.station, zdat[0].stats.channel))
-            else:
-                plt.title('Seismogram, Station %s-%s' \
-                          % (zdat[0].stats.station, zdat[0].stats.channel))
-            plt.xlabel('Time since %s' % zdat[0].stats.starttime)
-            plt.ylabel('Displacement [mm]')
+        # use of implicit scipy otimization function
+        fit = synthsourcespec(F, w0in, Fcin)
+        [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
+        w01 = optspecfit[0]
+        fc1 = optspecfit[1]
+        print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
+               "Determined corner frequency: %f Hz" % (w01, fc1))
 
-            if plotflag == 1:
-                plt.subplot(2, 1, 2)
-                p1, = plt.loglog(f, Y.real, 'k')
-                p2, = plt.loglog(F, YY.real)
-                p3, = plt.loglog(F, YYcor, 'r')
-                p4, = plt.loglog(F, fit, 'g')
-                plt.loglog([fc, fc], [w0 / 100, w0], 'g')
-                plt.legend([p1, p2, p3, p4], ['Raw Spectrum', \
-                                              'Used Raw Spectrum', \
-                                              'Q-Corrected Spectrum', \
-                                              'Fit to Spectrum'])
-                plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
-                          % (w0, fc))
-                plt.xlabel('Frequency [Hz]')
-                plt.ylabel('Amplitude [m/Hz]')
-                plt.grid()
-            plt.show()
-            raw_input()
-            plt.close(f1)
+        # use of conventional fitting
+        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot)
+
+        # get w0 and fc as median of both
+        # source spectrum fits
+        w0 = np.median([w01, w02])
+        fc = np.median([fc1, fc2])
+        print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))
+
+    if iplot > 1:
+        f1 = plt.figure()
+        tLdat = np.arange(0, len(Ldat) * dt, dt)
+        plt.subplot(2, 1, 1)
+        # show displacement in mm
+        p1, = plt.plot(t, np.multiply(inttrz, 1000), 'k')
+        p2, = plt.plot(tLdat, np.multiply(Ldat, 1000))
+        plt.legend([p1, p2], ['Displacement', 'Rotated Displacement'])
+        if plotflag == 1:
+            plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
+            plt.title('Seismogram and P Pulse, Station %s-%s' \
+                      % (zdat[0].stats.station, zdat[0].stats.channel))
+        else:
+            plt.title('Seismogram, Station %s-%s' \
+                      % (zdat[0].stats.station, zdat[0].stats.channel))
+        plt.xlabel('Time since %s' % zdat[0].stats.starttime)
+        plt.ylabel('Displacement [mm]')
+
+        if plotflag == 1:
+            plt.subplot(2, 1, 2)
+            p1, = plt.loglog(f, Y.real, 'k')
+            p2, = plt.loglog(F, YY.real)
+            p3, = plt.loglog(F, YYcor, 'r')
+            p4, = plt.loglog(F, fit, 'g')
+            plt.loglog([fc, fc], [w0 / 100, w0], 'g')
+            plt.legend([p1, p2, p3, p4], ['Raw Spectrum', \
+                                          'Used Raw Spectrum', \
+                                          'Q-Corrected Spectrum', \
+                                          'Fit to Spectrum'])
+            plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
+                      % (w0, fc))
+            plt.xlabel('Frequency [Hz]')
+            plt.ylabel('Amplitude [m/Hz]')
+            plt.grid()
+        plt.show()
+        raw_input()
+        plt.close(f1)
 
     return w0, fc
 
@@ -847,9 +743,17 @@ def calc_moment_magnitude(e, wf, metadata, vp, Qp, rho):
                 continue
             onset = pick.time
             dist = degrees2kilometers(a.distance)
-            w0, fc = calcsourcespec(wf, onset, metadata, vp, dist, a.azimuth, a.takeoff_angle, Qp, 0)
+            invtype, inventory = metadata
+            [corr_wf, rest_flag] = restitute_data(wf, invtype, inventory)
+            if not rest_flag:
+                print("WARNING: data for {0} could not be corrected".format(
+                    station))
+                continue
+            w0, fc = calcsourcespec(corr_wf, onset, vp, dist, a.azimuth,
+                                    a.takeoff_angle, Qp, 0)
             if w0 is None or fc is None:
                 continue
+            wf = select_for_phase(corr_wf, "P")
             station_mag = calcMoMw(wf, w0, rho, vp, dist)
             mags[station] = station_mag
         mag = np.median([M[1] for M in mags.values()])
