@@ -40,7 +40,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 from obspy import UTCDateTime
 
-from pylot.core.analysis.magnitude import calc_richter_magnitude, calc_moment_magnitude
+from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
@@ -51,9 +51,9 @@ import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
     AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
-    OverwriteError
+    OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.dataprocessing import read_metadata
+from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range
 from pylot.core.io.location import create_creation_info, create_event
@@ -1003,10 +1003,16 @@ class MainWindow(QMainWindow):
                 settings.setValue("inventoryFile", fninv)
                 settings.sync()
             self.metadata = read_metadata(fninv)
+        wf_copy = self.get_data().getWFData().copy()
+        [corr_wf, rest_flag] = restitute_data(wf_copy, *self.metadata)
+        if not rest_flag:
+            raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
-            return calc_richter_magnitude(self.get_data().get_evt_data(), self.get_data().getWFData(), self.metadata, self.inputs.get('sstop'))
+            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'))
+            return local_mag.net_magnitude()
         elif type == 'Mw':
-            return calc_moment_magnitude(self.get_data().get_evt_data(), self.get_data().getWFData(), self.metadata, self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'))
+            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'))
+            return moment_mag.net_magnitude()
         else:
             return None
 
