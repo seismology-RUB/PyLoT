@@ -31,9 +31,9 @@ class Magnitude(object):
     Base class object for Magnitude calculation within PyLoT.
     """
 
-    def __init__(self, stream, event, verbosity=False):
+    def __init__(self, stream, event, verbosity=False, iplot=0):
         self._type = "M"
-        self._plot_flag = False
+        self._plot_flag = iplot
         self._verbosity = verbosity
         self._event = event
         self._stream = stream
@@ -58,6 +58,17 @@ class Magnitude(object):
     @plot_flag.setter
     def plot_flag(self, value):
         self._plot_flag = value
+
+    @property
+    def verbose(self):
+        return self._verbosity
+
+    @verbose.setter
+    def verbose(self, value):
+        if not isinstance(value, bool):
+            print('WARNING: only boolean values accepted...\n')
+            value = bool(value)
+        self._verbosity = value
 
     @property
     def stream(self):
@@ -115,8 +126,8 @@ class RichterMagnitude(Magnitude):
         'sensitivity': 1
     }
 
-    def __init__(self, stream, event, calc_win, verbosity=False):
-        super(RichterMagnitude, self).__init__(stream, event, verbosity)
+    def __init__(self, stream, event, calc_win, verbosity=False, iplot=0):
+        super(RichterMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._calc_win = calc_win
         self._type = 'ML'
@@ -156,7 +167,7 @@ class RichterMagnitude(Magnitude):
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         wapp = np.max(sqH[iwin])
-        if self._verbosity:
+        if self.verbose:
             print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
                   "mm".format(wapp))
 
@@ -186,8 +197,9 @@ class RichterMagnitude(Magnitude):
             wf = select_for_phase(self.stream.select(
                 station=station), a.phase)
             if not wf:
-                print('WARNING: no waveform data found for station {0}'.format(
-                    station))
+                if self.verbose:
+                    print('WARNING: no waveform data found for station {0}'.format(
+                        station))
                 continue
             delta = degrees2kilometers(a.distance)
             onset = pick.time
@@ -209,8 +221,8 @@ class MomentMagnitude(Magnitude):
     corresponding moment magntiude Mw.
     '''
 
-    def __init__(self, stream, event, vp, Qp, density, verbosity=False):
-        super(MomentMagnitude, self).__init__(stream, event)
+    def __init__(self, stream, event, vp, Qp, density, verbosity=False, iplot=False):
+        super(MomentMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._vp = vp
         self._Qp = Qp
@@ -245,17 +257,18 @@ class MomentMagnitude(Magnitude):
             azimuth = a.azimuth
             incidence = a.takeoff_angle
             w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance, azimuth,
-                                    incidence, self.p_attenuation)
+                                    incidence, self.p_attenuation, self.plot_flag, self.verbose)
             if w0 is None or fc is None:
-                print("WARNING: insufficient frequency information")
+                if self.verbose:
+                    print("WARNING: insufficient frequency information")
                 continue
             wf = select_for_phase(wf, "P")
-            M0, Mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance)
+            M0, Mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance, self.verbose)
             mag = dict(w0=w0, fc=fc, M0=M0, mag=Mw)
             self.magnitudes = (station, mag)
 
 
-def calcMoMw(wfstream, w0, rho, vp, delta):
+def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
     '''
     Subfunction of run_calcMoMw to calculate individual
     seismic moments and corresponding moment magnitudes.
@@ -279,8 +292,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta):
     tr = wfstream[0]
     delta = delta * 1000  # hypocentral distance in [m]
 
-    print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station %s ..." \
-          % tr.stats.station)
+    if verbosity:
+        print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(tr.stats.station))
 
     # additional common parameters for calculating Mo
     rP = 2 / np.sqrt(15)  # average radiation pattern of P waves (Aki & Richards, 1980)
@@ -291,13 +304,14 @@ def calcMoMw(wfstream, w0, rho, vp, delta):
     # Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979), defined for [dyn*cm]!
     Mw = np.log10(Mo) * 2 / 3 - 6.7  # for metric units
 
-    print("calcMoMw: Calculated seismic moment Mo = %e Nm => Mw = %3.1f " % (Mo, Mw))
+    if verbosity:
+        print("calcMoMw: Calculated seismic moment Mo = {0} Nm => Mw = {1:3.1f} ".format(Mo, Mw))
 
     return Mo, Mw
 
 
 def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
-                   qp, iplot=0):
+                   qp, iplot=0, verbosity=False):
     '''
     Subfunction to calculate the source spectrum and to derive from that the plateau
     (usually called omega0) and the corner frequency assuming Aki's omega-square
@@ -329,7 +343,8 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     :param: iplot, show results (iplot>1) or not (iplot(<2)
     :type:  integer
     '''
-    print ("Calculating source spectrum ....")
+    if verbosity:
+        print ("Calculating source spectrum ....")
 
     # get Q value
     Q, A = qp
@@ -359,8 +374,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         # if horizontal channels are 2 and 3
         # no azimuth information is available and thus no
         # rotation is possible!
-        print("calcsourcespec: Azimuth information is missing, "
-              "no rotation of components possible!")
+        if verbosity:
+            print("calcsourcespec: Azimuth information is missing, "
+                  "no rotation of components possible!")
         ldat = LQT.select(component="Z")
 
     # integrate to displacement
@@ -381,9 +397,10 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     # waveform after P onset!
     zc = crossings_nonzero_all(wfzc)
     if np.size(zc) == 0 or len(zc) <= 3:
-        print ("calcsourcespec: Something is wrong with the waveform, "
-               "no zero crossings derived!")
-        print ("No calculation of source spectrum possible!")
+        if verbosity:
+            print ("calcsourcespec: Something is wrong with the waveform, "
+                   "no zero crossings derived!\n")
+            print ("No calculation of source spectrum possible!")
         plotflag = 0
     else:
         plotflag = 1
@@ -430,17 +447,19 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
         w01 = optspecfit[0]
         fc1 = optspecfit[1]
-        print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-               "Determined corner frequency: %f Hz" % (w01, fc1))
+        if verbosity:
+            print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
+                   "Determined corner frequency: %f Hz" % (w01, fc1))
 
         # use of conventional fitting
-        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot)
+        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
         # get w0 and fc as median of both
         # source spectrum fits
         w0 = np.median([w01, w02])
         fc = np.median([fc1, fc2])
-        print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))
+        if verbosity:
+            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))
 
     if iplot > 1:
         f1 = plt.figure()
@@ -504,7 +523,7 @@ def synthsourcespec(f, omega0, fcorner):
     return ssp
 
 
-def fitSourceModel(f, S, fc0, iplot):
+def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     '''
     Calculates synthetic source spectrum by varying corner frequency fc.
     Returns best approximated plateau omega0 and corner frequency, i.e. with least
@@ -558,9 +577,8 @@ def fitSourceModel(f, S, fc0, iplot):
     elif len(STD) == 0:
         fc = fc0
         w0 = max(S)
-
-    print("fitSourceModel: best fc: %fHz, best w0: %e m/Hz" \
-          % (fc, w0))
+    if verbosity:
+        print("fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
 
     if iplot > 1:
         plt.figure(iplot)
