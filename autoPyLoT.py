@@ -16,7 +16,8 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.io.phases import add_amplitudes
 from pylot.core.pick.autopick import autopickevent, iteratepicker
-from pylot.core.util.dataprocessing import restitute_data, read_metadata
+from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
+    remove_underscores
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -113,6 +114,7 @@ def autoPyLoT(inputfile):
             print('Working on event %s' % event)
             print(data)
             wfdat = data.getWFData()  # all available streams
+            wfdat = remove_underscores(wfdat)
             metadata =  read_metadata(parameter.get('invdir'))
             corr_dat, rest_flag = restitute_data(wfdat.copy(), *metadata)
             ##########################################################
@@ -152,18 +154,20 @@ def autoPyLoT(inputfile):
                     if len(glob.glob(locsearch)) > 0:
                         # get latest NLLoc-location file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
-                        evt = read_events(nllocfile)
+                        evt = read_events(nllocfile)[0]
                         # calculating seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
-                                                     parameter.get('Qp'), parameter.get('rho'), True, 2)
-                        local_mag = RichterMagnitude(corr_dat, evt, parameter.get('sstop'), True, 2)
-                        for station, amplitude in local_mag.amplitudes:
+                                                     parameter.get('Qp'),
+                                                     parameter.get('rho'), True, 0)
+                        local_mag = RichterMagnitude(corr_dat, evt,
+                                                     parameter.get('sstop'), True, 0)
+                        for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude
                         evt = add_amplitudes(evt, local_mag.amplitudes)
                         netML = local_mag.net_magnitude()
                         netMw = moment_mag.net_magnitude()
-                        evt.origins[0].magnitudes.append(netMw)
-                        evt.origins[0].magnitudes.append(netML)
+                        mags = [netML, netMw]
+                        evt.magnitudes += mags
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -200,19 +204,21 @@ def autoPyLoT(inputfile):
                             if len(badpicks) == 0:
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
                                 nlloccounter = maxnumit
-                        evt = read_events(nllocfile)
+                        evt = read_events(nllocfile)[0]
                         # calculating seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
-                                                     parameter.get('Qp'), parameter.get('rho'), True, 2)
-                        local_mag = RichterMagnitude(corr_dat, evt, parameter.get('sstop'), True, 2)
-                        for station, amplitude in local_mag.amplitudes:
+                                                     parameter.get('Qp'),
+                                                     parameter.get('rho'), True, 0)
+                        local_mag = RichterMagnitude(corr_dat, evt,
+                                                     parameter.get('sstop'), True, 0)
+                        for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude
                         evt = add_amplitudes(evt, local_mag.amplitudes)
                         netML = local_mag.net_magnitude()
                         # get network moment magntiude
                         netMw = moment_mag.net_magnitude()
-                        evt.origins[0].magnitudes.append(netMw)
-                        evt.origins[0].magnitudes.append(netML)
+                        mags = [netML, netMw]
+                        evt.magnitudes += mags
                         print("Network moment magnitude: %4.1f" % netMw.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
