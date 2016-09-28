@@ -83,6 +83,10 @@ class Magnitude(object):
         return self._event
 
     @property
+    def origin_id(self):
+        return self._event.origins[0].resource_id
+
+    @property
     def arrivals(self):
         return self._event.origins[0].arrivals
 
@@ -107,7 +111,9 @@ class Magnitude(object):
 
     def net_magnitude(self):
         if self:
-            return ObspyMagnitude(mag=np.median([M["mag"] for M in self.magnitudes.values()]), type=self.type)
+            return ObspyMagnitude(mag=np.median([M["mag"] for M in
+                                                 self.magnitudes.values()]),
+                                  type=self.type, origin_id=self.origin_id)
         return None
 
 
