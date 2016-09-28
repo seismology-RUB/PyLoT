@@ -988,11 +988,11 @@ class MainWindow(QMainWindow):
 
 
     def calc_magnitude(self, type='ML'):
-        settings = QSettings()
-        fninv = settings.value("inventoryFile", None)
-        if fninv is None and not self.metadata:
+        def set_inv(settings):
             fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
                 "Select inventory..."), self.tr("Select file"))
+            if not fninv:
+                return False
             ans = QMessageBox.question(self, self.tr("Make default..."),
                                        self.tr(
                                            "New inventory filename set.\n" + \
@@ -1003,15 +1003,35 @@ class MainWindow(QMainWindow):
                 settings.setValue("inventoryFile", fninv)
                 settings.sync()
             self.metadata = read_metadata(fninv)
+            return True
+        
+        settings = QSettings()
+        fninv = settings.value("inventoryFile", None)
+
+        if fninv is None and not self.metadata:
+            if not set_inv(settings):
+                return None
+        elif fninv is not None and not self.metadata:
+            ans = QMessageBox.question(self, self.tr("Use default..."),
+                                       self.tr(
+                                           "Do you want to use the default value?"),
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.Yes)
+            if ans == QMessageBox.No:
+                if not set_inv(settings):
+                    return None
+            else:
+                self.metadata = read_metadata(fninv)
+                
         wf_copy = self.get_data().getWFData().copy()
         [corr_wf, rest_flag] = restitute_data(wf_copy, *self.metadata)
         if not rest_flag:
             raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
-            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'))
+            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
             return local_mag.net_magnitude()
         elif type == 'Mw':
-            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'))
+            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'), verbosity = True)
             return moment_mag.net_magnitude()
         else:
             return None
