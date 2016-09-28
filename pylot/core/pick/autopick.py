@@ -17,10 +17,8 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.utils import getPatternLine
 from pylot.core.io.data import Data
-from pylot.core.analysis.magnitude import RichterMagnitude
 
 
 def autopickevent(data, param):
@@ -121,8 +119,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
     # parameter to check for spuriously picked S onset
     zfac = pickparam.get('zfac')
     # path to inventory-, dataless- or resp-files
-    invdir = pickparam.get('invdir')
-    invtype, inventory = read_metadata(invdir)
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -565,24 +561,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 # re-create stream object including both horizontal components
                 hdat = edat.copy()
                 hdat += ndat
-                h_copy = hdat.copy()
-                [cordat, restflag] = restitute_data(h_copy, invtype, inventory)
-                # calculate WA-peak-to-peak amplitude
-                # using subclass WApp of superclass Magnitude
-                if restflag:
-                    if Sweight < 4:
-                        wapp = RichterMagnitude(cordat, mpickS, mpickP + sstop, iplot)
-                    else:
-                        # use larger window for getting peak-to-peak amplitude
-                        # as the S pick is quite unsure
-                        wapp = RichterMagnitude(cordat, mpickP, mpickP + sstop +
-                                                (0.5 * (mpickP + sstop)), iplot)
-
-                    Ao = wapp.getwapp()
-                else:
-                    print("Go on processing data without source parameter "
-                          "determination!")
-
         else:
             msg = 'Bad initial (AIC) S-pick, skipping this onset!\n' \
                   'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
@@ -602,16 +580,6 @@ def autopickstation(wfstream, pickparam, verbose=False):
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
-            h_copy = hdat.copy()
-            [cordat, restflag] = restitute_data(h_copy, invtype, inventory)
-            if restflag is True:
-                # calculate WA-peak-to-peak amplitude
-                # using subclass WApp of superclass Magnitude
-                wapp = RichterMagnitude(cordat, mpickP, mpickP + sstop + (0.5 * (mpickP
-                                                                                 + sstop)),
-                                        iplot)
-                Ao = wapp.getwapp()
-
     else:
         print('autopickstation: No horizontal component data available or ' \
               'bad P onset, skipping S picking!')
