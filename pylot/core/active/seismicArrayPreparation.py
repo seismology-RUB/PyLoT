@@ -3,6 +3,41 @@ import sys
 import numpy as np
 from scipy.interpolate import griddata
 
+def readMygridNlayers(filename):
+    infile = open(filename, 'r')
+    nlayers = len(infile.readlines()) / 2
+    infile.close()
+
+    return nlayers
+
+def readMygrid(filename):
+    ztop = [];
+    zbot = [];
+    vtop = [];
+    vbot = []
+    infile = open(filename, 'r')
+    nlayers = readMygridNlayers(filename)
+
+    print('\nreadMygrid: Reading file %s.' % filename)
+    for index in range(nlayers):
+        line1 = infile.readline()
+        line2 = infile.readline()
+        ztop.append(float(line1.split()[0]))
+        vtop.append(float(line1.split()[1]))
+        zbot.append(float(line2.split()[0]))
+        vbot.append(float(line2.split()[1]))
+        print('Layer %s:\n[Top: v = %s [km/s], z = %s [m]]'
+              '\n[Bot: v = %s [km/s], z = %s [m]]'
+              % (index + 1, vtop[index], ztop[index],
+                 vbot[index], zbot[index]))
+
+    if not ztop[0] == 0:
+        print('ERROR: there must be a velocity set for z = 0 in the file %s' % filename)
+        print('e.g.:\n0    0.33\n-5    1.0\netc.')
+
+    infile.close()
+    return ztop, zbot, vtop, vbot
+
 
 class SeisArray(object):
     '''
@@ -713,41 +748,6 @@ class SeisArray(object):
         #     PI = np.pi
         #     rad = angle / 180 * PI
         #     return rad
-
-        def readMygridNlayers(filename):
-            infile = open(filename, 'r')
-            nlayers = len(infile.readlines()) / 2
-            infile.close()
-
-            return nlayers
-
-        def readMygrid(filename):
-            ztop = [];
-            zbot = [];
-            vtop = [];
-            vbot = []
-            infile = open(filename, 'r')
-            nlayers = readMygridNlayers(filename)
-
-            print('\nreadMygrid: Reading file %s.' % filename)
-            for index in range(nlayers):
-                line1 = infile.readline()
-                line2 = infile.readline()
-                ztop.append(float(line1.split()[0]))
-                vtop.append(float(line1.split()[1]))
-                zbot.append(float(line2.split()[0]))
-                vbot.append(float(line2.split()[1]))
-                print('Layer %s:\n[Top: v = %s [km/s], z = %s [m]]'
-                      '\n[Bot: v = %s [km/s], z = %s [m]]'
-                      % (index + 1, vtop[index], ztop[index],
-                         vbot[index], zbot[index]))
-
-            if not ztop[0] == 0:
-                print('ERROR: there must be a velocity set for z = 0 in the file %s' % filename)
-                print('e.g.:\n0    0.33\n-5    1.0\netc.')
-
-            infile.close()
-            return ztop, zbot, vtop, vbot
 
         R = 6371.
         vmin = 0.34
