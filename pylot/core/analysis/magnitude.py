@@ -126,6 +126,8 @@ class RichterMagnitude(Magnitude):
         'sensitivity': 1
     }
 
+    _amplitudes = dict()
+
     def __init__(self, stream, event, calc_win, verbosity=False, iplot=0):
         super(RichterMagnitude, self).__init__(stream, event, verbosity, iplot)
 
@@ -140,6 +142,15 @@ class RichterMagnitude(Magnitude):
     @calc_win.setter
     def calc_win(self, value):
         self._calc_win = value
+
+    @property
+    def amplitudes(self):
+        return self._amplitudes
+
+    @amplitudes.setter
+    def amplitudes(self, value):
+        station, a0 = value
+        self._amplitudes[station] = a0
 
     def peak_to_peak(self, st, t0):
 
@@ -203,11 +214,12 @@ class RichterMagnitude(Magnitude):
                 continue
             delta = degrees2kilometers(a.distance)
             onset = pick.time
-            wapp = self.peak_to_peak(wf, onset)
+            a0 = self.peak_to_peak(wf, onset)
+            self.amplitudes = (station, a0)
             # using standard Gutenberg-Richter relation
             # TODO make the ML calculation more flexible by allowing
             # use of custom relation functions
-            mag = dict(mag=np.log10(wapp) + richter_magnitude_scaling(delta))
+            mag = dict(mag=np.log10(a0) + richter_magnitude_scaling(delta))
             self.magnitudes = (station, mag)
 
 
