@@ -215,7 +215,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
         seed_id = tr.get_id()
         # check, whether this trace has already been corrected
         if 'processing' in tr.stats.keys() \
-                and np.all(['remove' in p for p in tr.stats.processing]) \
+                and np.any(['remove' in p for p in tr.stats.processing]) \
                 and not force:
             print("Trace {0} has already been corrected!".format(seed_id))
             continue
