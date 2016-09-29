@@ -984,7 +984,7 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
-        self.get_data().get_evt_data().magnitudes.append(self.calc_magnitude())
+        self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
 
     def calc_magnitude(self, type='ML'):
@@ -1029,10 +1029,10 @@ class MainWindow(QMainWindow):
             raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
             local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
-            return local_mag.net_magnitude()
+            return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'), verbosity = True)
-            return moment_mag.net_magnitude()
+            return moment_mag.updated_event()
         else:
             return None
 
