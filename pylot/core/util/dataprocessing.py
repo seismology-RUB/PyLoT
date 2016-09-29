@@ -4,6 +4,7 @@
 import os
 import glob
 import sys
+from obspy.io.xseed import Parser
 
 import numpy as np
 

@@ -17,6 +17,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
+from pylot.core.util.dataprocessing import restitute_data
 from pylot.core.util.utils import getPatternLine
 from pylot.core.io.data import Data
 
