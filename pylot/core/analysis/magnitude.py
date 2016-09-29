@@ -9,7 +9,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from obspy.core.event import Magnitude as ObspyMagnitude
+import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
@@ -109,11 +109,22 @@ class Magnitude(object):
     def calc(self):
         pass
 
+    def updated_event(self):
+        self.event.magnitudes.append(self.net_magnitude())
+        return self.event
+
     def net_magnitude(self):
         if self:
-            return ObspyMagnitude(mag=np.median([M["mag"] for M in
-                                                 self.magnitudes.values()]),
-                                  type=self.type, origin_id=self.origin_id)
+            # TODO if an average Magnitude instead of the median is calculated
+            # StationMagnitudeContributions should be added to the returned
+            # Magnitude object
+            # mag_error => weights (magnitude error estimate from peak_to_peak, calcsourcespec?)
+            # weights => StationMagnitdeContribution
+            mag = ope.Magnitude(mag=np.median([M.mag for M in self.magnitudes.values()]),
+                                 type=self.type, origin_id=self.origin_id,
+                                 station_count=len(self.magnitudes),
+                                 azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            return mag
         return None
 
 
@@ -221,12 +232,25 @@ class RichterMagnitude(Magnitude):
             delta = degrees2kilometers(a.distance)
             onset = pick.time
             a0 = self.peak_to_peak(wf, onset)
-            self.amplitudes = (station, a0)
+            amplitude = ope.Amplitude(generic_amplitude=a0 * 1e-3)
+            amplitude.unit = 'm'
+            amplitude.category = 'point'
+            amplitude.waveform_id = pick.waveform_id
+            amplitude.magnitude_hint = self.type
+            amplitude.pick_id = pick.resource_id
+            amplitude.type = 'AML'
+            self.event.amplitudes.append(amplitude)
+            self.amplitudes = (station, amplitude)
             # using standard Gutenberg-Richter relation
             # TODO make the ML calculation more flexible by allowing
             # use of custom relation functions
-            mag = dict(mag=np.log10(a0) + richter_magnitude_scaling(delta))
-            self.magnitudes = (station, mag)
+            magnitude = ope.StationMagnitude(mag=np.log10(a0) + richter_magnitude_scaling(delta))
+            magnitude.origin_id = self.origin_id
+            magnitude.waveform_id = pick.waveform_id
+            magnitude.amplitude_id = amplitude.resource_id
+            magnitude.station_magnitude_type = self.type
+            self.event.station_magnitudes.append(magnitude)
+            self.magnitudes = (station, magnitude)
 
 
 class MomentMagnitude(Magnitude):
@@ -238,6 +262,8 @@ class MomentMagnitude(Magnitude):
     Dc-value, corner frequency fc, seismic moment Mo and
     corresponding moment magntiude Mw.
     '''
+
+    _props = dict()
 
     def __init__(self, stream, event, vp, Qp, density, verbosity=False, iplot=False):
         super(MomentMagnitude, self).__init__(stream, event, verbosity, iplot)
@@ -260,6 +286,23 @@ class MomentMagnitude(Magnitude):
     def rock_density(self):
         return self._density
 
+    @property
+    def moment_props(self):
+        return self._props
+
+    @moment_props.setter
+    def moment_props(self, value):
+        station, props = value
+        self._props[station] = props
+
+    @property
+    def seismic_moment(self):
+        return self._m0
+
+    @seismic_moment.setter
+    def seismic_moment(self, value):
+        self._m0 = value
+
     def calc(self):
         for a in self.arrivals:
             if a.phase not in 'pP':
@@ -281,9 +324,14 @@ class MomentMagnitude(Magnitude):
                     print("WARNING: insufficient frequency information")
                 continue
             wf = select_for_phase(wf, "P")
-            M0, Mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance, self.verbose)
-            mag = dict(w0=w0, fc=fc, M0=M0, mag=Mw)
-            self.magnitudes = (station, mag)
+            m0, mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance, self.verbose)
+            self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
+            magnitude = ope.StationMagnitude(mag=mw)
+            magnitude.origin_id = self.origin_id
+            magnitude.waveform_id = pick.waveform_id
+            magnitude.station_magnitude_type = self.type
+            self.event.station_magnitudes.append(magnitude)
+            self.magnitudes = (station, magnitude)
 
 
 def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
