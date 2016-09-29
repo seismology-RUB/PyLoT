@@ -5,17 +5,18 @@ from __future__ import print_function
 
 import argparse
 import glob
-import string
 import os
 
-import numpy as np
+from obspy import read_events
 
-from pylot.core.analysis.magnitude import M0Mw
+import pylot.core.loc.hsat as hsat
+import pylot.core.loc.nll as nll
+from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
-import pylot.core.loc.nll as nll
-import pylot.core.loc.hsat as hsat
 from pylot.core.pick.autopick import autopickevent, iteratepicker
+from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
+    remove_underscores
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -54,6 +55,7 @@ def autoPyLoT(inputfile):
 
     data = Data()
 
+    evt = None
     # getting information on data structure
 
     if parameter.hasParam('datastructure'):
@@ -97,139 +99,26 @@ def autoPyLoT(inputfile):
             print("!!No source parameter estimation possible!!")
             print("                 !!!              ")
 
-        # multiple event processing
-        # read each event in database
         datapath = datastructure.expandDataPath()
         if not parameter.hasParam('eventID'):
-            for event in [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]:
-                data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
-                print('Working on event %s' % event)
-                print(data)
-                wfdat = data.getWFData()  # all available streams
-                ##########################################################
-                # !automated picking starts here!
-                picks = autopickevent(wfdat, parameter)
-                finalpicks = picks
-                ##########################################################
-                # locating
-                if locflag == 1:
-                    # write phases to NLLoc-phase file
-                    nll.export(picks, phasefile)
-
-                    # For locating the event the NLLoc-control file has to be modified!
-                    evID = event[string.rfind(event, "/") + 1: len(events) - 1]
-                    nllocout = '%s_%s' % (evID, nllocoutpatter)
-                    # create comment line for NLLoc-control file
-                    nll.modify_inputs(ctrf, nllocroot, nllocout, phasef,
-                                      ttpat)
-
-                    # locate the event
-                    nll.locate(ctrfile)
-
-                    # !iterative picking if traces remained unpicked or occupied with bad picks!
-                    # get theoretical onset times for picks with weights >= 4
-                    # in order to reprocess them using smaller time windows around theoretical onset
-                    # get stations with bad onsets
-                    badpicks = []
-                    for key in picks:
-                        if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
-                            badpicks.append([key, picks[key]['P']['mpp']])
-
-                    if len(badpicks) == 0:
-                        print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!")
-                        # get NLLoc-location file
-                        locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                        if len(glob.glob(locsearch)) > 0:
-                            # get latest NLLoc-location file if several are available
-                            nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
-                            # calculating seismic moment Mo and moment magnitude Mw
-                            finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                              nllocfile, picks, parameter.get('rho'), \
-                                              parameter.get('vp'), parameter.get('Qp'), \
-                                              parameter.get('invdir'))
-                        else:
-                            print("autoPyLoT: No NLLoc-location file available!")
-                            print("No source parameter estimation possible!")
-                    else:
-                        # get theoretical P-onset times from NLLoc-location file
-                        locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
-                        if len(glob.glob(locsearch)) > 0:
-                            # get latest file if several are available
-                            nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
-                            nlloccounter = 0
-                            while len(badpicks) > 0 and nlloccounter <= maxnumit:
-                                nlloccounter += 1
-                                if nlloccounter > maxnumit:
-                                    print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
-                                    break
-                                print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
-                                picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
-                                # write phases to NLLoc-phase file
-                                nll.export(picks, phasefile)
-                                # remove actual NLLoc-location file to keep only the last
-                                os.remove(nllocfile)
-                                # locate the event
-                                nll.locate(ctrfile)
-                                print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
-                                # get updated NLLoc-location file
-                                nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
-                                # check for bad picks
-                                badpicks = []
-                                for key in picks:
-                                    if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
-                                        badpicks.append([key, picks[key]['P']['mpp']])
-                                print("autoPyLoT: After iteration No. %d: %d bad onsets found ..." % (nlloccounter, \
-                                                                                                      len(badpicks)))
-                                if len(badpicks) == 0:
-                                    print("autoPyLoT: No more bad onsets found, stop iterative picking!")
-                                    nlloccounter = maxnumit
-
-                            # calculating seismic moment Mo and moment magnitude Mw
-                            finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                              nllocfile, picks, parameter.get('rho'), \
-                                              parameter.get('vp'), parameter.get('Qp'), \
-                                              parameter.get('invdir'))
-                            # get network moment magntiude
-                            netMw = []
-                            for key in finalpicks.getpicdic():
-                                if finalpicks.getpicdic()[key]['P']['Mw'] is not None:
-                                    netMw.append(finalpicks.getpicdic()[key]['P']['Mw'])
-                            netMw = np.median(netMw)
-                            print("Network moment magnitude: %4.1f" % netMw)
-                        else:
-                            print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
-                ##########################################################
-                # write phase files for various location routines
-                # HYPO71
-                hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
-                if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
-                    hsat.export(finalpicks.getpicdic(), hypo71file)
-                    data.applyEVTData(finalpicks.getpicdic())
-                else:
-                    hsat.export(picks, hypo71file)
-                    data.applyEVTData(picks)
-                fnqml = '%s/autoPyLoT' % event
-                data.exportEvent(fnqml)
-
-                endsplash = '''------------------------------------------\n'
-                               -----Finished event %s!-----\n'
-                               ------------------------------------------'''.format \
-                                (version=_getVersionString()) % evID
-                print(endsplash)
-                if locflag == 0:
-                    print("autoPyLoT was running in non-location mode!")
-
-        # single event processing
+            # multiple event processing
+            # read each event in database
+            events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
         else:
-            data.setWFData(glob.glob(os.path.join(datapath, parameter.get('eventID'), '*')))
-            print("Working on event {0}".format(parameter.get('eventID')))
+            # single event processing
+            events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+        for event in events:
+            data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
+            evID = os.path.split(event)[-1]
+            print('Working on event %s' % event)
             print(data)
-
             wfdat = data.getWFData()  # all available streams
+            wfdat = remove_underscores(wfdat)
+            metadata =  read_metadata(parameter.get('invdir'))
+            corr_dat, rest_flag = restitute_data(wfdat.copy(), *metadata)
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
-            finalpicks = picks
             ##########################################################
             # locating
             if locflag == 1:
@@ -237,12 +126,14 @@ def autoPyLoT(inputfile):
                 nll.export(picks, phasefile)
 
                 # For locating the event the NLLoc-control file has to be modified!
-                nllocout = '%s_%s' % (parameter.get('eventID'), nllocoutpatter)
+                nllocout = '%s_%s' % (evID, nllocoutpatter)
                 # create comment line for NLLoc-control file
-                nll.modify_inputs(ctrf, nllocroot, nllocout, phasef, ttpat)
+                nll.modify_inputs(ctrf, nllocroot, nllocout, phasef,
+                                  ttpat)
 
                 # locate the event
                 nll.locate(ctrfile)
+
                 # !iterative picking if traces remained unpicked or occupied with bad picks!
                 # get theoretical onset times for picks with weights >= 4
                 # in order to reprocess them using smaller time windows around theoretical onset
@@ -252,18 +143,30 @@ def autoPyLoT(inputfile):
                     if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
                         badpicks.append([key, picks[key]['P']['mpp']])
 
+                # TODO keep code DRY (Don't Repeat Yourself) the following part is written twice
+                # suggestion: delete block and modify the later similar block to work properly
+
                 if len(badpicks) == 0:
                     print("autoPyLoT: No bad onsets found, thus no iterative picking necessary!")
                     # get NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
                     if len(glob.glob(locsearch)) > 0:
-                        # get latest NLLOc-location file if several are available
+                        # get latest NLLoc-location file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
+                        evt = read_events(nllocfile)[0]
                         # calculating seismic moment Mo and moment magnitude Mw
-                        finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                          nllocfile, picks, parameter.get('rho'), \
-                                          parameter.get('vp'), parameter.get('Qp'), \
-                                          parameter.get('invdir'))
+                        moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
+                                                     parameter.get('Qp'),
+                                                     parameter.get('rho'), True, 0)
+                        # update pick with moment property values (w0, fc, Mo)
+                        for station, props in moment_mag.moment_props.items():
+                            picks[station]['P'].update(props)
+                        evt = moment_mag.updated_event()
+                        local_mag = RichterMagnitude(corr_dat, evt,
+                                                     parameter.get('sstop'), True, 0)
+                        for station, amplitude in local_mag.amplitudes.items():
+                            picks[station]['S']['Ao'] = amplitude.generic_amplitude
+                        evt = local_mag.updated_event()
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -300,38 +203,39 @@ def autoPyLoT(inputfile):
                             if len(badpicks) == 0:
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
                                 nlloccounter = maxnumit
-
+                        evt = read_events(nllocfile)[0]
                         # calculating seismic moment Mo and moment magnitude Mw
-                        finalpicks = M0Mw(wfdat, None, None, parameter.get('iplot'), \
-                                          nllocfile, picks, parameter.get('rho'), \
-                                          parameter.get('vp'), parameter.get('Qp'), \
-                                          parameter.get('invdir'))
-                        # get network moment magntiude
-                        netMw = []
-                        for key in finalpicks.getpicdic():
-                            if finalpicks.getpicdic()[key]['P']['Mw'] is not None:
-                                netMw.append(finalpicks.getpicdic()[key]['P']['Mw'])
-                        netMw = np.median(netMw)
-                        print("Network moment magnitude: %4.1f" % netMw)
+                        moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
+                                                     parameter.get('Qp'),
+                                                     parameter.get('rho'), True, 0)
+                        # update pick with moment property values (w0, fc, Mo)
+                        for station, props in moment_mag.moment_props.items():
+                            picks[station]['P'].update(props)
+                        evt = moment_mag.updated_event()
+                        local_mag = RichterMagnitude(corr_dat, evt,
+                                                     parameter.get('sstop'), True, 0)
+                        for station, amplitude in local_mag.amplitudes.items():
+                            picks[station]['S']['Ao'] = amplitude.generic_amplitude
+                        evt = local_mag.updated_event()
+                        net_mw = moment_mag.net_magnitude()
+                        print("Network moment magnitude: %4.1f" % net_mw.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
             # write phase files for various location routines
             # HYPO71
-            hypo71file = '%s/%s/autoPyLoT_HYPO71.pha' % (datapath, parameter.get('eventID'))
-            if hasattr(finalpicks, 'getpicdic') and finalpicks.getpicdic() is not None:
-                hsat.export(finalpicks.getpicdic(), hypo71file)
-                data.applyEVTData(finalpicks.getpicdic())
-            else:
-                hsat.export(picks, hypo71file)
-                data.applyEVTData(picks)
-            fnqml =  '%s/%s/autoPyLoT' % (datapath, parameter.get('eventID'))
+            hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
+            hsat.export(picks, hypo71file)
+            data.applyEVTData(picks)
+            if evt is not None:
+                data.applyEVTData(evt, 'event')
+            fnqml = '%s/autoPyLoT' % event
             data.exportEvent(fnqml)
 
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'
                            ------------------------------------------'''.format \
-                            (version=_getVersionString()) % parameter.get('eventID')
+                            (version=_getVersionString()) % evID
             print(endsplash)
             if locflag == 0:
                 print("autoPyLoT was running in non-location mode!")

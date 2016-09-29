@@ -24,3 +24,6 @@ class OverwriteError(IOError):
 
 class ParameterError(Exception):
     pass
+
+class ProcessingError(RuntimeError):
+    pass

@@ -216,12 +216,8 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
     for tr in data:
         seed_id = tr.get_id()
         # check, whether this trace has already been corrected
-        # TODO read actual value of processing key in Trace's stats instead
-        # of just looking for thr key: if processing is setit doesn't
-        # necessarily mean that the trace has been corrected so far but only
-        # processed in some way, e.g. normalized
         if 'processing' in tr.stats.keys() \
-                and np.all(['remove' in p for p in tr.stats.processing]) \
+                and np.any(['remove' in p for p in tr.stats.processing]) \
                 and not force:
             print("Trace {0} has already been corrected!".format(seed_id))
             continue
@@ -254,7 +250,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
                 finv = invlist[0]
             inventory = read_inventory(finv, format='STATIONXML')
         else:
-            restflag.append(False)
+            data.remove(tr)
             continue
         # apply restitution to data
         try:
@@ -270,7 +266,9 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
             if msg0 not in e.message or msg1 not in e.message:
                 raise
             else:
-                restflag.append(False)
+                # restitution done to copies of data thus deleting traces
+                # that failed should not be a problem
+                data.remove(tr)
                 continue
         restflag.append(True)
     # check if ALL traces could be restituted, take care of large datasets

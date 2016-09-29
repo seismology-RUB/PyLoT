@@ -15,6 +15,24 @@ from pylot.core.pick.utils import select_for_phase
 from pylot.core.util.utils import getOwner, full_range, four_digits
 
 
+def add_amplitudes(event, amplitudes):
+    amplitude_list = []
+    for pick in event.picks:
+        try:
+            a0 = amplitudes[pick.waveform_id.station_code]
+            amplitude = ope.Amplitude(generic_amplitude=a0 * 1e-3)
+            amplitude.unit = 'm'
+            amplitude.category = 'point'
+            amplitude.waveform_id = pick.waveform_id
+            amplitude.magnitude_hint = 'ML'
+            amplitude.pick_id = pick.resource_id
+            amplitude.type = 'AML'
+            amplitude_list.append(amplitude)
+        except KeyError:
+            continue
+    event.amplitudes = amplitude_list
+    return event
+
 def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     """
     readPILOTEvent - function

@@ -23,9 +23,10 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import matplotlib
 import os
 import sys
+
+import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -37,24 +38,22 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget, QLineEdit
 import numpy as np
-import subprocess
 from obspy import UTCDateTime
-from obspy.geodetics import degrees2kilometers
-from obspy.core.event import Magnitude
 
-from pylot.core.analysis.magnitude import calcsourcespec, calcMoMw
+from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.autopick import autopickevent
 from pylot.core.pick.compare import Comparison
+from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
     AUTOMATIC_DEFAULTS
 from pylot.core.util.errors import FormatError, DatastructureError, \
-    OverwriteError
+    OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.dataprocessing import read_metadata
+from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range
 from pylot.core.io.location import create_creation_info, create_event
@@ -124,6 +123,11 @@ class MainWindow(QMainWindow):
         # load and display waveform data
         self.dirty = False
         self.load_data()
+        finv = settings.value("inventoryFile", None)
+        if finv is not None:
+            self._metadata = read_metadata(finv)
+        else:
+            self._metadata = None
         if self.loadWaveformData():
             self.updateFilterOptions()
         else:
@@ -367,6 +371,17 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
+
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
 
     def updateFileMenu(self):
 
@@ -911,6 +926,8 @@ class MainWindow(QMainWindow):
             epp = picks['epp'] - stime
             lpp = picks['lpp'] - stime
             spe = picks['spe']
+            if not spe:
+                spe = symmetrize_error(mpp - epp, lpp - mpp)
 
             if picktype == 'manual':
                 ax.fill_between([epp, lpp], ylims[0], ylims[1],
@@ -984,53 +1001,55 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
-        self.get_data().get_evt_data().magnitudes.append(self.calc_magnitude())
+        self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
-    def calc_magnitude(self):
-        e = self.get_data().get_evt_data()
+
+    def calc_magnitude(self, type='ML'):
+        def set_inv(settings):
+            fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
+                "Select inventory..."), self.tr("Select file"))
+            if not fninv:
+                return False
+            ans = QMessageBox.question(self, self.tr("Make default..."),
+                                       self.tr(
+                                           "New inventory filename set.\n" + \
+                                           "Do you want to make it the default value?"),
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.No)
+            if ans == QMessageBox.Yes:
+                settings.setValue("inventoryFile", fninv)
+                settings.sync()
+            self.metadata = read_metadata(fninv)
+            return True
+        
         settings = QSettings()
-        if e.origins:
-            o = e.origins[0]
-            mags = dict()
-            fninv = settings.value("inventoryFile", None)
-            if fninv is None:
-                fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
-                    "Select inventory..."), self.tr("Select file"))
-                ans = QMessageBox.question(self, self.tr("Make default..."),
-                                           self.tr(
-                                               "New inventory filename set.\n" + \
-                                               "Do you want to make it the default value?"),
-                                           QMessageBox.Yes | QMessageBox.No,
-                                           QMessageBox.No)
-                if ans == QMessageBox.Yes:
-                    settings.setValue("inventoryFile", fninv)
-                    settings.sync()
-            metadata = read_metadata(fninv)
-            for a in o.arrivals:
-                if a.phase in 'sS':
-                    continue
-                pick = a.pick_id.get_referred_object()
-                station = pick.waveform_id.station_code
-                wf = self.get_data().getWFData().select(station=station)
-                if not wf:
-                    continue
-                onset = pick.time
-                dist = degrees2kilometers(a.distance)
-                w0, fc = calcsourcespec(wf, onset, metadata, self.inputs.get('vp'), dist,
-                                        a.azimuth, a.takeoff_angle,
-                                        self.inputs.get('Qp'), 0)
-                if w0 is None or fc is None:
-                    continue
-                station_mag = calcMoMw(wf, w0, self.inputs.get('rho'),
-                                       self.inputs.get('vp'), dist)
-                mags[station] = station_mag
-            mag = np.median([M[1] for M in mags.values()])
-            # give some information on the processing
-            print('number of stations used: {0}\n'.format(len(mags.values())))
-            print('stations used:\n')
-            for s in mags.keys(): print('\t{0}'.format(s))
+        fninv = settings.value("inventoryFile", None)
 
-            return Magnitude(mag=mag, magnitude_type='Mw')
+        if fninv is None and not self.metadata:
+            if not set_inv(settings):
+                return None
+        elif fninv is not None and not self.metadata:
+            ans = QMessageBox.question(self, self.tr("Use default..."),
+                                       self.tr(
+                                           "Do you want to use the default value?"),
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.Yes)
+            if ans == QMessageBox.No:
+                if not set_inv(settings):
+                    return None
+            else:
+                self.metadata = read_metadata(fninv)
+                
+        wf_copy = self.get_data().getWFData().copy()
+        [corr_wf, rest_flag] = restitute_data(wf_copy, *self.metadata)
+        if not rest_flag:
+            raise ProcessingError('Restitution of waveform data failed!')
+        if type == 'ML':
+            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
+            return local_mag.updated_event()
+        elif type == 'Mw':
+            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'), verbosity = True)
+            return moment_mag.updated_event()
         else:
             return None
 

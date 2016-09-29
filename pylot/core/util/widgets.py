@@ -33,8 +33,8 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims, find_horizontals
-
+    demeanTrace, isSorted, findComboBoxIndex, clims
+import icons_rc
 
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",
@@ -1377,7 +1377,9 @@ class LocalisationTab(PropTab):
 
     def selectDirectory(self, edit):
         selected_directory = QFileDialog.getExistingDirectory()
-        edit.setText(selected_directory)
+        # check if string is empty
+        if selected_directory:
+            edit.setText(selected_directory)
 
     def getValues(self):
         loctool = self.locToolComboBox.currentText()
