@@ -14,7 +14,8 @@ from obspy.geodetics import degrees2kilometers
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
 
-from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, select_for_phase
+from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
+    select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
 
 
@@ -40,7 +41,8 @@ class Magnitude(object):
         self._magnitudes = dict()
 
     def __str__(self):
-        print('number of stations used: {0}\n'.format(len(self.magnitudes.values())))
+        print(
+        'number of stations used: {0}\n'.format(len(self.magnitudes.values())))
         print('\tstation\tmagnitude')
         for s, m in self.magnitudes.items(): print('\t{0}\t{1}'.format(s, m))
 
@@ -120,10 +122,12 @@ class Magnitude(object):
             # Magnitude object
             # mag_error => weights (magnitude error estimate from peak_to_peak, calcsourcespec?)
             # weights => StationMagnitdeContribution
-            mag = ope.Magnitude(mag=np.median([M.mag for M in self.magnitudes.values()]),
-                                 type=self.type, origin_id=self.origin_id,
-                                 station_count=len(self.magnitudes),
-                                 azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            mag = ope.Magnitude(
+                mag=np.median([M.mag for M in self.magnitudes.values()]),
+                magnitude_type=self.type,
+                origin_id=self.origin_id,
+                station_count=len(self.magnitudes),
+                azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
         return None
 
@@ -206,8 +210,9 @@ class RichterMagnitude(Magnitude):
             plt.plot(th, sqH)
             plt.plot(th[iwin], sqH[iwin], 'g')
             plt.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
-            plt.title('Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
-                      % (st[0].stats.station, wapp))
+            plt.title(
+                'Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
+                % (st[0].stats.station, wapp))
             plt.xlabel('Time [s]')
             plt.ylabel('Displacement [mm]')
             plt.show()
@@ -226,7 +231,8 @@ class RichterMagnitude(Magnitude):
                 station=station), a.phase)
             if not wf:
                 if self.verbose:
-                    print('WARNING: no waveform data found for station {0}'.format(
+                    print(
+                    'WARNING: no waveform data found for station {0}'.format(
                         station))
                 continue
             delta = degrees2kilometers(a.distance)
@@ -244,7 +250,8 @@ class RichterMagnitude(Magnitude):
             # using standard Gutenberg-Richter relation
             # TODO make the ML calculation more flexible by allowing
             # use of custom relation functions
-            magnitude = ope.StationMagnitude(mag=np.log10(a0) + richter_magnitude_scaling(delta))
+            magnitude = ope.StationMagnitude(
+                mag=np.log10(a0) + richter_magnitude_scaling(delta))
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
@@ -265,7 +272,8 @@ class MomentMagnitude(Magnitude):
 
     _props = dict()
 
-    def __init__(self, stream, event, vp, Qp, density, verbosity=False, iplot=False):
+    def __init__(self, stream, event, vp, Qp, density, verbosity=False,
+                 iplot=False):
         super(MomentMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._vp = vp
@@ -317,14 +325,17 @@ class MomentMagnitude(Magnitude):
             distance = degrees2kilometers(a.distance)
             azimuth = a.azimuth
             incidence = a.takeoff_angle
-            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance, azimuth,
-                                    incidence, self.p_attenuation, self.plot_flag, self.verbose)
+            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
+                                    azimuth,
+                                    incidence, self.p_attenuation,
+                                    self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
             wf = select_for_phase(wf, "P")
-            m0, mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity, distance, self.verbose)
+            m0, mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity,
+                              distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
             magnitude = ope.StationMagnitude(mag=mw)
             magnitude.origin_id = self.origin_id
@@ -359,10 +370,13 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
     delta = delta * 1000  # hypocentral distance in [m]
 
     if verbosity:
-        print("calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(tr.stats.station))
+        print(
+        "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(
+            tr.stats.station))
 
     # additional common parameters for calculating Mo
-    rP = 2 / np.sqrt(15)  # average radiation pattern of P waves (Aki & Richards, 1980)
+    rP = 2 / np.sqrt(
+        15)  # average radiation pattern of P waves (Aki & Richards, 1980)
     freesurf = 2.0  # free surface correction, assuming vertical incidence
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf)
@@ -371,7 +385,9 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
     Mw = np.log10(Mo) * 2 / 3 - 6.7  # for metric units
 
     if verbosity:
-        print("calcMoMw: Calculated seismic moment Mo = {0} Nm => Mw = {1:3.1f} ".format(Mo, Mw))
+        print(
+        "calcMoMw: Calculated seismic moment Mo = {0} Nm => Mw = {1:3.1f} ".format(
+            Mo, Mw))
 
     return Mo, Mw
 
@@ -525,7 +541,8 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         w0 = np.median([w01, w02])
         fc = np.median([fc1, fc2])
         if verbosity:
-            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (w0, fc))
+            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+            w0, fc))
 
     if iplot > 1:
         f1 = plt.figure()
@@ -644,7 +661,8 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         fc = fc0
         w0 = max(S)
     if verbosity:
-        print("fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
+        print(
+        "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
 
     if iplot > 1:
         plt.figure(iplot)
