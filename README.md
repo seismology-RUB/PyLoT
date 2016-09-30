@@ -1,2 +1,35 @@
 # PyLoT
-Python picking and Location Tool
+
+version: 0.1a
+
+The Python picking and Localisation Tool
+
+This python library contains a graphical user interfaces for picking
+seismic phases. This software needs ObsPy (http://github.com/obspy/obspy/wiki)
+and the PySide Qt4 bindings for python to be installed first.
+
+PILOT has originally been developed in Mathworks' MatLab. In order to
+distribute PILOT without facing portability problems, it has been decided
+to redevelop the software package in Python. The great work of the ObsPy
+group allows easy handling of a bunch of seismic data and PyLoT will
+benefit a lot compared to the former MatLab version.
+
+The development of PyLoT is part of the joint research project MAGS2.
+
+staff:
+======
+
+original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
+
+developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff,
+              C. Wollin, M. Rische
+
+others: A. Bruestle, T. Meier, W. Friederich
+
+release notes:
+==============
+
+
+
+
+October 2016
