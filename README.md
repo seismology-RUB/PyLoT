@@ -22,13 +22,18 @@ staff:
 original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
 
 developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff,
-              C. Wollin, M. Rische
+              C. Wollin, M. Rische, M. Paffrath
 
 others: A. Bruestle, T. Meier, W. Friederich
 
 release notes:
 ==============
 
+### Features
+
+- consistent manual phase picking through:
+    1. predefined SNR dependant zoom level
+    2. 
 
 
 
