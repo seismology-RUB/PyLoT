@@ -1,0 +1,3 @@
+## default time errors for old PILOT phases
+0.04 0.08 0.16 0.32                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
+0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
