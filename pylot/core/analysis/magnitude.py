@@ -200,8 +200,8 @@ class RichterMagnitude(Magnitude):
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         wapp = np.max(sqH[iwin])
         if self.verbose:
-            print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
-                  "mm".format(wapp))
+            print("Determined Wood-Anderson peak-to-peak amplitude for station {0}: {1} "
+                  "mm".format(st[0].stats.station, wapp))
 
         # check for plot flag (for debugging only)
         if self.plot_flag > 1:
