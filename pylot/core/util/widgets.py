@@ -11,6 +11,7 @@ import datetime
 import numpy as np
 
 from matplotlib.figure import Figure
+from pylot.core.util.utils import find_horizontals
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
