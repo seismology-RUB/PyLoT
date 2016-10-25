@@ -254,9 +254,15 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
             data.remove(tr)
             continue
         # apply restitution to data
+        print("Correcting instrument at station %s" % tr.stats.station)
         try:
             if invtype in ['resp', 'dless']:
-                tr.simulate(**kwargs)
+                try:
+                   tr.simulate(**kwargs)
+                except ValueError as e:
+                   vmsg = '{0}'.format(e)
+                   print(vmsg)
+                   
             else:
                 tr.attach_response(inventory)
                 tr.remove_response(output=unit,
