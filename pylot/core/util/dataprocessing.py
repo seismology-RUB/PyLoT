@@ -255,7 +255,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
             continue
         # apply restitution to data
         print("Correcting instrument at station %s, channel %s" \
-                %(tr.stats.station, tr.stats.channel))
+                % (tr.stats.station, tr.stats.channel))
         try:
             if invtype in ['resp', 'dless']:
                 try:
