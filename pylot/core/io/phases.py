@@ -14,7 +14,6 @@ from pylot.core.io.location import create_arrival, create_event, \
 from pylot.core.pick.utils import select_for_phase
 from pylot.core.util.utils import getOwner, full_range, four_digits
 
-
 def add_amplitudes(event, amplitudes):
     amplitude_list = []
     for pick in event.picks:
@@ -412,7 +411,7 @@ def writephases(arrivals, fformat, filename):
         fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
         for key in arrivals:
             # P onsets
-            if arrivals[key]['P']:
+            if arrivals[key].has_key('P'):
                 try:
                     fm = arrivals[key]['P']['fm']
                 except KeyError as e:
