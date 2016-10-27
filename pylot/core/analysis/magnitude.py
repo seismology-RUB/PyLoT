@@ -636,7 +636,6 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # right side of initial corner frequency
     fcstopr = min(fc0 + (fc0 / 2), f[len(f) - 1]) 
     ir = np.where(f >= fcstopr)
-    print fcstopl, fcstopr
     # check, if fcstopr is available
     if np.size(ir) == 0:
         fcstopr = fc0
