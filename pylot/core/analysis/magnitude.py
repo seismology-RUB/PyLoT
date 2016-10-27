@@ -451,19 +451,20 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     LQT = wfstream.rotate('ZNE->LQT', azimuth, incidence)
     ldat = LQT.select(component="L")
     if len(ldat) == 0:
-        # if horizontal channels are 2 and 3
+        # if horizontal channels are 1 and 2
         # no azimuth information is available and thus no
         # rotation is possible!
         if verbosity:
             print("calcsourcespec: Azimuth information is missing, "
                   "no rotation of components possible!")
-        ldat = LQT.select(component="Z")
+        # instead, use component 3
+        ldat = LQT.select(component="3")
 
     # integrate to displacement
     # unrotated vertical component (for comparison)
     inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, dt))
-
     # rotated component Z => L
+    print ldat
     Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, dt))
 
     # get window after P pulse for
