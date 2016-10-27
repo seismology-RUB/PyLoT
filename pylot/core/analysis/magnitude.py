@@ -6,14 +6,12 @@ Created autumn/winter 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
-
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
@@ -317,8 +315,8 @@ class MomentMagnitude(Magnitude):
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
-            wf = select_for_phase(self.stream.select(
-                station=station), a.phase)
+            scopy = self.stream.copy()
+            wf = scopy.select(station=station)
             if not wf:
                 continue
             onset = pick.time
@@ -326,15 +324,16 @@ class MomentMagnitude(Magnitude):
             azimuth = a.azimuth
             incidence = a.takeoff_angle
             w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
-                                    azimuth,
-                                    incidence, self.p_attenuation,
+                                    azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
-            wf = select_for_phase(wf, "P")
-            m0, mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity,
+            WF = select_for_phase(self.stream.select(
+                station=station), a.phase)
+            WF = select_for_phase(WF, "P")
+            m0, mw = calcMoMw(WF, w0, self.rock_density, self.p_velocity,
                               distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
             magnitude = ope.StationMagnitude(mag=mw)
@@ -426,7 +425,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     :type:  integer
     '''
     if verbosity:
-        print ("Calculating source spectrum ....")
+        print ("Calculating source spectrum for station %s ...." % wfstream[0].stats.station)
 
     # get Q value
     Q, A = qp
