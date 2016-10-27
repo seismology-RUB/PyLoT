@@ -459,7 +459,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
                   "no rotation of components possible!")
         # instead, use component 3
         ldat = LQT.select(component="3")
-        if len(ldat == 0:
+        if len(ldat) == 0:
             # maybe component z available
             ldat = LQT.select(component="Z")
 
