@@ -16,7 +16,6 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
 
-
 def richter_magnitude_scaling(delta):
     relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
                                        '.pylot', 'richter_scaling.data'))
@@ -530,7 +529,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         fc1 = optspecfit[1]
         if verbosity:
             print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                   "Determined corner frequency: %f Hz" % (w01, fc1))
+                   "calcsourcespec: Determined corner frequency: %f Hz" % (w01, fc1))
 
         # use of conventional fitting
         [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
@@ -626,18 +625,25 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     fc = []
     stdfc = []
     STD = []
-
     # get window around initial corner frequency for trials
-    fcstopl = fc0 - max(1, len(f) / 10)
-    il = np.argmin(abs(f - fcstopl))
-    fcstopl = f[il]
-    fcstopr = fc0 + min(len(f), len(f) / 10)
-    ir = np.argmin(abs(f - fcstopr))
-    fcstopr = f[ir]
-    iF = np.where((f >= fcstopl) & (f <= fcstopr))
+    # left side of initial corner frequency
+    fcstopl = fc0 - max(1, fc0 / 2)
+    il = np.where(f <= fcstopl)
+    il = il[0][np.size(il) - 1] 
+    # right side of initial corner frequency
+    fcstopr = fc0 + (fc0 / 2) 
+    ir = np.where(f >= fcstopr)
+    # check, if fcstopr is available
+    if np.size(ir) == 0:
+        fcstopr = fc0
+        ir = len(f) - 1
+    else:
+        ir = ir[0][0]
 
     # vary corner frequency around initial point
-    for i in range(il, ir):
+    print("fitSourceModel: Varying corner frequency "
+           "around initial corner frequency ...")
+    for i in range(il, ir, 10):
         FC = f[i]
         indexdc = np.where((f > 0) & (f <= FC))
         dc = np.mean(S[indexdc])
