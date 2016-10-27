@@ -628,12 +628,13 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     STD = []
     # get window around initial corner frequency for trials
     # left side of initial corner frequency
-    fcstopl = fc0 - max(1, fc0 / 2)
+    fcstopl = max(f[0], fc0 - max(1, fc0 / 2))
     il = np.where(f <= fcstopl)
     il = il[0][np.size(il) - 1] 
     # right side of initial corner frequency
-    fcstopr = fc0 + (fc0 / 2) 
+    fcstopr = min(fc0 + (fc0 / 2), f[len(f) - 1]) 
     ir = np.where(f >= fcstopr)
+    print fcstopl, fcstopr
     # check, if fcstopr is available
     if np.size(ir) == 0:
         fcstopr = fc0
