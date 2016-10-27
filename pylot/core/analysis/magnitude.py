@@ -459,12 +459,14 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
                   "no rotation of components possible!")
         # instead, use component 3
         ldat = LQT.select(component="3")
+        if len(ldat == 0:
+            # maybe component z available
+            ldat = LQT.select(component="Z")
 
     # integrate to displacement
     # unrotated vertical component (for comparison)
     inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, dt))
     # rotated component Z => L
-    print ldat
     Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, dt))
 
     # get window after P pulse for
