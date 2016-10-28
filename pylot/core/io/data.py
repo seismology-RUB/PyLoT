@@ -12,7 +12,6 @@ from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.utils import fnConstructor, full_range
 
-
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
@@ -298,10 +297,18 @@ class Data(object):
             """
 
             #firstonset = find_firstonset(picks)
-            if self.get_evt_data().picks:
-                raise OverwriteError('Actual picks would be overwritten!')
-            else:
-                picks = picks_from_picksdict(picks)
+            # check for automatic picks
+            for key in picks:
+                if picks[key]['P']['picker'] == 'autoPyLoT':
+                   print("Warning: Existing picks will be overwritten!")
+                   break
+                else:
+                   if self.get_evt_data().picks:
+                       raise OverwriteError('Existing picks would be overwritten!')
+                       break
+                   else:
+                       picks = picks_from_picksdict(picks)
+                       break
             self.get_evt_data().picks = picks
             # if 'smi:local' in self.getID() and firstonset:
             #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
