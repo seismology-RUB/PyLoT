@@ -646,7 +646,18 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # vary corner frequency around initial point
     print("fitSourceModel: Varying corner frequency "
            "around initial corner frequency ...")
-    for i in range(il, ir, 10):
+    print il, ir
+    # check difference of il and ir in order to
+    # keep calculation time acceptable
+    idiff = ir - il
+    if idiff > 10000:
+       increment = 100
+    elif idiff <= 20:
+       increment = 1
+    else:
+       increment = 10 
+
+    for i in range(il, ir, increment):
         FC = f[i]
         indexdc = np.where((f > 0) & (f <= FC))
         dc = np.mean(S[indexdc])
