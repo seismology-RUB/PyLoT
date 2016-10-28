@@ -6,7 +6,6 @@ import os
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event
-
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
@@ -300,7 +299,8 @@ class Data(object):
             # check for automatic picks
             for key in picks:
                 if picks[key]['P']['picker'] == 'autoPyLoT':
-                   print("Warning: Existing picks will be overwritten!")
+                   print("Existing picks will be overwritten!")
+                   picks = picks_from_picksdict(picks)
                    break
                 else:
                    if self.get_evt_data().picks:
