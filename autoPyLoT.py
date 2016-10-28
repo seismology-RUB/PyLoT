@@ -6,6 +6,7 @@ from __future__ import print_function
 import argparse
 import glob
 import os
+import pdb
 
 from obspy import read_events
 
@@ -157,13 +158,15 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
-                                                     parameter.get('rho'), True, 0)
+                                                     parameter.get('rho'), True, \
+                                                     parameter.get('iplot'))
                         # update pick with moment property values (w0, fc, Mo)
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
                         local_mag = RichterMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True, 0)
+                                                     parameter.get('sstop'), True,\
+                                                     parameter.get('iplot'))
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -207,13 +210,15 @@ def autoPyLoT(inputfile):
                         # calculating seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
-                                                     parameter.get('rho'), True, 0)
+                                                     parameter.get('rho'), True, \
+                                                     parameter.get('iplot'))
                         # update pick with moment property values (w0, fc, Mo)
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
                         local_mag = RichterMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True, 0)
+                                                     parameter.get('sstop'), True, \
+                                                     parameter.get('iplot'))
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
