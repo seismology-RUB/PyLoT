@@ -646,7 +646,6 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # vary corner frequency around initial point
     print("fitSourceModel: Varying corner frequency "
            "around initial corner frequency ...")
-    print il, ir
     # check difference of il and ir in order to
     # keep calculation time acceptable
     idiff = ir - il
