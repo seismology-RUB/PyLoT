@@ -182,6 +182,7 @@ def read_metadata(path_to_inventory):
     if invtype is None:
         print("Neither dataless-SEED file, inventory-xml file nor "
               "RESP-file found!")
+        print("!!WRONG CALCULATION OF SOURCE PARAMETERS!!")
         robj = None, 
     elif invtype == 'dless':  # prevent multiple read of large dlsv
         print("Reading metadata information from dataless-SEED file ...")
