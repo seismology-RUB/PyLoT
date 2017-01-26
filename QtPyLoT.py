@@ -586,8 +586,7 @@ class MainWindow(QMainWindow):
             ans = QMessageBox.question(self, self.tr("Overwrite file..."),
                                self.tr("File already exists: {0}\n".format(fbasename + exform) + \
                                   "Overwrite file anyway?"),
-                               QMessageBox.Cancel, QMessageBox.Yes | QMessageBox.No,
-                               QMessageBox.Cancel)
+                               QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             # only negative answers have to be caught
             if ans == QMessageBox.No:
                 self.saveData()
