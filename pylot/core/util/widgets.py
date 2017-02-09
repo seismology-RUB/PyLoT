@@ -9,7 +9,6 @@ import warnings
 import copy
 import datetime
 import numpy as np
-import math
 
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
@@ -243,55 +242,54 @@ class ComparisonDialog(QDialog):
                                          std=std, exp=exp)
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
 
-        if math.isnan(std) == False:
-            plot_pdf(_axes, x, y, annotation, bbox_props, 'time difference [s]',
-                      'propability density [-]', phase)
+        plot_pdf(_axes, x, y, annotation, bbox_props, 'time difference [s]',
+                  'propability density [-]', phase)
 
-            pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
-            pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
+        pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
+        pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
 
-            xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data, \
-                                                   pdf_a.standard_deviation(), \
-                                                   pdf_a.expectation(), \
-                                                   pdf_a.limits()
-            xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data, \
-                                                   pdf_m.standard_deviation(), \
-                                                   pdf_m.expectation(), \
-                                                   pdf_m.limits()
-            # find common limits
-            lims = clims(alim, mlim)
-            # relative x axis
-            x0 = lims[0]
-            xmanu -= x0
-            xauto -= x0
-            lims = [lim - x0 for lim in lims]
-            x0 = UTCDateTime(x0)
+        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data, \
+                                               pdf_a.standard_deviation(), \
+                                               pdf_a.expectation(), \
+                                               pdf_a.limits()
+        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data, \
+                                               pdf_m.standard_deviation(), \
+                                               pdf_m.expectation(), \
+                                               pdf_m.limits()
+        # find common limits
+        lims = clims(alim, mlim)
+        # relative x axis
+        x0 = lims[0]
+        xmanu -= x0
+        xauto -= x0
+        lims = [lim - x0 for lim in lims]
+        x0 = UTCDateTime(x0)
 
-            # set annotation text
-            mannotation = "probability density for manual pick\n" \
-                          "expectation: {exp}\n" \
-                          "std: {std}".format(std=stdmanu,
-                                              exp=expmanu-x0.timestamp)
+        # set annotation text
+        mannotation = "probability density for manual pick\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(std=stdmanu,
+                                          exp=expmanu-x0.timestamp)
 
-            aannotation = "probability density for automatic pick\n" \
-                          "expectation: {exp}\n" \
-                          "std: {std}".format(std=stdauto,
-                                              exp=expauto-x0.timestamp)
+        aannotation = "probability density for automatic pick\n" \
+                      "expectation: {exp}\n" \
+                      "std: {std}".format(std=stdauto,
+                                          exp=expauto-x0.timestamp)
 
-            _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
-                            bbox_props=bbox_props, xlabel='seconds since '
-                                                          '{0}'.format(x0),
-                            ylabel='probability density [-]')
-            _ax1.set_xlim(lims)
+        _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
+                        bbox_props=bbox_props, xlabel='seconds since '
+                                                      '{0}'.format(x0),
+                        ylabel='probability density [-]')
+        _ax1.set_xlim(lims)
 
-            _ax2 = plot_pdf(_ax2, xauto, yauto, aannotation,
-                            bbox_props=bbox_props, xlabel='seconds since '
+        _ax2 = plot_pdf(_ax2, xauto, yauto, aannotation,
+                        bbox_props=bbox_props, xlabel='seconds since '
                                                       '{0}'.format(x0))
-            _ax2.set_xlim(lims)
+        _ax2.set_xlim(lims)
 
-            _gs.update(wspace=0.5, hspace=0.5)
+        _gs.update(wspace=0.5, hspace=0.5)
 
-            self.canvas.draw()
+        self.canvas.draw()
 
     def plothist(self):
         name = self.sender().objectName()
