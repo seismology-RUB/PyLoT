@@ -25,7 +25,6 @@ https://www.iconfinder.com/iconsets/flavour
 
 import os
 import sys
-
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -191,10 +190,9 @@ class MainWindow(QMainWindow):
         auto_icon = QIcon()
         auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
         locate_icon = QIcon()
-        locate_icon.addPixmap(QPixmap(':/icons/locate.png'))
+        locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
         compare_icon.addPixmap(QPixmap(':/icons/compare.png'))
-
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
@@ -347,8 +345,7 @@ class MainWindow(QMainWindow):
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
-
-        locateEvent = self.createAction(parent=self, text='locate_event',
+        locateEvent = self.createAction(parent=self, text='locate the event',
                                         slot=self.locate_event,
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
