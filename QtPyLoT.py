@@ -1153,7 +1153,7 @@ def main():
     pylot_form = MainWindow()
     icon = QIcon()
     pylot_form.setWindowIcon(icon)
-    pylot_form.setIconSize(QSize(50, 50))
+    pylot_form.setIconSize(QSize(60, 60))
     
     splash.showMessage('Loading. Please wait ...')
     pylot_app.processEvents()
