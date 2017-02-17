@@ -31,7 +31,7 @@ matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
-    QFileInfo, Qt
+    QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
@@ -163,8 +163,6 @@ class MainWindow(QMainWindow):
                                   lambda event: self.tutor_user())
         _layout.addWidget(self.DataPlot)
 
-        manupicksicon = self.style().standardIcon(QStyle.SP_DialogYesButton)
-        autopicksicon = self.style().standardIcon(QStyle.SP_DialogNoButton)
         locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         loadpiloticon = self.style().standardIcon(QStyle.SP_ComputerIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
@@ -173,6 +171,10 @@ class MainWindow(QMainWindow):
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
 
         # create resource icons
+        manupicksicon = QIcon()
+        manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
+        autopicksicon = QIcon()
+        autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
         p_icon = QIcon()
         p_icon.addPixmap(QPixmap(':/icons/key_P.png'))
         s_icon = QIcon()
@@ -1149,6 +1151,10 @@ def main():
 
     # create the main window
     pylot_form = MainWindow()
+    icon = QIcon()
+    pylot_form.setWindowIcon(icon)
+    pylot_form.setIconSize(QSize(50, 50))
+    
     splash.showMessage('Loading. Please wait ...')
     pylot_app.processEvents()
 
