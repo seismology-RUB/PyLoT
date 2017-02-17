@@ -190,11 +190,11 @@ class MainWindow(QMainWindow):
         e_icon = QIcon()
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
         auto_icon = QIcon()
-        auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
+        auto_icon.addPixmap(QPixmap(':/icons/autopick_button.png'))
         locate_icon = QIcon()
         locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
-        compare_icon.addPixmap(QPixmap(':/icons/compare.png'))
+        compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
                                                   self.load_data,
                                                   QKeySequence.Open,
                                                   manupicksicon,
-                                                  "Load pick data for "
+                                                  "Load manual picks for "
                                                   "the actual event.")
         openmanualpicksaction.setData(None)
         openautopicksaction = self.createAction(self, "Load &automatic picks "
@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
                                                 self.load_autopicks,
                                                 "Ctrl+A",
                                                 autopicksicon,
-                                                "Load automatic pick data "
+                                                "Load automatic picks "
                                                 "for the actual event.")
         openautopicksaction.setData(None)
 
