@@ -2,6 +2,8 @@
     <qresource>
         <file>icons/pylot.ico</file>
         <file>icons/pylot.png</file>
+        <file>icons/manupicsicon.png</file>
+        <file>icons/autopicsicon.png</file>
         <file>icons/locate_button.png</file>
         <file>icons/printer.png</file>
         <file>icons/delete.png</file>
