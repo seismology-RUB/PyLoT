@@ -163,13 +163,15 @@ class MainWindow(QMainWindow):
                                   lambda event: self.tutor_user())
         _layout.addWidget(self.DataPlot)
 
-        locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+        #locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
 
         # create resource icons
+        locactionicon = QIcon()
+        locactionicon.addPixmap(QPixmap(':/icons/locactionicon.png'))
         manupicksicon = QIcon()
         manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
         autopicksicon = QIcon()
@@ -271,7 +273,7 @@ class MainWindow(QMainWindow):
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
                                         print_icon,
-                                        "Print waveform overview.")
+                                        "Print waveform section.")
         helpAction = self.createAction(self, "&Help ...", self.helpHelp,
                                        QKeySequence.HelpContents, helpIcon,
                                        """Show either the documentation
