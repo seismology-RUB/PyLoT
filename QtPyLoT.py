@@ -164,7 +164,6 @@ class MainWindow(QMainWindow):
         _layout.addWidget(self.DataPlot)
 
         locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
-        loadpiloticon = self.style().standardIcon(QStyle.SP_ComputerIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
@@ -175,6 +174,8 @@ class MainWindow(QMainWindow):
         manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
         autopicksicon = QIcon()
         autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        loadpiloticon = QIcon()
+        loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
         p_icon.addPixmap(QPixmap(':/icons/key_P.png'))
         s_icon = QIcon()
@@ -224,7 +225,8 @@ class MainWindow(QMainWindow):
                                            self.load_pilotevent, "Ctrl+E",
                                            loadpiloticon,
                                            "Load PILOT event from information "
-                                           "Matlab binary collections.")
+                                           "MatLab binary collections (created"
+                                           " in former MatLab based version).")
         saveEventAction = self.createAction(self, "&Save event ...",
                                             self.saveData, QKeySequence.Save,
                                             saveIcon, "Save actual event data.")
