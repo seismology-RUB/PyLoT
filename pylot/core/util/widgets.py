@@ -10,6 +10,7 @@ import copy
 import datetime
 import numpy as np
 
+from PyQt4.QtCore import pyqtRemoveInputHook
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
 
@@ -237,8 +238,8 @@ class ComparisonDialog(QDialog):
                          pdf.expectation()
 
         annotation = "{phase} difference on {station}\n" \
-                     "expectation: {exp}\n" \
-                     "std: {std}".format(station=station, phase=phase,
+                     "expectation: {exp} s\n" \
+                     "std: {std} s".format(station=station, phase=phase,
                                          std=std, exp=exp)
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
 
@@ -267,13 +268,13 @@ class ComparisonDialog(QDialog):
 
         # set annotation text
         mannotation = "probability density for manual pick\n" \
-                      "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdmanu,
+                      "expectation: {exp} s\n" \
+                      "std: {std} s".format(std=stdmanu,
                                           exp=expmanu-x0.timestamp)
 
         aannotation = "probability density for automatic pick\n" \
-                      "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdauto,
+                      "expectation: {exp} s\n" \
+                      "std: {std} s".format(std=stdauto,
                                           exp=expauto-x0.timestamp)
 
         _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
