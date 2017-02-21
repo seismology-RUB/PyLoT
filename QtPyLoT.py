@@ -163,7 +163,6 @@ class MainWindow(QMainWindow):
                                   lambda event: self.tutor_user())
         _layout.addWidget(self.DataPlot)
 
-        #locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
@@ -356,7 +355,7 @@ class MainWindow(QMainWindow):
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
                                         tip='Locate the event using '
-                                            'the picked arrivals.')
+                                            'the displayed manual arrivals.')
 
         locationToolBar = self.addToolBar("LocationTools")
         locationToolActions = (locateEvent,)
