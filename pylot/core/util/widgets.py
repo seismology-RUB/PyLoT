@@ -272,12 +272,12 @@ class ComparisonDialog(QDialog):
         x0 = UTCDateTime(x0)
 
         # set annotation text
-        mannotation = "probability density for manual pick\n" \
+        mannotation = "probability density of manual pick\n" \
                       "expectation: {exp} s\n" \
                       "std: {std} s".format(std=stdmanu,
                                           exp=expmanu-x0.timestamp)
 
-        aannotation = "probability density for automatic pick\n" \
+        aannotation = "probability density of automatic pick\n" \
                       "expectation: {exp} s\n" \
                       "std: {std} s".format(std=stdauto,
                                           exp=expauto-x0.timestamp)
