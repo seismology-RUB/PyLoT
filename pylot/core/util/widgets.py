@@ -10,7 +10,6 @@ import copy
 import datetime
 import numpy as np
 
-from PyQt4.QtCore import pyqtRemoveInputHook
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
 
@@ -51,7 +50,12 @@ def getDataType(parent):
 
 def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
              title=None):
-    _axes.plot(x, y())
+    # try method or data
+    try:
+    	_axes.plot(x, y()) # y provided as method 
+    except:
+    	_axes.plot(x, y)   # y provided as data
+
     if title:
         _axes.set_title(title)
     if xlabel:
@@ -248,12 +252,13 @@ class ComparisonDialog(QDialog):
 
         pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
         pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
+        
 
-        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data, \
+        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data(), \
                                                pdf_a.standard_deviation(), \
                                                pdf_a.expectation(), \
                                                pdf_a.limits()
-        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data, \
+        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data(), \
                                                pdf_m.standard_deviation(), \
                                                pdf_m.expectation(), \
                                                pdf_m.limits()
