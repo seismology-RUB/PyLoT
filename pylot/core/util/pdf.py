@@ -240,7 +240,7 @@ class ProbabilityDensityFunction(object):
 
     @classmethod
     def from_pick(self, lbound, barycentre, rbound, incr=0.001, decfact=0.01,
-                  type='gauss'):
+                  type='exp'):
         '''
         Initialize a new ProbabilityDensityFunction object.
         Takes incr, lbound, barycentre and rbound to derive x0 and the number
@@ -286,7 +286,7 @@ class ProbabilityDensityFunction(object):
         pdf = branches[type]
 
         # return the object
-        return ProbabilityDensityFunction(x0, incr, npts, pdf, barycentre,
+        return ProbabilityDensityFunction(x0, incr, npts, pdf,
                                           params, decfact)
 
     def broadcast(self, pdf, si, ei, data):
