@@ -286,7 +286,7 @@ class ProbabilityDensityFunction(object):
         pdf = branches[type]
 
         # return the object
-        return ProbabilityDensityFunction(x0, incr, npts, pdf,
+        return ProbabilityDensityFunction(x0, incr, npts, pdf, barycentre,
                                           params, decfact)
 
     def broadcast(self, pdf, si, ei, data):
