@@ -51,8 +51,11 @@ def exp_parameter(te, tm, tl, eta):
 
     sig1 = np.log(eta) / (te - tm)
     sig2 = np.log(eta) / (tm - tl)
+    if np.isinf(sig1) == True:
+        sig1 = np.log(eta) / (tm - tl)
+    if np.isinf(sig2) == True:
+        sig2 = np.log(eta) / (te - tm)
     a = 1 / (1 / sig1 + 1 / sig2)
-
     return tm, sig1, sig2, a
 
 
