@@ -307,10 +307,14 @@ class ProbabilityDensityFunction(object):
         :return float: rval
         '''
 
-        rval = 0
-        for x in self.axis:
-            rval += x * self.data(x)
-        return rval * self.incr
+        #rval = 0
+        #for x in self.axis:
+        #    rval += x * self.data(x)
+        rval = self.mu
+        # Not sure about this! That might not be the barycentre.
+        # However, for std calculation (next function)
+        # self.mu is also used!! (LK, 02/2017) 
+        return rval 
 
     def standard_deviation(self):
         mu = self.mu
