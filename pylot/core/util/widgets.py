@@ -241,10 +241,10 @@ class ComparisonDialog(QDialog):
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
 
-        annotation = "{phase} difference on {station}\n" \
-                     "expectation: {exp} s\n" \
-                     "std: {std} s".format(station=station, phase=phase,
-                                         std=std, exp=exp)
+        annotation = "%s difference on %s\n" \
+                     "expectation: %7.4f s\n" \
+                     "std: %7.4f s" % (phase, station,
+                                      exp, std)
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
 
         plot_pdf(_axes, x, y, annotation, bbox_props, 'time difference [s]',
@@ -252,7 +252,6 @@ class ComparisonDialog(QDialog):
 
         pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
         pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
-        
 
         xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data(), \
                                                pdf_a.standard_deviation(), \
@@ -266,21 +265,19 @@ class ComparisonDialog(QDialog):
         lims = clims(alim, mlim)
         # relative x axis
         x0 = lims[0]
-        xmanu -= x0
+        xmanu -= x0 
         xauto -= x0
         lims = [lim - x0 for lim in lims]
         x0 = UTCDateTime(x0)
 
         # set annotation text
         mannotation = "probability density of manual pick\n" \
-                      "expectation: {exp} s\n" \
-                      "std: {std} s".format(std=stdmanu,
-                                          exp=expmanu-x0.timestamp)
+                      "expectation: %7.4f s\n" \
+                      "std: %7.4f s" % (expmanu-x0.timestamp, stdmanu)
 
         aannotation = "probability density of automatic pick\n" \
-                      "expectation: {exp} s\n" \
-                      "std: {std} s".format(std=stdauto,
-                                          exp=expauto-x0.timestamp)
+                      "expectation: %7.4f s\n" \
+                      "std: %7.4f s" % (expauto-x0.timestamp, stdauto)
 
         _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
                         bbox_props=bbox_props, xlabel='seconds since '
