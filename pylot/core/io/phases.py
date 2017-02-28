@@ -383,7 +383,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
-def writephases(arrivals, fformat, filename):
+def writephases(arrivals, fformat, filename, parameter):
     """
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
@@ -401,14 +401,18 @@ def writephases(arrivals, fformat, filename):
             HYPOINVERSE, and hypoDD
 
     :param: filename, full path and name of phase file
-    :type: string
-    """
+    :type:  string
+
+    :param: parameter, all input information
+    :type:  object
+    """ 
 
     if fformat == 'NLLoc':
         print ("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
-        fid.write('# EQEVENT:  Label: EQ001  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n')
+        fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
+                  (parameter.get('database'), parameter.get('eventID')))
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -476,9 +480,13 @@ def writephases(arrivals, fformat, filename):
         print ("Writing phases to %s for HYPO71" % filename)
         fid = open("%s" % filename, 'w')
         # write header
-        fid.write('                                                              EQ001\n')
+        fid.write('                                                                %s\n' %
+                                                                            parameter.get('eventID'))
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
+                stat = key
+                if len(stat) > 4:
+                    stat = stat[1:5]
                 Ponset = arrivals[key]['P']['mpp']
                 Sonset = arrivals[key]['S']['mpp']
                 pweight = arrivals[key]['P']['weight']
@@ -516,7 +524,7 @@ def writephases(arrivals, fformat, filename):
                         sstr = 'I'
                     elif sweight >= 2:
                         sstr = 'E'
-                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (key,
+                    fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (stat,
                                                                                              pstr,
                                                                                              fm,
                                                                                              pweight,
@@ -531,7 +539,7 @@ def writephases(arrivals, fformat, filename):
                                                                                              sweight,
                                                                                              Ao))
                 else:
-                    fid.write('%s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (key,
+                    fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (stat,
                                                                                              pstr,
                                                                                              fm,
                                                                                              pweight,
@@ -545,6 +553,47 @@ def writephases(arrivals, fformat, filename):
 
         fid.close()
 
+    elif fformat == 'HYPOSAT':
+        print ("Writing phases to %s for HYPOSAT" % filename)
+        fid = open("%s" % filename, 'w')
+        # write header
+        fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
+        errP = parameter.get('timeerrorsP')
+        errS = parameter.get('timeerrorsS')
+        for key in arrivals:
+            # P onsets
+            if arrivals[key].has_key('P'):
+                if arrivals[key]['P']['weight'] < 4:
+                    Ponset = arrivals[key]['P']['mpp']
+                    pyear = Ponset.year
+                    pmonth = Ponset.month
+                    pday = Ponset.day
+                    phh = Ponset.hour
+                    pmm = Ponset.minute
+                    pss = Ponset.second
+                    pms = Ponset.microsecond
+                    Pss = pss + pms / 1000000.0
+                    # use symmetrized picking error as std
+                    # (read the HYPOSAT manual)
+                    pstd = arrivals[key]['P']['spe']
+                    fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n' 
+                              % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
+            # S onsets
+            if arrivals[key].has_key('S') and arrivals[key]['S']:
+                if arrivals[key]['S']['weight'] < 4:
+                    Sonset = arrivals[key]['S']['mpp']
+                    syear = Sonset.year
+                    smonth = Sonset.month
+                    sday = Sonset.day
+                    shh = Sonset.hour
+                    smm = Sonset.minute
+                    sss = Sonset.second
+                    sms = Sonset.microsecond
+                    Sss = sss + sms / 1000000.0
+                    sstd = arrivals[key]['S']['spe']
+                    fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n' 
+                              % (key, syear, smonth, sday, shh, smm, Sss, sstd))
+        fid.close()
 
 def merge_picks(event, picks):
     """
