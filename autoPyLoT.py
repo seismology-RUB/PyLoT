@@ -10,7 +10,8 @@ import pdb
 
 from obspy import read_events
 
-import pylot.core.loc.hsat as hsat
+import pylot.core.loc.hyposat as hyposat
+import pylot.core.loc.hypo71 as hypo71
 import pylot.core.loc.nll as nll
 from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
@@ -51,7 +52,6 @@ def autoPyLoT(inputfile):
     print(splash)
 
     # reading parameter file
-
     parameter = AutoPickParameter(inputfile)
 
     data = Data()
@@ -124,7 +124,7 @@ def autoPyLoT(inputfile):
             # locating
             if locflag == 1:
                 # write phases to NLLoc-phase file
-                nll.export(picks, phasefile)
+                nll.export(picks, phasefile, parameter)
 
                 # For locating the event the NLLoc-control file has to be modified!
                 nllocout = '%s_%s' % (evID, nllocoutpatter)
@@ -188,7 +188,7 @@ def autoPyLoT(inputfile):
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
                             picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                             # write phases to NLLoc-phase file
-                            nll.export(picks, phasefile)
+                            nll.export(picks, phasefile, parameter)
                             # remove actual NLLoc-location file to keep only the last
                             os.remove(nllocfile)
                             # locate the event
@@ -229,8 +229,12 @@ def autoPyLoT(inputfile):
             ##########################################################
             # write phase files for various location routines
             # HYPO71
-            hypo71file = '%s/autoPyLoT_HYPO71.pha' % event
-            hsat.export(picks, hypo71file)
+            hypo71file = '%s/autoPyLoT_HYPO71_phases' % event
+            hypo71.export(picks, hypo71file, parameter)
+            # HYPOSAT
+            hyposatfile = '%s/autoPyLoT_HYPOSAT_phases' % event
+            hyposat.export(picks, hyposatfile, parameter)
+            # ObsPy event object
             data.applyEVTData(picks)
             if evt is not None:
                 data.applyEVTData(evt, 'event')
