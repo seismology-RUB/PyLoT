@@ -14,7 +14,7 @@ __version__ = _getVersionString()
 class NLLocError(EnvironmentError):
     pass
 
-def export(picks, fnout):
+def export(picks, fnout, parameter):
     '''
     Take <picks> dictionary and exports picking data to a NLLOC-obs
     <phasefile> without creating an ObsPy event object.
@@ -24,9 +24,12 @@ def export(picks, fnout):
 
     :param fnout: complete path to the exporting obs file
     :type fnout: str
+ 
+    :param: parameter, all input information
+    :type:  object
     '''
     # write phases to NLLoc-phase file
-    writephases(picks, 'NLLoc', fnout)
+    writephases(picks, 'NLLoc', fnout, parameter)
 
 
 def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
