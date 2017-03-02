@@ -10,6 +10,7 @@ import os
 from pylot.core.loc import nll
 from pylot.core.loc import hyposat
 from pylot.core.loc import hypo71
+from pylot.core.loc import hypodd
 from pylot.core.loc import velest
 
 
@@ -56,7 +57,7 @@ OUTPUTFORMATS = {'.xml': 'QUAKEML',
                  '.cnv': 'CNV',
                  '.obs': 'NLLOC_OBS'}
 
-LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71)
+LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=hypodd)
 
 COMPPOSITION_MAP = dict(Z=2, N=1, E=0)
 COMPPOSITION_MAP['1'] = 1
