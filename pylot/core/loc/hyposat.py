@@ -20,5 +20,5 @@ def export(picks, fnout, parameter):
     :param: parameter, all input information
     :type:  object
     '''
-    # write phases to NLLoc-phase file
+    # write phases to HYPOSAT-phase file
     writephases(picks, 'HYPOSAT', fnout, parameter)
