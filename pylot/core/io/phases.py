@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import glob
 import obspy.core.event as ope
 import os
@@ -383,7 +384,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
-def writephases(arrivals, fformat, filename, parameter):
+def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
     """
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
@@ -405,6 +406,9 @@ def writephases(arrivals, fformat, filename, parameter):
 
     :param: parameter, all input information
     :type:  object
+
+    :param: eventinfo, optional, source time needed for VELEST-cnv format
+    :type:  list object
     """ 
 
     if fformat == 'NLLoc':
@@ -485,7 +489,7 @@ def writephases(arrivals, fformat, filename, parameter):
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
-                if len(stat) > 4:
+                if len(stat) > 4: # HYPO71 handles only 4-string station IDs
                     stat = stat[1:5]
                 Ponset = arrivals[key]['P']['mpp']
                 Sonset = arrivals[key]['S']['mpp']
@@ -594,6 +598,64 @@ def writephases(arrivals, fformat, filename, parameter):
                     fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n' 
                               % (key, syear, smonth, sday, shh, smm, Sss, sstd))
         fid.close()
+
+    elif fformat == 'VELEST':
+        print ("Writing phases to %s for VELEST" % filename)
+        fid = open("%s" % filename, 'w')
+        # get informations needed in cnv-file
+        # check, whether latitude is N or S and longitude is E or W
+        eventsource = eventinfo.origins[0]
+        if eventsource['latitude'] < 0:
+            cns = 'S'
+        else:
+            cns = 'N'
+        if eventsource['longitude'] < 0:
+            cew = 'W'
+        else:
+            cew = 'E'
+        # get last two integers of origin year
+        stime = eventsource['time']
+        if stime.year - 2000 >= 0:
+           syear = stime.year - 2000
+        else:
+           syear = stime.year - 1900
+        ifx = 0 # default value, see VELEST manual, pp. 22-23
+        # write header
+        fid.write('%s%02d%02d %02d%02d %05.2f %7.4f%c %8.4f%c %7.2f %6.2f     %02.0f  0.0 0.03  1.0  1.0\n' % (
+                   syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
+                   cns, eventsource['longitude'], cew, eventsource['depth'],eventinfo.magnitudes[0]['mag'], ifx))
+        n = 0
+        for key in arrivals:
+            # P onsets
+            if arrivals[key].has_key('P'):
+                if arrivals[key]['P']['weight'] < 4:
+                    n += 1
+                    stat = key
+                    if len(stat) > 4: # VELEST handles only 4-string station IDs
+                        stat = stat[1:5]
+                    Ponset = arrivals[key]['P']['mpp']
+                    Pweight = arrivals[key]['P']['weight']
+                    Prt = Ponset - stime # onset time relative to source time
+                    if n % 6 is not 0:
+                        fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))  
+                    else:
+                        fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))  
+            # S onsets
+            if arrivals[key].has_key('S'):
+                if arrivals[key]['S']['weight'] < 4:
+                    n += 1
+                    stat = key
+                    if len(stat) > 4: # VELEST handles only 4-string station IDs
+                        stat = stat[1:5]
+                    Sonset = arrivals[key]['S']['mpp']
+                    Sweight = arrivals[key]['S']['weight']
+                    Srt = Ponset - stime # onset time relative to source time
+                    if n % 6 is not 0:
+                        fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))  
+                    else:
+                        fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))  
+        fid.close()
+
 
 def merge_picks(event, picks):
     """
