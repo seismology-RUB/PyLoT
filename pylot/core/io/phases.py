@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pdb
 import glob
 import obspy.core.event as ope
 import os
@@ -656,6 +655,33 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                         fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))  
         fid.close()
 
+    elif fformat == 'hypoDD':
+        print ("Writing phases to %s for hypoDD" % filename)
+        fid = open("%s" % filename, 'w')
+        # get event information needed for hypoDD-phase file
+        eventsource = eventinfo.origins[0]
+        stime = eventsource['time']
+        event = parameter.get('eventID')
+        hddID = event.split('.')[0][1:5]
+        # write header
+        fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
+                      stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second, 
+                      eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
+                      eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
+        for key in arrivals:
+            if arrivals[key].has_key('P'):
+                # P onsets
+                if arrivals[key]['P']['weight'] < 4:
+                    Ponset = arrivals[key]['P']['mpp']
+                    Prt = Ponset - stime # onset time relative to source time
+                    fid.write('%s    %6.3f  1  P\n' % (key, Prt)) 
+                # S onsets
+                if arrivals[key]['S']['weight'] < 4:
+                    Sonset = arrivals[key]['S']['mpp']
+                    Srt = Sonset - stime # onset time relative to source time
+                    fid.write('%s    %6.3f  1  S\n' % (key, Srt)) 
+
+        fid.close()
 
 def merge_picks(event, picks):
     """
