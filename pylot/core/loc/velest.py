@@ -23,5 +23,5 @@ def export(picks, fnout, parameter, eventinfo):
     :param: eventinfo, optional, source time needed for VELEST-cnv format
     :type:  list object
     '''
-    # write phases to NLLoc-phase file
+    # write phases to VELEST-phase file
     writephases(picks, 'VELEST', fnout, parameter, eventinfo)
