@@ -13,6 +13,7 @@ from obspy import read_events
 import pylot.core.loc.hyposat as hyposat
 import pylot.core.loc.hypo71 as hypo71
 import pylot.core.loc.velest as velest
+import pylot.core.loc.hypodd as hypodd
 import pylot.core.loc.nll as nll
 from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
@@ -238,6 +239,9 @@ def autoPyLoT(inputfile):
             # VELEST
             velestfile = '%s/autoPyLoT_VELEST_phases.cnv' % event
             velest.export(picks, velestfile, parameter, evt)
+            # hypoDD
+            hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
+            hypodd.export(picks, hypoddfile, parameter, evt)
             # ObsPy event object
             data.applyEVTData(picks)
             if evt is not None:
