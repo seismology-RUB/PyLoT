@@ -20,7 +20,7 @@ def export(picks, fnout, parameter, eventinfo):
     :param: parameter, all input information
     :type:  object
 
-    :param: eventinfo, optional, source time needed for VELEST-cnv format
+    :param: eventinfo, source time needed for VELEST-cnv format
     :type:  list object
     '''
     # write phases to VELEST-phase file
