@@ -6,7 +6,6 @@ from __future__ import print_function
 import argparse
 import glob
 import os
-import pdb
 
 from obspy import read_events
 
@@ -14,6 +13,7 @@ import pylot.core.loc.hyposat as hyposat
 import pylot.core.loc.hypo71 as hypo71
 import pylot.core.loc.velest as velest
 import pylot.core.loc.hypodd as hypodd
+import pylot.core.loc.focmec as focmec
 import pylot.core.loc.nll as nll
 from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
@@ -229,7 +229,8 @@ def autoPyLoT(inputfile):
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
             ##########################################################
-            # write phase files for various location routines
+            # write phase files for various location 
+            # and fault mechanism calculation routines
             # HYPO71
             hypo71file = '%s/autoPyLoT_HYPO71_phases' % event
             hypo71.export(picks, hypo71file, parameter)
@@ -242,6 +243,9 @@ def autoPyLoT(inputfile):
             # hypoDD
             hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
             hypodd.export(picks, hypoddfile, parameter, evt)
+            # focmec
+            focmecfile = '%s/autoPyLoT_focmec.in' % event
+            focmec.export(picks, focmecfile, parameter, evt)
             # ObsPy event object
             data.applyEVTData(picks)
             if evt is not None:
