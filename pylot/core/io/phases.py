@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import glob
 import obspy.core.event as ope
 import os
@@ -406,8 +407,9 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
     :param: parameter, all input information
     :type:  object
 
-    :param: eventinfo, optional, source time needed for VELEST-cnv format
-    :type:  list object
+    :param: eventinfo, optional, needed for VELEST-cnv file 
+            and focmec- and HASH-input files 
+    :type:  `obspy.core.event.Event` object
     """ 
 
     if fformat == 'NLLoc':
@@ -681,6 +683,42 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                     Srt = Sonset - stime # onset time relative to source time
                     fid.write('%s    %6.3f  1  S\n' % (key, Srt)) 
 
+        fid.close()
+
+    elif fformat == 'focmec':
+        print ("Writing phases to %s for focmec" % filename)
+        fid = open("%s" % filename, 'w')
+        # get event information needed for focmec-input file
+        eventsource = eventinfo.origins[0]
+        stime = eventsource['time']
+        # write header line including event information
+        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (parameter.get('eventID'),
+                   stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
+                   eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
+                   eventinfo.magnitudes[0]['mag']))
+        picks = eventinfo.picks
+        for key in arrivals:
+            if arrivals[key].has_key('P'):
+                if arrivals[key]['P']['weight'] < 4:
+                    stat = key
+                    for i in range(len(picks)):
+                         wf = picks[i].get('waveform_id')
+                         station = wf.get('station_code')
+                         if station == stat:
+                             # get resource ID
+                             resid_picks = picks[i].get('resource_id')
+                             print resid_picks
+                             # find this resource ID in eventinfo
+                             for j in range(len(eventinfo.origins[0].arrivals)):
+                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('resource_id')
+                                 print resid_eventinfo
+                                 if resid_eventinfo == resid_picks:
+                                     az = eventinfo.origins[0].arrivals[j].get('azimuth')
+                                     inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
+                                     fid.write('%s  %6.2f  %6.2f%s \n' % (stat,
+                                                                        az,
+                                                                        inz,
+                                                    arrivals[key]['P']['fm']))
         fid.close()
 
 def merge_picks(event, picks):
