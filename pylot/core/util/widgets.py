@@ -5,6 +5,7 @@ Created on Wed Mar 19 11:27:35 2014
 @author: sebastianw
 """
 
+import os
 import warnings
 import copy
 import datetime
@@ -27,7 +28,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from pylot.core.io.inputs import FilterOptions
+from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
@@ -823,14 +824,15 @@ class PickDlg(QDialog):
 
     def setIniPickP(self, gui_event, wfdata, trace_number):
 
+        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
-        settings = QSettings()
-
-        nfac = settings.value('picking/nfac_P', 1.3)
-        noise_win = settings.value('picking/noise_win_P', 5.)
-        gap_win = settings.value('picking/gap_win_P', .2)
-        signal_win = settings.value('picking/signal_win_P', 3.)
+        nfac = parameter.get('nfacP')
+        twins = parameter.get('tsnrz')
+        noise_win = twins[0]
+        gap_win = twins[1]
+        signal_win = twins[2]
         itrace = int(trace_number)
 
         while itrace > len(wfdata) - 1:
@@ -872,14 +874,15 @@ class PickDlg(QDialog):
 
     def setIniPickS(self, gui_event, wfdata):
 
+        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
-        settings = QSettings()
-
-        nfac = settings.value('picking/nfac_S', 1.5)
-        noise_win = settings.value('picking/noise_win_S', 5.)
-        gap_win = settings.value('picking/gap_win_S', .2)
-        signal_win = settings.value('picking/signal_win_S', 3.)
+        nfac = parameter.get('nfacS')
+        twins = parameter.get('tsnrh')
+        noise_win = twins[0]
+        gap_win = twins[1]
+        signal_win = twins[2]
 
         # copy data for plotting
         data = self.getWFData().copy()
