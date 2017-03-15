@@ -47,7 +47,7 @@ FILTERDEFAULTS = readFilterInformation(os.path.join(os.path.expanduser('~'),
 
 AUTOMATIC_DEFAULTS = os.path.join(os.path.expanduser('~'),
                                   '.pylot',
-                                  'autoPyLoT.in')
+                                  'pylot.in')
 
 TIMEERROR_DEFAULTS = os.path.join(os.path.expanduser('~'),
                                   '.pylot',
