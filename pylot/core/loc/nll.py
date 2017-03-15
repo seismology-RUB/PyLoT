@@ -70,14 +70,17 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     nllfile.close()
 
 
-def locate(fnin):
+def locate(fnin, infile=None):
     """
     takes an external program name
     :param fnin:
     :return:
     """
 
-    exe_path = which('NLLoc')
+    if infile is None:
+        exe_path = which('NLLoc')
+    else:
+        exe_path = which('NLLoc', infile)
     if exe_path is None:
         raise NLLocError('NonLinLoc executable not found; check your '
                          'environment variables')
