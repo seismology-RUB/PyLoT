@@ -23,5 +23,5 @@ def export(picks, fnout, parameter, eventinfo):
     :param: eventinfo, source information needed for focmec format
     :type:  list object
     '''
-    # write phases to hypoDD-phase file
-    writephases(picks, 'focmec', fnout, parameter, eventinfo)
+    # write phases to FOCMEC-phase file
+    writephases(picks, 'FOCMEC', fnout, parameter, eventinfo)
