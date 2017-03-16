@@ -297,6 +297,7 @@ class Data(object):
 
             #firstonset = find_firstonset(picks)
             # check for automatic picks
+            print("Writing phases to ObsPy-quakeml file")
             for key in picks:
                 if picks[key]['P']['picker'] == 'autoPyLoT':
                    print("Existing picks will be overwritten!")
