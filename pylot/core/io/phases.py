@@ -407,7 +407,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
     :type:  object
 
     :param: eventinfo, optional, needed for VELEST-cnv file 
-            and focmec- and HASH-input files 
+            and FOCMEC- and HASH-input files 
     :type:  `obspy.core.event.Event` object
     """ 
 
@@ -684,10 +684,10 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
 
         fid.close()
 
-    elif fformat == 'focmec':
-        print ("Writing phases to %s for focmec" % filename)
+    elif fformat == 'FOCMEC':
+        print ("Writing phases to %s for FOCMEC" % filename)
         fid = open("%s" % filename, 'w')
-        # get event information needed for focmec-input file
+        # get event information needed for FOCMEC-input file
         eventsource = eventinfo.origins[0]
         stime = eventsource['time']
         # write header line including event information
@@ -698,26 +698,28 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         picks = eventinfo.picks
         for key in arrivals:
             if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4:
+                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
-                         wf = picks[i].get('waveform_id')
-                         station = wf.get('station_code')
+                         station = picks[i].waveform_id.station_code
                          if station == stat:
                              # get resource ID
                              resid_picks = picks[i].get('resource_id')
-                             print resid_picks
-                             # find this resource ID in eventinfo
+                             # find same ID in eventinfo
+                             # there it is the pick_id!!
                              for j in range(len(eventinfo.origins[0].arrivals)):
-                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('resource_id')
-                                 print resid_eventinfo
-                                 if resid_eventinfo == resid_picks:
+                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
+                                 if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
+                                     if len(stat) > 4: # FOCMEC handles only 4-string station IDs
+                                         stat = stat[1:5]
                                      az = eventinfo.origins[0].arrivals[j].get('azimuth')
                                      inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
                                      fid.write('%s  %6.2f  %6.2f%s \n' % (stat,
                                                                         az,
                                                                         inz,
                                                     arrivals[key]['P']['fm']))
+                                     break
+
         fid.close()
 
 def merge_picks(event, picks):
