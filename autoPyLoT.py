@@ -243,8 +243,8 @@ def autoPyLoT(inputfile):
             # hypoDD
             hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
             hypodd.export(picks, hypoddfile, parameter, evt)
-            # focmec
-            focmecfile = '%s/autoPyLoT_focmec.in' % event
+            # FOCMEC
+            focmecfile = '%s/autoPyLoT_FOCMEC.in' % event
             focmec.export(picks, focmecfile, parameter, evt)
             # ObsPy event object
             data.applyEVTData(picks)
