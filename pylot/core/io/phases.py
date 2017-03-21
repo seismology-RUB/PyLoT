@@ -232,6 +232,8 @@ def picks_from_picksdict(picks, creation_info=None):
             if not isinstance(phase, dict):
                 continue
             onset = phase['mpp']
+            ccode = phase['channel']
+            ncode = onsets['network']
             pick = ope.Pick()
             if creation_info:
                 pick.creation_info = creation_info
@@ -252,7 +254,9 @@ def picks_from_picksdict(picks, creation_info=None):
                 picker = 'Unknown'
             pick.phase_hint = label
             pick.method_id = ope.ResourceIdentifier(id=picker)
-            pick.waveform_id = ope.WaveformStreamID(station_code=station)
+            pick.waveform_id = ope.WaveformStreamID(station_code=station,
+                                                      channel_code=ccode,
+                                                      network_code=ncode)
             try:
                 polarity = phase['fm']
                 if polarity == 'U' or '+':
@@ -721,6 +725,94 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                                      break
 
         fid.close()
+
+    elif fformat == 'HASH':
+        # two different input files for 
+        # HASH-driver 1 and 2 (see HASH manual!)
+        filename1 = filename + 'drv1' + '.phase'
+        filename2 = filename + 'drv2' + '.phase'
+        print ("Writing phases to %s for HASH for HASH-driver 1" % filename1)
+        fid1 = open("%s" % filename1, 'w')
+        print ("Writing phases to %s for HASH for HASH-driver 2" % filename2)
+        fid2 = open("%s" % filename2, 'w')
+        # get event information needed for HASH-input file
+        eventsource = eventinfo.origins[0]
+        event = parameter.get('eventID')
+        hashID = event.split('.')[0][1:5]
+        latdeg = eventsource['latitude']
+        latmin = eventsource['latitude'] * 60 / 10000
+        londeg = eventsource['longitude']
+        lonmin = eventsource['longitude'] * 60 / 10000
+        erh = 1 / 2 * (eventsource.origin_uncertainty['min_horizontal_uncertainty'] +
+                       eventsource.origin_uncertainty['max_horizontal_uncertainty']) / 1000
+        erz = eventsource.depth_errors['uncertainty']
+        stime = eventsource['time']
+        if stime.year - 2000 >= 0:
+           syear = stime.year - 2000
+        else:
+           syear = stime.year - 1900
+        picks = eventinfo.picks
+        # write header line including event information
+        # for HASH-driver 1
+        fid1.write('%s%02d%02d%02d%02d%5.2f%2dN%5.2f%3dE%5.2f%6.3f%4.2f%5.2f%5.2f%s\n' % (syear,
+                             stime.month, stime.day, stime.hour, stime.minute, stime.second, 
+                                       latdeg, latmin, londeg, lonmin, eventsource['depth'], 
+                                                   eventinfo.magnitudes[0]['mag'], erh, erz, 
+                                                                                    hashID))
+        # write header line including event information
+        # for HASH-driver 2
+        fid2.write('%d%02d%02d%02d%02d%5.2f%dN%5.2f%3dE%6.2f%5.2f    %d                                          %5.2f %5.2f                                        %4.2f      %s \n' % (syear, stime.month, stime.day, 
+                                               stime.hour, stime.minute, stime.second, 
+                                                         latdeg,latmin,londeg, lonmin, 
+                                                                 eventsource['depth'], 
+                                           eventsource['quality']['used_phase_count'],
+                                               erh, erz, eventinfo.magnitudes[0]['mag'],
+                                                                                hashID))
+
+        # write phase lines
+        for key in arrivals:
+            if arrivals[key].has_key('P'):
+                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
+                    stat = key
+                    ccode = arrivals[key]['P']['channel']
+                    ncode = arrivals[key]['network']
+
+                    if arrivals[key]['P']['weight'] < 2:
+                        Pqual='I'
+                    else:
+                        Pqual='E'
+                    
+                    for i in range(len(picks)):
+                         station = picks[i].waveform_id.station_code
+                         if station == stat:
+                             # get resource ID
+                             resid_picks = picks[i].get('resource_id')
+                             # find same ID in eventinfo
+                             # there it is the pick_id!!
+                             for j in range(len(eventinfo.origins[0].arrivals)):
+                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
+                                 if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
+                                     if len(stat) > 4: # HASH handles only 4-string station IDs
+                                         stat = stat[1:5]
+                                     az = eventinfo.origins[0].arrivals[j].get('azimuth')
+                                     inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
+                                     dist = eventinfo.origins[0].arrivals[j].get('distance') 
+                                     # write phase line for HASH-driver 1
+                                     fid1.write('%-4s%sP%s%d                   0                                   %3.1f          %03d %03d   2     1   %s\n' % (stat, Pqual, arrivals[key]['P']['fm'], arrivals[key]['P']['weight'], 
+                                                                               dist, inz, az, ccode))
+                                     # write phase line for HASH-driver 2
+                                     fid2.write('%-4s %s   %s %s %s                    \n' % (
+                                                                                           stat,
+                                                                                          ncode,
+                                                                                          ccode,
+                                                                                          Pqual,
+                                                                       arrivals[key]['P']['fm']))
+                                     break
+
+        fid1.write('                                    %s' % hashID)
+        fid1.close()
+        fid2.close()
+
 
 def merge_picks(event, picks):
     """
