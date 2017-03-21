@@ -41,6 +41,7 @@ def autopickevent(data, param):
     for station in stations:
         topick = data.select(station=station)
         all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
+        all_onsets[station]['network'] = topick[0].stats.network
 
     # quality control
     # median check and jackknife on P-onset times
@@ -778,11 +779,13 @@ def autopickstation(wfstream, pickparam, verbose=False):
 
     # create dictionary
     # for P phase
-    ppick = dict(lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
+    ccode = zdat[0].stats.channel
+    ppick = dict(channel=ccode, lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
                  snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
                  Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    spick = dict(lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
+    ccode = edat[0].stats.channel
+    spick = dict(channel=ccode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
     picks = dict(P=ppick, S=spick)
@@ -868,6 +871,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
 
         # replace old dictionary with new one
         picks[badpicks[i][0]] = newpicks
+        picks[badpicks[i][0]]['network'] = wf2pick[0].stats.network
 
         # reset temporary change of picking parameters
         print("iteratepicker: Resetting picking parameters ...")
