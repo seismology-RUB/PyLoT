@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
+import pdb
 import argparse
 import glob
 import os
@@ -114,6 +114,13 @@ def autoPyLoT(inputfile):
         for event in events:
             data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
             evID = os.path.split(event)[-1]
+            # the following is necessary because within
+            # multiple event processing no event ID is provided
+            # in autopylot.in
+            try:
+                parameter.get('eventID')
+            except:
+                parameter.setParam(eventID=event)
             print('Working on event %s' % event)
             print(data)
             wfdat = data.getWFData()  # all available streams
@@ -229,6 +236,7 @@ def autoPyLoT(inputfile):
                         print("Network moment magnitude: %4.1f" % net_mw.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
+                        locflag = 9
             ##########################################################
             # write phase files for various location 
             # and fault mechanism calculation routines
@@ -244,18 +252,19 @@ def autoPyLoT(inputfile):
             # HYPOSAT
             hyposatfile = '%s/autoPyLoT_HYPOSAT_phases' % event
             hyposat.export(picks, hyposatfile, parameter)
-            # VELEST
-            velestfile = '%s/autoPyLoT_VELEST_phases.cnv' % event
-            velest.export(picks, velestfile, parameter, evt)
-            # hypoDD
-            hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
-            hypodd.export(picks, hypoddfile, parameter, evt)
-            # FOCMEC
-            focmecfile = '%s/autoPyLoT_FOCMEC.in' % event
-            focmec.export(picks, focmecfile, parameter, evt)
-            # HASH
-            hashfile = '%s/autoPyLoT_HASH' % event
-            hash.export(picks, hashfile, parameter, evt)
+            if locflag == 1:
+            	# VELEST
+            	velestfile = '%s/autoPyLoT_VELEST_phases.cnv' % event
+            	velest.export(picks, velestfile, parameter, evt)
+            	# hypoDD
+            	hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
+            	hypodd.export(picks, hypoddfile, parameter, evt)
+            	# FOCMEC
+            	focmecfile = '%s/autoPyLoT_FOCMEC.in' % event
+            	focmec.export(picks, focmecfile, parameter, evt)
+            	# HASH
+            	hashfile = '%s/autoPyLoT_HASH' % event
+            	hash.export(picks, hashfile, parameter, evt)
 
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'
