@@ -6,6 +6,7 @@ Created on Wed Mar 19 11:27:35 2014
 """
 
 import os
+import getpass
 import warnings
 import copy
 import datetime
@@ -518,7 +519,8 @@ class PickDlg(QDialog):
         self.rotate = rotate
         self.components = 'ZNE'
         settings = QSettings()
-        self._user = settings.value('user/Login', 'anonymous')
+        pylot_user = getpass.getuser()
+        self._user = settings.value('user/Login', pylot_user)
         if picks:
             self.picks = picks
         else:
@@ -960,7 +962,8 @@ class PickDlg(QDialog):
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
-                          picker=self.getUser())
+                          picker=self.getUser(), channel=channel,
+                          network=wfdata[0].stats.network)
 
         try:
             oldphasepick = self.picks[phase]
