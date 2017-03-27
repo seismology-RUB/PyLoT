@@ -77,7 +77,11 @@ class MainWindow(QMainWindow):
         self.createAction = createAction
         # read settings
         settings = QSettings()
+        # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        if os.path.isfile(infile)== False:
+            infile = raw_input("Default file not found! Type name including full path ...")
+
         self._inputs = AutoPickParameter(infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
@@ -206,7 +210,7 @@ class MainWindow(QMainWindow):
                                                   QKeySequence.Open,
                                                   manupicksicon,
                                                   "Load manual picks for "
-                                                  "the actual event.")
+                                                  "the displayed event.")
         openmanualpicksaction.setData(None)
         openautopicksaction = self.createAction(self, "Load &automatic picks "
                                                       "...",
@@ -214,14 +218,14 @@ class MainWindow(QMainWindow):
                                                 "Ctrl+A",
                                                 autopicksicon,
                                                 "Load automatic picks "
-                                                "for the actual event.")
+                                                "for the displayed event.")
         openautopicksaction.setData(None)
 
         loadlocationaction = self.createAction(self, "Load &location ...",
                                                self.load_loc, "Ctrl+L",
                                                locactionicon,
                                                "Load location information on "
-                                               "the actual event.")
+                                               "the displayed event.")
         loadpilotevent = self.createAction(self, "Load PILOT &event ...",
                                            self.load_pilotevent, "Ctrl+E",
                                            loadpiloticon,
@@ -1162,7 +1166,7 @@ def main():
     pylot_app.processEvents()
 
     # set Application Information
-    pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
+    pylot_app.setOrganizationName("Ruhr-University Bochum / BESTEC")
     pylot_app.setOrganizationDomain("rub.de")
     pylot_app.processEvents()
     pylot_app.setApplicationName("PyLoT")
