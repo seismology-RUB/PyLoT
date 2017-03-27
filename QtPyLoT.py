@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         if os.path.isfile(infile)== False:
             infile = raw_input("Default file not found! Type name including full path ...")
+        self.infile = infile
 
         self._inputs = AutoPickParameter(infile)
         if settings.value("user/FullName", None) is None:
@@ -606,6 +607,9 @@ class MainWindow(QMainWindow):
         self.update_status('Event saved as %s' % (fbasename + exform))
         return True
 
+    def getinfile(self):
+        return self.infile
+
     def getComponent(self):
         return self.dispComponent
 
@@ -809,7 +813,8 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
-        pickDlg = PickDlg(self, data=data.select(station=station),
+        pickDlg = PickDlg(self, infile=self.getinfile(), 
+                          data=data.select(station=station),
                           station=station,
                           picks=self.getPicksOnStation(station))
         if pickDlg.exec_():
