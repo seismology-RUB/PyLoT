@@ -80,10 +80,14 @@ class MainWindow(QMainWindow):
         # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         if os.path.isfile(infile)== False:
-            infile = raw_input("Default file not found! Type name including full path ...")
-        self.infile = infile
+            infile = QInputDialog.getText(self, "Default input file not found! \
+                                          Enter file name including full path:",
+                                            "infile")
+            self.infile = infile[0]
+        else:
+            self.infile = infile
 
-        self._inputs = AutoPickParameter(infile)
+        self._inputs = AutoPickParameter(self.infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
