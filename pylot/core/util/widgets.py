@@ -509,10 +509,11 @@ class WaveformWidget(FigureCanvas):
 
 class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, picks=None,
-                 rotate=False):
+                 rotate=False, infile=None):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
+        self.infile = infile
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
@@ -709,6 +710,9 @@ class PickDlg(QDialog):
             self.cidrelease = self.connectReleaseEvent(self.panRelease)
             self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
+    def getinfile(self):
+        return self.infile
+
     def getStartTime(self):
         return self.stime
 
@@ -812,9 +816,9 @@ class PickDlg(QDialog):
         self.cidpress = self.connectPressEvent(self.setPick)
 
         if self.selectPhase.currentText().upper().startswith('P'):
-            self.setIniPickP(gui_event, wfdata, trace_number)
+            self.setIniPickP(self.getinfile(), gui_event, wfdata, trace_number)
         elif self.selectPhase.currentText().upper().startswith('S'):
-            self.setIniPickS(gui_event, wfdata)
+            self.setIniPickS(self.getinfile(), gui_event, wfdata)
 
         self.zoomAction.setEnabled(False)
 
@@ -822,9 +826,9 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
-    def setIniPickP(self, gui_event, wfdata, trace_number):
+    def setIniPickP(self, infile, gui_event, wfdata, trace_number):
 
-        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        #infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
@@ -872,9 +876,9 @@ class PickDlg(QDialog):
                                         noiselevel=(trace_number + noiselevel,
                                                     trace_number - noiselevel))
 
-    def setIniPickS(self, gui_event, wfdata):
+    def setIniPickS(self, infile, gui_event, wfdata):
 
-        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        #infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
