@@ -828,7 +828,6 @@ class PickDlg(QDialog):
 
     def setIniPickP(self, infile, gui_event, wfdata, trace_number):
 
-        #infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
@@ -878,7 +877,6 @@ class PickDlg(QDialog):
 
     def setIniPickS(self, infile, gui_event, wfdata):
 
-        #infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         parameter = AutoPickParameter(infile)
         ini_pick = gui_event.xdata
 
