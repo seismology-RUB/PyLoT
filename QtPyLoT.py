@@ -80,8 +80,7 @@ class MainWindow(QMainWindow):
         # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         if os.path.isfile(infile)== False:
-            infile = QInputDialog.getText(self, "Default input file not found! \
-                                          Enter file name including full path:",
+            infile = QInputDialog.getText(self, "Enter input-file name including full path:",
                                             "infile")
             self.infile = infile[0]
         else:
