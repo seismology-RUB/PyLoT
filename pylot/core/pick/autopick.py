@@ -143,7 +143,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Sflag = 0
     Pmarker = []
     Ao = None  # Wood-Anderson peak-to-peak amplitude
-    picker = 'autoPyLoT'  # name of the picking programm
+    picker = 'auto'  # type of picks
 
     # split components
     zdat = wfstream.select(component="Z")
