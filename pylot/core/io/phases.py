@@ -233,7 +233,7 @@ def picks_from_picksdict(picks, creation_info=None):
                 continue
             onset = phase['mpp']
             ccode = phase['channel']
-            ncode = onsets['network']
+            ncode = phase['network']
             pick = ope.Pick()
             if creation_info:
                 pick.creation_info = creation_info
@@ -684,7 +684,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
                     Srt = Sonset - stime # onset time relative to source time
-                    fid.write('%s    %6.3f  1  S\n' % (key, Srt)) 
+                    fid.write('%-5s    %6.3f  1  S\n' % (key, Srt)) 
 
         fid.close()
 
@@ -718,7 +718,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                                          stat = stat[1:5]
                                      az = eventinfo.origins[0].arrivals[j].get('azimuth')
                                      inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
-                                     fid.write('%s  %6.2f  %6.2f%s \n' % (stat,
+                                     fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
                                                                         az,
                                                                         inz,
                                                     arrivals[key]['P']['fm']))
@@ -775,7 +775,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                 if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
                     stat = key
                     ccode = arrivals[key]['P']['channel']
-                    ncode = arrivals[key]['network']
+                    ncode = arrivals[key]['P']['network']
 
                     if arrivals[key]['P']['weight'] < 2:
                         Pqual='I'
