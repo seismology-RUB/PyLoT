@@ -962,7 +962,7 @@ class PickDlg(QDialog):
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
-                          picker=self.getUser(), channel=channel,
+                          picker='manual', channel=channel,
                           network=wfdata[0].stats.network)
 
         try:
