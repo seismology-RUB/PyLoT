@@ -818,9 +818,9 @@ class PickDlg(QDialog):
         self.cidpress = self.connectPressEvent(self.setPick)
 
         if self.selectPhase.currentText().upper().startswith('P'):
-            self.setIniPickP(self.getinfile(), gui_event, wfdata, trace_number)
+            self.setIniPickP(gui_event, wfdata, trace_number)
         elif self.selectPhase.currentText().upper().startswith('S'):
-            self.setIniPickS(self.getinfile(), gui_event, wfdata)
+            self.setIniPickS(gui_event, wfdata)
 
         self.zoomAction.setEnabled(False)
 
@@ -828,9 +828,9 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
-    def setIniPickP(self, infile, gui_event, wfdata, trace_number):
+    def setIniPickP(self, gui_event, wfdata, trace_number):
 
-        parameter = AutoPickParameter(infile)
+        parameter = AutoPickParameter(self.getinfile())
         ini_pick = gui_event.xdata
 
         nfac = parameter.get('nfacP')
@@ -877,9 +877,9 @@ class PickDlg(QDialog):
                                         noiselevel=(trace_number + noiselevel,
                                                     trace_number - noiselevel))
 
-    def setIniPickS(self, infile, gui_event, wfdata):
+    def setIniPickS(self, gui_event, wfdata):
 
-        parameter = AutoPickParameter(infile)
+        parameter = AutoPickParameter(self.getinfile())
         ini_pick = gui_event.xdata
 
         nfac = parameter.get('nfacS')
@@ -933,6 +933,8 @@ class PickDlg(QDialog):
 
     def setPick(self, gui_event):
 
+        parameter = AutoPickParameter(self.getinfile())
+
         # get axes limits
         self.updateCurrentLimits()
 
@@ -952,7 +954,14 @@ class PickDlg(QDialog):
             wfdata.filter(**filteroptions)
 
         # get earliest and latest possible pick and symmetric pick error
-        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
+        if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
+            nfac = parameter.get('nfacP')
+            TSNR = parameter.get('tsnrz')
+        else:
+            nfac = parameter.get('nfacS')
+            TSNR = parameter.get('tsnrh')
+           
+        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick)
 
         # return absolute time values for phases
         stime = self.getStartTime()
