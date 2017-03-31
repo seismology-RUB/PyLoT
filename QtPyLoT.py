@@ -1141,7 +1141,7 @@ class MainWindow(QMainWindow):
             QMainWindow.closeEvent(self, event)
 
     def PyLoTprefs(self):
-        props = PropertiesDlg(self)
+        props = PropertiesDlg(self, infile=self.getinfile())
         if props.exec_():
             return
 
