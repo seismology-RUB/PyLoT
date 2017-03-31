@@ -817,6 +817,7 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
+        print(self.selectPhase.currentText())
         if self.selectPhase.currentText().upper().startswith('P'):
             self.setIniPickP(gui_event, wfdata, trace_number)
         elif self.selectPhase.currentText().upper().startswith('S'):
@@ -1192,13 +1193,15 @@ class PickDlg(QDialog):
 
 
 class PropertiesDlg(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(PropertiesDlg, self).__init__(parent)
+
+        self.infile = infile
+
 
         appName = QApplication.applicationName()
 
         self.setWindowTitle("{0} Properties".format(appName))
-
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(InputsTab(self), "Inputs")
         self.tabWidget.addTab(OutputsTab(self), "Outputs")
@@ -1207,7 +1210,8 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(LocalisationTab(self), "Loc Tools")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
-                                          QDialogButtonBox.Close)
+                                          QDialogButtonBox.Close |
+                                          QDialogButtonBox.RestoreDefaults)
 
         layout = QVBoxLayout()
         layout.addWidget(self.tabWidget)
@@ -1216,8 +1220,11 @@ class PropertiesDlg(QDialog):
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(
-            self.apply)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        self.buttonBox.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self.restore)
+
+    def getinfile(self):
+       return self.infile
 
     def accept(self, *args, **kwargs):
         self.apply()
@@ -1229,6 +1236,14 @@ class PropertiesDlg(QDialog):
             values = curwid.getValues()
             if values is not None:
                 self.setValues(values)
+
+    def restore(self):
+        for widint in range(self.tabWidget.count()):
+            curwid = self.tabWidget.widget(widint)
+            values = curwid.resetValues(self.getinfile())
+            if values is not None:
+                self.setValues(values)
+
 
     @staticmethod
     def setValues(tabValues):
@@ -1245,16 +1260,19 @@ class PropTab(QWidget):
     def getValues(self):
         return None
 
+    def resetValues(self, infile=None):
+        return None
 
 class InputsTab(PropTab):
-    def __init__(self, parent):
+    def __init__(self, parent, infile=None):
         super(InputsTab, self).__init__(parent)
 
         settings = QSettings()
+        pylot_user = getpass.getuser()
         fulluser = settings.value("user/FullName")
         login = settings.value("user/Login")
 
-        fullNameLabel = QLabel("Full name for user '{0}': ".format(login))
+        fullNameLabel = QLabel("Full name for user '{0}': ".format(pylot_user))
 
         # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
@@ -1297,9 +1315,24 @@ class InputsTab(PropTab):
                   "data/Structure": self.structureSelect.currentText()}
         return values
 
+    def resetValues(self, infile):
+        para = AutoPickParameter(infile)
+        datstruct = para.get('datastructure')
+        if datstruct == 'SeisComp':
+           index = 0
+        else:
+           index = 2
+        datapath = para.get('datapath')
+        rootpath = para.get('rootpath')
+        database = para.get('database')
+        path = os.path.join(os.path.expanduser('~'), rootpath, datapath, database)
+        values = {"data/dataRoot": self.dataDirEdit.setText("%s" % path),
+                  "user/FullName": self.fullNameEdit.text(),
+                  "data/Structure": self.structureSelect.setCurrentIndex(index)}
+        return values
 
 class OutputsTab(PropTab):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(OutputsTab, self).__init__(parent)
 
         settings = QSettings()
@@ -1323,6 +1356,9 @@ class OutputsTab(PropTab):
         values = {"output/Format": self.eventOutputComboBox.currentText()}
         return values
 
+    def resetValues(self, infile):
+        values = {"output/Format": self.eventOutputComboBox.setCurrentIndex(1)}
+        return values
 
 class PhasesTab(PropTab):
     def __init__(self, parent=None):
@@ -1339,7 +1375,7 @@ class GraphicsTab(PropTab):
 
 
 class LocalisationTab(PropTab):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(LocalisationTab, self).__init__(parent)
 
         settings = QSettings()
@@ -1409,6 +1445,13 @@ class LocalisationTab(PropTab):
                   "loc/tool": loctool}
         return values
 
+    def resetValues(self, infile):
+        para = AutoPickParameter(infile)
+        nllocroot = para.get('nllocroot')
+        nllocbin = para.get('nllocbin')
+        loctool = self.locToolComboBox.setCurrentIndex(3)
+        values = {"nll/rootPath": self.rootedit.setText("%s" % nllocroot),
+                  "nll/binPath": self.binedit.setText("%s" % nllocbin)}
 
 class NewEventDlg(QDialog):
     def __init__(self, parent=None, titleString="Create a new event"):
