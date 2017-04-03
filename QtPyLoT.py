@@ -15,7 +15,7 @@ Some icons are out of a free of charge icon set, which can be found here:
 https://www.iconfinder.com/iconsets/flavour
 
 :author:
-    Sebastian Wehling-Benatelli
+    Sebastian Wehling-Benatelli / Ludger Küperkoch
 :copyright:
     The PyLoT Development Team (https://ariadne.geophysik.rub.de/trac/PyLoT)
 :license:
@@ -47,8 +47,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
-    AUTOMATIC_DEFAULTS
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -93,7 +92,7 @@ class MainWindow(QMainWindow):
             settings.setValue("user/Login", getLogin())
         if settings.value("agency_id", None) is None:
             agency = QInputDialog.getText(self,
-                                          "Enter authority name (e.g. BUG):",
+                                          "Enter authority/institution name:",
                                           "Authority")
             settings.setValue("agency_id", agency)
         self.recentfiles = settings.value("data/recentEvents", [])
@@ -851,14 +850,10 @@ class MainWindow(QMainWindow):
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        self.addListItem('loading default values for local data ...')
-        # may become obsolete if generalized input parameter a read from disc
-        #  during initialization
-        # TODO double check for obsolete read in of parameters
-        autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
+        self.addListItem('Loading default values from PyLoT-input file ...')
+        autopick_parameter = self._inputs
         self.addListItem(str(autopick_parameter))
 
-        # Create the worker thread and run it
         self.thread = AutoPickThread(parent=self,
                                      func=autopickevent,
                                      data=self.get_data().getWFData(),
