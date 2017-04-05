@@ -42,7 +42,8 @@ from obspy import UTCDateTime
 from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
-from pylot.core.pick.autopick import autopickevent
+#from pylot.core.pick.autopick import autopickevent
+from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
@@ -79,8 +80,8 @@ class MainWindow(QMainWindow):
         # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         if os.path.isfile(infile)== False:
-            infile = QInputDialog.getText(self, "Enter input-file name including full path:",
-                                            "infile")
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file', 
+                                                                      filter='*.in')
             self.infile = infile[0]
         else:
             self.infile = infile
@@ -842,6 +843,9 @@ class MainWindow(QMainWindow):
         self.listWidget.scrollToBottom()
 
     def autoPick(self):
+        savepath = QInputDialog.getText(self, "Enter save path for autoPyLoT output:",
+                                            "savepath")
+        self.autosave = savepath[0]
         self.listWidget = QListWidget()
         self.setDirty(True)
         self.logDockWidget = QDockWidget("AutoPickLog", self)
@@ -850,14 +854,17 @@ class MainWindow(QMainWindow):
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        self.addListItem('Loading default values from PyLoT-input file ...')
+        self.addListItem('Loading default values from PyLoT-input file %s' 
+                                                             % self.infile)
         autopick_parameter = self._inputs
         self.addListItem(str(autopick_parameter))
 
         self.thread = AutoPickThread(parent=self,
-                                     func=autopickevent,
-                                     data=self.get_data().getWFData(),
-                                     param=autopick_parameter)
+                                     func=autoPyLoT,
+                                     infile = self.infile, 
+                                     fnames=self.fnames,
+                                     savepath=self.autosave)
+
         self.thread.message.connect(self.addListItem)
         self.thread.start()
         self.thread.finished.connect(self.finalizeAutoPick)
