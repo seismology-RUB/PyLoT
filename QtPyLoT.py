@@ -843,8 +843,7 @@ class MainWindow(QMainWindow):
         self.listWidget.scrollToBottom()
 
     def autoPick(self):
-        savepath = QInputDialog.getText(self, "Enter save path for autoPyLoT output:",
-                                            "savepath")
+        savepath = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 
         self.autosave = savepath[0]
         self.listWidget = QListWidget()
         self.setDirty(True)
