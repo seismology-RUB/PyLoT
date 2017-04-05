@@ -16,7 +16,6 @@ import pylot.core.loc.hypodd as hypodd
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
 import pylot.core.loc.nll as nll
-#from PySide.QtGui import QWidget, QInputDialog
 from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
