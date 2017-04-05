@@ -6,7 +6,7 @@ from __future__ import print_function
 import argparse
 import glob
 import os
-
+import datetime
 from obspy import read_events
 
 import pylot.core.loc.hyposat as hyposat
@@ -16,6 +16,7 @@ import pylot.core.loc.hypodd as hypodd
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
 import pylot.core.loc.nll as nll
+#from PySide.QtGui import QWidget, QInputDialog
 from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
@@ -28,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(inputfile):
+def autoPyLoT(inputfile, fnames=None, savepath=None):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -48,9 +49,9 @@ def autoPyLoT(inputfile):
                 Version {version} 2015\n
                 \n
                 Authors:\n
-                S. Wehling-Benatelli (Ruhr-Universität Bochum)\n
-                L. Küperkoch (BESTEC GmbH, Landau i. d. Pfalz)\n
-                K. Olbert (Christian-Albrechts Universität zu Kiel)\n
+                S. Wehling-Benatelli (Ruhr-Universitaet Bochum)\n
+                L. Kueperkoch (BESTEC GmbH, Landau i. d. Pfalz)\n
+                K. Olbert (Christian-Albrechts Universitaet zu Kiel)\n
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
 
@@ -69,8 +70,8 @@ def autoPyLoT(inputfile):
                     'dbase': parameter.get('database')}
 
         exf = ['root', 'dpath', 'dbase']
-
-        if parameter.hasParam('eventID'):
+        
+        if parameter.hasParam('eventID') and fnames == 'None':
             dsfields['eventID'] = parameter.get('eventID')
             exf.append('eventID')
 
@@ -104,29 +105,51 @@ def autoPyLoT(inputfile):
             print("                 !!!              ")
 
         datapath = datastructure.expandDataPath()
-        if not parameter.hasParam('eventID'):
+        if fnames == 'None' and not parameter.hasParam('eventID'):
             # multiple event processing
             # read each event in database
             events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
-        else:
+        elif fnames == 'None' and parameter.hasParam('eventID'):
             # single event processing
             events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+        else:
+            # autoPyLoT was initialized from GUI
+            events = fnames
+
         for event in events:
-            data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
-            evID = os.path.split(event)[-1]
-            # the following is necessary because within
-            # multiple event processing no event ID is provided
-            # in autopylot.in
-            try:
-                parameter.get('eventID')
-            except:
-                parameter.setParam(eventID=event)
-            print('Working on event %s' % event)
-            print(data)
+            if fnames == 'None':
+                data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
+                evID = os.path.split(event)[-1]
+                # the following is necessary because within
+                # multiple event processing no event ID is provided
+                # in autopylot.in
+                try:
+                    parameter.get('eventID')
+                except:
+                    now = datetime.datetime.now()
+                    eventID = '%d%02d%02d%02d%02d' % (now.year,
+                                                      now.month,
+                                                      now.day,
+                                                      now.hour,
+                                                      now.minute)
+                    parameter.setParam(eventID=eventID)
+            else:
+                data.setWFData(fnames)
+                event = savepath
+                now = datetime.datetime.now()
+                evID = '%d%02d%02d%02d%02d' % (now.year,
+                                               now.month,
+                                               now.day,
+                                               now.hour,
+                                               now.minute)
+                parameter.setParam(eventID=evID)
             wfdat = data.getWFData()  # all available streams
             wfdat = remove_underscores(wfdat)
             metadata =  read_metadata(parameter.get('invdir'))
             corr_dat, rest_flag = restitute_data(wfdat.copy(), *metadata)
+               
+            print('Working on event %s' % event)
+            print(data)
             ##########################################################
             # !automated picking starts here!
             picks = autopickevent(wfdat, parameter)
@@ -283,7 +306,6 @@ def autoPyLoT(inputfile):
 
 
 if __name__ == "__main__":
-    from pylot.core.util.defaults import AUTOMATIC_DEFAULTS
     # parse arguments
     parser = argparse.ArgumentParser(
         description='''autoPyLoT automatically picks phase onset times using higher order statistics,
@@ -292,13 +314,17 @@ if __name__ == "__main__":
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
                         help='''full path to the file containing the input
-                        parameters for autoPyLoT''',
-                        default=AUTOMATIC_DEFAULTS
-                        )
+                        parameters for autoPyLoT''') 
+    parser.add_argument('-f', '-F', '--fnames', type=str,
+                        action='store',
+                        help='''optional, list of data file names''')
+    parser.add_argument('-s', '-S', '--spath', type=str,
+                        action=store,
+                        help='''optional, save path for autoPyLoT output''')
     parser.add_argument('-v', '-V', '--version', action='version',
                         version='autoPyLoT ' + __version__,
                         help='show version information and exit')
 
     cla = parser.parse_args()
 
-    autoPyLoT(str(cla.inputfile))
+    autoPyLoT(str(cla.inputfile), str(cla.fnames), str(cla.spath))
