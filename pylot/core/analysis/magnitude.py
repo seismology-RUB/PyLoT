@@ -528,22 +528,24 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         # use of implicit scipy otimization function
         fit = synthsourcespec(F, w0in, Fcin)
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
-        w01 = optspecfit[0]
-        fc1 = optspecfit[1]
+        w0 = optspecfit[0]
+        fc = optspecfit[1]
+        #w01 = optspecfit[0]
+        #fc1 = optspecfit[1]
         if verbosity:
             print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                   "calcsourcespec: Determined corner frequency: %f Hz" % (w01, fc1))
+                   "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
 
         # use of conventional fitting
-        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+        # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
         # get w0 and fc as median of both
         # source spectrum fits
-        w0 = np.median([w01, w02])
-        fc = np.median([fc1, fc2])
-        if verbosity:
-            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-            w0, fc))
+        #w0 = np.median([w01, w02])
+        #fc = np.median([fc1, fc2])
+        #if verbosity:
+        #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+        #    w0, fc))
 
     if iplot > 1:
         f1 = plt.figure()
