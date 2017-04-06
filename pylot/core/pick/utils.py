@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# -*- coding: utf-8 -*-
 """
    Created Mar/Apr 2015
    Collection of helpful functions for manual and automatic picking.
 
-   :author: Ludger Kueperkoch / MAGS2 EP3 working group
+   :author: Ludger Kueperkoch, BESTEC GmbH
 """
 
 import warnings

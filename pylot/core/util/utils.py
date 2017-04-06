@@ -477,7 +477,7 @@ def runProgram(cmd, parameter=None):
 
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
-def which(program):
+def which(program, infile=None):
     """
     takes a program name and returns the full path to the executable or None
     modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
@@ -490,7 +490,12 @@ def which(program):
         for key in settings.allKeys():
             if 'binPath' in key:
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
-        bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'autoPyLoT.in')
+        if infile is None:
+            # use default parameter-file name
+            bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        else:
+            bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
+            
         if os.path.exists(bpath):
             nllocpath = ":" + AutoPickParameter(bpath).get('nllocbin')
             os.environ['PATH'] += nllocpath

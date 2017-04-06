@@ -5,12 +5,15 @@ Created on Wed Mar 19 11:27:35 2014
 @author: sebastianw
 """
 
+import os
+import getpass
 import warnings
 import copy
 import datetime
 import numpy as np
 
 from matplotlib.figure import Figure
+from pylot.core.util.utils import find_horizontals
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -26,7 +29,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from pylot.core.io.inputs import FilterOptions
+from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
@@ -49,7 +52,12 @@ def getDataType(parent):
 
 def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
              title=None):
-    _axes.plot(x, y)
+    # try method or data
+    try:
+    	_axes.plot(x, y()) # y provided as method 
+    except:
+    	_axes.plot(x, y)   # y provided as data
+
     if title:
         _axes.set_title(title)
     if xlabel:
@@ -235,23 +243,23 @@ class ComparisonDialog(QDialog):
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
 
-        annotation = "{phase} difference on {station}\n" \
-                     "expectation: {exp}\n" \
-                     "std: {std}".format(station=station, phase=phase,
-                                         std=std, exp=exp)
+        annotation = "%s difference on %s\n" \
+                     "expectation: %7.4f s\n" \
+                     "std: %7.4f s" % (phase, station,
+                                      exp, std)
         bbox_props = dict(boxstyle='round', facecolor='lightgrey', alpha=.7)
 
         plot_pdf(_axes, x, y, annotation, bbox_props, 'time difference [s]',
-                 'propability density [-]', phase)
+                  'propability density [-]', phase)
 
         pdf_a = copy.deepcopy(self.data.get('auto')[station][phase])
         pdf_m = copy.deepcopy(self.data.get('manu')[station][phase])
 
-        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data, \
+        xauto, yauto, stdauto, expauto, alim = pdf_a.axis, pdf_a.data(), \
                                                pdf_a.standard_deviation(), \
                                                pdf_a.expectation(), \
                                                pdf_a.limits()
-        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data, \
+        xmanu, ymanu, stdmanu, expmanu, mlim = pdf_m.axis, pdf_m.data(), \
                                                pdf_m.standard_deviation(), \
                                                pdf_m.expectation(), \
                                                pdf_m.limits()
@@ -259,21 +267,19 @@ class ComparisonDialog(QDialog):
         lims = clims(alim, mlim)
         # relative x axis
         x0 = lims[0]
-        xmanu -= x0
+        xmanu -= x0 
         xauto -= x0
         lims = [lim - x0 for lim in lims]
         x0 = UTCDateTime(x0)
 
         # set annotation text
-        mannotation = "probability density for manual pick\n" \
-                      "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdmanu,
-                                          exp=expmanu-x0.timestamp)
+        mannotation = "probability density of manual pick\n" \
+                      "expectation: %7.4f s\n" \
+                      "std: %7.4f s" % (expmanu-x0.timestamp, stdmanu)
 
-        aannotation = "probability density for automatic pick\n" \
-                      "expectation: {exp}\n" \
-                      "std: {std}".format(std=stdauto,
-                                          exp=expauto-x0.timestamp)
+        aannotation = "probability density of automatic pick\n" \
+                      "expectation: %7.4f s\n" \
+                      "std: %7.4f s" % (expauto-x0.timestamp, stdauto)
 
         _ax1 = plot_pdf(_ax1, xmanu, ymanu, mannotation,
                         bbox_props=bbox_props, xlabel='seconds since '
@@ -504,15 +510,17 @@ class WaveformWidget(FigureCanvas):
 
 class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, picks=None,
-                 rotate=False):
+                 rotate=False, infile=None):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
+        self.infile = infile
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
         settings = QSettings()
-        self._user = settings.value('user/Login', 'anonymous')
+        pylot_user = getpass.getuser()
+        self._user = settings.value('user/Login', pylot_user)
         if picks:
             self.picks = picks
         else:
@@ -704,6 +712,9 @@ class PickDlg(QDialog):
             self.cidrelease = self.connectReleaseEvent(self.panRelease)
             self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
+    def getinfile(self):
+        return self.infile
+
     def getStartTime(self):
         return self.stime
 
@@ -806,6 +817,7 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
+        print(self.selectPhase.currentText())
         if self.selectPhase.currentText().upper().startswith('P'):
             self.setIniPickP(gui_event, wfdata, trace_number)
         elif self.selectPhase.currentText().upper().startswith('S'):
@@ -819,14 +831,14 @@ class PickDlg(QDialog):
 
     def setIniPickP(self, gui_event, wfdata, trace_number):
 
+        parameter = AutoPickParameter(self.getinfile())
         ini_pick = gui_event.xdata
 
-        settings = QSettings()
-
-        nfac = settings.value('picking/nfac_P', 1.3)
-        noise_win = settings.value('picking/noise_win_P', 5.)
-        gap_win = settings.value('picking/gap_win_P', .2)
-        signal_win = settings.value('picking/signal_win_P', 3.)
+        nfac = parameter.get('nfacP')
+        twins = parameter.get('tsnrz')
+        noise_win = twins[0]
+        gap_win = twins[1]
+        signal_win = twins[2]
         itrace = int(trace_number)
 
         while itrace > len(wfdata) - 1:
@@ -868,14 +880,14 @@ class PickDlg(QDialog):
 
     def setIniPickS(self, gui_event, wfdata):
 
+        parameter = AutoPickParameter(self.getinfile())
         ini_pick = gui_event.xdata
 
-        settings = QSettings()
-
-        nfac = settings.value('picking/nfac_S', 1.5)
-        noise_win = settings.value('picking/noise_win_S', 5.)
-        gap_win = settings.value('picking/gap_win_S', .2)
-        signal_win = settings.value('picking/signal_win_S', 3.)
+        nfac = parameter.get('nfacS')
+        twins = parameter.get('tsnrh')
+        noise_win = twins[0]
+        gap_win = twins[1]
+        signal_win = twins[2]
 
         # copy data for plotting
         data = self.getWFData().copy()
@@ -922,6 +934,8 @@ class PickDlg(QDialog):
 
     def setPick(self, gui_event):
 
+        parameter = AutoPickParameter(self.getinfile())
+
         # get axes limits
         self.updateCurrentLimits()
 
@@ -941,7 +955,14 @@ class PickDlg(QDialog):
             wfdata.filter(**filteroptions)
 
         # get earliest and latest possible pick and symmetric pick error
-        [epp, lpp, spe] = earllatepicker(wfdata, 1.5, (5., .5, 2.), pick)
+        if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
+            nfac = parameter.get('nfacP')
+            TSNR = parameter.get('tsnrz')
+        else:
+            nfac = parameter.get('nfacS')
+            TSNR = parameter.get('tsnrh')
+           
+        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick)
 
         # return absolute time values for phases
         stime = self.getStartTime()
@@ -951,7 +972,8 @@ class PickDlg(QDialog):
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
-                          picker=self.getUser())
+                          picker='manual', channel=channel,
+                          network=wfdata[0].stats.network)
 
         try:
             oldphasepick = self.picks[phase]
@@ -1171,13 +1193,15 @@ class PickDlg(QDialog):
 
 
 class PropertiesDlg(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(PropertiesDlg, self).__init__(parent)
+
+        self.infile = infile
+
 
         appName = QApplication.applicationName()
 
         self.setWindowTitle("{0} Properties".format(appName))
-
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(InputsTab(self), "Inputs")
         self.tabWidget.addTab(OutputsTab(self), "Outputs")
@@ -1186,7 +1210,8 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(LocalisationTab(self), "Loc Tools")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
-                                          QDialogButtonBox.Close)
+                                          QDialogButtonBox.Close |
+                                          QDialogButtonBox.RestoreDefaults)
 
         layout = QVBoxLayout()
         layout.addWidget(self.tabWidget)
@@ -1195,8 +1220,11 @@ class PropertiesDlg(QDialog):
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(
-            self.apply)
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        self.buttonBox.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self.restore)
+
+    def getinfile(self):
+       return self.infile
 
     def accept(self, *args, **kwargs):
         self.apply()
@@ -1208,6 +1236,14 @@ class PropertiesDlg(QDialog):
             values = curwid.getValues()
             if values is not None:
                 self.setValues(values)
+
+    def restore(self):
+        for widint in range(self.tabWidget.count()):
+            curwid = self.tabWidget.widget(widint)
+            values = curwid.resetValues(self.getinfile())
+            if values is not None:
+                self.setValues(values)
+
 
     @staticmethod
     def setValues(tabValues):
@@ -1224,16 +1260,19 @@ class PropTab(QWidget):
     def getValues(self):
         return None
 
+    def resetValues(self, infile=None):
+        return None
 
 class InputsTab(PropTab):
-    def __init__(self, parent):
+    def __init__(self, parent, infile=None):
         super(InputsTab, self).__init__(parent)
 
         settings = QSettings()
+        pylot_user = getpass.getuser()
         fulluser = settings.value("user/FullName")
         login = settings.value("user/Login")
 
-        fullNameLabel = QLabel("Full name for user '{0}': ".format(login))
+        fullNameLabel = QLabel("Full name for user '{0}': ".format(pylot_user))
 
         # get the full name of the actual user
         self.fullNameEdit = QLineEdit()
@@ -1276,9 +1315,24 @@ class InputsTab(PropTab):
                   "data/Structure": self.structureSelect.currentText()}
         return values
 
+    def resetValues(self, infile):
+        para = AutoPickParameter(infile)
+        datstruct = para.get('datastructure')
+        if datstruct == 'SeisComp':
+           index = 0
+        else:
+           index = 2
+        datapath = para.get('datapath')
+        rootpath = para.get('rootpath')
+        database = para.get('database')
+        path = os.path.join(os.path.expanduser('~'), rootpath, datapath, database)
+        values = {"data/dataRoot": self.dataDirEdit.setText("%s" % path),
+                  "user/FullName": self.fullNameEdit.text(),
+                  "data/Structure": self.structureSelect.setCurrentIndex(index)}
+        return values
 
 class OutputsTab(PropTab):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(OutputsTab, self).__init__(parent)
 
         settings = QSettings()
@@ -1302,6 +1356,9 @@ class OutputsTab(PropTab):
         values = {"output/Format": self.eventOutputComboBox.currentText()}
         return values
 
+    def resetValues(self, infile):
+        values = {"output/Format": self.eventOutputComboBox.setCurrentIndex(1)}
+        return values
 
 class PhasesTab(PropTab):
     def __init__(self, parent=None):
@@ -1318,7 +1375,7 @@ class GraphicsTab(PropTab):
 
 
 class LocalisationTab(PropTab):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(LocalisationTab, self).__init__(parent)
 
         settings = QSettings()
@@ -1388,6 +1445,13 @@ class LocalisationTab(PropTab):
                   "loc/tool": loctool}
         return values
 
+    def resetValues(self, infile):
+        para = AutoPickParameter(infile)
+        nllocroot = para.get('nllocroot')
+        nllocbin = para.get('nllocbin')
+        loctool = self.locToolComboBox.setCurrentIndex(3)
+        values = {"nll/rootPath": self.rootedit.setText("%s" % nllocroot),
+                  "nll/binPath": self.binedit.setText("%s" % nllocbin)}
 
 class NewEventDlg(QDialog):
     def __init__(self, parent=None, titleString="Create a new event"):

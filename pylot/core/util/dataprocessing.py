@@ -180,8 +180,10 @@ def read_metadata(path_to_inventory):
     invtype = key_for_set_value(inv)
 
     if invtype is None:
-        raise IOError("Neither dataless-SEED file, inventory-xml file nor "
-                      "RESP-file found!")
+        print("Neither dataless-SEED file, inventory-xml file nor "
+              "RESP-file found!")
+        print("!!WRONG CALCULATION OF SOURCE PARAMETERS!!")
+        robj = None, 
     elif invtype == 'dless':  # prevent multiple read of large dlsv
         print("Reading metadata information from dataless-SEED file ...")
         if len(inv[invtype]) == 1:
@@ -250,13 +252,23 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
             else:
                 finv = invlist[0]
             inventory = read_inventory(finv, format='STATIONXML')
+        elif invtype == None:
+            print("No restitution possible, as there are no station-meta data available!")
+            break
         else:
             data.remove(tr)
             continue
         # apply restitution to data
+        print("Correcting instrument at station %s, channel %s" \
+                % (tr.stats.station, tr.stats.channel))
         try:
             if invtype in ['resp', 'dless']:
-                tr.simulate(**kwargs)
+                try:
+                   tr.simulate(**kwargs)
+                except ValueError as e:
+                   vmsg = '{0}'.format(e)
+                   print(vmsg)
+                   
             else:
                 tr.attach_response(inventory)
                 tr.remove_response(output=unit,

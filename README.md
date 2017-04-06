@@ -16,12 +16,12 @@ benefit a lot compared to the former MatLab version.
 
 The development of PyLoT is part of the joint research project MAGS2.
 
-##Installation
+## Installation
 
 At the moment there is no automatic installation procedure available for PyLoT.
 Best way to install is to clone the repository and add the path to your Python path.
 
-####prerequisites:
+#### Prerequisites:
 
 In order to run PyLoT you need to install:
 
@@ -32,7 +32,7 @@ In order to run PyLoT you need to install:
 - obspy
 - pyside
 
-####some handwork
+#### Some handwork:
 
 PyLoT needs a properties folder on your system to work. It should be situated in your home directory:
 
@@ -59,10 +59,9 @@ You may need to do some modifications to these files. Especially folder names sh
 PyLoT has been tested on Mac OSX (10.11) and Debian Linux 8.
 
 
-##release notes:
-==============
+## Release notes
 
-#### Features
+#### Features:
 
 - consistent manual phase picking through predefined SNR dependant zoom level
 - uniform uncertainty estimation from waveform's properties for automatic and manual picks
@@ -70,21 +69,20 @@ PyLoT has been tested on Mac OSX (10.11) and Debian Linux 8.
 - Richter and moment magnitude estimation
 - location determination with external installation of [NonLinLoc](http://alomax.free.fr/nlloc/index.html)
 
-#### Known issues
+#### Known issues:
 
 - Magnitude estimation from manual PyLoT takes some time (instrument correction)
 
 We hope to solve these with the next release.
 
-####staff:
-======
+## Staff
 
-original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
+Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
 
-developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff,
+Developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff,
               C. Wollin, M. Rische, M. Paffrath
 
-others: A. Bruestle, T. Meier, W. Friederich
+Others: A. Bruestle, T. Meier, W. Friederich
 
 
 [ObsPy]: http://github.com/obspy/obspy/wiki

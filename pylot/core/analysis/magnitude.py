@@ -6,18 +6,15 @@ Created autumn/winter 2015.
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
-
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
-
 
 def richter_magnitude_scaling(delta):
     relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
@@ -200,8 +197,8 @@ class RichterMagnitude(Magnitude):
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         wapp = np.max(sqH[iwin])
         if self.verbose:
-            print("Determined Wood-Anderson peak-to-peak amplitude: {0} "
-                  "mm".format(wapp))
+            print("Determined Wood-Anderson peak-to-peak amplitude for station {0}: {1} "
+                  "mm".format(st[0].stats.station, wapp))
 
         # check for plot flag (for debugging only)
         if self.plot_flag > 1:
@@ -317,8 +314,8 @@ class MomentMagnitude(Magnitude):
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
-            wf = select_for_phase(self.stream.select(
-                station=station), a.phase)
+            scopy = self.stream.copy()
+            wf = scopy.select(station=station)
             if not wf:
                 continue
             onset = pick.time
@@ -326,15 +323,16 @@ class MomentMagnitude(Magnitude):
             azimuth = a.azimuth
             incidence = a.takeoff_angle
             w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
-                                    azimuth,
-                                    incidence, self.p_attenuation,
+                                    azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
-            wf = select_for_phase(wf, "P")
-            m0, mw = calcMoMw(wf, w0, self.rock_density, self.p_velocity,
+            WF = select_for_phase(self.stream.select(
+                station=station), a.phase)
+            WF = select_for_phase(WF, "P")
+            m0, mw = calcMoMw(WF, w0, self.rock_density, self.p_velocity,
                               distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
             magnitude = ope.StationMagnitude(mag=mw)
@@ -426,7 +424,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     :type:  integer
     '''
     if verbosity:
-        print ("Calculating source spectrum ....")
+        print ("Calculating source spectrum for station %s ...." % wfstream[0].stats.station)
 
     # get Q value
     Q, A = qp
@@ -453,18 +451,21 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     LQT = wfstream.rotate('ZNE->LQT', azimuth, incidence)
     ldat = LQT.select(component="L")
     if len(ldat) == 0:
-        # if horizontal channels are 2 and 3
+        # if horizontal channels are 1 and 2
         # no azimuth information is available and thus no
         # rotation is possible!
         if verbosity:
             print("calcsourcespec: Azimuth information is missing, "
                   "no rotation of components possible!")
-        ldat = LQT.select(component="Z")
+        # instead, use component 3
+        ldat = LQT.select(component="3")
+        if len(ldat) == 0:
+            # maybe component z available
+            ldat = LQT.select(component="Z")
 
     # integrate to displacement
     # unrotated vertical component (for comparison)
     inttrz = signal.detrend(integrate.cumtrapz(zdat[0].data, None, dt))
-
     # rotated component Z => L
     Ldat = signal.detrend(integrate.cumtrapz(ldat[0].data, None, dt))
 
@@ -527,22 +528,24 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         # use of implicit scipy otimization function
         fit = synthsourcespec(F, w0in, Fcin)
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
-        w01 = optspecfit[0]
-        fc1 = optspecfit[1]
+        w0 = optspecfit[0]
+        fc = optspecfit[1]
+        #w01 = optspecfit[0]
+        #fc1 = optspecfit[1]
         if verbosity:
             print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                   "Determined corner frequency: %f Hz" % (w01, fc1))
+                   "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
 
         # use of conventional fitting
-        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+        # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
         # get w0 and fc as median of both
         # source spectrum fits
-        w0 = np.median([w01, w02])
-        fc = np.median([fc1, fc2])
-        if verbosity:
-            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-            w0, fc))
+        #w0 = np.median([w01, w02])
+        #fc = np.median([fc1, fc2])
+        #if verbosity:
+        #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+        #    w0, fc))
 
     if iplot > 1:
         f1 = plt.figure()
@@ -627,18 +630,35 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     fc = []
     stdfc = []
     STD = []
-
     # get window around initial corner frequency for trials
-    fcstopl = fc0 - max(1, len(f) / 10)
-    il = np.argmin(abs(f - fcstopl))
-    fcstopl = f[il]
-    fcstopr = fc0 + min(len(f), len(f) / 10)
-    ir = np.argmin(abs(f - fcstopr))
-    fcstopr = f[ir]
-    iF = np.where((f >= fcstopl) & (f <= fcstopr))
+    # left side of initial corner frequency
+    fcstopl = max(f[0], fc0 - max(1, fc0 / 2))
+    il = np.where(f <= fcstopl)
+    il = il[0][np.size(il) - 1] 
+    # right side of initial corner frequency
+    fcstopr = min(fc0 + (fc0 / 2), f[len(f) - 1]) 
+    ir = np.where(f >= fcstopr)
+    # check, if fcstopr is available
+    if np.size(ir) == 0:
+        fcstopr = fc0
+        ir = len(f) - 1
+    else:
+        ir = ir[0][0]
 
     # vary corner frequency around initial point
-    for i in range(il, ir):
+    print("fitSourceModel: Varying corner frequency "
+           "around initial corner frequency ...")
+    # check difference of il and ir in order to
+    # keep calculation time acceptable
+    idiff = ir - il
+    if idiff > 10000:
+       increment = 100
+    elif idiff <= 20:
+       increment = 1
+    else:
+       increment = 10 
+
+    for i in range(il, ir, increment):
         FC = f[i]
         indexdc = np.where((f > 0) & (f <= FC))
         dc = np.mean(S[indexdc])

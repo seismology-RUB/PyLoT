@@ -51,8 +51,11 @@ def exp_parameter(te, tm, tl, eta):
 
     sig1 = np.log(eta) / (te - tm)
     sig2 = np.log(eta) / (tm - tl)
+    if np.isinf(sig1) == True:
+        sig1 = np.log(eta) / (tm - tl)
+    if np.isinf(sig2) == True:
+        sig2 = np.log(eta) / (te - tm)
     a = 1 / (1 / sig1 + 1 / sig2)
-
     return tm, sig1, sig2, a
 
 
@@ -237,7 +240,7 @@ class ProbabilityDensityFunction(object):
 
     @classmethod
     def from_pick(self, lbound, barycentre, rbound, incr=0.001, decfact=0.01,
-                  type='gauss'):
+                  type='exp'):
         '''
         Initialize a new ProbabilityDensityFunction object.
         Takes incr, lbound, barycentre and rbound to derive x0 and the number
@@ -304,10 +307,14 @@ class ProbabilityDensityFunction(object):
         :return float: rval
         '''
 
-        rval = 0
-        for x in self.axis:
-            rval += x * self.data(x)
-        return rval * self.incr
+        #rval = 0
+        #for x in self.axis:
+        #    rval += x * self.data(x)
+        rval = self.mu
+        # Not sure about this! That might not be the barycentre.
+        # However, for std calculation (next function)
+        # self.mu is also used!! (LK, 02/2017) 
+        return rval 
 
     def standard_deviation(self):
         mu = self.mu

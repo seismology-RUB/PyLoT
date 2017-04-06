@@ -7,7 +7,6 @@ import os
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
-
 from obspy import read_events
 
 from pylot.core.io.phases import picksdict_from_picks
@@ -289,7 +288,6 @@ class PDFDictionary(object):
                     values['mpp'],
                     values['lpp'],
                     type=type)
-
         return pdf_picks
 
     def plot(self, stations=None):

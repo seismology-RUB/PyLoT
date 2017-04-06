@@ -143,7 +143,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Sflag = 0
     Pmarker = []
     Ao = None  # Wood-Anderson peak-to-peak amplitude
-    picker = 'autoPyLoT'  # name of the picking programm
+    picker = 'auto'  # type of picks
 
     # split components
     zdat = wfstream.select(component="Z")
@@ -157,7 +157,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
         ndat = wfstream.select(component="1")
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
-        msg = '##########################################\nautopickstation:' \
+        msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
               'trace ...\n{data}'.format(station=zdat[0].stats.station,
                                          data=str(zdat))
@@ -552,7 +552,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
 
                     print('autopickstation: S-weight: {0}, SNR: {1}, '
                           'SNR[dB]: {2}\n'
-                          '################################################'
+                          '##################################################'
                           ''.format(Sweight, SNRS, SNRSdB))
                 ################################################################
                 # get Wood-Anderson peak-to-peak amplitude
@@ -566,7 +566,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                   'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
                   '(min. AIC-SNR={2}, ' \
                   'min. AIC-Slope={3}counts/s)\n' \
-                  '################################################' \
+                  '##################################################' \
                   ''.format(aicarhpick.getSNR(),
                             aicarhpick.getSlope(),
                             minAICSSNR,
@@ -778,11 +778,15 @@ def autopickstation(wfstream, pickparam, verbose=False):
 
     # create dictionary
     # for P phase
-    ppick = dict(lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
+    ccode = zdat[0].stats.channel
+    ncode = zdat[0].stats.network
+    ppick = dict(channel=ccode, network=ncode, lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
                  snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
                  Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    spick = dict(lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
+    ccode = edat[0].stats.channel
+    ncode = edat[0].stats.network
+    spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
     picks = dict(P=ppick, S=spick)
@@ -804,7 +808,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
     :param pickparameter: picking parameters from autoPyLoT-input file
     '''
 
-    msg = '#######################################################\n' \
+    msg = '##################################################\n' \
           'autoPyLoT: Found {0} bad onsets at station(s) {1}, ' \
           'starting re-picking them ...'.format(len(badpicks), badpicks)
     print(msg)
@@ -823,7 +827,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
         badpicks[i][1] = picks[badpicks[i][0]]['P']['mpp'] - float(res)
 
         # get corresponding waveform stream
-        msg = '#######################################################\n' \
+        msg = '##################################################\n' \
               'iteratepicker: Re-picking station {0}'.format(badpicks[i][0])
         print(msg)
         wf2pick = wf.select(station=badpicks[i][0])

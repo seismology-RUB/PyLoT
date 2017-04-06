@@ -7,17 +7,18 @@ class AutoPickThread(QThread):
     message = Signal(str)
     finished = Signal()
 
-    def __init__(self, parent, func, data, param):
+    def __init__(self, parent, func, infile, fnames, savepath):
         super(AutoPickThread, self).__init__()
         self.setParent(parent)
         self.func = func
-        self.data = data
-        self.param = param
+        self.infile = infile
+        self.fnames = fnames
+        self.savepath = savepath
 
     def run(self):
         sys.stdout = self
 
-        picks = self.func(self.data, self.param)
+        picks = self.func(self.infile, self.fnames, self.savepath)
 
         print("Autopicking finished!\n")
 

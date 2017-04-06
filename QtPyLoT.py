@@ -15,7 +15,7 @@ Some icons are out of a free of charge icon set, which can be found here:
 https://www.iconfinder.com/iconsets/flavour
 
 :author:
-    Sebastian Wehling-Benatelli
+    Sebastian Wehling-Benatelli / Ludger Küperkoch
 :copyright:
     The PyLoT Development Team (https://ariadne.geophysik.rub.de/trac/PyLoT)
 :license:
@@ -25,14 +25,13 @@ https://www.iconfinder.com/iconsets/flavour
 
 import os
 import sys
-
 import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
-    QFileInfo, Qt
+    QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
@@ -43,13 +42,13 @@ from obspy import UTCDateTime
 from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
-from pylot.core.pick.autopick import autopickevent
+#from pylot.core.pick.autopick import autopickevent
+from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP, \
-    AUTOMATIC_DEFAULTS
+from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -78,15 +77,23 @@ class MainWindow(QMainWindow):
         self.createAction = createAction
         # read settings
         settings = QSettings()
+        # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-        self._inputs = AutoPickParameter(infile)
+        if os.path.isfile(infile)== False:
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file', 
+                                                                      filter='*.in')
+            self.infile = infile[0]
+        else:
+            self.infile = infile
+
+        self._inputs = AutoPickParameter(self.infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
             settings.setValue("user/Login", getLogin())
         if settings.value("agency_id", None) is None:
             agency = QInputDialog.getText(self,
-                                          "Enter authority name (e.g. BUG):",
+                                          "Enter authority/institution name:",
                                           "Authority")
             settings.setValue("agency_id", agency)
         self.recentfiles = settings.value("data/recentEvents", [])
@@ -164,16 +171,20 @@ class MainWindow(QMainWindow):
                                   lambda event: self.tutor_user())
         _layout.addWidget(self.DataPlot)
 
-        manupicksicon = self.style().standardIcon(QStyle.SP_DialogYesButton)
-        autopicksicon = self.style().standardIcon(QStyle.SP_DialogNoButton)
-        locactionicon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
-        loadpiloticon = self.style().standardIcon(QStyle.SP_ComputerIcon)
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
 
         # create resource icons
+        locactionicon = QIcon()
+        locactionicon.addPixmap(QPixmap(':/icons/locactionicon.png'))
+        manupicksicon = QIcon()
+        manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
+        autopicksicon = QIcon()
+        autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        loadpiloticon = QIcon()
+        loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
         p_icon.addPixmap(QPixmap(':/icons/key_P.png'))
         s_icon = QIcon()
@@ -189,12 +200,11 @@ class MainWindow(QMainWindow):
         e_icon = QIcon()
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
         auto_icon = QIcon()
-        auto_icon.addPixmap(QPixmap(':/icons/sync.png'))
+        auto_icon.addPixmap(QPixmap(':/icons/autopick_button.png'))
         locate_icon = QIcon()
-        locate_icon.addPixmap(QPixmap(':/icons/locate.png'))
+        locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
-        compare_icon.addPixmap(QPixmap(':/icons/compare.png'))
-
+        compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
         newEventAction = self.createAction(self, "&New event ...",
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
@@ -203,28 +213,29 @@ class MainWindow(QMainWindow):
                                                   self.load_data,
                                                   QKeySequence.Open,
                                                   manupicksicon,
-                                                  "Load pick data for "
-                                                  "the actual event.")
+                                                  "Load manual picks for "
+                                                  "the displayed event.")
         openmanualpicksaction.setData(None)
         openautopicksaction = self.createAction(self, "Load &automatic picks "
                                                       "...",
                                                 self.load_autopicks,
                                                 "Ctrl+A",
                                                 autopicksicon,
-                                                "Load automatic pick data "
-                                                "for the actual event.")
+                                                "Load automatic picks "
+                                                "for the displayed event.")
         openautopicksaction.setData(None)
 
         loadlocationaction = self.createAction(self, "Load &location ...",
                                                self.load_loc, "Ctrl+L",
                                                locactionicon,
                                                "Load location information on "
-                                               "the actual event.")
+                                               "the displayed event.")
         loadpilotevent = self.createAction(self, "Load PILOT &event ...",
                                            self.load_pilotevent, "Ctrl+E",
                                            loadpiloticon,
                                            "Load PILOT event from information "
-                                           "Matlab binary collections.")
+                                           "MatLab binary collections (created"
+                                           " in former MatLab based version).")
         saveEventAction = self.createAction(self, "&Save event ...",
                                             self.saveData, QKeySequence.Save,
                                             saveIcon, "Save actual event data.")
@@ -269,7 +280,7 @@ class MainWindow(QMainWindow):
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
                                         print_icon,
-                                        "Print waveform overview.")
+                                        "Print waveform section.")
         helpAction = self.createAction(self, "&Help ...", self.helpHelp,
                                        QKeySequence.HelpContents, helpIcon,
                                        """Show either the documentation
@@ -347,13 +358,12 @@ class MainWindow(QMainWindow):
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
-
-        locateEvent = self.createAction(parent=self, text='locate_event',
+        locateEvent = self.createAction(parent=self, text='locate the event',
                                         slot=self.locate_event,
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
                                         tip='Locate the event using '
-                                            'the picked arrivals.')
+                                            'the displayed manual arrivals.')
 
         locationToolBar = self.addToolBar("LocationTools")
         locationToolActions = (locateEvent,)
@@ -586,8 +596,7 @@ class MainWindow(QMainWindow):
             ans = QMessageBox.question(self, self.tr("Overwrite file..."),
                                self.tr("File already exists: {0}\n".format(fbasename + exform) + \
                                   "Overwrite file anyway?"),
-                               QMessageBox.Cancel, QMessageBox.Yes | QMessageBox.No,
-                               QMessageBox.Cancel)
+                               QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             # only negative answers have to be caught
             if ans == QMessageBox.No:
                 self.saveData()
@@ -600,6 +609,9 @@ class MainWindow(QMainWindow):
         self.setDirty(False)
         self.update_status('Event saved as %s' % (fbasename + exform))
         return True
+
+    def getinfile(self):
+        return self.infile
 
     def getComponent(self):
         return self.dispComponent
@@ -804,7 +816,8 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
-        pickDlg = PickDlg(self, data=data.select(station=station),
+        pickDlg = PickDlg(self, infile=self.getinfile(), 
+                          data=data.select(station=station),
                           station=station,
                           picks=self.getPicksOnStation(station))
         if pickDlg.exec_():
@@ -830,6 +843,7 @@ class MainWindow(QMainWindow):
         self.listWidget.scrollToBottom()
 
     def autoPick(self):
+        self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 
         self.listWidget = QListWidget()
         self.setDirty(True)
         self.logDockWidget = QDockWidget("AutoPickLog", self)
@@ -838,18 +852,17 @@ class MainWindow(QMainWindow):
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        self.addListItem('loading default values for local data ...')
-        # may become obsolete if generalized input parameter a read from disc
-        #  during initialization
-        # TODO double check for obsolete read in of parameters
-        autopick_parameter = AutoPickParameter(AUTOMATIC_DEFAULTS)
+        self.addListItem('Loading default values from PyLoT-input file %s' 
+                                                             % self.infile)
+        autopick_parameter = self._inputs
         self.addListItem(str(autopick_parameter))
 
-        # Create the worker thread and run it
         self.thread = AutoPickThread(parent=self,
-                                     func=autopickevent,
-                                     data=self.get_data().getWFData(),
-                                     param=autopick_parameter)
+                                     func=autoPyLoT,
+                                     infile = self.infile, 
+                                     fnames=self.fnames,
+                                     savepath=self.autosave)
+
         self.thread.message.connect(self.addListItem)
         self.thread.start()
         self.thread.finished.connect(self.finalizeAutoPick)
@@ -1128,7 +1141,7 @@ class MainWindow(QMainWindow):
             QMainWindow.closeEvent(self, event)
 
     def PyLoTprefs(self):
-        props = PropertiesDlg(self)
+        props = PropertiesDlg(self, infile=self.getinfile())
         if props.exec_():
             return
 
@@ -1153,11 +1166,15 @@ def main():
 
     # create the main window
     pylot_form = MainWindow()
+    icon = QIcon()
+    pylot_form.setWindowIcon(icon)
+    pylot_form.setIconSize(QSize(60, 60))
+    
     splash.showMessage('Loading. Please wait ...')
     pylot_app.processEvents()
 
     # set Application Information
-    pylot_app.setOrganizationName("Ruhr-University Bochum / MAGS2")
+    pylot_app.setOrganizationName("Ruhr-University Bochum / BESTEC")
     pylot_app.setOrganizationDomain("rub.de")
     pylot_app.processEvents()
     pylot_app.setApplicationName("PyLoT")
