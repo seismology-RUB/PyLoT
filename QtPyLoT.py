@@ -1054,9 +1054,9 @@ class MainWindow(QMainWindow):
                 self.metadata = read_metadata(fninv)
                 
         wf_copy = self.get_data().getWFData().copy()
-        [corr_wf, rest_flag] = restitute_data(wf_copy, *self.metadata)
-        if not rest_flag:
-            raise ProcessingError('Restitution of waveform data failed!')
+        corr_wf = restitute_data(wf_copy, *self.metadata)
+        # if not rest_flag:
+        #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
             local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
             return local_mag.updated_event()

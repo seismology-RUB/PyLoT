@@ -17,13 +17,14 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine
+from pylot.core.util.utils import getPatternLine, gen_Pool
 from pylot.core.io.data import Data
 
 
 def autopickevent(data, param):
     stations = []
     all_onsets = {}
+    input_tuples = []
 
     # get some parameters for quality control from
     # parameter input file (usually autoPyLoT.in).
@@ -40,13 +41,28 @@ def autopickevent(data, param):
 
     for station in stations:
         topick = data.select(station=station)
-        all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
+        #all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
+        input_tuples.append((topick, param, apverbose))
+        
+    pool = gen_Pool()
+    result = pool.map(call_autopickstation, input_tuples)
+    pool.close()
 
+    for pick in result:
+        station = pick['station']
+        pick.pop('station')
+        all_onsets[station] = pick
+        
     # quality control
     # median check and jackknife on P-onset times
     jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
     # check S-P times (Wadati)
     return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
+
+
+def call_autopickstation(input_tuple):
+    wfstream, pickparam, verbose = input_tuple
+    return autopickstation(wfstream, pickparam, verbose)
 
 
 def autopickstation(wfstream, pickparam, verbose=False):
@@ -789,7 +805,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
-    picks = dict(P=ppick, S=spick)
+    picks = dict(P=ppick, S=spick, station=zdat[0].stats.station)
     return picks
 
 

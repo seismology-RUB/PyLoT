@@ -29,6 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
+
 def autoPyLoT(inputfile, fnames=None, savepath=None):
     """
     Determine phase onsets automatically utilizing the automatic picking
@@ -146,7 +147,7 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
             wfdat = data.getWFData()  # all available streams
             wfdat = remove_underscores(wfdat)
             metadata =  read_metadata(parameter.get('invdir'))
-            corr_dat, rest_flag = restitute_data(wfdat.copy(), *metadata)
+            corr_dat = restitute_data(wfdat.copy(), *metadata)
                
             print('Working on event %s' % event)
             print(data)
@@ -319,7 +320,7 @@ if __name__ == "__main__":
                         action='store',
                         help='''optional, list of data file names''')
     parser.add_argument('-s', '-S', '--spath', type=str,
-                        action=store,
+                        action='store',
                         help='''optional, save path for autoPyLoT output''')
     parser.add_argument('-v', '-V', '--version', action='version',
                         version='autoPyLoT ' + __version__,

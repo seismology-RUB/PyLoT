@@ -29,19 +29,16 @@ def getindexbounds(f, eta):
     u = find_nearest(f[mi:], b) + mi
     return mi, l, u
 
-def worker(func, input, cores='max', async=False):
+
+def gen_Pool(ncores='max'):
     import multiprocessing
 
-    if cores == 'max':
-        cores = multiprocessing.cpu_count()
+    if ncores=='max':
+        ncores=multiprocessing.cpu_count()
+        
+    pool = multiprocessing.Pool(ncores)
+    return pool
 
-    pool = multiprocessing.Pool(cores)
-    if async == True:
-        result = pool.map_async(func, input)
-    else:
-        result = pool.map(func, input)
-    pool.close()
-    return result
 
 def clims(lim1, lim2):
     """
