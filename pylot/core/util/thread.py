@@ -32,3 +32,6 @@ class AutoPickThread(QThread):
 
     def write(self, text):
         self.message.emit(text)
+
+    def flush(self):
+        pass
