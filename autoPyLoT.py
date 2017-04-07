@@ -29,7 +29,6 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-
 def autoPyLoT(inputfile, fnames=None, savepath=None):
     """
     Determine phase onsets automatically utilizing the automatic picking
