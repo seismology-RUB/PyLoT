@@ -14,7 +14,7 @@ chosen for the particular data set.
 Some icons are out of a free of charge icon set, which can be found here:
 https://www.iconfinder.com/iconsets/flavour
 
-:author:
+:authors:
     Sebastian Wehling-Benatelli / Ludger Küperkoch
 :copyright:
     The PyLoT Development Team (https://ariadne.geophysik.rub.de/trac/PyLoT)
@@ -42,7 +42,6 @@ from obspy import UTCDateTime
 from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
-#from pylot.core.pick.autopick import autopickevent
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
@@ -80,8 +79,11 @@ class MainWindow(QMainWindow):
         # check for default pylot.in-file
         infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         if os.path.isfile(infile)== False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file', 
-                                                                      filter='*.in')
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file') 
+            if not os.path.exists(infile[0]):
+                QMessageBox.warning(self, "PyLoT Warning",
+                           "No PyLoT-input file declared!")
+                sys.exit(0)
             self.infile = infile[0]
         else:
             self.infile = infile
@@ -844,6 +846,10 @@ class MainWindow(QMainWindow):
 
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 
+        if not os.path.exists(self.autosave):
+                QMessageBox.warning(self, "PyLoT Warning",
+                           "No autoPyLoT output declared!")
+                return
         self.listWidget = QListWidget()
         self.setDirty(True)
         self.logDockWidget = QDockWidget("AutoPickLog", self)
