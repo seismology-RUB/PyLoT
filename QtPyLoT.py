@@ -73,22 +73,14 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
         # read settings
         settings = QSettings()
-        # check for default pylot.in-file
-        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-        if os.path.isfile(infile)== False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file') 
-            if not os.path.exists(infile[0]):
-                QMessageBox.warning(self, "PyLoT Warning",
-                           "No PyLoT-input file declared!")
-                sys.exit(0)
-            self.infile = infile[0]
-        else:
-            self.infile = infile
+        self.recentfiles = settings.value("data/recentEvents", [])
+        self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
+        self.setupUi()
 
-        self._inputs = AutoPickParameter(self.infile)
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
@@ -98,14 +90,12 @@ class MainWindow(QMainWindow):
                                           "Enter authority/institution name:",
                                           "Authority")
             settings.setValue("agency_id", agency)
-        self.recentfiles = settings.value("data/recentEvents", [])
         self.fname = dict(manual=None, auto=None, loc=None)
         self.fnames = None
         self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
         self.dataStructure = DATASTRUCTURE[structure_setting]()
         self.seismicPhase = str(settings.value("phase", "P"))
-        self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
         if settings.value("data/dataRoot", None) is None:
             dirname = QFileDialog().getExistingDirectory(
                 caption='Choose data root ...')
@@ -118,9 +108,6 @@ class MainWindow(QMainWindow):
         self.autopicks = {}
         self.loc = False
 
-        # UI has to be set up before(!) children widgets are about to show up
-        self.setupUi()
-
         # initialize event data
         if self.recentfiles:
             lastEvent = self.getLastEvent()
@@ -129,18 +116,7 @@ class MainWindow(QMainWindow):
             self.data = Data(self)
         self.autodata = Data(self)
 
-        # load and display waveform data
         self.dirty = False
-        self.load_data()
-        finv = settings.value("inventoryFile", None)
-        if finv is not None:
-            self._metadata = read_metadata(finv)
-        else:
-            self._metadata = None
-        if self.loadWaveformData():
-            self.updateFilterOptions()
-        else:
-            sys.exit(0)
 
     def setupUi(self):
 
@@ -201,7 +177,7 @@ class MainWindow(QMainWindow):
         n_icon.addPixmap(QPixmap(':/icons/key_N.png'))
         e_icon = QIcon()
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
-        auto_icon = QIcon()
+        auto_icon = QIcon(':/icons/autopick_button.png')
         auto_icon.addPixmap(QPixmap(':/icons/autopick_button.png'))
         locate_icon = QIcon()
         locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
@@ -211,36 +187,43 @@ class MainWindow(QMainWindow):
                                            self.createNewEvent,
                                            QKeySequence.New, newIcon,
                                            "Create a new event.")
-        openmanualpicksaction = self.createAction(self, "Load &picks ...",
+        self.openmanualpicksaction = self.createAction(self, "Load &picks ...",
                                                   self.load_data,
                                                   QKeySequence.Open,
                                                   manupicksicon,
                                                   "Load manual picks for "
                                                   "the displayed event.")
-        openmanualpicksaction.setData(None)
-        openautopicksaction = self.createAction(self, "Load &automatic picks "
+        self.openmanualpicksaction.setEnabled(False)
+        self.openmanualpicksaction.setData(None)
+
+        self.openautopicksaction = self.createAction(self, "Load &automatic picks "
                                                       "...",
                                                 self.load_autopicks,
                                                 "Ctrl+A",
                                                 autopicksicon,
                                                 "Load automatic picks "
                                                 "for the displayed event.")
-        openautopicksaction.setData(None)
+        self.openautopicksaction.setEnabled(False)
+        self.openautopicksaction.setData(None)
 
         loadlocationaction = self.createAction(self, "Load &location ...",
                                                self.load_loc, "Ctrl+L",
                                                locactionicon,
                                                "Load location information on "
                                                "the displayed event.")
-        loadpilotevent = self.createAction(self, "Load PILOT &event ...",
+        self.loadpilotevent = self.createAction(self, "Load PILOT &event ...",
                                            self.load_pilotevent, "Ctrl+E",
                                            loadpiloticon,
                                            "Load PILOT event from information "
                                            "MatLab binary collections (created"
                                            " in former MatLab based version).")
-        saveEventAction = self.createAction(self, "&Save event ...",
+        self.loadpilotevent.setEnabled(False)
+
+        self.saveEventAction = self.createAction(self, "&Save event ...",
                                             self.saveData, QKeySequence.Save,
                                             saveIcon, "Save actual event data.")
+        self.saveEventAction.setEnabled(False)
+
         openWFDataAction = self.createAction(self, "Open &waveforms ...",
                                              self.loadWaveformData,
                                              "Ctrl+W", QIcon(":/wfIcon.png"),
@@ -279,6 +262,8 @@ class MainWindow(QMainWindow):
                                                               "manual and "
                                                               "automatic pick "
                                                               "data.", False)
+        self.compare_action.setEnabled(False)
+
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
                                         print_icon,
@@ -289,8 +274,8 @@ class MainWindow(QMainWindow):
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (newEventAction, openmanualpicksaction,
-                                saveEventAction, openWFDataAction, None,
+        self.fileMenuActions = (newEventAction, self.openmanualpicksaction,
+                                self.saveEventAction, openWFDataAction, None,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -306,9 +291,9 @@ class MainWindow(QMainWindow):
         self.addActions(self.helpMenu, helpActions)
 
         fileToolBar = self.addToolBar("FileTools")
-        fileToolActions = (newEventAction, openmanualpicksaction,
-                           openautopicksaction, loadlocationaction,
-                           loadpilotevent, saveEventAction)
+        fileToolActions = (newEventAction, self.openmanualpicksaction,
+                           self.openautopicksaction, loadlocationaction,
+                           self.loadpilotevent, self.saveEventAction)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
@@ -322,53 +307,57 @@ class MainWindow(QMainWindow):
         componentGroup = QActionGroup(self)
         componentGroup.setExclusive(True)
 
-        z_action = self.createAction(parent=componentGroup, text='Z',
+        self.z_action = self.createAction(parent=componentGroup, text='Z',
                                      slot=self.plotZ, shortcut='Alt+Z',
                                      icon=z_icon, tip='Display the vertical (Z)'
                                                       ' component.',
                                      checkable=True)
-        z_action.setChecked(True)
+        self.z_action.setChecked(True)
+        self.z_action.setEnabled(False)
 
-        n_action = self.createAction(parent=componentGroup, text='N',
+        self.n_action = self.createAction(parent=componentGroup, text='N',
                                      slot=self.plotN, shortcut='Alt+N',
                                      icon=n_icon,
                                      tip='Display the north-south (N) '
                                          'component.', checkable=True)
+        self.n_action.setEnabled(False)
 
-        e_action = self.createAction(parent=componentGroup, text='E',
+        self.e_action = self.createAction(parent=componentGroup, text='E',
                                      slot=self.plotE, shortcut='Alt+E',
                                      icon=e_icon,
                                      tip='Display the east-west (E) component.',
                                      checkable=True)
+        self.e_action.setEnabled(False)
 
         componentToolBar = self.addToolBar("ComponentSelection")
-        componentActions = (z_action, n_action, e_action)
+        componentActions = (self.z_action, self.n_action, self.e_action)
         componentToolBar.setObjectName("PhaseTools")
         self.addActions(componentToolBar, componentActions)
 
-        auto_pick = self.createAction(parent=self, text='autoPick',
+        self.auto_pick = self.createAction(parent=self, text='autoPick',
                                       slot=self.autoPick, shortcut='Alt+Ctrl+A',
                                       icon=auto_icon, tip='Automatically pick'
-                                                          ' the entire dataset'
-                                                          ' displayed!')
+                                                          ' the displayed waveforms.')
+        self.auto_pick.setEnabled(False)
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
-        autoPickActions = (auto_pick, self.compare_action)
+        autoPickActions = (self.auto_pick, self.compare_action)
         self.addActions(autoPickToolBar, autoPickActions)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
-        locateEvent = self.createAction(parent=self, text='locate the event',
+        self.locateEvent = self.createAction(parent=self, text='locate the event',
                                         slot=self.locate_event,
                                         shortcut='Alt+Ctrl+L',
                                         icon=locate_icon,
                                         tip='Locate the event using '
                                             'the displayed manual arrivals.')
+        self.locateEvent.setEnabled(False)
 
         locationToolBar = self.addToolBar("LocationTools")
-        locationToolActions = (locateEvent,)
+        locationToolActions = (self.locateEvent,)
         locationToolBar.setObjectName("LocationTools")
         self.addActions(locationToolBar, locationToolActions)
 
@@ -691,6 +680,15 @@ class MainWindow(QMainWindow):
         else:
             ans = False
         self._stime = full_range(self.get_data().getWFData())[0]
+        self.auto_pick.setEnabled(True)
+        self.z_action.setEnabled(True)
+        self.e_action.setEnabled(True)
+        self.n_action.setEnabled(True)
+        self.openmanualpicksaction.setEnabled(True)
+        self.openautopicksaction.setEnabled(True)
+        self.loadpilotevent.setEnabled(True)
+        self.saveEventAction.setEnabled(True)
+        self.locateEvent.setEnabled(True)
         if ans:
             self.plotWaveformData()
             return ans
