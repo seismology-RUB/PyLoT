@@ -1209,6 +1209,8 @@ def main():
     splash.finish(pylot_form)
     if app_created:
         pylot_app.exec_()
+    else:
+        return pylot_form
 
 
 if __name__ == "__main__":
