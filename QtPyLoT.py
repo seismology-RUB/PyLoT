@@ -688,7 +688,6 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         self.saveEventAction.setEnabled(True)
-        self.locateEvent.setEnabled(True)
         if ans:
             self.plotWaveformData()
             return ans
@@ -834,6 +833,7 @@ class MainWindow(QMainWindow):
         else:
             self.update_status('picks discarded ({0})'.format(station))
         if not self.get_loc_flag() and self.check4Loc():
+            self.locateEvent.setEnabled(True)
             self.set_loc_flag(True)
         elif self.get_loc_flag() and not self.check4Loc():
             self.set_loc_flag(False)
@@ -1071,7 +1071,7 @@ class MainWindow(QMainWindow):
             return None
 
     def check4Loc(self):
-        return self.picksNum() > 4
+        return self.picksNum() >= 4
 
     def check4Comparison(self):
         mpicks = self.getPicks()
