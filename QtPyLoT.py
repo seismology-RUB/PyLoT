@@ -73,6 +73,18 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        # check for default pylot.in-file
+        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        if os.path.isfile(infile)== False:
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file') 
+            if not os.path.exists(infile[0]):
+                QMessageBox.warning(self, "PyLoT Warning",
+                           "No PyLoT-input file declared!")
+                sys.exit(0)
+            self.infile = infile[0]
+        else:
+             self.infile = infile
+
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
         # read settings
