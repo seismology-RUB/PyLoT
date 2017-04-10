@@ -1160,9 +1160,23 @@ class MainWindow(QMainWindow):
         form.show()
 
 
+def create_window():
+    app_created = False
+    app = QCoreApplication.instance()
+    #check for existing app (when using ipython)
+    if app is None:
+        app = QApplication(sys.argv)
+        app_created = True
+    app.references = set()
+    #app.references.add(window)
+    #window.show()
+    return app, app_created
+
+        
 def main():
     # create the Qt application
-    pylot_app = QApplication(sys.argv)
+    pylot_app, app_created = create_window()
+    #pylot_app = QApplication(sys.argv)
     pixmap = QPixmap(":/splash/splash.png")
     splash = QSplashScreen(pixmap)
     splash.show()
@@ -1193,7 +1207,8 @@ def main():
     pylot_app.processEvents()
 
     splash.finish(pylot_form)
-    pylot_app.exec_()
+    if app_created:
+        pylot_app.exec_()
 
 
 if __name__ == "__main__":
