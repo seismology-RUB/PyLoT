@@ -510,7 +510,7 @@ class WaveformWidget(FigureCanvas):
 
 class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, picks=None,
-                 rotate=False, infile=None):
+                 autopicks=None, rotate=False, infile=None):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
@@ -525,6 +525,10 @@ class PickDlg(QDialog):
             self.picks = picks
         else:
             self.picks = {}
+        if autopicks:
+            self.autopicks = autopicks
+        else:
+            self.autopicks = {}
         self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
 
@@ -571,7 +575,7 @@ class PickDlg(QDialog):
         self.setPlotLabels()
 
         # draw picks if present
-        self.drawPicks()
+        self.drawAllPicks()
 
         # connect button press event to an action
         self.cidpress = self.connectPressEvent(self.panPress)
@@ -794,8 +798,13 @@ class PickDlg(QDialog):
             wfdata = self.getWFData().select(component=component)
         return wfdata
 
-    def getPicks(self):
-        return self.picks
+    def getPicks(self, picktype='manual'):
+        if picktype == 'manual':
+            return self.picks
+        elif picktype == 'auto':
+            return self.autopicks
+        else:
+            raise TypeError('Unknown picktype {0}'.format(picktype))
 
     def resetPicks(self):
         self.picks = {}
@@ -1003,26 +1012,32 @@ class PickDlg(QDialog):
                                                               olpp=olpp)
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
-        self.drawPicks()
+        self.drawAllPicks()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.pick_block = self.togglePickBlocker()
         self.selectPhase.setCurrentIndex(-1)
         self.setPlotLabels()
 
-    def drawPicks(self, phase=None):
+    def drawAllPicks(self):
+        self.drawPicks(picktype='manual')
+        self.drawPicks(picktype='auto')
+
+    def drawPicks(self, phase=None, picktype='manual'):
         # plotting picks
         ax = self.getPlotWidget().axes
         ylims = self.getGlobalLimits('y')
-        phase_col = {'P': ('c', 'c--', 'b-'),
-                     'S': ('m', 'm--', 'r-')}
-        if self.getPicks():
-            if phase is not None and type(self.getPicks()[phase]) is dict:
-                picks = self.getPicks()[phase]
+        phase_col = {
+            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
+            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
+        }
+        if self.getPicks(picktype):
+            if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
+                picks = self.getPicks(picktype)[phase]
                 colors = phase_col[phase[0].upper()]
             elif phase is None:
-                for phase in self.getPicks():
-                    self.drawPicks(phase)
+                for phase in self.getPicks(picktype):
+                    self.drawPicks(phase, picktype)
                 return
             else:
                 return
@@ -1034,11 +1049,19 @@ class PickDlg(QDialog):
         lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
-        ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                        alpha=.5, color=colors[0])
-        ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                [mpp, mpp], ylims, colors[2],
-                [mpp + spe, mpp + spe], ylims, colors[1])
+        if picktype == 'manual':
+            ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                            alpha=.25, color=colors[0])
+            ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                    [mpp, mpp], ylims, colors[2],
+                    [mpp + spe, mpp + spe], ylims, colors[1])
+        elif picktype == 'auto':
+            ax.plot(mpp, ylims[1], colors[3],
+                    mpp, ylims[0], colors[4])
+            ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dashed')
+        else:
+            raise TypeError('Unknown picktype {0}'.format(picktype))
+            
 
     def panPress(self, gui_event):
         ax = self.getPlotWidget().axes
@@ -1101,7 +1124,7 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims())
         self.setPlotLabels()
-        self.drawPicks()
+        self.drawAllPicks()
         self.draw()
 
     def resetPlot(self):
@@ -1112,7 +1135,7 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims())
         self.setPlotLabels()
-        self.drawPicks()
+        self.drawAllPicks()
         self.draw()
 
     def setPlotLabels(self):

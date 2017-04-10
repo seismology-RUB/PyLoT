@@ -821,7 +821,8 @@ class MainWindow(QMainWindow):
         pickDlg = PickDlg(self, infile=self.getinfile(), 
                           data=data.select(station=station),
                           station=station,
-                          picks=self.getPicksOnStation(station))
+                          picks=self.getPicksOnStation(station, 'manual'),
+                          autopicks=self.getPicksOnStation(station, 'auto'))
         if pickDlg.exec_():
             self.setDirty(True)
             self.update_status('picks accepted ({0})'.format(station))
@@ -927,8 +928,8 @@ class MainWindow(QMainWindow):
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
         phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^')
+            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
+            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
         }
 
         stat_picks = self.getPicks(type=picktype)[station]
@@ -950,15 +951,16 @@ class MainWindow(QMainWindow):
 
             if picktype == 'manual':
                 ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                alpha=.5, color=colors[0])
+                                alpha=.25, color=colors[0])
                 ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
                         [mpp, mpp], ylims, colors[2],
                         [mpp + spe, mpp + spe], ylims, colors[1])
             elif picktype == 'auto':
                 ax.plot(mpp, ylims[1], colors[3],
                         mpp, ylims[0], colors[4])
+                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dashed')                
             else:
-                raise TypeError('Unknow picktype {0}'.format(picktype))
+                raise TypeError('Unknown picktype {0}'.format(picktype))
 
     def locate_event(self):
         """
