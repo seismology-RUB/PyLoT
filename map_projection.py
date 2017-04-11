@@ -3,20 +3,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 import obspy
 from matplotlib import cm
-from PySide import QtCore, QtGui
+from scipy.interpolate import griddata
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from PySide import QtCore, QtGui
 
 #import QtPyLoT
 from pylot.core.util.dataprocessing import read_metadata
-from scipy.interpolate import griddata
+from pylot.core.util.widgets import PickDlg
+
 
 #pf=QtPyLoT.main()
 
 def onpick(event):
     ind = event.ind
+    if ind == []:
+        return
+    data = pf.get_data().getWFData()
     for index in ind:
-        print(station_names[index])
+        station=str(station_names[index])
+        try:
+            pickDlg = PickDlg(pf, infile=pf.getinfile(), 
+                              data=data.select(station=station),
+                              station=station,
+                              picks=pf.getPicksOnStation(station, 'manual'),
+                              autopicks=pf.getPicksOnStation(station, 'auto'))
+            pickDlg.exec_()
+        except Exception as e:
+            print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
+        
 
+        
 def get_metadata(path):
     metadata=read_metadata(path)
     parser=metadata[1]
