@@ -1221,16 +1221,15 @@ class PropertiesDlg(QDialog):
 
         self.infile = infile
 
-
-        appName = QApplication.applicationName()
-
-        self.setWindowTitle("{0} Properties".format(appName))
+        self.setWindowTitle("PyLoT Properties")
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(InputsTab(self), "Inputs")
         self.tabWidget.addTab(OutputsTab(self), "Outputs")
         self.tabWidget.addTab(PhasesTab(self), "Phases")
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
-        self.tabWidget.addTab(LocalisationTab(self), "Loc Tools")
+        #self.tabWidget.addTab(LocalisationTab(self), "Loc. Tools")
+        self.tabWidget.addTab(LocalisationTab(self), "NonLinLoc")
+        self.tabWidget.addTab(ParametersTab(self), "Picking Parameters")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close |
@@ -1240,6 +1239,7 @@ class PropertiesDlg(QDialog):
         layout.addWidget(self.tabWidget)
         layout.addWidget(self.buttonBox)
         self.setLayout(layout)
+        self.setFixedWidth(700)
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -1404,14 +1404,14 @@ class LocalisationTab(PropTab):
         settings = QSettings()
         curtool = settings.value("loc/tool", None)
 
-        loctoollabel = QLabel("location tool")
+        #loctoollabel = QLabel("location tool")
         self.locToolComboBox = QComboBox()
-        loctools = LOCTOOLS.keys()
-        self.locToolComboBox.addItems(loctools)
+        #loctools = LOCTOOLS.keys()
+        #self.locToolComboBox.addItems(loctools)
 
-        toolind = findComboBoxIndex(self.locToolComboBox, curtool)
+        #toolind = findComboBoxIndex(self.locToolComboBox, curtool)
 
-        self.locToolComboBox.setCurrentIndex(toolind)
+        #self.locToolComboBox.setCurrentIndex(toolind)
 
         curroot = settings.value("{0}/rootPath".format(curtool), None)
         curbin = settings.value("{0}/binPath".format(curtool), None)
@@ -1433,13 +1433,13 @@ class LocalisationTab(PropTab):
         binBrowse = QPushButton('...', self)
         binBrowse.clicked.connect(lambda: self.selectDirectory(self.binedit))
 
-        self.locToolComboBox.currentIndexChanged.connect(self.updateUi)
+        #self.locToolComboBox.currentIndexChanged.connect(self.updateUi)
 
         self.updateUi()
 
         layout = QGridLayout()
-        layout.addWidget(loctoollabel, 0, 0)
-        layout.addWidget(self.locToolComboBox, 0, 1)
+        #layout.addWidget(loctoollabel, 0, 0)
+        #layout.addWidget(self.locToolComboBox, 0, 1)
         layout.addWidget(self.rootlabel, 1, 0)
         layout.addWidget(self.rootedit, 1, 1)
         layout.addWidget(rootBrowse, 1, 2)
@@ -1451,9 +1451,9 @@ class LocalisationTab(PropTab):
 
     def updateUi(self):
         curtool = self.locToolComboBox.currentText()
-        if curtool is not None:
-            self.rootlabel.setText("{0} root directory".format(curtool))
-            self.binlabel.setText("{0} bin directory".format(curtool))
+        #if curtool is not None:
+        self.rootlabel.setText("{0} root directory".format(curtool))
+        self.binlabel.setText("{0} bin directory".format(curtool))
 
     def selectDirectory(self, edit):
         selected_directory = QFileDialog.getExistingDirectory()
@@ -1464,8 +1464,8 @@ class LocalisationTab(PropTab):
     def getValues(self):
         loctool = self.locToolComboBox.currentText()
         values = {"{0}/rootPath".format(loctool): self.rootedit.text(),
-                  "{0}/binPath".format(loctool): self.binedit.text(),
-                  "loc/tool": loctool}
+                  "{0}/binPath".format(loctool): self.binedit.text()}
+                  #"loc/tool": loctool}
         return values
 
     def resetValues(self, infile):
@@ -1475,6 +1475,12 @@ class LocalisationTab(PropTab):
         loctool = self.locToolComboBox.setCurrentIndex(3)
         values = {"nll/rootPath": self.rootedit.setText("%s" % nllocroot),
                   "nll/binPath": self.binedit.setText("%s" % nllocbin)}
+
+class ParametersTab(PropTab):
+    def __init__(self, parent=None, infile=None):
+        super(ParametersTab, self).__init__(parent)
+
+        settings = QSettings()
 
 class NewEventDlg(QDialog):
     def __init__(self, parent=None, titleString="Create a new event"):
