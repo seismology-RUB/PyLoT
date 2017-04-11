@@ -1481,6 +1481,24 @@ class ParametersTab(PropTab):
         super(ParametersTab, self).__init__(parent)
 
         settings = QSettings()
+       
+        self.commonpicksettings = QPushButton("Common Settings autoPyLoT")
+        self.specialpicksettings = QPushButton("Special Settings autoPyLoT")
+        self.CFsettings = QPushButton("Special Settings for Calculating CF's")   
+        self.FMsettings = QPushButton("Settings for First-Motion Picker")
+        self.qsettings = QPushButton("Quality Assessment")
+        self.sourcepara = QPushButton("Settings for Source Parameter Estimation")
+
+        layout = QGridLayout()
+        layout.addWidget(self.commonpicksettings, 0, 0)
+        layout.addWidget(self.specialpicksettings, 1, 0)
+        layout.addWidget(self.CFsettings, 2, 0)
+        layout.addWidget(self.FMsettings, 0, 1)
+        layout.addWidget(self.qsettings, 1, 1)
+        layout.addWidget(self.sourcepara, 2, 1)
+
+        self.setLayout(layout)
+
 
 class NewEventDlg(QDialog):
     def __init__(self, parent=None, titleString="Create a new event"):
