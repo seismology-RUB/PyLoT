@@ -3,36 +3,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 import obspy
 from matplotlib import cm
+from PySide import QtCore, QtGui
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
 #import QtPyLoT
 from pylot.core.util.dataprocessing import read_metadata
 from scipy.interpolate import griddata
 
-
 #pf=QtPyLoT.main()
 
 def onpick(event):
     ind = event.ind
-    print(ind)
+    for index in ind:
+        print(station_names[index])
 
 def get_metadata(path):
     metadata=read_metadata(path)
     parser=metadata[1]
     return parser
 
-def get_station_names(parser):
+def get_station_names_lat_lon(parser):
     station_names=[]
-    for station in parser.stations:
-        station_names.append(station[0].station_call_letters)
-    return station_names
-
-def get_lat_lon(parser):
     lat=[]
     lon=[]
-    for station in parser.stations:    
-        lat.append(station[0].latitude)
-        lon.append(station[0].longitude)
-    return lat, lon
+    for station in parser.stations:
+        station_name=station[0].station_call_letters
+        if not station_name in station_names:
+            station_names.append(station_name)
+            lat.append(station[0].latitude)
+            lon.append(station[0].longitude)
+    return station_names, lat, lon
 
 def get_picks(pf, station_names):
     picks=[]
@@ -78,8 +78,8 @@ def get_x_y_dim(x, y):
     ydim = max(y) - min(y)
     return xdim, ydim
     
-def init_map(projection, resolution='l'):
-    m = Basemap(projection=projection, resolution = resolution)
+def init_map(projection, ax, resolution='l'):
+    m = Basemap(projection=projection, resolution = resolution, ax=ax)
     m.drawmapboundary(fill_color='darkblue')
     m.drawcountries()
     m.drawstates()
@@ -116,11 +116,24 @@ def add_cbar(ax, scatter, label):
     cbar.set_label(label)
     return cbar
 
+qwidget = QtGui.QWidget()
+QtGui.QVBoxLayout()
+main_box = QtGui.QVBoxLayout()
+qwidget.setLayout(main_box)
+
+fig = plt.figure()
+main_ax = fig.add_subplot(111)
+canvas = main_ax.figure.canvas
+main_box.addWidget(canvas)
+
+toolbar = NavigationToolbar(canvas, qwidget)
+main_box.addWidget(toolbar)
+
+
 parser = get_metadata('/data/Geothermie/Insheim/STAT_INFO/MAGS2_net.dless')
 
-station_names = get_station_names(parser)
+station_names, lat, lon = get_station_names_lat_lon(parser)
 
-lat, lon = get_lat_lon(parser)
 picks = get_picks(pf, station_names)
 picks_rel = get_picks_rel(picks)
 
@@ -131,7 +144,7 @@ londim, latdim = get_lon_lat_dim(lon, lat)
 x, y = m(lon, lat)
 xdim, ydim = get_x_y_dim(x, y)
 
-m = init_map('mill', 'l')
+m = init_map(projection='mill', ax=main_ax, resolution='l')
 
 lataxis, lonaxis = get_lat_lon_axis(lat, lon)
 latgrid, longrid = get_lat_lon_grid(lataxis, lonaxis)
@@ -143,17 +156,21 @@ contourf = draw_contour_filled(picks_no_nan, longrid, latgrid, picksgrid_no_nan)
 sc = m.scatter(lon, lat, s=50, facecolor='none', latlon=True, zorder=10, picker=True, edgecolor='m', label='Not Picked')
 sc_picked = m.scatter(lon_no_nan, lat_no_nan, s=50, c=picks_no_nan, latlon=True, zorder=11, label='Picked')
 
-ax = plt.gca() # IMPROVE!!!!
+annotate_ax(main_ax, x, y, station_names)
 
-annotate_ax(ax, x, y, station_names)
+main_ax.legend()
 
-ax.legend()
+connect_pick(main_ax, onpick)
 
-connect_pick(ax, onpick)
+cbar = add_cbar(main_ax, sc_picked, label='Time relative to first onset [s]')
 
-cbar = add_cbar(ax, sc_picked, label='Time relative to first onset [s]')
+canvas.draw()
+
+qwidget.show()
 
 # ax.set_xlim(min(x)-0.5*xdim, max(x)+0.5*xdim)
 # ax.set_ylim(min(y)-0.5*ydim, max(y)+0.5*ydim)
 
-plt.show()
+
+
+#plt.show()
