@@ -25,7 +25,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
     QGridLayout, QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, \
     QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QWidget, \
-    QPushButton, QFileDialog, QInputDialog
+    QPushButton, QFileDialog, QInputDialog, QKeySequence
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
@@ -518,6 +518,7 @@ class PickDlg(QDialog):
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
+        self.currentPhase = None
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -617,17 +618,28 @@ class PickDlg(QDialog):
                                              tip='Delete current picks.')
 
         # create other widget elements
-        self.selectPhase = QComboBox()
         phaseitems = [None] + FILTERDEFAULTS.keys()
-        self.selectPhase.addItems(phaseitems)
 
+        # create buttons for P and S filter and picking
+        self.p_button = QPushButton('P', self)
+        self.s_button = QPushButton('S', self)
+        self.p_button.setCheckable(True)
+        self.s_button.setCheckable(True)
+        # button shortcuts (1 for P-button, 2 for S-button)
+        self.p_button.setShortcut(QKeySequence('1'))
+        self.s_button.setShortcut(QKeySequence('2'))
+        # set button tooltips
+        self.p_button.setToolTip('Hotkey: "1"')
+        self.s_button.setToolTip('Hotkey: "2"')
+        
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
         _dialtoolbar = QToolBar()
 
         # fill toolbar with content
         _dialtoolbar.addAction(self.filterAction)
-        _dialtoolbar.addWidget(self.selectPhase)
+        _dialtoolbar.addWidget(self.p_button)
+        _dialtoolbar.addWidget(self.s_button)
         _dialtoolbar.addAction(self.zoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetZoomAction)
@@ -649,7 +661,8 @@ class PickDlg(QDialog):
 
         # connect widget element signals with slots (methods to the dialog
         # object
-        self.selectPhase.currentIndexChanged.connect(self.verifyPhaseSelection)
+        self.p_button.clicked.connect(self.p_clicked)
+        self.s_button.clicked.connect(self.s_clicked)
         _buttonbox.accepted.connect(self.accept)
         _buttonbox.rejected.connect(self.reject)
 
@@ -692,30 +705,68 @@ class PickDlg(QDialog):
         widget = self.getPlotWidget()
         return widget.mpl_connect('button_release_event', slot)
 
-    def verifyPhaseSelection(self):
-        if self.pick_block:
-            self.pick_block = self.togglePickBlocker()
-            warnings.warn('Changed selection before phase was set!',
-                          UserWarning)
-        phase = self.selectPhase.currentText()
-        self.updateCurrentLimits()
-        if phase:
-            if self.zoomAction.isChecked():
-                self.zoomAction.trigger()
-            self.disconnectReleaseEvent()
-            self.disconnectScrollEvent()
-            self.disconnectMotionEvent()
-            self.disconnectPressEvent()
-            self.cidpress = self.connectPressEvent(self.setIniPick)
-            self.filterWFData()
-            self.pick_block = self.togglePickBlocker()
+    def p_clicked(self):
+        if self.p_button.isChecked():
+            self.s_button.setEnabled(False)
+            self.init_p_pick()
         else:
-            self.disconnectPressEvent()
-            self.cidpress = self.connectPressEvent(self.panPress)
-            self.cidmotion = self.connectMotionEvent(self.panMotion)
-            self.cidrelease = self.connectReleaseEvent(self.panRelease)
-            self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+            self.leave_picking_mode()
 
+    def s_clicked(self):
+        if self.s_button.isChecked():
+            self.p_button.setEnabled(False)
+            self.init_s_pick()
+        else:
+            self.leave_picking_mode()
+            
+    def init_p_pick(self):
+        self.set_button_color(self.p_button, 'green')
+        self.updateCurrentLimits()
+        self.activatePicking()
+        self.currentPhase = 'P'
+
+    def init_s_pick(self):
+        self.set_button_color(self.s_button, 'green')
+        self.updateCurrentLimits()
+        self.activatePicking()
+        self.currentPhase = 'S'
+
+    def set_button_color(self, button, color = None):
+        button.setStyleSheet("background-color: {}".format(color))    
+
+    def leave_picking_mode(self):
+        self.currentPhase = None
+        self.set_button_color(self.p_button)
+        self.set_button_color(self.s_button)
+        self.p_button.setEnabled(True)
+        self.s_button.setEnabled(True)
+        self.p_button.setChecked(False)
+        self.s_button.setChecked(False)
+        self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
+                                        title=self.getStation())
+        self.drawAllPicks()
+        self.setPlotLabels()
+        self.resetZoomAction.trigger()
+        self.deactivatePicking()
+        
+    def activatePicking(self):
+        if self.zoomAction.isChecked():
+            self.zoomAction.trigger()
+        self.disconnectReleaseEvent()
+        self.disconnectScrollEvent()
+        self.disconnectMotionEvent()
+        self.disconnectPressEvent()
+        self.cidpress = self.connectPressEvent(self.setIniPick)
+        self.filterWFData()
+        self.pick_block = self.togglePickBlocker()
+
+    def deactivatePicking(self):
+        self.disconnectPressEvent()
+        self.cidpress = self.connectPressEvent(self.panPress)
+        self.cidmotion = self.connectMotionEvent(self.panMotion)
+        self.cidrelease = self.connectReleaseEvent(self.panRelease)
+        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+            
     def getinfile(self):
         return self.infile
 
@@ -826,12 +877,14 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
-        print(self.selectPhase.currentText())
-        if self.selectPhase.currentText().upper().startswith('P'):
+        print(self.currentPhase)
+        if self.currentPhase == 'P':
+            self.set_button_color(self.p_button, 'red')
             self.setIniPickP(gui_event, wfdata, trace_number)
-        elif self.selectPhase.currentText().upper().startswith('S'):
+        elif self.currentPhase == 'S':
+            self.set_button_color(self.s_button, 'red')
             self.setIniPickS(gui_event, wfdata)
-
+            
         self.zoomAction.setEnabled(False)
 
         # reset labels
@@ -857,7 +910,7 @@ class PickDlg(QDialog):
         data = self.getWFData().copy()
 
         # filter data and trace on which is picked prior to determination of SNR
-        phase = self.selectPhase.currentText()
+        phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         if filteroptions:
             data.filter(**filteroptions)
@@ -902,7 +955,7 @@ class PickDlg(QDialog):
         data = self.getWFData().copy()
 
         # filter data and trace on which is picked prior to determination of SNR
-        phase = self.selectPhase.currentText()
+        phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         if filteroptions:
             data.filter(**filteroptions)
@@ -953,7 +1006,7 @@ class PickDlg(QDialog):
         channel = self.getChannelID(round(gui_event.ydata))
 
         # get name of phase actually picked
-        phase = self.selectPhase.currentText()
+        phase = self.currentPhase
 
         # get filter parameter for the phase to be picked
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
@@ -1010,14 +1063,10 @@ class PickDlg(QDialog):
                                                               oepp=oepp,
                                                               ompp=ompp,
                                                               olpp=olpp)
-        self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
-        self.drawAllPicks()
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.pick_block = self.togglePickBlocker()
-        self.selectPhase.setCurrentIndex(-1)
-        self.setPlotLabels()
+        self.leave_picking_mode()
 
     def drawAllPicks(self):
         self.drawPicks(picktype='manual')
@@ -1058,7 +1107,7 @@ class PickDlg(QDialog):
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
                     mpp, ylims[0], colors[4])
-            ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dashed')
+            ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
         else:
             raise TypeError('Unknown picktype {0}'.format(picktype))
             
@@ -1099,7 +1148,7 @@ class PickDlg(QDialog):
         data = self.getWFData().copy()
         old_title = self.getPlotWidget().getAxes().get_title()
         title = None
-        phase = self.selectPhase.currentText()
+        phase = self.currentPhase
         filtoptions = None
         if phase:
             filtoptions = self.getFilterOptions(phase).parseFilterOptions()
