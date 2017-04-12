@@ -968,7 +968,7 @@ class MainWindow(QMainWindow):
             elif picktype == 'auto':
                 ax.plot(mpp, ylims[1], colors[3],
                         mpp, ylims[0], colors[4])
-                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dashed')                
+                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')                
             else:
                 raise TypeError('Unknown picktype {0}'.format(picktype))
 
