@@ -1229,7 +1229,7 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
         #self.tabWidget.addTab(LocalisationTab(self), "Loc. Tools")
         self.tabWidget.addTab(LocalisationTab(self), "NonLinLoc")
-        self.tabWidget.addTab(ParametersTab(self), "Picking Parameters")
+        self.tabWidget.addTab(ParametersTab(self, infile), "Picking Parameters")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close |
@@ -1480,8 +1480,6 @@ class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)
 
-        settings = QSettings()
-       
         self.commonpicksettings = QPushButton("Common Settings autoPyLoT")
         self.specialpicksettings = QPushButton("Special Settings autoPyLoT")
         self.CFsettings = QPushButton("Special Settings for Calculating CF's")   
@@ -1498,6 +1496,35 @@ class ParametersTab(PropTab):
         layout.addWidget(self.sourcepara, 2, 1)
 
         self.setLayout(layout)
+ 
+        self.commonpicksettings.clicked.connect(lambda: self.ButtonCommonPickSettings(infile))
+
+
+    def ButtonCommonPickSettings(self, infile):
+
+        para = AutoPickParameter(infile)
+        pstart = para.get('pstart')
+        pstop = para.get('pstop')
+        sstart = para.get('sstart')
+        sstop = para.get('sstop')
+        settings = QSettings()
+        self.widget = QWidget()
+        self.widget.setWindowTitle("Common Settings autoPyLoT")
+
+        self.pCFcalcwinLabel = QLabel("P-Start ; P-Stop: ")
+        self.pCFcalcwinEdit = QLineEdit()
+        self.pCFcalcwinEdit.setText("%6.1fs  %6.1fs" % (pstart, pstop))
+        self.sCFcalcwinLabel = QLabel("S-Start ; S-Stop: ")
+        self.sCFcalcwinEdit = QLineEdit()
+        self.sCFcalcwinEdit.setText("%6.1fs  %6.1fs" % (sstart, sstop))
+
+        layout = QGridLayout()
+        layout.addWidget(self.pCFcalcwinLabel, 0, 0)
+        layout.addWidget(self.pCFcalcwinEdit, 0, 1)
+        layout.addWidget(self.sCFcalcwinLabel, 1, 0)
+        layout.addWidget(self.sCFcalcwinEdit, 1, 1)
+        self.widget.setLayout(layout)
+        self.widget.show()
 
 
 class NewEventDlg(QDialog):
