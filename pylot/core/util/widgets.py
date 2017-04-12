@@ -720,13 +720,13 @@ class PickDlg(QDialog):
             self.leave_picking_mode()
             
     def init_p_pick(self):
-        self.set_button_color(self.p_button, 'green')
+        self.set_button_color(self.p_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
         self.currentPhase = 'P'
 
     def init_s_pick(self):
-        self.set_button_color(self.s_button, 'green')
+        self.set_button_color(self.s_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
         self.currentPhase = 'S'
@@ -879,10 +879,10 @@ class PickDlg(QDialog):
 
         print(self.currentPhase)
         if self.currentPhase == 'P':
-            self.set_button_color(self.p_button, 'red')
+            self.set_button_color(self.p_button, 'green')
             self.setIniPickP(gui_event, wfdata, trace_number)
         elif self.currentPhase == 'S':
-            self.set_button_color(self.s_button, 'red')
+            self.set_button_color(self.s_button, 'green')
             self.setIniPickS(gui_event, wfdata)
             
         self.zoomAction.setEnabled(False)
