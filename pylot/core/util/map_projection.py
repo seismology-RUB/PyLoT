@@ -7,7 +7,6 @@ from scipy.interpolate import griddata
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from PySide import QtCore, QtGui
 
-from pylot.core.util.dataprocessing import read_metadata
 from pylot.core.util.widgets import PickDlg
 
 plt.interactive(False)
@@ -16,7 +15,7 @@ class map_projection(QtGui.QWidget):
     def __init__(self, mainwindow):
         QtGui.QWidget.__init__(self)
         self.pyl_mainwindow = mainwindow
-        self.parser = self.get_metadata('/data/Geothermie/Insheim/STAT_INFO/MAGS2_net.dless')
+        self.parser = mainwindow.metadata[1]
         self.init_graphics()
         self.init_stations()
         self.init_lat_lon_dimensions()
@@ -56,11 +55,6 @@ class map_projection(QtGui.QWidget):
                     pyl_mw.update_status('picks discarded ({0})'.format(station))
             except Exception as e:
                 print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
-
-    def get_metadata(self, path):
-        metadata=read_metadata(path)
-        parser=metadata[1]
-        return parser
 
     def connectSignals(self):
         self.combobox.currentIndexChanged.connect(self.refresh_drawings)
