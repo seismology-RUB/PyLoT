@@ -1063,6 +1063,7 @@ class PickDlg(QDialog):
                                                               oepp=oepp,
                                                               ompp=ompp,
                                                               olpp=olpp)
+
         self.disconnectPressEvent()
         self.zoomAction.setEnabled(True)
         self.pick_block = self.togglePickBlocker()
@@ -1550,30 +1551,63 @@ class ParametersTab(PropTab):
 
 
     def ButtonCommonPickSettings(self, infile):
-
+        
+        # get parameters from pylot.in-file
         para = AutoPickParameter(infile)
         pstart = para.get('pstart')
         pstop = para.get('pstop')
         sstart = para.get('sstart')
         sstop = para.get('sstop')
+        bpz1 = para.get('bpz1')
+        bpz2 = para.get('bpz2')
+        bph1 = para.get('bph1')
+        bph2 = para.get('bph2')
         settings = QSettings()
         self.widget = QWidget()
         self.widget.setWindowTitle("Common Settings autoPyLoT")
 
-        self.pCFcalcwinLabel = QLabel("P-Start ; P-Stop: ")
+        self.pCFcalcwinLabel = QLabel("Start/end time (relative to waveform onset) for calculating CF from waveform for P-pick [s]")
         self.pCFcalcwinEdit = QLineEdit()
-        self.pCFcalcwinEdit.setText("%6.1fs  %6.1fs" % (pstart, pstop))
-        self.sCFcalcwinLabel = QLabel("S-Start ; S-Stop: ")
+        self.pCFcalcwinEdit.setText("%6.1f  %6.1f" % (pstart, pstop))
+        self.sCFcalcwinLabel = QLabel("Start/end time (relative to P onset) for calculating CF from waveform for S-pick [s]")
         self.sCFcalcwinEdit = QLineEdit()
-        self.sCFcalcwinEdit.setText("%6.1fs  %6.1fs" % (sstart, sstop))
+        self.sCFcalcwinEdit.setText("%6.1f  %6.1f" % (sstart, sstop))
+        self.bpP1Label = QLabel("1st Bandpass P-Pick, lower/upper corner frequency [Hz]")
+        self.bpP2Label = QLabel("2nd Bandpass P-Pick, lower/upper corner frequency [Hz]")
+        self.bpS1Label = QLabel("1st Bandpass S-Pick, lower/upper corner frequency [Hz]")
+        self.bpS2Label = QLabel("2nd Bandpass S-Pick, lower/upper corner frequency [Hz]")
+        self.bpP1Edit = QLineEdit()
+        self.bpP1Edit.setText("%4.1f  %4.1f" % (bpz1[0], bpz1[1]))
+        self.bpP2Edit = QLineEdit()
+        self.bpP2Edit.setText("%4.1f  %4.1f" % (bpz2[0], bpz2[1]))
+        self.bpS1Edit = QLineEdit()
+        self.bpS1Edit.setText("%4.1f  %4.1f" % (bph1[0], bph1[1]))
+        self.bpS2Edit = QLineEdit()
+        self.bpS2Edit.setText("%4.1f  %4.1f" % (bph2[0], bph2[1]))
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                          QDialogButtonBox.Apply |
+                                          QDialogButtonBox.Close) 
+
 
         layout = QGridLayout()
         layout.addWidget(self.pCFcalcwinLabel, 0, 0)
         layout.addWidget(self.pCFcalcwinEdit, 0, 1)
         layout.addWidget(self.sCFcalcwinLabel, 1, 0)
         layout.addWidget(self.sCFcalcwinEdit, 1, 1)
+        layout.addWidget(self.bpP1Label, 2, 0)
+        layout.addWidget(self.bpP1Edit, 2, 1)
+        layout.addWidget(self.bpP2Label, 3, 0)
+        layout.addWidget(self.bpP2Edit, 3, 1)
+        layout.addWidget(self.bpS1Label, 4, 0)
+        layout.addWidget(self.bpS1Edit, 4, 1)
+        layout.addWidget(self.bpS2Label, 5, 0)
+        layout.addWidget(self.bpS2Edit, 5, 1)
+        layout.addWidget(self.buttonBox)
         self.widget.setLayout(layout)
         self.widget.show()
+        self.raise_()
+        self.widget.activateWindow()
+
 
 
 class NewEventDlg(QDialog):
