@@ -1530,13 +1530,16 @@ class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)
 
-        self.commonpicksettings = QPushButton("Common Settings autoPyLoT")
+        self.commonpicksettings = QPushButton("&Common Settings autoPyLoT")
         self.specialpicksettings = QPushButton("Special Settings autoPyLoT")
         self.CFsettings = QPushButton("Special Settings for Calculating CF's")   
         self.FMsettings = QPushButton("Settings for First-Motion Picker")
         self.qsettings = QPushButton("Quality Assessment")
         self.sourcepara = QPushButton("Settings for Source Parameter Estimation")
 
+        self.parent = parent
+        self.infile = infile
+ 
         layout = QGridLayout()
         layout.addWidget(self.commonpicksettings, 0, 0)
         layout.addWidget(self.specialpicksettings, 1, 0)
@@ -1546,14 +1549,14 @@ class ParametersTab(PropTab):
         layout.addWidget(self.sourcepara, 2, 1)
 
         self.setLayout(layout)
- 
-        self.commonpicksettings.clicked.connect(lambda: self.ButtonCommonPickSettings(infile))
+
+        self.commonpicksettings.clicked.connect(self.ButtonCommonPickSettings)
 
 
-    def ButtonCommonPickSettings(self, infile):
+    def ButtonCommonPickSettings(self):#, event=None):
         
         # get parameters from pylot.in-file
-        para = AutoPickParameter(infile)
+        para = AutoPickParameter(self.infile)
         pstart = para.get('pstart')
         pstop = para.get('pstop')
         sstart = para.get('sstart')
@@ -1563,7 +1566,7 @@ class ParametersTab(PropTab):
         bph1 = para.get('bph1')
         bph2 = para.get('bph2')
         settings = QSettings()
-        self.widget = QWidget()
+        self.widget = QWidget(self.parent, 1)
         self.widget.setWindowTitle("Common Settings autoPyLoT")
 
         self.pCFcalcwinLabel = QLabel("Start/end time (relative to waveform onset) for calculating CF from waveform for P-pick [s]")
