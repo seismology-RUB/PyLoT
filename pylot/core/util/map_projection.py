@@ -201,14 +201,14 @@ class map_projection(QtGui.QWidget):
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
 
     def scatter_picked_stations(self):
-        self.sc_picked = self.basemap.scatter(self.lon_no_nan, self.lat_no_nan, s=50,
+        self.sc_picked = self.basemap.scatter(self.lon_no_nan, self.lat_no_nan, s=50, facecolor='white',
                                               c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
         self.annotations=[]
         for index, name in enumerate(self.station_names):
             self.annotations.append(self.main_ax.annotate(' %s' % name, xy=(self.x[index], self.y[index]),
-                                                          fontsize='x-small', zorder=12))
+                                                          fontsize='x-small', color='white', zorder=12))
         self.legend=self.main_ax.legend()
 
     def add_cbar(self, label):
