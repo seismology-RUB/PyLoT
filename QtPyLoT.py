@@ -36,7 +36,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget, QLineEdit, QListView, QAbstractItemView, \
-    QTreeView, QComboBox
+    QTreeView, QComboBox, QTabWidget
 import numpy as np
 from obspy import UTCDateTime
 
@@ -87,6 +87,10 @@ class MainWindow(QMainWindow):
         else:
              self.infile = infile
 
+        self.project = None
+        self.array_map = None
+        self._metadata = None
+
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
         # read settings
@@ -121,10 +125,6 @@ class MainWindow(QMainWindow):
         self.picks = {}
         self.autopicks = {}
         self.loc = False
-        self._metadata = None
-        self.project = None
-
-        self.array_map = None
 
         # initialize event data
         if self.recentfiles:
@@ -154,30 +154,39 @@ class MainWindow(QMainWindow):
 
         _widget = QWidget()
         _widget.setCursor(Qt.CrossCursor)
-        _layout = QVBoxLayout()
+        self._main_layout = QVBoxLayout()
+
 
         # add event combo box
         self.eventBox = QComboBox()
         self.eventBox.setMaxVisibleItems(30)
         self.eventBox.setEnabled(False)
-        _event_layout = QHBoxLayout()
-        _event_layout.addWidget(QLabel('Event: '))
-        _event_layout.addWidget(self.eventBox)
-        _event_layout.setStretch(1,1) #set stretch of item 1 to 1
-        _layout.addLayout(_event_layout)
+        self._event_layout = QHBoxLayout()
+        self._event_layout.addWidget(QLabel('Event: '))
+        self._event_layout.addWidget(self.eventBox)
+        self._event_layout.setStretch(1,1) #set stretch of item 1 to 1
+        self._main_layout.addLayout(self._event_layout)
         self.eventBox.activated.connect(self.loadWaveformDataThread)
         
-        plottitle = "Overview: {0} components ".format(self.getComponent())
+        # add tabs
+        self.tabs = QTabWidget()
+        self._main_layout.addWidget(self.tabs)
+
+        # init Map
+        #self.init_array_map()
 
         # create central matplotlib figure canvas widget
+        plottitle = "Overview: {0} components ".format(self.getComponent())
         self.DataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
                                        title=plottitle)
         self.DataPlot.mpl_connect('button_press_event',
                                   self.pickOnStation)
         self.DataPlot.mpl_connect('axes_enter_event',
                                   lambda event: self.tutor_user())
-        _layout.addWidget(self.DataPlot)
+        self.tabs.addTab(self.DataPlot, 'Waveform Plot')
+        #self.tabs.addTab(self.array_map, 'Array Map')
 
+        
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
         openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -415,7 +424,7 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.eventLabel)
         status.showMessage("Ready", 500)
 
-        _widget.setLayout(_layout)
+        _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
@@ -1121,14 +1130,20 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
-    def show_array_map(self):
+    def init_array_map(self):
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
                 return
             self.array_map = map_projection(self)
-        else:
-            self.array_map.show()
+        
+    def show_array_map(self, container=None):
+        if not self.array_map:
+            print('No array map found. Init array map first!')
+            return
+        if self.container:
+            container.addWidget(self.array_map)
+        self.array_map.show()
         
     def get_metadata(self):
         def set_inv(settings):

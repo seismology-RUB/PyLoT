@@ -12,10 +12,16 @@ from pylot.core.util.widgets import PickDlg
 plt.interactive(False)
 
 class map_projection(QtGui.QWidget):
-    def __init__(self, mainwindow):
+    def __init__(self, mainwindow, figure=None, picked=False):
+        '''
+        :param: picked, can be False, auto, manual
+        :value: str
+        '''
         QtGui.QWidget.__init__(self)
         self.pyl_mainwindow = mainwindow
         self.parser = mainwindow.metadata[1]
+        self.picked = picked
+        self.figure = figure
         self.init_graphics()
         self.init_stations()
         self.init_lat_lon_dimensions()
@@ -24,7 +30,7 @@ class map_projection(QtGui.QWidget):
         self.init_x_y_dimensions()
         self.connectSignals()
         self.draw_everything()
-        self.show()
+        #self.show()
         
     def onpick(self, event):
         ind = event.ind
@@ -71,8 +77,11 @@ class map_projection(QtGui.QWidget):
         self.combobox.insertItem(1, 'S')
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))        
         self.top_row.addWidget(self.combobox)
-        
-        fig = plt.figure()
+
+        if not self.figure:
+            fig = plt.figure()
+        else:
+            fig = self.figure
         self.main_ax = fig.add_subplot(111)
         self.canvas = fig.canvas
         self.main_box.addWidget(self.canvas)
@@ -221,15 +230,17 @@ class map_projection(QtGui.QWidget):
         self.draw_everything()
     
     def draw_everything(self):
-        self.init_picks()
-        self.init_picks_active()
-        self.init_stations_active()
-        self.init_picksgrid()
-        self.draw_contour_filled()
+        if self.picked:
+            self.init_picks()
+            self.init_picks_active()
+            self.init_stations_active()
+            self.init_picksgrid()
+            self.draw_contour_filled()
         self.scatter_all_stations()
-        self.scatter_picked_stations()
+        if self.picked:
+            self.scatter_picked_stations()
+            self.cbar = self.add_cbar(label='Time relative to first onset [s]')
         self.annotate_ax()
-        self.cbar = self.add_cbar(label='Time relative to first onset [s]')
         self.canvas.draw()
 
     def remove_drawings(self):
