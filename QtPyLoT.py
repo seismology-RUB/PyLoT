@@ -33,9 +33,10 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
-    QWidget, QHBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
+    QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QDockWidget, QLineEdit
+    QActionGroup, QListWidget, QDockWidget, QLineEdit, QListView, QAbstractItemView, \
+    QTreeView, QComboBox
 import numpy as np
 from obspy import UTCDateTime
 
@@ -60,7 +61,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     getDataType, ComparisonDialog
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.thread import AutoPickThread
+from pylot.core.util.thread import AutoPickThread, Thread
 from pylot.core.util.version import get_git_version as _getVersionString
 import icons_rc
 
@@ -121,6 +122,7 @@ class MainWindow(QMainWindow):
         self.autopicks = {}
         self.loc = False
         self._metadata = None
+        self.project = None
 
         self.array_map = None
 
@@ -152,8 +154,19 @@ class MainWindow(QMainWindow):
 
         _widget = QWidget()
         _widget.setCursor(Qt.CrossCursor)
-        _layout = QHBoxLayout()
+        _layout = QVBoxLayout()
 
+        # add event combo box
+        self.eventBox = QComboBox()
+        self.eventBox.setMaxVisibleItems(30)
+        self.eventBox.setEnabled(False)
+        _event_layout = QHBoxLayout()
+        _event_layout.addWidget(QLabel('Event: '))
+        _event_layout.addWidget(self.eventBox)
+        _event_layout.setStretch(1,1) #set stretch of item 1 to 1
+        _layout.addLayout(_event_layout)
+        self.eventBox.activated.connect(self.loadWaveformDataThread)
+        
         plottitle = "Overview: {0} components ".format(self.getComponent())
 
         # create central matplotlib figure canvas widget
@@ -167,9 +180,11 @@ class MainWindow(QMainWindow):
 
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
+        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
-
+        newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
+        
         # create resource icons
         locactionicon = QIcon()
         locactionicon.addPixmap(QPixmap(':/icons/locactionicon.png'))
@@ -199,10 +214,24 @@ class MainWindow(QMainWindow):
         locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
         compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
-        newEventAction = self.createAction(self, "&New event ...",
-                                           self.createNewEvent,
+        self.newProjectAction = self.createAction(self, "&New project ...",
+                                           self.createNewProject,
                                            QKeySequence.New, newIcon,
-                                           "Create a new event.")
+                                           "Create a new Project.")
+        self.openProjectAction = self.createAction(self, "Load project ...",
+                                                   self.loadProject,
+                                                   QKeySequence.Open,
+                                                   openIcon,
+                                                   "Load project file")
+        self.saveProjectAction = self.createAction(self, "Save project ...",
+                                                   self.saveProject,
+                                                   QKeySequence.Save,
+                                                   saveIcon,
+                                                   "Save project file")
+        # newEventAction = self.createAction(self, "&New event ...",
+        #                                    self.createNewEvent,
+        #                                    QKeySequence.New, newIcon,
+        #                                    "Create a new event.")
         self.openmanualpicksaction = self.createAction(self, "Load &picks ...",
                                                   self.load_data,
                                                   QKeySequence.Open,
@@ -240,11 +269,10 @@ class MainWindow(QMainWindow):
                                             saveIcon, "Save actual event data.")
         self.saveEventAction.setEnabled(False)
 
-        openWFDataAction = self.createAction(self, "Open &waveforms ...",
-                                             self.loadWaveformData,
-                                             "Ctrl+W", QIcon(":/wfIcon.png"),
-                                             "Open waveform data (event will "
-                                             "be closed)")
+        self.addEventDataAction = self.createAction(self, "Add &events ...",
+                                                    self.add_events,
+                                                    "Ctrl+W", newFolderIcon,
+                                                    "Add event data")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
                                              QKeySequence.Preferences,
@@ -290,8 +318,9 @@ class MainWindow(QMainWindow):
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (newEventAction, self.openmanualpicksaction,
-                                self.saveEventAction, openWFDataAction, None,
+        self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
+                                self.openProjectAction, self.saveProjectAction,
+                                self.openmanualpicksaction, self.saveEventAction, None,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -307,7 +336,9 @@ class MainWindow(QMainWindow):
         self.addActions(self.helpMenu, helpActions)
 
         fileToolBar = self.addToolBar("FileTools")
-        fileToolActions = (newEventAction, self.openmanualpicksaction,
+        fileToolActions = (self.newProjectAction, self.addEventDataAction,
+                           self.openProjectAction, self.saveProjectAction,
+                           self.openmanualpicksaction,
                            self.openautopicksaction, loadlocationaction,
                            self.loadpilotevent, self.saveEventAction)
         fileToolBar.setObjectName("FileTools")
@@ -523,6 +554,50 @@ class MainWindow(QMainWindow):
             else:
                 return
 
+    def getWFFnames_from_eventlist(self):
+        if self.dataStructure:
+            searchPath = self.dataStructure.expandDataPath()
+            directory = self.eventBox.currentText()
+            self.fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
+        else:
+            raise DatastructureError('not specified')
+        if not self.fnames:
+            return None
+        return self.fnames
+
+    def add_events(self):
+        if not self.project:
+            self.project = Project()
+        ed = getExistingDirectories(self, 'Select event directories...')
+        if ed.exec_():
+            eventlist = ed.selectedFiles()
+            # select only folders that start with 'e', containin two dots and have length 12
+            eventlist = [item for item in eventlist if item.split('/')[-1].startswith('e')
+                         and len(item.split('/')[-1].split('.')) == 3
+                         and len(item.split('/')[-1]) == 12]
+        else:
+            return
+        if not self.project:
+            print('No project found.')
+            return
+        self.project.add_eventlist(eventlist)
+        self.init_events()
+
+    def init_events(self, new=False):
+        nitems = self.eventBox.count()
+        self.eventBox.clear()
+        if len(self.project.eventlist) == 0:
+            print('No events to init.')
+            return
+        self.eventBox.setEnabled(True)
+        for event in self.project.eventlist:
+            self.eventBox.addItem(event)
+        if new:
+            self.eventBox.setCurrentIndex(0)
+        else:
+            self.eventBox.setCurrentIndex(nitems)
+        self.loadWaveformDataThread()
+
     def filename_from_action(self, action):
         if action.data() is None:
             filt = "Supported file formats" \
@@ -687,15 +762,23 @@ class MainWindow(QMainWindow):
             return self.saveData()
         return True
 
+    def loadWaveformDataThread(self):
+        wfd_thread = Thread(self, self.loadWaveformData, 'Reading data input...')
+        wfd_thread.finished.connect(self.plotWaveformDataThread)
+        wfd_thread.start()
+        
     def loadWaveformData(self):
-        if self.fnames and self.okToContinue():
-            self.setDirty(True)
-            ans = self.data.setWFData(self.fnames)
-        elif self.fnames is None and self.okToContinue():
-            ans = self.data.setWFData(self.getWFFnames())
-        else:
-            ans = False
+        # if self.fnames and self.okToContinue():
+        #     self.setDirty(True)
+        #     ans = self.data.setWFData(self.fnames)
+        # elif self.fnames is None and self.okToContinue():
+        #     ans = self.data.setWFData(self.getWFFnames())
+        # else:
+        #     ans = False
+        self.data.setWFData(self.getWFFnames_from_eventlist())
         self._stime = full_range(self.get_data().getWFData())[0]
+
+    def finishWaveformDataPlot(self):
         self.auto_pick.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
@@ -704,12 +787,13 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         self.saveEventAction.setEnabled(True)
-        if ans:
-            self.plotWaveformData()
-            return ans
-        else:
-            return ans
+        self.draw()
 
+    def plotWaveformDataThread(self):
+        wfp_thread = Thread(self, self.plotWaveformData, 'Plotting waveform data...')
+        wfp_thread.finished.connect(self.finishWaveformDataPlot)
+        wfp_thread.start()
+        
     def plotWaveformData(self):
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
@@ -718,7 +802,6 @@ class MainWindow(QMainWindow):
         wfst = self.get_data().getWFData().select(component=comp)
         wfst += self.get_data().getWFData().select(component=alter_comp)
         self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
-        self.draw()
         plotDict = self.getPlotWidget().getPlotDict()
         pos = plotDict.keys()
         labels = [plotDict[n][0] for n in pos]
@@ -726,19 +809,19 @@ class MainWindow(QMainWindow):
 
     def plotZ(self):
         self.setComponent('Z')
-        self.plotWaveformData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 
     def plotN(self):
         self.setComponent('N')
-        self.plotWaveformData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 
     def plotE(self):
         self.setComponent('E')
-        self.plotWaveformData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 
@@ -1142,7 +1225,7 @@ class MainWindow(QMainWindow):
                 self.setWindowTitle(
                     "PyLoT - processing event %s[*]" % self.get_data().getID())
             elif self.get_data().isNew():
-                self.setWindowTitle("PyLoT - New event [*]")
+                self.setWindowTitle("PyLoT - New project [*]")
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
@@ -1164,6 +1247,50 @@ class MainWindow(QMainWindow):
                 self.data = Data(self, evtdata=event)
                 self.setDirty(True)
 
+    def createNewProject(self, exists=False):
+        if self.okToContinue():
+            dlg = QFileDialog()
+            fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
+            filename = fnm[0]
+            if not filename.split('.')[-1] == 'plp':
+                filename = fnm[0] + '.plp'
+            if not exists:
+                self.project = Project()
+            self.project.save(filename)
+
+    def loadProject(self):
+        if self.project:
+            if self.project.dirty:
+                qmb = QMessageBox(icon=QMessageBox.Question, text='Save changes in current project?')
+                qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                qmb.setDefaultButton(QMessageBox.Yes)
+                if qmb.exec_() == 16384:
+                    self.saveProject()
+                elif qmb.exec_() == 65536:
+                    pass
+                elif qmb.exec_() == 4194304:
+                    return
+        dlg = QFileDialog()
+        fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
+        if fnm[0]:
+            self.project = Project.load(fnm[0])
+            self.init_events(new=True)
+
+    def saveProject(self):
+        if self.project:
+            self.project.save()
+            if not self.project.dirty:
+                qmb = QMessageBox(icon=QMessageBox.Information, text='Saved back project to file:\n{}'.format(self.project.location))
+                qmb.exec_()
+                return
+            else:
+                # if still dirty because saving failed
+                qmb = QMessageBox(icon=QMessageBox.Warning, text='Could not save back to original file.\n'
+                                  'Choose new file')
+                qmb.setStandardButtons(QMessageBox.Ok)
+                qmb.exec_()
+                self.createNewProject(exists=True)
+                
     def draw(self):
         self.getPlotWidget().draw()
 
@@ -1189,6 +1316,82 @@ class MainWindow(QMainWindow):
         form.show()
 
 
+class Project(object):
+    '''
+    Pickable class containing information of a QtPyLoT project, like event lists and file locations.
+    '''
+    def __init__(self):
+        self.eventlist = []
+        self.location = None
+        self.dirty = False
+
+    def add_eventlist(self, eventlist):
+        if len(eventlist) == 0:
+            return
+        for item in eventlist:
+            if not item in self.eventlist:
+                self.eventlist.append(item)
+        self.setDirty()
+
+    def setDirty(self):
+        self.dirty = True
+
+    def setClean(self):
+        self.dirty = False
+
+    def save(self, filename=None):
+        '''
+        Save PyLoT Project to a file. 
+        Can be loaded by using project.load(filename).
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+
+        if filename:
+            self.location = filename
+        else:
+            filename = self.location
+
+        try:
+            outfile = open(filename, 'wb')
+            cPickle.dump(self, outfile, -1)
+            self.setClean()
+        except Exception as e:
+            print('Could not pickle PyLoT project. Reason: {}'.format(e))
+            self.setDirty()
+
+    @staticmethod
+    def load(filename):
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+        infile = open(filename, 'rb')
+        project = cPickle.load(infile)
+        print('Loaded %s' % filename)
+        return project
+    
+
+class event(object):
+    '''
+    Pickable class containing information on a single event.
+    '''
+    def __init__(self):
+        self.eventID = None
+        
+        
+class getExistingDirectories(QFileDialog):
+    def __init__(self, *args):
+        super(getExistingDirectories, self).__init__(*args)
+        self.setOption(self.DontUseNativeDialog, True)
+        self.setFileMode(self.Directory)
+        self.setOption(self.ShowDirsOnly, True)
+        self.findChildren(QListView)[0].setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.findChildren(QTreeView)[0].setSelectionMode(QAbstractItemView.ExtendedSelection)
+
+        
 def create_window():
     app_created = False
     app = QCoreApplication.instance()

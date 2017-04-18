@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
-from PySide.QtCore import QThread, Signal
+from PySide.QtCore import QThread, Signal, Qt
+from PySide.QtGui import QDialog, QProgressBar, QLabel, QVBoxLayout
 
 
 class AutoPickThread(QThread):
@@ -35,3 +36,39 @@ class AutoPickThread(QThread):
 
     def flush(self):
         pass
+
+
+class Thread(QThread):
+    def __init__(self, parent, func, progressText = None):
+        QThread.__init__(self, parent)
+        self.func = func
+        self.progressText = progressText
+        self.pbdlg = None
+        self.finished.connect(self.hideProgressbar)
+        self.showProgressbar()
+
+    def run(self):
+        self.func()
+
+    def __del__(self):
+        self.wait()
+
+    def showProgressbar(self):
+        if self.progressText:
+            self.pbdlg = QDialog(self.parent())
+            self.pbdlg.setModal(True)
+            vl = QVBoxLayout()
+            pb = QProgressBar()
+            pb.setRange(0, 0)
+            vl.addWidget(pb)
+            vl.addWidget(QLabel(self.progressText))
+            self.pbdlg.setLayout(vl)
+            self.pbdlg.show()
+            self.pbdlg.setWindowFlags(Qt.FramelessWindowHint)
+            self.pbdlg.show()
+
+    def hideProgressbar(self):
+        if self.pbdlg:
+            self.pbdlg.hide()
+
+            
