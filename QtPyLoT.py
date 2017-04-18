@@ -58,6 +58,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonDialog
+from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -119,6 +120,9 @@ class MainWindow(QMainWindow):
         self.picks = {}
         self.autopicks = {}
         self.loc = False
+        self._metadata = None
+
+        self.array_map = None
 
         # initialize event data
         if self.recentfiles:
@@ -1034,8 +1038,16 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
-
-    def calc_magnitude(self, type='ML'):
+    def show_array_map(self):
+        if not self.array_map:
+            self.get_metadata()
+            if not self.metadata:
+                return
+            self.array_map = map_projection(self)
+        else:
+            self.array_map.show()
+        
+    def get_metadata(self):
         def set_inv(settings):
             fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
                 "Select inventory..."), self.tr("Select file"))
@@ -1070,7 +1082,12 @@ class MainWindow(QMainWindow):
                     return None
             else:
                 self.metadata = read_metadata(fninv)
-                
+        
+    def calc_magnitude(self, type='ML'):
+        self.get_metadata()
+        if not self.metadata:
+            return None
+            
         wf_copy = self.get_data().getWFData().copy()
         corr_wf = restitute_data(wf_copy, *self.metadata)
         # if not rest_flag:
