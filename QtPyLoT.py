@@ -522,6 +522,11 @@ class MainWindow(QMainWindow):
         self.drawPicks(picktype=type)
         self.draw()
 
+    def getCurrentEvent(self):
+        for event in self.project.eventlist:
+            if event.path == self.eventBox.currentText():
+                return event
+        
     def getLastEvent(self):
         return self.recentfiles[0]
 
@@ -609,6 +614,7 @@ class MainWindow(QMainWindow):
     def fill_eventbox(self, eventlist):
         model = self.eventBox.model()
         for event in self.project.eventlist:
+            event = event.path
             item = QtGui.QStandardItem(str(event))
             # if ref: set different color e.g.
             #item.setBackground(QtGui.QColor('teal'))
@@ -791,10 +797,13 @@ class MainWindow(QMainWindow):
             if hasattr(self.project, 'eventlist'):
                 if len(self.project.eventlist) > 0:
                     if self._eventChanged:
-                        self.loadWaveformDataThread()
-                        self._eventChanged = False
+                        self.newWFplot()
         if self.tabs.currentIndex() == 1:
             self.refresh_array_map()
+
+    def newWFplot(self):
+        self.loadWaveformDataThread()
+        self._eventChanged = False
     
     def loadWaveformDataThread(self):
         wfd_thread = Thread(self, self.loadWaveformData, progressText='Reading data input...')
@@ -838,6 +847,13 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         self.saveEventAction.setEnabled(True)
+        event = self.getCurrentEvent()
+        if event.picks:
+            self.picks = event.picks
+            self.drawPicks(picktype='manual')
+        if event.autopicks:
+            self.autopicks = event.autopicks
+            self.drawPicks(picktype='auto')
         self.draw()
 
     def clearWaveformDataPlot(self):
@@ -1071,8 +1087,10 @@ class MainWindow(QMainWindow):
     def updatePicks(self, type='manual'):
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
         if type == 'manual':
+            self.getCurrentEvent().addPicks(picks)
             self.picks.update(picks)
         elif type == 'auto':
+            self.getCurrentEvent().addAutopicks(picks)            
             self.autopicks.update(picks)
         self.check4Comparison()
 
@@ -1438,8 +1456,9 @@ class Project(object):
         if len(eventlist) == 0:
             return
         for item in eventlist:
-            if not item in self.eventlist:
-                self.eventlist.append(item)
+            event = Event(item)
+            if not event in self.eventlist:
+                self.eventlist.append(event)
         self.setDirty()
 
     def setDirty(self):
@@ -1483,12 +1502,12 @@ class Project(object):
         return project
     
 
-class event(object):
+class Event(object):
     '''
     Pickable class containing information on a single event.
     '''
-    def __init__(self, eventPath):
-        self.eventPath = eventPath
+    def __init__(self, path):
+        self.path = path
         self.autopicks = None
         self.picks = None
 
