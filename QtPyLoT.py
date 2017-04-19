@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         self.project = None
         self.array_map = None
         self._metadata = None
+        self._eventChanged = False
 
         self.poS_id = None
         self.ae_id = None
@@ -170,7 +171,7 @@ class MainWindow(QMainWindow):
         self._event_layout.addWidget(self.eventBox)
         self._event_layout.setStretch(1,1) #set stretch of item 1 to 1
         self._main_layout.addLayout(self._event_layout)
-        self.eventBox.activated.connect(self.refreshTabs)
+        self.eventBox.activated.connect(self.refreshEvents)
         
         # add tabs
         self.tabs = QTabWidget()
@@ -184,7 +185,6 @@ class MainWindow(QMainWindow):
         self.dataPlot.setCursor(Qt.CrossCursor)
         self.tabs.addTab(self.dataPlot, 'Waveform Plot')
         self.init_array_tab()
-
         
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
@@ -265,11 +265,11 @@ class MainWindow(QMainWindow):
                                                "Load location information on "
                                                "the displayed event.")
         self.loadpilotevent = self.createAction(self, "Load PILOT &event ...",
-                                           self.load_pilotevent, "Ctrl+E",
-                                           loadpiloticon,
-                                           "Load PILOT event from information "
-                                           "MatLab binary collections (created"
-                                           " in former MatLab based version).")
+                                                self.load_pilotevent, "Ctrl+E",
+                                                loadpiloticon,
+                                                "Load PILOT event from information "
+                                                "MatLab binary collections (created"
+                                                " in former MatLab based version).")
         self.loadpilotevent.setEnabled(False)
 
         self.saveEventAction = self.createAction(self, "&Save event ...",
@@ -604,7 +604,7 @@ class MainWindow(QMainWindow):
             self.eventBox.setCurrentIndex(0)
         else:
             self.eventBox.setCurrentIndex(nitems)
-        self.refreshTabs()
+        self.refreshEvents()
 
     def fill_eventbox(self, eventlist):
         model = self.eventBox.model()
@@ -782,11 +782,17 @@ class MainWindow(QMainWindow):
             return self.saveData()
         return True
 
+    def refreshEvents(self):
+        self._eventChanged = True
+        self.refreshTabs()
+        
     def refreshTabs(self):
         if self.tabs.currentIndex() == 0:
             if hasattr(self.project, 'eventlist'):
                 if len(self.project.eventlist) > 0:
-                    self.loadWaveformDataThread()
+                    if self._eventChanged:
+                        self.loadWaveformDataThread()
+                        self._eventChanged = False
         if self.tabs.currentIndex() == 1:
             self.refresh_array_map()
     
@@ -1197,15 +1203,15 @@ class MainWindow(QMainWindow):
         widget.setLayout(grid_layout)
         self.tabs.addTab(widget, 'Array Maps')
     
-    def init_array_map(self):
+    def init_array_map(self, index=1):
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
                 return
-        self.array_map = map_projection(self)
         self.tabs.removeTab(1)
+        self.array_map = map_projection(self)
         self.tabs.addTab(self.array_map, 'Array Map')
-        self.tabs.setCurrentIndex(1)
+        self.tabs.setCurrentIndex(index)
         
     def refresh_array_map(self):
         if not self.array_map:
@@ -1220,6 +1226,7 @@ class MainWindow(QMainWindow):
 
     def set_metadata(self):
         self.metadata = self.rm_thread.data
+        self.project.metadata = self.rm_thread.data
         self.init_array_map()
         
     def get_metadata(self):
@@ -1238,6 +1245,10 @@ class MainWindow(QMainWindow):
                 settings.setValue("inventoryFile", fninv)
                 settings.sync()
             self.read_metadata_thread(fninv)
+            return True
+
+        if hasattr(self.project, 'metadata'):
+            self.metadata = self.project.metadata
             return True
         
         settings = QSettings()
@@ -1368,10 +1379,15 @@ class MainWindow(QMainWindow):
         if fnm[0]:
             self.project = Project.load(fnm[0])
             self.init_events(new=True)
+            if hasattr(self.project, 'metadata'):
+                self.init_array_map(index=0)
 
     def saveProject(self):
         if self.project:
-            self.project.save()
+            if not self.project.location:
+                self.createNewProject(exists=True)
+            else:
+                self.project.save()
             if not self.project.dirty:
                 qmb = QMessageBox(icon=QMessageBox.Information, text='Saved back project to file:\n{}'.format(self.project.location))
                 qmb.exec_()
