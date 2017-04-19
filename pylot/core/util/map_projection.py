@@ -63,7 +63,7 @@ class map_projection(QtGui.QWidget):
                 print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
 
     def connectSignals(self):
-        self.combobox.currentIndexChanged.connect(self.refresh_drawings)
+        self.comboBox_phase.currentIndexChanged.connect(self.refresh_drawings)
         
     def init_graphics(self):
         self.main_box = QtGui.QVBoxLayout()
@@ -72,11 +72,11 @@ class map_projection(QtGui.QWidget):
         self.top_row = QtGui.QHBoxLayout()
         self.main_box.addLayout(self.top_row)
 
-        self.combobox = QtGui.QComboBox()
-        self.combobox.insertItem(0, 'P')
-        self.combobox.insertItem(1, 'S')
+        self.comboBox_phase = QtGui.QComboBox()
+        self.comboBox_phase.insertItem(0, 'P')
+        self.comboBox_phase.insertItem(1, 'S')
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))        
-        self.top_row.addWidget(self.combobox)
+        self.top_row.addWidget(self.comboBox_phase)
 
         if not self.figure:
             fig = plt.figure()
@@ -108,7 +108,7 @@ class map_projection(QtGui.QWidget):
         self.lon = lon
 
     def init_picks(self):
-        phase = self.combobox.currentText()
+        phase = self.comboBox_phase.currentText()
         def get_picks(station_names):
             picks=[]
             for station in station_names:
@@ -240,6 +240,9 @@ class map_projection(QtGui.QWidget):
         if self.picked:
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset [s]')
+            self.comboBox_phase.setEnabled(True)
+        else:
+            self.comboBox_phase.setEnabled(False)
         self.annotate_ax()
         self.canvas.draw()
 

@@ -39,16 +39,20 @@ class AutoPickThread(QThread):
 
 
 class Thread(QThread):
-    def __init__(self, parent, func, progressText = None):
+    def __init__(self, parent, func, arg=None, progressText=None):
         QThread.__init__(self, parent)
         self.func = func
+        self.arg = arg
         self.progressText = progressText
         self.pbdlg = None
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
 
     def run(self):
-        self.func()
+        if self.arg:
+            self.data = self.func(self.arg)
+        else:
+            self.data = self.func()
 
     def __del__(self):
         self.wait()
@@ -63,8 +67,7 @@ class Thread(QThread):
             vl.addWidget(pb)
             vl.addWidget(QLabel(self.progressText))
             self.pbdlg.setLayout(vl)
-            self.pbdlg.show()
-            self.pbdlg.setWindowFlags(Qt.FramelessWindowHint)
+            self.pbdlg.setWindowFlags(Qt.SplashScreen)
             self.pbdlg.show()
 
     def hideProgressbar(self):

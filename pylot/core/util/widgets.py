@@ -397,7 +397,7 @@ class WaveformWidget(FigureCanvas):
         self.setParent(parent)
         self.figure = Figure()
         self.figure.set_facecolor((.92, .92, .92))
-        # attribute plotdict is an dictionary connecting position and a name
+        # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
         # create axes
         self.axes = self.figure.add_subplot(111)

@@ -30,13 +30,14 @@ import matplotlib
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 
+from PySide import QtGui, QtCore
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QDockWidget, QLineEdit, QListView, QAbstractItemView, \
-    QTreeView, QComboBox, QTabWidget
+    QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime
 
@@ -91,12 +92,27 @@ class MainWindow(QMainWindow):
         self.array_map = None
         self._metadata = None
 
+        self.poS_id = None
+        self.ae_id = None
+
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
         # read settings
         settings = QSettings()
         self.recentfiles = settings.value("data/recentEvents", [])
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
+
+        # initialize event data
+        if self.recentfiles:
+            lastEvent = self.getLastEvent()
+            self.data = Data(self, lastEvent)
+        else:
+            self.data = Data(self)
+        self.autodata = Data(self)
+
+        self.dirty = False
+        
+        # setup UI
         self.setupUi()
 
         if settings.value("user/FullName", None) is None:
@@ -126,16 +142,6 @@ class MainWindow(QMainWindow):
         self.autopicks = {}
         self.loc = False
 
-        # initialize event data
-        if self.recentfiles:
-            lastEvent = self.getLastEvent()
-            self.data = Data(self, lastEvent)
-        else:
-            self.data = Data(self)
-        self.autodata = Data(self)
-
-        self.dirty = False
-
     def setupUi(self):
 
         try:
@@ -153,9 +159,7 @@ class MainWindow(QMainWindow):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
 
         _widget = QWidget()
-        _widget.setCursor(Qt.CrossCursor)
         self._main_layout = QVBoxLayout()
-
 
         # add event combo box
         self.eventBox = QComboBox()
@@ -166,25 +170,20 @@ class MainWindow(QMainWindow):
         self._event_layout.addWidget(self.eventBox)
         self._event_layout.setStretch(1,1) #set stretch of item 1 to 1
         self._main_layout.addLayout(self._event_layout)
-        self.eventBox.activated.connect(self.loadWaveformDataThread)
+        self.eventBox.activated.connect(self.refreshTabs)
         
         # add tabs
         self.tabs = QTabWidget()
         self._main_layout.addWidget(self.tabs)
-
-        # init Map
-        #self.init_array_map()
+        self.tabs.currentChanged.connect(self.refreshTabs)
 
         # create central matplotlib figure canvas widget
         plottitle = "Overview: {0} components ".format(self.getComponent())
-        self.DataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
+        self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
                                        title=plottitle)
-        self.DataPlot.mpl_connect('button_press_event',
-                                  self.pickOnStation)
-        self.DataPlot.mpl_connect('axes_enter_event',
-                                  lambda event: self.tutor_user())
-        self.tabs.addTab(self.DataPlot, 'Waveform Plot')
-        #self.tabs.addTab(self.array_map, 'Array Map')
+        self.dataPlot.setCursor(Qt.CrossCursor)
+        self.tabs.addTab(self.dataPlot, 'Waveform Plot')
+        self.init_array_tab()
 
         
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
@@ -597,16 +596,28 @@ class MainWindow(QMainWindow):
         self.eventBox.clear()
         if len(self.project.eventlist) == 0:
             print('No events to init.')
+            self.clearWaveformDataPlot()
             return
         self.eventBox.setEnabled(True)
-        for event in self.project.eventlist:
-            self.eventBox.addItem(event)
+        self.fill_eventbox(self.project.eventlist)
         if new:
             self.eventBox.setCurrentIndex(0)
         else:
             self.eventBox.setCurrentIndex(nitems)
-        self.loadWaveformDataThread()
+        self.refreshTabs()
 
+    def fill_eventbox(self, eventlist):
+        model = self.eventBox.model()
+        for event in self.project.eventlist:
+            item = QtGui.QStandardItem(str(event))
+            # if ref: set different color e.g.
+            #item.setBackground(QtGui.QColor('teal'))
+            item.setForeground(QtGui.QColor('black'))
+            font = item.font()
+            font.setPointSize(10)
+            item.setFont(font)
+            model.appendRow(item)
+        
     def filename_from_action(self, action):
         if action.data() is None:
             filt = "Supported file formats" \
@@ -732,7 +743,7 @@ class MainWindow(QMainWindow):
             compare_dlg.exec_()
 
     def getPlotWidget(self):
-        return self.DataPlot
+        return self.dataPlot
 
     @staticmethod
     def getWFID(gui_event):
@@ -771,8 +782,16 @@ class MainWindow(QMainWindow):
             return self.saveData()
         return True
 
+    def refreshTabs(self):
+        if self.tabs.currentIndex() == 0:
+            if hasattr(self.project, 'eventlist'):
+                if len(self.project.eventlist) > 0:
+                    self.loadWaveformDataThread()
+        if self.tabs.currentIndex() == 1:
+            self.refresh_array_map()
+    
     def loadWaveformDataThread(self):
-        wfd_thread = Thread(self, self.loadWaveformData, 'Reading data input...')
+        wfd_thread = Thread(self, self.loadWaveformData, progressText='Reading data input...')
         wfd_thread.finished.connect(self.plotWaveformDataThread)
         wfd_thread.start()
         
@@ -787,7 +806,24 @@ class MainWindow(QMainWindow):
         self.data.setWFData(self.getWFFnames_from_eventlist())
         self._stime = full_range(self.get_data().getWFData())[0]
 
+    def connectWFplotEvents(self):
+        if not self.poS_id:
+            self.poS_id = self.dataPlot.mpl_connect('button_press_event',
+                                                    self.pickOnStation)
+        if not self.ae_id:
+            self.ae_id = self.dataPlot.mpl_connect('axes_enter_event',
+                                                   lambda event: self.tutor_user())
+
+    def disconnectWFplotEvents(self):
+        if self.poS_id:
+            self.dataPlot.mpl_disconnect(self.poS_id)
+        if self.ae_id:
+            self.dataPlot.mpl_disconnect(self.ae_id)
+        self.poS_id = None
+        self.ae_id = None
+
     def finishWaveformDataPlot(self):
+        self.connectWFplotEvents()
         self.auto_pick.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
@@ -798,8 +834,21 @@ class MainWindow(QMainWindow):
         self.saveEventAction.setEnabled(True)
         self.draw()
 
+    def clearWaveformDataPlot(self):
+        self.disconnectWFplotEvents()
+        self.dataPlot.getAxes().cla()
+        self.auto_pick.setEnabled(False)
+        self.z_action.setEnabled(False)
+        self.e_action.setEnabled(False)
+        self.n_action.setEnabled(False)
+        self.openmanualpicksaction.setEnabled(False)
+        self.openautopicksaction.setEnabled(False)
+        self.loadpilotevent.setEnabled(False)
+        self.saveEventAction.setEnabled(False)
+        self.draw()
+        
     def plotWaveformDataThread(self):
-        wfp_thread = Thread(self, self.plotWaveformData, 'Plotting waveform data...')
+        wfp_thread = Thread(self, self.plotWaveformData, progressText='Plotting waveform data...')
         wfp_thread.finished.connect(self.finishWaveformDataPlot)
         wfp_thread.start()
         
@@ -1130,20 +1179,48 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(lt.read_location(locpath), type='event')
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
+    def init_array_tab(self):
+        widget = QWidget(self)
+        grid_layout = QGridLayout()
+        grid_layout.setColumnStretch(0, 1)
+        grid_layout.setColumnStretch(2, 1)
+        grid_layout.setRowStretch(0, 1)
+        grid_layout.setRowStretch(3, 1)
+
+        label = QLabel('No inventory set...')
+        new_inv_button = QPushButton('Set &inventory file')
+        new_inv_button.clicked.connect(self.get_metadata)
+        
+        grid_layout.addWidget(label, 1, 1)
+        grid_layout.addWidget(new_inv_button, 2, 1)
+
+        widget.setLayout(grid_layout)
+        self.tabs.addTab(widget, 'Array Maps')
+    
     def init_array_map(self):
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
                 return
-            self.array_map = map_projection(self)
+        self.array_map = map_projection(self)
+        self.tabs.removeTab(1)
+        self.tabs.addTab(self.array_map, 'Array Map')
+        self.tabs.setCurrentIndex(1)
         
-    def show_array_map(self, container=None):
+    def refresh_array_map(self):
         if not self.array_map:
-            print('No array map found. Init array map first!')
             return
-        if self.container:
-            container.addWidget(self.array_map)
+        # refresh with new picks here!!!
         self.array_map.show()
+
+    def read_metadata_thread(self, fninv):
+        self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...')
+        self.rm_thread.finished.connect(self.set_metadata)
+        self.rm_thread.start()
+
+    def set_metadata(self):
+        self.metadata = self.rm_thread.data
+        self.init_array_map()
         
     def get_metadata(self):
         def set_inv(settings):
@@ -1160,7 +1237,7 @@ class MainWindow(QMainWindow):
             if ans == QMessageBox.Yes:
                 settings.setValue("inventoryFile", fninv)
                 settings.sync()
-            self.metadata = read_metadata(fninv)
+            self.read_metadata_thread(fninv)
             return True
         
         settings = QSettings()
@@ -1179,7 +1256,7 @@ class MainWindow(QMainWindow):
                 if not set_inv(settings):
                     return None
             else:
-                self.metadata = read_metadata(fninv)
+                self.read_metadata_thread(fninv)
         
     def calc_magnitude(self, type='ML'):
         self.get_metadata()
@@ -1271,8 +1348,9 @@ class MainWindow(QMainWindow):
                 filename = fnm[0] + '.plp'
             if not exists:
                 self.project = Project()
+                self.init_events(new=True)                
             self.project.save(filename)
-
+            
     def loadProject(self):
         if self.project:
             if self.project.dirty:
@@ -1393,8 +1471,16 @@ class event(object):
     '''
     Pickable class containing information on a single event.
     '''
-    def __init__(self):
-        self.eventID = None
+    def __init__(self, eventPath):
+        self.eventPath = eventPath
+        self.autopicks = None
+        self.picks = None
+
+    def addPicks(self, picks):
+        self.picks = picks
+
+    def addAutopicks(self, autopicks):
+        self.autopicks = autopicks
         
         
 class getExistingDirectories(QFileDialog):
