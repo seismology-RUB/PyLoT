@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
         self.project = Project()
         self.array_map = None
         self._metadata = None
-        self._eventChanged = False
+        self._eventChanged = [False, False]
 
         self.poS_id = None
         self.ae_id = None
@@ -839,23 +839,34 @@ class MainWindow(QMainWindow):
         return True
 
     def refreshEvents(self):
-        self._eventChanged = True
+        self._eventChanged = [True, True]
         self.refreshTabs()
         
     def refreshTabs(self):
-        if self.tabs.currentIndex() == 0:
-            if hasattr(self.project, 'eventlist'):
-                if len(self.project.eventlist) > 0:
-                    if self._eventChanged:
-                        self.newWFplot()
-        if self.tabs.currentIndex() == 1:
-            self.refresh_array_map()
+        if self._eventChanged[0] or self._eventChanged[1]:
+            event = self.getCurrentEvent()
+            if not event.picks:
+                self.picks = {}
+            else:
+                self.picks = event.picks
+            if not event.autopicks:
+                self.autopicks = {}
+            else:
+                self.autopicks = event.autopicks
+            if self.tabs.currentIndex() == 0:
+                if hasattr(self.project, 'eventlist'):
+                    if len(self.project.eventlist) > 0:
+                        if self._eventChanged[0]:
+                            self.newWFplot()
+            if self.tabs.currentIndex() == 1:
+                if self._eventChanged[1]:
+                    self.refresh_array_map()
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
 
     def newWFplot(self):
         self.loadWaveformDataThread()
-        self._eventChanged = False
+        self._eventChanged[0] = False
     
     def loadWaveformDataThread(self):
         wfd_thread = Thread(self, self.loadWaveformData, progressText='Reading data input...')
@@ -1282,12 +1293,14 @@ class MainWindow(QMainWindow):
         self.array_layout.removeWidget(self.metadata_widget)
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
+        self.refresh_array_map()
         
     def refresh_array_map(self):
         if not self.array_map:
             return
         # refresh with new picks here!!!
-        self.array_map.show()
+        self.array_map.refresh_drawings(self.picks)
+        self._eventChanged[1] = False
 
     def init_event_table(self, index=2):
         def set_enabled(item, enabled=True, checkable=False):
@@ -1513,12 +1526,15 @@ class MainWindow(QMainWindow):
             dlg = QFileDialog()
             fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
             filename = fnm[0]
+            if not len(fnm[0]):
+                return
             if not filename.split('.')[-1] == 'plp':
                 filename = fnm[0] + '.plp'
             if not exists:
                 self.project = Project()
                 self.init_events(new=True)                
             self.project.save(filename)
+            return True
             
     def loadProject(self):
         if self.project:
@@ -1543,7 +1559,8 @@ class MainWindow(QMainWindow):
     def saveProject(self):
         if self.project:
             if not self.project.location:
-                self.createNewProject(exists=True)
+                if not self.createNewProject(exists=True):
+                    return
             else:
                 self.project.save()
             if not self.project.dirty:

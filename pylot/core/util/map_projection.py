@@ -12,7 +12,7 @@ from pylot.core.util.widgets import PickDlg
 plt.interactive(False)
 
 class map_projection(QtGui.QWidget):
-    def __init__(self, mainwindow, figure=None, picked=False):
+    def __init__(self, mainwindow, figure=None):
         '''
         :param: picked, can be False, auto, manual
         :value: str
@@ -20,7 +20,8 @@ class map_projection(QtGui.QWidget):
         QtGui.QWidget.__init__(self)
         self.pyl_mainwindow = mainwindow
         self.parser = mainwindow.metadata[1]
-        self.picked = picked
+        self.picks = None
+        self.picks_dict = None
         self.figure = figure
         self.init_graphics()
         self.init_stations()
@@ -63,7 +64,7 @@ class map_projection(QtGui.QWidget):
                 print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
 
     def connectSignals(self):
-        self.comboBox_phase.currentIndexChanged.connect(self.refresh_drawings)
+        self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         
     def init_graphics(self):
         self.main_box = QtGui.QVBoxLayout()
@@ -75,6 +76,11 @@ class map_projection(QtGui.QWidget):
         self.comboBox_phase = QtGui.QComboBox()
         self.comboBox_phase.insertItem(0, 'P')
         self.comboBox_phase.insertItem(1, 'S')
+
+        # self.comboBox_am = QtGui.QComboBox()
+        # self.comboBox_am.insertItem(0, 'auto')
+        # self.comboBox_am.insertItem(1, 'manual')        
+        
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1,1) #set stretch of item 1 to 1        
@@ -89,7 +95,7 @@ class map_projection(QtGui.QWidget):
 
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.main_box.addWidget(self.toolbar)
-        
+
     def init_stations(self):
         def get_station_names_lat_lon(parser):
             station_names=[]
@@ -114,7 +120,7 @@ class map_projection(QtGui.QWidget):
             picks=[]
             for station in station_names:
                 try:
-                    picks.append(self.pyl_mainwindow.autopicks[station][phase]['mpp'])
+                    picks.append(self.picks_dict[station][phase]['mpp'])
                 except:
                     picks.append(np.nan)
             return picks
@@ -226,19 +232,24 @@ class map_projection(QtGui.QWidget):
         cbar.set_label(label)
         return cbar
 
-    def refresh_drawings(self):
+    def refresh_drawings(self, picks=None):
+        self.picks_dict = picks
         self.remove_drawings()
         self.draw_everything()
-    
+
+    def _refresh_drawings(self):
+        self.remove_drawings()
+        self.draw_everything()
+
     def draw_everything(self):
-        if self.picked:
+        if self.picks_dict:
             self.init_picks()
             self.init_picks_active()
             self.init_stations_active()
             self.init_picksgrid()
             self.draw_contour_filled()
         self.scatter_all_stations()
-        if self.picked:
+        if self.picks_dict:
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset [s]')
             self.comboBox_phase.setEnabled(True)
@@ -248,13 +259,20 @@ class map_projection(QtGui.QWidget):
         self.canvas.draw()
 
     def remove_drawings(self):
-        self.sc_picked.remove()
-        self.sc.remove()
-        self.cbar.remove()
-        self.remove_annotations()
+        if hasattr(self, 'sc_picked'):
+            self.sc_picked.remove()
+            del(self.sc_picked)
+        if hasattr(self, 'cbar'):
+            self.cbar.remove()
+            del(self.cbar)
+        if hasattr(self, 'contourf'):
+            self.remove_contourf()
+            del(self.contourf)
+        if hasattr(self, 'cid'):
+            self.canvas.mpl_disconnect(self.cid)
+            del(self.cid)
+        self.sc.remove()        
         self.legend.remove()
-        self.remove_contourf()
-        self.canvas.mpl_disconnect(self.cid)
         self.canvas.draw()
 
     def remove_contourf(self):
