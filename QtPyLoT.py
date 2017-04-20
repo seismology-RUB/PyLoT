@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
         self._main_layout = QVBoxLayout()
 
         # add event combo box
-        self.eventBox = QComboBox()
+        self.eventBox = self.createEventBox()
         self.eventBox.setMaxVisibleItems(30)
         self.eventBox.setEnabled(False)
         self._event_layout = QHBoxLayout()
@@ -539,8 +539,11 @@ class MainWindow(QMainWindow):
 
     def getCurrentEvent(self):
         for event in self.project.eventlist:
-            if event.path == self.eventBox.currentText():
+            if event.path == self.getCurrentEventPath():
                 return event
+
+    def getCurrentEventPath(self):
+        return str(self.eventBox.currentText().split('|')[0]).strip()
         
     def getLastEvent(self):
         return self.recentfiles[0]
@@ -585,7 +588,7 @@ class MainWindow(QMainWindow):
     def getWFFnames_from_eventlist(self):
         if self.dataStructure:
             searchPath = self.dataStructure.expandDataPath()
-            directory = self.eventBox.currentText()
+            directory = self.getCurrentEventPath()
             self.fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
@@ -611,15 +614,25 @@ class MainWindow(QMainWindow):
         self.project.add_eventlist(eventlist)
         self.init_events()
 
+    def createEventBox(self):
+        qcb = QComboBox()
+        palette = qcb.palette()
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
+                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
+                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        qcb.setPalette(palette)
+        return qcb
+
+        
     def init_events(self, new=False):
         nitems = self.eventBox.count()
-        self.eventBox.clear()
         if len(self.project.eventlist) == 0:
             print('No events to init.')
             self.clearWaveformDataPlot()
             return
         self.eventBox.setEnabled(True)
-        self.fill_eventbox(self.project.eventlist)
+        self.fill_eventbox()
         if new:
             self.eventBox.setCurrentIndex(0)
         else:
@@ -627,19 +640,41 @@ class MainWindow(QMainWindow):
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
 
-    def fill_eventbox(self, eventlist):
+    def fill_eventbox(self):
+        index=self.eventBox.currentIndex()
+        self.eventBox.clear()
         model = self.eventBox.model()
         for event in self.project.eventlist:
-            event = event.path
-            item = QtGui.QStandardItem(str(event))
+            event_path = event.path
+            event_npicks = 0
+            event_nautopicks = 0
+            if event.picks:
+                event_npicks = len(event.picks)
+            if event.autopicks:
+                event_nautopicks = len(event.autopicks)
+            event_ref = event.isRefEvent()
+            event_test = event.isTestEvent()
+
+            text = '{path} | manual: [{p}] | auto: [{a}] | ref: {ref} | test: {test}'
+            text = text.format(path=event_path,
+                               p=event_npicks,
+                               a=event_nautopicks,
+                               ref=event_ref,
+                               test=event_test)
+            
+            item = QtGui.QStandardItem(str(text))
             # if ref: set different color e.g.
-            #item.setBackground(QtGui.QColor('teal'))
+            if event_ref:
+                item.setBackground(QtGui.QColor('cyan'))
+            if event_test:
+                item.setBackground(QtGui.QColor('yellow'))
             item.setForeground(QtGui.QColor('black'))
             font = item.font()
             font.setPointSize(10)
             item.setFont(font)
             model.appendRow(item)
-        
+        self.eventBox.setCurrentIndex(index)
+
     def filename_from_action(self, action):
         if action.data() is None:
             filt = "Supported file formats" \
@@ -1285,7 +1320,8 @@ class MainWindow(QMainWindow):
                     item_ref.setCheckState(QtCore.Qt.Unchecked)
                     event.setTestEvent(True)
                 elif column == 2 and not item_test.checkState():
-                    event.setTestEvent(False)                    
+                    event.setTestEvent(False)
+                self.fill_eventbox()                    
             elif column == 3:
                 #update event notes
                 notes = table[row][3].text()
@@ -1303,8 +1339,10 @@ class MainWindow(QMainWindow):
             item_path = QtGui.QTableWidgetItem()
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()
-            item_notes = QtGui.QTableWidgetItem()            
-
+            item_notes = QtGui.QTableWidgetItem()
+            
+            item_ref.setBackground(QtGui.QColor('cyan'))
+            item_test.setBackground(QtGui.QColor('yellow'))
             item_path.setText(event.path)
             item_notes.setText(event.notes)            
             if event.picks:
@@ -1336,7 +1374,7 @@ class MainWindow(QMainWindow):
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         self.qtl.cellChanged[int, int].connect(cell_changed)
-
+        
         self.events_layout.addWidget(self.qtl)
         self.tabs.setCurrentIndex(index)
         
@@ -1522,6 +1560,7 @@ class MainWindow(QMainWindow):
                 self.createNewProject(exists=True)
                 
     def draw(self):
+        #self.fill_eventbox()
         self.getPlotWidget().draw()
 
     def setDirty(self, value):
