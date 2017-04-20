@@ -75,8 +75,9 @@ class map_projection(QtGui.QWidget):
         self.comboBox_phase = QtGui.QComboBox()
         self.comboBox_phase.insertItem(0, 'P')
         self.comboBox_phase.insertItem(1, 'S')
-        self.top_row.addWidget(QtGui.QLabel('Select a phase: '))        
+        self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
+        self.top_row.setStretch(1,1) #set stretch of item 1 to 1        
 
         if not self.figure:
             fig = plt.figure()

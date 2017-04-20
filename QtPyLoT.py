@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
         else:
              self.infile = infile
 
-        self.project = None
+        self.project = Project()
         self.array_map = None
         self._metadata = None
         self._eventChanged = False
@@ -183,8 +183,23 @@ class MainWindow(QMainWindow):
         self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
                                        title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
-        self.tabs.addTab(self.dataPlot, 'Waveform Plot')
+        wf_tab = QtGui.QWidget()
+        array_tab = QtGui.QWidget()
+        events_tab = QtGui.QWidget()
+        self.wf_layout = QtGui.QVBoxLayout()
+        self.array_layout = QtGui.QVBoxLayout()
+        self.events_layout = QtGui.QVBoxLayout()
+        wf_tab.setLayout(self.wf_layout)
+        array_tab.setLayout(self.array_layout)
+        events_tab.setLayout(self.events_layout)
+        self.tabs.addTab(wf_tab, 'Waveform Plot')
+        self.tabs.addTab(array_tab, 'Array Map')
+        self.tabs.addTab(events_tab, 'Eventlist')
+        
+        self.wf_layout.addWidget(self.dataPlot)
         self.init_array_tab()
+        self.init_event_table()
+        self.tabs.setCurrentIndex(0)
         
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
@@ -610,6 +625,7 @@ class MainWindow(QMainWindow):
         else:
             self.eventBox.setCurrentIndex(nitems)
         self.refreshEvents()
+        tabindex = self.tabs.currentIndex()
 
     def fill_eventbox(self, eventlist):
         model = self.eventBox.model()
@@ -800,6 +816,8 @@ class MainWindow(QMainWindow):
                         self.newWFplot()
         if self.tabs.currentIndex() == 1:
             self.refresh_array_map()
+        if self.tabs.currentIndex() == 2:
+            self.init_event_table()
 
     def newWFplot(self):
         self.loadWaveformDataThread()
@@ -1204,7 +1222,7 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
     def init_array_tab(self):
-        widget = QWidget(self)
+        self.metadata_widget = QWidget(self)
         grid_layout = QGridLayout()
         grid_layout.setColumnStretch(0, 1)
         grid_layout.setColumnStretch(2, 1)
@@ -1218,17 +1236,17 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(label, 1, 1)
         grid_layout.addWidget(new_inv_button, 2, 1)
 
-        widget.setLayout(grid_layout)
-        self.tabs.addTab(widget, 'Array Maps')
+        self.metadata_widget.setLayout(grid_layout)
+        self.array_layout.addWidget(self.metadata_widget)
     
     def init_array_map(self, index=1):
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
                 return
-        self.tabs.removeTab(1)
         self.array_map = map_projection(self)
-        self.tabs.addTab(self.array_map, 'Array Map')
+        self.array_layout.removeWidget(self.metadata_widget)
+        self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
         
     def refresh_array_map(self):
@@ -1237,6 +1255,91 @@ class MainWindow(QMainWindow):
         # refresh with new picks here!!!
         self.array_map.show()
 
+    def init_event_table(self, index=2):
+        def set_enabled(item, enabled=True, checkable=False):
+            if enabled and not checkable:
+                item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+            elif enabled and checkable:
+                item_ref.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)                
+            else:
+                item.setFlags(QtCore.Qt.ItemIsSelectable)
+
+        if self.project:
+            eventlist = self.project.eventlist
+        else:
+            eventlist = []
+
+        def cell_changed(row=None, column=None):
+            table = self.project._table
+            event = self.project.getEventFromPath(table[row][0].text())
+            if column == 1 or column == 2:
+                #toggle checked states (exclusive)
+                item_ref = table[row][1]
+                item_test = table[row][2]
+                if column == 1 and item_ref.checkState():
+                    item_test.setCheckState(QtCore.Qt.Unchecked)
+                    event.setRefEvent(True)
+                elif column == 1 and not item_ref.checkState():
+                    event.setRefEvent(False)                    
+                elif column == 2 and item_test.checkState():
+                    item_ref.setCheckState(QtCore.Qt.Unchecked)
+                    event.setTestEvent(True)
+                elif column == 2 and not item_test.checkState():
+                    event.setTestEvent(False)                    
+            elif column == 3:
+                #update event notes
+                notes = table[row][3].text()
+                event.addNotes(notes)
+
+        if hasattr(self, 'qtl'):
+            self.events_layout.removeWidget(self.qtl)
+        self.qtl = QtGui.QTableWidget()
+        self.qtl.setColumnCount(4)
+        self.qtl.setRowCount(len(eventlist))
+        self.qtl.setHorizontalHeaderLabels(['Event', 'Reference', 'Test Set', 'Notes'])
+
+        self.project._table = []
+        for index, event in enumerate(eventlist):
+            item_path = QtGui.QTableWidgetItem()
+            item_ref = QtGui.QTableWidgetItem()
+            item_test = QtGui.QTableWidgetItem()
+            item_notes = QtGui.QTableWidgetItem()            
+
+            item_path.setText(event.path)
+            item_notes.setText(event.notes)            
+            if event.picks:
+                set_enabled(item_path, True, False)
+                set_enabled(item_ref, True, True)
+                set_enabled(item_test, True, True)
+            else:
+                set_enabled(item_path, False, False)
+                set_enabled(item_ref, False, True)
+                set_enabled(item_test, False, True)
+
+            if event.isRefEvent():
+                item_ref.setCheckState(QtCore.Qt.Checked)
+            else:
+                item_ref.setCheckState(QtCore.Qt.Unchecked)
+            if event.isTestEvent():
+                item_test.setCheckState(QtCore.Qt.Checked)
+            else:
+                item_test.setCheckState(QtCore.Qt.Unchecked)
+                
+            column=[item_path, item_ref, item_test, item_notes]
+            self.project._table.append(column)
+
+        for r_index, row in enumerate(self.project._table):
+            for c_index, item in enumerate(row):
+                self.qtl.setItem(r_index, c_index, item)
+
+        header = self.qtl.horizontalHeader()
+        header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        header.setStretchLastSection(True)
+        self.qtl.cellChanged[int, int].connect(cell_changed)
+
+        self.events_layout.addWidget(self.qtl)
+        self.tabs.setCurrentIndex(index)
+        
     def read_metadata_thread(self, fninv):
         self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...')
         self.rm_thread.finished.connect(self.set_metadata)
@@ -1451,6 +1554,7 @@ class Project(object):
         self.eventlist = []
         self.location = None
         self.dirty = False
+        self._table = None
 
     def add_eventlist(self, eventlist):
         if len(eventlist) == 0:
@@ -1466,6 +1570,11 @@ class Project(object):
 
     def setClean(self):
         self.dirty = False
+
+    def getEventFromPath(self, path):
+        for event in self.eventlist:
+            if event.path == path:
+                return event
 
     def save(self, filename=None):
         '''
@@ -1510,12 +1619,35 @@ class Event(object):
         self.path = path
         self.autopicks = None
         self.picks = None
+        self.notes = None
+        self._testEvent = False
+        self._refEvent = False
 
     def addPicks(self, picks):
         self.picks = picks
 
     def addAutopicks(self, autopicks):
         self.autopicks = autopicks
+
+    def addNotes(self, notes):
+        self.notes = notes
+
+    def clearNotes(self):
+        self.notes = None
+
+    def isRefEvent(self):
+        return self._refEvent
+
+    def isTestEvent(self):
+        return self._testEvent
+
+    def setRefEvent(self, bool):
+        self._refEvent = bool
+        if bool: self._testEvent = False
+
+    def setTestEvent(self, bool):
+        self._testEvent = bool
+        if bool: self._refEvent = False
         
         
 class getExistingDirectories(QFileDialog):
