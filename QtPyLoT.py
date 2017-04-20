@@ -1154,7 +1154,7 @@ class MainWindow(QMainWindow):
             return
         # plotting picks
         plotID = self.getStationID(station)
-        if not plotID:
+        if plotID is None:
             return
         ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
