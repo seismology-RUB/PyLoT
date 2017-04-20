@@ -144,7 +144,6 @@ class MainWindow(QMainWindow):
         self.loc = False
 
     def setupUi(self):
-
         try:
             self.startTime = min(
                 [tr.stats.starttime for tr in self.data.wfdata])
@@ -1560,7 +1559,7 @@ class MainWindow(QMainWindow):
                 self.createNewProject(exists=True)
                 
     def draw(self):
-        #self.fill_eventbox()
+        self.fill_eventbox()
         self.getPlotWidget().draw()
 
     def setDirty(self, value):
