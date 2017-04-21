@@ -214,6 +214,14 @@ class MainWindow(QMainWindow):
         manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
         autopicksicon = QIcon()
         autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        self.autopicksicon_small = QIcon()
+        self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        self.manupicksicon_small = QIcon()
+        self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicsicon.png'))            
+        # self.autopicksicon_small = QIcon()
+        # self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
+        # self.manupicksicon_small = QIcon()
+        # self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicksicon_small.png'))            
         loadpiloticon = QIcon()
         loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
@@ -641,8 +649,23 @@ class MainWindow(QMainWindow):
 
     def fill_eventbox(self):
         index=self.eventBox.currentIndex()
+        tv=QtGui.QTableView()
+        header = tv.horizontalHeader()
+        header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        header.setStretchLastSection(True)
+        header.hide()
+        tv.verticalHeader().hide()
+        tv.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        
+        self.eventBox.setView(tv)
         self.eventBox.clear()
         model = self.eventBox.model()
+        plmax=0
+        for event in self.project.eventlist:
+            pl = len(event.path)
+            if pl > plmax:
+                plmax=pl
+
         for event in self.project.eventlist:
             event_path = event.path
             event_npicks = 0
@@ -654,24 +677,40 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
-            text = '{path} | manual: [{p}] | auto: [{a}] | ref: {ref} | test: {test}'
+            text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             text = text.format(path=event_path,
+                               plen=plmax,
                                p=event_npicks,
-                               a=event_nautopicks,
-                               ref=event_ref,
-                               test=event_test)
-            
-            item = QtGui.QStandardItem(str(text))
-            # if ref: set different color e.g.
+                               a=event_nautopicks)
+
+            item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
+            item_nmp = QtGui.QStandardItem(str(event_npicks))
+            item_nmp.setIcon(self.manupicksicon_small)
+            item_nap = QtGui.QStandardItem(str(event_nautopicks))
+            item_nap.setIcon(self.autopicksicon_small)
+            item_ref = QtGui.QStandardItem()#str(event_ref))
+            item_test = QtGui.QStandardItem()#str(event_test))
             if event_ref:
-                item.setBackground(QtGui.QColor('cyan'))
+                item_ref.setBackground(QtGui.QColor(200, 210, 230, 255))
             if event_test:
-                item.setBackground(QtGui.QColor('yellow'))
-            item.setForeground(QtGui.QColor('black'))
-            font = item.font()
-            font.setPointSize(10)
-            item.setFont(font)
-            model.appendRow(item)
+                item_test.setBackground(QtGui.QColor(200, 230, 200, 255))
+            item_notes = QtGui.QStandardItem(event.notes)
+
+            openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
+            item_path.setIcon(openIcon)
+            # if ref: set different color e.g.
+            # if event_ref:
+            #     item.setBackground(QtGui.QColor(200, 210, 230, 255))
+            # if event_test:
+            #     item.setBackground(QtGui.QColor(200, 230, 200, 255))
+            # item.setForeground(QtGui.QColor('black'))
+            # font = item.font()
+            # font.setPointSize(10)
+            # item.setFont(font)
+            # item2.setForeground(QtGui.QColor('black'))
+            # item2.setFont(font)
+            itemlist = [item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
+            model.appendRow(itemlist)
         self.eventBox.setCurrentIndex(index)
 
     def filename_from_action(self, action):
@@ -1307,7 +1346,7 @@ class MainWindow(QMainWindow):
             if enabled and not checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
             elif enabled and checkable:
-                item_ref.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)                
+                item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)                
             else:
                 item.setFlags(QtCore.Qt.ItemIsSelectable)
 
@@ -1319,50 +1358,64 @@ class MainWindow(QMainWindow):
         def cell_changed(row=None, column=None):
             table = self.project._table
             event = self.project.getEventFromPath(table[row][0].text())
-            if column == 1 or column == 2:
+            if column == 3 or column == 4:
                 #toggle checked states (exclusive)
-                item_ref = table[row][1]
-                item_test = table[row][2]
-                if column == 1 and item_ref.checkState():
+                item_ref = table[row][3]
+                item_test = table[row][4]
+                if column == 3 and item_ref.checkState():
                     item_test.setCheckState(QtCore.Qt.Unchecked)
                     event.setRefEvent(True)
-                elif column == 1 and not item_ref.checkState():
+                elif column == 3 and not item_ref.checkState():
                     event.setRefEvent(False)                    
-                elif column == 2 and item_test.checkState():
+                elif column == 4 and item_test.checkState():
                     item_ref.setCheckState(QtCore.Qt.Unchecked)
                     event.setTestEvent(True)
-                elif column == 2 and not item_test.checkState():
+                elif column == 4 and not item_test.checkState():
                     event.setTestEvent(False)
                 self.fill_eventbox()                    
-            elif column == 3:
+            elif column == 5:
                 #update event notes
-                notes = table[row][3].text()
+                notes = table[row][5].text()
                 event.addNotes(notes)
+                self.fill_eventbox()
 
         if hasattr(self, 'qtl'):
             self.events_layout.removeWidget(self.qtl)
         self.qtl = QtGui.QTableWidget()
-        self.qtl.setColumnCount(4)
+        self.qtl.setColumnCount(6)
         self.qtl.setRowCount(len(eventlist))
-        self.qtl.setHorizontalHeaderLabels(['Event', 'Reference', 'Test Set', 'Notes'])
+        self.qtl.setHorizontalHeaderLabels(['Event', '[N] MP',
+                                            '[N] AP', 'Reference',
+                                            'Test Set', 'Notes'])
 
         self.project._table = []
         for index, event in enumerate(eventlist):
+            event_npicks = 0
+            event_nautopicks = 0
+            if event.picks:
+                event_npicks = len(event.picks)
+            if event.autopicks:
+                event_nautopicks = len(event.autopicks)
             item_path = QtGui.QTableWidgetItem()
+            item_nmp = QtGui.QTableWidgetItem(str(event_npicks))
+            item_nmp.setIcon(self.manupicksicon_small)
+            item_nap = QtGui.QTableWidgetItem(str(event_nautopicks))
+            item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
-            
-            item_ref.setBackground(QtGui.QColor('cyan'))
-            item_test.setBackground(QtGui.QColor('yellow'))
+
+            item_ref.setBackground(QtGui.QColor(200, 210, 230, 255))
+            item_test.setBackground(QtGui.QColor(200, 230, 200, 255))
             item_path.setText(event.path)
             item_notes.setText(event.notes)            
+            set_enabled(item_path, True, False)
+            set_enabled(item_nmp, True, False)
+            set_enabled(item_nap, True, False)
             if event.picks:
-                set_enabled(item_path, True, False)
                 set_enabled(item_ref, True, True)
                 set_enabled(item_test, True, True)
             else:
-                set_enabled(item_path, False, False)
                 set_enabled(item_ref, False, True)
                 set_enabled(item_test, False, True)
 
@@ -1375,7 +1428,7 @@ class MainWindow(QMainWindow):
             else:
                 item_test.setCheckState(QtCore.Qt.Unchecked)
                 
-            column=[item_path, item_ref, item_test, item_notes]
+            column=[item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(column)
 
         for r_index, row in enumerate(self.project._table):

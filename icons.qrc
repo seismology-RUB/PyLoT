@@ -4,6 +4,8 @@
         <file>icons/pylot.png</file>
         <file>icons/manupicsicon.png</file>
         <file>icons/autopicsicon.png</file>
+        <file>icons/manupicksicon_small.png</file>
+        <file>icons/autopicksicon_small.png</file>
         <file>icons/autopick_button.png</file>
         <file>icons/locactionicon.png</file>
         <file>icons/compare_button.png</file>
