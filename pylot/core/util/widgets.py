@@ -446,6 +446,7 @@ class WaveformWidget(FigureCanvas):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if not scaleddata:
+                trace.detrend('constant')
                 trace.normalize(np.max(np.abs(trace.data)) * 2)
             self.getAxes().plot(time_ax, trace.data + n, 'k')
             if noiselevel is not None:
