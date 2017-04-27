@@ -294,7 +294,6 @@ class Data(object):
             :raise OverwriteError: raises an OverwriteError if the picks list is
              not empty. The GUI will then ask for a decision.
             """
-
             #firstonset = find_firstonset(picks)
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
