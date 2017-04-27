@@ -15,7 +15,7 @@ Some icons are out of a free of charge icon set, which can be found here:
 https://www.iconfinder.com/iconsets/flavour
 
 :authors:
-    Sebastian Wehling-Benatelli / Ludger Küperkoch
+    Sebastian Wehling-Benatelli / Ludger Küperkoch / Marcel Paffrath
 :copyright:
     The PyLoT Development Team (https://ariadne.geophysik.rub.de/trac/PyLoT)
 :license:
@@ -215,13 +215,9 @@ class MainWindow(QMainWindow):
         autopicksicon = QIcon()
         autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
         self.autopicksicon_small = QIcon()
-        self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
         self.manupicksicon_small = QIcon()
-        self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicsicon.png'))            
-        # self.autopicksicon_small = QIcon()
-        # self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
-        # self.manupicksicon_small = QIcon()
-        # self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicksicon_small.png'))            
+        self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicksicon_small.png'))            
         loadpiloticon = QIcon()
         loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
