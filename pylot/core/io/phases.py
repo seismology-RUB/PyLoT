@@ -835,8 +835,9 @@ def merge_picks(event, picks):
         err = pick.time_errors
         phase = pick.phase_hint
         station = pick.waveform_id.station_code
+        method = pick.method_id
         for p in event.picks:
             if p.waveform_id.station_code == station and p.phase_hint == phase:
-                p.time, p.time_errors = time, err
-        del time, err, phase, station
+                p.time, p.time_errors, p.method_id = time, err, method
+        del time, err, phase, station, method
     return event
