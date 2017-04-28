@@ -256,6 +256,7 @@ class MainWindow(QMainWindow):
                                                    QKeySequence.Save,
                                                    saveProjectIcon,
                                                    "Save project file")
+        self.saveProjectAction.setEnabled(False)
         # newEventAction = self.createAction(self, "&New event ...",
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
@@ -939,6 +940,7 @@ class MainWindow(QMainWindow):
 
     def finishWaveformDataPlot(self):
         self.connectWFplotEvents()
+        self.saveProjectAction.setEnabled(True)
         self.auto_pick.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
