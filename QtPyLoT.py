@@ -963,6 +963,8 @@ class MainWindow(QMainWindow):
     def clearWaveformDataPlot(self):
         self.disconnectWFplotEvents()
         self.dataPlot.getAxes().cla()
+        self.loadlocationaction.setEnabled(False)
+        self.saveProjectAction.setEnabled(False)
         self.auto_pick.setEnabled(False)
         self.z_action.setEnabled(False)
         self.e_action.setEnabled(False)
