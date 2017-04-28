@@ -280,11 +280,12 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(False)
         self.openautopicksaction.setData(None)
 
-        loadlocationaction = self.createAction(self, "Load &location ...",
+        self.loadlocationaction = self.createAction(self, "Load &location ...",
                                                self.load_loc, "Ctrl+L",
                                                locactionicon,
                                                "Load location information on "
                                                "the displayed event.")
+        self.loadlocationaction.setEnabled(False)
         self.loadpilotevent = self.createAction(self, "Load PILOT &event ...",
                                                 self.load_pilotevent, "Ctrl+E",
                                                 loadpiloticon,
@@ -368,7 +369,7 @@ class MainWindow(QMainWindow):
         fileToolActions = (self.newProjectAction, self.addEventDataAction,
                            self.openProjectAction, self.saveProjectAction,
                            self.openmanualpicksaction,
-                           self.openautopicksaction, loadlocationaction,
+                           self.openautopicksaction, self.loadlocationaction,
                            self.loadpilotevent, self.saveEventAction)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
@@ -940,6 +941,7 @@ class MainWindow(QMainWindow):
 
     def finishWaveformDataPlot(self):
         self.connectWFplotEvents()
+        self.loadlocationaction.setEnabled(True)
         self.saveProjectAction.setEnabled(True)
         self.auto_pick.setEnabled(True)
         self.z_action.setEnabled(True)
