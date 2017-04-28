@@ -218,6 +218,8 @@ class MainWindow(QMainWindow):
         self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
         self.manupicksicon_small = QIcon()
         self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicksicon_small.png'))            
+        saveProjectIcon = QIcon()
+        saveProjectIcon.addPixmap(QPixmap(':/icons/Library-icon.png'))
         loadpiloticon = QIcon()
         loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
@@ -252,7 +254,7 @@ class MainWindow(QMainWindow):
         self.saveProjectAction = self.createAction(self, "Save project ...",
                                                    self.saveProject,
                                                    QKeySequence.Save,
-                                                   saveIcon,
+                                                   saveProjectIcon,
                                                    "Save project file")
         # newEventAction = self.createAction(self, "&New event ...",
         #                                    self.createNewEvent,
