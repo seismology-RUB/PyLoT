@@ -194,6 +194,7 @@ def picksdict_from_picks(evt):
     for pick in evt.picks:
         phase = {}
         station = pick.waveform_id.station_code
+        channel = pick.waveform_id.channel_code
         try:
             onsets = picks[station]
         except KeyError as e:
@@ -213,6 +214,7 @@ def picksdict_from_picks(evt):
         phase['epp'] = epp
         phase['lpp'] = lpp
         phase['spe'] = spe
+        phase['channel'] = channel
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
@@ -232,8 +234,11 @@ def picks_from_picksdict(picks, creation_info=None):
             if not isinstance(phase, dict):
                 continue
             onset = phase['mpp']
-            ccode = phase['channel']
-            ncode = phase['network']
+            try:
+            	ccode = phase['channel']
+            	ncode = phase['network']
+            except:
+                continue
             pick = ope.Pick()
             if creation_info:
                 pick.creation_info = creation_info
@@ -830,8 +835,9 @@ def merge_picks(event, picks):
         err = pick.time_errors
         phase = pick.phase_hint
         station = pick.waveform_id.station_code
+        method = pick.method_id
         for p in event.picks:
             if p.waveform_id.station_code == station and p.phase_hint == phase:
-                p.time, p.time_errors = time, err
-        del time, err, phase, station
+                p.time, p.time_errors, p.method_id = time, err, method
+        del time, err, phase, station, method
     return event
