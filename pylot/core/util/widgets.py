@@ -445,15 +445,16 @@ class WaveformWidget(FigureCanvas):
             print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
-            if not scaleddata:
-                trace.detrend('constant')
-                trace.normalize(np.max(np.abs(trace.data)) * 2)
-            self.getAxes().plot(time_ax, trace.data + n, 'k')
-            if noiselevel is not None:
-                for level in noiselevel:
-                    self.getAxes().plot([time_ax[0], time_ax[-1]],
-                                        [level, level], '--k')
-            self.setPlotDict(n, (station, channel))
+            if time_ax is not None:
+            	if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                self.getAxes().plot(time_ax, trace.data + n, 'k')
+                if noiselevel is not None:
+                   for level in noiselevel:
+                       self.getAxes().plot([time_ax[0], time_ax[-1]],
+                                           [level, level], '--k')
+                self.setPlotDict(n, (station, channel))
         xlabel = 'seconds since {0}'.format(wfstart)
         ylabel = ''
         self.updateWidget(xlabel, ylabel, title)
