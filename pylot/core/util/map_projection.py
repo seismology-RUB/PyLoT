@@ -271,8 +271,14 @@ class map_projection(QtGui.QWidget):
         if hasattr(self, 'cid'):
             self.canvas.mpl_disconnect(self.cid)
             del(self.cid)
-        self.sc.remove()        
-        self.legend.remove()
+        try:
+            self.sc.remove()
+        except Exception as e:
+            print('Warning: could not remove station scatter plot.\nReason: {}'.format(e))
+        try:
+            self.legend.remove()
+        except Exception as e:
+            print('Warning: could not remove legend. Reason: {}'.format(e))
         self.canvas.draw()
 
     def remove_contourf(self):
