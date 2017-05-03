@@ -1328,12 +1328,14 @@ class MainWindow(QMainWindow):
         self.array_layout.addWidget(self.metadata_widget)
     
     def init_array_map(self, index=1):
+        self.tabs.setCurrentIndex(1)
+        self.array_layout.removeWidget(self.metadata_widget)
+        self.array_layout.removeWidget(self.array_map)
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
                 return
         self.array_map = map_projection(self)
-        self.array_layout.removeWidget(self.metadata_widget)
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
         self.refresh_array_map()
@@ -1599,11 +1601,12 @@ class MainWindow(QMainWindow):
                 qmb = QMessageBox(icon=QMessageBox.Question, text='Save changes in current project?')
                 qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
                 qmb.setDefaultButton(QMessageBox.Yes)
-                if qmb.exec_() == 16384:
+                answer = qmb.exec_()
+                if answer == 16384:
                     self.saveProject()
-                elif qmb.exec_() == 65536:
+                elif answer == 65536:
                     pass
-                elif qmb.exec_() == 4194304:
+                elif answer == 4194304:
                     return
         dlg = QFileDialog()
         fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
