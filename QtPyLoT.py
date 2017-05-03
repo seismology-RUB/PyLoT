@@ -1402,7 +1402,7 @@ class MainWindow(QMainWindow):
         self.qtl.setColumnCount(6)
         self.qtl.setRowCount(len(eventlist))
         self.qtl.setHorizontalHeaderLabels(['Event', '[N] MP',
-                                            '[N] AP', 'Reference',
+                                            '[N] AP', 'Tuning Set',
                                             'Test Set', 'Notes'])
 
         self.project._table = []
