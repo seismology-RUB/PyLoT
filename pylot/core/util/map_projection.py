@@ -95,6 +95,7 @@ class map_projection(QtGui.QWidget):
 
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.main_box.addWidget(self.toolbar)
+        self.figure = fig
 
     def init_stations(self):
         def get_station_names_lat_lon(parser):
@@ -184,6 +185,7 @@ class map_projection(QtGui.QWidget):
         basemap.fillcontinents(color='grey', lake_color='aqua')
         basemap.drawcoastlines()
         self.basemap = basemap
+        self.figure.tight_layout()
 
         
     def init_lat_lon_grid(self):

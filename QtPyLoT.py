@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
         wf_tab = QtGui.QWidget()
         array_tab = QtGui.QWidget()
         events_tab = QtGui.QWidget()
+        self.wf_scroll_area = QtGui.QScrollArea()
         self.wf_layout = QtGui.QVBoxLayout()
         self.array_layout = QtGui.QVBoxLayout()
         self.events_layout = QtGui.QVBoxLayout()
@@ -195,7 +196,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
         
-        self.wf_layout.addWidget(self.dataPlot)
+        self.wf_layout.addWidget(self.wf_scroll_area)
+        self.wf_scroll_area.setWidget(self.dataPlot)
+        self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
         self.init_event_table()
         self.tabs.setCurrentIndex(0)
@@ -987,11 +990,19 @@ class MainWindow(QMainWindow):
         alter_comp = COMPNAME_MAP[comp]
         wfst = self.get_data().getWFData().select(component=comp)
         wfst += self.get_data().getWFData().select(component=alter_comp)
-        self.getPlotWidget().plotWFData(wfdata=wfst, title=title, mapping=False)
-        plotDict = self.getPlotWidget().getPlotDict()
+        height_need = len(self.data.getWFData())*12
+        plotWidget = self.getPlotWidget()
+        if plotWidget.frameSize().height() < height_need:
+            plotWidget.setFixedHeight(height_need)
+        else:
+            plotWidget.setFixedHeight(plotWidget.frameSize().height())
+        plotWidget.figure.tight_layout()            
+        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False)
+        plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
         labels = [plotDict[n][0] for n in pos]
-        self.getPlotWidget().setYTickLabels(pos, labels)
+        plotWidget.setYTickLabels(pos, labels)
+        plotWidget.figure.tight_layout()
 
     def plotZ(self):
         self.setComponent('Z')
