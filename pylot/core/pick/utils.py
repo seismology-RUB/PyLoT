@@ -9,7 +9,6 @@
 """
 
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
@@ -411,7 +410,9 @@ def getnoisewin(t, t1, tnoise, tgap):
     inoise, = np.where((t <= max([t1 - tgap, 0])) \
                        & (t >= max([t1 - tnoise - tgap, 0])))
     if np.size(inoise) < 1:
-        print ("getnoisewin: Empty array inoise, check noise window!")
+        inoise, = np.where((t>=t[0]) & (t<=t1))
+        if np.size(inoise) < 1:
+            print ("getnoisewin: Empty array inoise, check noise window!")
 
     return inoise
 
@@ -605,7 +606,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
         wfitflag = 1
 
     # plot results
-    if iplot > 1:
+    if iplot > 0:
         plt.figure(iplot)
         f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
@@ -756,11 +757,12 @@ def checkPonsets(pickdic, dttolerance, iplot):
     [xjack, PHI_pseudo, PHI_sub] = jackknife(Ppicks, 'VAR', 1)
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
-    ij = np.where(PHI_pseudo <= 2 * xjack)
+    ij = np.where(PHI_pseudo <= 5 * xjack)
     # these picks did not pass jackknife test
-    badjk = np.where(PHI_pseudo > 2 * xjack)
+    badjk = np.where(PHI_pseudo > 5 * xjack)
     badjkstations = np.array(stations)[badjk]
     print ("checkPonsets: %d pick(s) did not pass jackknife test!" % len(badjkstations))
+    print(badjkstations)
 
     # calculate median from these picks
     pmedian = np.median(np.array(Ppicks)[ij])
@@ -795,19 +797,22 @@ def checkPonsets(pickdic, dttolerance, iplot):
 
     checkedonsets = pickdic
 
-    if iplot > 1:
-        p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'r+', markersize=14)
-        p2, = plt.plot(igood, np.array(Ppicks)[igood], 'g*', markersize=14)
+    if iplot > 0:
+        p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'ro', markersize=14)
+        if len(badstations) < 1 and len(badjkstations) < 1:
+            p2, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'go', markersize=14)
+        else:
+            p2, = plt.plot(igood, np.array(Ppicks)[igood], 'go', markersize=14)
         p3, = plt.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g',
                        linewidth=2)
         for i in range(0, len(Ppicks)):
-            plt.text(i, Ppicks[i] + 0.2, stations[i])
+            plt.text(i, Ppicks[i] + 0.01, '{0}'.format(stations[i]))
 
         plt.xlabel('Number of P Picks')
         plt.ylabel('Onset Time [s] from 1.1.1970')
         plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'],
                    loc='best')
-        plt.title('Check P Onsets')
+        plt.title('Jackknifing and Median Tests on P Onsets')
         plt.show()
         raw_input()
 
@@ -943,8 +948,18 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
     isignal = getsignalwin(tz, pick, checkwin)
 
     # calculate energy levels
-    zcodalevel = max(absz[isignal])
-    encodalevel = max(absen[isignal])
+    try:
+       zcodalevel = max(absz[isignal])
+    except:
+       ii = np.where(isignal <= len(absz))
+       isignal = isignal[ii]
+       zcodalevel = max(absz[isignal - 1])
+    try:
+       encodalevel = max(absen[isignal])
+    except:
+       ii = np.where(isignal <= len(absen))
+       isignal = isignal[ii]
+       encodalevel = max(absen[isignal - 1])
 
     # calculate threshold
     minsiglevel = encodalevel * zfac
