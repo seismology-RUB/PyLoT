@@ -980,7 +980,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
         ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
         ax.legend()
 
-    return returnflag
+    return returnflag, fig
 
 
 if __name__ == '__main__':

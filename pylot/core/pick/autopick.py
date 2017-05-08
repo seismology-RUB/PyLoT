@@ -236,7 +236,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
         # get prelimenary onset time from AIC-HOS-CF using subclass AICPicker
         # of class AutoPicking
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP)
-        fig_dict['aicFig'] = aicpick.fig
+        key = 'aicFig'
+        fig_dict[key] = aicpick.fig
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
@@ -250,9 +251,10 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                       'Decreasing minsiglengh from {0} to ' \
                       '{1}'.format(minsiglength, minsiglength / 2)
                 if verbose: print(msg)
-                Pflag, fig_dict['slength'] = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                                               minsiglength / 2,
-                                                               nfacsl, minpercent, iplot)
+                key = 'slength'
+                Pflag, fig_dict[key] = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                                         minsiglength / 2,
+                                                         nfacsl, minpercent, iplot)
             else:
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
@@ -267,9 +269,10 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 zne += trH1_filt
                 zne += trH2_filt
-                Pflag, fig_dict['slength'] = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                                               minsiglength,
-                                                               nfacsl, minpercent, iplot)
+                key = 'slenght'
+                Pflag, fig_dict[key] = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                                         minsiglength,
+                                                         nfacsl, minpercent, iplot)
 
             if Pflag == 1:
                 # check for spuriously picked S onset
@@ -279,8 +282,10 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                           'Skipping control function checkZ4S.'
                     if verbose: print(msg)
                 else:
-                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
-                                     tsnrz[3], iplot)
+                    if iplot>1:
+                        key = 'checkZ4S'
+                    Pflag, fig_dict[key] = checkZ4S(zne, aicpick.getpick(), zfac,
+                                                    tsnrz[3], iplot)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
                         Pweight = 9
@@ -329,14 +334,16 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                 algoP=algoP)
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
                                   aicpick.getpick())
-            fig_dict['refPpick'] = refPpick.fig
+            key = 'refPpick'
+            fig_dict[key] = refPpick.fig
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
                 # quality assessment
                 # get earliest/latest possible pick and symmetrized uncertainty
                 if iplot:
-                    epickP, lpickP, Perror, fig_dict['el_Ppick'] = earllatepicker(z_copy, nfacP, tsnrz,
+                    key = 'el_Ppick'
+                    epickP, lpickP, Perror, fig_dict[key] = earllatepicker(z_copy, nfacP, tsnrz,
                                                                                    mpickP, iplot)
                 else:
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
@@ -362,7 +369,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                 # certain quality required
                 if Pweight <= minfmweight and SNRP >= minFMSNR:
                     if iplot:
-                        FM, fig_dict['fm_picker'] = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+                        key = 'fm_picker'
+                        FM, fig_dict[key] = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
                     else:
                         FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)                        
                 else:
@@ -465,6 +473,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
         # of class AutoPicking
         aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, iplot, None,
                                aictsmoothS)
+        key = 'aicARHfig'
+        fig_dict[key] = aicarhpick.fig
         ###############################################################
         # go on with processing if AIC onset passes quality control
         if (aicarhpick.getSlope() >= minAICSslope and
@@ -520,7 +530,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
             # get refined onset time from CF2 using class Picker
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
                                   tsmoothS, aicarhpick.getpick())
-            fig_dict['refSpick'] = refSpick.fig
+            key = 'refSpick'
+            fig_dict[key] = refSpick.fig
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:
@@ -528,7 +539,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                 # get earliest/latest possible pick and symmetrized uncertainty
                 h_copy[0].data = trH1_filt.data
                 if iplot:
-                    epickS1, lpickS1, Serror1, fig_dict['el_S1pick'] = earllatepicker(h_copy, nfacS,
+                    key = 'el_S1pick'
+                    epickS1, lpickS1, Serror1, fig_dict[key] = earllatepicker(h_copy, nfacS,
                                                                                       tsnrh,
                                                                                       mpickS, iplot)
                 else:
@@ -538,7 +550,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                     
                 h_copy[0].data = trH2_filt.data
                 if iplot:
-                    epickS2, lpickS2, Serror2, fig_dict['el_S2pick'] = earllatepicker(h_copy, nfacS,
+                    key = 'el_S2pick'
+                    epickS2, lpickS2, Serror2, fig_dict[key] = earllatepicker(h_copy, nfacS,
                                                                                       tsnrh,
                                                                                       mpickS, iplot)
                 else:
@@ -779,7 +792,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
             ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)
             ax3.set_ylabel('Normalized Counts')
             ax3.set_title(trH2_filt.stats.channel)
-            fig_dict['mainFig'] = fig
+            key = 'mainFig'
+            fig_dict[key] = fig
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
