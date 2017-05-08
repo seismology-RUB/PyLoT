@@ -173,21 +173,14 @@ class AICPicker(AutoPicker):
                     aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
                 else:
                     aicsmooth[i] = np.mean(aic[1: i])
-        # remove offset
+        # remove offset in AIC function
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
-        # get maximum of 1st derivative of AIC-CF (more stable!) as starting point
-        diffcf = np.diff(aicsmooth)
-        # find NaN's
-        nn = np.isnan(diffcf)
-        if len(nn) > 1:
-            diffcf[nn] = 0
-        # taper CF to get rid off side maxima
-        tap = np.hanning(len(diffcf))
-        diffcf = tap * diffcf * max(abs(aicsmooth))
-        icfmax = np.argmax(diffcf)
+        # get maximum of HOS/AR-CF as startimg point for searching
+        # minimum in AIC function 
+        icfmax = np.argmax(self.Data[0].data)
 
-        # find minimum in AIC-CF front of maximum
+        # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))
         for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
             if aicsmooth[i - 1] >= aicsmooth[i]:
@@ -196,6 +189,14 @@ class AICPicker(AutoPicker):
         # if no minimum could be found:
         # search in 1st derivative of AIC-CF
         if self.Pick is None:
+            diffcf = np.diff(aicsmooth)
+            # find NaN's
+            nn = np.isnan(diffcf)
+            if len(nn) > 1:
+                diffcf[nn] = 0
+            # taper CF to get rid off side maxima
+            tap = np.hanning(len(diffcf))
+            diffcf = tap * diffcf * max(abs(aicsmooth))
             for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
                 if diffcf[i - 1] >= diffcf[i]:
                     self.Pick = self.Tcf[i]
