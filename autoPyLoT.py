@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(inputfile, fnames=None, savepath=None):
+def autoPyLoT(inputfile, fnames=None, savepath=None, iplot=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -152,7 +152,7 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
             print(data)
             ##########################################################
             # !automated picking starts here!
-            picks = autopickevent(wfdat, parameter)
+            picks, mainFig = autopickevent(wfdat, parameter, iplot=iplot)
             ##########################################################
             # locating
             if locflag == 1:
@@ -192,14 +192,14 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
                                                      parameter.get('rho'), True, \
-                                                     parameter.get('iplot'))
+                                                     iplot)
                         # update pick with moment property values (w0, fc, Mo)
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
                         local_mag = RichterMagnitude(corr_dat, evt,
                                                      parameter.get('sstop'), True,\
-                                                     parameter.get('iplot'))
+                                                     iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -219,7 +219,7 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
                                 print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
                                 break
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
-                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                            picks, _ = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                             # write phases to NLLoc-phase file
                             nll.export(picks, phasefile, parameter)
                             # remove actual NLLoc-location file to keep only the last
@@ -244,14 +244,14 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
                                                      parameter.get('rho'), True, \
-                                                     parameter.get('iplot'))
+                                                     iplot)
                         # update pick with moment property values (w0, fc, Mo)
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
                         local_mag = RichterMagnitude(corr_dat, evt,
                                                      parameter.get('sstop'), True, \
-                                                     parameter.get('iplot'))
+                                                     iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -303,6 +303,7 @@ def autoPyLoT(inputfile, fnames=None, savepath=None):
                The Python picking and Location Tool\n
                ************************************'''.format(version=_getVersionString())
     print(endsp)
+    return picks, mainFig
 
 
 if __name__ == "__main__":
@@ -318,6 +319,8 @@ if __name__ == "__main__":
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')
+    # parser.add_argument('-p', '-P', '--plot', action='store',
+    #                     help='show interactive plots')
     parser.add_argument('-s', '-S', '--spath', type=str,
                         action='store',
                         help='''optional, save path for autoPyLoT output''')
@@ -327,4 +330,4 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
 
-    autoPyLoT(str(cla.inputfile), str(cla.fnames), str(cla.spath))
+    picks, mainFig = autoPyLoT(str(cla.inputfile), str(cla.fnames), str(cla.spath))

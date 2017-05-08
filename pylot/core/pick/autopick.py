@@ -21,16 +21,16 @@ from pylot.core.util.utils import getPatternLine, gen_Pool
 from pylot.core.io.data import Data
 
 
-def autopickevent(data, param):
+def autopickevent(data, param, iplot=0):
     stations = []
     all_onsets = {}
+    fig_dict = {}
     input_tuples = []
 
     # get some parameters for quality control from
     # parameter input file (usually autoPyLoT.in).
     wdttolerance = param.get('wdttolerance')
     mdttolerance = param.get('mdttolerance')
-    iplot = param.get('iplot')
     apverbose = param.get('apverbose')
     for n in range(len(data)):
         station = data[n].stats.station
@@ -41,18 +41,27 @@ def autopickevent(data, param):
 
     for station in stations:
         topick = data.select(station=station)
-        #all_onsets[station] = autopickstation(topick, param, verbose=apverbose)
-        input_tuples.append((topick, param, apverbose))
+
+        if not iplot:
+            input_tuples.append((topick, param, apverbose))
+        if iplot>0:
+            all_onsets[station], fig_dict[station] = autopickstation(topick, param, verbose=apverbose, iplot=iplot)
+
+    if iplot>0:
+        print('iPlot Flag active: NO MULTIPROCESSING possible.')
+        return all_onsets, fig_dict # changing structure of autopicking and figure generation MP MP
         
     pool = gen_Pool()
     result = pool.map(call_autopickstation, input_tuples)
     pool.close()
 
-    for pick in result:
+    for pick, fig_dict in result:
         station = pick['station']
         pick.pop('station')
         all_onsets[station] = pick
-        
+
+    return all_onsets, fig_dict # changing structure of autopicking and figure generation MP MP
+
     # quality control
     # median check and jackknife on P-onset times
     jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
@@ -62,10 +71,11 @@ def autopickevent(data, param):
 
 def call_autopickstation(input_tuple):
     wfstream, pickparam, verbose = input_tuple
-    return autopickstation(wfstream, pickparam, verbose)
+    #multiprocessing not possible with interactive plotting
+    return autopickstation(wfstream, pickparam, verbose, iplot=0)
 
 
-def autopickstation(wfstream, pickparam, verbose=False):
+def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
     """
     :param wfstream: `~obspy.core.stream.Stream`  containing waveform
     :type wfstream: obspy.core.stream.Stream
@@ -82,8 +92,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
     # read your autoPyLoT.in for details!
 
     # special parameters for P picking
+    iplot = iplot
+    
     algoP = pickparam.get('algoP')
-    iplot = pickparam.get('iplot')
     pstart = pickparam.get('pstart')
     pstop = pickparam.get('pstop')
     thosmw = pickparam.get('tlta')
@@ -161,6 +172,8 @@ def autopickstation(wfstream, pickparam, verbose=False):
     Ao = None  # Wood-Anderson peak-to-peak amplitude
     picker = 'auto'  # type of picks
 
+    fig_dict = {}
+
     # split components
     zdat = wfstream.select(component="Z")
     if len(zdat) == 0:  # check for other components
@@ -223,6 +236,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
         # get prelimenary onset time from AIC-HOS-CF using subclass AICPicker
         # of class AutoPicking
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP)
+        fig_dict['aicFig'] = aicpick.fig
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
@@ -236,9 +250,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
                       'Decreasing minsiglengh from {0} to ' \
                       '{1}'.format(minsiglength, minsiglength / 2)
                 if verbose: print(msg)
-                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength / 2,
-                                          nfacsl, minpercent, iplot)
+                Pflag, fig_dict['slength'] = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                                               minsiglength / 2,
+                                                               nfacsl, minpercent, iplot)
             else:
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
@@ -253,9 +267,9 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 zne += trH1_filt
                 zne += trH2_filt
-                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength,
-                                          nfacsl, minpercent, iplot)
+                Pflag, fig_dict['slength'] = checksignallength(zne, aicpick.getpick(), tsnrz,
+                                                               minsiglength,
+                                                               nfacsl, minpercent, iplot)
 
             if Pflag == 1:
                 # check for spuriously picked S onset
@@ -315,13 +329,18 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 algoP=algoP)
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
                                   aicpick.getpick())
+            fig_dict['refPpick'] = refPpick.fig
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
                 # quality assessment
                 # get earliest/latest possible pick and symmetrized uncertainty
-                [epickP, lpickP, Perror] = earllatepicker(z_copy, nfacP, tsnrz,
-                                                          mpickP, iplot)
+                if iplot:
+                    epickP, lpickP, Perror, fig_dict['el_Ppick'] = earllatepicker(z_copy, nfacP, tsnrz,
+                                                                                   mpickP, iplot)
+                else:
+                    epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
+                                                              mpickP, iplot)
 
                 # get SNR
                 [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
@@ -342,7 +361,10 @@ def autopickstation(wfstream, pickparam, verbose=False):
                 # get first motion of P onset
                 # certain quality required
                 if Pweight <= minfmweight and SNRP >= minFMSNR:
-                    FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+                    if iplot:
+                        FM, fig_dict['fm_picker'] = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+                    else:
+                        FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)                        
                 else:
                     FM = 'N'
 
@@ -498,20 +520,31 @@ def autopickstation(wfstream, pickparam, verbose=False):
             # get refined onset time from CF2 using class Picker
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
                                   tsmoothS, aicarhpick.getpick())
+            fig_dict['refSpick'] = refSpick.fig
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:
                 # quality assessment
                 # get earliest/latest possible pick and symmetrized uncertainty
                 h_copy[0].data = trH1_filt.data
-                [epickS1, lpickS1, Serror1] = earllatepicker(h_copy, nfacS,
-                                                             tsnrh,
-                                                             mpickS, iplot)
-
+                if iplot:
+                    epickS1, lpickS1, Serror1, fig_dict['el_S1pick'] = earllatepicker(h_copy, nfacS,
+                                                                                      tsnrh,
+                                                                                      mpickS, iplot)
+                else:
+                    epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
+                                                               tsnrh,
+                                                               mpickS, iplot)
+                    
                 h_copy[0].data = trH2_filt.data
-                [epickS2, lpickS2, Serror2] = earllatepicker(h_copy, nfacS,
-                                                             tsnrh,
-                                                             mpickS, iplot)
+                if iplot:
+                    epickS2, lpickS2, Serror2, fig_dict['el_S2pick'] = earllatepicker(h_copy, nfacS,
+                                                                                      tsnrh,
+                                                                                      mpickS, iplot)
+                else:
+                    epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
+                                                               tsnrh,
+                                                               mpickS, iplot)
                 if epickS1 is not None and epickS2 is not None:
                     if algoS == 'ARH':
                         # get earliest pick of both earliest possible picks
@@ -603,62 +636,58 @@ def autopickstation(wfstream, pickparam, verbose=False):
     ##############################################################
     if iplot > 0:
         # plot vertical trace
-        plt.figure()
-        plt.subplot(3, 1, 1)
+        fig = plt.figure()
+        ax1 = fig.add_subplot(311)
         tdata = np.arange(0, zdat[0].stats.npts / tr_filt.stats.sampling_rate,
                           tr_filt.stats.delta)
         # check equal length of arrays, sometimes they are different!?
         wfldiff = len(tr_filt.data) - len(tdata)
         if wfldiff < 0:
             tdata = tdata[0:len(tdata) - abs(wfldiff)]
-        p1, = plt.plot(tdata, tr_filt.data / max(tr_filt.data), 'k')
+        ax1.plot(tdata, tr_filt.data / max(tr_filt.data), 'k', label='Data')
         if Pweight < 4:
-            p2, = plt.plot(cf1.getTimeArray(), cf1.getCF() / max(cf1.getCF()),
-                           'b')
+            ax1.plot(cf1.getTimeArray(), cf1.getCF() / max(cf1.getCF()),
+                     'b', label='CF1')
             if aicPflag == 1:
-                p3, = plt.plot(cf2.getTimeArray(),
-                               cf2.getCF() / max(cf2.getCF()), 'm')
-                p4, = plt.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1],
-                               'r')
-                plt.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5],
+                ax1.plot(cf2.getTimeArray(),
+                         cf2.getCF() / max(cf2.getCF()), 'm', label='CF2')
+                ax1.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1],
+                         'r', label='Initial P Onset')
+                ax1.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5],
                          [1, 1], 'r')
-                plt.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5],
+                ax1.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5],
                          [-1, -1], 'r')
-                p5, = plt.plot([refPpick.getpick(), refPpick.getpick()],
-                               [-1.3, 1.3], 'r', linewidth=2)
-                plt.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5],
+                ax1.plot([refPpick.getpick(), refPpick.getpick()],
+                             [-1.3, 1.3], 'r', linewidth=2, label='Final P Pick')
+                ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5],
                          [1.3, 1.3], 'r', linewidth=2)
-                plt.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5],
+                ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5],
                          [-1.3, -1.3], 'r', linewidth=2)
-                plt.plot([lpickP, lpickP], [-1.1, 1.1], 'r--')
-                plt.plot([epickP, epickP], [-1.1, 1.1], 'r--')
-                plt.legend([p1, p2, p3, p4, p5],
-                           ['Data', 'CF1', 'CF2', 'Initial P Onset',
-                            'Final P Pick'])
-                plt.title('%s, %s, P Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f '
-                          'Polarity: %s' % (tr_filt.stats.station,
-                                            tr_filt.stats.channel,
-                                            Pweight,
-                                            SNRP,
-                                            SNRPdB,
-                                            FM))
+                ax1.plot([lpickP, lpickP], [-1.1, 1.1], 'r--', label='lpp')
+                ax1.plot([epickP, epickP], [-1.1, 1.1], 'r--', label='epp')
+                ax1.set_title('%s, %s, P Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f '
+                             'Polarity: %s' % (tr_filt.stats.station,
+                                               tr_filt.stats.channel,
+                                               Pweight,
+                                               SNRP,
+                                               SNRPdB,
+                                               FM))
             else:
-                plt.legend([p1, p2], ['Data', 'CF1'])
-                plt.title('%s, P Weight=%d, SNR=None, '
-                          'SNRdB=None' % (tr_filt.stats.channel, Pweight))
+                ax1.set_title('%s, P Weight=%d, SNR=None, '
+                             'SNRdB=None' % (tr_filt.stats.channel, Pweight))
         else:
-            plt.title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
+            ax1.set_title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
                                                tr_filt.stats.channel,
                                                Pweight))
-
-        plt.yticks([])
-        plt.ylim([-1.5, 1.5])
-        plt.ylabel('Normalized Counts')
-        plt.suptitle(tr_filt.stats.starttime)
+        ax1.legend()
+        ax1.set_yticks([])
+        ax1.set_ylim([-1.5, 1.5])
+        ax1.set_ylabel('Normalized Counts')
+        fig.suptitle(tr_filt.stats.starttime)
 
         if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
             # plot horizontal traces
-            plt.subplot(3, 1, 2)
+            ax2 = fig.add_subplot(312)
             th1data = np.arange(0,
                                 trH1_filt.stats.npts /
                                 trH1_filt.stats.sampling_rate,
@@ -667,50 +696,47 @@ def autopickstation(wfstream, pickparam, verbose=False):
             wfldiff = len(trH1_filt.data) - len(th1data)
             if wfldiff < 0:
                 th1data = th1data[0:len(th1data) - abs(wfldiff)]
-            p21, = plt.plot(th1data, trH1_filt.data / max(trH1_filt.data), 'k')
+            ax2.plot(th1data, trH1_filt.data / max(trH1_filt.data), 'k', label='Data')
             if Pweight < 4:
-                p22, = plt.plot(arhcf1.getTimeArray(),
-                                arhcf1.getCF() / max(arhcf1.getCF()), 'b')
+                ax2.plot(arhcf1.getTimeArray(),
+                         arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
                 if aicSflag == 1:
-                    p23, = plt.plot(arhcf2.getTimeArray(),
-                                    arhcf2.getCF() / max(arhcf2.getCF()), 'm')
-                    p24, = plt.plot(
+                    ax2.plot(arhcf2.getTimeArray(),
+                                 arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
+                    ax2.plot(
                         [aicarhpick.getpick(), aicarhpick.getpick()],
-                        [-1, 1], 'g')
-                    plt.plot(
+                        [-1, 1], 'g', label='Initial S Onset')
+                    ax2.plot(
                         [aicarhpick.getpick() - 0.5,
                          aicarhpick.getpick() + 0.5],
                         [1, 1], 'g')
-                    plt.plot(
+                    ax2.plot(
                         [aicarhpick.getpick() - 0.5,
                          aicarhpick.getpick() + 0.5],
                         [-1, -1], 'g')
-                    p25, = plt.plot([refSpick.getpick(), refSpick.getpick()],
-                                    [-1.3, 1.3], 'g', linewidth=2)
-                    plt.plot(
+                    ax2.plot([refSpick.getpick(), refSpick.getpick()],
+                             [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
+                    ax2.plot(
                         [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
                         [1.3, 1.3], 'g', linewidth=2)
-                    plt.plot(
+                    ax2.plot(
                         [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
                         [-1.3, -1.3], 'g', linewidth=2)
-                    plt.plot([lpickS, lpickS], [-1.1, 1.1], 'g--')
-                    plt.plot([epickS, epickS], [-1.1, 1.1], 'g--')
-                    plt.legend([p21, p22, p23, p24, p25],
-                               ['Data', 'CF1', 'CF2', 'Initial S Onset',
-                                'Final S Pick'])
-                    plt.title('%s, S Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f' % (
+                    ax2.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                    ax2.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
+                    ax2.set_title('%s, S Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f' % (
                         trH1_filt.stats.channel,
                         Sweight, SNRS, SNRSdB))
                 else:
-                    plt.legend([p21, p22], ['Data', 'CF1'])
-                    plt.title('%s, S Weight=%d, SNR=None, SNRdB=None' % (
+                    ax2.set_title('%s, S Weight=%d, SNR=None, SNRdB=None' % (
                         trH1_filt.stats.channel, Sweight))
-            plt.yticks([])
-            plt.ylim([-1.5, 1.5])
-            plt.ylabel('Normalized Counts')
-            plt.suptitle(trH1_filt.stats.starttime)
+            ax2.legend()
+            ax2.set_yticks([])
+            ax2.set_ylim([-1.5, 1.5])
+            ax2.set_ylabel('Normalized Counts')
+            fig.suptitle(trH1_filt.stats.starttime)
 
-            plt.subplot(3, 1, 3)
+            ax3 = fig.add_subplot(313)
             th2data = np.arange(0,
                                 trH2_filt.stats.npts /
                                 trH2_filt.stats.sampling_rate,
@@ -719,47 +745,41 @@ def autopickstation(wfstream, pickparam, verbose=False):
             wfldiff = len(trH2_filt.data) - len(th2data)
             if wfldiff < 0:
                 th2data = th2data[0:len(th2data) - abs(wfldiff)]
-            plt.plot(th2data, trH2_filt.data / max(trH2_filt.data), 'k')
+            ax3.plot(th2data, trH2_filt.data / max(trH2_filt.data), 'k', label='Data')
             if Pweight < 4:
-                p22, = plt.plot(arhcf1.getTimeArray(),
-                                arhcf1.getCF() / max(arhcf1.getCF()), 'b')
+                p22, = ax3.plot(arhcf1.getTimeArray(),
+                                arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
                 if aicSflag == 1:
-                    p23, = plt.plot(arhcf2.getTimeArray(),
-                                    arhcf2.getCF() / max(arhcf2.getCF()), 'm')
-                    p24, = plt.plot(
+                    ax3.plot(arhcf2.getTimeArray(),
+                             arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
+                    ax3.plot(
                         [aicarhpick.getpick(), aicarhpick.getpick()],
-                        [-1, 1], 'g')
-                    plt.plot(
+                        [-1, 1], 'g', label='Initial S Onset')
+                    ax3.plot(
                         [aicarhpick.getpick() - 0.5,
                          aicarhpick.getpick() + 0.5],
                         [1, 1], 'g')
-                    plt.plot(
+                    ax3.plot(
                         [aicarhpick.getpick() - 0.5,
                          aicarhpick.getpick() + 0.5],
                         [-1, -1], 'g')
-                    p25, = plt.plot([refSpick.getpick(), refSpick.getpick()],
-                                    [-1.3, 1.3], 'g', linewidth=2)
-                    plt.plot(
+                    ax3.plot([refSpick.getpick(), refSpick.getpick()],
+                             [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
+                    ax3.plot(
                         [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
                         [1.3, 1.3], 'g', linewidth=2)
-                    plt.plot(
+                    ax3.plot(
                         [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
                         [-1.3, -1.3], 'g', linewidth=2)
-                    plt.plot([lpickS, lpickS], [-1.1, 1.1], 'g--')
-                    plt.plot([epickS, epickS], [-1.1, 1.1], 'g--')
-                    plt.legend([p21, p22, p23, p24, p25],
-                               ['Data', 'CF1', 'CF2', 'Initial S Onset',
-                                'Final S Pick'])
-                else:
-                    plt.legend([p21, p22], ['Data', 'CF1'])
-            plt.yticks([])
-            plt.ylim([-1.5, 1.5])
-            plt.xlabel('Time [s] after %s' % tr_filt.stats.starttime)
-            plt.ylabel('Normalized Counts')
-            plt.title(trH2_filt.stats.channel)
-            plt.show()
-            raw_input()
-            plt.close()
+                    ax3.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                    ax3.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
+            ax3.legend()
+            ax3.set_yticks([])
+            ax3.set_ylim([-1.5, 1.5])
+            ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)
+            ax3.set_ylabel('Normalized Counts')
+            ax3.set_title(trH2_filt.stats.channel)
+            fig_dict['mainFig'] = fig
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
@@ -806,7 +826,7 @@ def autopickstation(wfstream, pickparam, verbose=False):
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
     picks = dict(P=ppick, S=spick, station=zdat[0].stats.station)
-    return picks
+    return picks, fig_dict
 
 
 def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
@@ -884,7 +904,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
         print("zfac: %f => %f" % (zfac_old, pickparameter.get('zfac')))
 
         # repick station
-        newpicks = autopickstation(wf2pick, pickparameter)
+        newpicks, fig = autopickstation(wf2pick, pickparameter)
 
         # replace old dictionary with new one
         picks[badpicks[i][0]] = newpicks
@@ -899,4 +919,4 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter):
         pickparameter.setParam(noisefactor=noisefactor_old)
         pickparameter.setParam(zfac=zfac_old)
 
-    return picks
+    return picks, fig

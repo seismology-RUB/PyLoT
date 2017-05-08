@@ -160,7 +160,7 @@ class AutoPickParameter(object):
         fid_out = open(fnout, 'w')
         lines = []
         for key, value in self.iteritems():
-            lines.append('{key}\t{value}'.format(key=key, value=value))
+            lines.append('{key}\t{value}\n'.format(key=key, value=value))
         fid_out.writelines(lines)
 
 

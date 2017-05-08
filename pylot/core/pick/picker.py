@@ -72,7 +72,7 @@ class AutoPicker(object):
         self.setaus(aus)
         self.setTsmooth(Tsmooth)
         self.setpick1(Pick1)
-        self.calcPick()
+        self.fig = self.calcPick()
 
     def __str__(self):
         return '''\n\t{name} object:\n
@@ -152,6 +152,7 @@ class AICPicker(AutoPicker):
         self.Pick = None
         self.slope = None
         self.SNR = None
+        fig = None
         # find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -225,18 +226,16 @@ class AICPicker(AutoPicker):
                 print('AICPicker: Maximum for slope determination right at the beginning of the window!')
                 print('Choose longer slope determination window!')
                 if self.iplot > 1:
-                    p = plt.figure(self.iplot)
+                    fig = plt.figure() #self.iplot) ### WHY? MP MP
+                    ax = fig.add_subplot(111)
                     x = self.Data[0].data
-                    p1, = plt.plot(self.Tcf, x / max(x), 'k')
-                    p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
-                    plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
-                    plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                    plt.yticks([])
-                    plt.title(self.Data[0].stats.station)
-                    plt.show()
-                    raw_input()
-                    plt.close(p)
-                return
+                    ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
+                    ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', legend='Smoothed AIC-CF')
+                    ax.legend()
+                    ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                    ax.set_yticks([])
+                    ax.set_title(self.Data[0].stats.station)
+                return fig
             islope = islope[0][0:imax]
             dataslope = self.Data[0].data[islope]
             # calculate slope as polynomal fit of order 1
@@ -253,41 +252,36 @@ class AICPicker(AutoPicker):
             self.slope = None
 
         if self.iplot > 1:
-            p = plt.figure(self.iplot)
+            fig = plt.figure()#self.iplot)
+            ax1 = fig.add_subplot(211)
             x = self.Data[0].data
-            p1, = plt.plot(self.Tcf, x / max(x), 'k')
-            p2, = plt.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r')
+            ax1.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
+            ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
-                p3, = plt.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2)
-                plt.legend([p1, p2, p3], ['(HOS-/AR-) Data', 'Smoothed AIC-CF', 'AIC-Pick'])
-            else:
-                plt.legend([p1, p2], ['(HOS-/AR-) Data', 'Smoothed AIC-CF'])
-            plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-            plt.yticks([])
-            plt.title(self.Data[0].stats.station)
-
+                ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
+            ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+            ax1.set_yticks([])
+            ax1.set_title(self.Data[0].stats.station)
+            ax1.legend()
+            
             if self.Pick is not None:
-                plt.figure(self.iplot + 1)
-                p11, = plt.plot(self.Tcf, x, 'k')
-                p12, = plt.plot(self.Tcf[inoise], self.Data[0].data[inoise])
-                p13, = plt.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r')
-                p14, = plt.plot(self.Tcf[islope], dataslope, 'g--')
-                p15, = plt.plot(self.Tcf[islope], datafit, 'g', linewidth=2)
-                plt.legend([p11, p12, p13, p14, p15],
-                           ['Data', 'Noise Window', 'Signal Window', 'Slope Window', 'Slope'],
-                           loc='best')
-                plt.title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
-                                                                             self.SNR, self.slope))
-                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                plt.ylabel('Counts')
-                plt.yticks([])
-
-            plt.show()
-            raw_input()
-            plt.close(p)
+                ax2 = fig.add_subplot(212)
+                ax2.plot(self.Tcf, x, 'k', label='Data')
+                ax2.plot(self.Tcf[inoise], self.Data[0].data[inoise], label='Noise Window')
+                ax2.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r', label='Signal Window')
+                ax2.plot(self.Tcf[islope], dataslope, 'g--', label='Slope Window')
+                ax2.plot(self.Tcf[islope], datafit, 'g', linewidth=2, label='Slope')
+                ax2.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
+                                                                                self.SNR, self.slope))
+                ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                ax2.set_ylabel('Counts')
+                ax2.set_yticks([])
+                ax2.legend()
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')
+            
+        return fig
 
 
 class PragPicker(AutoPicker):
@@ -296,7 +290,7 @@ class PragPicker(AutoPicker):
     '''
 
     def calcPick(self):
-
+        
         if self.getpick1() is not None:
             print('PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...')
 
@@ -380,18 +374,17 @@ class PragPicker(AutoPicker):
                 pickflag = 0
 
             if self.getiplot() > 1:
-                p = plt.figure(self.getiplot())
-                p1, = plt.plot(Tcfpick, cfipick, 'k')
-                p2, = plt.plot(Tcfpick, cfsmoothipick, 'r')
+                fig = plt.figure()#self.getiplot())
+                ax = fig.add_subplot(111)
+                ax.plot(Tcfpick, cfipick, 'k', label='CF')
+                ax.plot(Tcfpick, cfsmoothipick, 'r', label='Smoothed CF')
                 if pickflag > 0:
-                    p3, = plt.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2)
-                    plt.legend([p1, p2, p3], ['CF', 'Smoothed CF', 'Pick'])
-                plt.xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                plt.yticks([])
-                plt.title(self.Data[0].stats.station)
-                plt.show()
-                raw_input()
-                plt.close(p)
+                    ax.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2, label='Pick')
+                ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                ax.set_yticks([])
+                ax.set_title(self.Data[0].stats.station)
+                ax.legend()
+                return fig
 
         else:
             print('PragPicker: No initial onset time given! Check input!')

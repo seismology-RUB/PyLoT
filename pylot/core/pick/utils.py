@@ -105,35 +105,33 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        p = plt.figure(iplot)
-        p1, = plt.plot(t, x, 'k')
-        p2, = plt.plot(t[inoise], x[inoise])
-        p3, = plt.plot(t[isignal], x[isignal], 'r')
-        p4, = plt.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k')
-        p5, = plt.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
-                       markersize=14)
-        plt.legend([p1, p2, p3, p4, p5],
-                   ['Data', 'Noise Window', 'Signal Window', 'Noise Level',
-                    'Zero Crossings'],
-                   loc='best')
-        plt.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k')
-        plt.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2)
-        plt.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], '--k')
-        plt.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], '--k')
-        plt.plot([Pick1 + PickError, Pick1 + PickError],
+        fig = plt.figure()#iplot)
+        ax = fig.add_subplot(111)
+        ax.plot(t, x, 'k', label='Data')
+        ax.plot(t[inoise], x[inoise], label='Noise Window')
+        ax.plot(t[isignal], x[isignal], 'r', label='Signal Window')
+        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
+        ax.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
+                markersize=14, label='Zero Crossings')
+        ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k')
+        ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
+        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], '--k', label='lpp')
+        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], '--k', label='epp')
+        ax.plot([Pick1 + PickError, Pick1 + PickError],
+                 [max(x) / 2, -max(x) / 2], 'r--', label='spe')
+        ax.plot([Pick1 - PickError, Pick1 - PickError],
                  [max(x) / 2, -max(x) / 2], 'r--')
-        plt.plot([Pick1 - PickError, Pick1 - PickError],
-                 [max(x) / 2, -max(x) / 2], 'r--')
-        plt.xlabel('Time [s] since %s' % X[0].stats.starttime)
-        plt.yticks([])
-        plt.title(
+        ax.set_xlabel('Time [s] since %s' % X[0].stats.starttime)
+        ax.set_yticks([])
+        ax.set_title(
             'Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' %
             X[0].stats.station)
-        plt.show()
-        raw_input()
-        plt.close(p)
+        ax.legend()
 
-    return EPick, LPick, PickError
+    if iplot:
+        return EPick, LPick, PickError, fig
+    else:
+        return Epick, LPick, PickError
 
 
 def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
@@ -281,41 +279,37 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         print ("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        plt.figure(iplot)
-        plt.subplot(2, 1, 1)
-        plt.plot(t, xraw, 'k')
-        p1, = plt.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2)
+        fig = plt.figure()#iplot)
+        ax1 = fig.add_subplot(211)
+        ax1.plot(t, xraw, 'k')
+        ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
         if P1 is not None:
-            p2, = plt.plot(t[islope1], xraw[islope1])
-            p3, = plt.plot(zc1, np.zeros(len(zc1)), '*g', markersize=14)
-            p4, = plt.plot(t[islope1], datafit1, '--g', linewidth=2)
-            plt.legend([p1, p2, p3, p4],
-                       ['Pick', 'Slope Window', 'Zero Crossings', 'Slope'],
-                       loc='best')
-            plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
-            ax = plt.gca()
-        plt.yticks([])
-        plt.title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
+            ax1.plot(t[islope1], xraw[islope1], label='Slope Window')
+            ax1.plot(zc1, np.zeros(len(zc1)), '*g', markersize=14, label='Zero Crossings')
+            ax1.plot(t[islope1], datafit1, '--g', linewidth=2)
+            ax1.legend()
+            ax1.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
+        ax1.set_yticks([])
+        ax1.set_title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
             0].stats.station)
 
-        plt.subplot(2, 1, 2)
-        plt.title('First-Motion Determination, Filtered Data')
-        plt.plot(t, xfilt, 'k')
-        p1, = plt.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
+        ax2=fig.add_subplot(212)
+        ax2.set_title('First-Motion Determination, Filtered Data')
+        ax2.plot(t, xfilt, 'k')
+        ax2.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
                        linewidth=2)
         if P2 is not None:
-            p2, = plt.plot(t[islope2], xfilt[islope2])
-            p3, = plt.plot(zc2, np.zeros(len(zc2)), '*g', markersize=14)
-            p4, = plt.plot(t[islope2], datafit2, '--g', linewidth=2)
-            plt.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
-            ax = plt.gca()
-        plt.xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
-        plt.yticks([])
-        plt.show()
-        raw_input()
-        plt.close(iplot)
+            ax2.plot(t[islope2], xfilt[islope2])
+            ax2.plot(zc2, np.zeros(len(zc2)), '*g', markersize=14)
+            ax2.plot(t[islope2], datafit2, '--g', linewidth=2)
+            ax2.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
+        ax2.set_xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
+        ax2.set_yticks([])
 
-    return FM
+    if iplot:
+        return FM, fig
+    else:
+        return FM
 
 
 def crossings_nonzero_all(data):
@@ -606,7 +600,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     # plot results
     if iplot > 1:
-        plt.figure(iplot)
+        plt.figure()#iplot)
         f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
             f2, = plt.plot(Ppicks, wdfit, 'k')
@@ -621,9 +615,6 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
         plt.ylabel('S-P Times [s]')
         plt.xlabel('P Times [s]')
-        plt.show()
-        raw_input()
-        plt.close(iplot)
 
     return checkedonsets
 
@@ -700,25 +691,21 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         returnflag = 0
 
     if iplot == 2:
-        plt.figure(iplot)
-        p1, = plt.plot(t, rms, 'k')
-        p2, = plt.plot(t[inoise], rms[inoise], 'c')
-        p3, = plt.plot(t[isignal], rms[isignal], 'r')
-        p4, = plt.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
-                       [minsiglevel, minsiglevel], 'g', linewidth=2)
-        p5, = plt.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2)
-        plt.legend([p1, p2, p3, p4, p5], ['RMS Data', 'RMS Noise Window',
-                                          'RMS Signal Window', 'Minimum Signal Level',
-                                          'Onset'], loc='best')
-        plt.xlabel('Time [s] since %s' % X[0].stats.starttime)
-        plt.ylabel('Counts')
-        plt.title('Check for Signal Length, Station %s' % X[0].stats.station)
-        plt.yticks([])
-        plt.show()
-        raw_input()
-        plt.close(iplot)
+        fig = plt.figure()#iplot)
+        ax = fig.add_subplot(111)
+        ax.plot(t, rms, 'k', label='RMS Data')
+        ax.plot(t[inoise], rms[inoise], 'c', label='RMS Noise Window')
+        ax.plot(t[isignal], rms[isignal], 'r', label='RMS Signal Window')
+        ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
+                [minsiglevel, minsiglevel], 'g', linewidth=2, label='Minimum Signal Level')
+        ax.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2, label='Onset')
+        ax.legend()
+        ax.set_xlabel('Time [s] since %s' % X[0].stats.starttime)
+        ax.set_ylabel('Counts')
+        ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
+        ax.set_yticks([])
 
-    return returnflag
+    return returnflag, fig
 
 
 def checkPonsets(pickdic, dttolerance, iplot):
@@ -808,8 +795,6 @@ def checkPonsets(pickdic, dttolerance, iplot):
         plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'],
                    loc='best')
         plt.title('Check P Onsets')
-        plt.show()
-        raw_input()
 
     return checkedonsets
 
@@ -962,22 +947,23 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
                        edat[0].stats.delta)
         tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
                        ndat[0].stats.delta)
-        plt.plot(tz, z / max(z), 'k')
-        plt.plot(tz[isignal], z[isignal] / max(z), 'r')
-        plt.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
-        plt.plot(te[isignal], edat[0].data[isignal] / max(edat[0].data) + 1, 'r')
-        plt.plot(tn, ndat[0].data / max(ndat[0].data) + 2, 'k')
-        plt.plot(tn[isignal], ndat[0].data[isignal] / max(ndat[0].data) + 2, 'r')
-        plt.plot([tz[isignal[0]], tz[isignal[len(isignal) - 1]]],
-                 [minsiglevel / max(z), minsiglevel / max(z)], 'g',
-                 linewidth=2)
-        plt.xlabel('Time [s] since %s' % zdat[0].stats.starttime)
-        plt.ylabel('Normalized Counts')
-        plt.yticks([0, 1, 2], [zdat[0].stats.channel, edat[0].stats.channel,
-                               ndat[0].stats.channel])
-        plt.title('CheckZ4S, Station %s' % zdat[0].stats.station)
-        plt.show()
-        raw_input()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(tz, z / max(z), 'k')
+        ax.plot(tz[isignal], z[isignal] / max(z), 'r')
+        ax.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
+        ax.plot(te[isignal], edat[0].data[isignal] / max(edat[0].data) + 1, 'r')
+        ax.plot(tn, ndat[0].data / max(ndat[0].data) + 2, 'k')
+        ax.plot(tn[isignal], ndat[0].data[isignal] / max(ndat[0].data) + 2, 'r')
+        ax.plot([tz[isignal[0]], tz[isignal[len(isignal) - 1]]],
+                [minsiglevel / max(z), minsiglevel / max(z)], 'g',
+                linewidth=2, label='Minimum Signal Level')
+        ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
+        ax.set_ylabel('Normalized Counts')
+        ax.set_yticks([0, 1, 2], [zdat[0].stats.channel, edat[0].stats.channel,
+                                  ndat[0].stats.channel])
+        ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
+        ax.legend()
 
     return returnflag
 
