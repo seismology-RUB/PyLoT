@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+[]# -*- coding: utf-8 -*-
 """
 Created on Wed Mar 19 11:27:35 2014
 
@@ -21,6 +21,7 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
+from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
     QGridLayout, QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, \
@@ -1266,7 +1267,52 @@ class PickDlg(QDialog):
         self.apply()
         QDialog.accept(self)
 
+        
+class TuneAutopicker(QWidget):     
+    def __init__(self, fig_dict, station, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        if not station in fig_dict:
+            print('Station not found')
+            return
+        self.fd = fig_dict[station]
+        self.layout = QtGui.QHBoxLayout()
+        self.setLayout(self.layout)
+        self.init_figure_tabs()
 
+    def init_figure_tabs(self):
+        self.main_tabs = QtGui.QTabWidget()
+        self.p_tabs = QtGui.QTabWidget()
+        self.s_tabs = QtGui.QTabWidget()
+        self.layout.addWidget(self.main_tabs)
+        self.init_tab_names()
+        self.fill_tabs()
+        
+    def init_tab_names(self):
+        self.ptb_names = ['aicFig', 'slenght', 'checkZ4S', 'refPpick', 'el_Ppick', 'fm_picker']
+        self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
+
+    def fill_tabs(self):
+        main_fig = self.fd['mainFig']
+        self.main_tabs.addTab(main_fig.canvas, 'Overview')
+        self.main_tabs.addTab(self.p_tabs, 'P')
+        self.main_tabs.addTab(self.s_tabs, 'S')
+        self.fill_p_tabs()
+        self.fill_s_tabs()
+        main_fig.tight_layout()
+
+    def fill_p_tabs(self):
+        for name in self.ptb_names:
+            figure = self.fd[name]
+            self.p_tabs.addTab(figure.canvas, name)
+            figure.tight_layout()
+
+    def fill_s_tabs(self):
+        for name in self.stb_names:
+            figure = self.fd[name]
+            self.s_tabs.addTab(figure.canvas, name)
+            figure.tight_layout()
+            
+    
 class PropertiesDlg(QDialog):
     def __init__(self, parent=None, infile=None):
         super(PropertiesDlg, self).__init__(parent)
