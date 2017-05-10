@@ -962,7 +962,6 @@ class MainWindow(QMainWindow):
         if event.autopicks:
             self.autopicks = event.autopicks
             self.drawPicks(picktype='auto')
-            self.compare_action.setEnabled(True)
         self.draw()
 
     def clearWaveformDataPlot(self):
@@ -1342,8 +1341,14 @@ class MainWindow(QMainWindow):
     
     def init_array_map(self, index=1):
         self.tabs.setCurrentIndex(1)
-        self.array_layout.removeWidget(self.metadata_widget)
-        self.array_layout.removeWidget(self.array_map)
+        if hasattr(self, 'metadata_widget'):
+            if self.metadata_widget:
+                self.metadata_widget.setParent(None)
+                self.array_layout.removeWidget(self.metadata_widget)
+        if hasattr(self, 'array_map'):
+            if self.array_map:
+                self.array_map.setParent(None)        
+                self.array_layout.removeWidget(self.array_map)
         if not self.array_map:
             self.get_metadata()
             if not self.metadata:
@@ -1399,6 +1404,7 @@ class MainWindow(QMainWindow):
                 self.fill_eventbox()
 
         if hasattr(self, 'qtl'):
+            self.qtl.setParent(None)
             self.events_layout.removeWidget(self.qtl)
         self.qtl = QtGui.QTableWidget()
         self.qtl.setColumnCount(6)

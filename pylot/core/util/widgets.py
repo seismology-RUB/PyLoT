@@ -38,6 +38,7 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
     COMPPOSITION_MAP
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
+from autoPyLoT import autoPyLoT
 import icons_rc
 
 def getDataType(parent):
@@ -1269,44 +1270,67 @@ class PickDlg(QDialog):
 
         
 class TuneAutopicker(QWidget):     
-    def __init__(self, fig_dict, station, ap, parent=None):
+    def __init__(self, ap, parent=None):
         QtGui.QWidget.__init__(self, parent)
-        if not station in fig_dict:
-            print('Station not found')
-            return
         self.ap = ap
-        self.fd = fig_dict[station]
+        self.station = 'AH11'
+        self.fd = None
         self.layout = QtGui.QHBoxLayout()
+        self.parameter_layout = QtGui.QVBoxLayout()
         self.setLayout(self.layout)
         self.init_figure_tabs()
         self.add_parameter()
-        self.layout.setStretch(0,3)
-        self.layout.setStretch(1,1)        
-        
+        self.add_buttons()
+        self.set_stretch()
+
     def init_figure_tabs(self):
         self.main_tabs = QtGui.QTabWidget()
         self.p_tabs = QtGui.QTabWidget()
         self.s_tabs = QtGui.QTabWidget()
-        self.layout.addWidget(self.main_tabs)
+        self.layout.insertWidget(0, self.main_tabs)
         self.init_tab_names()
         self.fill_tabs()
 
     def add_parameter(self):
         self.parameters = AutoPickParaBox(self.ap)
-        self.layout.addWidget(self.parameters)
+        self.parameter_layout.addWidget(self.parameters)
+        self.layout.insertLayout(1, self.parameter_layout)
+
+    def add_buttons(self):
+        self.pick_button = QtGui.QPushButton('Pick Trace')
+        self.pick_button.clicked.connect(self.call_picker)
+        self.parameter_layout.addWidget(self.pick_button)
+
+    def call_picker(self):
+        self.parameters.update_params()
+        picks, fig_dict = autoPyLoT(self.ap, fnames='None', iplot=2)
+        self.main_tabs.setParent(None)
+        self.fd = fig_dict[self.station]
+        self.init_figure_tabs()
+        self.set_stretch()
+
+    def set_stretch(self):
+        self.layout.setStretch(0, 3)
+        self.layout.setStretch(1, 1)        
         
     def init_tab_names(self):
         self.ptb_names = ['aicFig', 'slenght', 'checkZ4S', 'refPpick', 'el_Ppick', 'fm_picker']
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def fill_tabs(self):
-        main_fig = self.fd['mainFig']
-        self.main_tabs.addTab(main_fig.canvas, 'Overview')
+        try:
+            main_fig = self.fd['mainFig']
+            self.main_tabs.addTab(main_fig.canvas, 'Overview')
+        except Exception as e:
+            self.main_tabs.addTab(QtGui.QWidget(), 'Overview')            
         self.main_tabs.addTab(self.p_tabs, 'P')
         self.main_tabs.addTab(self.s_tabs, 'S')
         self.fill_p_tabs()
         self.fill_s_tabs()
-        main_fig.tight_layout()
+        try:
+            main_fig.tight_layout()
+        except:
+            pass
 
     def fill_p_tabs(self):
         for name in self.ptb_names:
@@ -1318,7 +1342,6 @@ class TuneAutopicker(QWidget):
             except Exception as e:
                 id = self.p_tabs.addTab(QtGui.QWidget(), name)
                 self.p_tabs.setTabEnabled(id, False)
-                print('Could not initiate figure {}.'.format(name))
 
     def fill_s_tabs(self):
         for name in self.stb_names:
@@ -1330,7 +1353,6 @@ class TuneAutopicker(QWidget):
             except Exception as e:
                 id = self.s_tabs.addTab(QtGui.QWidget(), name)
                 self.s_tabs.setTabEnabled(id, False)
-                print('Could not initiate figure {}.'.format(name))
             
     
 class PropertiesDlg(QDialog):
