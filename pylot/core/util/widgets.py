@@ -1590,11 +1590,39 @@ class AutoPickParaBox(QtGui.QWidget):
         self.layout = QtGui.QHBoxLayout()
         self.layout.addWidget(self.tabs)
         self.boxes = {}
+        self._init_sublayouts()
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
         self.add_special_pick_parameters_tab()
+        self._toggle_advanced_settings()
+
+    def _init_sublayouts(self):
+        self._main_layout = QtGui.QVBoxLayout()
+        self._advanced_layout = QtGui.QVBoxLayout()
+        self._create_advanced_cb()
         
-    def init_boxes(self, parameter_names, defaults=True):
+    def _create_advanced_cb(self):
+        self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
+        self._advanced_layout.addWidget(self._advanced_cb)
+        self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
+
+    def _toggle_advanced_settings(self):
+        if self._advanced_cb.isChecked():
+            self._enable_advanced(True)
+        else:
+            self._enable_advanced(False)
+
+    def _enable_advanced(self, enable):
+        for lst in self.ap.get_special_para_names().values():
+            for param in lst:
+                box = self.boxes[param]
+                if type(box) is not list:
+                    box.setEnabled(enable)
+                else:
+                    for b in box:
+                        b.setEnabled(enable)
+            
+    def init_boxes(self, parameter_names, defaults=False):
         grid = QtGui.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
@@ -1606,6 +1634,8 @@ class AutoPickParaBox(QtGui.QWidget):
             if not type(default_item['type']) == tuple:
                 if defaults:
                     value = default_item['value']
+                else:
+                    value = self.ap[name]
                 typ = default_item['type']
                 box = self.create_box(value, typ, tooltip)
                 self.boxes[name] = box
@@ -1613,6 +1643,8 @@ class AutoPickParaBox(QtGui.QWidget):
                 boxes = []
                 if defaults:
                     values = default_item['value']
+                else:
+                    values = self.ap[name]
                 for index2, val in enumerate(values):
                     typ = default_item['type'][index2]
                     boxes.append(self.create_box(val, typ, tooltip))
@@ -1636,6 +1668,10 @@ class AutoPickParaBox(QtGui.QWidget):
             box.setMaximum(100*value)
             box.setValue(value)
         elif typ == bool:
+            if value == 'True':
+                value = True
+            if value == 'False':
+                value = False
             box = QtGui.QCheckBox()
             box.setChecked(value)
         else:
@@ -1661,32 +1697,30 @@ class AutoPickParaBox(QtGui.QWidget):
         self.tabs.addTab(scrollA, name)
 
     def add_main_parameters_tab(self):
-        vb_layout = QtGui.QVBoxLayout()
-        self.add_to_layout(vb_layout, 'Directories',
+        self.add_to_layout(self._main_layout, 'Directories',
                            self.ap.get_main_para_names()['dirs'])
-        self.add_to_layout(vb_layout, 'NLLoc',
+        self.add_to_layout(self._main_layout, 'NLLoc',
                            self.ap.get_main_para_names()['nlloc'])
-        self.add_to_layout(vb_layout, 'Seismic Moment',
+        self.add_to_layout(self._main_layout, 'Seismic Moment',
                            self.ap.get_main_para_names()['smoment'])
-        self.add_to_layout(vb_layout, 'Focal Mechanism',
+        self.add_to_layout(self._main_layout, 'Focal Mechanism',
                            self.ap.get_main_para_names()['focmec'])
-        self.add_to_layout(vb_layout, 'Pick Settings',
+        self.add_to_layout(self._main_layout, 'Pick Settings',
                            self.ap.get_main_para_names()['pick'],
                            False)
-        self.add_tab(vb_layout, 'Main Settings')
+        self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
-        vb_layout = QtGui.QVBoxLayout()
-        self.add_to_layout(vb_layout, 'Z-component',
+        self.add_to_layout(self._advanced_layout, 'Z-component',
                            self.ap.get_special_para_names()['z'])
-        self.add_to_layout(vb_layout, 'H-components',
+        self.add_to_layout(self._advanced_layout, 'H-components',
                            self.ap.get_special_para_names()['h'])
-        self.add_to_layout(vb_layout, 'First-motion picker',
+        self.add_to_layout(self._advanced_layout, 'First-motion picker',
                            self.ap.get_special_para_names()['fm'])
-        self.add_to_layout(vb_layout, 'Quality assessment',
+        self.add_to_layout(self._advanced_layout, 'Quality assessment',
                            self.ap.get_special_para_names()['quality'],
                            False)
-        self.add_tab(vb_layout, 'Advanced Settings')
+        self.add_tab(self._advanced_layout, 'Advanced Settings')
 
     def gen_h_seperator(self):
         seperator = QtGui.QFrame()

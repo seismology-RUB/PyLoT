@@ -198,9 +198,68 @@ class AutoPickParameter(object):
     def export2File(self, fnout):
         fid_out = open(fnout, 'w')
         lines = []
-        for key, value in self.iteritems():
-            lines.append('{key}\t{value}\n'.format(key=key, value=value))
-        fid_out.writelines(lines)
+        # for key, value in self.iteritems():
+        #     lines.append('{key}\t{value}\n'.format(key=key, value=value))
+        # fid_out.writelines(lines)
+
+        header = ('%This is a parameter input file for PyLoT/autoPyLoT.\n'+
+                  '%All main and special settings regarding data handling\n'+
+                  '%and picking are to be set here!\n'+
+                  '%Parameters are optimized for local data sets!\n')
+        seperator = '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
+
+        fid_out.write(header)
+        self.write_section(fid_out, self.get_main_para_names()['dirs'],
+                           'main settings', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['nlloc'],
+                           'NLLoc settings', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['smoment'],
+                           'parameters for seismic moment estimation', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['focmec'],
+                           'focal mechanism', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['pick'],
+                           'common settings picker', seperator)
+        fid_out.write(('#special settings for calculating CF#\n'+
+                       '%!!Edit the following only if you know what you are doing!!%\n'))
+        self.write_section(fid_out, self.get_special_para_names()['z'],
+                           'Z-component', None)
+        self.write_section(fid_out, self.get_special_para_names()['h'],
+                           'H-components', None)
+        self.write_section(fid_out, self.get_special_para_names()['fm'],
+                           'first-motion picker', None)                           
+        self.write_section(fid_out, self.get_special_para_names()['quality'],
+                           'quality assessment', None)
+
+    def write_section(self, fid, names, title, seperator):
+        if seperator:
+            fid.write(seperator)
+        fid.write('#{}#\n'.format(title))
+        l_val = 50
+        l_name = 15
+        l_ttip = 100
+        for name in names:
+            value = self[name]
+            if type(value) == list or type(value) == tuple:
+                value_tmp = ''
+                for vl in value:
+                    value_tmp+= '{} '.format(vl)
+                value = value_tmp
+            tooltip = self.get_defaults()[name]['tooltip']
+            if not len(str(value)) > l_val:
+                value = '{:<{}} '.format(str(value), l_val)
+            else:
+                value = '{} '.format(str(value))
+            name += '#'
+            if not len(name) > l_name:
+                name = '#{:<{}} '.format(name, l_name)
+            else:
+                name = '#{} '.format(name)
+            if not len(tooltip) > l_ttip:
+                ttip = '%{:<{}}\n'.format(tooltip, l_ttip)
+            else:
+                ttip = '%{}\n'.format(tooltip)
+            line = value+name+ttip
+            fid.write(line)
 
 
 class FilterOptions(object):
