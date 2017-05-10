@@ -1589,12 +1589,12 @@ class AutoPickParaBox(QtGui.QWidget):
         self.tabs = QtGui.QTabWidget()
         self.layout = QtGui.QHBoxLayout()
         self.layout.addWidget(self.tabs)
+        self.boxes = {}
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
         self.add_special_pick_parameters_tab()
         
     def init_boxes(self, parameter_names, defaults=True):
-        self.boxes = {}
         grid = QtGui.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
@@ -1603,7 +1603,7 @@ class AutoPickParaBox(QtGui.QWidget):
             default_item = self.ap.get_defaults()[name]
             tooltip = default_item['tooltip']
             tooltip += ' | type: {}'.format(default_item['type'])
-            if type(default_item['type']) == str:
+            if not type(default_item['type']) == tuple:
                 if defaults:
                     value = default_item['value']
                 typ = default_item['type']
@@ -1624,21 +1624,22 @@ class AutoPickParaBox(QtGui.QWidget):
         return grid
 
     def create_box(self, value, typ, tooltip):
-        if typ == 'str':
+        if typ == str:
             box = QtGui.QLineEdit()
             box.setText(value)
-        elif typ == 'float':
+        elif typ == float:
+            box = QtGui.QDoubleSpinBox()
+            box.setMaximum(100*value)
+            box.setValue(value)
+        elif typ == int:
             box = QtGui.QSpinBox()
             box.setMaximum(100*value)
             box.setValue(value)
-        elif typ == 'int':
-            box = QtGui.QSpinBox()
-            box.setMaximum(100*value)
-            box.setValue(value)
-        elif typ == 'bool':
+        elif typ == bool:
             box = QtGui.QCheckBox()
             box.setChecked(value)
-        #box.setToolTip(tooltip)
+        else:
+            raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
     def create_multi_box(self, boxes):
@@ -1660,28 +1661,32 @@ class AutoPickParaBox(QtGui.QWidget):
         self.tabs.addTab(scrollA, name)
 
     def add_main_parameters_tab(self):
-
         vb_layout = QtGui.QVBoxLayout()
-        vb_layout.addWidget(self.gen_headline('Directories'))
-        vb_layout.addLayout(self.init_boxes(self.ap.get_main_para_names()))
-        vb_layout.addWidget(self.gen_h_seperator())
-        
-        vb_layout.addWidget(self.gen_headline('NLLoc'))
-        vb_layout.addLayout(self.init_boxes(self.ap.get_nlloc_para_names()))
-        vb_layout.addWidget(self.gen_h_seperator())
-        
-        vb_layout.addWidget(self.gen_headline('Seismic Moment'))
-        vb_layout.addLayout(self.init_boxes(self.ap.get_seis_moment_para_names()))
-        vb_layout.addWidget(self.gen_h_seperator())
-        
-        vb_layout.addWidget(self.gen_headline('Focal Mechanism'))
-        vb_layout.addLayout(self.init_boxes(self.ap.get_focmec_para_names()))
-        vb_layout.addWidget(self.gen_h_seperator())
-        
-        vb_layout.addWidget(self.gen_headline('Pick Settings'))
-        vb_layout.addLayout(self.init_boxes(self.ap.get_common_pick_names()))
-        
+        self.add_to_layout(vb_layout, 'Directories',
+                           self.ap.get_main_para_names()['dirs'])
+        self.add_to_layout(vb_layout, 'NLLoc',
+                           self.ap.get_main_para_names()['nlloc'])
+        self.add_to_layout(vb_layout, 'Seismic Moment',
+                           self.ap.get_main_para_names()['smoment'])
+        self.add_to_layout(vb_layout, 'Focal Mechanism',
+                           self.ap.get_main_para_names()['focmec'])
+        self.add_to_layout(vb_layout, 'Pick Settings',
+                           self.ap.get_main_para_names()['pick'],
+                           False)
         self.add_tab(vb_layout, 'Main Settings')
+
+    def add_special_pick_parameters_tab(self):
+        vb_layout = QtGui.QVBoxLayout()
+        self.add_to_layout(vb_layout, 'Z-component',
+                           self.ap.get_special_para_names()['z'])
+        self.add_to_layout(vb_layout, 'H-components',
+                           self.ap.get_special_para_names()['h'])
+        self.add_to_layout(vb_layout, 'First-motion picker',
+                           self.ap.get_special_para_names()['fm'])
+        self.add_to_layout(vb_layout, 'Quality assessment',
+                           self.ap.get_special_para_names()['quality'],
+                           False)
+        self.add_tab(vb_layout, 'Advanced Settings')
 
     def gen_h_seperator(self):
         seperator = QtGui.QFrame()
@@ -1695,11 +1700,34 @@ class AutoPickParaBox(QtGui.QWidget):
         label.setFont(font)
         return label
         
-    def add_special_pick_parameters_tab(self):
-        grid = self.init_boxes(self.ap.get_special_pick_names())
-        self.add_tab(grid, 'Advanced Settings')
-        
-        
+    def add_to_layout(self, layout, name, items, seperator=True):
+        layout.addWidget(self.gen_headline(name))
+        layout.addLayout(self.init_boxes(items))
+        if seperator:
+            layout.addWidget(self.gen_h_seperator())
+
+    def update_params(self):
+        for param in self.ap.get_all_para_names():
+            box = self.boxes[param]
+            value = self.getValue(box)
+            self.ap.checkValue(param, value)
+            self.ap.setParam(param, value)
+
+    def getValue(self, box):
+        if type(box) == QtGui.QLineEdit:
+            value = str(box.text())
+        elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
+            value = box.value()
+        elif type(box) == QtGui.QCheckBox:
+            value = box.isChecked()
+        elif type(box) == list:
+            value = []
+            for b in box:
+                value.append(self.getValue(b))
+            value = tuple(value)
+        return value
+
+            
 class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)

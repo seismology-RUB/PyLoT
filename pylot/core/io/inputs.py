@@ -109,10 +109,6 @@ class AutoPickParameter(object):
 
     def __init_subsettings(self):
         self._settings_main=default_parameters.settings_main
-        self._settings_nlloc=default_parameters.settings_nlloc
-        self._settings_smoment=default_parameters.settings_smoment
-        self._settings_focmec=default_parameters.settings_focmec
-        self._settings_common_pick=default_parameters.settings_common_pick
         self._settings_special_pick=default_parameters.settings_special_pick
         
     # String representation of the object
@@ -168,45 +164,32 @@ class AutoPickParameter(object):
     def get_main_para_names(self):
         return self._settings_main
 
-    def get_nlloc_para_names(self):
-        return self._settings_nlloc
-
-    def get_seis_moment_para_names(self):
-        return self._settings_smoment
-        
-    def get_focmec_para_names(self):
-        return self._settings_focmec
-
-    def get_common_pick_names(self):
-        return self._settings_common_pick
-
-    def get_special_pick_names(self):
+    def get_special_para_names(self):
         return self._settings_special_pick
 
+    def get_all_para_names(self):
+        all_names=[]
+        all_names += self.get_main_para_names()['dirs']
+        all_names += self.get_main_para_names()['nlloc']
+        all_names += self.get_main_para_names()['smoment']
+        all_names += self.get_main_para_names()['focmec']
+        all_names += self.get_main_para_names()['pick']
+        all_names += self.get_special_para_names()['z']
+        all_names += self.get_special_para_names()['h']
+        all_names += self.get_special_para_names()['fm']
+        all_names += self.get_special_para_names()['quality']
+        return all_names
 
+    def checkValue(self, param, value):
+        is_type = type(value)
+        expect_type = self.get_defaults()[param]['type']
+        if not is_type == expect_type and not is_type == tuple:
+            message = 'Type check failed for param: {}, is type: {}, expected type:{}'
+            message = message.format(param, is_type, expect_type)
+            raise TypeError(message)
         
-# main_settings = parameter[:8]
-# main_settings
-# paramter[8]
-# parameter[8]
-# parameter[8:14]
-# nlloc_settings = parameter[8:14]
-# len(nlloc_settings)
-# sm_settings = parameter[14:17]
-# sm_settings
-# fmec_settings = parmeter[17]
-# fmec_settings = parameter[17]
-# fmec_settings
-# common_picker_settings = parameter[18:26]
-# common_picker_settings
-# special_picker_settings = parameter[18:]
-
-    
-    
-    def setParam(self, **kwargs):
-        for param, value in kwargs.items():
-            self.__setitem__(param, value)
-            # print(self)
+    def setParam(self, param, value):
+        self.__setitem__(param, value)
 
     @staticmethod
     def _printParameterError(errmsg):
