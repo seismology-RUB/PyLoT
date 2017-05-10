@@ -130,7 +130,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     if iplot:
         return EPick, LPick, PickError, fig
     else:
-        return Epick, LPick, PickError
+        return EPick, LPick, PickError
 
 
 def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
