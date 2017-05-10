@@ -1574,6 +1574,132 @@ class LocalisationTab(PropTab):
         values = {"nll/rootPath": self.rootedit.setText("%s" % nllocroot),
                   "nll/binPath": self.binedit.setText("%s" % nllocbin)}
 
+        
+class AutoPickParaBox(QtGui.QWidget):     
+    def __init__(self, ap, parent=None):
+        '''
+        Generate Widget containing parameters for automatic picking algorithm.
+
+        :param: ap
+        :type: AutoPickParameter (object)
+
+        '''
+        QtGui.QWidget.__init__(self, parent)
+        self.ap = ap
+        self.tabs = QtGui.QTabWidget()
+        self.layout = QtGui.QHBoxLayout()
+        self.layout.addWidget(self.tabs)
+        self.setLayout(self.layout)
+        self.add_main_parameters_tab()
+        self.add_special_pick_parameters_tab()
+        
+    def init_boxes(self, parameter_names, defaults=True):
+        self.boxes = {}
+        grid = QtGui.QGridLayout()
+
+        for index1, name in enumerate(parameter_names):
+            text = name + ' [?]'
+            label = QtGui.QLabel(text)
+            default_item = self.ap.get_defaults()[name]
+            tooltip = default_item['tooltip']
+            tooltip += ' | type: {}'.format(default_item['type'])
+            if type(default_item['type']) == str:
+                if defaults:
+                    value = default_item['value']
+                typ = default_item['type']
+                box = self.create_box(value, typ, tooltip)
+                self.boxes[name] = box
+            elif type(default_item['type']) == tuple:
+                boxes = []
+                if defaults:
+                    values = default_item['value']
+                for index2, val in enumerate(values):
+                    typ = default_item['type'][index2]
+                    boxes.append(self.create_box(val, typ, tooltip))
+                box = self.create_multi_box(boxes)
+                self.boxes[name] = boxes
+            label.setToolTip(tooltip)
+            grid.addWidget(label, index1, 1)
+            grid.addWidget(box, index1, 2)
+        return grid
+
+    def create_box(self, value, typ, tooltip):
+        if typ == 'str':
+            box = QtGui.QLineEdit()
+            box.setText(value)
+        elif typ == 'float':
+            box = QtGui.QSpinBox()
+            box.setMaximum(100*value)
+            box.setValue(value)
+        elif typ == 'int':
+            box = QtGui.QSpinBox()
+            box.setMaximum(100*value)
+            box.setValue(value)
+        elif typ == 'bool':
+            box = QtGui.QCheckBox()
+            box.setChecked(value)
+        #box.setToolTip(tooltip)
+        return box
+
+    def create_multi_box(self, boxes):
+        box = QtGui.QWidget()
+        hl = QtGui.QHBoxLayout()
+        for b in boxes:
+            hl.addWidget(b)
+        box.setLayout(hl)
+        return box
+
+    def add_tab(self, layout, name):
+        widget = QtGui.QWidget()
+        scrollA = QtGui.QScrollArea()
+        scrollA.setWidgetResizable(True)
+        scrollA.setWidget(widget)
+
+        widget.setLayout(layout)
+        
+        self.tabs.addTab(scrollA, name)
+
+    def add_main_parameters_tab(self):
+
+        vb_layout = QtGui.QVBoxLayout()
+        vb_layout.addWidget(self.gen_headline('Directories'))
+        vb_layout.addLayout(self.init_boxes(self.ap.get_main_para_names()))
+        vb_layout.addWidget(self.gen_h_seperator())
+        
+        vb_layout.addWidget(self.gen_headline('NLLoc'))
+        vb_layout.addLayout(self.init_boxes(self.ap.get_nlloc_para_names()))
+        vb_layout.addWidget(self.gen_h_seperator())
+        
+        vb_layout.addWidget(self.gen_headline('Seismic Moment'))
+        vb_layout.addLayout(self.init_boxes(self.ap.get_seis_moment_para_names()))
+        vb_layout.addWidget(self.gen_h_seperator())
+        
+        vb_layout.addWidget(self.gen_headline('Focal Mechanism'))
+        vb_layout.addLayout(self.init_boxes(self.ap.get_focmec_para_names()))
+        vb_layout.addWidget(self.gen_h_seperator())
+        
+        vb_layout.addWidget(self.gen_headline('Pick Settings'))
+        vb_layout.addLayout(self.init_boxes(self.ap.get_common_pick_names()))
+        
+        self.add_tab(vb_layout, 'Main Settings')
+
+    def gen_h_seperator(self):
+        seperator = QtGui.QFrame()
+        seperator.setFrameShape(QtGui.QFrame.HLine)
+        return seperator
+
+    def gen_headline(self, text):
+        label=QtGui.QLabel(text)
+        font=QtGui.QFont()
+        font.setBold(True)
+        label.setFont(font)
+        return label
+        
+    def add_special_pick_parameters_tab(self):
+        grid = self.init_boxes(self.ap.get_special_pick_names())
+        self.add_tab(grid, 'Advanced Settings')
+        
+        
 class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)

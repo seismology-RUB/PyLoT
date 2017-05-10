@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pylot.core.util.errors import ParameterError
-
+import default_parameters
 
 class AutoPickParameter(object):
     '''
@@ -44,6 +44,8 @@ class AutoPickParameter(object):
         contain all parameters.
         '''
 
+        self.__init_default_paras()
+        self.__init_subsettings()
         self.__filename = fnin
         parFileCont = {}
         # io from parsed arguments alternatively
@@ -100,6 +102,19 @@ class AutoPickParameter(object):
             string += 'Empty parameter dictionary.'
         return string
 
+    # Set default values of parameter names
+    def __init_default_paras(self):
+        parameters=default_parameters.defaults
+        self.__defaults = parameters
+
+    def __init_subsettings(self):
+        self._settings_main=default_parameters.settings_main
+        self._settings_nlloc=default_parameters.settings_nlloc
+        self._settings_smoment=default_parameters.settings_smoment
+        self._settings_focmec=default_parameters.settings_focmec
+        self._settings_common_pick=default_parameters.settings_common_pick
+        self._settings_special_pick=default_parameters.settings_special_pick
+        
     # String representation of the object
     def __repr__(self):
         return "AutoPickParameter('%s')" % self.__filename
@@ -147,6 +162,47 @@ class AutoPickParameter(object):
                 self._printParameterError(e)
                 raise ParameterError(e)
 
+    def get_defaults(self):
+        return self.__defaults
+
+    def get_main_para_names(self):
+        return self._settings_main
+
+    def get_nlloc_para_names(self):
+        return self._settings_nlloc
+
+    def get_seis_moment_para_names(self):
+        return self._settings_smoment
+        
+    def get_focmec_para_names(self):
+        return self._settings_focmec
+
+    def get_common_pick_names(self):
+        return self._settings_common_pick
+
+    def get_special_pick_names(self):
+        return self._settings_special_pick
+
+
+        
+# main_settings = parameter[:8]
+# main_settings
+# paramter[8]
+# parameter[8]
+# parameter[8:14]
+# nlloc_settings = parameter[8:14]
+# len(nlloc_settings)
+# sm_settings = parameter[14:17]
+# sm_settings
+# fmec_settings = parmeter[17]
+# fmec_settings = parameter[17]
+# fmec_settings
+# common_picker_settings = parameter[18:26]
+# common_picker_settings
+# special_picker_settings = parameter[18:]
+
+    
+    
     def setParam(self, **kwargs):
         for param, value in kwargs.items():
             self.__setitem__(param, value)
