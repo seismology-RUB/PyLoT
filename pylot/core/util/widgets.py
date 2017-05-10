@@ -1269,16 +1269,20 @@ class PickDlg(QDialog):
 
         
 class TuneAutopicker(QWidget):     
-    def __init__(self, fig_dict, station, parent=None):
+    def __init__(self, fig_dict, station, ap, parent=None):
         QtGui.QWidget.__init__(self, parent)
         if not station in fig_dict:
             print('Station not found')
             return
+        self.ap = ap
         self.fd = fig_dict[station]
         self.layout = QtGui.QHBoxLayout()
         self.setLayout(self.layout)
         self.init_figure_tabs()
-
+        self.add_parameter()
+        self.layout.setStretch(0,3)
+        self.layout.setStretch(1,1)        
+        
     def init_figure_tabs(self):
         self.main_tabs = QtGui.QTabWidget()
         self.p_tabs = QtGui.QTabWidget()
@@ -1286,6 +1290,10 @@ class TuneAutopicker(QWidget):
         self.layout.addWidget(self.main_tabs)
         self.init_tab_names()
         self.fill_tabs()
+
+    def add_parameter(self):
+        self.parameters = AutoPickParaBox(self.ap)
+        self.layout.addWidget(self.parameters)
         
     def init_tab_names(self):
         self.ptb_names = ['aicFig', 'slenght', 'checkZ4S', 'refPpick', 'el_Ppick', 'fm_picker']
@@ -1302,15 +1310,27 @@ class TuneAutopicker(QWidget):
 
     def fill_p_tabs(self):
         for name in self.ptb_names:
-            figure = self.fd[name]
-            self.p_tabs.addTab(figure.canvas, name)
-            figure.tight_layout()
+            try:
+                figure = self.fd[name]
+                id = self.p_tabs.addTab(figure.canvas, name)
+                self.p_tabs.setTabEnabled(id, True)                
+                figure.tight_layout()
+            except Exception as e:
+                id = self.p_tabs.addTab(QtGui.QWidget(), name)
+                self.p_tabs.setTabEnabled(id, False)
+                print('Could not initiate figure {}.'.format(name))
 
     def fill_s_tabs(self):
         for name in self.stb_names:
-            figure = self.fd[name]
-            self.s_tabs.addTab(figure.canvas, name)
-            figure.tight_layout()
+            try:
+                figure = self.fd[name]
+                id = self.s_tabs.addTab(figure.canvas, name)
+                self.s_tabs.setTabEnabled(id, True)                
+                figure.tight_layout()
+            except Exception as e:
+                id = self.s_tabs.addTab(QtGui.QWidget(), name)
+                self.s_tabs.setTabEnabled(id, False)
+                print('Could not initiate figure {}.'.format(name))
             
     
 class PropertiesDlg(QDialog):

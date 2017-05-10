@@ -117,7 +117,7 @@ class AutoPickParameter(object):
 
     # Boolean test
     def __nonzero__(self):
-        return self.__parameter
+        return bool(self.__parameter)
 
     def __getitem__(self, key):
         return self.__parameter[key]

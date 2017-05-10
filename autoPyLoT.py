@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(inputfile, fnames=None, savepath=None, iplot=0):
+def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -55,8 +55,22 @@ def autoPyLoT(inputfile, fnames=None, savepath=None, iplot=0):
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
 
+    if not parameter:
+        if inputfile:
+            parameter = AutoPickParameter(inputfile)
+        else:
+            print('No parameters set and no input file given. Choose either of both.')
+            return
+    else:
+        if not type(parameter) == AutoPickParameter:
+            print('Wrong input type for parameter: {}'.format(type(parameter)))
+            return
+        if inputfile:
+            print('Parameters set and input file given. Choose either of both.')
+            return
+            
     # reading parameter file
-    parameter = AutoPickParameter(inputfile)
+
 
     data = Data()
 
@@ -79,7 +93,7 @@ def autoPyLoT(inputfile, fnames=None, savepath=None, iplot=0):
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available
-        if parameter.hasParam('nllocbin'):
+        if parameter['nllocbin']:
             locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
