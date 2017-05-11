@@ -962,6 +962,7 @@ class MainWindow(QMainWindow):
         if event.autopicks:
             self.autopicks = event.autopicks
             self.drawPicks(picktype='auto')
+            self.compare_action.setEnabled(True)
         self.draw()
 
     def clearWaveformDataPlot(self):
