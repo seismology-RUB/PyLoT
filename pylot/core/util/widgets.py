@@ -1,4 +1,4 @@
-[]# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Wed Mar 19 11:27:35 2014
 
@@ -39,6 +39,7 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
+from pylot.core.util.thread import Thread
 import icons_rc
 
 def getDataType(parent):
@@ -1270,11 +1271,12 @@ class PickDlg(QDialog):
 
         
 class TuneAutopicker(QWidget):     
-    def __init__(self, ap, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+    def __init__(self, ap, fig_dict, parent=None):
+        QtGui.QWidget.__init__(self, parent, 1)
         self.ap = ap
-        self.station = 'AH11'
-        self.fd = None
+        self.parent = parent
+        self.station = 'AH11' ############# justs for testing
+        self.fig_dict = fig_dict
         self.layout = QtGui.QHBoxLayout()
         self.parameter_layout = QtGui.QVBoxLayout()
         self.setLayout(self.layout)
@@ -1282,6 +1284,9 @@ class TuneAutopicker(QWidget):
         self.add_parameter()
         self.add_buttons()
         self.set_stretch()
+        self.resize(1280, 720)
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
     def init_figure_tabs(self):
         self.main_tabs = QtGui.QTabWidget()
@@ -1302,12 +1307,19 @@ class TuneAutopicker(QWidget):
         self.parameter_layout.addWidget(self.pick_button)
 
     def call_picker(self):
-        self.parameters.update_params()
-        picks, fig_dict = autoPyLoT(self.ap, fnames='None', iplot=2)
+        self.pb_thread = Thread(self, self._hover, arg=None, progressText='Picking trace...')
+        self.pb_thread.start()
+        self.ap = self.update_params()
+        picks = autoPyLoT(self.ap, fnames='None', iplot=2, self.fig_dict)
         self.main_tabs.setParent(None)
-        self.fd = fig_dict[self.station]
         self.init_figure_tabs()
         self.set_stretch()
+
+    def update_params(self):
+        ap = self.parameters.update_params()
+        if self.parent:
+            self.parent._inputs = ap
+        return ap
 
     def set_stretch(self):
         self.layout.setStretch(0, 3)
@@ -1788,6 +1800,7 @@ class AutoPickParaBox(QtGui.QWidget):
             value = self.getValue(box)
             self.ap.checkValue(param, value)
             self.ap.setParam(param, value)
+        return self.ap
 
     def getValue(self, box):
         if type(box) == QtGui.QLineEdit:

@@ -12,41 +12,44 @@ from pylot.core.util.widgets import PickDlg
 plt.interactive(False)
 
 class map_projection(QtGui.QWidget):
-    def __init__(self, mainwindow, figure=None):
+    def __init__(self, parent, figure=None):
         '''
         :param: picked, can be False, auto, manual
         :value: str
         '''
         QtGui.QWidget.__init__(self)
-        self.pyl_mainwindow = mainwindow
-        self.parser = mainwindow.metadata[1]
+        self._parent = parent
+        self.parser = parent.metadata[1]
         self.picks = None
         self.picks_dict = None
         self.figure = figure
         self.init_graphics()
+        self.init_basemap(projection='mill', resolution='l')
+        self.init_map()
+        #self.show()
+
+    def init_map(self):
         self.init_stations()
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
-        self.init_basemap(projection='mill', resolution='l')
         self.init_x_y_dimensions()
         self.connectSignals()
         self.draw_everything()
-        #self.show()
         
     def onpick(self, event):
         ind = event.ind
         if ind == []:
             return
-        data = self.pyl_mainwindow.get_data().getWFData()
+        data = self._parent.get_data().getWFData()
         for index in ind:
             station=str(self.station_names[index])
             try:
-                pickDlg = PickDlg(self, infile=self.pyl_mainwindow.getinfile(), 
+                pickDlg = PickDlg(self, infile=self._parent.getinfile(), 
                                   data=data.select(station=station),
                                   station=station,
-                                  picks=self.pyl_mainwindow.getPicksOnStation(station, 'manual'),
-                                  autopicks=self.pyl_mainwindow.getPicksOnStation(station, 'auto'))
-                pyl_mw = self.pyl_mainwindow
+                                  picks=self._parent.getPicksOnStation(station, 'manual'),
+                                  autopicks=self._parent.getPicksOnStation(station, 'auto'))
+                pyl_mw = self._parent
                 if pickDlg.exec_():
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status('picks accepted ({0})'.format(station))
@@ -67,6 +70,17 @@ class map_projection(QtGui.QWidget):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         
     def init_graphics(self):
+        if not self.figure:
+            if not hasattr(self._parent, 'am_figure'):
+                self.figure = plt.figure()
+                self.toolbar = NavigationToolbar(self.figure.canvas, self)
+            else:
+                self.figure = self._parent.am_figure
+                self.toolbar = self._parent.am_toolbar
+                
+        self.main_ax = self.figure.add_subplot(111)
+        self.canvas = self.figure.canvas
+
         self.main_box = QtGui.QVBoxLayout()
         self.setLayout(self.main_box)
 
@@ -85,18 +99,9 @@ class map_projection(QtGui.QWidget):
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1,1) #set stretch of item 1 to 1        
 
-        if not self.figure:
-            fig = plt.figure()
-        else:
-            fig = self.figure
-        self.main_ax = fig.add_subplot(111)
-        self.canvas = fig.canvas
         self.main_box.addWidget(self.canvas)
-
-        self.toolbar = NavigationToolbar(self.canvas, self)
         self.main_box.addWidget(self.toolbar)
-        self.figure = fig
-
+        
     def init_stations(self):
         def get_station_names_lat_lon(parser):
             station_names=[]
@@ -186,7 +191,6 @@ class map_projection(QtGui.QWidget):
         basemap.drawcoastlines()
         self.basemap = basemap
         self.figure.tight_layout()
-
         
     def init_lat_lon_grid(self):
         def get_lat_lon_axis(lat, lon):

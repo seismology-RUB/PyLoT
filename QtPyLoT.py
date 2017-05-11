@@ -41,6 +41,13 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 from obspy import UTCDateTime
 
+try:
+    from matplotlib.backends.backend_qt4agg import FigureCanvas
+except ImportError:
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar    
+from matplotlib.figure import Figure
+
 from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
@@ -59,7 +66,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog
+    getDataType, ComparisonDialog, TuneAutopicker
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread, Thread
@@ -90,6 +97,7 @@ class MainWindow(QMainWindow):
         self._inputs = AutoPickParameter(infile)
 
         self.project = Project()
+        self.tap = None
         self.array_map = None
         self._metadata = None
         self._eventChanged = [False, False]
@@ -416,9 +424,9 @@ class MainWindow(QMainWindow):
         self.addActions(componentToolBar, componentActions)
 
         self.auto_pick = self.createAction(parent=self, text='autoPick',
-                                      slot=self.autoPick, shortcut='Alt+Ctrl+A',
-                                      icon=auto_icon, tip='Automatically pick'
-                                                          ' the displayed waveforms.')
+                                           slot=self.tune_autopicker, shortcut='Alt+Ctrl+A',
+                                           icon=auto_icon, tip='Tune autopicking algorithm.')
+        
         self.auto_pick.setEnabled(False)
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
@@ -1141,6 +1149,26 @@ class MainWindow(QMainWindow):
         self.listWidget.addItem(text)
         self.listWidget.scrollToBottom()
 
+    def tune_autopicker(self):
+        self.fig_dict = {
+            'mainFig':,
+            'aicFig':,
+            'slength':,
+            'checkZ4s':,
+            'refPpick':,
+            'el_Ppick':,
+            'fm_picker':,
+            'el_S1pick':,
+            'el_S2pick':,
+            'refSpick':,
+            'aicARHfig',            
+        }
+
+        ap = self._inputs
+        if not self.tap:
+            self.tap = TuneAutopicker(ap, self.fig_dict, self)
+        self.tap.show()
+        
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 
         if not os.path.exists(self.autosave):
@@ -1354,10 +1382,25 @@ class MainWindow(QMainWindow):
             self.get_metadata()
             if not self.metadata:
                 return
+        self.am_figure = Figure()
+        self.am_canvas = FigureCanvas(self.am_figure)
+        self.am_toolbar = NavigationToolbar(self.am_canvas, self)
         self.array_map = map_projection(self)
+        #self.array_map_thread()
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
         self.refresh_array_map()
+
+    def array_map_thread(self):
+        self.amt = Thread(self, self.array_map.init_map, arg=None, progressText='Generating map...')
+        self.amt.finished.connect(self.finish_array_map)
+        self.amt.start()
+
+    def finish_array_map(self):
+        self.array_map = self.amt.data
+        self.array_layout.addWidget(self.array_map)
+        #self.tabs.setCurrentIndex(index)
+        #self.refresh_array_map()
         
     def refresh_array_map(self):
         if not self.array_map:

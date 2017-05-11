@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0):
+def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0, fig_dict=None):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -166,7 +166,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
             print(data)
             ##########################################################
             # !automated picking starts here!
-            picks, mainFig = autopickevent(wfdat, parameter, iplot=iplot)
+            picks, mainFig = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
             ##########################################################
             # locating
             if locflag == 1:

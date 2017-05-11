@@ -14,7 +14,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -104,7 +104,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
         ax.plot(t[inoise], x[inoise], label='Noise Window')
@@ -133,7 +134,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
         return EPick, LPick, PickError
 
 
-def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig_dict):
     '''
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
@@ -620,7 +621,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     return checkedonsets
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
+def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig_dict=None):
     '''
     Function to detect spuriously picked noise peaks.
     Uses RMS trace of all 3 components (if available) to determine,

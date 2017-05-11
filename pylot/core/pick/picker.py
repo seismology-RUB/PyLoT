@@ -34,7 +34,7 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=None, aus=None, Tsmooth=None, Pick1=None):
+    def __init__(self, cf, TSNR, PickWindow, iplot=None, aus=None, Tsmooth=None, Pick1=None, fig=None):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
@@ -72,7 +72,7 @@ class AutoPicker(object):
         self.setaus(aus)
         self.setTsmooth(Tsmooth)
         self.setpick1(Pick1)
-        self.fig = self.calcPick()
+        self.fig = fig
 
     def __str__(self):
         return '''\n\t{name} object:\n
@@ -152,7 +152,6 @@ class AICPicker(AutoPicker):
         self.Pick = None
         self.slope = None
         self.SNR = None
-        fig = None
         # find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -227,7 +226,10 @@ class AICPicker(AutoPicker):
                 print('AICPicker: Maximum for slope determination right at the beginning of the window!')
                 print('Choose longer slope determination window!')
                 if self.iplot > 1:
-                    fig = plt.figure() #self.iplot) ### WHY? MP MP
+                    if not self.fig:
+                        fig = plt.figure() #self.iplot) ### WHY? MP MP
+                    else:
+                        fig = self.fig
                     ax = fig.add_subplot(111)
                     x = self.Data[0].data
                     ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
@@ -236,7 +238,7 @@ class AICPicker(AutoPicker):
                     ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                     ax.set_yticks([])
                     ax.set_title(self.Data[0].stats.station)
-                return fig
+                return
             islope = islope[0][0:imax]
             dataslope = self.Data[0].data[islope]
             # calculate slope as polynomal fit of order 1
@@ -253,7 +255,10 @@ class AICPicker(AutoPicker):
             self.slope = None
 
         if self.iplot > 1:
-            fig = plt.figure()#self.iplot)
+            if not self.fig:
+                fig = plt.figure()#self.iplot)
+            else:
+                fig = self.fig
             ax1 = fig.add_subplot(211)
             x = self.Data[0].data
             ax1.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
@@ -282,7 +287,7 @@ class AICPicker(AutoPicker):
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')
             
-        return fig
+        return
 
 
 class PragPicker(AutoPicker):
@@ -375,7 +380,10 @@ class PragPicker(AutoPicker):
                 pickflag = 0
 
             if self.getiplot() > 1:
-                fig = plt.figure()#self.getiplot())
+                if not self.fig:
+                    fig = plt.figure()#self.getiplot())
+                else:
+                    fig = self.fig
                 ax = fig.add_subplot(111)
                 ax.plot(Tcfpick, cfipick, 'k', label='CF')
                 ax.plot(Tcfpick, cfsmoothipick, 'r', label='Smoothed CF')
@@ -385,7 +393,7 @@ class PragPicker(AutoPicker):
                 ax.set_yticks([])
                 ax.set_title(self.Data[0].stats.station)
                 ax.legend()
-                return fig
+                return
 
         else:
             print('PragPicker: No initial onset time given! Check input!')
