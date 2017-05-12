@@ -1150,24 +1150,35 @@ class MainWindow(QMainWindow):
         self.listWidget.scrollToBottom()
 
     def tune_autopicker(self):
-        self.fig_dict = {
-            'mainFig':,
-            'aicFig':,
-            'slength':,
-            'checkZ4s':,
-            'refPpick':,
-            'el_Ppick':,
-            'fm_picker':,
-            'el_S1pick':,
-            'el_S2pick':,
-            'refSpick':,
+        self.fig_dict = {}
+        self.canvas_dict = {}
+        self.fig_keys = [
+            'mainFig',
+            'aicFig',
+            'slength',
+            'checkZ4s',
+            'refPpick',
+            'el_Ppick',
+            'fm_picker',
+            'el_S1pick',
+            'el_S2pick',
+            'refSpick',
             'aicARHfig',            
-        }
+        ]
+        for key in self.fig_keys:
+            fig = Figure()
+            self.fig_dict[key] = fig
 
         ap = self._inputs
         if not self.tap:
             self.tap = TuneAutopicker(ap, self.fig_dict, self)
-        self.tap.show()
+            self.tap.update.connect(self.update_autopicker)
+            self.tap.show()
+            
+    def update_autopicker(self):
+        for key in self.fig_dict.keys():
+            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+        self.tap.fill_tabs(self.canvas_dict)
         
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 

@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0, fig_dict=None):
+def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -54,6 +54,16 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                 K. Olbert (Christian-Albrechts Universitaet zu Kiel)\n
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
+
+    if input_dict:
+        if input_dict.has_key('parameter'):
+            parameter = input_dict['parameter']
+        if input_dict.has_key('fig_dict'):
+            fig_dict = input_dict['fig_dict']
+        if input_dict.has_key('fnames'):
+            fnames = input_dict['fnames']
+        if input_dict.has_key('iplot'):
+            iplot = input_dict['iplot']
 
     if not parameter:
         if inputfile:
@@ -166,7 +176,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
             print(data)
             ##########################################################
             # !automated picking starts here!
-            picks, mainFig = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
+            picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
             ##########################################################
             # locating
             if locflag == 1:
@@ -317,7 +327,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                The Python picking and Location Tool\n
                ************************************'''.format(version=_getVersionString())
     print(endsp)
-    return picks, mainFig
+    return picks
 
 
 if __name__ == "__main__":
@@ -344,4 +354,5 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
 
-    picks, mainFig = autoPyLoT(str(cla.inputfile), str(cla.fnames), str(cla.spath))
+    picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile),
+                               fnames=str(cla.fnames), savepath=str(cla.spath))

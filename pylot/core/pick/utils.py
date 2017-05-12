@@ -129,12 +129,12 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=Non
         ax.legend()
 
     if iplot:
-        return EPick, LPick, PickError, fig
+        return EPick, LPick, PickError
     else:
         return EPick, LPick, PickError
 
 
-def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig_dict):
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
     '''
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
@@ -279,7 +279,8 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig_dict):
         print ("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax1 = fig.add_subplot(211)
         ax1.plot(t, xraw, 'k')
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
@@ -307,7 +308,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig_dict):
         ax2.set_yticks([])
 
     if iplot:
-        return FM, fig
+        return FM
     else:
         return FM
 
@@ -621,7 +622,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     return checkedonsets
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig_dict=None):
+def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None):
     '''
     Function to detect spuriously picked noise peaks.
     Uses RMS trace of all 3 components (if available) to determine,
@@ -693,7 +694,8 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         returnflag = 0
 
     if iplot == 2:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, rms, 'k', label='RMS Data')
         ax.plot(t[inoise], rms[inoise], 'c', label='RMS Noise Window')
@@ -707,7 +709,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
         ax.set_yticks([])
 
-    return returnflag, fig
+    return returnflag
 
 
 def checkPonsets(pickdic, dttolerance, iplot):
@@ -869,7 +871,7 @@ def jackknife(X, phi, h):
     return PHI_jack, PHI_pseudo, PHI_sub
 
 
-def checkZ4S(X, pick, zfac, checkwin, iplot):
+def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     '''
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
@@ -963,7 +965,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
                        edat[0].stats.delta)
         tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
                        ndat[0].stats.delta)
-        fig = plt.figure()
+        if not fig:
+            fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(tz, z / max(z), 'k')
         ax.plot(tz[isignal], z[isignal] / max(z), 'r')
@@ -981,7 +984,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
         ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
         ax.legend()
 
-    return returnflag, fig
+    return returnflag
 
 
 if __name__ == '__main__':

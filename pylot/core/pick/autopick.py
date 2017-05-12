@@ -74,7 +74,7 @@ def call_autopickstation(input_tuple):
     return autopickstation(wfstream, pickparam, verbose, iplot=0)
 
 
-def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
+def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
     """
     :param wfstream: `~obspy.core.stream.Stream`  containing waveform
     :type wfstream: obspy.core.stream.Stream
@@ -233,7 +233,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
         # get prelimenary onset time from AIC-HOS-CF using subclass AICPicker
         # of class AutoPicking
         key = 'aicFig'
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig_dict[key])
+        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig_dict[key])
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
@@ -266,7 +266,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 zne += trH1_filt
                 zne += trH2_filt
-                key = 'slenght'
+                key = 'slength'
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
                                           minsiglength,
                                           nfacsl, minpercent, iplot,
@@ -281,7 +281,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0):
                     if verbose: print(msg)
                 else:
                     if iplot>1:
-                        key = 'checkZ4S'
+                        key = 'checkZ4s'
                     Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
                                      tsnrz[3], iplot, fig_dict[key])
                     if Pflag == 0:

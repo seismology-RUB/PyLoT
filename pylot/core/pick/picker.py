@@ -73,6 +73,7 @@ class AutoPicker(object):
         self.setTsmooth(Tsmooth)
         self.setpick1(Pick1)
         self.fig = fig
+        self.calcPick()
 
     def __str__(self):
         return '''\n\t{name} object:\n
