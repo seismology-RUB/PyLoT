@@ -105,6 +105,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=Non
 
     if iplot > 1:
         if not fig:
+            print('New Figure.........................')
             fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
@@ -128,10 +129,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=Non
             X[0].stats.station)
         ax.legend()
 
-    if iplot:
-        return EPick, LPick, PickError
-    else:
-        return EPick, LPick, PickError
+    return EPick, LPick, PickError
 
 
 def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
@@ -307,10 +305,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
         ax2.set_xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
         ax2.set_yticks([])
 
-    if iplot:
-        return FM
-    else:
-        return FM
+    return FM
 
 
 def crossings_nonzero_all(data):

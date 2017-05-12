@@ -341,7 +341,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
                 if iplot:
                     key = 'el_Ppick'
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
-                                                            mpickP, iplot, fig_dict[key])
+                                                            mpickP, iplot, fig=fig_dict[key])
                 else:
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
                                                               mpickP, iplot)
@@ -470,7 +470,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
         # of class AutoPicking
         key = 'aicARHfig'
         aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, iplot, None,
-                               aictsmoothS, fig_dict[key])
+                               aictsmoothS, fig = fig_dict[key])
         ###############################################################
         # go on with processing if AIC onset passes quality control
         if (aicarhpick.getSlope() >= minAICSslope and

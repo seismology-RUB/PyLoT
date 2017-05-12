@@ -1295,7 +1295,7 @@ class TuneAutopicker(QWidget):
         self.p_tabs = QtGui.QTabWidget()
         self.s_tabs = QtGui.QTabWidget()
         self.layout.insertWidget(0, self.main_tabs)
-        #self.init_tab_names()
+        self.init_tab_names()
         #self.fill_tabs(None)
 
     def add_parameter(self):
@@ -1337,7 +1337,7 @@ class TuneAutopicker(QWidget):
         self.layout.setStretch(1, 1)        
         
     def init_tab_names(self):
-        self.ptb_names = ['aicFig', 'slenght', 'checkZ4S', 'refPpick', 'el_Ppick', 'fm_picker']
+        self.ptb_names = ['aicFig', 'slength', 'checkZ4s', 'refPpick', 'el_Ppick', 'fm_picker']
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def fill_tabs(self, canvas_dict):
@@ -1356,26 +1356,23 @@ class TuneAutopicker(QWidget):
 
     def fill_p_tabs(self, canvas_dict):
         for name in self.ptb_names:
+            id = self.p_tabs.addTab(canvas_dict[name], name)
+            self.p_tabs.setTabEnabled(id, bool(self.fig_dict[name].axes))
             try:
-                id = self.p_tabs.addTab(canvas_dict[name], name)
-                self.p_tabs.setTabEnabled(id, True)                
-                figure.tight_layout()
-            except Exception as e:
-                id = self.p_tabs.addTab(QtGui.QWidget(), name)
-                self.p_tabs.setTabEnabled(id, False)
-
+                self.fig_dict[name].tight_layout()
+            except:
+                pass
+                
     def fill_s_tabs(self, canvas_dict):
         for name in self.stb_names:
+            figure = self.fig_dict[name]
+            id = self.s_tabs.addTab(canvas_dict[name], name)
+            self.s_tabs.setTabEnabled(id, bool(self.fig_dict[name].axes))
             try:
-                figure = self.fig_dict[name]
-                id = self.s_tabs.addTab(canvas_dict[name], name)
-                self.s_tabs.setTabEnabled(id, True)                
-                figure.tight_layout()
-            except Exception as e:
-                id = self.s_tabs.addTab(QtGui.QWidget(), name)
-                self.s_tabs.setTabEnabled(id, False)
-            
-    
+                self.fig_dict[name].tight_layout()
+            except:
+                pass
+                
 class PropertiesDlg(QDialog):
     def __init__(self, parent=None, infile=None):
         super(PropertiesDlg, self).__init__(parent)
