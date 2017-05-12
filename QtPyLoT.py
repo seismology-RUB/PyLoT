@@ -636,13 +636,13 @@ class MainWindow(QMainWindow):
     def createEventBox(self):
         qcb = QComboBox()
         palette = qcb.palette()
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
-                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
-                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        # change highlight color:
+        # palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
+        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        # palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
+        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
         qcb.setPalette(palette)
         return qcb
-
         
     def init_events(self, new=False):
         nitems = self.eventBox.count()
@@ -651,7 +651,7 @@ class MainWindow(QMainWindow):
             self.clearWaveformDataPlot()
             return
         self.eventBox.setEnabled(True)
-        self.fill_eventbox()
+        self.fill_eventbox(self.eventBox)
         if new:
             self.eventBox.setCurrentIndex(0)
         else:
@@ -659,8 +659,12 @@ class MainWindow(QMainWindow):
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
 
-    def fill_eventbox(self):
-        index=self.eventBox.currentIndex()
+    def fill_eventbox(self, eventBox, select_events='all'):
+        '''
+        :param: select_events, can be 'all', 'ref'
+        :type: str
+        '''
+        index=eventBox.currentIndex()
         tv=QtGui.QTableView()
         header = tv.horizontalHeader()
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
@@ -669,10 +673,11 @@ class MainWindow(QMainWindow):
         tv.verticalHeader().hide()
         tv.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
-        self.eventBox.setView(tv)
-        self.eventBox.clear()
-        model = self.eventBox.model()
+        eventBox.setView(tv)
+        eventBox.clear()
+        model = eventBox.model()
         plmax=0
+        #set maximum length of path string
         for event in self.project.eventlist:
             pl = len(event.path)
             if pl > plmax:
@@ -722,8 +727,11 @@ class MainWindow(QMainWindow):
             # item2.setForeground(QtGui.QColor('black'))
             # item2.setFont(font)
             itemlist = [item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
+            if event_test and select_events == 'ref':
+                for item in itemlist:
+                    item.setEnabled(False)
             model.appendRow(itemlist)
-        self.eventBox.setCurrentIndex(index)
+        eventBox.setCurrentIndex(index)
 
     def filename_from_action(self, action):
         if action.data() is None:
@@ -1169,11 +1177,12 @@ class MainWindow(QMainWindow):
             fig = Figure()
             self.fig_dict[key] = fig
 
-        ap = self._inputs
         if not self.tap:
-            self.tap = TuneAutopicker(ap, self.fig_dict, self)
+            self.tap = TuneAutopicker(self)
             self.tap.update.connect(self.update_autopicker)
-            self.tap.show()
+        else:
+            self.tap.fill_eventbox()
+        self.tap.show()
             
     def update_autopicker(self):
         for key in self.fig_dict.keys():
@@ -1420,7 +1429,7 @@ class MainWindow(QMainWindow):
         self.array_map.refresh_drawings(self.picks)
         self._eventChanged[1] = False
 
-    def init_event_table(self, index=2):
+    def init_event_table(self, tabindex=2):
         def set_enabled(item, enabled=True, checkable=False):
             if enabled and not checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
@@ -1451,12 +1460,12 @@ class MainWindow(QMainWindow):
                     event.setTestEvent(True)
                 elif column == 4 and not item_test.checkState():
                     event.setTestEvent(False)
-                self.fill_eventbox()                    
+                self.fill_eventbox(self.eventBox)                    
             elif column == 5:
                 #update event notes
                 notes = table[row][5].text()
                 event.addNotes(notes)
-                self.fill_eventbox()
+                self.fill_eventbox(self.eventBox)
 
         if hasattr(self, 'qtl'):
             self.qtl.setParent(None)
@@ -1521,7 +1530,7 @@ class MainWindow(QMainWindow):
         self.qtl.cellChanged[int, int].connect(cell_changed)
         
         self.events_layout.addWidget(self.qtl)
-        self.tabs.setCurrentIndex(index)
+        self.tabs.setCurrentIndex(tabindex)
         
     def read_metadata_thread(self, fninv):
         self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...')
@@ -1710,7 +1719,7 @@ class MainWindow(QMainWindow):
                 self.createNewProject(exists=True)
                 
     def draw(self):
-        self.fill_eventbox()
+        self.fill_eventbox(self.eventBox)
         self.getPlotWidget().draw()
 
     def setDirty(self, value):

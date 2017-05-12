@@ -1273,41 +1273,60 @@ class PickDlg(QDialog):
 class TuneAutopicker(QWidget):     
     update = QtCore.Signal(str)
     
-    def __init__(self, ap, fig_dict, parent=None):
+    def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent, 1)
-        self.ap = ap
         self.parent = parent
-        self.station = 'TMO53' ############# justs for testing
-        self.fig_dict = fig_dict
-        self.layout = QtGui.QHBoxLayout()
-        self.parameter_layout = QtGui.QVBoxLayout()
-        self.setLayout(self.layout)
+        self.ap = parent._inputs
+        self.fig_dict = parent.fig_dict
+        self.init_main_layouts()
+        self.init_eventlist()
         self.init_figure_tabs()
         self.add_parameter()
         self.add_buttons()
         self.set_stretch()
         self.resize(1280, 720)
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        #self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
+    def init_main_layouts(self):
+        self.main_layout = QtGui.QVBoxLayout()
+        self.tune_layout = QtGui.QHBoxLayout()
+        self.trace_layout = QtGui.QHBoxLayout()
+        self.parameter_layout = QtGui.QVBoxLayout()
+
+        self.main_layout.addLayout(self.tune_layout)
+        self.main_layout.addLayout(self.trace_layout)        
+        self.setLayout(self.main_layout)
+        
+    def init_eventlist(self):
+        self.eventBox = self.parent.createEventBox()
+        self.fill_eventbox()
+        self.trace_layout.addWidget(self.eventBox)
+
+    def init_stationlist(self):
+        pass
+    
     def init_figure_tabs(self):
         self.main_tabs = QtGui.QTabWidget()
         self.p_tabs = QtGui.QTabWidget()
         self.s_tabs = QtGui.QTabWidget()
-        self.layout.insertWidget(0, self.main_tabs)
+        self.tune_layout.insertWidget(0, self.main_tabs)
         self.init_tab_names()
-        #self.fill_tabs(None)
 
     def add_parameter(self):
         self.parameters = AutoPickParaBox(self.ap)
         self.parameter_layout.addWidget(self.parameters)
-        self.layout.insertLayout(1, self.parameter_layout)
+        self.tune_layout.insertLayout(1, self.parameter_layout)
 
     def add_buttons(self):
         self.pick_button = QtGui.QPushButton('Pick Trace')
         self.pick_button.clicked.connect(self.call_picker)
-        self.parameter_layout.addWidget(self.pick_button)
+        self.trace_layout.addWidget(self.pick_button)
+        self.trace_layout.setStretch(0, 1)
 
+    def fill_eventbox(self):
+        self.parent.fill_eventbox(self.eventBox, 'ref')
+        
     def call_picker(self):
         self.ap = self.update_params()
         args = {'parameter': self.ap,
@@ -1333,8 +1352,8 @@ class TuneAutopicker(QWidget):
         return ap
 
     def set_stretch(self):
-        self.layout.setStretch(0, 3)
-        self.layout.setStretch(1, 1)        
+        self.tune_layout.setStretch(0, 3)
+        self.tune_layout.setStretch(1, 1)        
         
     def init_tab_names(self):
         self.ptb_names = ['aicFig', 'slength', 'checkZ4s', 'refPpick', 'el_Ppick', 'fm_picker']
