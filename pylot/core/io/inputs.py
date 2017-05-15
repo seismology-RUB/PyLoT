@@ -47,47 +47,12 @@ class AutoPickParameter(object):
         self.__init_default_paras()
         self.__init_subsettings()
         self.__filename = fnin
-        parFileCont = {}
+        self._verbosity = verbosity
+        self._parFileCont = {}
         # io from parsed arguments alternatively
         for key, val in kwargs.items():
-            parFileCont[key] = val
-
-        if self.__filename is not None:
-            inputFile = open(self.__filename, 'r')
-        else:
-            return
-        try:
-            lines = inputFile.readlines()
-            for line in lines:
-                parspl = line.split('\t')[:2]
-                parFileCont[parspl[0].strip()] = parspl[1]
-        except IndexError as e:
-            if verbosity > 0:
-                self._printParameterError(e)
-            inputFile.seek(0)
-            lines = inputFile.readlines()
-            for line in lines:
-                if not line.startswith(('#', '%', '\n', ' ')):
-                    parspl = line.split('#')[:2]
-                    parFileCont[parspl[1].strip()] = parspl[0].strip()
-        for key, value in parFileCont.items():
-            try:
-                val = int(value)
-            except:
-                try:
-                    val = float(value)
-                except:
-                    if len(value.split(' ')) > 1:
-                        vallist = value.strip().split(' ')
-                        val = []
-                        for val0 in vallist:
-                            val0 = float(val0)
-                            val.append(val0)
-                    else:
-                        val = str(value.strip())
-            parFileCont[key] = val
-        self.__parameter = parFileCont
-
+            self._parFileCont[key] = val
+        self.from_file()
         if fnout:
             self.export2File(fnout)
 
@@ -198,6 +163,51 @@ class AutoPickParameter(object):
     @staticmethod
     def _printParameterError(errmsg):
         print('ParameterError:\n non-existent parameter %s' % errmsg)
+
+    def reset_defaults(self):
+        defaults = self.get_defaults()
+        for param in defaults:
+            self.setParamKV(param, defaults[param]['value'])
+        
+    def from_file(self, fnin=None):
+        if not fnin:
+            if self.__filename is not None:
+                fnin = self.__filename
+            else:
+                return
+
+        inputFile = open(fnin, 'r')
+        try:
+            lines = inputFile.readlines()
+            for line in lines:
+                parspl = line.split('\t')[:2]
+                self._parFileCont[parspl[0].strip()] = parspl[1]
+        except IndexError as e:
+            if self._verbosity > 0:
+                self._printParameterError(e)
+            inputFile.seek(0)
+            lines = inputFile.readlines()
+            for line in lines:
+                if not line.startswith(('#', '%', '\n', ' ')):
+                    parspl = line.split('#')[:2]
+                    self._parFileCont[parspl[1].strip()] = parspl[0].strip()
+        for key, value in self._parFileCont.items():
+            try:
+                val = int(value)
+            except:
+                try:
+                    val = float(value)
+                except:
+                    if len(value.split(' ')) > 1:
+                        vallist = value.strip().split(' ')
+                        val = []
+                        for val0 in vallist:
+                            val0 = float(val0)
+                            val.append(val0)
+                    else:
+                        val = str(value.strip())
+            self._parFileCont[key] = val
+        self.__parameter = self._parFileCont
 
     def export2File(self, fnout):
         fid_out = open(fnout, 'w')

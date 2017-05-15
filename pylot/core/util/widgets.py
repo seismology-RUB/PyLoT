@@ -1764,7 +1764,8 @@ class AutoPickParaBox(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         self.ap = ap
         self.tabs = QtGui.QTabWidget()
-        self.layout = QtGui.QHBoxLayout()
+        self.layout = QtGui.QVBoxLayout()
+        self._init_buttons()
         self.layout.addWidget(self.tabs)
         self.boxes = {}
         self._init_sublayouts()
@@ -1778,6 +1779,19 @@ class AutoPickParaBox(QtGui.QWidget):
         self._main_layout = QtGui.QVBoxLayout()
         self._advanced_layout = QtGui.QVBoxLayout()
         self._create_advanced_cb()
+
+    def _init_buttons(self):
+        self._buttons_layout = QtGui.QHBoxLayout()
+        self.loadButton = QtGui.QPushButton('&Load settings')
+        self.saveButton = QtGui.QPushButton('&Save settings')
+        self.defaultsButton = QtGui.QPushButton('&Defaults')
+        self._buttons_layout.addWidget(self.loadButton)
+        self._buttons_layout.addWidget(self.saveButton)
+        self._buttons_layout.addWidget(self.defaultsButton)
+        self.layout.addLayout(self._buttons_layout)
+        self.loadButton.clicked.connect(self.openFile)
+        self.saveButton.clicked.connect(self.saveFile)
+        self.defaultsButton.clicked.connect(self.restoreDefaults)
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
@@ -1954,6 +1968,42 @@ class AutoPickParaBox(QtGui.QWidget):
             value = tuple(value)
         return value
 
+    def openFile(self):
+        fd = QtGui.QFileDialog()
+        fname = fd.getOpenFileName(self, 'Browse for settings file.', '*.in')
+        if fname[0]:
+            try:
+                self.ap.from_file(fname[0])
+                self.params_to_gui()
+            except Exception as e:
+                self._warn('Could not open file {}:\n{}'.format(fname[0], e))
+                return
+
+    def saveFile(self):
+        fd = QtGui.QFileDialog()
+        fname = fd.getSaveFileName(self, 'Browse for settings file.', '*.in')
+        if fname[0]:
+            try:
+                self.params_from_gui()
+                self.ap.export2File(fname[0])
+            except Exception as e:
+                self._warn('Could not save file {}:\n{}'.format(fname[0], e))
+                return
+            
+    def restoreDefaults(self):
+        try:
+            self.ap.reset_defaults()
+            self.params_to_gui()
+        except Exception as e:
+            self._warn('Could not restore defaults:\n{}'.format(e))
+            return
+            
+    def _warn(self, message):
+        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+                                     'Warning', message)
+        self.qmb.show()        
+            
+            
 class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)
