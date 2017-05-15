@@ -700,7 +700,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
 
         if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
             # plot horizontal traces
-            ax2 = fig.add_subplot(312)
+            ax2 = fig.add_subplot(3,1,2,sharex=ax1)
             th1data = np.arange(0,
                                 trH1_filt.stats.npts /
                                 trH1_filt.stats.sampling_rate,
@@ -749,7 +749,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
             ax2.set_ylabel('Normalized Counts')
             #fig.suptitle(trH1_filt.stats.starttime)
 
-            ax3 = fig.add_subplot(313)
+            ax3 = fig.add_subplot(3,1,3, sharex=ax1)
             th2data = np.arange(0,
                                 trH2_filt.stats.npts /
                                 trH2_filt.stats.sampling_rate,

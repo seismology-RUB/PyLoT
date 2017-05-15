@@ -1294,8 +1294,8 @@ class TuneAutopicker(QWidget):
         self.trace_layout = QtGui.QHBoxLayout()
         self.parameter_layout = QtGui.QVBoxLayout()
 
-        self.main_layout.addLayout(self.tune_layout)
         self.main_layout.addLayout(self.trace_layout)        
+        self.main_layout.addLayout(self.tune_layout)
         self.setLayout(self.main_layout)
         
     def init_eventlist(self):
@@ -1360,10 +1360,8 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def fill_tabs(self, canvas_dict):
-        try:
-            self.main_tabs.addTab(canvas_dict['mainFig'], 'Overview')
-        except Exception as e:
-            self.main_tabs.addTab(QtGui.QWidget(), 'Overview')            
+        id = self.main_tabs.addTab(self.gen_tab_widget('Overview', canvas_dict['mainFig']), 'Overview')
+        self.main_tabs.setTabEnabled(id, bool(self.fig_dict['mainFig'].axes))
         self.main_tabs.addTab(self.p_tabs, 'P')
         self.main_tabs.addTab(self.s_tabs, 'S')
         self.fill_p_tabs(canvas_dict)
@@ -1375,7 +1373,7 @@ class TuneAutopicker(QWidget):
 
     def fill_p_tabs(self, canvas_dict):
         for name in self.ptb_names:
-            id = self.p_tabs.addTab(canvas_dict[name], name)
+            id = self.p_tabs.addTab(self.gen_tab_widget(name, canvas_dict[name]), name)
             self.p_tabs.setTabEnabled(id, bool(self.fig_dict[name].axes))
             try:
                 self.fig_dict[name].tight_layout()
@@ -1384,13 +1382,21 @@ class TuneAutopicker(QWidget):
                 
     def fill_s_tabs(self, canvas_dict):
         for name in self.stb_names:
-            figure = self.fig_dict[name]
-            id = self.s_tabs.addTab(canvas_dict[name], name)
+            id = self.s_tabs.addTab(self.gen_tab_widget(name, canvas_dict[name]), name)
             self.s_tabs.setTabEnabled(id, bool(self.fig_dict[name].axes))
             try:
                 self.fig_dict[name].tight_layout()
             except:
                 pass
+
+    def gen_tab_widget(self, name, canvas):
+        widget = QtGui.QWidget()
+        v_layout = QtGui.QVBoxLayout()
+        v_layout.addWidget(canvas)
+        v_layout.addWidget(NavigationToolbar2QT(canvas, self))
+        widget.setLayout(v_layout)
+        return widget
+    
                 
 class PropertiesDlg(QDialog):
     def __init__(self, parent=None, infile=None):

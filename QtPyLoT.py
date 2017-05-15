@@ -556,12 +556,14 @@ class MainWindow(QMainWindow):
         self.drawPicks(picktype=type)
         self.draw()
 
-    def getCurrentEvent(self):
-        for event in self.project.eventlist:
-            if event.path == self.getCurrentEventPath():
+    def getCurrentEvent(self, eventlist=None):
+        if not eventlist:
+            eventlist = self.project.eventlist
+        for event in eventlist:
+            if event.path == self.getCurrentEventPath(eventlist):
                 return event
 
-    def getCurrentEventPath(self):
+    def getCurrentEventPath(self, eventlist=None):
         return str(self.eventBox.currentText().split('|')[0]).strip()
         
     def getLastEvent(self):
@@ -604,10 +606,10 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getWFFnames_from_eventlist(self):
+    def getWFFnames_from_eventlist(self, eventlist=None):
         if self.dataStructure:
             searchPath = self.dataStructure.expandDataPath()
-            directory = self.getCurrentEventPath()
+            directory = self.getCurrentEventPath(eventlist)
             self.fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
@@ -940,7 +942,7 @@ class MainWindow(QMainWindow):
         #     ans = self.data.setWFData(self.getWFFnames())
         # else:
         #     ans = False
-        self.data.setWFData(self.getWFFnames_from_eventlist())
+        self.data.setWFData(self.getWFFnames_from_eventlist(self.project.eventlist))
         self._stime = full_range(self.get_data().getWFData())[0]
 
     def connectWFplotEvents(self):

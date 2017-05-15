@@ -268,22 +268,28 @@ class AICPicker(AutoPicker):
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
             ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
             ax1.set_yticks([])
-            ax1.set_title(self.Data[0].stats.station)
             ax1.legend()
             
             if self.Pick is not None:
-                ax2 = fig.add_subplot(212)
+                ax2 = fig.add_subplot(2,1,2, sharex=ax1)
                 ax2.plot(self.Tcf, x, 'k', label='Data')
-                ax2.plot(self.Tcf[inoise], self.Data[0].data[inoise], label='Noise Window')
-                ax2.plot(self.Tcf[isignal], self.Data[0].data[isignal], 'r', label='Signal Window')
-                ax2.plot(self.Tcf[islope], dataslope, 'g--', label='Slope Window')
+                ax1.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+                ax1.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
+                ax1.axvspan(self.Tcf[islope[0]],self.Tcf[islope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')
+                
+                ax2.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+                ax2.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
+                ax2.axvspan(self.Tcf[islope[0]],self.Tcf[islope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')                
                 ax2.plot(self.Tcf[islope], datafit, 'g', linewidth=2, label='Slope')
-                ax2.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
+                
+                ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
                                                                                 self.SNR, self.slope))
                 ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
                 ax2.legend()
+            else:
+                ax1.set_title(self.Data[0].stats.station)
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')

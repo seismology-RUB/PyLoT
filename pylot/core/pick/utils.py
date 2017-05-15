@@ -105,12 +105,11 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=Non
 
     if iplot > 1:
         if not fig:
-            print('New Figure.........................')
             fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
-        ax.plot(t[inoise], x[inoise], label='Noise Window')
-        ax.plot(t[isignal], x[isignal], 'r', label='Signal Window')
+        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
         ax.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
@@ -292,7 +291,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
         ax1.set_title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
             0].stats.station)
 
-        ax2=fig.add_subplot(212)
+        ax2=fig.add_subplot(2,1,2, sharex=ax1)
         ax2.set_title('First-Motion Determination, Filtered Data')
         ax2.plot(t, xfilt, 'k')
         ax2.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
@@ -693,8 +692,8 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
             fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, rms, 'k', label='RMS Data')
-        ax.plot(t[inoise], rms[inoise], 'c', label='RMS Noise Window')
-        ax.plot(t[isignal], rms[isignal], 'r', label='RMS Signal Window')
+        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')        
+        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')        
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
                 [minsiglevel, minsiglevel], 'g', linewidth=2, label='Minimum Signal Level')
         ax.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2, label='Onset')
@@ -964,11 +963,10 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
             fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(tz, z / max(z), 'k')
-        ax.plot(tz[isignal], z[isignal] / max(z), 'r')
+        ax.axvspan(tz[isignal[0]], tz[isignal[-1]], color='b', alpha=0.2,
+                   lw=0, label='Signal Window')
         ax.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
-        ax.plot(te[isignal], edat[0].data[isignal] / max(edat[0].data) + 1, 'r')
         ax.plot(tn, ndat[0].data / max(ndat[0].data) + 2, 'k')
-        ax.plot(tn[isignal], ndat[0].data[isignal] / max(ndat[0].data) + 2, 'r')
         ax.plot([tz[isignal[0]], tz[isignal[len(isignal) - 1]]],
                 [minsiglevel / max(z), minsiglevel / max(z)], 'g',
                 linewidth=2, label='Minimum Signal Level')
