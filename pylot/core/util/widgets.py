@@ -1289,11 +1289,14 @@ class TuneAutopicker(QWidget):
         self.init_eventlist()
         self.init_stationlist()
         self.init_figure_tabs()
-        self.add_parameter()
+        self.init_pbwidget()
+        self.add_parameters()
         self.add_buttons()
+        self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
-        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+        self.figure_tabs.setCurrentIndex(0)
+        #self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         #self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
     def init_main_layouts(self):
@@ -1309,12 +1312,15 @@ class TuneAutopicker(QWidget):
     def init_eventlist(self):
         self.eventBox = self.parent.createEventBox()
         self.fill_eventbox()
+        self.eventBox.setCurrentIndex(1)
         self.trace_layout.addWidget(self.eventBox)
         self.eventBox.activated.connect(self.fill_stationbox)
+        self.eventBox.activated.connect(self.update_eventID)
 
     def init_stationlist(self):
         self.stationBox = QtGui.QComboBox()
         self.trace_layout.addWidget(self.stationBox)
+        self.fill_stationbox()
 
     def fill_stationbox(self):
         fnames = self.parent.getWFFnames_from_eventbox(eventbox=self.eventBox)
@@ -1325,19 +1331,23 @@ class TuneAutopicker(QWidget):
             station = trace.stats.station
             if not station in stations:
                 stations.append(str(station))
+        stations.sort()
         for station in stations:
             self.stationBox.addItem(str(station))
-            
-    def init_figure_tabs(self):
-        self.main_tabs = QtGui.QTabWidget()
-        self.p_tabs = QtGui.QTabWidget()
-        self.s_tabs = QtGui.QTabWidget()
-        self.tune_layout.insertWidget(0, self.main_tabs)
-        self.init_tab_names()
 
-    def add_parameter(self):
+    def init_figure_tabs(self):
+        self.figure_tabs = QtGui.QTabWidget()
+        self.fill_figure_tabs()
+        
+    def init_pbwidget(self):
+        self.pb_widget = QtGui.QWidget()
+
+    def add_parameters(self):
         self.parameters = AutoPickParaBox(self.ap)
+        self.parameters.set_tune_mode(True)
+        self.update_eventID()
         self.parameter_layout.addWidget(self.parameters)
+        self.parameter_layout.addWidget(self.pb_widget)
         self.tune_layout.insertLayout(1, self.parameter_layout)
 
     def add_buttons(self):
@@ -1346,29 +1356,83 @@ class TuneAutopicker(QWidget):
         self.trace_layout.addWidget(self.pick_button)
         self.trace_layout.setStretch(0, 1)
 
+    def add_log(self):
+        self.listWidget = QtGui.QListWidget()
+        self.figure_tabs.insertTab(3, self.listWidget, 'log')
+        
+    def fill_figure_tabs(self):
+        self.p_tabs = QtGui.QTabWidget()
+        self.s_tabs = QtGui.QTabWidget()
+        self.tune_layout.insertWidget(0, self.figure_tabs)
+        self.init_tab_names()
+
     def fill_eventbox(self):
         self.parent.fill_eventbox(self.eventBox, 'ref')
+
+    def get_current_event(self):
+        return self.eventBox.currentText().split('/')[-1]
+        
+    def update_eventID(self):
+        self.parameters.boxes['eventID'].setText(self.get_current_event())
+
+    def add_log_item(self, text):
+        self.listWidget.addItem(text)
+        self.listWidget.scrollToBottom()
         
     def call_picker(self):
-        self.ap = self.update_params()
+        self.ap = self.params_from_gui()
+        station = str(self.stationBox.currentText())
+        if not station:
+            self._warn('No station selected')
+            return
         args = {'parameter': self.ap,
+                'station': station,
                 'fnames': 'None',
                 'iplot': 2,
-                'fig_dict': self.fig_dict}
-        self.ap_thread = Thread(self, autoPyLoT, arg=args, progressText='Picking trace...')
+                'fig_dict': self.fig_dict,
+                'locflag': 0}
+        for key in self.fig_dict.keys():
+            self.fig_dict[key].clear()
+        self.ap_thread = Thread(self, autoPyLoT, arg=args,
+                                progressText='Picking trace...', pb_widget=self.pb_widget,
+                                redirect_stdout=True)
+        self.enable(False)
+        self.ap_thread.message.connect(self.add_log_item)
         self.ap_thread.finished.connect(self.finish_picker)
+        self.figure_tabs.setCurrentIndex(3)
         self.ap_thread.start()
         #picks = autoPyLoT(self.ap, fnames='None', iplot=2, fig_dict=self.fig_dict)
 
     def finish_picker(self):
+        self.enable(True)
+        if not self.ap_thread._executed:
+            self._warn('Could not execute picker:\n{}'.format(
+                self.ap_thread._executedError))
+            return
         self.picks = self.ap_thread.data
-        self.main_tabs.setParent(None)
-        self.init_figure_tabs()
+        if not self.picks:
+            self._warn('No picks found. See terminal output.')
+            return
+        #renew tabs
+        self.overview.setParent(None)
+        self.p_tabs.setParent(None)
+        self.s_tabs.setParent(None)        
+        self.fill_figure_tabs()
         self.set_stretch()
         self.update.emit('Update')
+        self.figure_tabs.setCurrentIndex(0)        
 
-    def update_params(self):
-        ap = self.parameters.update_params()
+    def enable(self, bool):
+        self.pick_button.setEnabled(bool)
+        self.parameters.setEnabled(bool)
+        self.eventBox.setEnabled(bool)
+        self.stationBox.setEnabled(bool)
+        self.overview.setEnabled(bool)
+        self.p_tabs.setEnabled(bool)
+        self.s_tabs.setEnabled(bool)        
+        
+    def params_from_gui(self):
+        ap = self.parameters.params_from_gui()
         if self.parent:
             self.parent._inputs = ap
         return ap
@@ -1382,10 +1446,11 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def fill_tabs(self, canvas_dict):
-        id = self.main_tabs.addTab(self.gen_tab_widget('Overview', canvas_dict['mainFig']), 'Overview')
-        self.main_tabs.setTabEnabled(id, bool(self.fig_dict['mainFig'].axes))
-        self.main_tabs.addTab(self.p_tabs, 'P')
-        self.main_tabs.addTab(self.s_tabs, 'S')
+        self.overview = self.gen_tab_widget('Overview', canvas_dict['mainFig'])
+        id = self.figure_tabs.insertTab(0, self.overview, 'Overview')
+        #self.figure_tabs.setTabEnabled(id, bool(self.fig_dict['mainFig'].axes))
+        self.figure_tabs.insertTab(1, self.p_tabs, 'P')
+        self.figure_tabs.insertTab(2, self.s_tabs, 'S')
         self.fill_p_tabs(canvas_dict)
         self.fill_s_tabs(canvas_dict)
         try:
@@ -1418,6 +1483,11 @@ class TuneAutopicker(QWidget):
         v_layout.addWidget(NavigationToolbar2QT(canvas, self))
         widget.setLayout(v_layout)
         return widget
+
+    def _warn(self, message):
+        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+                                     'Warning', message)
+        self.qmb.show()        
     
                 
 class PropertiesDlg(QDialog):
@@ -1701,6 +1771,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
         self.add_special_pick_parameters_tab()
+        self.params_to_gui()
         self._toggle_advanced_settings()
 
     def _init_sublayouts(self):
@@ -1728,8 +1799,16 @@ class AutoPickParaBox(QtGui.QWidget):
                 else:
                     for b in box:
                         b.setEnabled(enable)
-            
-    def init_boxes(self, parameter_names, defaults=False):
+                        
+    def set_tune_mode(self, bool):
+        keys = ['rootpath', 'datapath', 'database',
+                'eventID', 'invdir', 'nllocbin',
+                'nllocroot', 'phasefile',
+                'ctrfile', 'ttpatter', 'outpatter']
+        for key in keys:
+            self.boxes[key].setEnabled(not(bool))
+        
+    def init_boxes(self, parameter_names):
         grid = QtGui.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
@@ -1739,22 +1818,15 @@ class AutoPickParaBox(QtGui.QWidget):
             tooltip = default_item['tooltip']
             tooltip += ' | type: {}'.format(default_item['type'])
             if not type(default_item['type']) == tuple:
-                if defaults:
-                    value = default_item['value']
-                else:
-                    value = self.ap[name]
                 typ = default_item['type']
-                box = self.create_box(value, typ, tooltip)
+                box = self.create_box(typ, tooltip)
                 self.boxes[name] = box
             elif type(default_item['type']) == tuple:
                 boxes = []
-                if defaults:
-                    values = default_item['value']
-                else:
-                    values = self.ap[name]
+                values = self.ap[name]
                 for index2, val in enumerate(values):
                     typ = default_item['type'][index2]
-                    boxes.append(self.create_box(val, typ, tooltip))
+                    boxes.append(self.create_box(typ, tooltip))
                 box = self.create_multi_box(boxes)
                 self.boxes[name] = boxes
             label.setToolTip(tooltip)
@@ -1762,25 +1834,15 @@ class AutoPickParaBox(QtGui.QWidget):
             grid.addWidget(box, index1, 2)
         return grid
 
-    def create_box(self, value, typ, tooltip):
+    def create_box(self, typ, tooltip):
         if typ == str:
             box = QtGui.QLineEdit()
-            box.setText(value)
         elif typ == float:
             box = QtGui.QDoubleSpinBox()
-            box.setMaximum(100*value)
-            box.setValue(value)
         elif typ == int:
             box = QtGui.QSpinBox()
-            box.setMaximum(100*value)
-            box.setValue(value)
         elif typ == bool:
-            if value == 'True':
-                value = True
-            if value == 'False':
-                value = False
             box = QtGui.QCheckBox()
-            box.setChecked(value)
         else:
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
@@ -1847,14 +1909,37 @@ class AutoPickParaBox(QtGui.QWidget):
         if seperator:
             layout.addWidget(self.gen_h_seperator())
 
-    def update_params(self):
+    def params_from_gui(self):
         for param in self.ap.get_all_para_names():
             box = self.boxes[param]
             value = self.getValue(box)
             self.ap.checkValue(param, value)
-            self.ap.setParam(param, value)
+            self.ap.setParamKV(param, value)
         return self.ap
 
+    def params_to_gui(self):
+        for param in self.ap.get_all_para_names():
+            box = self.boxes[param]
+            value = self.ap[param]
+            #self.ap.checkValue(param, value)
+            self.setValue(box, value)
+
+    def setValue(self, box, value):
+        if type(box) == QtGui.QLineEdit:
+            box.setText(value)
+        elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
+            box.setMaximum(100*value)
+            box.setValue(value)
+        elif type(box) == QtGui.QCheckBox:
+            if value == 'True':
+                value = True
+            if value == 'False':
+                value = False
+            box.setChecked(value)
+        elif type(box) == list:
+            for index, b in enumerate(box):
+                self.setValue(b, value[index])
+        
     def getValue(self, box):
         if type(box) == QtGui.QLineEdit:
             value = str(box.text())
@@ -1869,7 +1954,6 @@ class AutoPickParaBox(QtGui.QWidget):
             value = tuple(value)
         return value
 
-            
 class ParametersTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ParametersTab, self).__init__(parent)

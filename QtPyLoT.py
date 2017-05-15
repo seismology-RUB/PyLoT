@@ -1181,6 +1181,7 @@ class MainWindow(QMainWindow):
 
         if not self.tap:
             self.tap = TuneAutopicker(self)
+            self.update_autopicker()
             self.tap.update.connect(self.update_autopicker)
         else:
             self.tap.fill_eventbox()
@@ -1761,10 +1762,18 @@ class Project(object):
             return
         for item in eventlist:
             event = Event(item)
-            if not event in self.eventlist:
+            if not event.path in self.getPaths():
                 self.eventlist.append(event)
+            else:
+                print('Skipping event with path {}. Already part of project.'.format(event.path))
         self.setDirty()
 
+    def getPaths(self):
+        paths = []
+        for event in self.eventlist:
+            paths.append(event.path)
+        return paths
+        
     def setDirty(self):
         self.dirty = True
 

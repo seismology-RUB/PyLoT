@@ -186,11 +186,15 @@ class AutoPickParameter(object):
         if not is_type == expect_type and not is_type == tuple:
             message = 'Type check failed for param: {}, is type: {}, expected type:{}'
             message = message.format(param, is_type, expect_type)
-            raise TypeError(message)
+            print(Warning(message))
         
-    def setParam(self, param, value):
+    def setParamKV(self, param, value):
         self.__setitem__(param, value)
 
+    def setParam(self, **kwargs):
+        for key in kwargs:
+            self.__setitem__(key, kwargs[key])
+        
     @staticmethod
     def _printParameterError(errmsg):
         print('ParameterError:\n non-existent parameter %s' % errmsg)
