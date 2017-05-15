@@ -556,19 +556,6 @@ class MainWindow(QMainWindow):
         self.drawPicks(picktype=type)
         self.draw()
 
-    def getCurrentEvent(self, eventlist=None):
-        if not eventlist:
-            eventlist = self.project.eventlist
-        for event in eventlist:
-            if event.path == self.getCurrentEventPath(eventlist):
-                return event
-
-    def getCurrentEventPath(self, eventlist=None):
-        return str(self.eventBox.currentText().split('|')[0]).strip()
-        
-    def getLastEvent(self):
-        return self.recentfiles[0]
-
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
 
@@ -606,16 +593,28 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getWFFnames_from_eventlist(self, eventlist=None):
+    def getWFFnames_from_eventbox(self, eventlist=None, eventbox=None):
         if self.dataStructure:
-            searchPath = self.dataStructure.expandDataPath()
-            directory = self.getCurrentEventPath(eventlist)
-            self.fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
+            directory = self.getCurrentEventPath(eventbox)
+            fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
-        if not self.fnames:
-            return None
-        return self.fnames
+        return fnames
+
+    def getCurrentEvent(self, eventlist=None, eventbox=None):
+        if not eventlist:
+            eventlist = self.project.eventlist
+        for event in eventlist:
+            if event.path == self.getCurrentEventPath(eventbox):
+                return event
+
+    def getCurrentEventPath(self, eventbox=None):
+        if not eventbox:
+            eventbox = self.eventBox
+        return str(eventbox.currentText().split('|')[0]).strip()
+        
+    def getLastEvent(self):
+        return self.recentfiles[0]
 
     def add_events(self):
         if not self.project:
@@ -942,7 +941,8 @@ class MainWindow(QMainWindow):
         #     ans = self.data.setWFData(self.getWFFnames())
         # else:
         #     ans = False
-        self.data.setWFData(self.getWFFnames_from_eventlist(self.project.eventlist))
+        self.fnames = self.getWFFnames_from_eventbox(self.project.eventlist)
+        self.data.setWFData(self.fnames)
         self._stime = full_range(self.get_data().getWFData())[0]
 
     def connectWFplotEvents(self):

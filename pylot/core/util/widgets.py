@@ -30,6 +30,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
+from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
@@ -1272,14 +1273,21 @@ class PickDlg(QDialog):
         
 class TuneAutopicker(QWidget):     
     update = QtCore.Signal(str)
-    
+    '''
+    QWidget used to modifiy and test picking parameters for autopicking algorithm.
+
+    :param: parent
+    :type: QtPyLoT Mainwindow
+    '''
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent, 1)
         self.parent = parent
         self.ap = parent._inputs
         self.fig_dict = parent.fig_dict
+        self.data = Data()
         self.init_main_layouts()
         self.init_eventlist()
+        self.init_stationlist()
         self.init_figure_tabs()
         self.add_parameter()
         self.add_buttons()
@@ -1302,10 +1310,24 @@ class TuneAutopicker(QWidget):
         self.eventBox = self.parent.createEventBox()
         self.fill_eventbox()
         self.trace_layout.addWidget(self.eventBox)
+        self.eventBox.activated.connect(self.fill_stationbox)
 
     def init_stationlist(self):
-        pass
-    
+        self.stationBox = QtGui.QComboBox()
+        self.trace_layout.addWidget(self.stationBox)
+
+    def fill_stationbox(self):
+        fnames = self.parent.getWFFnames_from_eventbox(eventbox=self.eventBox)
+        self.data.setWFData(fnames)
+        self.stationBox.clear()
+        stations = []
+        for trace in self.data.getWFData():
+            station = trace.stats.station
+            if not station in stations:
+                stations.append(str(station))
+        for station in stations:
+            self.stationBox.addItem(str(station))
+            
     def init_figure_tabs(self):
         self.main_tabs = QtGui.QTabWidget()
         self.p_tabs = QtGui.QTabWidget()
