@@ -685,7 +685,7 @@ class MainWindow(QMainWindow):
             if pl > plmax:
                 plmax=pl
 
-        for index, event in enumerate(self.project.eventlist):
+        for id, event in enumerate(self.project.eventlist):
             event_path = event.path
             event_npicks = 0
             event_nautopicks = 0
@@ -733,12 +733,12 @@ class MainWindow(QMainWindow):
                 for item in itemlist:
                     item.setEnabled(False)
             model.appendRow(itemlist)
-            if not event.path == self.eventBox.itemText(index):
+            if not event.path == self.eventBox.itemText(id):
                 message = ('Path missmatch creating eventbox.\n'
                            '{} unequal {}.'
-                           .format(event.path, self.eventBox.itemText(index)))
+                           .format(event.path, self.eventBox.itemText(id)))
                 raise ValueError(message)
-            eventBox.setItemData(index, event)
+            eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
 
     def filename_from_action(self, action):
