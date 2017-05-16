@@ -604,9 +604,10 @@ class MainWindow(QMainWindow):
     def getCurrentEvent(self, eventlist=None, eventbox=None):
         if not eventlist:
             eventlist = self.project.eventlist
-        for event in eventlist:
-            if event.path == self.getCurrentEventPath(eventbox):
-                return event
+        if not eventbox:
+            eventbox = self.eventBox
+        index = eventbox.currentIndex()
+        return eventbox.itemData(index)
 
     def getCurrentEventPath(self, eventbox=None):
         if not eventbox:
@@ -684,7 +685,7 @@ class MainWindow(QMainWindow):
             if pl > plmax:
                 plmax=pl
 
-        for event in self.project.eventlist:
+        for index, event in enumerate(self.project.eventlist):
             event_path = event.path
             event_npicks = 0
             event_nautopicks = 0
@@ -695,11 +696,11 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
-            text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
-            text = text.format(path=event_path,
-                               plen=plmax,
-                               p=event_npicks,
-                               a=event_nautopicks)
+            # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
+            # text = text.format(path=event_path,
+            #                    plen=plmax,
+            #                    p=event_npicks,
+            #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
             item_nmp = QtGui.QStandardItem(str(event_npicks))
@@ -732,6 +733,12 @@ class MainWindow(QMainWindow):
                 for item in itemlist:
                     item.setEnabled(False)
             model.appendRow(itemlist)
+            if not event.path == self.eventBox.itemText(index):
+                message = ('Path missmatch creating eventbox.\n'
+                           '{} unequal {}.'
+                           .format(event.path, self.eventBox.itemText(index)))
+                raise ValueError(message)
+            eventBox.setItemData(index, event)
         eventBox.setCurrentIndex(index)
 
     def filename_from_action(self, action):
@@ -929,7 +936,8 @@ class MainWindow(QMainWindow):
         self._eventChanged[0] = False
     
     def loadWaveformDataThread(self):
-        wfd_thread = Thread(self, self.loadWaveformData, progressText='Reading data input...')
+        wfd_thread = Thread(self, self.loadWaveformData,
+                            progressText='Reading data input...')
         wfd_thread.finished.connect(self.plotWaveformDataThread)
         wfd_thread.start()
         
@@ -999,7 +1007,8 @@ class MainWindow(QMainWindow):
         self.draw()
         
     def plotWaveformDataThread(self):
-        wfp_thread = Thread(self, self.plotWaveformData, progressText='Plotting waveform data...')
+        wfp_thread = Thread(self, self.plotWaveformData,
+                            progressText='Plotting waveform data...')
         wfp_thread.finished.connect(self.finishWaveformDataPlot)
         wfp_thread.start()
         
@@ -1131,7 +1140,7 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
-        pickDlg = PickDlg(self, infile=self.getinfile(), 
+        pickDlg = PickDlg(self, parameter=self._inputs, 
                           data=data.select(station=station),
                           station=station,
                           picks=self.getPicksOnStation(station, 'manual'),
@@ -1183,6 +1192,7 @@ class MainWindow(QMainWindow):
             self.tap = TuneAutopicker(self)
             self.update_autopicker()
             self.tap.update.connect(self.update_autopicker)
+            self.tap.figure_tabs.setCurrentIndex(0)
         else:
             self.tap.fill_eventbox()
         self.tap.show()
@@ -1190,7 +1200,7 @@ class MainWindow(QMainWindow):
     def update_autopicker(self):
         for key in self.fig_dict.keys():
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
-        self.tap.fill_tabs(self.canvas_dict)
+        self.tap.fill_tabs(picked=True)
         
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 

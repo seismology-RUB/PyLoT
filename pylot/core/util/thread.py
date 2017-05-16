@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from PySide.QtCore import QThread, Signal, Qt
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QVBoxLayout
+from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
 
 
 class AutoPickThread(QThread):
@@ -75,12 +75,12 @@ class Thread(QThread):
                 self.pb_widget = QDialog(self.parent())
                 self.pb_widget.setWindowFlags(Qt.SplashScreen)                
                 self.pb_widget.setModal(True)
-            vl = QVBoxLayout()
+            hl = QHBoxLayout()
             pb = QProgressBar()
             pb.setRange(0, 0)
-            vl.addWidget(pb)
-            vl.addWidget(QLabel(self.progressText))
-            self.pb_widget.setLayout(vl)
+            hl.addWidget(pb)
+            hl.addWidget(QLabel(self.progressText))
+            self.pb_widget.setLayout(hl)
             self.pb_widget.show()
 
     def hideProgressbar(self):

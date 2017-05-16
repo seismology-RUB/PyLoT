@@ -38,13 +38,14 @@ class map_projection(QtGui.QWidget):
         
     def onpick(self, event):
         ind = event.ind
-        if ind == []:
+        button = event.mouseevent.button
+        if ind == [] or not button == 1:
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
             station=str(self.station_names[index])
             try:
-                pickDlg = PickDlg(self, infile=self._parent.getinfile(), 
+                pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
                                   station=station,
                                   picks=self._parent.getPicksOnStation(station, 'manual'),
