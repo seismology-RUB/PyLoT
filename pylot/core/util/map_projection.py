@@ -48,13 +48,13 @@ class map_projection(QtGui.QWidget):
                 pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
                                   station=station,
-                                  picks=self._parent.getPicksOnStation(station, 'manual'),
-                                  autopicks=self._parent.getPicksOnStation(station, 'auto'))
+                                  picks=self._parent.getCurrentEvent().getPick(station),
+                                  autopicks=self._parent.getCurrentEvent().getAutopick(station))
                 pyl_mw = self._parent
                 if pickDlg.exec_():
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    replot = pyl_mw.addPicks(station, pickDlg.getPicks())
+                    replot = pyl_mw.getCurrentEvent().setPick(station, pickDlg.getPicks())
                     if replot:
                         pyl_mw.plotWaveformData()
                         pyl_mw.drawPicks()
@@ -148,8 +148,9 @@ class map_projection(QtGui.QWidget):
         def remove_nan_picks(picks):
             picks_no_nan=[]
             for pick in picks:
-                if not np.isnan(pick):
-                    picks_no_nan.append(pick)
+                if pick:
+                    if not np.isnan(pick):
+                        picks_no_nan.append(pick)
             return picks_no_nan
         
         self.picks_no_nan = remove_nan_picks(self.picks_rel)

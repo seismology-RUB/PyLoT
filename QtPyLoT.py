@@ -661,11 +661,13 @@ class MainWindow(QMainWindow):
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
 
-    def fill_eventbox(self, eventBox, select_events='all'):
+    def fill_eventbox(self, eventBox=None, select_events='all'):
         '''
         :param: select_events, can be 'all', 'ref'
         :type: str
         '''
+        if not eventBox:
+            eventBox = self.eventBox
         index=eventBox.currentIndex()
         tv=QtGui.QTableView()
         header = tv.horizontalHeader()
@@ -1149,6 +1151,7 @@ class MainWindow(QMainWindow):
             self.setDirty(True)
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
+            self.getCurrentEvent().setPick(station, pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -1439,7 +1442,7 @@ class MainWindow(QMainWindow):
         if not self.array_map:
             return
         # refresh with new picks here!!!
-        self.array_map.refresh_drawings(self.picks)
+        self.array_map.refresh_drawings(self.getCurrentEvent().getPicks())
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
@@ -1836,9 +1839,9 @@ class Event(object):
     '''
     def __init__(self, path):
         self.path = path
-        self.autopicks = None
-        self.picks = None
-        self.notes = None
+        self.autopicks = {}
+        self.picks = {}
+        self.notes = ''
         self._testEvent = False
         self._refEvent = False
 
@@ -1867,7 +1870,31 @@ class Event(object):
     def setTestEvent(self, bool):
         self._testEvent = bool
         if bool: self._refEvent = False
+
+    def setPick(self, station, pick):
+        self.picks[station] = pick
+
+    def setPicks(self, picks):
+        self.picks = picks
         
+    def getPick(self, station):
+        return self.picks[station]
+
+    def getPicks(self):
+        return self.picks
+
+    def setAutopick(self, station, autopick):
+        self.autopicks[station] = autopick
+
+    def setAutopicks(self, autopicks):
+        self.autopicks = autopicks
+        
+    def getAutopick(self, station):
+        return self.autopicks[station]
+
+    def getAutopicks(self):
+        return self.autopicks
+    
         
 class getExistingDirectories(QFileDialog):
     def __init__(self, *args):

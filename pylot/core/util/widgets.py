@@ -515,13 +515,14 @@ class WaveformWidget(FigureCanvas):
 
 
 class PickDlg(QDialog):
+    update_picks = QtCore.Signal(dict)    
     def __init__(self, parent=None, data=None, station=None, picks=None,
-                 autopicks=None, rotate=False, parameter=None, buttons=True):
+                 autopicks=None, rotate=False, parameter=None, embedded=False):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
         self.parameter = parameter
-        self._buttons = buttons
+        self._embedded = embedded
         self.station = station
         self.rotate = rotate
         self.components = 'ZNE'
@@ -531,12 +532,16 @@ class PickDlg(QDialog):
         self._user = settings.value('user/Login', pylot_user)
         if picks:
             self.picks = picks
+            self._init_picks = copy.deepcopy(picks)
         else:
             self.picks = {}
+            self._init_picks = {}
         if autopicks:
             self.autopicks = autopicks
+            self._init_autopicks = copy.deepcopy(autopicks)
         else:
             self.autopicks = {}
+            self._init_autopicks = {}
         self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
 
@@ -638,6 +643,11 @@ class PickDlg(QDialog):
         # set button tooltips
         self.p_button.setToolTip('Hotkey: "1"')
         self.s_button.setToolTip('Hotkey: "2"')
+
+        # create accept/reject button
+        self.accept_button = QPushButton('&Accept Picks')
+        self.reject_button = QPushButton('&Reject Picks')
+        self.disable_ar_buttons()
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -652,6 +662,9 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetZoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
+        if self._embedded:
+            _dialtoolbar.addWidget(self.accept_button)
+            _dialtoolbar.addWidget(self.reject_button)            
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -662,7 +675,7 @@ class PickDlg(QDialog):
                                       QDialogButtonBox.Cancel)
 
         # merge widgets and layouts to establish the dialog
-        if self._buttons:
+        if not self._embedded:
             _innerlayout.addWidget(_buttonbox)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
@@ -671,6 +684,10 @@ class PickDlg(QDialog):
         # object
         self.p_button.clicked.connect(self.p_clicked)
         self.s_button.clicked.connect(self.s_clicked)
+        self.accept_button.clicked.connect(self.accept)
+        self.reject_button.clicked.connect(self.reject)
+        self.accept_button.clicked.connect(self.disable_ar_buttons)
+        self.reject_button.clicked.connect(self.disable_ar_buttons)
         _buttonbox.accepted.connect(self.accept)
         _buttonbox.rejected.connect(self.reject)
 
@@ -713,6 +730,13 @@ class PickDlg(QDialog):
         widget = self.getPlotWidget()
         return widget.mpl_connect('button_release_event', slot)
 
+    def disable_ar_buttons(self):
+        self.enable_ar_buttons(False)
+        
+    def enable_ar_buttons(self, bool=True):
+        self.accept_button.setEnabled(bool)
+        self.reject_button.setEnabled(bool)        
+        
     def p_clicked(self):
         if self.p_button.isChecked():
             self.s_button.setEnabled(False)
@@ -1073,6 +1097,7 @@ class PickDlg(QDialog):
                                                               olpp=olpp)
 
         self.disconnectPressEvent()
+        self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
         self.pick_block = self.togglePickBlocker()
         self.leave_picking_mode()
@@ -1110,9 +1135,10 @@ class PickDlg(QDialog):
         if picktype == 'manual':
             ax.fill_between([epp, lpp], ylims[0], ylims[1],
                             alpha=.25, color=colors[0])
-            ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                    [mpp, mpp], ylims, colors[2],
-                    [mpp + spe, mpp + spe], ylims, colors[1])
+            if spe:
+                ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
+                        [mpp, mpp], ylims, colors[2],
+                        [mpp + spe, mpp + spe], ylims, colors[1])
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
                     mpp, ylims[0], colors[4])
@@ -1265,12 +1291,35 @@ class PickDlg(QDialog):
 
     def apply(self):
         picks = self.getPicks()
+        self.update_picks.emit(picks)
         for pick in picks:
             print(pick, picks[pick])
 
+    def discard(self):
+        picks = self._init_picks
+        self.picks = picks
+        self.update_picks.emit(picks)
+        for pick in picks:
+            print(pick, picks[pick])
+        
+    def reject(self):
+        self.discard()
+        if not self._embedded:
+            QDialog.reject(self)
+        else:
+            self.resetPlot()
+            self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                         'Denied', 'New picks rejected!')
+            self.qmb.show()
+        
     def accept(self):
         self.apply()
-        QDialog.accept(self)
+        if not self._embedded:        
+            QDialog.accept(self)
+        else:
+            self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                         'Accepted', 'New picks applied!')
+            self.qmb.show()
 
         
 class TuneAutopicker(QWidget):     
@@ -1285,6 +1334,7 @@ class TuneAutopicker(QWidget):
         QtGui.QWidget.__init__(self, parent, 1)
         self.parent = parent
         self.setParent(parent)
+        self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = parent._inputs
         self.fig_dict = parent.fig_dict
         self.data = Data()
@@ -1385,6 +1435,16 @@ class TuneAutopicker(QWidget):
 
     def get_current_event_fp(self):
         return self.eventBox.currentText()
+
+    def get_current_event_picks(self, station):
+        event = self.get_current_event()
+        if station in event.picks.keys():
+            return event.picks[station]
+        
+    def get_current_event_autopicks(self, station):
+        event = self.get_current_event()
+        if event.autopicks:
+            return event.autopicks[station]
         
     def get_current_station(self):
         return str(self.stationBox.currentText())
@@ -1402,13 +1462,20 @@ class TuneAutopicker(QWidget):
         data = self.data.getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
                           station=station, parameter=self.parameter,
-                          picks=self.get_current_event().picks,
-                          autopicks=self.get_current_event().autopicks,
-                          buttons=False)
+                          picks=self.get_current_event_picks(station),
+                          autopicks=self.get_current_event_autopicks(station),
+                          embedded=True)
+        pickDlg.update_picks.connect(self.picks_from_pickdlg)
+        pickDlg.update_picks.connect(self.parent.fill_eventbox)
+        pickDlg.update_picks.connect(self.fill_eventbox)        
         self.pickDlg = QtGui.QWidget()
         hl = QtGui.QHBoxLayout()
         self.pickDlg.setLayout(hl)
         hl.addWidget(pickDlg)
+
+    def picks_from_pickdlg(self, picks=None):
+        station = self.get_current_station()
+        self.get_current_event().setPick(station, picks)
         
     def fill_tabs(self, event=None, picked=False):
         self.clear_all()
