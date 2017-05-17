@@ -50,22 +50,29 @@ class map_projection(QtGui.QWidget):
                                   station=station,
                                   picks=self._parent.getCurrentEvent().getPick(station),
                                   autopicks=self._parent.getCurrentEvent().getAutopick(station))
-                pyl_mw = self._parent
-                if pickDlg.exec_():
-                    pyl_mw.setDirty(True)
-                    pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    replot = pyl_mw.getCurrentEvent().setPick(station, pickDlg.getPicks())
-                    if replot:
-                        pyl_mw.plotWaveformData()
-                        pyl_mw.drawPicks()
-                        pyl_mw.draw()
-                    else:
-                        pyl_mw.drawPicks(station)
-                        pyl_mw.draw()
-                else:
-                    pyl_mw.update_status('picks discarded ({0})'.format(station))
             except Exception as e:
-                print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
+                message = 'Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e)
+                self._warn(message)
+                print(message, e)
+            pyl_mw = self._parent
+            #try:
+            if pickDlg.exec_():
+                pyl_mw.setDirty(True)
+                pyl_mw.update_status('picks accepted ({0})'.format(station))
+                replot = pyl_mw.getCurrentEvent().setPick(station, pickDlg.getPicks())
+                if replot:
+                    pyl_mw.plotWaveformData()
+                    pyl_mw.drawPicks()
+                    pyl_mw.draw()
+                else:
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+            else:
+                pyl_mw.update_status('picks discarded ({0})'.format(station))
+            # except Exception as e:
+            #     message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
+            #     self._warn(message)
+            #     print(message, e)
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
@@ -92,9 +99,9 @@ class map_projection(QtGui.QWidget):
         self.comboBox_phase.insertItem(0, 'P')
         self.comboBox_phase.insertItem(1, 'S')
 
-        # self.comboBox_am = QtGui.QComboBox()
-        # self.comboBox_am.insertItem(0, 'auto')
-        # self.comboBox_am.insertItem(1, 'manual')        
+        self.comboBox_am = QtGui.QComboBox()
+        self.comboBox_am.insertItem(0, 'auto')
+        self.comboBox_am.insertItem(1, 'manual')        
         
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
@@ -134,9 +141,13 @@ class map_projection(QtGui.QWidget):
 
         def get_picks_rel(picks):
             picks_rel=[]
-            minp = min(picks)    
+            picks_utc = []
             for pick in picks:
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
+                    picks_utc.append(pick)
+            minp = min(picks_utc)
+            for pick in picks:
+                if type(pick) is obspy.core.utcdatetime.UTCDateTime:                
                     pick -= minp
                 picks_rel.append(pick)
             return picks_rel
@@ -148,9 +159,8 @@ class map_projection(QtGui.QWidget):
         def remove_nan_picks(picks):
             picks_no_nan=[]
             for pick in picks:
-                if pick:
-                    if not np.isnan(pick):
-                        picks_no_nan.append(pick)
+                if not np.isnan(pick):
+                    picks_no_nan.append(pick)
             return picks_no_nan
         
         self.picks_no_nan = remove_nan_picks(self.picks_rel)
@@ -225,8 +235,19 @@ class map_projection(QtGui.QWidget):
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
 
     def scatter_picked_stations(self):
-        self.sc_picked = self.basemap.scatter(self.lon_no_nan, self.lat_no_nan, s=50, facecolor='white',
-                                              c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
+        lon = self.lon_no_nan
+        lat = self.lat_no_nan
+
+        #workaround because of an issue with latlon transformation of arrays with len <3
+        if len(lon) <= 2 and len(lat) <= 2:
+            self.sc_picked = self.basemap.scatter(lon[0], lat[0], s=50, facecolor='white',
+                                                  c=self.picks_no_nan[0], latlon=True, zorder=11, label='Picked')
+        if len(lon) == 2 and len(lat) == 2:            
+            self.sc_picked = self.basemap.scatter(lon[1], lat[1], s=50, facecolor='white',
+                                                  c=self.picks_no_nan[1], latlon=True, zorder=11)
+        else:
+            self.sc_picked = self.basemap.scatter(lon, lat, s=50, facecolor='white',
+                                                  c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
         self.annotations=[]
@@ -254,8 +275,9 @@ class map_projection(QtGui.QWidget):
             self.init_picks()
             self.init_picks_active()
             self.init_stations_active()
-            self.init_picksgrid()
-            self.draw_contour_filled()
+            if len(self.picks_no_nan) >= 3:
+                self.init_picksgrid()
+                self.draw_contour_filled()
         self.scatter_all_stations()
         if self.picks_dict:
             self.scatter_picked_stations()
@@ -297,4 +319,9 @@ class map_projection(QtGui.QWidget):
         for annotation in self.annotations:
             annotation.remove()
     
+    def _warn(self, message):
+        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+                                     'Warning', message)
+        self.qmb.show()        
+            
     

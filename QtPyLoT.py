@@ -912,6 +912,7 @@ class MainWindow(QMainWindow):
         self.refreshTabs()
         
     def refreshTabs(self):
+        plotted=False
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.getCurrentEvent()
             if not event.picks:
@@ -927,20 +928,25 @@ class MainWindow(QMainWindow):
                     if len(self.project.eventlist) > 0:
                         if self._eventChanged[0]:
                             self.newWFplot()
+                            plotted=True
             if self.tabs.currentIndex() == 1:
                 if self._eventChanged[1]:
                     self.refresh_array_map()
+                    if not plotted and self._eventChanged[0]:
+                        self.newWFplot(False)
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
 
-    def newWFplot(self):
-        self.loadWaveformDataThread()
-        self._eventChanged[0] = False
+    def newWFplot(self, plot=True):
+        self.loadWaveformDataThread(plot)
+        if plot:
+            self._eventChanged[0] = False
     
-    def loadWaveformDataThread(self):
+    def loadWaveformDataThread(self, plot=True):
         wfd_thread = Thread(self, self.loadWaveformData,
                             progressText='Reading data input...')
-        wfd_thread.finished.connect(self.plotWaveformDataThread)
+        if plot:
+            wfd_thread.finished.connect(self.plotWaveformDataThread)
         wfd_thread.start()
         
     def loadWaveformData(self):
@@ -1845,12 +1851,6 @@ class Event(object):
         self._testEvent = False
         self._refEvent = False
 
-    def addPicks(self, picks):
-        self.picks = picks
-
-    def addAutopicks(self, autopicks):
-        self.autopicks = autopicks
-
     def addNotes(self, notes):
         self.notes = notes
 
@@ -1871,26 +1871,38 @@ class Event(object):
         self._testEvent = bool
         if bool: self._refEvent = False
 
+    def addPicks(self, picks):
+        for station in picks:
+            self.picks[station] = picks[station]
+        
+    def addAutopicks(self, autopicks):
+        for station in autopicks:
+            self.autopicks[station] = autopicks[station]
+        
     def setPick(self, station, pick):
-        self.picks[station] = pick
+        if pick:
+            self.picks[station] = pick
 
     def setPicks(self, picks):
         self.picks = picks
         
     def getPick(self, station):
-        return self.picks[station]
+        if station in self.picks.keys():
+            return self.picks[station]
 
     def getPicks(self):
         return self.picks
 
     def setAutopick(self, station, autopick):
-        self.autopicks[station] = autopick
+        if autopick:
+            self.autopicks[station] = autopick
 
     def setAutopicks(self, autopicks):
         self.autopicks = autopicks
         
     def getAutopick(self, station):
-        return self.autopicks[station]
+        if station in self.autopicks.keys():
+            return self.autopicks[station]
 
     def getAutopicks(self):
         return self.autopicks

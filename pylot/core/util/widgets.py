@@ -693,6 +693,7 @@ class PickDlg(QDialog):
 
         # finally layout the entire dialog
         self.setLayout(_outerlayout)
+        self.resize(1280, 720)        
 
     def disconnectPressEvent(self):
         widget = self.getPlotWidget()
@@ -1390,8 +1391,12 @@ class TuneAutopicker(QWidget):
             if not station in stations:
                 stations.append(str(station))
         stations.sort()
+        model = self.stationBox.model()
         for station in stations:
-            self.stationBox.addItem(str(station))
+            item = QtGui.QStandardItem(str(station))
+            if station in self.get_current_event().picks:
+                item.setBackground(QtGui.QColor(200, 210, 230, 255))
+            model.appendRow(item)
 
     def init_figure_tabs(self):
         self.figure_tabs = QtGui.QTabWidget()
@@ -1415,8 +1420,11 @@ class TuneAutopicker(QWidget):
     def add_buttons(self):
         self.pick_button = QtGui.QPushButton('Pick Trace')
         self.pick_button.clicked.connect(self.call_picker)
+        self.close_button = QtGui.QPushButton('Close')
+        self.close_button.clicked.connect(self.hide)
         self.trace_layout.addWidget(self.pick_button)
         self.trace_layout.setStretch(0, 1)
+        self.parameter_layout.addWidget(self.close_button)
 
     def add_log(self):
         self.listWidget = QtGui.QListWidget()
@@ -1467,7 +1475,8 @@ class TuneAutopicker(QWidget):
                           embedded=True)
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.parent.fill_eventbox)
-        pickDlg.update_picks.connect(self.fill_eventbox)        
+        pickDlg.update_picks.connect(self.fill_eventbox)
+        pickDlg.update_picks.connect(self.fill_stationbox)
         self.pickDlg = QtGui.QWidget()
         hl = QtGui.QHBoxLayout()
         self.pickDlg.setLayout(hl)
