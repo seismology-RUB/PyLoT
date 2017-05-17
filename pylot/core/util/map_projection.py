@@ -12,61 +12,83 @@ from pylot.core.util.widgets import PickDlg
 plt.interactive(False)
 
 class map_projection(QtGui.QWidget):
-    def __init__(self, mainwindow, figure=None):
+    def __init__(self, parent, figure=None):
         '''
         :param: picked, can be False, auto, manual
         :value: str
         '''
         QtGui.QWidget.__init__(self)
-        self.pyl_mainwindow = mainwindow
-        self.parser = mainwindow.metadata[1]
+        self._parent = parent
+        self.parser = parent.metadata[1]
         self.picks = None
         self.picks_dict = None
         self.figure = figure
         self.init_graphics()
+        self.init_basemap(projection='mill', resolution='l')
+        self.init_map()
+        #self.show()
+
+    def init_map(self):
         self.init_stations()
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
-        self.init_basemap(projection='mill', resolution='l')
         self.init_x_y_dimensions()
         self.connectSignals()
         self.draw_everything()
-        #self.show()
         
     def onpick(self, event):
         ind = event.ind
-        if ind == []:
+        button = event.mouseevent.button
+        if ind == [] or not button == 1:
             return
-        data = self.pyl_mainwindow.get_data().getWFData()
+        data = self._parent.get_data().getWFData()
         for index in ind:
             station=str(self.station_names[index])
             try:
-                pickDlg = PickDlg(self, infile=self.pyl_mainwindow.getinfile(), 
+                pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
                                   station=station,
-                                  picks=self.pyl_mainwindow.getPicksOnStation(station, 'manual'),
-                                  autopicks=self.pyl_mainwindow.getPicksOnStation(station, 'auto'))
-                pyl_mw = self.pyl_mainwindow
-                if pickDlg.exec_():
-                    pyl_mw.setDirty(True)
-                    pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    replot = pyl_mw.addPicks(station, pickDlg.getPicks())
-                    if replot:
-                        pyl_mw.plotWaveformData()
-                        pyl_mw.drawPicks()
-                        pyl_mw.draw()
-                    else:
-                        pyl_mw.drawPicks(station)
-                        pyl_mw.draw()
-                else:
-                    pyl_mw.update_status('picks discarded ({0})'.format(station))
+                                  picks=self._parent.getCurrentEvent().getPick(station),
+                                  autopicks=self._parent.getCurrentEvent().getAutopick(station))
             except Exception as e:
-                print('Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e))
+                message = 'Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e)
+                self._warn(message)
+                print(message, e)
+            pyl_mw = self._parent
+            #try:
+            if pickDlg.exec_():
+                pyl_mw.setDirty(True)
+                pyl_mw.update_status('picks accepted ({0})'.format(station))
+                replot = pyl_mw.getCurrentEvent().setPick(station, pickDlg.getPicks())
+                if replot:
+                    pyl_mw.plotWaveformData()
+                    pyl_mw.drawPicks()
+                    pyl_mw.draw()
+                else:
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+            else:
+                pyl_mw.update_status('picks discarded ({0})'.format(station))
+            # except Exception as e:
+            #     message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
+            #     self._warn(message)
+            #     print(message, e)
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         
     def init_graphics(self):
+        if not self.figure:
+            if not hasattr(self._parent, 'am_figure'):
+                self.figure = plt.figure()
+                self.toolbar = NavigationToolbar(self.figure.canvas, self)
+            else:
+                self.figure = self._parent.am_figure
+                self.toolbar = self._parent.am_toolbar
+                
+        self.main_ax = self.figure.add_subplot(111)
+        self.canvas = self.figure.canvas
+
         self.main_box = QtGui.QVBoxLayout()
         self.setLayout(self.main_box)
 
@@ -77,26 +99,17 @@ class map_projection(QtGui.QWidget):
         self.comboBox_phase.insertItem(0, 'P')
         self.comboBox_phase.insertItem(1, 'S')
 
-        # self.comboBox_am = QtGui.QComboBox()
-        # self.comboBox_am.insertItem(0, 'auto')
-        # self.comboBox_am.insertItem(1, 'manual')        
+        self.comboBox_am = QtGui.QComboBox()
+        self.comboBox_am.insertItem(0, 'auto')
+        self.comboBox_am.insertItem(1, 'manual')        
         
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1,1) #set stretch of item 1 to 1        
 
-        if not self.figure:
-            fig = plt.figure()
-        else:
-            fig = self.figure
-        self.main_ax = fig.add_subplot(111)
-        self.canvas = fig.canvas
         self.main_box.addWidget(self.canvas)
-
-        self.toolbar = NavigationToolbar(self.canvas, self)
         self.main_box.addWidget(self.toolbar)
-        self.figure = fig
-
+        
     def init_stations(self):
         def get_station_names_lat_lon(parser):
             station_names=[]
@@ -128,9 +141,13 @@ class map_projection(QtGui.QWidget):
 
         def get_picks_rel(picks):
             picks_rel=[]
-            minp = min(picks)    
+            picks_utc = []
             for pick in picks:
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
+                    picks_utc.append(pick)
+            minp = min(picks_utc)
+            for pick in picks:
+                if type(pick) is obspy.core.utcdatetime.UTCDateTime:                
                     pick -= minp
                 picks_rel.append(pick)
             return picks_rel
@@ -186,7 +203,6 @@ class map_projection(QtGui.QWidget):
         basemap.drawcoastlines()
         self.basemap = basemap
         self.figure.tight_layout()
-
         
     def init_lat_lon_grid(self):
         def get_lat_lon_axis(lat, lon):
@@ -219,8 +235,19 @@ class map_projection(QtGui.QWidget):
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
 
     def scatter_picked_stations(self):
-        self.sc_picked = self.basemap.scatter(self.lon_no_nan, self.lat_no_nan, s=50, facecolor='white',
-                                              c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
+        lon = self.lon_no_nan
+        lat = self.lat_no_nan
+
+        #workaround because of an issue with latlon transformation of arrays with len <3
+        if len(lon) <= 2 and len(lat) <= 2:
+            self.sc_picked = self.basemap.scatter(lon[0], lat[0], s=50, facecolor='white',
+                                                  c=self.picks_no_nan[0], latlon=True, zorder=11, label='Picked')
+        if len(lon) == 2 and len(lat) == 2:            
+            self.sc_picked = self.basemap.scatter(lon[1], lat[1], s=50, facecolor='white',
+                                                  c=self.picks_no_nan[1], latlon=True, zorder=11)
+        else:
+            self.sc_picked = self.basemap.scatter(lon, lat, s=50, facecolor='white',
+                                                  c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
         self.annotations=[]
@@ -248,8 +275,9 @@ class map_projection(QtGui.QWidget):
             self.init_picks()
             self.init_picks_active()
             self.init_stations_active()
-            self.init_picksgrid()
-            self.draw_contour_filled()
+            if len(self.picks_no_nan) >= 3:
+                self.init_picksgrid()
+                self.draw_contour_filled()
         self.scatter_all_stations()
         if self.picks_dict:
             self.scatter_picked_stations()
@@ -291,4 +319,9 @@ class map_projection(QtGui.QWidget):
         for annotation in self.annotations:
             annotation.remove()
     
+    def _warn(self, message):
+        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+                                     'Warning', message)
+        self.qmb.show()        
+            
     

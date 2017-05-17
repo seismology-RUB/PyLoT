@@ -41,6 +41,13 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 from obspy import UTCDateTime
 
+try:
+    from matplotlib.backends.backend_qt4agg import FigureCanvas
+except ImportError:
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar    
+from matplotlib.figure import Figure
+
 from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
@@ -59,7 +66,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog
+    getDataType, ComparisonDialog, TuneAutopicker
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread, Thread
@@ -90,6 +97,7 @@ class MainWindow(QMainWindow):
         self._inputs = AutoPickParameter(infile)
 
         self.project = Project()
+        self.tap = None
         self.array_map = None
         self._metadata = None
         self._eventChanged = [False, False]
@@ -416,9 +424,9 @@ class MainWindow(QMainWindow):
         self.addActions(componentToolBar, componentActions)
 
         self.auto_pick = self.createAction(parent=self, text='autoPick',
-                                      slot=self.autoPick, shortcut='Alt+Ctrl+A',
-                                      icon=auto_icon, tip='Automatically pick'
-                                                          ' the displayed waveforms.')
+                                           slot=self.tune_autopicker, shortcut='Alt+Ctrl+A',
+                                           icon=auto_icon, tip='Tune autopicking algorithm.')
+        
         self.auto_pick.setEnabled(False)
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
@@ -548,17 +556,6 @@ class MainWindow(QMainWindow):
         self.drawPicks(picktype=type)
         self.draw()
 
-    def getCurrentEvent(self):
-        for event in self.project.eventlist:
-            if event.path == self.getCurrentEventPath():
-                return event
-
-    def getCurrentEventPath(self):
-        return str(self.eventBox.currentText().split('|')[0]).strip()
-        
-    def getLastEvent(self):
-        return self.recentfiles[0]
-
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
 
@@ -596,16 +593,29 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getWFFnames_from_eventlist(self):
+    def getWFFnames_from_eventbox(self, eventlist=None, eventbox=None):
         if self.dataStructure:
-            searchPath = self.dataStructure.expandDataPath()
-            directory = self.getCurrentEventPath()
-            self.fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
+            directory = self.getCurrentEventPath(eventbox)
+            fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
-        if not self.fnames:
-            return None
-        return self.fnames
+        return fnames
+
+    def getCurrentEvent(self, eventlist=None, eventbox=None):
+        if not eventlist:
+            eventlist = self.project.eventlist
+        if not eventbox:
+            eventbox = self.eventBox
+        index = eventbox.currentIndex()
+        return eventbox.itemData(index)
+
+    def getCurrentEventPath(self, eventbox=None):
+        if not eventbox:
+            eventbox = self.eventBox
+        return str(eventbox.currentText().split('|')[0]).strip()
+        
+    def getLastEvent(self):
+        return self.recentfiles[0]
 
     def add_events(self):
         if not self.project:
@@ -628,13 +638,13 @@ class MainWindow(QMainWindow):
     def createEventBox(self):
         qcb = QComboBox()
         palette = qcb.palette()
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
-                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
-                         QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        # change highlight color:
+        # palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
+        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
+        # palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
+        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
         qcb.setPalette(palette)
         return qcb
-
         
     def init_events(self, new=False):
         nitems = self.eventBox.count()
@@ -643,7 +653,7 @@ class MainWindow(QMainWindow):
             self.clearWaveformDataPlot()
             return
         self.eventBox.setEnabled(True)
-        self.fill_eventbox()
+        self.fill_eventbox(self.eventBox)
         if new:
             self.eventBox.setCurrentIndex(0)
         else:
@@ -651,8 +661,14 @@ class MainWindow(QMainWindow):
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
 
-    def fill_eventbox(self):
-        index=self.eventBox.currentIndex()
+    def fill_eventbox(self, eventBox=None, select_events='all'):
+        '''
+        :param: select_events, can be 'all', 'ref'
+        :type: str
+        '''
+        if not eventBox:
+            eventBox = self.eventBox
+        index=eventBox.currentIndex()
         tv=QtGui.QTableView()
         header = tv.horizontalHeader()
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
@@ -661,16 +677,17 @@ class MainWindow(QMainWindow):
         tv.verticalHeader().hide()
         tv.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         
-        self.eventBox.setView(tv)
-        self.eventBox.clear()
-        model = self.eventBox.model()
+        eventBox.setView(tv)
+        eventBox.clear()
+        model = eventBox.model()
         plmax=0
+        #set maximum length of path string
         for event in self.project.eventlist:
             pl = len(event.path)
             if pl > plmax:
                 plmax=pl
 
-        for event in self.project.eventlist:
+        for id, event in enumerate(self.project.eventlist):
             event_path = event.path
             event_npicks = 0
             event_nautopicks = 0
@@ -681,11 +698,11 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
-            text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
-            text = text.format(path=event_path,
-                               plen=plmax,
-                               p=event_npicks,
-                               a=event_nautopicks)
+            # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
+            # text = text.format(path=event_path,
+            #                    plen=plmax,
+            #                    p=event_npicks,
+            #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
             item_nmp = QtGui.QStandardItem(str(event_npicks))
@@ -714,8 +731,17 @@ class MainWindow(QMainWindow):
             # item2.setForeground(QtGui.QColor('black'))
             # item2.setFont(font)
             itemlist = [item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
+            if event_test and select_events == 'ref':
+                for item in itemlist:
+                    item.setEnabled(False)
             model.appendRow(itemlist)
-        self.eventBox.setCurrentIndex(index)
+            if not event.path == self.eventBox.itemText(id):
+                message = ('Path missmatch creating eventbox.\n'
+                           '{} unequal {}.'
+                           .format(event.path, self.eventBox.itemText(id)))
+                raise ValueError(message)
+            eventBox.setItemData(id, event)
+        eventBox.setCurrentIndex(index)
 
     def filename_from_action(self, action):
         if action.data() is None:
@@ -886,6 +912,7 @@ class MainWindow(QMainWindow):
         self.refreshTabs()
         
     def refreshTabs(self):
+        plotted=False
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.getCurrentEvent()
             if not event.picks:
@@ -901,19 +928,25 @@ class MainWindow(QMainWindow):
                     if len(self.project.eventlist) > 0:
                         if self._eventChanged[0]:
                             self.newWFplot()
+                            plotted=True
             if self.tabs.currentIndex() == 1:
                 if self._eventChanged[1]:
                     self.refresh_array_map()
+                    if not plotted and self._eventChanged[0]:
+                        self.newWFplot(False)
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
 
-    def newWFplot(self):
-        self.loadWaveformDataThread()
-        self._eventChanged[0] = False
+    def newWFplot(self, plot=True):
+        self.loadWaveformDataThread(plot)
+        if plot:
+            self._eventChanged[0] = False
     
-    def loadWaveformDataThread(self):
-        wfd_thread = Thread(self, self.loadWaveformData, progressText='Reading data input...')
-        wfd_thread.finished.connect(self.plotWaveformDataThread)
+    def loadWaveformDataThread(self, plot=True):
+        wfd_thread = Thread(self, self.loadWaveformData,
+                            progressText='Reading data input...')
+        if plot:
+            wfd_thread.finished.connect(self.plotWaveformDataThread)
         wfd_thread.start()
         
     def loadWaveformData(self):
@@ -924,7 +957,8 @@ class MainWindow(QMainWindow):
         #     ans = self.data.setWFData(self.getWFFnames())
         # else:
         #     ans = False
-        self.data.setWFData(self.getWFFnames_from_eventlist())
+        self.fnames = self.getWFFnames_from_eventbox(self.project.eventlist)
+        self.data.setWFData(self.fnames)
         self._stime = full_range(self.get_data().getWFData())[0]
 
     def connectWFplotEvents(self):
@@ -981,7 +1015,8 @@ class MainWindow(QMainWindow):
         self.draw()
         
     def plotWaveformDataThread(self):
-        wfp_thread = Thread(self, self.plotWaveformData, progressText='Plotting waveform data...')
+        wfp_thread = Thread(self, self.plotWaveformData,
+                            progressText='Plotting waveform data...')
         wfp_thread.finished.connect(self.finishWaveformDataPlot)
         wfp_thread.start()
         
@@ -1113,7 +1148,7 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
-        pickDlg = PickDlg(self, infile=self.getinfile(), 
+        pickDlg = PickDlg(self, parameter=self._inputs, 
                           data=data.select(station=station),
                           station=station,
                           picks=self.getPicksOnStation(station, 'manual'),
@@ -1122,6 +1157,7 @@ class MainWindow(QMainWindow):
             self.setDirty(True)
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
+            self.getCurrentEvent().setPick(station, pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -1141,6 +1177,40 @@ class MainWindow(QMainWindow):
         self.listWidget.addItem(text)
         self.listWidget.scrollToBottom()
 
+    def tune_autopicker(self):
+        self.fig_dict = {}
+        self.canvas_dict = {}
+        self.fig_keys = [
+            'mainFig',
+            'aicFig',
+            'slength',
+            'checkZ4s',
+            'refPpick',
+            'el_Ppick',
+            'fm_picker',
+            'el_S1pick',
+            'el_S2pick',
+            'refSpick',
+            'aicARHfig',            
+        ]
+        for key in self.fig_keys:
+            fig = Figure()
+            self.fig_dict[key] = fig
+
+        if not self.tap:
+            self.tap = TuneAutopicker(self)
+            self.update_autopicker()
+            self.tap.update.connect(self.update_autopicker)
+            self.tap.figure_tabs.setCurrentIndex(0)
+        else:
+            self.tap.fill_eventbox()
+        self.tap.show()
+            
+    def update_autopicker(self):
+        for key in self.fig_dict.keys():
+            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+        self.tap.fill_tabs(picked=True)
+        
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output') 
         if not os.path.exists(self.autosave):
@@ -1354,19 +1424,34 @@ class MainWindow(QMainWindow):
             self.get_metadata()
             if not self.metadata:
                 return
+        self.am_figure = Figure()
+        self.am_canvas = FigureCanvas(self.am_figure)
+        self.am_toolbar = NavigationToolbar(self.am_canvas, self)
         self.array_map = map_projection(self)
+        #self.array_map_thread()
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
         self.refresh_array_map()
+
+    def array_map_thread(self):
+        self.amt = Thread(self, self.array_map.init_map, arg=None, progressText='Generating map...')
+        self.amt.finished.connect(self.finish_array_map)
+        self.amt.start()
+
+    def finish_array_map(self):
+        self.array_map = self.amt.data
+        self.array_layout.addWidget(self.array_map)
+        #self.tabs.setCurrentIndex(index)
+        #self.refresh_array_map()
         
     def refresh_array_map(self):
         if not self.array_map:
             return
         # refresh with new picks here!!!
-        self.array_map.refresh_drawings(self.picks)
+        self.array_map.refresh_drawings(self.getCurrentEvent().getPicks())
         self._eventChanged[1] = False
 
-    def init_event_table(self, index=2):
+    def init_event_table(self, tabindex=2):
         def set_enabled(item, enabled=True, checkable=False):
             if enabled and not checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
@@ -1397,12 +1482,12 @@ class MainWindow(QMainWindow):
                     event.setTestEvent(True)
                 elif column == 4 and not item_test.checkState():
                     event.setTestEvent(False)
-                self.fill_eventbox()                    
+                self.fill_eventbox(self.eventBox)                    
             elif column == 5:
                 #update event notes
                 notes = table[row][5].text()
                 event.addNotes(notes)
-                self.fill_eventbox()
+                self.fill_eventbox(self.eventBox)
 
         if hasattr(self, 'qtl'):
             self.qtl.setParent(None)
@@ -1467,7 +1552,7 @@ class MainWindow(QMainWindow):
         self.qtl.cellChanged[int, int].connect(cell_changed)
         
         self.events_layout.addWidget(self.qtl)
-        self.tabs.setCurrentIndex(index)
+        self.tabs.setCurrentIndex(tabindex)
         
     def read_metadata_thread(self, fninv):
         self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...')
@@ -1656,7 +1741,7 @@ class MainWindow(QMainWindow):
                 self.createNewProject(exists=True)
                 
     def draw(self):
-        self.fill_eventbox()
+        self.fill_eventbox(self.eventBox)
         self.getPlotWidget().draw()
 
     def setDirty(self, value):
@@ -1696,10 +1781,18 @@ class Project(object):
             return
         for item in eventlist:
             event = Event(item)
-            if not event in self.eventlist:
+            if not event.path in self.getPaths():
                 self.eventlist.append(event)
+            else:
+                print('Skipping event with path {}. Already part of project.'.format(event.path))
         self.setDirty()
 
+    def getPaths(self):
+        paths = []
+        for event in self.eventlist:
+            paths.append(event.path)
+        return paths
+        
     def setDirty(self):
         self.dirty = True
 
@@ -1752,17 +1845,11 @@ class Event(object):
     '''
     def __init__(self, path):
         self.path = path
-        self.autopicks = None
-        self.picks = None
-        self.notes = None
+        self.autopicks = {}
+        self.picks = {}
+        self.notes = ''
         self._testEvent = False
         self._refEvent = False
-
-    def addPicks(self, picks):
-        self.picks = picks
-
-    def addAutopicks(self, autopicks):
-        self.autopicks = autopicks
 
     def addNotes(self, notes):
         self.notes = notes
@@ -1783,7 +1870,43 @@ class Event(object):
     def setTestEvent(self, bool):
         self._testEvent = bool
         if bool: self._refEvent = False
+
+    def addPicks(self, picks):
+        for station in picks:
+            self.picks[station] = picks[station]
         
+    def addAutopicks(self, autopicks):
+        for station in autopicks:
+            self.autopicks[station] = autopicks[station]
+        
+    def setPick(self, station, pick):
+        if pick:
+            self.picks[station] = pick
+
+    def setPicks(self, picks):
+        self.picks = picks
+        
+    def getPick(self, station):
+        if station in self.picks.keys():
+            return self.picks[station]
+
+    def getPicks(self):
+        return self.picks
+
+    def setAutopick(self, station, autopick):
+        if autopick:
+            self.autopicks[station] = autopick
+
+    def setAutopicks(self, autopicks):
+        self.autopicks = autopicks
+        
+    def getAutopick(self, station):
+        if station in self.autopicks.keys():
+            return self.autopicks[station]
+
+    def getAutopicks(self):
+        return self.autopicks
+    
         
 class getExistingDirectories(QFileDialog):
     def __init__(self, *args):

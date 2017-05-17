@@ -14,7 +14,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False, fig=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -104,11 +104,12 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
-        ax.plot(t[inoise], x[inoise], label='Noise Window')
-        ax.plot(t[isignal], x[isignal], 'r', label='Signal Window')
+        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
         ax.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
@@ -127,13 +128,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, stealth_mode=False):
             X[0].stats.station)
         ax.legend()
 
-    if iplot:
-        return EPick, LPick, PickError, fig
-    else:
-        return EPick, LPick, PickError
+    return EPick, LPick, PickError
 
 
-def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
     '''
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
@@ -278,7 +276,8 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         print ("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax1 = fig.add_subplot(211)
         ax1.plot(t, xraw, 'k')
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
@@ -292,7 +291,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         ax1.set_title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
             0].stats.station)
 
-        ax2=fig.add_subplot(212)
+        ax2=fig.add_subplot(2,1,2, sharex=ax1)
         ax2.set_title('First-Motion Determination, Filtered Data')
         ax2.plot(t, xfilt, 'k')
         ax2.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
@@ -305,10 +304,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None):
         ax2.set_xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
         ax2.set_yticks([])
 
-    if iplot:
-        return FM, fig
-    else:
-        return FM
+    return FM
 
 
 def crossings_nonzero_all(data):
@@ -620,7 +616,7 @@ def wadaticheck(pickdic, dttolerance, iplot):
     return checkedonsets
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
+def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None):
     '''
     Function to detect spuriously picked noise peaks.
     Uses RMS trace of all 3 components (if available) to determine,
@@ -692,11 +688,12 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         returnflag = 0
 
     if iplot == 2:
-        fig = plt.figure()#iplot)
+        if not fig:
+            fig = plt.figure()#iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, rms, 'k', label='RMS Data')
-        ax.plot(t[inoise], rms[inoise], 'c', label='RMS Noise Window')
-        ax.plot(t[isignal], rms[isignal], 'r', label='RMS Signal Window')
+        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')        
+        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')        
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
                 [minsiglevel, minsiglevel], 'g', linewidth=2, label='Minimum Signal Level')
         ax.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2, label='Onset')
@@ -706,7 +703,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot):
         ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
         ax.set_yticks([])
 
-    return returnflag, fig
+    return returnflag
 
 
 def checkPonsets(pickdic, dttolerance, iplot):
@@ -868,7 +865,7 @@ def jackknife(X, phi, h):
     return PHI_jack, PHI_pseudo, PHI_sub
 
 
-def checkZ4S(X, pick, zfac, checkwin, iplot):
+def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     '''
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
@@ -962,14 +959,14 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
                        edat[0].stats.delta)
         tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
                        ndat[0].stats.delta)
-        fig = plt.figure()
+        if not fig:
+            fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(tz, z / max(z), 'k')
-        ax.plot(tz[isignal], z[isignal] / max(z), 'r')
+        ax.axvspan(tz[isignal[0]], tz[isignal[-1]], color='b', alpha=0.2,
+                   lw=0, label='Signal Window')
         ax.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
-        ax.plot(te[isignal], edat[0].data[isignal] / max(edat[0].data) + 1, 'r')
         ax.plot(tn, ndat[0].data / max(ndat[0].data) + 2, 'k')
-        ax.plot(tn[isignal], ndat[0].data[isignal] / max(ndat[0].data) + 2, 'r')
         ax.plot([tz[isignal[0]], tz[isignal[len(isignal) - 1]]],
                 [minsiglevel / max(z), minsiglevel / max(z)], 'g',
                 linewidth=2, label='Minimum Signal Level')
@@ -980,7 +977,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot):
         ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
         ax.legend()
 
-    return returnflag, fig
+    return returnflag
 
 
 if __name__ == '__main__':

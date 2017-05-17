@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=0):
+def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, savepath=None, station='all', iplot=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -54,6 +54,21 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                 K. Olbert (Christian-Albrechts Universitaet zu Kiel)\n
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
+
+    locflag = 1
+    if input_dict:
+        if input_dict.has_key('parameter'):
+            parameter = input_dict['parameter']
+        if input_dict.has_key('fig_dict'):
+            fig_dict = input_dict['fig_dict']
+        if input_dict.has_key('station'):
+            station = input_dict['station']
+        if input_dict.has_key('fnames'):
+            fnames = input_dict['fnames']
+        if input_dict.has_key('iplot'):
+            iplot = input_dict['iplot']
+        if input_dict.has_key('locflag'):
+            locflag = input_dict['locflag']
 
     if not parameter:
         if inputfile:
@@ -93,8 +108,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available
-        if parameter['nllocbin']:
-            locflag = 1
+        if parameter['nllocbin'] and locflag:
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
             # get path to NLLoc executable
@@ -158,15 +172,20 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                                                now.minute)
                 parameter.setParam(eventID=evID)
             wfdat = data.getWFData()  # all available streams
+            if not station == 'all':
+                wfdat = wfdat.select(station=station)
+                if not wfdat:
+                    print('Could not find station {}. STOP!'.format(station))
+                    return                      
             wfdat = remove_underscores(wfdat)
             metadata =  read_metadata(parameter.get('invdir'))
             corr_dat = restitute_data(wfdat.copy(), *metadata)
                
-            print('Working on event %s' % event)
-            print(data)
+            print('Working on event %s. Stations: %s' % (event, station))
+            print(wfdat)
             ##########################################################
             # !automated picking starts here!
-            picks, mainFig = autopickevent(wfdat, parameter, iplot=iplot)
+            picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
             ##########################################################
             # locating
             if locflag == 1:
@@ -233,7 +252,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                                 print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
                                 break
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
-                            picks, _ = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
+                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter, fig_dict=fig_dict)
                             # write phases to NLLoc-phase file
                             nll.export(picks, phasefile, parameter)
                             # remove actual NLLoc-location file to keep only the last
@@ -317,7 +336,7 @@ def autoPyLoT(parameter=None, inputfile=None, fnames=None, savepath=None, iplot=
                The Python picking and Location Tool\n
                ************************************'''.format(version=_getVersionString())
     print(endsp)
-    return picks, mainFig
+    return picks
 
 
 if __name__ == "__main__":
@@ -344,4 +363,5 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
 
-    picks, mainFig = autoPyLoT(str(cla.inputfile), str(cla.fnames), str(cla.spath))
+    picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile),
+                               fnames=str(cla.fnames), savepath=str(cla.spath))

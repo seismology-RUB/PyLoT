@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from PySide.QtCore import QThread, Signal, Qt
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QVBoxLayout
+from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
 
 
 class AutoPickThread(QThread):
@@ -39,39 +39,57 @@ class AutoPickThread(QThread):
 
 
 class Thread(QThread):
-    def __init__(self, parent, func, arg=None, progressText=None):
+    message = Signal(str)
+    
+    def __init__(self, parent, func, arg=None, progressText=None, pb_widget=None, redirect_stdout=False):
         QThread.__init__(self, parent)
         self.func = func
         self.arg = arg
         self.progressText = progressText
-        self.pbdlg = None
+        self.pb_widget = pb_widget
+        self.redirect_stdout = redirect_stdout
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
 
     def run(self):
-        if self.arg:
-            self.data = self.func(self.arg)
-        else:
-            self.data = self.func()
+        if self.redirect_stdout:
+            sys.stdout = self        
+        try:
+            if self.arg:
+                self.data = self.func(self.arg)
+            else:
+                self.data = self.func()
+            self._executed = True
+        except Exception as e:
+            self._executed = False
+            self._executedError = e
+            print(e)
+        sys.stdout = sys.__stdout__        
 
     def __del__(self):
         self.wait()
 
     def showProgressbar(self):
         if self.progressText:
-            self.pbdlg = QDialog(self.parent())
-            self.pbdlg.setModal(True)
-            vl = QVBoxLayout()
+            if not self.pb_widget:
+                self.pb_widget = QDialog(self.parent())
+                self.pb_widget.setWindowFlags(Qt.SplashScreen)                
+                self.pb_widget.setModal(True)
+            hl = QHBoxLayout()
             pb = QProgressBar()
             pb.setRange(0, 0)
-            vl.addWidget(pb)
-            vl.addWidget(QLabel(self.progressText))
-            self.pbdlg.setLayout(vl)
-            self.pbdlg.setWindowFlags(Qt.SplashScreen)
-            self.pbdlg.show()
+            hl.addWidget(pb)
+            hl.addWidget(QLabel(self.progressText))
+            self.pb_widget.setLayout(hl)
+            self.pb_widget.show()
 
     def hideProgressbar(self):
-        if self.pbdlg:
-            self.pbdlg.hide()
+        if self.pb_widget:
+            self.pb_widget.hide()
 
-            
+    def write(self, text):
+        self.message.emit(text)
+
+    def flush(self):
+        pass
+    
