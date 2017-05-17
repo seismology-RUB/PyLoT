@@ -65,10 +65,6 @@ defaults = {'rootpath': {'type': str,
                    'tooltip': 'quality factor for P waves (Qp*f^a); list(Qp, a)',
                    'value': (300., 0.8)},
             
-            'focmecin': {'type': str,
-                         'tooltip': 'name of focmec input file containing derived polarities',
-                         'value': 'AUTOFOCMEC_AIC_HOS4_ARH.in'},
-            
             'pstart': {'type': float,
                        'tooltip': 'start time [s] for calculating CF for P-picking',
                        'value': 15.0},
@@ -298,8 +294,6 @@ settings_main={
         'vp',
         'rho',
         'Qp'],
-    'focmec':[
-        'focmecin'],
     'pick':[
         'pstart',
         'pstop',

@@ -1762,8 +1762,6 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_to_layout(self._main_layout, 'Seismic Moment',
                            self.parameter.get_main_para_names()['smoment'])
         self.add_to_layout(self._main_layout, 'Focal Mechanism',
-                           self.parameter.get_main_para_names()['focmec'])
-        self.add_to_layout(self._main_layout, 'Pick Settings',
                            self.parameter.get_main_para_names()['pick'],
                            False)
         self.add_tab(self._main_layout, 'Main Settings')
