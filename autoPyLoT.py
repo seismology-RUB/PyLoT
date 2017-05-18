@@ -185,7 +185,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
-            picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
+            if input_dict:
+                if input_dict.has_key('fig_dict'):
+                    fig_dict = input_dict['fig_dict']
+                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
+            else:
+                picks = autopickevent(wfdat, parameter, iplot=iplot)
             ##########################################################
             # locating
             if locflag == 1:
@@ -252,7 +257,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
                                 print("autoPyLoT: Number of maximum iterations reached, stop iterative picking!")
                                 break
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
-                            picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter, fig_dict=fig_dict)
+                            if input_dict:
+                                if input_dict.has_key('fig_dict'):
+                                    fig_dict = input_dict['fig_dict']
+                                    picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter, fig_dict=fig_dict)
+                            else:
+                                picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter)
                             # write phases to NLLoc-phase file
                             nll.export(picks, phasefile, parameter)
                             # remove actual NLLoc-location file to keep only the last
