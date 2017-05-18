@@ -73,6 +73,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
     if not parameter:
         if inputfile:
             parameter = AutoPickParameter(inputfile)
+            iplot = parameter['iplot']
         else:
             print('No parameters set and no input file given. Choose either of both.')
             return

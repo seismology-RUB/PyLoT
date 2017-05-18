@@ -49,7 +49,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None):
     if iplot>0:
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
         return all_onsets
-        
+
     pool = gen_Pool()
     result = pool.map(call_autopickstation, input_tuples)
     pool.close()
@@ -237,7 +237,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
             fig = fig_dict[key]
         else:
             fig = None
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig_dict[key])
+        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig)
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
