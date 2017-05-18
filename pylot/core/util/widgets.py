@@ -1365,6 +1365,7 @@ class TuneAutopicker(QWidget):
         
     def init_eventlist(self):
         self.eventBox = self.parent.createEventBox()
+        self.eventBox.setMaxVisibleItems(20)        
         self.fill_eventbox()
         self.eventBox.setCurrentIndex(0)
         self.trace_layout.addWidget(self.eventBox)
@@ -1474,7 +1475,6 @@ class TuneAutopicker(QWidget):
                           autopicks=self.get_current_event_autopicks(station),
                           embedded=True)
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
-        pickDlg.update_picks.connect(self.parent.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
         self.pickDlg = QtGui.QWidget()
@@ -1485,6 +1485,63 @@ class TuneAutopicker(QWidget):
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
         self.get_current_event().setPick(station, picks)
+
+    def plot_manual_picks_to_figs(self):
+        picks = self.get_current_event_picks(self.get_current_station())
+        if not picks:
+            return
+        st = self.data.getWFData()
+        tr = st.select(station=self.get_current_station())[0]
+        starttime = tr.stats.starttime
+        p_axes=[
+            ('mainFig', 0),
+            ('aicFig', 0),
+            ('slength', 0),
+            ('refPpick', 0),
+            ('el_Ppick', 0),
+            ('fm_picker', 0),
+            ('fm_picker', 1)]        
+        s_axes=[
+            ('mainFig', 1),
+            ('mainFig', 2),            
+            ('aicARHfig', 0),
+            ('refSpick', 0),
+            ('el_S1pick', 0),
+            ('el_S2pick', 0)]
+        for p_ax in p_axes:
+            axes = self.parent.fig_dict[p_ax[0]].axes
+            if not axes:
+                continue
+            ax = axes[p_ax[1]]
+            self.plot_manual_Ppick_to_ax(ax, (picks['P']['mpp'] - starttime))
+        for s_ax in s_axes:
+            axes = self.parent.fig_dict[s_ax[0]].axes
+            if not axes:
+                continue
+            ax = axes[s_ax[1]]
+            self.plot_manual_Spick_to_ax(ax, (picks['S']['mpp'] - starttime))
+                
+    def plot_manual_Ppick_to_ax(self, ax, pick):
+        y_top = 0.9*ax.get_ylim()[1]
+        y_bot = 0.9*ax.get_ylim()[0]
+        ax.vlines(pick, y_bot, y_top,
+                  color='cyan', linewidth=2, label='manual P Onset')
+        ax.plot([pick-0.5, pick+0.5],
+                [y_bot, y_bot], linewidth=2, color='cyan')
+        ax.plot([pick-0.5, pick+0.5],
+                [y_top, y_top], linewidth=2, color='cyan')
+        ax.legend()
+        
+    def plot_manual_Spick_to_ax(self, ax, pick):
+        y_top = 0.9*ax.get_ylim()[1]
+        y_bot = 0.9*ax.get_ylim()[0]
+        ax.vlines(pick, y_bot, y_top,
+                  color='magenta', linewidth=2, label='manual S Onset')
+        ax.plot([pick-0.5, pick+0.5],
+                [y_bot, y_bot], linewidth=2, color='magenta')
+        ax.plot([pick-0.5, pick+0.5],
+                [y_top, y_top], linewidth=2, color='magenta')
+        ax.legend()
         
     def fill_tabs(self, event=None, picked=False):
         self.clear_all()
@@ -1499,6 +1556,7 @@ class TuneAutopicker(QWidget):
             self.fill_p_tabs(canvas_dict)
             self.fill_s_tabs(canvas_dict)
             self.toggle_autopickTabs(bool(self.fig_dict['mainFig'].axes))
+            self.plot_manual_picks_to_figs()
         else:
             self.disable_autopickTabs()
         try:
@@ -1534,6 +1592,7 @@ class TuneAutopicker(QWidget):
 
     def fill_eventbox(self):
         self.parent.fill_eventbox(self.eventBox, 'ref')
+        self.parent.fill_eventbox(self.parent.eventBox)
 
     def update_eventID(self):
         self.parameters.boxes['eventID'].setText(
