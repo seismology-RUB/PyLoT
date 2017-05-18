@@ -1804,8 +1804,11 @@ class AutoPickParaBox(QtGui.QWidget):
             self.parameter.setParamKV(param, value)
         return self.parameter
 
-    def params_to_gui(self):
+    def params_to_gui(self, tuneMode=False):
         for param in self.parameter.get_all_para_names():
+            if param == 'eventID':
+                if tuneMode:
+                    continue
             box = self.boxes[param]
             value = self.parameter[param]
             #self.parameter.checkValue(param, value)
@@ -1847,7 +1850,7 @@ class AutoPickParaBox(QtGui.QWidget):
         if fname[0]:
             try:
                 self.parameter.from_file(fname[0])
-                self.params_to_gui()
+                self.params_to_gui(tuneMode=True)
             except Exception as e:
                 self._warn('Could not open file {}:\n{}'.format(fname[0], e))
                 return
@@ -1866,7 +1869,7 @@ class AutoPickParaBox(QtGui.QWidget):
     def restoreDefaults(self):
         try:
             self.parameter.reset_defaults()
-            self.params_to_gui()
+            self.params_to_gui(tuneMode=True)
         except Exception as e:
             self._warn('Could not restore defaults:\n{}'.format(e))
             return
