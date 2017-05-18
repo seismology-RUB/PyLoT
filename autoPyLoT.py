@@ -56,7 +56,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
     print(splash)
 
     locflag = 1
-    if input_dict:
+    if input_dict and isinstance(input_dict, dict):
         if input_dict.has_key('parameter'):
             parameter = input_dict['parameter']
         if input_dict.has_key('fig_dict'):
@@ -84,15 +84,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
             print('Parameters set and input file given. Choose either of both.')
             return
             
-    # reading parameter file
-
-
     data = Data()
 
     evt = None
-    # getting information on data structure
 
+    # reading parameter file
     if parameter.hasParam('datastructure'):
+        # getting information on data structure
         datastructure = DATASTRUCTURE[parameter.get('datastructure')]()
         dsfields = {'root': parameter.get('rootpath'),
                     'dpath': parameter.get('datapath'),
