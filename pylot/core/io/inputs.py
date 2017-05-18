@@ -85,7 +85,10 @@ class AutoPickParameter(object):
         return bool(self.__parameter)
 
     def __getitem__(self, key):
-        return self.__parameter[key]
+        try:
+            return self.__parameter[key]
+        except:
+            return None
 
     def __setitem__(self, key, value):
         self.__parameter[key] = value
