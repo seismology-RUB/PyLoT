@@ -201,6 +201,7 @@ class RichterMagnitude(Magnitude):
                   "mm".format(st[0].stats.station, wapp))
 
         # check for plot flag (for debugging only)
+        fig = None
         if self.plot_flag > 1:
             st.plot()
             fig = plt.figure()
