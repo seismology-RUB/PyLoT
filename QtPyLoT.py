@@ -423,14 +423,14 @@ class MainWindow(QMainWindow):
         componentToolBar.setObjectName("PhaseTools")
         self.addActions(componentToolBar, componentActions)
 
-        self.auto_pick = self.createAction(parent=self, text='autoPick',
+        self.auto_tune = self.createAction(parent=self, text='autoPick',
                                            slot=self.tune_autopicker, shortcut='Alt+Ctrl+A',
                                            icon=auto_icon, tip='Tune autopicking algorithm.')
         
-        self.auto_pick.setEnabled(False)
+        self.auto_tune.setEnabled(False)
 
         autoPickToolBar = self.addToolBar("autoPyLoT")
-        autoPickActions = (self.auto_pick, self.compare_action)
+        autoPickActions = (self.auto_tune, self.compare_action)
         self.addActions(autoPickToolBar, autoPickActions)
 
         # pickToolBar = self.addToolBar("PickTools")
@@ -981,7 +981,7 @@ class MainWindow(QMainWindow):
         self.connectWFplotEvents()
         self.loadlocationaction.setEnabled(True)
         self.saveProjectAction.setEnabled(True)
-        self.auto_pick.setEnabled(True)
+        self.auto_tune.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
         self.n_action.setEnabled(True)
@@ -1004,7 +1004,7 @@ class MainWindow(QMainWindow):
         self.dataPlot.getAxes().cla()
         self.loadlocationaction.setEnabled(False)
         self.saveProjectAction.setEnabled(False)
-        self.auto_pick.setEnabled(False)
+        self.auto_tune.setEnabled(False)
         self.z_action.setEnabled(False)
         self.e_action.setEnabled(False)
         self.n_action.setEnabled(False)
