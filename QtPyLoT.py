@@ -1311,11 +1311,13 @@ class MainWindow(QMainWindow):
                                                              % self.infile)
         autopick_parameter = self._inputs
         self.addListItem(str(autopick_parameter))
-
+        ep = self.get_current_event_path().split('/')
+        eventid = ep[len(ep) - 1]
         self.thread = AutoPickThread(parent=self,
                                      func=autoPyLoT,
                                      infile = self.infile, 
                                      fnames=self.fnames,
+                                     eventid=eventid,
                                      savepath=self.autosave)
 
         self.thread.message.connect(self.addListItem)
