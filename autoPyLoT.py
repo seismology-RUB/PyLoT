@@ -140,8 +140,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
         else:
             # autoPyLoT was initialized from GUI
-            events = [os.path.join(datapath, eventid)]
-            evID = eventid
+            events = []
+            events.append(eventid)
+            evID = os.path.split(eventid)[-1]
             locflag = 2
 
         for event in events:
@@ -163,6 +164,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     parameter.setParam(eventID=eventID)
             else:
                 data.setWFData(fnames)
+                
                 event = events[0]
                 #now = datetime.datetime.now()
                 #evID = '%d%02d%02d%02d%02d' % (now.year,
@@ -366,7 +368,7 @@ if __name__ == "__main__":
                         help='''optional, list of data file names''')
     parser.add_argument('-e', '-E', '--eventid', type=str,
                         action='store',
-                        help='''optional, event ID''')
+                        help='''optional, event path incl. event ID''')
     # parser.add_argument('-p', '-P', '--plot', action='store',
     #                     help='show interactive plots')
     parser.add_argument('-s', '-S', '--spath', type=str,
