@@ -48,31 +48,33 @@ class map_projection(QtGui.QWidget):
                 pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
                                   station=station,
-                                  picks=self._parent.getCurrentEvent().getPick(station),
-                                  autopicks=self._parent.getCurrentEvent().getAutopick(station))
+                                  picks=self._parent.get_current_event().getPick(station),
+                                  autopicks=self._parent.get_current_event().getAutopick(station))
             except Exception as e:
                 message = 'Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
+                return
             pyl_mw = self._parent
-            #try:
-            if pickDlg.exec_():
-                pyl_mw.setDirty(True)
-                pyl_mw.update_status('picks accepted ({0})'.format(station))
-                replot = pyl_mw.getCurrentEvent().setPick(station, pickDlg.getPicks())
-                if replot:
-                    pyl_mw.plotWaveformData()
-                    pyl_mw.drawPicks()
-                    pyl_mw.draw()
+            try:
+                if pickDlg.exec_():
+                    pyl_mw.setDirty(True)
+                    pyl_mw.update_status('picks accepted ({0})'.format(station))
+                    replot = pyl_mw.get_current_event().setPick(station, pickDlg.getPicks())
+                    self._refresh_drawings()
+                    if replot:
+                        pyl_mw.plotWaveformData()
+                        pyl_mw.drawPicks()
+                        pyl_mw.draw()
+                    else:
+                        pyl_mw.drawPicks(station)
+                        pyl_mw.draw()
                 else:
-                    pyl_mw.drawPicks(station)
-                    pyl_mw.draw()
-            else:
-                pyl_mw.update_status('picks discarded ({0})'.format(station))
-            # except Exception as e:
-            #     message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
-            #     self._warn(message)
-            #     print(message, e)
+                    pyl_mw.update_status('picks discarded ({0})'.format(station))
+            except Exception as e:
+                message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
+                self._warn(message)
+                print(message, e)
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)

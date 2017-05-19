@@ -765,7 +765,14 @@ class PickDlg(QDialog):
         self.currentPhase = 'S'
 
     def set_button_color(self, button, color = None):
-        button.setStyleSheet("background-color: {}".format(color))    
+        if type(color) == QtGui.QColor:
+            palette = button.palette()
+            role = button.backgroundRole()
+            palette.setColor(role, color)
+            button.setPalette(palette)
+            button.setAutoFillBackground(True)
+        elif type(color) == str or not color:        
+            button.setStyleSheet("background-color: {}".format(color))    
 
     def leave_picking_mode(self):
         self.currentPhase = None
@@ -1396,7 +1403,7 @@ class TuneAutopicker(QWidget):
         for station in stations:
             item = QtGui.QStandardItem(str(station))
             if station in self.get_current_event().picks:
-                item.setBackground(QtGui.QColor(200, 210, 230, 255))
+                item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
 
     def init_figure_tabs(self):
@@ -1525,11 +1532,11 @@ class TuneAutopicker(QWidget):
         y_top = 0.9*ax.get_ylim()[1]
         y_bot = 0.9*ax.get_ylim()[0]
         ax.vlines(pick, y_bot, y_top,
-                  color='cyan', linewidth=2, label='manual P Onset')
+                  color='teal', linewidth=2, label='manual P Onset')
         ax.plot([pick-0.5, pick+0.5],
-                [y_bot, y_bot], linewidth=2, color='cyan')
+                [y_bot, y_bot], linewidth=2, color='teal')
         ax.plot([pick-0.5, pick+0.5],
-                [y_top, y_top], linewidth=2, color='cyan')
+                [y_top, y_top], linewidth=2, color='teal')
         ax.legend()
         
     def plot_manual_Spick_to_ax(self, ax, pick):

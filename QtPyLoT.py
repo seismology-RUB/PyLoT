@@ -105,6 +105,12 @@ class MainWindow(QMainWindow):
         self.poS_id = None
         self.ae_id = None
 
+        # default colors for ref/test event
+        self._colors = {
+            'ref': QtGui.QColor(200, 210, 230, 255),
+            'test': QtGui.QColor(200, 230, 200, 255)
+        }
+
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
         # read settings
@@ -170,13 +176,16 @@ class MainWindow(QMainWindow):
         _widget = QWidget()
         self._main_layout = QVBoxLayout()
 
-        # add event combo box
+        # add event combo box and ref/test buttons
         self.eventBox = self.createEventBox()
         self.eventBox.setMaxVisibleItems(30)
         self.eventBox.setEnabled(False)
+        self.init_ref_test_buttons()
         self._event_layout = QHBoxLayout()
         self._event_layout.addWidget(QLabel('Event: '))
         self._event_layout.addWidget(self.eventBox)
+        self._event_layout.addWidget(self.ref_event_button)
+        self._event_layout.addWidget(self.test_event_button)
         self._event_layout.setStretch(1,1) #set stretch of item 1 to 1
         self._main_layout.addLayout(self._event_layout)
         self.eventBox.activated.connect(self.refreshEvents)
@@ -470,6 +479,21 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(_widget)
 
+    def init_ref_test_buttons(self):
+        self.ref_event_button = QtGui.QPushButton('Ref')
+        self.test_event_button = QtGui.QPushButton('Test')
+        self.ref_event_button.setToolTip('Set manual picks of current '+
+                                         'event as reference picks for autopicker tuning.')
+        self.test_event_button.setToolTip('Set manual picks of current '+
+                                          'event as test picks for autopicker testing.')
+        self.ref_event_button.setCheckable(True)
+        self.test_event_button.setCheckable(True)
+        self.set_button_color(self.ref_event_button, self._colors['ref'])
+        self.set_button_color(self.test_event_button, self._colors['test'])        
+        self.ref_event_button.clicked.connect(self.toggleRef)
+        self.test_event_button.clicked.connect(self.toggleTest)
+        self.ref_event_button.setEnabled(False)
+        self.test_event_button.setEnabled(False)        
 
     @property
     def metadata(self):
@@ -567,6 +591,16 @@ class MainWindow(QMainWindow):
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
 
+    def set_button_color(self, button, color = None):
+        if type(color) == QtGui.QColor:
+            palette = button.palette()
+            role = button.backgroundRole()
+            palette.setColor(role, color)
+            button.setPalette(palette)
+            button.setAutoFillBackground(True)
+        elif type(color) == str or not color:
+            button.setStyleSheet("background-color: {}".format(color))    
+
     def getWFFnames(self):
         try:
             evt = self.get_data().get_evt_data()
@@ -603,13 +637,13 @@ class MainWindow(QMainWindow):
 
     def getWFFnames_from_eventbox(self, eventlist=None, eventbox=None):
         if self.dataStructure:
-            directory = self.getCurrentEventPath(eventbox)
+            directory = self.get_current_event_path(eventbox)
             fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
         return fnames
 
-    def getCurrentEvent(self, eventlist=None, eventbox=None):
+    def get_current_event(self, eventlist=None, eventbox=None):
         if not eventlist:
             eventlist = self.project.eventlist
         if not eventbox:
@@ -617,7 +651,7 @@ class MainWindow(QMainWindow):
         index = eventbox.currentIndex()
         return eventbox.itemData(index)
 
-    def getCurrentEventPath(self, eventbox=None):
+    def get_current_event_path(self, eventbox=None):
         if not eventbox:
             eventbox = self.eventBox
         return str(eventbox.currentText().split('|')[0]).strip()
@@ -720,18 +754,18 @@ class MainWindow(QMainWindow):
             item_ref = QtGui.QStandardItem()#str(event_ref))
             item_test = QtGui.QStandardItem()#str(event_test))
             if event_ref:
-                item_ref.setBackground(QtGui.QColor(200, 210, 230, 255))
+                item_ref.setBackground(self._colors['ref'])
             if event_test:
-                item_test.setBackground(QtGui.QColor(200, 230, 200, 255))
+                item_test.setBackground(self._colors['test'])
             item_notes = QtGui.QStandardItem(event.notes)
 
             openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
             item_path.setIcon(openIcon)
             # if ref: set different color e.g.
             # if event_ref:
-            #     item.setBackground(QtGui.QColor(200, 210, 230, 255))
+            #     item.setBackground(self._colors['ref'])
             # if event_test:
-            #     item.setBackground(QtGui.QColor(200, 230, 200, 255))
+            #     itemt.setBackground(self._colors['test'])
             # item.setForeground(QtGui.QColor('black'))
             # font = item.font()
             # font.setPointSize(10)
@@ -750,6 +784,9 @@ class MainWindow(QMainWindow):
                 raise ValueError(message)
             eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
+        self.refreshRefTestButtons()
+        if self.get_current_event():
+            self.enableRefTestButtons(bool(self.get_current_event().picks))            
 
     def filename_from_action(self, action):
         if action.data() is None:
@@ -915,6 +952,39 @@ class MainWindow(QMainWindow):
             return self.saveData()
         return True
 
+    def enableRefTestButtons(self, bool):
+        self.ref_event_button.setEnabled(bool)        
+        self.test_event_button.setEnabled(bool)
+
+    def refreshRefTestButtons(self):
+        event = self.get_current_event()
+        if event:
+            self.ref_event_button.setChecked(event.isRefEvent())
+            self.test_event_button.setChecked(event.isTestEvent())
+            return
+        self.ref_event_button.setChecked(False)
+        self.test_event_button.setChecked(False)
+            
+    def toggleRef(self):
+        ref = self.ref_event_button.isChecked()
+        self.test_event_button.setChecked(False)
+        self.get_current_event().setTestEvent(False)
+        self.get_current_event().setRefEvent(ref)
+        self.fill_eventbox()
+        self.refreshTabs()
+        if self.tap:
+            self.tap.fill_eventbox()
+            
+    def toggleTest(self):
+        test = self.test_event_button.isChecked()
+        self.ref_event_button.setChecked(False)
+        self.get_current_event().setRefEvent(False)
+        self.get_current_event().setTestEvent(test)
+        self.fill_eventbox()
+        self.refreshTabs()        
+        if self.tap:
+            self.tap.fill_eventbox()
+        
     def refreshEvents(self):
         self._eventChanged = [True, True]
         self.refreshTabs()
@@ -922,7 +992,7 @@ class MainWindow(QMainWindow):
     def refreshTabs(self):
         plotted=False
         if self._eventChanged[0] or self._eventChanged[1]:
-            event = self.getCurrentEvent()
+            event = self.get_current_event()
             if not event.picks:
                 self.picks = {}
             else:
@@ -998,7 +1068,7 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         self.saveEventAction.setEnabled(True)
-        event = self.getCurrentEvent()
+        event = self.get_current_event()
         if event.picks:
             self.picks = event.picks
             self.drawPicks(picktype='manual')
@@ -1169,7 +1239,7 @@ class MainWindow(QMainWindow):
             self.setDirty(True)
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
-            self.getCurrentEvent().setPick(station, pickDlg.getPicks())
+            self.get_current_event().setPick(station, pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -1288,10 +1358,10 @@ class MainWindow(QMainWindow):
     def updatePicks(self, type='manual'):
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
         if type == 'manual':
-            self.getCurrentEvent().addPicks(picks)
+            self.get_current_event().addPicks(picks)
             self.picks.update(picks)
         elif type == 'auto':
-            self.getCurrentEvent().addAutopicks(picks)            
+            self.get_current_event().addAutopicks(picks)            
             self.autopicks.update(picks)
         self.check4Comparison()
 
@@ -1460,7 +1530,7 @@ class MainWindow(QMainWindow):
         if not self.array_map:
             return
         # refresh with new picks here!!!
-        self.array_map.refresh_drawings(self.getCurrentEvent().getPicks())
+        self.array_map.refresh_drawings(self.get_current_event().getPicks())
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
@@ -1528,8 +1598,8 @@ class MainWindow(QMainWindow):
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
 
-            item_ref.setBackground(QtGui.QColor(200, 210, 230, 255))
-            item_test.setBackground(QtGui.QColor(200, 230, 200, 255))
+            item_ref.setBackground(self._colors['ref'])
+            item_test.setBackground(self._colors['test'])
             item_path.setText(event.path)
             item_notes.setText(event.notes)            
             set_enabled(item_path, True, False)
