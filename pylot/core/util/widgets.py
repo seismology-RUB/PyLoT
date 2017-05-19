@@ -1615,6 +1615,7 @@ class TuneAutopicker(QWidget):
         args = {'parameter': self.parameter,
                 'station': station,
                 'fnames': 'None',
+                'eventid': self.get_current_event_fp(),
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
                 'locflag': 0}
