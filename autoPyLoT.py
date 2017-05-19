@@ -8,7 +8,6 @@ import glob
 import os
 import datetime
 from obspy import read_events
-
 import pylot.core.loc.hyposat as hyposat
 import pylot.core.loc.hypo71 as hypo71
 import pylot.core.loc.velest as velest
@@ -141,8 +140,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
         else:
             # autoPyLoT was initialized from GUI
-            events = eventid
-            event = eventid
+            events = [os.path.join(datapath, eventid)]
             evID = eventid
             locflag = 2
 
@@ -165,8 +163,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     parameter.setParam(eventID=eventID)
             else:
                 data.setWFData(fnames)
-                event = savepath
-                now = datetime.datetime.now()
+                event = events[0]
+                #now = datetime.datetime.now()
                 #evID = '%d%02d%02d%02d%02d' % (now.year,
                 #                               now.month,
                 #                               now.day,
@@ -181,6 +179,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     return                      
             wfdat = remove_underscores(wfdat)
             metadata =  read_metadata(parameter.get('invdir'))
+            print("Restitute data ...")
             corr_dat = restitute_data(wfdat.copy(), *metadata)
                
             print('Working on event %s. Stations: %s' % (event, station))
