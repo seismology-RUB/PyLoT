@@ -743,7 +743,7 @@ class MainWindow(QMainWindow):
                 for item in itemlist:
                     item.setEnabled(False)
             model.appendRow(itemlist)
-            if not event.path == self.eventBox.itemText(id):
+            if not event.path == self.eventBox.itemText(id).strip():
                 message = ('Path missmatch creating eventbox.\n'
                            '{} unequal {}.'
                            .format(event.path, self.eventBox.itemText(id)))
@@ -1039,17 +1039,19 @@ class MainWindow(QMainWindow):
         wfst += self.get_data().getWFData().select(component=alter_comp)
         height_need = len(self.data.getWFData())*12
         plotWidget = self.getPlotWidget()
-        if plotWidget.frameSize().height() < height_need:
-            plotWidget.setFixedHeight(height_need)
+        if self.tabs.widget(0).frameSize().height() < height_need:
+            plotWidget.setMinimumHeight(height_need)
         else:
-            plotWidget.setFixedHeight(plotWidget.frameSize().height())
-        plotWidget.figure.tight_layout()            
+            plotWidget.setMinimumHeight(0)
         plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False)
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
         labels = [plotDict[n][0] for n in pos]
         plotWidget.setYTickLabels(pos, labels)
-        plotWidget.figure.tight_layout()
+        try:
+            plotWidget.figure.tight_layout()
+        except:
+            pass
 
     def plotZ(self):
         self.setComponent('Z')
