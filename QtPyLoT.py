@@ -1289,7 +1289,7 @@ class MainWindow(QMainWindow):
         self.tap.show()
             
     def update_autopicker(self):
-        for key in self.fig_dict.keys():
+        for key in self.fig_keys:
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
         self.tap.fill_tabs(picked=True)
         
