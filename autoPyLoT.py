@@ -29,7 +29,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, savepath=None, station='all', iplot=0):
+def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None, station='all', iplot=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -141,7 +141,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
             events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
         else:
             # autoPyLoT was initialized from GUI
-            events = fnames
+            events = eventid
+            event = eventid
+            evID = eventid
+            locflag = 2
 
         for event in events:
             if fnames == 'None':
@@ -164,12 +167,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
                 data.setWFData(fnames)
                 event = savepath
                 now = datetime.datetime.now()
-                evID = '%d%02d%02d%02d%02d' % (now.year,
-                                               now.month,
-                                               now.day,
-                                               now.hour,
-                                               now.minute)
-                parameter.setParam(eventID=evID)
+                #evID = '%d%02d%02d%02d%02d' % (now.year,
+                #                               now.month,
+                #                               now.day,
+                #                               now.hour,
+                #                               now.minute)
+                parameter.setParam(eventID=eventid)
             wfdat = data.getWFData()  # all available streams
             if not station == 'all':
                 wfdat = wfdat.select(station=station)
@@ -192,7 +195,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
                 picks = autopickevent(wfdat, parameter, iplot=iplot)
             ##########################################################
             # locating
-            if locflag == 1:
+            if locflag > 0:
                 # write phases to NLLoc-phase file
                 nll.export(picks, phasefile, parameter)
 
@@ -282,23 +285,24 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, save
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
                                 nlloccounter = maxnumit
                         evt = read_events(nllocfile)[0]
-                        # calculating seismic moment Mo and moment magnitude Mw
-                        moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
-                                                     parameter.get('Qp'),
-                                                     parameter.get('rho'), True, \
-                                                     iplot)
-                        # update pick with moment property values (w0, fc, Mo)
-                        for station, props in moment_mag.moment_props.items():
-                            picks[station]['P'].update(props)
-                        evt = moment_mag.updated_event()
-                        local_mag = RichterMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True, \
-                                                     iplot)
-                        for station, amplitude in local_mag.amplitudes.items():
-                            picks[station]['S']['Ao'] = amplitude.generic_amplitude
-                        evt = local_mag.updated_event()
-                        net_mw = moment_mag.net_magnitude()
-                        print("Network moment magnitude: %4.1f" % net_mw.mag)
+                        if locflag < 2:
+                            # calculating seismic moment Mo and moment magnitude Mw
+                            moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
+                                                         parameter.get('Qp'),
+                                                         parameter.get('rho'), True, \
+                                                         iplot)
+                            # update pick with moment property values (w0, fc, Mo)
+                            for station, props in moment_mag.moment_props.items():
+                                picks[station]['P'].update(props)
+                            evt = moment_mag.updated_event()
+                            local_mag = RichterMagnitude(corr_dat, evt,
+                                                         parameter.get('sstop'), True, \
+                                                         iplot)
+                            for station, amplitude in local_mag.amplitudes.items():
+                                picks[station]['S']['Ao'] = amplitude.generic_amplitude
+                            evt = local_mag.updated_event()
+                            net_mw = moment_mag.net_magnitude()
+                            print("Network moment magnitude: %4.1f" % net_mw.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
@@ -361,6 +365,9 @@ if __name__ == "__main__":
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')
+    parser.add_argument('-e', '-E', '--eventid', type=str,
+                        action='store',
+                        help='''optional, event ID''')
     # parser.add_argument('-p', '-P', '--plot', action='store',
     #                     help='show interactive plots')
     parser.add_argument('-s', '-S', '--spath', type=str,
@@ -373,4 +380,5 @@ if __name__ == "__main__":
     cla = parser.parse_args()
 
     picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile),
-                               fnames=str(cla.fnames), savepath=str(cla.spath))
+                               fnames=str(cla.fnames), eventid=str(cla.eventid), 
+                               savepath=str(cla.spath))
