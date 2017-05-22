@@ -1829,7 +1829,7 @@ class AutoPickParaBox(QtGui.QWidget):
                            self.parameter.get_main_para_names()['nlloc'])
         self.add_to_layout(self._main_layout, 'Seismic Moment',
                            self.parameter.get_main_para_names()['smoment'])
-        self.add_to_layout(self._main_layout, 'Focal Mechanism',
+        self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
                            self.parameter.get_main_para_names()['pick'],
                            False)
         self.add_tab(self._main_layout, 'Main Settings')
@@ -1962,7 +1962,6 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
         #self.tabWidget.addTab(LocalisationTab(self), "Loc. Tools")
         self.tabWidget.addTab(LocalisationTab(self), "NonLinLoc")
-        self.tabWidget.addTab(ParametersTab(self, infile), "Picking Parameters")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close |
@@ -2210,93 +2209,6 @@ class LocalisationTab(PropTab):
                   "nll/binPath": self.binedit.setText("%s" % nllocbin)}
 
         
-class ParametersTab(PropTab):
-    def __init__(self, parent=None, infile=None):
-        super(ParametersTab, self).__init__(parent)
-
-        self.commonpicksettings = QPushButton("&Common Settings autoPyLoT")
-        self.specialpicksettings = QPushButton("Special Settings autoPyLoT")
-        self.CFsettings = QPushButton("Special Settings for Calculating CF's")   
-        self.FMsettings = QPushButton("Settings for First-Motion Picker")
-        self.qsettings = QPushButton("Quality Assessment")
-        self.sourcepara = QPushButton("Settings for Source Parameter Estimation")
-
-        self.parent = parent
-        self.infile = infile
- 
-        layout = QGridLayout()
-        layout.addWidget(self.commonpicksettings, 0, 0)
-        layout.addWidget(self.specialpicksettings, 1, 0)
-        layout.addWidget(self.CFsettings, 2, 0)
-        layout.addWidget(self.FMsettings, 0, 1)
-        layout.addWidget(self.qsettings, 1, 1)
-        layout.addWidget(self.sourcepara, 2, 1)
-
-        self.setLayout(layout)
-
-        self.commonpicksettings.clicked.connect(self.ButtonCommonPickSettings)
-
-
-    def ButtonCommonPickSettings(self):#, event=None):
-        
-        # get parameters from pylot.in-file
-        para = AutoPickParameter(self.infile)
-        pstart = para.get('pstart')
-        pstop = para.get('pstop')
-        sstart = para.get('sstart')
-        sstop = para.get('sstop')
-        bpz1 = para.get('bpz1')
-        bpz2 = para.get('bpz2')
-        bph1 = para.get('bph1')
-        bph2 = para.get('bph2')
-        settings = QSettings()
-        self.widget = QWidget(self.parent, 1)
-        self.widget.setWindowTitle("Common Settings autoPyLoT")
-
-        self.pCFcalcwinLabel = QLabel("Start/end time (relative to waveform onset) for calculating CF from waveform for P-pick [s]")
-        self.pCFcalcwinEdit = QLineEdit()
-        self.pCFcalcwinEdit.setText("%6.1f  %6.1f" % (pstart, pstop))
-        self.sCFcalcwinLabel = QLabel("Start/end time (relative to P onset) for calculating CF from waveform for S-pick [s]")
-        self.sCFcalcwinEdit = QLineEdit()
-        self.sCFcalcwinEdit.setText("%6.1f  %6.1f" % (sstart, sstop))
-        self.bpP1Label = QLabel("1st Bandpass P-Pick, lower/upper corner frequency [Hz]")
-        self.bpP2Label = QLabel("2nd Bandpass P-Pick, lower/upper corner frequency [Hz]")
-        self.bpS1Label = QLabel("1st Bandpass S-Pick, lower/upper corner frequency [Hz]")
-        self.bpS2Label = QLabel("2nd Bandpass S-Pick, lower/upper corner frequency [Hz]")
-        self.bpP1Edit = QLineEdit()
-        self.bpP1Edit.setText("%4.1f  %4.1f" % (bpz1[0], bpz1[1]))
-        self.bpP2Edit = QLineEdit()
-        self.bpP2Edit.setText("%4.1f  %4.1f" % (bpz2[0], bpz2[1]))
-        self.bpS1Edit = QLineEdit()
-        self.bpS1Edit.setText("%4.1f  %4.1f" % (bph1[0], bph1[1]))
-        self.bpS2Edit = QLineEdit()
-        self.bpS2Edit.setText("%4.1f  %4.1f" % (bph2[0], bph2[1]))
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
-                                          QDialogButtonBox.Apply |
-                                          QDialogButtonBox.Close) 
-
-
-        layout = QGridLayout()
-        layout.addWidget(self.pCFcalcwinLabel, 0, 0)
-        layout.addWidget(self.pCFcalcwinEdit, 0, 1)
-        layout.addWidget(self.sCFcalcwinLabel, 1, 0)
-        layout.addWidget(self.sCFcalcwinEdit, 1, 1)
-        layout.addWidget(self.bpP1Label, 2, 0)
-        layout.addWidget(self.bpP1Edit, 2, 1)
-        layout.addWidget(self.bpP2Label, 3, 0)
-        layout.addWidget(self.bpP2Edit, 3, 1)
-        layout.addWidget(self.bpS1Label, 4, 0)
-        layout.addWidget(self.bpS1Edit, 4, 1)
-        layout.addWidget(self.bpS2Label, 5, 0)
-        layout.addWidget(self.bpS2Edit, 5, 1)
-        layout.addWidget(self.buttonBox)
-        self.widget.setLayout(layout)
-        self.widget.show()
-        self.raise_()
-        self.widget.activateWindow()
-
-
-
 class NewEventDlg(QDialog):
     def __init__(self, parent=None, titleString="Create a new event"):
         """
