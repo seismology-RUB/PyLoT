@@ -24,12 +24,12 @@ class map_projection(QtGui.QWidget):
         self.picks_dict = None
         self.figure = figure
         self.init_graphics()
-        self.init_basemap(projection='mill', resolution='l')
+        self.init_stations()
+        self.init_basemap(resolution='l')
         self.init_map()
         #self.show()
 
     def init_map(self):
-        self.init_stations()
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
         self.init_x_y_dimensions()
@@ -196,13 +196,19 @@ class map_projection(QtGui.QWidget):
         self.x, self.y = self.basemap(self.lon, self.lat)
         self.xdim, self.ydim = get_x_y_dim(self.x, self.y)
 
-    def init_basemap(self, projection, resolution='l'):
-        basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
-        basemap.drawmapboundary(fill_color='darkblue')
-        basemap.drawcountries()
-        basemap.drawstates()
-        basemap.fillcontinents(color='grey', lake_color='aqua')
-        basemap.drawcoastlines()
+    def init_basemap(self, resolution='l'):
+        #basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
+        basemap = Basemap(projection='lcc', resolution = resolution, ax=self.main_ax,
+                          width=5e6, height=2e6,
+                          lat_0=(min(self.lat)+max(self.lat))/2.,
+                          lon_0=(min(self.lon)+max(self.lon))/2.)
+            
+        #basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
+        basemap.drawmapboundary(zorder=2)#fill_color='darkblue')
+        basemap.shadedrelief(zorder=3)
+        basemap.drawcountries(zorder=4)
+        basemap.drawstates(zorder=5)
+        basemap.drawcoastlines(zorder=6)
         self.basemap = basemap
         self.figure.tight_layout()
         

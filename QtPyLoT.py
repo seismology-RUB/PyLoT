@@ -1496,6 +1496,14 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
     def init_array_tab(self):
+        if hasattr(self, 'metadata_widget'):
+            if self.metadata_widget:
+                self.metadata_widget.setParent(None)
+                self.array_layout.removeWidget(self.metadata_widget)
+        if hasattr(self, 'array_map'):
+            if self.array_map:
+                self.array_map.setParent(None)        
+                self.array_layout.removeWidget(self.array_map)
         self.metadata_widget = QWidget(self)
         grid_layout = QGridLayout()
         grid_layout.setColumnStretch(0, 1)
@@ -1510,6 +1518,7 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(label, 1, 1)
         grid_layout.addWidget(new_inv_button, 2, 1)
 
+        self.metadata = None
         self.metadata_widget.setLayout(grid_layout)
         self.array_layout.addWidget(self.metadata_widget)
     
@@ -1823,6 +1832,8 @@ class MainWindow(QMainWindow):
             self.init_events(new=True)
             if hasattr(self.project, 'metadata'):
                 self.init_array_map(index=0)
+            else:
+                self.init_array_tab()
 
     def saveProject(self):
         if self.project:
