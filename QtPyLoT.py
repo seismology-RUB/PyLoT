@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
 
         self.poS_id = None
         self.ae_id = None
+        self.scroll_id = None
 
         # default colors for ref/test event
         self._colors = {
@@ -1047,13 +1048,20 @@ class MainWindow(QMainWindow):
             self.ae_id = self.dataPlot.mpl_connect('axes_enter_event',
                                                    lambda event: self.tutor_user())
 
+        if not self.scroll_id:
+            self.scroll_id = self.dataPlot.mpl_connect('scroll_event',
+                                                       self.scrollPlot)
+
     def disconnectWFplotEvents(self):
         if self.poS_id:
             self.dataPlot.mpl_disconnect(self.poS_id)
         if self.ae_id:
             self.dataPlot.mpl_disconnect(self.ae_id)
+        if self.scroll_id:
+            self.dataPlot.mpl_connect(self.scroll_id)
         self.poS_id = None
         self.ae_id = None
+        self.scroll_id = None
 
     def finishWaveformDataPlot(self):
         self.connectWFplotEvents()
@@ -1116,7 +1124,7 @@ class MainWindow(QMainWindow):
         plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False)
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
-        labels = [plotDict[n][0] for n in pos]
+        labels = [plotDict[n][2]+'.'+plotDict[n][0] for n in pos]
         plotWidget.setYTickLabels(pos, labels)
         try:
             plotWidget.figure.tight_layout()
@@ -1221,8 +1229,20 @@ class MainWindow(QMainWindow):
         self.update_status('Seismic phase changed to '
                           '{0}'.format(self.getSeismicPhase()))
 
+    def scrollPlot(self, gui_event):
+        button = gui_event.button
+        if not button == 'up' and not button == 'down':
+            return
+        vbar = self.wf_scroll_area.verticalScrollBar()
+        up_down = {'up': -60,
+                   'down': 60}
+        if vbar.maximum():
+            vbar.setValue(vbar.value() + up_down[button])        
+        
     def pickOnStation(self, gui_event):
-
+        if not gui_event.button == 1:
+            return
+        
         wfID = self.getWFID(gui_event)
 
         if wfID is None: return

@@ -439,6 +439,7 @@ class WaveformWidget(FigureCanvas):
         nmax = 0
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
+            network = trace.stats.network
             station = trace.stats.station
             if mapping:
                 comp = channel[-1]
@@ -458,7 +459,7 @@ class WaveformWidget(FigureCanvas):
                    for level in noiselevel:
                        self.getAxes().plot([time_ax[0], time_ax[-1]],
                                            [level, level], '--k')
-                self.setPlotDict(n, (station, channel))
+                self.setPlotDict(n, (station, channel, network))
         xlabel = 'seconds since {0}'.format(wfstart)
         ylabel = ''
         self.updateWidget(xlabel, ylabel, title)
