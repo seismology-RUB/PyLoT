@@ -78,7 +78,8 @@ class map_projection(QtGui.QWidget):
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
-        
+        self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+
     def init_graphics(self):
         if not self.figure:
             if not hasattr(self._parent, 'am_figure'):
@@ -326,7 +327,34 @@ class map_projection(QtGui.QWidget):
     def remove_annotations(self):
         for annotation in self.annotations:
             annotation.remove()
-    
+
+    def zoom(self, event):
+        map = self.basemap
+        xlim = map.ax.get_xlim()
+        ylim = map.ax.get_ylim()
+        x, y = event.xdata, event.ydata
+        zoom = {'up': 1./2.,
+                'down': 2.}
+        
+        if not event.xdata or not event.ydata:
+            return
+        
+        if event.button in zoom:
+            factor = zoom[event.button]
+            xdiff = (xlim[1]-xlim[0])*factor
+            xl = x - 0.5 * xdiff
+            xr = x + 0.5 * xdiff
+            ydiff = (ylim[1]-ylim[0])*factor
+            yb = y - 0.5 * ydiff
+            yt = y + 0.5 * ydiff
+
+            if xl < map.xmin or yb < map.ymin or xr > map.xmax or yt > map.ymax:
+                xl, xr = map.xmin, map.xmax
+                yb, yt = map.ymin, map.ymax
+            map.ax.set_xlim(xl, xr)
+            map.ax.set_ylim(yb, yt)
+            map.ax.figure.canvas.draw()
+            
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
