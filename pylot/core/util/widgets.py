@@ -1962,6 +1962,7 @@ class PropertiesDlg(QDialog):
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
         #self.tabWidget.addTab(LocalisationTab(self), "Loc. Tools")
         self.tabWidget.addTab(LocalisationTab(self), "NonLinLoc")
+        self.tabWidget.addTab(ChannelOrderTab(self), "Channel Order")
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Apply |
                                           QDialogButtonBox.Close |
@@ -2004,6 +2005,8 @@ class PropertiesDlg(QDialog):
     def setValues(tabValues):
         settings = QSettings()
         for setting, value in tabValues.items():
+            print(value)
+            print(setting)
             settings.setValue(setting, value)
         settings.sync()
 
@@ -2128,6 +2131,50 @@ class GraphicsTab(PropTab):
 
         pass
 
+class ChannelOrderTab(PropTab):
+    def __init__(self, parent=None, infile=None):
+        super(ChannelOrderTab, self).__init__(parent)
+
+        ChannelOrderLabelZ = QLabel("Channel Z [up/down, default=3]")
+        ChannelOrderLabelN = QLabel("Channel N [north/south, default=1]")
+        ChannelOrderLabelE = QLabel("Channel E [east/west, default=2]")
+        self.ChannelOrderZEdit = QLineEdit()
+        self.ChannelOrderZEdit.setMaxLength(1)
+        self.ChannelOrderZEdit.setFixedSize(20, 20)
+        self.ChannelOrderNEdit = QLineEdit()
+        self.ChannelOrderNEdit.setMaxLength(1)
+        self.ChannelOrderNEdit.setFixedSize(20, 20)
+        self.ChannelOrderEEdit = QLineEdit()
+        self.ChannelOrderEEdit.setMaxLength(1)
+        self.ChannelOrderEEdit.setFixedSize(20, 20)
+        self.ChannelOrderZEdit.setText("3")
+        self.ChannelOrderNEdit.setText("1")
+        self.ChannelOrderEEdit.setText("2")
+
+        layout = QGridLayout()
+        layout.addWidget(ChannelOrderLabelZ, 0, 0)
+        layout.addWidget(ChannelOrderLabelN, 1, 0)
+        layout.addWidget(ChannelOrderLabelE, 2, 0)
+        layout.addWidget(self.ChannelOrderZEdit, 0, 1)
+        layout.addWidget(self.ChannelOrderNEdit, 1, 1)
+        layout.addWidget(self.ChannelOrderEEdit, 2, 1)
+
+        self.setLayout(layout)
+
+    def getValues(self):
+        values = {"Channel Z [up/down, default=3]": self.ChannelOrderZEdit.text(),
+                  "Channel N [north/south, default=1]": self.ChannelOrderNEdit.text(),
+                  "Channel E [east/west, default=2]": self.ChannelOrderEEdit.text()}
+        return values
+
+    def resetValues(self, infile=None):
+        Zdefault = 3
+        Ndefault = 1
+        Edefault = 2
+        values = {"Channel Z [up/down, default=3]": self.ChannelOrderZEdit.setText("%d" % Zdefault),
+                  "Channel N [north/south, default=1]": self.ChannelOrderNEdit.setText("%d" % Ndefault),
+                  "Channel E [east/west, default=2]": self.ChannelOrderEEdit.setText("%d" % Edefault)}
+        return values
 
 class LocalisationTab(PropTab):
     def __init__(self, parent=None, infile=None):
