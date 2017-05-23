@@ -2006,8 +2006,6 @@ class PropertiesDlg(QDialog):
         settings = QSettings()
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
-            print(value)
-            print(setting)
             if value is not None:
                 if setting.startswith('Channel Z'):
                     COMPPOSITION_MAP['Z'] = value
