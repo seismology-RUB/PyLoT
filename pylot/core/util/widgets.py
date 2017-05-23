@@ -36,7 +36,7 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
-    COMPPOSITION_MAP
+    COMPPOSITION_MAP, COMPNAME_MAP
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
@@ -2006,6 +2006,18 @@ class PropertiesDlg(QDialog):
         settings = QSettings()
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
+            print(value)
+            print(setting)
+            if value is not None:
+                if setting.startswith('Channel Z'):
+                    COMPPOSITION_MAP['Z'] = value
+                    COMPNAME_MAP['Z'] = value
+                elif setting.startswith('Channel E'):
+                    COMPPOSITION_MAP['E'] = value
+                    COMPNAME_MAP['E'] = value
+                elif setting.startswith('Channel N'):
+                    COMPPOSITION_MAP['N'] = value
+                    COMPNAME_MAP['N'] = value
         settings.sync()
 
 
