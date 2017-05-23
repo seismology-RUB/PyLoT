@@ -2005,8 +2005,6 @@ class PropertiesDlg(QDialog):
     def setValues(tabValues):
         settings = QSettings()
         for setting, value in tabValues.items():
-            print(value)
-            print(setting)
             settings.setValue(setting, value)
         settings.sync()
 
