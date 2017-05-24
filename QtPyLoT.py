@@ -1953,7 +1953,7 @@ class MainWindow(QMainWindow):
             self.project.save(filename)
             return True
             
-    def loadProject(self):
+    def loadProject(self, fnm=None):
         '''
         Load an existing project file.
         '''
@@ -1969,8 +1969,11 @@ class MainWindow(QMainWindow):
                     pass
                 elif answer == 4194304:
                     return
-        dlg = QFileDialog()
-        fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
+        if not fnm:
+            dlg = QFileDialog()
+            fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
+        if not fnm:
+            return
         if fnm[0]:
             self.project = Project.load(fnm[0])
             self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
