@@ -2172,9 +2172,9 @@ class ChannelOrderTab(PropTab):
         self.setLayout(layout)
 
     def getValues(self):
-        values = {"Channel Z [up/down, default=3]": self.ChannelOrderZEdit.text(),
-                  "Channel N [north/south, default=1]": self.ChannelOrderNEdit.text(),
-                  "Channel E [east/west, default=2]": self.ChannelOrderEEdit.text()}
+        values = {"Channel Z [up/down, default=3]": int(self.ChannelOrderZEdit.text()),
+                  "Channel N [north/south, default=1]": int(self.ChannelOrderNEdit.text()),
+                  "Channel E [east/west, default=2]": int(self.ChannelOrderEEdit.text())}
         return values
 
     def resetValues(self, infile=None):
