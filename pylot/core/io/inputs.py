@@ -178,6 +178,9 @@ class AutoPickParameter(object):
             else:
                 return
 
+        if isinstance(fnin, (list, tuple)):
+            fnin = fnin[0]
+
         inputFile = open(fnin, 'r')
         try:
             lines = inputFile.readlines()
