@@ -2091,6 +2091,8 @@ class InputsTab(PropTab):
         datapath = para.get('datapath')
         rootpath = para.get('rootpath')
         database = para.get('database')
+        if isinstance(database, int):
+            database = str(database)
         path = os.path.join(os.path.expanduser('~'), rootpath, datapath, database)
         values = {"data/dataRoot": self.dataDirEdit.setText("%s" % path),
                   "user/FullName": self.fullNameEdit.text(),
