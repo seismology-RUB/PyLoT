@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
         self._main_layout.addLayout(self._event_layout)
         self.eventBox.activated.connect(self.refreshEvents)
         
-        # add tabs
+        # add main tab widget
         self.tabs = QTabWidget()
         self._main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self.refreshTabs)
@@ -201,16 +201,24 @@ class MainWindow(QMainWindow):
         self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
                                        title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
+
+        # add scroll area used in case number of traces gets too high
+        self.wf_scroll_area = QtGui.QScrollArea()
+
+        # init main widgets for main tabs
         wf_tab = QtGui.QWidget()
         array_tab = QtGui.QWidget()
         events_tab = QtGui.QWidget()
-        self.wf_scroll_area = QtGui.QScrollArea()
+
+        # init main widgets layouts
         self.wf_layout = QtGui.QVBoxLayout()
         self.array_layout = QtGui.QVBoxLayout()
         self.events_layout = QtGui.QVBoxLayout()
         wf_tab.setLayout(self.wf_layout)
         array_tab.setLayout(self.array_layout)
         events_tab.setLayout(self.events_layout)
+
+        #add tabs to main tab widget
         self.tabs.addTab(wf_tab, 'Waveform Plot')
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
@@ -481,6 +489,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(_widget)
 
     def init_ref_test_buttons(self):
+        '''
+        Initiate/create buttons for assigning events containing manual picks to reference or test set.
+        '''
         self.ref_event_button = QtGui.QPushButton('Ref')
         self.test_event_button = QtGui.QPushButton('Test')
         self.ref_event_button.setToolTip('Set manual picks of current '+
@@ -593,6 +604,11 @@ class MainWindow(QMainWindow):
         self.recentfiles.insert(0, event)
 
     def set_button_color(self, button, color = None):
+        '''
+        Set background color of a button.
+        button: type = QtGui.QAbstractButton
+        color: type = QtGui.QColor or type = str (RGBA)
+        '''
         if type(color) == QtGui.QColor:
             palette = button.palette()
             role = button.backgroundRole()
@@ -636,7 +652,10 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getWFFnames_from_eventbox(self, eventlist=None, eventbox=None):
+    def getWFFnames_from_eventbox(self, eventbox=None):
+        '''
+        Return waveform filenames from event in eventbox.
+        '''
         if self.dataStructure:
             directory = self.get_current_event_path(eventbox)
             fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
@@ -644,15 +663,19 @@ class MainWindow(QMainWindow):
             raise DatastructureError('not specified')
         return fnames
 
-    def get_current_event(self, eventlist=None, eventbox=None):
-        if not eventlist:
-            eventlist = self.project.eventlist
+    def get_current_event(self, eventbox=None):
+        '''
+        Return event (type QtPylot.Event) currently selected in eventbox.
+        '''
         if not eventbox:
             eventbox = self.eventBox
         index = eventbox.currentIndex()
         return eventbox.itemData(index)
 
     def get_current_event_path(self, eventbox=None):
+        '''
+        Return event path of event (type QtPylot.Event) currently selected in eventbox.
+        '''
         if not eventbox:
             eventbox = self.eventBox
         return str(eventbox.currentText().split('|')[0]).strip()
@@ -661,6 +684,9 @@ class MainWindow(QMainWindow):
         return self.recentfiles[0]
 
     def add_events(self):
+        '''
+        Creates and adds events by user selection of event folders to GUI.
+        '''
         if not self.project:
             self.project = Project()
         ed = getExistingDirectories(self, 'Select event directories...')
@@ -679,6 +705,9 @@ class MainWindow(QMainWindow):
         self.init_events()
 
     def createEventBox(self):
+        '''
+        Eventbox generator.
+        '''
         qcb = QComboBox()
         palette = qcb.palette()
         # change highlight color:
@@ -690,6 +719,9 @@ class MainWindow(QMainWindow):
         return qcb
         
     def init_events(self, new=False):
+        '''
+        Initiate GUI widgets in case of changed or newly added events.
+        '''
         nitems = self.eventBox.count()
         if len(self.project.eventlist) == 0:
             print('No events to init.')
@@ -706,6 +738,8 @@ class MainWindow(QMainWindow):
 
     def fill_eventbox(self, eventBox=None, select_events='all'):
         '''
+        (Re)fill the selected eventBox (type = QtGui.QComboBox).
+
         :param: select_events, can be 'all', 'ref'
         :type: str
         '''
@@ -786,8 +820,6 @@ class MainWindow(QMainWindow):
             eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
         self.refreshRefTestButtons()
-        if self.get_current_event():
-            self.enableRefTestButtons(bool(self.get_current_event().picks))            
 
     def filename_from_action(self, action):
         if action.data() is None:
@@ -954,19 +986,30 @@ class MainWindow(QMainWindow):
         return True
 
     def enableRefTestButtons(self, bool):
+        '''
+        Enable/disable reference and test event selection buttons.
+        '''
         self.ref_event_button.setEnabled(bool)        
         self.test_event_button.setEnabled(bool)
 
     def refreshRefTestButtons(self):
+        '''
+        Refresh state of reference and test event selection buttons depending on current event.
+        '''
         event = self.get_current_event()
         if event:
             self.ref_event_button.setChecked(event.isRefEvent())
             self.test_event_button.setChecked(event.isTestEvent())
+            self.enableRefTestButtons(bool(self.get_current_event().picks))
             return
         self.ref_event_button.setChecked(False)
         self.test_event_button.setChecked(False)
+        self.enableRefTestButtons(False)
             
     def toggleRef(self):
+        '''
+        Toggle ref/test buttons when reference button gets clicked.
+        '''
         ref = self.ref_event_button.isChecked()
         self.test_event_button.setChecked(False)
         self.get_current_event().setTestEvent(False)
@@ -977,6 +1020,9 @@ class MainWindow(QMainWindow):
             self.tap.fill_eventbox()
             
     def toggleTest(self):
+        '''
+        Toggle ref/test buttons when test button gets clicked.
+        '''
         test = self.test_event_button.isChecked()
         self.ref_event_button.setChecked(False)
         self.get_current_event().setRefEvent(False)
@@ -987,13 +1033,30 @@ class MainWindow(QMainWindow):
             self.tap.fill_eventbox()
         
     def refreshEvents(self):
+        '''
+        Refresh GUI when events get changed.
+        '''
+        # Attribute _eventChanged refers to change in first _eventChanged[0]
+        # and second _eventChanged[1] main tabs.
+        # E.g. plotting is not necessary when changing event in second tab and
+        # array_map refresh is not necessary when changing event in waveform plot tab,
+        # but gets necessary when switching from one to another after changing an event.
         self._eventChanged = [True, True]
         self.refreshTabs()
         
     def refreshTabs(self):
+        '''
+        Refresh main tabs depending on change of the current event in first/second tab.
+        '''
+        # Logical problem appearing somewhere when calling this function:
+        # Loading an existing project from array_tab leads to two calls of newWF
+        # which will read in data input twice. Therefore current tab is changed to 0
+        # in loadProject before calling this function.
         plotted=False
+        # only refresh first/second tab when an event was changed.
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.get_current_event()
+            # update picks saved in GUI mainwindow (to be changed in future!!) MP MP
             if not event.picks:
                 self.picks = {}
             else:
@@ -1002,26 +1065,39 @@ class MainWindow(QMainWindow):
                 self.autopicks = {}
             else:
                 self.autopicks = event.autopicks
-            if self.tabs.currentIndex() == 0:
+        # if current tab is waveformPlot-tab and the data in this tab was not yet refreshed
+        if self.tabs.currentIndex() == 0:
+            if self._eventChanged[0]:
                 if hasattr(self.project, 'eventlist'):
                     if len(self.project.eventlist) > 0:
-                        if self._eventChanged[0]:
-                            self.newWFplot()
-                            plotted=True
-            if self.tabs.currentIndex() == 1:
-                if self._eventChanged[1]:
-                    self.refresh_array_map()
-                    if not plotted and self._eventChanged[0]:
-                        self.newWFplot(False)
+                        self.newWF()
+                        # keep track whether event was already plotted
+                        plotted=True
+        # if current tab is array_map-tab and the data in this tab was not yet refreshed
+        if self.tabs.currentIndex() == 1:
+            if self._eventChanged[1]:
+                self.refresh_array_map()
+                if not plotted and self._eventChanged[0]:
+                    # newWF(False) = load data without plotting
+                    self.newWF(plot=False)
+                    
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
+        self.refreshRefTestButtons()
 
-    def newWFplot(self, plot=True):
+    def newWF(self, plot=True):
+        '''
+        Load new data and plot if necessary.
+        '''
         self.loadWaveformDataThread(plot)
         if plot:
             self._eventChanged[0] = False
     
     def loadWaveformDataThread(self, plot=True):
+        '''
+        Generates a modal thread to load waveform data and optionally
+        calls modal plot thread method when finished.
+        '''
         wfd_thread = Thread(self, self.loadWaveformData,
                             progressText='Reading data input...')
         if plot:
@@ -1029,6 +1105,9 @@ class MainWindow(QMainWindow):
         wfd_thread.start()
         
     def loadWaveformData(self):
+        '''
+        Load waveform data corresponding to current selected event.
+        '''
         # if self.fnames and self.okToContinue():
         #     self.setDirty(True)
         #     ans = self.data.setWFData(self.fnames)
@@ -1036,11 +1115,14 @@ class MainWindow(QMainWindow):
         #     ans = self.data.setWFData(self.getWFFnames())
         # else:
         #     ans = False
-        self.fnames = self.getWFFnames_from_eventbox(self.project.eventlist)
+        self.fnames = self.getWFFnames_from_eventbox()
         self.data.setWFData(self.fnames)
         self._stime = full_range(self.get_data().getWFData())[0]
 
     def connectWFplotEvents(self):
+        '''
+        Connect signals refering to WF-Dataplot (select station, tutor_user, scrolling)
+        '''
         if not self.poS_id:
             self.poS_id = self.dataPlot.mpl_connect('button_press_event',
                                                     self.pickOnStation)
@@ -1053,6 +1135,9 @@ class MainWindow(QMainWindow):
                                                        self.scrollPlot)
 
     def disconnectWFplotEvents(self):
+        '''
+        Disconnect all signals refering to WF-Dataplot (select station, tutor_user, scrolling)
+        '''
         if self.poS_id:
             self.dataPlot.mpl_disconnect(self.poS_id)
         if self.ae_id:
@@ -1103,12 +1188,18 @@ class MainWindow(QMainWindow):
         self.draw()
         
     def plotWaveformDataThread(self):
+        '''
+        Open a modal thread to plot current waveform data.
+        '''
         wfp_thread = Thread(self, self.plotWaveformData,
                             progressText='Plotting waveform data...')
         wfp_thread.finished.connect(self.finishWaveformDataPlot)
         wfp_thread.start()
         
     def plotWaveformData(self):
+        '''
+        Plot waveform data to current plotWidget.
+        '''
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
@@ -1230,6 +1321,11 @@ class MainWindow(QMainWindow):
                           '{0}'.format(self.getSeismicPhase()))
 
     def scrollPlot(self, gui_event):
+        '''
+        Function connected to mouse wheel scrolling inside WFdataPlot.
+        Only used if amount of traces exceeds a certain limit creating
+        a scroll area.
+        '''
         button = gui_event.button
         if not button == 'up' and not button == 'down':
             return
@@ -1280,6 +1376,13 @@ class MainWindow(QMainWindow):
         self.listWidget.scrollToBottom()
 
     def tune_autopicker(self):
+        '''
+        Initiates TuneAutopicker widget use to interactively
+        tune parameters for autopicking algorithm.
+        '''
+        # figures and canvas have to be iniated from the main GUI
+        # thread to prevent handling of QPixmap objects outside of
+        # the main thread
         self.fig_dict = {}
         self.canvas_dict = {}
         self.fig_keys = [
@@ -1300,8 +1403,12 @@ class MainWindow(QMainWindow):
             self.fig_dict[key] = fig
 
         if not self.tap:
+            # init TuneAutopicker object
             self.tap = TuneAutopicker(self)
+            # first call of update to init tabs with empty canvas
             self.update_autopicker()
+            # connect update signal of TuneAutopicker with update function
+            # creating and filling figure canvas
             self.tap.update.connect(self.update_autopicker)
             self.tap.figure_tabs.setCurrentIndex(0)
         else:
@@ -1309,6 +1416,9 @@ class MainWindow(QMainWindow):
         self.tap.show()
             
     def update_autopicker(self):
+        '''
+        Create and fill TuneAutopicker tabs with figure canvas.
+        '''
         for key in self.fig_keys:
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
         self.tap.fill_tabs(picked=True)
@@ -1496,6 +1606,10 @@ class MainWindow(QMainWindow):
         self.get_data().applyEVTData(self.calc_magnitude(), type='event')
 
     def init_array_tab(self):
+        '''
+        Init second main tab if neither metadata nor
+        array map are given. A button will be show calling self.get_metadata.
+        '''
         if hasattr(self, 'metadata_widget'):
             if self.metadata_widget:
                 self.metadata_widget.setParent(None)
@@ -1523,6 +1637,10 @@ class MainWindow(QMainWindow):
         self.array_layout.addWidget(self.metadata_widget)
     
     def init_array_map(self, index=1):
+        '''
+        Try to init array map widget. If no metadata are given,
+        self.get_metadata will be called.
+        '''
         self.tabs.setCurrentIndex(1)
         if hasattr(self, 'metadata_widget'):
             if self.metadata_widget:
@@ -1546,17 +1664,27 @@ class MainWindow(QMainWindow):
         self.refresh_array_map()
 
     def array_map_thread(self):
+        '''
+        Start modal thread to init the array_map object.
+        '''
+        # Note: basemap generation freezes GUI but cannot be threaded as it generates a Pixmap.
         self.amt = Thread(self, self.array_map.init_map, arg=None, progressText='Generating map...')
         self.amt.finished.connect(self.finish_array_map)
         self.amt.start()
 
     def finish_array_map(self):
+        '''
+        Add array_map to GUI tab when array_map_thread has finished.
+        '''
         self.array_map = self.amt.data
         self.array_layout.addWidget(self.array_map)
         #self.tabs.setCurrentIndex(index)
         #self.refresh_array_map()
         
     def refresh_array_map(self):
+        '''
+        Refresh array map when current event is changed.
+        '''
         if not self.array_map:
             return
         # refresh with new picks here!!!
@@ -1564,7 +1692,11 @@ class MainWindow(QMainWindow):
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
+        '''
+        Build and initiate event table (3rd tab [index=2]) containing information of every event.
+        '''
         def set_enabled(item, enabled=True, checkable=False):
+            # modify item flags depending on case needed
             if enabled and not checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
             elif enabled and checkable:
@@ -1578,6 +1710,8 @@ class MainWindow(QMainWindow):
             eventlist = []
 
         def cell_changed(row=None, column=None):
+            # connected to cell changes in event table
+            # changes attributes of the corresponding event
             table = self.project._table
             event = self.project.getEventFromPath(table[row][0].text())
             if column == 3 or column == 4:
@@ -1601,16 +1735,20 @@ class MainWindow(QMainWindow):
                 event.addNotes(notes)
                 self.fill_eventbox(self.eventBox)
 
-        if hasattr(self, 'qtl'):
-            self.qtl.setParent(None)
-            self.events_layout.removeWidget(self.qtl)
-        self.qtl = QtGui.QTableWidget()
-        self.qtl.setColumnCount(6)
-        self.qtl.setRowCount(len(eventlist))
-        self.qtl.setHorizontalHeaderLabels(['Event', '[N] MP',
+        # remove old table
+        if hasattr(self, 'event_table'):
+            self.event_table.setParent(None)
+            self.events_layout.removeWidget(self.event_table)
+            
+        # init new qtable
+        self.event_table = QtGui.QTableWidget()
+        self.event_table.setColumnCount(6)
+        self.event_table.setRowCount(len(eventlist))
+        self.event_table.setHorizontalHeaderLabels(['Event', '[N] MP',
                                             '[N] AP', 'Tuning Set',
                                             'Test Set', 'Notes'])
 
+        # iterate through eventlist and generate items for table rows
         self.project._table = []
         for index, event in enumerate(eventlist):
             event_npicks = 0
@@ -1656,14 +1794,14 @@ class MainWindow(QMainWindow):
 
         for r_index, row in enumerate(self.project._table):
             for c_index, item in enumerate(row):
-                self.qtl.setItem(r_index, c_index, item)
+                self.event_table.setItem(r_index, c_index, item)
 
-        header = self.qtl.horizontalHeader()
+        header = self.event_table.horizontalHeader()
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
-        self.qtl.cellChanged[int, int].connect(cell_changed)
+        self.event_table.cellChanged[int, int].connect(cell_changed)
         
-        self.events_layout.addWidget(self.qtl)
+        self.events_layout.addWidget(self.event_table)
         self.tabs.setCurrentIndex(tabindex)
         
     def read_metadata_thread(self, fninv):
@@ -1798,6 +1936,9 @@ class MainWindow(QMainWindow):
                 self.setDirty(True)
 
     def createNewProject(self, exists=False):
+        '''
+        Create new project file.
+        '''
         if self.okToContinue():
             dlg = QFileDialog()
             fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
@@ -1813,6 +1954,9 @@ class MainWindow(QMainWindow):
             return True
             
     def loadProject(self):
+        '''
+        Load an existing project file.
+        '''
         if self.project:
             if self.project.dirty:
                 qmb = QMessageBox(icon=QMessageBox.Question, text='Save changes in current project?')
@@ -1829,6 +1973,7 @@ class MainWindow(QMainWindow):
         fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
         if fnm[0]:
             self.project = Project.load(fnm[0])
+            self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             if hasattr(self.project, 'metadata'):
                 self.init_array_map(index=0)
@@ -1836,6 +1981,9 @@ class MainWindow(QMainWindow):
                 self.init_array_tab()
 
     def saveProject(self):
+        '''
+        Save back project to pickle file.
+        '''
         if self.project:
             if not self.project.location:
                 if not self.createNewProject(exists=True):
@@ -1891,6 +2039,10 @@ class Project(object):
         self._table = None
 
     def add_eventlist(self, eventlist):
+        '''
+        Add events from an eventlist containing paths to event directories.
+        Will skip existing paths.
+        '''
         if len(eventlist) == 0:
             return
         for item in eventlist:
@@ -1902,6 +2054,9 @@ class Project(object):
         self.setDirty()
 
     def getPaths(self):
+        '''
+        Returns paths (eventlist) of all events saved in the project.
+        '''
         paths = []
         for event in self.eventlist:
             paths.append(event.path)
@@ -1914,6 +2069,9 @@ class Project(object):
         self.dirty = False
 
     def getEventFromPath(self, path):
+        '''
+        Search for an event in the project by event path.
+        '''
         for event in self.eventlist:
             if event.path == path:
                 return event
@@ -1943,6 +2101,9 @@ class Project(object):
 
     @staticmethod
     def load(filename):
+        '''
+        Load project from filename.
+        '''
         try:
             import cPickle
         except ImportError:
@@ -2023,6 +2184,9 @@ class Event(object):
     
         
 class getExistingDirectories(QFileDialog):
+    '''
+    File dialog with possibility to select multiple folders.
+    '''
     def __init__(self, *args):
         super(getExistingDirectories, self).__init__(*args)
         self.setOption(self.DontUseNativeDialog, True)

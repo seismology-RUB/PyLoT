@@ -266,7 +266,7 @@ class map_projection(QtGui.QWidget):
         self.legend=self.main_ax.legend()
 
     def add_cbar(self, label):
-        cbar = self.main_ax.figure.colorbar(self.sc_picked)
+        cbar = self.main_ax.figure.colorbar(self.sc_picked, fraction=0.025)
         cbar.set_label(label)
         return cbar
 
