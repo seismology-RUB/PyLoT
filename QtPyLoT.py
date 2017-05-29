@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         else:
              self.infile = infile
         self._inputs = AutoPickParameter(infile)
+        self._props = PropertiesDlg(self, infile=infile)
 
         self.project = Project()
         self.tap = None
@@ -650,8 +651,7 @@ class MainWindow(QMainWindow):
             return self.fnames
         except DatastructureError as e:
             print(e)
-            props = PropertiesDlg(self)
-            if props.exec_() == QDialog.Accepted:
+            if self._props.exec_() == QDialog.Accepted:
                 return self.getWFFnames()
             else:
                 return
@@ -1208,6 +1208,10 @@ class MainWindow(QMainWindow):
         '''
         Plot waveform data to current plotWidget.
         '''
+        settings = QSettings()
+        nth_sample = settings.value('nth_sample')
+        if not nth_sample:
+            nth_sample = 1
         compclass = SetChannelComponents()
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
@@ -1218,7 +1222,7 @@ class MainWindow(QMainWindow):
         wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()        
-        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False)
+        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, nth_sample=int(nth_sample))
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
         labels = [plotDict[n][2]+'.'+plotDict[n][0] for n in pos]
@@ -2037,8 +2041,7 @@ class MainWindow(QMainWindow):
             QMainWindow.closeEvent(self, event)
 
     def PyLoTprefs(self):
-        props = PropertiesDlg(self, infile=self.getinfile())
-        if props.exec_():
+        if self._props.exec_():
             return
 
     def helpHelp(self):

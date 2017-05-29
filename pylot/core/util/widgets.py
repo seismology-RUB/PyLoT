@@ -430,7 +430,8 @@ class WaveformWidget(FigureCanvas):
         self._parent = parent
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None, scaleddata=False, mapping=True):
+                   noiselevel=None, scaleddata=False, mapping=True,
+                   nth_sample=1):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
@@ -461,7 +462,9 @@ class WaveformWidget(FigureCanvas):
             	if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
-                self.getAxes().plot(time_ax, trace.data + n, 'k')
+                times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
+                data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
+                self.getAxes().plot(times, data, 'k')
                 if noiselevel is not None:
                    for level in noiselevel:
                        self.getAxes().plot([time_ax[0], time_ax[-1]],
@@ -2146,8 +2149,27 @@ class PhasesTab(PropTab):
 class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
+        self.init_layout()
+        self.add_nth_sample()
+        self.setLayout(self.main_layout)
+        
+    def init_layout(self):
+        self.main_layout = QGridLayout()
 
-        pass
+    def add_nth_sample(self):
+        self.nth_sample = QtGui.QSpinBox()
+        label = QLabel('nth sample')
+        self.nth_sample.setMinimum(1)
+        self.nth_sample.setMaximum(100)
+        self.nth_sample.setValue(1)
+        label.setToolTip('Plot every nth sample (to speed up plotting)')
+        self.main_layout.addWidget(label, 0, 0)
+        self.main_layout.addWidget(self.nth_sample, 0, 1)
+
+    def getValues(self):
+        values = {'nth_sample': self.nth_sample.value()}
+        return values
+        
 
 class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
