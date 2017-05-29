@@ -57,7 +57,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, COMPNAME_MAP
+from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -1199,10 +1199,12 @@ class MainWindow(QMainWindow):
         '''
         Plot waveform data to current plotWidget.
         '''
+        compclass = SetChannelComponents()
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
-        alter_comp = COMPNAME_MAP[comp]
+        alter_comp = compclass.getCompPosition(comp)
+        alter_comp = str(alter_comp[0])
         wfst = self.get_data().getWFData().select(component=comp)
         wfst += self.get_data().getWFData().select(component=alter_comp)
         height_need = len(self.data.getWFData())*12

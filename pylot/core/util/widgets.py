@@ -36,7 +36,7 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
-    COMPPOSITION_MAP, COMPNAME_MAP
+    SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
@@ -437,13 +437,15 @@ class WaveformWidget(FigureCanvas):
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
+        compclass = SetChannelComponents()
         for n, trace in enumerate(wfdata):
             channel = trace.stats.channel
             network = trace.stats.network
             station = trace.stats.station
             if mapping:
                 comp = channel[-1]
-                n = COMPPOSITION_MAP[comp]
+                n = compclass.getCompPosition(str(comp))
+                n = n[0]
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
@@ -2004,18 +2006,19 @@ class PropertiesDlg(QDialog):
     @staticmethod
     def setValues(tabValues):
         settings = QSettings()
+        compclass = SetChannelComponents()
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
             if value is not None:
                 if setting.startswith('Channel Z'):
-                    COMPPOSITION_MAP['Z'] = value
-                    COMPNAME_MAP['Z'] = value
+                    component = 'Z'
+                    compclass.setCompPosition(component, value)
                 elif setting.startswith('Channel E'):
-                    COMPPOSITION_MAP['E'] = value
-                    COMPNAME_MAP['E'] = value
+                    component = 'E'
+                    compclass.setCompPosition(component, value)
                 elif setting.startswith('Channel N'):
-                    COMPPOSITION_MAP['N'] = value
-                    COMPNAME_MAP['N'] = value
+                    component = 'N'
+                    compclass.setCompPosition(component, value)
         settings.sync()
 
 
@@ -2145,6 +2148,8 @@ class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)
 
+        compclass = SetChannelComponents()
+
         ChannelOrderLabelZ = QLabel("Channel Z [up/down, default=3]")
         ChannelOrderLabelN = QLabel("Channel N [north/south, default=1]")
         ChannelOrderLabelE = QLabel("Channel E [east/west, default=2]")
@@ -2157,9 +2162,13 @@ class ChannelOrderTab(PropTab):
         self.ChannelOrderEEdit = QLineEdit()
         self.ChannelOrderEEdit.setMaxLength(1)
         self.ChannelOrderEEdit.setFixedSize(20, 20)
-        self.ChannelOrderZEdit.setText("3")
-        self.ChannelOrderNEdit.setText("1")
-        self.ChannelOrderEEdit.setText("2")
+        # get channel order settings
+        zpos, zcomp = compclass.getCompPosition('Z')
+        epos, ecomp = compclass.getCompPosition('E')
+        npos, ncomp = compclass.getCompPosition('N')
+        self.ChannelOrderZEdit.setText("%s" % zcomp) 
+        self.ChannelOrderNEdit.setText("%s" % ecomp)
+        self.ChannelOrderEEdit.setText("%s" % ncomp)
 
         layout = QGridLayout()
         layout.addWidget(ChannelOrderLabelZ, 0, 0)
@@ -2185,6 +2194,10 @@ class ChannelOrderTab(PropTab):
                   "Channel N [north/south, default=1]": self.ChannelOrderNEdit.setText("%d" % Ndefault),
                   "Channel E [east/west, default=2]": self.ChannelOrderEEdit.setText("%d" % Edefault)}
         return values
+
+    def getComponents(self):
+ 
+        self.CompName = dict(Z='10', N='11', E='12')
 
 class LocalisationTab(PropTab):
     def __init__(self, parent=None, infile=None):

@@ -55,9 +55,28 @@ OUTPUTFORMATS = {'.xml': 'QUAKEML',
 
 LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=hypodd)
 
-COMPPOSITION_MAP = dict(Z=2, N=1, E=0)
-COMPPOSITION_MAP['1'] = 1
-COMPPOSITION_MAP['2'] = 0
-COMPPOSITION_MAP['3'] = 2
 
-COMPNAME_MAP = dict(Z='3', N='1', E='2')
+class SetChannelComponents:
+    def getdefaultCompPosition():
+        # default component order
+        CompPosition_Map = dict(Z=2, N=1, E=0)
+        CompPosition_Map['1'] = 1
+        CompPosition_Map['2'] = 0
+        CompPosition_Map['3'] = 2
+        CompName_Map = dict(Z='3', N='1', E='2')
+        CompName_Map['1'] = str(1)
+        CompName_Map['2'] = str(2)
+        CompName_Map['3'] = str(3)
+        return CompPosition_Map, CompName_Map
+
+    CompPosition_Map, CompName_Map = getdefaultCompPosition()
+
+    def setCompPosition(self, component, position):
+       self.CompPosition_Map[component] = position
+       self.CompName_Map[component] = str(position)
+
+    def getCompPosition(self, component): 
+        self.comppos = self.CompPosition_Map[component]
+        self.compname = self.CompName_Map[component] 
+        return self.comppos, self.compname 
+   
