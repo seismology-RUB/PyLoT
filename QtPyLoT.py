@@ -2015,6 +2015,7 @@ class MainWindow(QMainWindow):
 
     def setDirty(self, value):
         self.saveProjectAction.setEnabled(value)
+        self.project.setDirty(value)
         self.dirty = value
 
     def closeEvent(self, event):
@@ -2057,9 +2058,9 @@ class Project(object):
             event = Event(item)
             if not event.path in self.getPaths():
                 self.eventlist.append(event)
+                self.setDirty()
             else:
                 print('Skipping event with path {}. Already part of project.'.format(event.path))
-        self.setDirty()
 
     def getPaths(self):
         '''
@@ -2070,11 +2071,8 @@ class Project(object):
             paths.append(event.path)
         return paths
         
-    def setDirty(self):
-        self.dirty = True
-
-    def setClean(self):
-        self.dirty = False
+    def setDirty(self, value=True):
+        self.dirty = value
 
     def getEventFromPath(self, path):
         '''
@@ -2102,7 +2100,7 @@ class Project(object):
         try:
             outfile = open(filename, 'wb')
             cPickle.dump(self, outfile, -1)
-            self.setClean()
+            self.setDirty(False)
         except Exception as e:
             print('Could not pickle PyLoT project. Reason: {}'.format(e))
             self.setDirty()

@@ -438,10 +438,17 @@ class WaveformWidget(FigureCanvas):
         wfstart, wfend = full_range(wfdata)
         nmax = 0
         compclass = SetChannelComponents()
-        for n, trace in enumerate(wfdata):
-            channel = trace.stats.channel
-            network = trace.stats.network
-            station = trace.stats.station
+
+        # list containing tuples of network, station, channel (for sorting)
+        nsc = [] 
+        for trace in wfdata:
+            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
+        nsc.sort()
+        nsc.reverse()
+
+        for n, (network, station, channel) in enumerate(nsc):
+            st = wfdata.select(network=network, station=station, channel=channel)
+            trace = st[0]
             if mapping:
                 comp = channel[-1]
                 n = compclass.getCompPosition(str(comp))
