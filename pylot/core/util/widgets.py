@@ -1891,7 +1891,7 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def setValue(self, box, value):
         if type(box) == QtGui.QLineEdit:
-            box.setText(value)
+            box.setText(str(value))
         elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
             box.setMaximum(100*value)
             box.setValue(value)
