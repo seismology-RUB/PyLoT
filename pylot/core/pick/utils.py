@@ -365,10 +365,10 @@ def getSNR(X, TSNR, t1, tracenum=0):
     x = x - np.mean(x[inoise])
 
     # calculate ratios
-    # noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
-    # signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+    noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
+    #signallevel = np.sqrt(np.mean(np.square(x[isignal])))
 
-    noiselevel = np.abs(x[inoise]).max()
+    #noiselevel = np.abs(x[inoise]).max()
     signallevel = np.abs(x[isignal]).max()
 
     SNR = signallevel / noiselevel
@@ -480,18 +480,21 @@ def select_for_phase(st, phase):
     :type phase: str
     :return:
     '''
-    from pylot.core.util.defaults import COMPNAME_MAP
+    from pylot.core.util.defaults import SetChannelComponents
 
     sel_st = Stream()
+    compclass = SetChannelComponents()
     if phase.upper() == 'P':
         comp = 'Z'
-        alter_comp = COMPNAME_MAP[comp]
+        alter_comp = compclass.getCompPosition(comp)
+        alter_comp = str(alter_comp[0])
         sel_st += st.select(component=comp)
         sel_st += st.select(component=alter_comp)
     elif phase.upper() == 'S':
         comps = 'NE'
         for comp in comps:
-            alter_comp = COMPNAME_MAP[comp]
+            alter_comp = compclass.getCompPosition(comp)
+            alter_comp = str(alter_comp[0])
             sel_st += st.select(component=comp)
             sel_st += st.select(component=alter_comp)
     else:
