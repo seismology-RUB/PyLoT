@@ -1357,7 +1357,6 @@ class MainWindow(QMainWindow):
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
             self.get_current_event().setPick(station, pickDlg.getPicks())
-            print(pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -2116,6 +2115,7 @@ class Project(object):
             import _pickle as cPickle
         infile = open(filename, 'rb')
         project = cPickle.load(infile)
+        project.location = filename
         print('Loaded %s' % filename)
         return project
     
