@@ -25,6 +25,7 @@ https://www.iconfinder.com/iconsets/flavour
 
 import os
 import sys
+import argparse
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -1356,6 +1357,7 @@ class MainWindow(QMainWindow):
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
             self.get_current_event().setPick(station, pickDlg.getPicks())
+            print(pickDlg.getPicks())
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -1972,10 +1974,11 @@ class MainWindow(QMainWindow):
         if not fnm:
             dlg = QFileDialog()
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
-        if not fnm:
-            return
-        if fnm[0]:
-            self.project = Project.load(fnm[0])
+            if not fnm:
+                return
+            fnm = fnm[0]
+        if fnm:
+            self.project = Project.load(fnm)
             self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             if hasattr(self.project, 'metadata'):
@@ -2213,7 +2216,7 @@ def create_window():
     return app, app_created
 
         
-def main():
+def main(args=None):
     # create the Qt application
     pylot_app, app_created = create_window()
     #pylot_app = QApplication(sys.argv)
@@ -2247,6 +2250,11 @@ def main():
     pylot_app.processEvents()
 
     splash.finish(pylot_form)
+
+    if args:
+        if args.project_filename:
+            pylot_form.loadProject(args.project_filename)
+
     if app_created:
         pylot_app.exec_()
     else:
@@ -2254,4 +2262,8 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser(description='Welcome to PyLoT.')
+    parser.add_argument('-p', dest='project_filename', help='load project file',
+                        default=None)
+    args = parser.parse_args()
+    sys.exit(main(args))
