@@ -983,7 +983,7 @@ class MainWindow(QMainWindow):
 
     def okToContinue(self):
         if self.dirty:
-            return self.saveData()
+            return self.saveProject()
         return True
 
     def enableRefTestButtons(self, bool):
@@ -1152,7 +1152,6 @@ class MainWindow(QMainWindow):
     def finishWaveformDataPlot(self):
         self.connectWFplotEvents()
         self.loadlocationaction.setEnabled(True)
-        self.saveProjectAction.setEnabled(True)
         self.auto_tune.setEnabled(True)
         self.auto_pick.setEnabled(True)
         self.z_action.setEnabled(True)
@@ -1176,7 +1175,6 @@ class MainWindow(QMainWindow):
         self.disconnectWFplotEvents()
         self.dataPlot.getAxes().cla()
         self.loadlocationaction.setEnabled(False)
-        self.saveProjectAction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
         self.z_action.setEnabled(False)
@@ -1945,13 +1943,14 @@ class MainWindow(QMainWindow):
             fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
             filename = fnm[0]
             if not len(fnm[0]):
-                return
+                return False
             if not filename.split('.')[-1] == 'plp':
                 filename = fnm[0] + '.plp'
             if not exists:
                 self.project = Project()
                 self.init_events(new=True)                
             self.project.save(filename)
+            self.setDirty(False)
             return True
             
     def loadProject(self, fnm=None):
@@ -1985,33 +1984,35 @@ class MainWindow(QMainWindow):
             else:
                 self.init_array_tab()
 
-    def saveProject(self):
+    def saveProject(self, new=False):
         '''
         Save back project to pickle file.
         '''
-        if self.project:
+        if self.project and not new:
             if not self.project.location:
                 if not self.createNewProject(exists=True):
-                    return
+                    self.setDirty(True)
+                    return False
             else:
                 self.project.save()
             if not self.project.dirty:
                 qmb = QMessageBox(icon=QMessageBox.Information, text='Saved back project to file:\n{}'.format(self.project.location))
                 qmb.exec_()
-                return
+                self.setDirty(False)
+                return True
             else:
                 # if still dirty because saving failed
-                qmb = QMessageBox(icon=QMessageBox.Warning, text='Could not save back to original file.\n'
-                                  'Choose new file')
-                qmb.setStandardButtons(QMessageBox.Ok)
-                qmb.exec_()
-                self.createNewProject(exists=True)
+                qmb = QMessageBox.warning(self,'Could not save project',
+                                          'Could not save back to original file.\nChoose new file')
+                self.setDirty(True)
+        return self.createNewProject(exists=True)
                 
     def draw(self):
         self.fill_eventbox(self.eventBox)
         self.getPlotWidget().draw()
 
     def setDirty(self, value):
+        self.saveProjectAction.setEnabled(value)
         self.dirty = value
 
     def closeEvent(self, event):
