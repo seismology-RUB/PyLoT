@@ -405,13 +405,11 @@ class WaveformWidget(FigureCanvas):
         self.plotdict = dict()
         # create axes
         self.axes = self.figure.add_subplot(111)
-        # clear axes each time plot is called
-        self.axes.hold(True)
         # initialize super class
         super(WaveformWidget, self).__init__(self.figure)
         # add an cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
-                                       horizOn=True,
+                                       horizOn=True, useblit=True,
                                        color='m', lw=1)
         # update labels of the entire widget
         self.updateWidget(xlabel, ylabel, title)

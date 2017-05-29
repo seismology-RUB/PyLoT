@@ -107,6 +107,9 @@ class MainWindow(QMainWindow):
         self.ae_id = None
         self.scroll_id = None
 
+        # default factor for dataplot e.g. enabling/disabling scrollarea
+        self.height_factor = 12
+
         # default colors for ref/test event
         self._colors = {
             'ref': QtGui.QColor(200, 210, 230, 255),
@@ -1090,20 +1093,26 @@ class MainWindow(QMainWindow):
         '''
         Load new data and plot if necessary.
         '''
-        self.loadWaveformDataThread(plot)
+        self.loadWaveformDataThread(plot=plot)
         if plot:
             self._eventChanged[0] = False
     
-    def loadWaveformDataThread(self, plot=True):
+    def loadWaveformDataThread(self, plot=True, load=True):
         '''
-        Generates a modal thread to load waveform data and optionally
-        calls modal plot thread method when finished.
+        Generates a modal thread to load waveform data and
+        call modal plot thread method when finished.
         '''
-        wfd_thread = Thread(self, self.loadWaveformData,
-                            progressText='Reading data input...')
-        if plot:
+        if load:
+            wfd_thread = Thread(self, self.loadWaveformData,
+                                progressText='Reading data input...')
+        if load and plot:
             wfd_thread.finished.connect(self.plotWaveformDataThread)
-        wfd_thread.start()
+
+        if load:
+            wfd_thread.start()
+
+        if plot and not load:
+            self.plotWaveformDataThread()
         
     def loadWaveformData(self):
         '''
@@ -1207,12 +1216,8 @@ class MainWindow(QMainWindow):
         alter_comp = str(alter_comp[0])
         wfst = self.get_data().getWFData().select(component=comp)
         wfst += self.get_data().getWFData().select(component=alter_comp)
-        height_need = len(self.data.getWFData())*12
         plotWidget = self.getPlotWidget()
-        if self.tabs.widget(0).frameSize().height() < height_need:
-            plotWidget.setMinimumHeight(height_need)
-        else:
-            plotWidget.setMinimumHeight(0)
+        self.adjustPlotHeight()        
         plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False)
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
@@ -1223,6 +1228,14 @@ class MainWindow(QMainWindow):
         except:
             pass
 
+    def adjustPlotHeight(self):
+        height_need = len(self.data.getWFData())*self.height_factor
+        plotWidget = self.getPlotWidget()
+        if self.tabs.widget(0).frameSize().height() < height_need:
+            plotWidget.setMinimumHeight(height_need)
+        else:
+            plotWidget.setMinimumHeight(0)
+    
     def plotZ(self):
         self.setComponent('Z')
         self.plotWaveformDataThread()
