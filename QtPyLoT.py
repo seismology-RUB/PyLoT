@@ -81,11 +81,13 @@ class MainWindow(QMainWindow):
     __version__ = _getVersionString()
     closing = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, infile=None):
         super(MainWindow, self).__init__(parent)
 
         # check for default pylot.in-file
-        infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+        if not infile:
+            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+            print('Using default input file {}'.format(infile))
         if os.path.isfile(infile)== False:
             infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
             if not os.path.exists(infile[0]):
@@ -742,6 +744,7 @@ class MainWindow(QMainWindow):
             self.eventBox.setCurrentIndex(nitems)
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
+        self.setDirty(True)
 
     def fill_eventbox(self, eventBox=None, select_events='all'):
         '''
@@ -1215,17 +1218,15 @@ class MainWindow(QMainWindow):
         nth_sample = settings.value('nth_sample')
         if not nth_sample:
             nth_sample = 1
-        compclass = SetChannelComponents()
         zne_text = {'Z': 'vertical', 'N': 'north-south', 'E': 'east-west'}
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
-        alter_comp = compclass.getCompPosition(comp)
-        alter_comp = str(alter_comp[0])
-        wfst = self.get_data().getWFData().select(component=comp)
-        wfst += self.get_data().getWFData().select(component=alter_comp)
+        wfst = self.get_data().getWFData()
+        # wfst = self.get_data().getWFData().select(component=comp)
+        # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()        
-        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, nth_sample=int(nth_sample))
+        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, component=comp, nth_sample=int(nth_sample))
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
         labels = [plotDict[n][2]+'.'+plotDict[n][0] for n in pos]
@@ -2240,6 +2241,14 @@ def create_window():
 
         
 def main(args=None):
+    project_filename = None
+    pylot_infile = None
+    if args:
+        if args.project_filename:
+            project_filename = args.project_filename
+        if args.input_filename:
+            pylot_infile = args.input_filename
+            
     # create the Qt application
     pylot_app, app_created = create_window()
     #pylot_app = QApplication(sys.argv)
@@ -2251,7 +2260,7 @@ def main(args=None):
     app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
     # create the main window
-    pylot_form = MainWindow()
+    pylot_form = MainWindow(infile=pylot_infile)
     icon = QIcon()
     pylot_form.setWindowIcon(icon)
     pylot_form.setIconSize(QSize(60, 60))
@@ -2274,9 +2283,8 @@ def main(args=None):
 
     splash.finish(pylot_form)
 
-    if args:
-        if args.project_filename:
-            pylot_form.loadProject(args.project_filename)
+    if project_filename:
+        pylot_form.loadProject(args.project_filename)
 
     if app_created:
         pylot_app.exec_()
@@ -2287,6 +2295,8 @@ def main(args=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Welcome to PyLoT.')
     parser.add_argument('-p', dest='project_filename', help='load project file',
+                        default=None)
+    parser.add_argument('-in', dest='input_filename', help='set pylot input file',
                         default=None)
     args = parser.parse_args()
     sys.exit(main(args))

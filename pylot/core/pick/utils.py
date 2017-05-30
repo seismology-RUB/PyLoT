@@ -343,6 +343,10 @@ def getSNR(X, TSNR, t1, tracenum=0):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
+    SNR = None
+    SNRdb = None
+    noiselevel = None
+    
     x = X[tracenum].data
     npts = X[tracenum].stats.npts
     sr = X[tracenum].stats.sampling_rate
@@ -356,10 +360,7 @@ def getSNR(X, TSNR, t1, tracenum=0):
     isignal = getsignalwin(t, t1, TSNR[2])
     if np.size(inoise) < 1:
         print ("getSNR: Empty array inoise, check noise window!")
-        return
-    elif np.size(isignal) < 1:
-        print ("getSNR: Empty array isignal, check signal window!")
-        return
+        return SNR, SNRdB, noiselevel
 
     # demean over entire waveform
     x = x - np.mean(x[inoise])
@@ -368,6 +369,10 @@ def getSNR(X, TSNR, t1, tracenum=0):
     noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
     #signallevel = np.sqrt(np.mean(np.square(x[isignal])))
 
+    if np.size(isignal) < 1:
+        print ("getSNR: Empty array isignal, check signal window!")
+        return SNR, SNRdB, noiselevel
+    
     #noiselevel = np.abs(x[inoise]).max()
     signallevel = np.abs(x[isignal]).max()
 
@@ -431,7 +436,7 @@ def getsignalwin(t, t1, tsignal):
     return isignal
 
 
-def getResolutionWindow(snr):
+def getResolutionWindow(snr, aperture):
     """
     Number -> Float
     produce the half of the time resolution window width from given SNR
@@ -453,18 +458,24 @@ def getResolutionWindow(snr):
     >>> getResolutionWindow(2)
     2.5
     """
-
-    res_wins = {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.}
+    
+    res_wins = {
+        'regional': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
+        'local': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
+        'global': {'HRW': 40., 'MRW': 100., 'LRW': 200., 'VLRW': 300.}
+    }
 
     if snr < 1.5:
-        time_resolution = res_wins['VLRW']
+        time_resolution = res_wins[aperture]['VLRW']
     elif snr < 2.:
-        time_resolution = res_wins['LRW']
+        time_resolution = res_wins[aperture]['LRW']
     elif snr < 3.:
-        time_resolution = res_wins['MRW']
+        time_resolution = res_wins[aperture]['MRW']
+    elif snr >3.:
+        time_resolution = res_wins[aperture]['HRW']
     else:
-        time_resolution = res_wins['HRW']
-
+        time_resolution = res_wins[aperture]['VLRW']
+        
     return time_resolution / 2
 
 

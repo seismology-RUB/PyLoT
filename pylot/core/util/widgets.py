@@ -431,13 +431,19 @@ class WaveformWidget(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   nth_sample=1):
+                   component='*', nth_sample=1):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
+        
         compclass = SetChannelComponents()
+        alter_comp = compclass.getCompPosition(component)
+        alter_comp = str(alter_comp[0])
 
+        wfdata = wfdata.select(component=component)
+        wfdata += wfdata.select(component=alter_comp)
+        
         # list containing tuples of network, station, channel (for sorting)
         nsc = [] 
         for trace in wfdata:
@@ -970,9 +976,13 @@ class PickDlg(QDialog):
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
 
         snr = result[0]
-        noiselevel = result[2] * nfac
+        noiselevel = result[2]
+        if noiselevel:
+            noiselevel *= nfac
+        else:
+            noiselevel = nfac
 
-        x_res = getResolutionWindow(snr)
+        x_res = getResolutionWindow(snr, 'regional')
 
         # remove mean noise level from waveforms
         for trace in data:
@@ -1015,7 +1025,12 @@ class PickDlg(QDialog):
         # determine SNR and noiselevel
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
         snr = result[0]
-        noiselevel = result[2] * nfac
+        noiselevel = result[2]
+
+        if noiselevel:
+            noiselevel *= nfac
+        else:
+            noiselevel = nfac
 
         # prepare plotting of data
         for trace in data:
@@ -1027,7 +1042,7 @@ class PickDlg(QDialog):
         horiz_comp = find_horizontals(data)
         data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
-        x_res = getResolutionWindow(snr)
+        x_res = getResolutionWindow(snr, 'regional')
 
         self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
         traces = self.getTraceID(horiz_comp)
