@@ -2157,17 +2157,22 @@ class GraphicsTab(PropTab):
         self.main_layout = QGridLayout()
 
     def add_nth_sample(self):
-        self.nth_sample = QtGui.QSpinBox()
+        settings = QSettings()
+        nth_sample = settings.value("nth_sample")
+        if not nth_sample:
+            nth_sample = 1
+        
+        self.spinbox_nth_sample = QtGui.QSpinBox()
         label = QLabel('nth sample')
-        self.nth_sample.setMinimum(1)
-        self.nth_sample.setMaximum(100)
-        self.nth_sample.setValue(1)
+        self.spinbox_nth_sample.setMinimum(1)
+        self.spinbox_nth_sample.setMaximum(100)
+        self.spinbox_nth_sample.setValue(int(nth_sample))
         label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.nth_sample, 0, 1)
+        self.main_layout.addWidget(self.spinbox_nth_sample, 0, 1)
 
     def getValues(self):
-        values = {'nth_sample': self.nth_sample.value()}
+        values = {'nth_sample': self.spinbox_nth_sample.value()}
         return values
         
 

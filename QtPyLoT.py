@@ -96,7 +96,7 @@ class MainWindow(QMainWindow):
         else:
              self.infile = infile
         self._inputs = AutoPickParameter(infile)
-        self._props = PropertiesDlg(self, infile=infile)
+        self._props = None
 
         self.project = Project()
         self.tap = None
@@ -158,6 +158,8 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
         settings.sync()
 
+        print('ns:', settings.value('nth_sample'))
+        
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
@@ -651,6 +653,9 @@ class MainWindow(QMainWindow):
             return self.fnames
         except DatastructureError as e:
             print(e)
+            if not self._props:
+                self._props = PropertiesDlg(self, infile=self.infile)
+
             if self._props.exec_() == QDialog.Accepted:
                 return self.getWFFnames()
             else:
@@ -2041,6 +2046,9 @@ class MainWindow(QMainWindow):
             QMainWindow.closeEvent(self, event)
 
     def PyLoTprefs(self):
+        if not self._props:
+            self._props = PropertiesDlg(self, infile=self.infile)
+        
         if self._props.exec_():
             return
 
