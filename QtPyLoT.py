@@ -158,8 +158,6 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
         settings.sync()
 
-        print('ns:', settings.value('nth_sample'))
-        
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
@@ -1158,7 +1156,7 @@ class MainWindow(QMainWindow):
         if self.ae_id:
             self.dataPlot.mpl_disconnect(self.ae_id)
         if self.scroll_id:
-            self.dataPlot.mpl_connect(self.scroll_id)
+            self.dataPlot.mpl_disconnect(self.scroll_id)
         self.poS_id = None
         self.ae_id = None
         self.scroll_id = None
