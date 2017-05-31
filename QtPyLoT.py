@@ -1503,6 +1503,7 @@ class MainWindow(QMainWindow):
             self.tap.update.connect(self.update_autopicker)
             self.tap.figure_tabs.setCurrentIndex(0)
         else:
+            self.update_autopicker()
             self.tap.fill_eventbox()
         self.tap.show()
             

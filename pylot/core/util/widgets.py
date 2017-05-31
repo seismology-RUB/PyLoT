@@ -1424,12 +1424,14 @@ class TuneAutopicker(QWidget):
         stations = []
         for trace in self.data.getWFData():
             station = trace.stats.station
-            if not station in stations:
-                stations.append(str(station))
+            network = trace.stats.network
+            ns_tup = (str(network), str(station))
+            if not ns_tup in stations:
+                stations.append(ns_tup)
         stations.sort()
         model = self.stationBox.model()
-        for station in stations:
-            item = QtGui.QStandardItem(str(station))
+        for network, station in stations:
+            item = QtGui.QStandardItem(network+'.'+station)
             if station in self.get_current_event().picks:
                 item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
@@ -1491,7 +1493,7 @@ class TuneAutopicker(QWidget):
             return event.autopicks[station]
         
     def get_current_station(self):
-        return str(self.stationBox.currentText())
+        return str(self.stationBox.currentText()).split('.')[-1]
     
     def gen_tab_widget(self, name, canvas):
         widget = QtGui.QWidget()
