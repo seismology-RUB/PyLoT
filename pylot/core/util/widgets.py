@@ -1446,10 +1446,10 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.parameters = AutoPickParaBox(self.parameter)
-        self.parameters.set_tune_mode(True)
+        self.paraBox = AutoPickParaBox(self.parameter)
+        self.paraBox.set_tune_mode(True)
         self.update_eventID()
-        self.parameter_layout.addWidget(self.parameters)
+        self.parameter_layout.addWidget(self.paraBox)
         self.parameter_layout.addWidget(self.pb_widget)
         self.tune_layout.insertLayout(1, self.parameter_layout)
 
@@ -1633,7 +1633,7 @@ class TuneAutopicker(QWidget):
         self.parent.fill_eventbox()
 
     def update_eventID(self):
-        self.parameters.boxes['eventID'].setText(
+        self.paraBox.boxes['eventID'].setText(
             self.get_current_event_name())
         self.figure_tabs.setCurrentIndex(0)
 
@@ -1681,7 +1681,7 @@ class TuneAutopicker(QWidget):
 
     def enable(self, bool):
         self.pick_button.setEnabled(bool)
-        self.parameters.setEnabled(bool)
+        self.paraBox.setEnabled(bool)
         self.eventBox.setEnabled(bool)
         self.stationBox.setEnabled(bool)
         self.overview.setEnabled(bool)
@@ -1689,7 +1689,7 @@ class TuneAutopicker(QWidget):
         self.s_tabs.setEnabled(bool)        
         
     def params_from_gui(self):
-        parameters = self.parameters.params_from_gui()
+        parameters = self.paraBox.params_from_gui()
         if self.parent:
             self.parent._inputs = parameters
         return parameters
@@ -1738,8 +1738,9 @@ class AutoPickParaBox(QtGui.QWidget):
         self.parameter = parameter
         self.tabs = QtGui.QTabWidget()
         self.layout = QtGui.QVBoxLayout()
-        self._init_buttons()
-        self.layout.addWidget(self.tabs)
+        self._init_save_buttons()
+        self._init_tabs()
+        self._init_dialog_buttons()
         self.boxes = {}
         self._init_sublayouts()
         self.setLayout(self.layout)
@@ -1747,13 +1748,14 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_special_pick_parameters_tab()
         self.params_to_gui()
         self._toggle_advanced_settings()
+        self.resize(720, 1280)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
         self._advanced_layout = QtGui.QVBoxLayout()
         self._create_advanced_cb()
 
-    def _init_buttons(self):
+    def _init_save_buttons(self):
         self._buttons_layout = QtGui.QHBoxLayout()
         self.loadButton = QtGui.QPushButton('&Load settings')
         self.saveButton = QtGui.QPushButton('&Save settings')
@@ -1765,6 +1767,24 @@ class AutoPickParaBox(QtGui.QWidget):
         self.loadButton.clicked.connect(self.openFile)
         self.saveButton.clicked.connect(self.saveFile)
         self.defaultsButton.clicked.connect(self.restoreDefaults)
+
+    def _init_tabs(self):
+        self.layout.addWidget(self.tabs)
+
+    def _init_dialog_buttons(self):
+        self._dialog_buttons = QtGui.QHBoxLayout()
+        self._okay =  QtGui.QPushButton('Ok')
+        self._close = QtGui.QPushButton('Close')
+        self._apply = QtGui.QPushButton('Apply')
+        self._dialog_buttons.addWidget(self._okay)
+        self._dialog_buttons.addWidget(self._close)
+        self._dialog_buttons.addWidget(self._apply)
+        self._okay.clicked.connect(self.params_from_gui)
+        self._okay.clicked.connect(self.close)
+        self._apply.clicked.connect(self.params_from_gui)
+        self._close.clicked.connect(self.params_to_gui)
+        self._close.clicked.connect(self.close)
+        self.layout.addLayout(self._dialog_buttons)
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
@@ -1794,6 +1814,14 @@ class AutoPickParaBox(QtGui.QWidget):
                 'ctrfile', 'ttpatter', 'outpatter']
         for key in keys:
             self.boxes[key].setEnabled(not(bool))
+        if bool:
+            self._apply.hide()
+            self._okay.hide()
+            self._close.hide()
+        else:
+            self._apply.show()
+            self._okay.show()
+            self._close.show()
         
     def init_boxes(self, parameter_names):
         grid = QtGui.QGridLayout()

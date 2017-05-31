@@ -67,7 +67,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker
+    getDataType, ComparisonDialog, TuneAutopicker, AutoPickParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread, Thread
@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
 
         self.project = Project()
         self.tap = None
+        self.paraBox = None
         self.array_map = None
         self._metadata = None
         self._eventChanged = [False, False]
@@ -358,12 +359,16 @@ class MainWindow(QMainWindow):
                                        QCoreApplication.instance().quit,
                                        QKeySequence.Close, quitIcon,
                                        "Close event and quit PyLoT")
+        self.parameterAction = self.createAction(self, "Pick Parameter",
+                                                 self.pickParameter,
+                                                 None, QIcon(None),
+                                                 "Modify Picking Parameter")
         self.filterAction = self.createAction(self, "&Filter ...",
                                               self.filterWaveformData,
                                               "Ctrl+F", filter_icon,
                                               """Toggle un-/filtered waveforms
-                                         to be displayed, according to the
-                                         desired seismic phase.""", True)
+                                              to be displayed, according to the
+                                              desired seismic phase.""", True)
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
                                              "Alt+F", QIcon(None),
@@ -398,7 +403,7 @@ class MainWindow(QMainWindow):
                                 self.openProjectAction, self.saveProjectAction,
                                 self.saveProjectAsAction,
                                 self.openmanualpicksaction, self.saveManualPicksAction, None,
-                                prefsEventAction, quitAction)
+                                prefsEventAction, self.parameterAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
 
@@ -2124,6 +2129,11 @@ class MainWindow(QMainWindow):
             # self.closing.emit()
             # QMainWindow.closeEvent(self, event)
 
+    def pickParameter(self):
+        if not self.paraBox:
+            self.paraBox = AutoPickParaBox(self._inputs)
+        self.paraBox.show()
+        
     def PyLoTprefs(self):
         if not self._props:
             self._props = PropertiesDlg(self, infile=self.infile)
