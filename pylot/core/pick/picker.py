@@ -240,7 +240,15 @@ class AICPicker(AutoPicker):
                     ax.set_yticks([])
                     ax.set_title(self.Data[0].stats.station)
                 return
+
             islope = islope[0][0:imax]
+            if len(islope) < 2:
+                # get local maximum of AIC function to calculate properly slope
+                islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
+                                  & (self.Tcf >= self.Pick))
+                imax = np.argmax(aicsmooth[islope])
+                islope = islope[0][0:imax]
+
             dataslope = self.Data[0].data[islope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
