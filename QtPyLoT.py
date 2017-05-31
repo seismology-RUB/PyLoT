@@ -284,65 +284,70 @@ class MainWindow(QMainWindow):
         compare_icon = QIcon()
         compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
         self.newProjectAction = self.createAction(self, "&New project ...",
-                                           self.createNewProject,
-                                           QKeySequence.New, newIcon,
-                                           "Create a new Project.")
-        self.openProjectAction = self.createAction(self, "Load project ...",
+                                                  self.createNewProject,
+                                                  QKeySequence.New, newIcon,
+                                                  "Create a new Project.")
+        self.openProjectAction = self.createAction(self, "&Open project ...",
                                                    self.loadProject,
                                                    QKeySequence.Open,
                                                    openIcon,
                                                    "Load project file")
-        self.saveProjectAction = self.createAction(self, "Save project ...",
+        self.saveProjectAction = self.createAction(self, "&Save project ...",
                                                    self.saveProject,
                                                    QKeySequence.Save,
                                                    saveProjectIcon,
                                                    "Save project file")
         self.saveProjectAction.setEnabled(False)
+        self.saveProjectAsAction = self.createAction(self, "Save project as ...",
+                                                     self.saveProjectAs,
+                                                     QKeySequence.SaveAs,
+                                                     saveProjectIcon,
+                                                     "Save project file as...")
+        self.saveProjectAsAction.setEnabled(False)
         # newEventAction = self.createAction(self, "&New event ...",
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openmanualpicksaction = self.createAction(self, "Load &picks ...",
-                                                  self.load_data,
-                                                  QKeySequence.Open,
-                                                  manupicksicon,
-                                                  "Load manual picks for "
-                                                  "the displayed event.")
+        self.openmanualpicksaction = self.createAction(self, "Load %manual picks ...",
+                                                       self.load_data,
+                                                       "Ctrl+M",
+                                                       manupicksicon,
+                                                       "Load manual picks for "
+                                                       "the displayed event.")
         self.openmanualpicksaction.setEnabled(False)
         self.openmanualpicksaction.setData(None)
 
-        self.openautopicksaction = self.createAction(self, "Load &automatic picks "
-                                                      "...",
-                                                self.load_autopicks,
-                                                "Ctrl+A",
-                                                autopicksicon,
-                                                "Load automatic picks "
-                                                "for the displayed event.")
+        self.openautopicksaction = self.createAction(self, "Load &automatic picks ... ",
+                                                     self.load_autopicks,
+                                                     "Ctrl+A",
+                                                     autopicksicon,
+                                                     "Load automatic picks "
+                                                     "for the displayed event.")
         self.openautopicksaction.setEnabled(False)
         self.openautopicksaction.setData(None)
 
         self.loadlocationaction = self.createAction(self, "Load &location ...",
-                                               self.load_loc, "Ctrl+L",
-                                               locactionicon,
-                                               "Load location information on "
-                                               "the displayed event.")
+                                                    self.load_loc, "Ctrl+L",
+                                                    locactionicon,
+                                                    "Load location information on "
+                                                    "the displayed event.")
         self.loadlocationaction.setEnabled(False)
         self.loadpilotevent = self.createAction(self, "Load PILOT &event ...",
-                                                self.load_pilotevent, "Ctrl+E",
+                                                self.load_pilotevent, None,
                                                 loadpiloticon,
                                                 "Load PILOT event from information "
                                                 "MatLab binary collections (created"
                                                 " in former MatLab based version).")
         self.loadpilotevent.setEnabled(False)
 
-        self.saveEventAction = self.createAction(self, "&Save event ...",
-                                            self.saveData, QKeySequence.Save,
-                                            saveIcon, "Save actual event data.")
-        self.saveEventAction.setEnabled(False)
+        self.saveManualPicksAction = self.createAction(self, "Save &picks ...",
+                                                       self.saveData, "Ctrl+P",
+                                                       saveIcon, "Save event pick data.")
+        self.saveManualPicksAction.setEnabled(False)
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
                                                     self.add_events,
-                                                    "Ctrl+W", newFolderIcon,
+                                                    "Ctrl+E", newFolderIcon,
                                                     "Add event data")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
@@ -391,7 +396,8 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar().addMenu('&File')
         self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
                                 self.openProjectAction, self.saveProjectAction,
-                                self.openmanualpicksaction, self.saveEventAction, None,
+                                self.saveProjectAsAction,
+                                self.openmanualpicksaction, self.saveManualPicksAction, None,
                                 prefsEventAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -409,9 +415,9 @@ class MainWindow(QMainWindow):
         fileToolBar = self.addToolBar("FileTools")
         fileToolActions = (self.newProjectAction, self.addEventDataAction,
                            self.openProjectAction, self.saveProjectAction,
-                           self.openmanualpicksaction,
+                           self.saveProjectAsAction, self.openmanualpicksaction,
                            self.openautopicksaction, self.loadlocationaction,
-                           self.loadpilotevent, self.saveEventAction)
+                           self.loadpilotevent, self.saveManualPicksAction)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
@@ -1197,7 +1203,7 @@ class MainWindow(QMainWindow):
         self.openmanualpicksaction.setEnabled(True)
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
-        self.saveEventAction.setEnabled(True)
+        self.saveManualPicksAction.setEnabled(True)
         event = self.get_current_event()
         if event.picks:
             self.picks = event.picks
@@ -1220,7 +1226,7 @@ class MainWindow(QMainWindow):
         self.openmanualpicksaction.setEnabled(False)
         self.openautopicksaction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
-        self.saveEventAction.setEnabled(False)
+        self.saveManualPicksAction.setEnabled(False)
         self.draw()
         
     def plotWaveformDataThread(self):
@@ -2012,21 +2018,20 @@ class MainWindow(QMainWindow):
         if not exists:
             if not self.okToContinue():
                 return
-        else:
-            dlg = QFileDialog()
-            fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
-            filename = fnm[0]
-            if not len(fnm[0]):
-                return False
-            if not filename.split('.')[-1] == 'plp':
-                filename = fnm[0] + '.plp'
-            if not exists:
-                self.project = Project()
-                self.init_events(new=True)
-                self.setDirty(True)                
-            self.project.save(filename)
-            self.setDirty(False)
-            return True
+        dlg = QFileDialog()
+        fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
+        filename = fnm[0]
+        if not len(fnm[0]):
+            return False
+        if not filename.split('.')[-1] == 'plp':
+            filename = fnm[0] + '.plp'
+        if not exists:
+            self.project = Project()
+            self.init_events(new=True)
+            self.setDirty(True)                
+        self.project.save(filename)
+        self.setDirty(False)
+        return True
             
     def loadProject(self, fnm=None):
         '''
@@ -2062,6 +2067,9 @@ class MainWindow(QMainWindow):
                 self.init_array_tab()
             self.setDirty(False)
 
+    def saveProjectAs(self):
+        self.saveProject(new=True)
+        
     def saveProject(self, new=False):
         '''
         Save back project to pickle file.
@@ -2091,6 +2099,7 @@ class MainWindow(QMainWindow):
 
     def setDirty(self, value):
         self.saveProjectAction.setEnabled(value)
+        self.saveProjectAsAction.setEnabled(value)        
         self.project.setDirty(value)
         self.dirty = value
 
