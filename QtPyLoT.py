@@ -109,6 +109,7 @@ class MainWindow(QMainWindow):
         self.poS_id = None
         self.ae_id = None
         self.scroll_id = None
+        self._ctrl = False # control key pressed
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
@@ -514,6 +515,14 @@ class MainWindow(QMainWindow):
         self.ref_event_button.setEnabled(False)
         self.test_event_button.setEnabled(False)        
 
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key.Key_Control:
+            self._ctrl = True
+            
+    def keyReleaseEvent(self, event):
+        if event.key() == QtCore.Qt.Key.Key_Control:
+            self._ctrl = False
+        
     @property
     def metadata(self):
         return self._metadata
@@ -712,6 +721,7 @@ class MainWindow(QMainWindow):
             return
         self.project.add_eventlist(eventlist)
         self.init_events()
+        self.setDirty(True)
 
     def createEventBox(self):
         '''
@@ -744,7 +754,6 @@ class MainWindow(QMainWindow):
             self.eventBox.setCurrentIndex(nitems)
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
-        self.setDirty(True)
 
     def fill_eventbox(self, eventBox=None, select_events='all'):
         '''
@@ -1971,7 +1980,8 @@ class MainWindow(QMainWindow):
                 filename = fnm[0] + '.plp'
             if not exists:
                 self.project = Project()
-                self.init_events(new=True)                
+                self.init_events(new=True)
+                self.setDirty(True)                
             self.project.save(filename)
             self.setDirty(False)
             return True
