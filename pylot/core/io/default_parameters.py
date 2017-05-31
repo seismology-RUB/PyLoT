@@ -17,6 +17,10 @@ defaults = {'rootpath': {'type': str,
                         'tooltip': 'event ID for single event processing',
                         'value': ''},
             
+            'extent': {'type': str,
+                       'tooltip': 'extent of array ("local", "regional" or "global")',
+                       'value': 'local'},
+            
             'invdir': {'type': str,
                        'tooltip': 'full path to  inventory or dataless-seed file',
                        'value': ''},
@@ -295,6 +299,7 @@ settings_main={
         'rho',
         'Qp'],
     'pick':[
+        'extent',
         'pstart',
         'pstop',
         'sstart',
