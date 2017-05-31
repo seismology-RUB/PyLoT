@@ -1916,7 +1916,8 @@ class AutoPickParaBox(QtGui.QWidget):
         if type(box) == QtGui.QLineEdit:
             box.setText(str(value))
         elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
-            box.setMaximum(100*value)
+            box.setMaximum(10e7)
+            box.setMinimum(-10e7)
             box.setValue(value)
         elif type(box) == QtGui.QCheckBox:
             if value == 'True':
@@ -2185,7 +2186,7 @@ class GraphicsTab(PropTab):
         self.spinbox_nth_sample = QtGui.QSpinBox()
         label = QLabel('nth sample')
         self.spinbox_nth_sample.setMinimum(1)
-        self.spinbox_nth_sample.setMaximum(100)
+        self.spinbox_nth_sample.setMaximum(10e3)
         self.spinbox_nth_sample.setValue(int(nth_sample))
         label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.main_layout.addWidget(label, 0, 0)
