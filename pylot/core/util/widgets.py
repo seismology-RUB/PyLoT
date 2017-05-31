@@ -2399,7 +2399,7 @@ class FilterOptionsDialog(QDialog):
         """
         super(FilterOptionsDialog, self).__init__()
 
-        if parent is not None and parent.getFilterOptions():
+        if parent is not None and parent.getFilters():
             self.filterOptions = parent.getFilterOptions()
         elif filterOptions is not None:
             self.filterOptions = FilterOptions(filterOptions)

@@ -1314,7 +1314,7 @@ class MainWindow(QMainWindow):
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        self.plotWaveformData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 
@@ -1328,11 +1328,11 @@ class MainWindow(QMainWindow):
             if self.filterAction.isChecked():
                 kwargs = self.getFilterOptions().parseFilterOptions()
                 self.pushFilterWF(kwargs)
-                self.plotWaveformData()
+                self.plotWaveformDataThread()
 
     def getFilterOptions(self):
         try:
-            return self.filteroptions[self.getSeismicPhase()]
+            return self.project.filteroptions[self.getSeismicPhase()]
         except AttributeError as e:
             print(e)
             return FilterOptions(None, None, None)
@@ -1341,10 +1341,12 @@ class MainWindow(QMainWindow):
         return self.filteroptions
 
     def setFilterOptions(self, filterOptions, seismicPhase=None):
+        if not self.project:
+            return
         if seismicPhase is None:
-            self.getFilters()[self.getSeismicPhase()] = filterOptions
+            self.project.filteroptions[self.getSeismicPhase()] = filterOptions
         else:
-            self.getFilters()[seismicPhase] = filterOptions
+            self.project.filteroptions[seismicPhase] = filterOptions
 
     def updateFilterOptions(self):
         try:
@@ -2147,6 +2149,10 @@ class Project(object):
     def __init__(self):
         self.eventlist = []
         self.location = None
+        self.filteroptions = {
+            'P': FilterOptions(),
+            'S': FilterOptions()
+        }
         self.dirty = False
         self._table = None
 
