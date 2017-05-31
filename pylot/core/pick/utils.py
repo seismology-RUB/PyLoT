@@ -436,7 +436,7 @@ def getsignalwin(t, t1, tsignal):
     return isignal
 
 
-def getResolutionWindow(snr, aperture):
+def getResolutionWindow(snr, extent):
     """
     Number -> Float
     produce the half of the time resolution window width from given SNR
@@ -446,6 +446,8 @@ def getResolutionWindow(snr, aperture):
       2 > SNR >= 1.5  -> 10 sec    LRW
     1.5 > SNR         -> 15 sec   VLRW
     see also Diehl et al. 2009
+
+    :parameter: extent, can be 'local', 'regional', 'global'
 
     >>> getResolutionWindow(0.5)
     7.5
@@ -466,15 +468,15 @@ def getResolutionWindow(snr, aperture):
     }
 
     if snr < 1.5:
-        time_resolution = res_wins[aperture]['VLRW']
+        time_resolution = res_wins[extent]['VLRW']
     elif snr < 2.:
-        time_resolution = res_wins[aperture]['LRW']
+        time_resolution = res_wins[extent]['LRW']
     elif snr < 3.:
-        time_resolution = res_wins[aperture]['MRW']
+        time_resolution = res_wins[extent]['MRW']
     elif snr >3.:
-        time_resolution = res_wins[aperture]['HRW']
+        time_resolution = res_wins[extent]['HRW']
     else:
-        time_resolution = res_wins[aperture]['VLRW']
+        time_resolution = res_wins[extent]['VLRW']
         
     return time_resolution / 2
 

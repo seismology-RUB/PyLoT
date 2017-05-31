@@ -438,11 +438,13 @@ class WaveformWidget(FigureCanvas):
         nmax = 0
         
         compclass = SetChannelComponents()
-        alter_comp = compclass.getCompPosition(component)
-        alter_comp = str(alter_comp[0])
 
-        wfdata = wfdata.select(component=component)
-        wfdata += wfdata.select(component=alter_comp)
+        if not component == '*':
+            alter_comp = compclass.getCompPosition(component)
+            alter_comp = str(alter_comp[0])
+
+            wfdata = wfdata.select(component=component)
+            wfdata += wfdata.select(component=alter_comp)
         
         # list containing tuples of network, station, channel (for sorting)
         nsc = [] 
@@ -982,7 +984,7 @@ class PickDlg(QDialog):
         else:
             noiselevel = nfac
 
-        x_res = getResolutionWindow(snr, 'regional')
+        x_res = getResolutionWindow(snr, parameter.get('extent'))
 
         # remove mean noise level from waveforms
         for trace in data:
@@ -991,7 +993,7 @@ class PickDlg(QDialog):
             trace = demeanTrace(trace=trace, window=inoise)
 
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
-        self.setYLims(np.array([-noiselevel * 2.5, noiselevel * 2.5]) +
+        self.setYLims(np.array([-noiselevel * 3.5, noiselevel * 3.5]) +
                       trace_number)
         self.getPlotWidget().plotWFData(wfdata=data,
                                         title=self.getStation() +
@@ -1042,12 +1044,12 @@ class PickDlg(QDialog):
         horiz_comp = find_horizontals(data)
         data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
-        x_res = getResolutionWindow(snr, 'regional')
+        x_res = getResolutionWindow(snr, parameter.get('extent'))
 
         self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
         traces = self.getTraceID(horiz_comp)
         traces.sort()
-        self.setYLims(tuple(np.array([-0.5, +0.5]) +
+        self.setYLims(tuple(np.array([-1.0, +1.0]) +
                             np.array(traces)))
         noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
                       [trace - 1 / (2.5 * 2) for trace in traces]
