@@ -110,6 +110,7 @@ class MainWindow(QMainWindow):
         self.ae_id = None
         self.scroll_id = None
         self._ctrl = False # control key pressed
+        self._shift = False # shift key pressed        
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
@@ -518,10 +519,14 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Control:
             self._ctrl = True
+        if event.key() == QtCore.Qt.Key.Key_Shift:
+            self._shift = True
             
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Control:
             self._ctrl = False
+        if event.key() == QtCore.Qt.Key.Key_Shift:
+            self._shift = False
         
     @property
     def metadata(self):
@@ -1166,6 +1171,7 @@ class MainWindow(QMainWindow):
             self.scroll_id = self.dataPlot.mpl_connect('scroll_event',
                                                        self.scrollPlot)
 
+            
     def disconnectWFplotEvents(self):
         '''
         Disconnect all signals refering to WF-Dataplot (select station, tutor_user, scrolling)
@@ -1251,6 +1257,7 @@ class MainWindow(QMainWindow):
             plotWidget.figure.tight_layout()
         except:
             pass
+        self._max_xlims = self.dataPlot.getXLims()
 
     def adjustPlotHeight(self):
         height_need = len(self.data.getWFData())*self.height_factor
@@ -1365,14 +1372,35 @@ class MainWindow(QMainWindow):
         a scroll area.
         '''
         button = gui_event.button
+        x, y = gui_event.xdata, gui_event.ydata
         if not button == 'up' and not button == 'down':
             return
-        vbar = self.wf_scroll_area.verticalScrollBar()
-        up_down = {'up': -60,
-                   'down': 60}
-        if vbar.maximum():
-            vbar.setValue(vbar.value() + up_down[button])        
-        
+        if not self._ctrl and not self._shift:
+            vbar = self.wf_scroll_area.verticalScrollBar()
+            up_down = {'up': -60,
+                       'down': 60}
+            if vbar.maximum():
+                vbar.setValue(vbar.value() + up_down[button])
+        if self._ctrl:
+            factor = {'up': 5./4.,
+                      'down': 4./5.}
+            self.height_factor *= factor[button]
+            self.adjustPlotHeight()
+        if self._shift:
+            factor = {'up': 1./2.,
+                      'down': 2.}
+            xlims = self.dataPlot.getXLims()
+            xdiff = xlims[1] - xlims[0]
+            xdiff *= factor[button]
+            xl = x - 0.5 * xdiff
+            xr = x + 0.5 * xdiff
+            if xl < self._max_xlims[0]:
+                xl = self._max_xlims[0]
+            if xr > self._max_xlims[1]:
+                xr = self._max_xlims[1]
+            self.dataPlot.setXLims((xl, xr))
+            self.dataPlot.draw()
+            
     def pickOnStation(self, gui_event):
         if not gui_event.button == 1:
             return
@@ -1958,7 +1986,11 @@ class MainWindow(QMainWindow):
         self.setWindowModified(self.dirty)
 
     def tutor_user(self):
-        self.update_status('select trace to pick on station ...', 10000)
+        trace_pick = ' select trace to pick on station ...'
+        strg_key = ' - [CTRL + mousewheel] vertical spacing'
+        shift_key = ' - [SHIFT + mousewheel] horizontal zoom'
+        message = trace_pick + strg_key + shift_key
+        self.update_status(message, 10000)
 
     def show_event_information(self):
         pass
