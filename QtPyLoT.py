@@ -343,7 +343,7 @@ class MainWindow(QMainWindow):
         self.saveManualPicksAction = self.createAction(self, "Save &picks ...",
                                                        self.saveData, "Ctrl+P",
                                                        saveIcon, "Save event pick data.")
-        self.saveManualPicksAction.setEnabled(False)
+        self.disableSaveManualPicksAction()
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
                                                     self.add_events,
@@ -758,7 +758,7 @@ class MainWindow(QMainWindow):
             self.clearWaveformDataPlot()
             return
         self.eventBox.setEnabled(True)
-        self.fill_eventbox(self.eventBox)
+        self.fill_eventbox()
         if new:
             self.eventBox.setCurrentIndex(0)
         else:
@@ -766,7 +766,7 @@ class MainWindow(QMainWindow):
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
 
-    def fill_eventbox(self, eventBox=None, select_events='all'):
+    def fill_eventbox(self, event=None, eventBox=None, select_events='all'):
         '''
         (Re)fill the selected eventBox (type = QtGui.QComboBox).
 
@@ -884,7 +884,7 @@ class MainWindow(QMainWindow):
             directory = os.path.realpath(self.getRoot())
             file_filter = "QuakeML file (*.xml);;VELEST observation file " \
                           "format (*.cnv);;NonLinLoc observation file (*.obs)"
-            title = 'Save event data ...'
+            title = 'Save pick data ...'
             fname, selected_filter = QFileDialog.getSaveFileName(self,
                                                                  title,
                                                                  directory,
@@ -927,24 +927,31 @@ class MainWindow(QMainWindow):
         if not fbasename:
             return False
         # warn overwriting
-        elif os.path.exists(fbasename + exform):
-            ans = QMessageBox.question(self, self.tr("Overwrite file..."),
-                               self.tr("File already exists: {0}\n".format(fbasename + exform) + \
-                                  "Overwrite file anyway?"),
-                               QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-            # only negative answers have to be caught
-            if ans == QMessageBox.No:
-                self.saveData()
-            elif ans == QMessageBox.Cancel:
-                return False
+        # elif os.path.exists(fbasename + exform):
+        #     ans = QMessageBox.question(self, self.tr("Overwrite file..."),
+        #                        self.tr("File already exists: {0}\n".format(fbasename + exform) + \
+        #                           "Overwrite file anyway?"),
+        #                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        #     # only negative answers have to be caught
+        #     if ans == QMessageBox.No:
+        #         self.saveData()
+        #     elif ans == QMessageBox.Cancel:
+        #         return False
 
         # export to given path
         self.get_data().exportEvent(fbasename, exform)
         # all files save (ui clean)
         self.setDirty(False)
-        self.update_status('Event saved as %s' % (fbasename + exform))
+        self.update_status('Picks saved as %s' % (fbasename + exform))
+        self.disableSaveManualPicksAction()
         return True
 
+    def enableSaveManualPicksAction(self):
+        self.saveManualPicksAction.setEnabled(True)
+
+    def disableSaveManualPicksAction(self):
+        self.saveManualPicksAction.setEnabled(False)
+        
     def getinfile(self):
         return self.infile
 
@@ -960,8 +967,12 @@ class MainWindow(QMainWindow):
         return self.data
 
     def getPicks(self, type='manual'):
-        rdict = dict(auto=self.autopicks, manual=self.picks)
-        return rdict[type]
+        if type == 'manual':
+            return self.get_current_event().getPicks()
+        if type == 'auto':
+            return self.get_current_event().getAutopicks()
+        # rdict = dict(auto=self.autopicks, manual=self.picks)
+        # return rdict[type]
 
     def getPicksOnStation(self, station, type='manual'):
         try:
@@ -1203,11 +1214,11 @@ class MainWindow(QMainWindow):
         self.openmanualpicksaction.setEnabled(True)
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
-        self.saveManualPicksAction.setEnabled(True)
         event = self.get_current_event()
         if event.picks:
             self.picks = event.picks
             self.drawPicks(picktype='manual')
+            self.enableSaveManualPicksAction()
         if event.autopicks:
             self.autopicks = event.autopicks
             self.drawPicks(picktype='auto')
@@ -1226,7 +1237,7 @@ class MainWindow(QMainWindow):
         self.openmanualpicksaction.setEnabled(False)
         self.openautopicksaction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
-        self.saveManualPicksAction.setEnabled(False)
+        self.disableSaveManualPicksAction()        
         self.draw()
         
     def plotWaveformDataThread(self):
@@ -1424,10 +1435,13 @@ class MainWindow(QMainWindow):
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'))
         if pickDlg.exec_():
+            if not pickDlg.getPicks():
+                return
             self.setDirty(True)
             self.update_status('picks accepted ({0})'.format(station))
             replot = self.addPicks(station, pickDlg.getPicks())
             self.get_current_event().setPick(station, pickDlg.getPicks())
+            self.enableSaveManualPicksAction()
             if replot:
                 self.plotWaveformData()
                 self.drawPicks()
@@ -1800,12 +1814,12 @@ class MainWindow(QMainWindow):
                     event.setTestEvent(True)
                 elif column == 4 and not item_test.checkState():
                     event.setTestEvent(False)
-                self.fill_eventbox(self.eventBox)                    
+                self.fill_eventbox()
             elif column == 5:
                 #update event notes
                 notes = table[row][5].text()
                 event.addNotes(notes)
-                self.fill_eventbox(self.eventBox)
+                self.fill_eventbox()
 
         # remove old table
         if hasattr(self, 'event_table'):
@@ -2082,8 +2096,7 @@ class MainWindow(QMainWindow):
             else:
                 self.project.save()
             if not self.project.dirty:
-                qmb = QMessageBox(icon=QMessageBox.Information, text='Saved back project to file:\n{}'.format(self.project.location))
-                qmb.exec_()
+                print('Saved back project to file:\n{}'.format(self.project.location))
                 self.setDirty(False)
                 return True
             else:
@@ -2094,7 +2107,7 @@ class MainWindow(QMainWindow):
         return self.createNewProject(exists=True)
                 
     def draw(self):
-        self.fill_eventbox(self.eventBox)
+        self.fill_eventbox()
         self.getPlotWidget().draw()
 
     def setDirty(self, value):

@@ -1328,15 +1328,15 @@ class PickDlg(QDialog):
     def apply(self):
         picks = self.getPicks()
         self.update_picks.emit(picks)
-        for pick in picks:
-            print(pick, picks[pick])
+        # for pick in picks:
+        #     print(pick, picks[pick])
 
     def discard(self):
         picks = self._init_picks
         self.picks = picks
         self.update_picks.emit(picks)
-        for pick in picks:
-            print(pick, picks[pick])
+        # for pick in picks:
+        #     print(pick, picks[pick])
         
     def reject(self):
         self.discard()
@@ -1512,6 +1512,9 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
+        pickDlg.update_picks.connect(self.parent.drawPicks)
+        pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
+        pickDlg.update_picks.connect(self.parent.enableSaveManualPicksAction)
         self.pickDlg = QtGui.QWidget()
         hl = QtGui.QHBoxLayout()
         self.pickDlg.setLayout(hl)
@@ -1626,8 +1629,8 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
-        self.parent.fill_eventbox(self.eventBox, 'ref')
-        self.parent.fill_eventbox(self.parent.eventBox)
+        self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
+        self.parent.fill_eventbox()
 
     def update_eventID(self):
         self.parameters.boxes['eventID'].setText(
