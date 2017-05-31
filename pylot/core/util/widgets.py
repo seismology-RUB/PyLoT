@@ -1941,7 +1941,7 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def openFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getOpenFileName(self, 'Browse for settings file.', '*.in')
+        fname = fd.getOpenFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')
         if fname[0]:
             try:
                 self.parameter.from_file(fname[0])
@@ -1952,7 +1952,7 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def saveFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getSaveFileName(self, 'Browse for settings file.', '*.in')
+        fname = fd.getSaveFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')        
         if fname[0]:
             try:
                 self.params_from_gui()

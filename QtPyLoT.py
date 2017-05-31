@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openmanualpicksaction = self.createAction(self, "Load %manual picks ...",
+        self.openmanualpicksaction = self.createAction(self, "Load &manual picks ...",
                                                        self.load_data,
                                                        "Ctrl+M",
                                                        manupicksicon,
