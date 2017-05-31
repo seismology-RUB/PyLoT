@@ -1001,7 +1001,14 @@ class MainWindow(QMainWindow):
 
     def okToContinue(self):
         if self.dirty:
-            return self.saveProject()
+            qmb = QMessageBox(self, icon=QMessageBox.Question, text='Do you wish to save changes in the current project?')
+            qmb.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            qmb.setDefaultButton(QMessageBox.Save)
+            ret = qmb.exec_()
+            if ret == qmb.Save:
+                return self.saveProject()
+            elif ret == qmb.Cancel:
+                return False
         return True
 
     def enableRefTestButtons(self, bool):
@@ -1495,7 +1502,7 @@ class MainWindow(QMainWindow):
         if not stat_picks:
             stat_picks = picks
         else:
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(self)
             msgBox.setText("The picks for station {0} have been "
                            "changed.".format(station))
             msgBox.setDetailedText("Old picks:\n"
@@ -1970,7 +1977,10 @@ class MainWindow(QMainWindow):
         '''
         Create new project file.
         '''
-        if self.okToContinue():
+        if not exists:
+            if not self.okToContinue():
+                return
+        else:
             dlg = QFileDialog()
             fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
             filename = fnm[0]
@@ -1990,18 +2000,20 @@ class MainWindow(QMainWindow):
         '''
         Load an existing project file.
         '''
-        if self.project:
-            if self.project.dirty:
-                qmb = QMessageBox(icon=QMessageBox.Question, text='Save changes in current project?')
-                qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-                qmb.setDefaultButton(QMessageBox.Yes)
-                answer = qmb.exec_()
-                if answer == 16384:
-                    self.saveProject()
-                elif answer == 65536:
-                    pass
-                elif answer == 4194304:
-                    return
+        if not self.okToContinue():
+            return
+        # if self.project:
+        #     if self.project.dirty:
+        #         qmb = QMessageBox(self, icon=QMessageBox.Question, text='Save changes in current project?')
+        #         qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        #         qmb.setDefaultButton(QMessageBox.Yes)
+        #         answer = qmb.exec_()
+        #         if answer == 16384:
+        #             self.saveProject()
+        #         elif answer == 65536:
+        #             pass
+        #         elif answer == 4194304:
+        #             return
         if not fnm:
             dlg = QFileDialog()
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
@@ -2016,6 +2028,7 @@ class MainWindow(QMainWindow):
                 self.init_array_map(index=0)
             else:
                 self.init_array_tab()
+            self.setDirty(False)
 
     def saveProject(self, new=False):
         '''
@@ -2051,8 +2064,11 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self.okToContinue():
-            self.closing.emit()
-            QMainWindow.closeEvent(self, event)
+            event.accept()
+        else:
+            event.ignore()
+            # self.closing.emit()
+            # QMainWindow.closeEvent(self, event)
 
     def PyLoTprefs(self):
         if not self._props:
