@@ -431,7 +431,7 @@ class WaveformWidget(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1):
+                   component='*', nth_sample=1, iniPick=None):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
@@ -477,6 +477,11 @@ class WaveformWidget(FigureCanvas):
                    for level in noiselevel:
                        self.getAxes().plot([time_ax[0], time_ax[-1]],
                                            [level, level], '--k')
+                if iniPick:
+                    ax = self.getAxes()
+                    ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
+                              colors='green', linestyles='dashed',
+                              linewidth=2)
                 self.setPlotDict(n, (station, channel, network))
         xlabel = 'seconds since {0}'.format(wfstart)
         ylabel = ''
@@ -954,7 +959,7 @@ class PickDlg(QDialog):
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
-
+        
         nfac = parameter.get('nfacP')
         twins = parameter.get('tsnrz')
         noise_win = twins[0]
@@ -965,6 +970,9 @@ class PickDlg(QDialog):
         while itrace > len(wfdata) - 1:
             itrace -= 1
 
+        stime = self.getStartTime()
+        stime_diff = wfdata[itrace].stats.starttime-stime
+            
         # copy data for plotting
         data = self.getWFData().copy()
 
@@ -975,7 +983,7 @@ class PickDlg(QDialog):
             data.filter(**filteroptions)
             wfdata.filter(**filteroptions)
 
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff, itrace)
 
         snr = result[0]
         noiselevel = result[2]
@@ -988,8 +996,8 @@ class PickDlg(QDialog):
 
         # remove mean noise level from waveforms
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            t = prepTimeAxis(trace.stats.starttime - stime, trace)
+            inoise = getnoisewin(t, ini_pick-stime_diff, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
@@ -1001,7 +1009,8 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
                                         noiselevel=(trace_number + noiselevel,
-                                                    trace_number - noiselevel))
+                                                    trace_number - noiselevel),
+                                        iniPick=ini_pick)
 
     def setIniPickS(self, gui_event, wfdata):
 
@@ -1014,6 +1023,9 @@ class PickDlg(QDialog):
         gap_win = twins[1]
         signal_win = twins[2]
 
+        stime = self.getStartTime()
+        stime_diff = wfdata[0].stats.starttime-stime
+        
         # copy data for plotting
         data = self.getWFData().copy()
 
@@ -1025,7 +1037,7 @@ class PickDlg(QDialog):
             wfdata.filter(**filteroptions)
 
         # determine SNR and noiselevel
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff)
         snr = result[0]
         noiselevel = result[2]
 
@@ -1036,8 +1048,8 @@ class PickDlg(QDialog):
 
         # prepare plotting of data
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            t = prepTimeAxis(trace.stats.starttime - stime, trace)
+            inoise = getnoisewin(t, ini_pick-stime_diff, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
         # scale waveform for plotting
@@ -1060,7 +1072,8 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
                                         noiselevel=noiselevels,
-                                        scaleddata=True)
+                                        scaleddata=True,
+                                        iniPick=ini_pick)
 
     def setPick(self, gui_event):
 
@@ -1091,14 +1104,18 @@ class PickDlg(QDialog):
         else:
             nfac = parameter.get('nfacS')
             TSNR = parameter.get('tsnrh')
-           
-        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick)
-
+            
         # return absolute time values for phases
         stime = self.getStartTime()
-        epp = stime + epp
+        stime_diff = wfdata[0].stats.starttime-stime
+           
+        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick-stime_diff, verbosity=2)
+        
         mpp = stime + pick
-        lpp = stime + lpp
+        if epp:
+            epp = stime + epp + stime_diff
+        if lpp:
+            lpp = stime + lpp + stime_diff
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
@@ -1147,8 +1164,8 @@ class PickDlg(QDialog):
         ax = self.getPlotWidget().axes
         ylims = self.getGlobalLimits('y')
         phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
+            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b', 'c:'),
+            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
         }
         if self.getPicks(picktype):
             if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
@@ -1164,23 +1181,29 @@ class PickDlg(QDialog):
             return
 
         mpp = picks['mpp'] - self.getStartTime()
-        epp = picks['epp'] - self.getStartTime()
-        lpp = picks['lpp'] - self.getStartTime()
+        if picks['epp'] and picks['lpp']:
+            epp = picks['epp'] - self.getStartTime()
+            lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
         if picktype == 'manual':
-            ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                            alpha=.25, color=colors[0])
+            if picks['epp'] and picks['lpp']:            
+                ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                alpha=.25, color=colors[0], label='EPP, LPP')
             if spe:
-                ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                        [mpp, mpp], ylims, colors[2],
-                        [mpp + spe, mpp + spe], ylims, colors[1])
+                ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
+                ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
+                ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+            else:
+                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase)) 
+                
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
                     mpp, ylims[0], colors[4])
             ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
         else:
             raise TypeError('Unknown picktype {0}'.format(picktype))
+        ax.legend()
             
 
     def panPress(self, gui_event):

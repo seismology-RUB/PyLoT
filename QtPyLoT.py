@@ -1616,18 +1616,24 @@ class MainWindow(QMainWindow):
             colors = phase_col[phase[0].upper()]
 
             mpp = picks['mpp'] - stime
-            epp = picks['epp'] - stime
-            lpp = picks['lpp'] - stime
+            if picks['epp'] and picks['lpp']:
+                epp = picks['epp'] - stime
+                lpp = picks['lpp'] - stime
             spe = picks['spe']
-            if not spe:
+            
+            if not spe and epp and lpp:
                 spe = symmetrize_error(mpp - epp, lpp - mpp)
 
             if picktype == 'manual':
-                ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                alpha=.25, color=colors[0])
-                ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                        [mpp, mpp], ylims, colors[2],
-                        [mpp + spe, mpp + spe], ylims, colors[1])
+                if picks['epp'] and picks['lpp']:
+                    ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                    alpha=.25, color=colors[0], label='EPP, LPP')
+                if spe:
+                    ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
+                    ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
+                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+                else:
+                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
             elif picktype == 'auto':
                 ax.plot(mpp, ylims[1], colors[3],
                         mpp, ylims[0], colors[4])
