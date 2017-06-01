@@ -1856,6 +1856,8 @@ class AutoPickParaBox(QtGui.QWidget):
             box = QtGui.QLineEdit()
         elif typ == float:
             box = QtGui.QDoubleSpinBox()
+            box.setDecimals(5)
+            box.setRange(-10e5, 10e5)            
         elif typ == int:
             box = QtGui.QSpinBox()
         elif typ == bool:
@@ -1946,8 +1948,6 @@ class AutoPickParaBox(QtGui.QWidget):
         if type(box) == QtGui.QLineEdit:
             box.setText(str(value))
         elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
-            box.setMaximum(10e7)
-            box.setMinimum(-10e7)
             box.setValue(value)
         elif type(box) == QtGui.QCheckBox:
             if value == 'True':
