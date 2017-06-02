@@ -5,6 +5,7 @@ import copy
 import os
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
+from obspy.io.sac import SacIOError
 from obspy.core.event import Event
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
@@ -230,6 +231,8 @@ class Data(object):
                     self.wfdata += read(fname, format='GSE2')
                 except Exception as e:
                     warnmsg += '{0}\n{1}\n'.format(fname, e)
+            except SacIOError as se:
+                    warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print(warnmsg)
