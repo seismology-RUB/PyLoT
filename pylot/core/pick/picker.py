@@ -241,8 +241,12 @@ class AICPicker(AutoPicker):
                     ax.set_title(self.Data[0].stats.station)
                 return
 
-            islope = islope[0][0:imax]
-            dataslope = self.Data[0].data[islope]
+            iislope = islope[0][0:imax]
+            if len(iislope) <= 3:
+                # calculate slope from initial onset to maximum of AIC function
+                imax = np.argmax(aicsmooth[islope])
+                iislope = islope[0][0:imax]
+            dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
             P = np.polyfit(xslope, dataslope, 1)
@@ -276,12 +280,12 @@ class AICPicker(AutoPicker):
                 ax2.plot(self.Tcf, x, 'k', label='Data')
                 ax1.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
                 ax1.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-                ax1.axvspan(self.Tcf[islope[0]],self.Tcf[islope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')
+                ax1.axvspan(self.Tcf[iislope[0]],self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')
                 
                 ax2.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
                 ax2.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-                ax2.axvspan(self.Tcf[islope[0]],self.Tcf[islope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')                
-                ax2.plot(self.Tcf[islope], datafit, 'g', linewidth=2, label='Slope')
+                ax2.axvspan(self.Tcf[iislope[0]],self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')                
+                ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2, label='Slope')
                 
                 ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
                                                                                 self.SNR, self.slope))
