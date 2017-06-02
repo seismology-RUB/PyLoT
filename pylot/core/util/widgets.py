@@ -35,8 +35,7 @@ from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
-    SetChannelComponents
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
@@ -437,11 +436,12 @@ class WaveformWidget(FigureCanvas):
         wfstart, wfend = full_range(wfdata)
         nmax = 0
         
-        compclass = SetChannelComponents()
+        settings = QSettings()
+        compclass = settings.value('compclass')
 
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
-            alter_comp = str(alter_comp[0])
+            #alter_comp = str(alter_comp[0])
 
             wfdata = wfdata.select(component=component)
             wfdata += wfdata.select(component=alter_comp)
@@ -458,8 +458,8 @@ class WaveformWidget(FigureCanvas):
             trace = st[0]
             if mapping:
                 comp = channel[-1]
-                n = compclass.getCompPosition(str(comp))
-                n = n[0]
+                n = compclass.getPlotPosition(str(comp))
+                #n = n[0]
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
@@ -480,7 +480,7 @@ class WaveformWidget(FigureCanvas):
                 if iniPick:
                     ax = self.getAxes()
                     ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
-                              colors='green', linestyles='dashed',
+                              colors='m', linestyles='dashed',
                               linewidth=2)
                 self.setPlotDict(n, (station, channel, network))
         xlabel = 'seconds since {0}'.format(wfstart)
@@ -1109,7 +1109,8 @@ class PickDlg(QDialog):
         stime = self.getStartTime()
         stime_diff = wfdata[0].stats.starttime-stime
            
-        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick-stime_diff, verbosity=2)
+        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]),
+                                         pick-stime_diff, verbosity=1)
         
         mpp = stime + pick
         if epp:
@@ -2077,6 +2078,14 @@ class PropertiesDlg(QDialog):
             if values is not None:
                 self.setValues(values)
 
+    def close(self):
+        self.reset_current()
+        QDialog.close(self)
+
+    def show(self):
+        self.keep_current()
+        QDialog.show(self)
+
     def restore(self):
         for widint in range(self.tabWidget.count()):
             curwid = self.tabWidget.widget(widint)
@@ -2084,23 +2093,35 @@ class PropertiesDlg(QDialog):
             if values is not None:
                 self.setValues(values)
 
+    def keep_current(self):
+        self._current_values = []
+        for widint in range(self.tabWidget.count()):
+            curwid = self.tabWidget.widget(widint)
+            values = curwid.getValues()
+            if values is not None:
+                self._current_values.append(values)
+
+    def reset_current(self):
+        for values in self._current_values():
+            self.setValues(values)
+
 
     @staticmethod
     def setValues(tabValues):
         settings = QSettings()
-        compclass = SetChannelComponents()
+        compclass = settings.value('compclass')
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
             if value is not None:
                 if setting.startswith('Channel Z'):
                     component = 'Z'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
                 elif setting.startswith('Channel E'):
                     component = 'E'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
                 elif setting.startswith('Channel N'):
                     component = 'N'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
         settings.sync()
 
 
@@ -2254,7 +2275,8 @@ class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)
 
-        compclass = SetChannelComponents()
+        settings = QSettings()
+        compclass = settings.value('compclass')
 
         ChannelOrderLabelZ = QLabel("Channel Z [up/down, default=3]")
         ChannelOrderLabelN = QLabel("Channel N [north/south, default=1]")
@@ -2269,9 +2291,9 @@ class ChannelOrderTab(PropTab):
         self.ChannelOrderEEdit.setMaxLength(1)
         self.ChannelOrderEEdit.setFixedSize(20, 20)
         # get channel order settings
-        zpos, zcomp = compclass.getCompPosition('Z')
-        epos, ecomp = compclass.getCompPosition('E')
-        npos, ncomp = compclass.getCompPosition('N')
+        zcomp = compclass.getCompPosition('Z')
+        ecomp = compclass.getCompPosition('E')
+        ncomp = compclass.getCompPosition('N')
         self.ChannelOrderZEdit.setText("%s" % zcomp) 
         self.ChannelOrderNEdit.setText("%s" % ecomp)
         self.ChannelOrderEEdit.setText("%s" % ncomp)
@@ -2285,7 +2307,34 @@ class ChannelOrderTab(PropTab):
         layout.addWidget(self.ChannelOrderEEdit, 2, 1)
 
         self.setLayout(layout)
+        self.connectSignals()
 
+    def connectSignals(self):
+        self.ChannelOrderZEdit.textEdited.connect(self.checkDoubleZ)
+        self.ChannelOrderNEdit.textEdited.connect(self.checkDoubleN)
+        self.ChannelOrderEEdit.textEdited.connect(self.checkDoubleE)
+
+    def checkDoubleZ(self, text):
+        self.checkDouble(text, 'Z')
+        
+    def checkDoubleN(self, text):
+        self.checkDouble(text, 'N')
+        
+    def checkDoubleE(self, text):
+        self.checkDouble(text, 'E')
+        
+    def checkDouble(self, text, comp):
+        channelOrderEdits = {
+            'Z': self.ChannelOrderZEdit,
+            'N': self.ChannelOrderNEdit,
+            'E': self.ChannelOrderEEdit
+        }
+        for key in channelOrderEdits.keys():
+            if key == comp:
+                continue
+            if str(channelOrderEdits[key].text()) == str(text):
+                channelOrderEdits[key].setText('')
+        
     def getValues(self):
         values = {"Channel Z [up/down, default=3]": int(self.ChannelOrderZEdit.text()),
                   "Channel N [north/south, default=1]": int(self.ChannelOrderNEdit.text()),
@@ -2301,10 +2350,11 @@ class ChannelOrderTab(PropTab):
                   "Channel E [east/west, default=2]": self.ChannelOrderEEdit.setText("%d" % Edefault)}
         return values
 
-    def getComponents(self):
- 
-        self.CompName = dict(Z='10', N='11', E='12')
+    # MP MP: No idea why this function exists!?
+    # def getComponents(self):
+    #     self.CompName = dict(Z='10', N='11', E='12')
 
+        
 class LocalisationTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(LocalisationTab, self).__init__(parent)

@@ -142,6 +142,9 @@ class MainWindow(QMainWindow):
         # setup UI
         self.setupUi()
 
+        if settings.value('compclass', None) is None:
+            settings.setValue('compclass', SetChannelComponents())
+            
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
