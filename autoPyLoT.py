@@ -357,8 +357,15 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
         description='''autoPyLoT automatically picks phase onset times using higher order statistics,
-                       autoregressive prediction and AIC''')
+                       autoregressive prediction and AIC followed by locating the seismic events using 
+                       NLLoc''')
 
+    #parser.add_argument('-d', '-D', '--input_dict', type=str,
+    #                    action='store',
+    #                    help='''optional, dictionary containing processing parameters''')
+    #parser.add_argument('-p', '-P', '--parameter', type=str,
+    #                    action='store',
+    #                    help='''parameter file, default=None''')
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
                         help='''full path to the file containing the input
@@ -369,17 +376,18 @@ if __name__ == "__main__":
     parser.add_argument('-e', '-E', '--eventid', type=str,
                         action='store',
                         help='''optional, event path incl. event ID''')
-    # parser.add_argument('-p', '-P', '--plot', action='store',
-    #                     help='show interactive plots')
     parser.add_argument('-s', '-S', '--spath', type=str,
                         action='store',
                         help='''optional, save path for autoPyLoT output''')
-    parser.add_argument('-v', '-V', '--version', action='version',
-                        version='autoPyLoT ' + __version__,
-                        help='show version information and exit')
+    #parser.add_argument('-v', '-V', '--version', action='version',
+    #                    version='autoPyLoT ' + __version__,
+    #                    help='show version information and exit')
 
     cla = parser.parse_args()
-
-    picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile),
-                               fnames=str(cla.fnames), eventid=str(cla.eventid), 
-                               savepath=str(cla.spath))
+    
+    try:
+        picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
+                                   eventid=str(cla.eventid), savepath=str(cla.spath))
+    except ValueError:
+        print("autoPyLoT was running in production mode.")
+                             
