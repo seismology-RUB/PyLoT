@@ -1910,8 +1910,11 @@ class MainWindow(QMainWindow):
         self.rm_thread.start()
 
     def set_metadata(self):
+        settings = QSettings()
         self.metadata = self.rm_thread.data
-        self.project.metadata = self.rm_thread.data
+        if settings.value('saveMetadata'):
+            self.project.metadata = self.rm_thread.data
+        self.project.inv_path = settings.value("inventoryFile")
         self.init_array_map()
         
     def get_metadata(self):
@@ -1932,25 +1935,29 @@ class MainWindow(QMainWindow):
             self.read_metadata_thread(fninv)
             return True
 
+        settings = QSettings()
+        
         if hasattr(self.project, 'metadata'):
             self.metadata = self.project.metadata
             return True
-        
-        settings = QSettings()
-        fninv = settings.value("inventoryFile", None)
+        if hasattr(self.project, 'invPath'):
+            settings.setValue("inventoryFile", self.project.inv_path)
 
+        fninv = settings.value("inventoryFile", None)
+        
         if fninv is None and not self.metadata:
             if not set_inv(settings):
                 return None
         elif fninv is not None and not self.metadata:
-            ans = QMessageBox.question(self, self.tr("Use default..."),
-                                       self.tr(
-                                           "Do you want to use the default value?"),
-                                       QMessageBox.Yes | QMessageBox.No,
-                                       QMessageBox.Yes)
-            if ans == QMessageBox.No:
-                if not set_inv(settings):
-                    return None
+            if not hasattr(self.project, 'invPath'):
+                ans = QMessageBox.question(self, self.tr("Use default metadata..."),
+                                           self.tr(
+                                               "Do you want to use the default value for metadata?"),
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.Yes)
+                if ans == QMessageBox.No:
+                    if not set_inv(settings):
+                        return None
             else:
                 self.read_metadata_thread(fninv)
         
