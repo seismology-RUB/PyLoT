@@ -43,7 +43,7 @@ class map_projection(QtGui.QWidget):
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
-            station=str(self.station_names[index])
+            station=str(self.station_names[index].split('.')[-1])
             try:
                 pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
@@ -120,8 +120,9 @@ class map_projection(QtGui.QWidget):
             lon=[]
             for station in parser.stations:
                 station_name=station[0].station_call_letters
+                network=station[0].network_code
                 if not station_name in station_names:
-                    station_names.append(station_name)
+                    station_names.append(network+'.'+station_name)
                     lat.append(station[0].latitude)
                     lon.append(station[0].longitude)
             return station_names, lat, lon
@@ -137,6 +138,7 @@ class map_projection(QtGui.QWidget):
             picks=[]
             for station in station_names:
                 try:
+                    station=station.split('.')[-1]
                     picks.append(self.picks_dict[station][phase]['mpp'])
                 except:
                     picks.append(np.nan)
