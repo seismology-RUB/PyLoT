@@ -1111,6 +1111,8 @@ class MainWindow(QMainWindow):
         # only refresh first/second tab when an event was changed.
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.get_current_event()
+            if not event:
+                return
             # update picks saved in GUI mainwindow (to be changed in future!!) MP MP
             if not event.picks:
                 self.picks = {}
@@ -2016,11 +2018,10 @@ class MainWindow(QMainWindow):
     def update_status(self, message, duration=5000):
         self.statusBar().showMessage(message, duration)
         if self.get_data() is not None:
-            if not self.get_data().isNew():
-                self.setWindowTitle(
-                    "PyLoT - processing event %s[*]" % self.get_data().getID())
-            elif self.get_data().isNew():
-                self.setWindowTitle("PyLoT - New project [*]")
+            if not self.get_current_event() or not self.project.location:
+                self.setWindowTitle("PyLoT - New project [*]")                
+            elif self.get_current_event():
+                self.setWindowTitle("PyLoT - [{}]".format(self.project.location))
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
@@ -2066,6 +2067,7 @@ class MainWindow(QMainWindow):
             self.setDirty(True)                
         self.project.save(filename)
         self.setDirty(False)
+        self.update_status('Creating new project...', duration=1000)
         return True
             
     def loadProject(self, fnm=None):
