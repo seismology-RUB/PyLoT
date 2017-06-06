@@ -2292,11 +2292,11 @@ class ChannelOrderTab(PropTab):
         self.ChannelOrderEEdit.setFixedSize(20, 20)
         # get channel order settings
         zcomp = compclass.getCompPosition('Z')
-        ecomp = compclass.getCompPosition('E')
         ncomp = compclass.getCompPosition('N')
+        ecomp = compclass.getCompPosition('E')
         self.ChannelOrderZEdit.setText("%s" % zcomp) 
-        self.ChannelOrderNEdit.setText("%s" % ecomp)
-        self.ChannelOrderEEdit.setText("%s" % ncomp)
+        self.ChannelOrderNEdit.setText("%s" % ncomp)
+        self.ChannelOrderEEdit.setText("%s" % ecomp)
 
         layout = QGridLayout()
         layout.addWidget(ChannelOrderLabelZ, 0, 0)
