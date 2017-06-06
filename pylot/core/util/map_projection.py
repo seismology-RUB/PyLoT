@@ -51,7 +51,7 @@ class map_projection(QtGui.QWidget):
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station))
             except Exception as e:
-                message = 'Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e)
+                message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
                 return
@@ -234,9 +234,9 @@ class map_projection(QtGui.QWidget):
                                          self.picks_no_nan, (self.latgrid, self.longrid), method='linear') ##################
 
     def draw_contour_filled(self, nlevel='50'):
-        levels = np.linspace(min(self.picks_rel), max(self.picks_rel), nlevel)
+        levels = np.linspace(min(self.picks_no_nan), max(self.picks_no_nan), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_no_nan,
-                                              levels, latlon=True, zorder=9)
+                                              levels, latlon=True, zorder=9, alpha=0.5)
 
     def scatter_all_stations(self):
         self.sc = self.basemap.scatter(self.lon, self.lat, s=50, facecolor='none', latlon=True,
