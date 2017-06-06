@@ -997,7 +997,7 @@ class PickDlg(QDialog):
         # remove mean noise level from waveforms
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick-stime_diff, noise_win, gap_win)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
         self.setXLims([ini_pick - x_res, ini_pick + x_res])
@@ -1049,7 +1049,7 @@ class PickDlg(QDialog):
         # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick-stime_diff, noise_win, gap_win)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
         # scale waveform for plotting
