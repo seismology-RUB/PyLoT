@@ -633,6 +633,7 @@ class MainWindow(QMainWindow):
             self.updatePicks(type=type)
         self.drawPicks(picktype=type)
         self.draw()
+        self.setDirty(True)
 
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
@@ -2021,7 +2022,7 @@ class MainWindow(QMainWindow):
             if not self.get_current_event() or not self.project.location:
                 self.setWindowTitle("PyLoT - New project [*]")                
             elif self.get_current_event():
-                self.setWindowTitle("PyLoT - [{}]".format(self.project.location))
+                self.setWindowTitle("PyLoT - {} [*]".format(self.project.location))
             else:
                 self.setWindowTitle(
                     "PyLoT - seismic processing the python way[*]")
@@ -2064,7 +2065,8 @@ class MainWindow(QMainWindow):
         if not exists:
             self.project = Project()
             self.init_events(new=True)
-            self.setDirty(True)                
+            self.setDirty(True)
+        self.project.parameter=self._inputs
         self.project.save(filename)
         self.setDirty(False)
         self.update_status('Creating new project...', duration=1000)
@@ -2076,18 +2078,6 @@ class MainWindow(QMainWindow):
         '''
         if not self.okToContinue():
             return
-        # if self.project:
-        #     if self.project.dirty:
-        #         qmb = QMessageBox(self, icon=QMessageBox.Question, text='Save changes in current project?')
-        #         qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        #         qmb.setDefaultButton(QMessageBox.Yes)
-        #         answer = qmb.exec_()
-        #         if answer == 16384:
-        #             self.saveProject()
-        #         elif answer == 65536:
-        #             pass
-        #         elif answer == 4194304:
-        #             return
         if not fnm:
             dlg = QFileDialog()
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
@@ -2096,13 +2086,17 @@ class MainWindow(QMainWindow):
             fnm = fnm[0]
         if fnm:
             self.project = Project.load(fnm)
+            if hasattr(self.project, 'parameter'):
+                if self.project.parameter:
+                    self._inputs = self.project.parameter
             self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
-            if hasattr(self.project, 'metadata'):
-                self.init_array_map(index=0)
-            else:
-                self.init_array_tab()
             self.setDirty(False)
+            if hasattr(self.project, 'metadata'):
+                if self.project.metadata:
+                    self.init_array_map(index=0)
+                    return
+            self.init_array_tab()
 
     def saveProjectAs(self):
         self.saveProject(new=True)
@@ -2117,6 +2111,7 @@ class MainWindow(QMainWindow):
                     self.setDirty(True)
                     return False
             else:
+                self.project.parameter=self._inputs
                 self.project.save()
             if not self.project.dirty:
                 print('Saved back project to file:\n{}'.format(self.project.location))
@@ -2133,6 +2128,9 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.getPlotWidget().draw()
 
+    def _setDirty(self):
+        self.setDirty(True)
+        
     def setDirty(self, value):
         self.saveProjectAction.setEnabled(value)
         self.saveProjectAsAction.setEnabled(value)        
@@ -2150,6 +2148,8 @@ class MainWindow(QMainWindow):
     def pickParameter(self):
         if not self.paraBox:
             self.paraBox = AutoPickParaBox(self._inputs)
+            self.paraBox._apply.clicked.connect(self._setDirty)
+            self.paraBox._okay.clicked.connect(self._setDirty)            
         self.paraBox.show()
         
     def PyLoTprefs(self):
@@ -2176,6 +2176,7 @@ class Project(object):
         self.eventlist = []
         self.location = None
         self.dirty = False
+        self.parameter = None
         self._table = None
 
     def add_eventlist(self, eventlist):
