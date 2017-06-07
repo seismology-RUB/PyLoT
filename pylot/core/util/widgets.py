@@ -438,6 +438,9 @@ class WaveformWidget(FigureCanvas):
         
         settings = QSettings()
         compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
 
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
@@ -2165,6 +2168,10 @@ class PropertiesDlg(QDialog):
     def setValues(tabValues):
         settings = QSettings()
         compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
+            
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
             if value is not None:
