@@ -12,6 +12,11 @@ import copy
 import datetime
 import numpy as np
 
+try:
+    import pyqtgraph as pg
+except:
+    pg = None
+
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
 
@@ -41,6 +46,12 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 import icons_rc
+
+if pg:
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+    pg.setConfigOptions(antialias=True)
+    #pg.setConfigOption('leftButtonPan', False)
 
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",
@@ -391,6 +402,173 @@ class PlotWidget(FigureCanvas):
     @property
     def parent(self):
         return self._parent
+
+
+class WaveformWidgetPG(QtGui.QWidget):
+    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
+        QtGui.QWidget.__init__(self, parent)#, 1)
+        self.setParent(parent)
+        self._parent = parent
+        # attribute plotdict is a dictionary connecting position and a name
+        self.plotdict = dict()
+        # create plot
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        #self.win = pg.GraphicsWindow(title="Window")
+        self.plot = pg.PlotWidget(title=title)
+        self.main_layout.addWidget(self.plot)
+        #self.plot = self.win.addPlot(title=title)
+        self.plot.setMouseEnabled(False, False)
+        self.plot.showGrid(x=False, y=True, alpha=0.2)
+        # update labels of the entire widget
+        #self.updateWidget(xlabel, ylabel, title)
+
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.plot.addItem(self.vLine, ignoreBounds=True)
+        self.plot.addItem(self.hLine, ignoreBounds=True)
+        self._proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+
+    def mouseMoved(self, evt):
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+        if self.plot.sceneBoundingRect().contains(pos):
+            mousePoint = self.plot.getPlotItem().vb.mapSceneToView(pos)
+            index = int(mousePoint.x())
+            # if index > 0 and index < len(data1):
+            #     label.setText("<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'>y1=%0.1f</span>,   <span style='color: green'>y2=%0.1f</span>" % (mousePoint.x(), data1[index], data2[index]))
+            self.vLine.setPos(mousePoint.x())
+            self.hLine.setPos(mousePoint.y())
+
+    def getPlotDict(self):
+        return self.plotdict
+
+    def setPlotDict(self, key, value):
+        self.plotdict[key] = value
+
+    def clearPlotDict(self):
+        self.plotdict = dict()
+
+    def getParent(self):
+        return self._parent
+
+    def setParent(self, parent):
+        self._parent = parent
+
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+                   noiselevel=None, scaleddata=False, mapping=True,
+                   component='*', nth_sample=1, iniPick=None):
+        #self.getAxes().cla()
+        self.clearPlotDict()
+        wfstart, wfend = full_range(wfdata)
+        nmax = 0
+        
+        settings = QSettings()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
+
+        if not component == '*':
+            alter_comp = compclass.getCompPosition(component)
+            #alter_comp = str(alter_comp[0])
+
+            wfdata = wfdata.select(component=component)
+            wfdata += wfdata.select(component=alter_comp)
+        
+        # list containing tuples of network, station, channel (for sorting)
+        nsc = [] 
+        for trace in wfdata:
+            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
+        nsc.sort()
+        nsc.reverse()
+
+        for n, (network, station, channel) in enumerate(nsc):
+            st = wfdata.select(network=network, station=station, channel=channel)
+            trace = st[0]
+            if mapping:
+                comp = channel[-1]
+                n = compclass.getPlotPosition(str(comp))
+                #n = n[0]
+            if n > nmax:
+                nmax = n
+            msg = 'plotting %s channel of station %s' % (channel, station)
+            print(msg)
+            stime = trace.stats.starttime - wfstart
+            time_ax = prepTimeAxis(stime, trace)
+            if time_ax is not None:
+            	if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
+                data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
+                self.plot.plot(times, data, pen=(0, 0, 0))
+                if noiselevel is not None:
+                   for level in noiselevel:
+                       self.plot.plot([time_ax[0], time_ax[-1]],
+                                          [level, level], pen=(0, 0, 0))
+                # if iniPick:
+                #     ax = self.getAxes()
+                #     ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
+                #               colors='m', linestyles='dashed',
+                #               linewidth=2)
+                self.setPlotDict(n, (station, channel, network))
+        xlabel = 'seconds since {0}'.format(wfstart)
+        ylabel = ''
+        #self.updateWidget(xlabel, ylabel, title)
+        # self.setXLims([0, wfend - wfstart])
+        # self.setYLims([-0.5, nmax + 0.5])
+        # if zoomx is not None:
+        #     self.setXLims(zoomx)
+        # if zoomy is not None:
+        #     self.setYLims(zoomy)
+        # self.draw()
+
+    # def getAxes(self):
+    #     return self.axes
+
+    # def getXLims(self):
+    #     return self.getAxes().get_xlim()
+
+    # def getYLims(self):
+    #     return self.getAxes().get_ylim()
+
+    # def setXLims(self, lims):
+    #     self.getAxes().set_xlim(lims)
+
+    # def setYLims(self, lims):
+    #     self.getAxes().set_ylim(lims)
+
+    def setYTickLabels(self, pos, labels):
+        ticks = zip(pos, labels)
+        leftAx = self.plot.getPlotItem().axes['left']['item']
+        # leftAx.tickLength = 5
+        # leftAx.orientation = 'right'
+        leftAx.setTicks([ticks, []])
+
+    # def updateXLabel(self, text):
+    #     self.getAxes().set_xlabel(text)
+    #     self.draw()
+
+    # def updateYLabel(self, text):
+    #     self.getAxes().set_ylabel(text)
+    #     self.draw()
+
+    # def updateTitle(self, text):
+    #     self.getAxes().set_title(text)
+    #     self.draw()
+
+    # def updateWidget(self, xlabel, ylabel, title):
+    #     self.updateXLabel(xlabel)
+    #     self.updateYLabel(ylabel)
+    #     self.updateTitle(title)
+
+    # def insertLabel(self, pos, text):
+    #     pos = pos / max(self.getAxes().ylim)
+    #     axann = self.getAxes().annotate(text, xy=(.03, pos),
+    #                                     xycoords='axes fraction')
+    #     axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+    def draw(self):
+        pass
 
 
 class WaveformWidget(FigureCanvas):

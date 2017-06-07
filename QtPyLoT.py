@@ -43,6 +43,11 @@ import numpy as np
 from obspy import UTCDateTime
 
 try:
+    import pyqtgraph as pg
+except:
+    pg = None
+
+try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -66,7 +71,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
-    WaveformWidget, PropertiesDlg, HelpForm, createAction, PickDlg, \
+    WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonDialog, TuneAutopicker, AutoPickParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
@@ -210,8 +215,14 @@ class MainWindow(QMainWindow):
 
         # create central matplotlib figure canvas widget
         plottitle = "Overview: {0} components ".format(self.getComponent())
-        self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
-                                       title=plottitle)
+        if pg:
+            self.pg = True
+            self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
+                                             title=plottitle)
+        else:
+            self.pg = False
+            self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
+                                           title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
 
         # add scroll area used in case number of traces gets too high
@@ -1187,6 +1198,12 @@ class MainWindow(QMainWindow):
         '''
         Connect signals refering to WF-Dataplot (select station, tutor_user, scrolling)
         '''
+        if self.pg:
+            pass
+        else:
+            self.connect_mpl()
+
+    def connect_mpl(self):
         if not self.poS_id:
             self.poS_id = self.dataPlot.mpl_connect('button_press_event',
                                                     self.pickOnStation)
@@ -1198,11 +1215,16 @@ class MainWindow(QMainWindow):
             self.scroll_id = self.dataPlot.mpl_connect('scroll_event',
                                                        self.scrollPlot)
 
-            
     def disconnectWFplotEvents(self):
         '''
         Disconnect all signals refering to WF-Dataplot (select station, tutor_user, scrolling)
         '''
+        if self.pg:
+            pass
+        else:
+            self.disconnect_mpl()
+
+    def disconnect_mpl(self):
         if self.poS_id:
             self.dataPlot.mpl_disconnect(self.poS_id)
         if self.ae_id:
@@ -1237,7 +1259,10 @@ class MainWindow(QMainWindow):
 
     def clearWaveformDataPlot(self):
         self.disconnectWFplotEvents()
-        self.dataPlot.getAxes().cla()
+        if self.pg:
+            self.dataPlot.plotitem.clear()
+        else:
+            self.dataPlot.getAxes().cla()            
         self.loadlocationaction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
@@ -1254,6 +1279,7 @@ class MainWindow(QMainWindow):
         '''
         Open a modal thread to plot current waveform data.
         '''
+        #self.plotWaveformData()
         wfp_thread = Thread(self, self.plotWaveformData,
                             progressText='Plotting waveform data...')
         wfp_thread.finished.connect(self.finishWaveformDataPlot)
@@ -1284,7 +1310,7 @@ class MainWindow(QMainWindow):
             plotWidget.figure.tight_layout()
         except:
             pass
-        self._max_xlims = self.dataPlot.getXLims()
+        #self._max_xlims = self.dataPlot.getXLims()
 
     def adjustPlotHeight(self):
         height_need = len(self.data.getWFData())*self.height_factor
