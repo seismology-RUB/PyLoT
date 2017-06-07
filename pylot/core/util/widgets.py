@@ -1767,7 +1767,9 @@ class AutoPickParaBox(QtGui.QWidget):
         self._init_save_buttons()
         self._init_tabs()
         self._init_dialog_buttons()
+        self.labels = {}
         self.boxes = {}
+        self.groupboxes = {}
         self._init_sublayouts()
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
@@ -1834,12 +1836,10 @@ class AutoPickParaBox(QtGui.QWidget):
                         b.setEnabled(enable)
                         
     def set_tune_mode(self, bool):
-        keys = ['rootpath', 'datapath', 'database',
-                'eventID', 'invdir', 'nllocbin',
-                'nllocroot', 'phasefile',
-                'ctrfile', 'ttpatter', 'outpatter']
-        for key in keys:
-            self.boxes[key].setEnabled(not(bool))
+        names = ['Directories', 'NLLoc',
+                 'Seismic Moment']
+        for name in names:
+            self.hide_groupbox(name)
         if bool:
             self._apply.hide()
             self._okay.hide()
@@ -1870,6 +1870,7 @@ class AutoPickParaBox(QtGui.QWidget):
                     boxes.append(self.create_box(typ, tooltip))
                 box = self.create_multi_box(boxes)
                 self.boxes[name] = boxes
+            self.labels[name] = label                
             label.setToolTip(tooltip)
             grid.addWidget(label, index1, 1)
             grid.addWidget(box, index1, 2)
@@ -1892,7 +1893,7 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def create_multi_box(self, boxes):
         box = QtGui.QWidget()
-        hl = QtGui.QHBoxLayout()
+        hl = QtGui.QVBoxLayout()
         for b in boxes:
             hl.addWidget(b)
         box.setLayout(hl)
@@ -1916,8 +1917,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_to_layout(self._main_layout, 'Seismic Moment',
                            self.parameter.get_main_para_names()['smoment'])
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'],
-                           False)
+                           self.parameter.get_main_para_names()['pick'])
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
@@ -1928,27 +1928,80 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
                            self.parameter.get_special_para_names()['fm'])
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'],
-                           False)
+                           self.parameter.get_special_para_names()['quality'])
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
-    def gen_h_seperator(self):
-        seperator = QtGui.QFrame()
-        seperator.setFrameShape(QtGui.QFrame.HLine)
-        return seperator
+    # def gen_h_seperator(self):
+    #     seperator = QtGui.QFrame()
+    #     seperator.setFrameShape(QtGui.QFrame.HLine)
+    #     return seperator
 
-    def gen_headline(self, text):
-        label=QtGui.QLabel(text)
-        font=QtGui.QFont()
-        font.setBold(True)
-        label.setFont(font)
-        return label
+    # def gen_headline(self, text):
+    #     label=QtGui.QLabel(text)
+    #     font=QtGui.QFont()
+    #     font.setBold(True)
+    #     label.setFont(font)
+    #     return label
         
-    def add_to_layout(self, layout, name, items, seperator=True):
-        layout.addWidget(self.gen_headline(name))
-        layout.addLayout(self.init_boxes(items))
-        if seperator:
-            layout.addWidget(self.gen_h_seperator())
+    def add_to_layout(self, layout, name, items):
+        groupbox = QtGui.QGroupBox(name)
+        self.groupboxes[name] = groupbox
+        groupbox.setLayout(self.init_boxes(items))
+        layout.addWidget(groupbox)
+
+    def show_groupboxes(self):
+        for name in self.groupboxes.keys():
+            self.show_groupbox(name)
+        self._advanced_cb.show()
+
+    def hide_groupboxes(self):
+        for name in self.groupboxes.keys():
+            self.hide_groupbox(name)
+        self._advanced_cb.hide()
+
+    def show_groupbox(self, name):
+        if name in self.groupboxes.keys():
+            self.groupboxes[name].show()
+        else:
+            print('Groupbox {} not part of object.'.format(name))
+
+    def hide_groupbox(self, name):
+        if name in self.groupboxes.keys():
+            self.groupboxes[name].hide()
+        else:
+            print('Groupbox {} not part of object.'.format(name))
+
+    def show_parameter(self, name=None):
+        if not name:
+            for name in self.boxes.keys():
+                self.show_parameter(name)
+            return
+        if name in self.boxes.keys() and name in self.labels.keys():
+            # comprising case type(self.boxes[name]) == list
+            boxes = self.boxes[name]
+            if not type(boxes) == list:
+                boxes = [boxes]
+            for box in boxes:
+                box.show()
+            self.labels[name].show()
+        else:
+            print('Parameter {} not part of object.'.format(name))
+
+    def hide_parameter(self, name=None):
+        if not name:
+            for name in self.boxes.keys():
+                self.hide_parameter(name)
+            return
+        if name in self.boxes.keys() and name in self.labels.keys():
+            # comprising case type(self.boxes[name]) == list
+            boxes = self.boxes[name]
+            if not type(boxes) == list:
+                boxes = [boxes]
+            for box in boxes:
+                box.hide()
+            self.labels[name].hide()
+        else:
+            print('Parameter {} not part of object.'.format(name))
 
     def params_from_gui(self):
         for param in self.parameter.get_all_para_names():
@@ -1999,7 +2052,8 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def openFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getOpenFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')
+        fname = fd.getOpenFileName(self, 'Browse for settings file.',
+                                   filter='PyLoT input file (*.in)')
         if fname[0]:
             try:
                 self.parameter.from_file(fname[0])
@@ -2010,7 +2064,8 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def saveFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getSaveFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')        
+        fname = fd.getSaveFileName(self, 'Browse for settings file.',
+                                   filter='PyLoT input file (*.in)')        
         if fname[0]:
             try:
                 self.params_from_gui()
