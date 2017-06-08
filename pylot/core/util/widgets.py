@@ -413,11 +413,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotdict = dict()
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel()
         self.setLayout(self.main_layout)
         self.plotWidget = pg.PlotWidget(title=title, autoDownsample=True)
         self.main_layout.addWidget(self.plotWidget)
-        #self.plotWidget.setMouseEnabled(False, False)
+        self.main_layout.addWidget(self.label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self.plotWidget.hideAxis('bottom')
+        self.plotWidget.hideAxis('left')        
         self.reinitMoveProxy()
         self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
@@ -431,9 +434,12 @@ class WaveformWidgetPG(QtGui.QWidget):
         pos = evt[0]  ## using signal proxy turns original arguments into a tuple
         if self.plotWidget.sceneBoundingRect().contains(pos):
             mousePoint = self.plotWidget.getPlotItem().vb.mapSceneToView(pos)
-            # index = int(mousePoint.x())
-            # if index > 0 and index < len(data1):
-            #     label.setText("<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'>y1=%0.1f</span>,   <span style='color: green'>y2=%0.1f</span>" % (mousePoint.x(), data1[index], data2[index]))
+            x, y, = (mousePoint.x(), mousePoint.y())
+            #if x > 0:# and index < len(data1):
+            wfID = self._parent.getWFID(y)
+            station = self._parent.getStationName(wfID)
+            if self._parent.get_current_event():
+                self.label.setText("station = {}, t = {} [s]".format(station, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
@@ -456,7 +462,6 @@ class WaveformWidgetPG(QtGui.QWidget):
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None):
         self.title = title
-        #self.plotWidget.clear()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
@@ -482,6 +487,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         nsc.reverse()
         plots = []
 
+        try:
+            self.plotWidget.getPlotItem().vb.setLimits(xMin=wfstart,
+                                                       xMax=wfend,
+                                                       yMin=-0.5,
+                                                       yMax=len(nsc)+0.5)
+        except:
+            print('Warning: Could not set zoom limits')
+        
         for n, (network, station, channel) in enumerate(nsc):
             st = wfdata.select(network=network, station=station, channel=channel)
             trace = st[0]

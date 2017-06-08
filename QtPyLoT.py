@@ -214,7 +214,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(self.refreshTabs)
 
         # create central matplotlib figure canvas widget
-        plottitle = "Overview: {0} components ".format(self.getComponent())
+        plottitle = None#"Overview: {0} components ".format(self.getComponent())
         if pg:
             self.pg = True
             self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
@@ -1239,13 +1239,20 @@ class MainWindow(QMainWindow):
         self.ae_id = None
         self.scroll_id = None
 
+    def finish_pg_plot(self):
+        self.getPlotWidget().updateWidget()
+        plots = self.wfp_thread.data
+        for times, data in plots:
+            self.dataPlot.plotWidget.getPlotItem().plot(times, data, pen='k')
+        self.dataPlot.reinitMoveProxy()
+        self.dataPlot.plotWidget.showAxis('left')
+        self.dataPlot.plotWidget.showAxis('bottom')        
+        
     def finishWaveformDataPlot(self):
         if self.pg:
-            self.getPlotWidget().updateWidget()
-            plots = self.wfp_thread.data
-            for times, data in plots:
-                self.dataPlot.plotWidget.getPlotItem().plot(times, data, pen='k')
-            self.dataPlot.reinitMoveProxy()            
+            self.finish_pg_plot()
+        else:
+            self._max_xlims = self.dataPlot.getXLims()            
         plotWidget = self.getPlotWidget()
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
@@ -1255,7 +1262,6 @@ class MainWindow(QMainWindow):
             plotWidget.figure.tight_layout()
         except:
             pass
-        #self._max_xlims = self.dataPlot.getXLims()
         self.connectWFplotEvents()
         self.loadlocationaction.setEnabled(True)
         self.auto_tune.setEnabled(True)
@@ -1709,7 +1715,7 @@ class MainWindow(QMainWindow):
                             fill = pg.FillBetweenItem(spe_l, spe_r, brush=colors[1].brush())
                             fb = pw.addItem(fill)
                         except:
-                            print('Could not create fill for SPE.')
+                            print('Warning: drawPicks: Could not create fill for symmetric pick error.')
                         pw.plot([mpp, mpp], ylims, pen=colors[2], name='{}-Pick'.format(phase))
                     else:
                         pw.plot([mpp, mpp], ylims, pen=colors[0], name='{}-Pick (NO PICKERROR)'.format(phase))
