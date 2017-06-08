@@ -1201,7 +1201,7 @@ class MainWindow(QMainWindow):
             self.connect_mpl()
 
     def connect_pg(self):
-        self.poS_id = self.dataPlot.plotWidget.scene().sigMouseClicked.connect(self.pickOnStation)                
+        self.poS_id = self.dataPlot.plotWidget.scene().sigMouseClicked.connect(self.pickOnStation)
         
     def connect_mpl(self):
         if not self.poS_id:
@@ -1226,7 +1226,7 @@ class MainWindow(QMainWindow):
 
     def disconnect_pg(self):
         if self.poS_id:
-            self.dataPlot.plotWidget.scene().sigMouseClicked.disconnect(self.poS_id)
+            self.dataPlot.plotWidget.scene().sigMouseClicked.disconnect()
         
     def disconnect_mpl(self):
         if self.poS_id:
@@ -1240,8 +1240,22 @@ class MainWindow(QMainWindow):
         self.scroll_id = None
 
     def finishWaveformDataPlot(self):
-        if pg:
-            self.getPlotWidget().updateWidget()            
+        if self.pg:
+            self.getPlotWidget().updateWidget()
+            plots = self.wfp_thread.data
+            for times, data in plots:
+                self.dataPlot.plotWidget.getPlotItem().plot(times, data, pen='k')
+            self.dataPlot.reinitMoveProxy()            
+        plotWidget = self.getPlotWidget()
+        plotDict = plotWidget.getPlotDict()
+        pos = plotDict.keys()
+        labels = [plotDict[n][2]+'.'+plotDict[n][0] for n in pos]
+        plotWidget.setYTickLabels(pos, labels)
+        try:
+            plotWidget.figure.tight_layout()
+        except:
+            pass
+        #self._max_xlims = self.dataPlot.getXLims()
         self.connectWFplotEvents()
         self.loadlocationaction.setEnabled(True)
         self.auto_tune.setEnabled(True)
@@ -1266,7 +1280,7 @@ class MainWindow(QMainWindow):
     def clearWaveformDataPlot(self):
         self.disconnectWFplotEvents()
         if self.pg:
-            self.dataPlot.plotWidgetitem.clear()
+            self.dataPlot.plotWidget.getPlotItem().clear()
         else:
             self.dataPlot.getAxes().cla()            
         self.loadlocationaction.setEnabled(False)
@@ -1285,11 +1299,11 @@ class MainWindow(QMainWindow):
         '''
         Open a modal thread to plot current waveform data.
         '''
-        #self.plotWaveformData()
-        wfp_thread = Thread(self, self.plotWaveformData,
-                            progressText='Plotting waveform data...')
-        wfp_thread.finished.connect(self.finishWaveformDataPlot)
-        wfp_thread.start()
+        self.clearWaveformDataPlot()
+        self.wfp_thread = Thread(self, self.plotWaveformData,
+                                 progressText='Plotting waveform data...')
+        self.wfp_thread.finished.connect(self.finishWaveformDataPlot)
+        self.wfp_thread.start()
         
     def plotWaveformData(self):
         '''
@@ -1307,16 +1321,8 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()        
-        plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, component=comp, nth_sample=int(nth_sample))
-        plotDict = plotWidget.getPlotDict()
-        pos = plotDict.keys()
-        labels = [plotDict[n][2]+'.'+plotDict[n][0] for n in pos]
-        plotWidget.setYTickLabels(pos, labels)
-        try:
-            plotWidget.figure.tight_layout()
-        except:
-            pass
-        #self._max_xlims = self.dataPlot.getXLims()
+        plots = plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, component=comp, nth_sample=int(nth_sample))
+        return plots
 
     def adjustPlotHeight(self):
         if self.pg:
@@ -1331,20 +1337,20 @@ class MainWindow(QMainWindow):
     def plotZ(self):
         self.setComponent('Z')
         self.plotWaveformDataThread()
-        self.drawPicks()
-        self.draw()
+        # self.drawPicks()
+        # self.draw()
 
     def plotN(self):
         self.setComponent('N')
         self.plotWaveformDataThread()
-        self.drawPicks()
-        self.draw()
+        # self.drawPicks()
+        # self.draw()
 
     def plotE(self):
         self.setComponent('E')
         self.plotWaveformDataThread()
-        self.drawPicks()
-        self.draw()
+        # self.drawPicks()
+        # self.draw()
 
     def pushFilterWF(self, param_args):
         self.get_data().filterWFData(param_args)

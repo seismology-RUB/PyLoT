@@ -418,6 +418,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout.addWidget(self.plotWidget)
         #self.plotWidget.setMouseEnabled(False, False)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self.reinitMoveProxy()
         self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def reinitMoveProxy(self):
@@ -455,7 +456,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None):
         self.title = title
-        self.plotWidget.getPlotItem().clear()
+        #self.plotWidget.clear()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
@@ -479,6 +480,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
+        plots = []
 
         for n, (network, station, channel) in enumerate(nsc):
             st = wfdata.select(network=network, station=station, channel=channel)
@@ -499,23 +501,13 @@ class WaveformWidgetPG(QtGui.QWidget):
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
-                self.plotWidget.plot(times, data, pen=(0, 0, 0))
-                if noiselevel is not None:
-                   for level in noiselevel:
-                       self.plotWidget.plot([time_ax[0], time_ax[-1]],
-                                          [level, level], pen=(0, 0, 0))
-                # if iniPick:
-                #     ax = self.getAxes()
-                #     ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
-                #               colors='m', linestyles='dashed',
-                #               linewidth=2)
+                plots.append((times, data))
                 self.setPlotDict(n, (station, channel, network))
-        self.reinitMoveProxy()
         self.xlabel = 'seconds since {0}'.format(wfstart)
         self.ylabel = ''
         self.setXLims([0, wfend - wfstart])
         self.setYLims([-0.5, nmax + 0.5])
-        self.draw()
+        return plots
 
     # def getAxes(self):
     #     return self.axes
