@@ -1009,10 +1009,7 @@ class MainWindow(QMainWindow):
         return self.dataPlot
 
     @staticmethod
-    def getWFID(gui_event):
-
-        ycoord = gui_event.ydata
-
+    def getWFID(ycoord):
         try:
             statID = int(round(ycoord))
         except TypeError as e:
@@ -1199,10 +1196,13 @@ class MainWindow(QMainWindow):
         Connect signals refering to WF-Dataplot (select station, tutor_user, scrolling)
         '''
         if self.pg:
-            pass
+            self.connect_pg()
         else:
             self.connect_mpl()
 
+    def connect_pg(self):
+        self.poS_id = self.dataPlot.plotWidget.scene().sigMouseClicked.connect(self.pickOnStation)                
+        
     def connect_mpl(self):
         if not self.poS_id:
             self.poS_id = self.dataPlot.mpl_connect('button_press_event',
@@ -1220,10 +1220,14 @@ class MainWindow(QMainWindow):
         Disconnect all signals refering to WF-Dataplot (select station, tutor_user, scrolling)
         '''
         if self.pg:
-            pass
+            self.disconnect_pg()
         else:
             self.disconnect_mpl()
 
+    def disconnect_pg(self):
+        if self.poS_id:
+            self.dataPlot.plotWidget.scene().sigMouseClicked.disconnect(self.poS_id)
+        
     def disconnect_mpl(self):
         if self.poS_id:
             self.dataPlot.mpl_disconnect(self.poS_id)
@@ -1236,6 +1240,8 @@ class MainWindow(QMainWindow):
         self.scroll_id = None
 
     def finishWaveformDataPlot(self):
+        if pg:
+            self.getPlotWidget().updateWidget()            
         self.connectWFplotEvents()
         self.loadlocationaction.setEnabled(True)
         self.auto_tune.setEnabled(True)
@@ -1260,7 +1266,7 @@ class MainWindow(QMainWindow):
     def clearWaveformDataPlot(self):
         self.disconnectWFplotEvents()
         if self.pg:
-            self.dataPlot.plotitem.clear()
+            self.dataPlot.plotWidgetitem.clear()
         else:
             self.dataPlot.getAxes().cla()            
         self.loadlocationaction.setEnabled(False)
@@ -1313,6 +1319,8 @@ class MainWindow(QMainWindow):
         #self._max_xlims = self.dataPlot.getXLims()
 
     def adjustPlotHeight(self):
+        if self.pg:
+            return
         height_need = len(self.data.getWFData())*self.height_factor
         plotWidget = self.getPlotWidget()
         if self.tabs.widget(0).frameSize().height() < height_need:
@@ -1408,7 +1416,9 @@ class MainWindow(QMainWindow):
         return self.seismicPhase
 
     def getStationName(self, wfID):
-        return self.getPlotWidget().getPlotDict()[wfID][0]
+        plot_dict = self.getPlotWidget().getPlotDict()
+        if wfID in plot_dict.keys():
+            return plot_dict[wfID][0]
 
     def alterPhase(self):
         pass
@@ -1455,14 +1465,25 @@ class MainWindow(QMainWindow):
             self.dataPlot.draw()
             
     def pickOnStation(self, gui_event):
-        if not gui_event.button == 1:
-            return
-        
-        wfID = self.getWFID(gui_event)
+        if self.pg:
+            if not gui_event.button() == 1:
+                return
+        else:
+            if not gui_event.button == 1:
+                return
+
+        if self.pg:
+            ycoord = self.dataPlot.plotWidget.getPlotItem().vb.mapSceneToView(gui_event.scenePos()).y()
+        else:
+            ycoord = gui_event.ydata
+
+        wfID = self.getWFID(ycoord)
 
         if wfID is None: return
 
         station = self.getStationName(wfID)
+        if not station:
+            return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
         pickDlg = PickDlg(self, parameter=self._inputs, 
@@ -1629,12 +1650,23 @@ class MainWindow(QMainWindow):
         plotID = self.getStationID(station)
         if plotID is None:
             return
-        ax = self.getPlotWidget().axes
+        if pg:
+            pw = self.getPlotWidget().plotWidget
+        else:
+            ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
-        }
+        if pg:        
+            dashed = QtCore.Qt.DashLine
+            dotted = QtCore.Qt.DotLine
+            phase_col = {
+                'P': (pg.mkPen('c'), pg.mkPen((0, 255, 255, 100), style=dashed), pg.mkPen('b', style=dashed), pg.mkPen('b', style=dotted)),
+                'S': (pg.mkPen('m'), pg.mkPen((255, 0, 255, 100), style=dashed), pg.mkPen('r', style=dashed), pg.mkPen('r', style=dotted))
+            }
+        else:
+            phase_col = {
+                'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
+                'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
+            }
 
         stat_picks = self.getPicks(type=picktype)[station]
 
@@ -1655,22 +1687,47 @@ class MainWindow(QMainWindow):
             if not spe and epp and lpp:
                 spe = symmetrize_error(mpp - epp, lpp - mpp)
 
-            if picktype == 'manual':
-                if picks['epp'] and picks['lpp']:
-                    ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                    alpha=.25, color=colors[0], label='EPP, LPP')
-                if spe:
-                    ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
-                    ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
-                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+            if pg:
+                if picktype == 'manual':
+                    if picks['epp'] and picks['lpp']:
+                        pw.plot([epp, epp], ylims,
+                                alpha=.25, pen=colors[0], name='EPP')
+                        pw.plot([lpp, lpp], ylims,
+                                alpha=.25, pen=colors[0], name='LPP')
+                    if spe:
+                        spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=colors[1], name='{}-SPE'.format(phase))
+                        spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=colors[1])
+                        pw.addItem(spe_l)
+                        pw.addItem(spe_r)
+                        try:
+                            fill = pg.FillBetweenItem(spe_l, spe_r, brush=colors[1].brush())
+                            fb = pw.addItem(fill)
+                        except:
+                            print('Could not create fill for SPE.')
+                        pw.plot([mpp, mpp], ylims, pen=colors[2], name='{}-Pick'.format(phase))
+                    else:
+                        pw.plot([mpp, mpp], ylims, pen=colors[0], name='{}-Pick (NO PICKERROR)'.format(phase))
+                elif picktype == 'auto':
+                    pw.plot([mpp, mpp], ylims, pen=colors[3])
                 else:
-                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
-            elif picktype == 'auto':
-                ax.plot(mpp, ylims[1], colors[3],
-                        mpp, ylims[0], colors[4])
-                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')                
+                    raise TypeError('Unknown picktype {0}'.format(picktype))
             else:
-                raise TypeError('Unknown picktype {0}'.format(picktype))
+                if picktype == 'manual':
+                    if picks['epp'] and picks['lpp']:
+                        ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                        alpha=.25, color=colors[0], label='EPP, LPP')
+                    if spe:
+                        ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
+                        ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
+                        ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+                    else:
+                        ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+                elif picktype == 'auto':
+                    ax.plot(mpp, ylims[1], colors[3],
+                            mpp, ylims[0], colors[4])
+                    ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')                
+                else:
+                    raise TypeError('Unknown picktype {0}'.format(picktype))
 
     def locate_event(self):
         """

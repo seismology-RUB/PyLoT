@@ -414,26 +414,23 @@ class WaveformWidgetPG(QtGui.QWidget):
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
         self.setLayout(self.main_layout)
-        #self.win = pg.GraphicsWindow(title="Window")
-        self.plot = pg.PlotWidget(title=title)
-        self.main_layout.addWidget(self.plot)
-        #self.plot = self.win.addPlot(title=title)
-        self.plot.setMouseEnabled(False, False)
-        self.plot.showGrid(x=False, y=True, alpha=0.2)
-        # update labels of the entire widget
-        #self.updateWidget(xlabel, ylabel, title)
+        self.plotWidget = pg.PlotWidget(title=title, autoDownsample=True)
+        self.main_layout.addWidget(self.plotWidget)
+        #self.plotWidget.setMouseEnabled(False, False)
+        self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
+    def reinitMoveProxy(self):
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
-        self.plot.addItem(self.vLine, ignoreBounds=True)
-        self.plot.addItem(self.hLine, ignoreBounds=True)
-        self._proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-
+        self.plotWidget.addItem(self.vLine, ignoreBounds=True)
+        self.plotWidget.addItem(self.hLine, ignoreBounds=True)
+        
     def mouseMoved(self, evt):
         pos = evt[0]  ## using signal proxy turns original arguments into a tuple
-        if self.plot.sceneBoundingRect().contains(pos):
-            mousePoint = self.plot.getPlotItem().vb.mapSceneToView(pos)
-            index = int(mousePoint.x())
+        if self.plotWidget.sceneBoundingRect().contains(pos):
+            mousePoint = self.plotWidget.getPlotItem().vb.mapSceneToView(pos)
+            # index = int(mousePoint.x())
             # if index > 0 and index < len(data1):
             #     label.setText("<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'>y1=%0.1f</span>,   <span style='color: green'>y2=%0.1f</span>" % (mousePoint.x(), data1[index], data2[index]))
             self.vLine.setPos(mousePoint.x())
@@ -457,7 +454,8 @@ class WaveformWidgetPG(QtGui.QWidget):
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None):
-        #self.getAxes().cla()
+        self.title = title
+        self.plotWidget.getPlotItem().clear()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
@@ -501,10 +499,10 @@ class WaveformWidgetPG(QtGui.QWidget):
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
-                self.plot.plot(times, data, pen=(0, 0, 0))
+                self.plotWidget.plot(times, data, pen=(0, 0, 0))
                 if noiselevel is not None:
                    for level in noiselevel:
-                       self.plot.plot([time_ax[0], time_ax[-1]],
+                       self.plotWidget.plot([time_ax[0], time_ax[-1]],
                                           [level, level], pen=(0, 0, 0))
                 # if iniPick:
                 #     ax = self.getAxes()
@@ -512,16 +510,12 @@ class WaveformWidgetPG(QtGui.QWidget):
                 #               colors='m', linestyles='dashed',
                 #               linewidth=2)
                 self.setPlotDict(n, (station, channel, network))
-        xlabel = 'seconds since {0}'.format(wfstart)
-        ylabel = ''
-        #self.updateWidget(xlabel, ylabel, title)
-        # self.setXLims([0, wfend - wfstart])
-        # self.setYLims([-0.5, nmax + 0.5])
-        # if zoomx is not None:
-        #     self.setXLims(zoomx)
-        # if zoomy is not None:
-        #     self.setYLims(zoomy)
-        # self.draw()
+        self.reinitMoveProxy()
+        self.xlabel = 'seconds since {0}'.format(wfstart)
+        self.ylabel = ''
+        self.setXLims([0, wfend - wfstart])
+        self.setYLims([-0.5, nmax + 0.5])
+        self.draw()
 
     # def getAxes(self):
     #     return self.axes
@@ -532,41 +526,41 @@ class WaveformWidgetPG(QtGui.QWidget):
     # def getYLims(self):
     #     return self.getAxes().get_ylim()
 
-    # def setXLims(self, lims):
-    #     self.getAxes().set_xlim(lims)
+    def setXLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setXRange(lims[0], lims[1], padding=0)
 
-    # def setYLims(self, lims):
-    #     self.getAxes().set_ylim(lims)
+    def setYLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setYRange(lims[0], lims[1], padding=0)
 
     def setYTickLabels(self, pos, labels):
         ticks = zip(pos, labels)
-        leftAx = self.plot.getPlotItem().axes['left']['item']
+        minorTicks = [(0, 0) for item in labels]
         # leftAx.tickLength = 5
         # leftAx.orientation = 'right'
-        leftAx.setTicks([ticks, []])
+        self.getAxItem('left').setTicks([ticks, minorTicks])
 
-    # def updateXLabel(self, text):
-    #     self.getAxes().set_xlabel(text)
-    #     self.draw()
+    def updateXLabel(self, text):
+        self.getAxItem('bottom').setLabel(text)
+        self.draw()
 
-    # def updateYLabel(self, text):
-    #     self.getAxes().set_ylabel(text)
-    #     self.draw()
+    def updateYLabel(self, text):
+        self.getAxItem('left').setLabel(text)        
+        self.draw()
 
-    # def updateTitle(self, text):
-    #     self.getAxes().set_title(text)
-    #     self.draw()
+    def getAxItem(self, position):
+        return self.plotWidget.getPlotItem().axes[position]['item']
 
-    # def updateWidget(self, xlabel, ylabel, title):
-    #     self.updateXLabel(xlabel)
-    #     self.updateYLabel(ylabel)
-    #     self.updateTitle(title)
+    def updateTitle(self, text):
+        self.plotWidget.getPlotItem().setTitle(text)
+        self.draw()
 
-    # def insertLabel(self, pos, text):
-    #     pos = pos / max(self.getAxes().ylim)
-    #     axann = self.getAxes().annotate(text, xy=(.03, pos),
-    #                                     xycoords='axes fraction')
-    #     axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+    def updateWidget(self):#, xlabel, ylabel, title):
+        self.updateXLabel(self.xlabel)
+        self.updateYLabel(self.ylabel)
+        self.updateTitle(self.title)
+
     def draw(self):
         pass
 
