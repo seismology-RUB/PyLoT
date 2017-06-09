@@ -488,8 +488,8 @@ class WaveformWidgetPG(QtGui.QWidget):
         plots = []
 
         try:
-            self.plotWidget.getPlotItem().vb.setLimits(xMin=wfstart,
-                                                       xMax=wfend,
+            self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
+                                                       xMax=float(wfend-wfstart),
                                                        yMin=-0.5,
                                                        yMax=len(nsc)+0.5)
         except:
@@ -533,11 +533,11 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def setXLims(self, lims):
         vb = self.plotWidget.getPlotItem().getViewBox()
-        vb.setXRange(lims[0], lims[1], padding=0)
+        vb.setXRange(float(lims[0]), float(lims[1]), padding=0)
 
     def setYLims(self, lims):
         vb = self.plotWidget.getPlotItem().getViewBox()
-        vb.setYRange(lims[0], lims[1], padding=0)
+        vb.setYRange(float(lims[0]), float(lims[1]), padding=0)
 
     def setYTickLabels(self, pos, labels):
         ticks = zip(pos, labels)
