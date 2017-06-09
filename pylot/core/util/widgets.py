@@ -12,6 +12,11 @@ import copy
 import datetime
 import numpy as np
 
+try:
+    import pyqtgraph as pg
+except:
+    pg = None
+
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
 
@@ -41,6 +46,12 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 import icons_rc
+
+if pg:
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+    pg.setConfigOptions(antialias=True)
+    #pg.setConfigOption('leftButtonPan', False)
 
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",
@@ -391,6 +402,172 @@ class PlotWidget(FigureCanvas):
     @property
     def parent(self):
         return self._parent
+
+
+class WaveformWidgetPG(QtGui.QWidget):
+    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
+        QtGui.QWidget.__init__(self, parent)#, 1)
+        self.setParent(parent)
+        self._parent = parent
+        # attribute plotdict is a dictionary connecting position and a name
+        self.plotdict = dict()
+        # create plot
+        self.main_layout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel()
+        self.setLayout(self.main_layout)
+        self.plotWidget = pg.PlotWidget(title=title, autoDownsample=True)
+        self.main_layout.addWidget(self.plotWidget)
+        self.main_layout.addWidget(self.label)
+        self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self.plotWidget.hideAxis('bottom')
+        self.plotWidget.hideAxis('left')        
+        self.reinitMoveProxy()
+        self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+
+    def reinitMoveProxy(self):
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.plotWidget.addItem(self.vLine, ignoreBounds=True)
+        self.plotWidget.addItem(self.hLine, ignoreBounds=True)
+        
+    def mouseMoved(self, evt):
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+        if self.plotWidget.sceneBoundingRect().contains(pos):
+            mousePoint = self.plotWidget.getPlotItem().vb.mapSceneToView(pos)
+            x, y, = (mousePoint.x(), mousePoint.y())
+            #if x > 0:# and index < len(data1):
+            wfID = self._parent.getWFID(y)
+            station = self._parent.getStationName(wfID)
+            if self._parent.get_current_event():
+                self.label.setText("station = {}, t = {} [s]".format(station, x))
+            self.vLine.setPos(mousePoint.x())
+            self.hLine.setPos(mousePoint.y())
+
+    def getPlotDict(self):
+        return self.plotdict
+
+    def setPlotDict(self, key, value):
+        self.plotdict[key] = value
+
+    def clearPlotDict(self):
+        self.plotdict = dict()
+
+    def getParent(self):
+        return self._parent
+
+    def setParent(self, parent):
+        self._parent = parent
+
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+                   noiselevel=None, scaleddata=False, mapping=True,
+                   component='*', nth_sample=1, iniPick=None):
+        self.title = title
+        self.clearPlotDict()
+        wfstart, wfend = full_range(wfdata)
+        nmax = 0
+        
+        settings = QSettings()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
+
+        if not component == '*':
+            alter_comp = compclass.getCompPosition(component)
+            #alter_comp = str(alter_comp[0])
+
+            wfdata = wfdata.select(component=component)
+            wfdata += wfdata.select(component=alter_comp)
+        
+        # list containing tuples of network, station, channel (for sorting)
+        nsc = [] 
+        for trace in wfdata:
+            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
+        nsc.sort()
+        nsc.reverse()
+        plots = []
+
+        try:
+            self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
+                                                       xMax=float(wfend-wfstart),
+                                                       yMin=-0.5,
+                                                       yMax=len(nsc)+0.5)
+        except:
+            print('Warning: Could not set zoom limits')
+        
+        for n, (network, station, channel) in enumerate(nsc):
+            st = wfdata.select(network=network, station=station, channel=channel)
+            trace = st[0]
+            if mapping:
+                comp = channel[-1]
+                n = compclass.getPlotPosition(str(comp))
+                #n = n[0]
+            if n > nmax:
+                nmax = n
+            msg = 'plotting %s channel of station %s' % (channel, station)
+            print(msg)
+            stime = trace.stats.starttime - wfstart
+            time_ax = prepTimeAxis(stime, trace)
+            if time_ax is not None:
+            	if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
+                data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
+                plots.append((times, data))
+                self.setPlotDict(n, (station, channel, network))
+        self.xlabel = 'seconds since {0}'.format(wfstart)
+        self.ylabel = ''
+        self.setXLims([0, wfend - wfstart])
+        self.setYLims([-0.5, nmax + 0.5])
+        return plots
+
+    # def getAxes(self):
+    #     return self.axes
+
+    # def getXLims(self):
+    #     return self.getAxes().get_xlim()
+
+    # def getYLims(self):
+    #     return self.getAxes().get_ylim()
+
+    def setXLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setXRange(float(lims[0]), float(lims[1]), padding=0)
+
+    def setYLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setYRange(float(lims[0]), float(lims[1]), padding=0)
+
+    def setYTickLabels(self, pos, labels):
+        ticks = zip(pos, labels)
+        minorTicks = [(0, 0) for item in labels]
+        # leftAx.tickLength = 5
+        # leftAx.orientation = 'right'
+        self.getAxItem('left').setTicks([ticks, minorTicks])
+
+    def updateXLabel(self, text):
+        self.getAxItem('bottom').setLabel(text)
+        self.draw()
+
+    def updateYLabel(self, text):
+        self.getAxItem('left').setLabel(text)        
+        self.draw()
+
+    def getAxItem(self, position):
+        return self.plotWidget.getPlotItem().axes[position]['item']
+
+    def updateTitle(self, text):
+        self.plotWidget.getPlotItem().setTitle(text)
+        self.draw()
+
+    def updateWidget(self):#, xlabel, ylabel, title):
+        self.updateXLabel(self.xlabel)
+        self.updateYLabel(self.ylabel)
+        self.updateTitle(self.title)
+
+    def draw(self):
+        pass
 
 
 class WaveformWidget(FigureCanvas):
@@ -2196,6 +2373,7 @@ class PropTab(QWidget):
 
     def resetValues(self, infile=None):
         return None
+    
 
 class InputsTab(PropTab):
     def __init__(self, parent, infile=None):
@@ -2307,6 +2485,7 @@ class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
         self.init_layout()
+        self.add_pg_cb()
         self.add_nth_sample()
         self.setLayout(self.main_layout)
         
@@ -2321,15 +2500,28 @@ class GraphicsTab(PropTab):
         
         self.spinbox_nth_sample = QtGui.QSpinBox()
         label = QLabel('nth sample')
+        label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.spinbox_nth_sample.setMinimum(1)
         self.spinbox_nth_sample.setMaximum(10e3)
         self.spinbox_nth_sample.setValue(int(nth_sample))
-        label.setToolTip('Plot every nth sample (to speed up plotting)')
-        self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.spinbox_nth_sample, 0, 1)
+        self.main_layout.addWidget(label, 1, 0)
+        self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
+    def add_pg_cb(self):
+        text = {True: 'Use pyqtgraphic library for plotting',
+                False: 'Cannot use library: pyqtgraphic not found on system'}
+        label = QLabel('PyQt graphic')
+        label.setToolTip(text[bool(pg)])
+        label.setEnabled(bool(pg))
+        self.checkbox_pg = QtGui.QCheckBox()
+        self.checkbox_pg.setEnabled(bool(pg))
+        self.checkbox_pg.setChecked(bool(pg))
+        self.main_layout.addWidget(label, 0, 0)
+        self.main_layout.addWidget(self.checkbox_pg, 0, 1)
+        
     def getValues(self):
-        values = {'nth_sample': self.spinbox_nth_sample.value()}
+        values = {'nth_sample': self.spinbox_nth_sample.value(),
+                  'pyqtgraphic': self.checkbox_pg.isChecked()}
         return values
         
 
