@@ -2373,6 +2373,7 @@ class PropTab(QWidget):
 
     def resetValues(self, infile=None):
         return None
+    
 
 class InputsTab(PropTab):
     def __init__(self, parent, infile=None):
@@ -2484,6 +2485,7 @@ class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
         self.init_layout()
+        self.add_pg_cb()
         self.add_nth_sample()
         self.setLayout(self.main_layout)
         
@@ -2498,15 +2500,28 @@ class GraphicsTab(PropTab):
         
         self.spinbox_nth_sample = QtGui.QSpinBox()
         label = QLabel('nth sample')
+        label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.spinbox_nth_sample.setMinimum(1)
         self.spinbox_nth_sample.setMaximum(10e3)
         self.spinbox_nth_sample.setValue(int(nth_sample))
-        label.setToolTip('Plot every nth sample (to speed up plotting)')
-        self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.spinbox_nth_sample, 0, 1)
+        self.main_layout.addWidget(label, 1, 0)
+        self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
+    def add_pg_cb(self):
+        text = {True: 'Use pyqtgraphic library for plotting',
+                False: 'Cannot use library: pyqtgraphic not found on system'}
+        label = QLabel('PyQt graphic')
+        label.setToolTip(text[bool(pg)])
+        label.setEnabled(bool(pg))
+        self.checkbox_pg = QtGui.QCheckBox()
+        self.checkbox_pg.setEnabled(bool(pg))
+        self.checkbox_pg.setChecked(bool(pg))
+        self.main_layout.addWidget(label, 0, 0)
+        self.main_layout.addWidget(self.checkbox_pg, 0, 1)
+        
     def getValues(self):
-        values = {'nth_sample': self.spinbox_nth_sample.value()}
+        values = {'nth_sample': self.spinbox_nth_sample.value(),
+                  'pyqtgraphic': self.checkbox_pg.isChecked()}
         return values
         
 

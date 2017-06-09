@@ -45,6 +45,7 @@ from obspy import UTCDateTime
 try:
     import pyqtgraph as pg
 except:
+    print('QtPyLoT: Could not import pyqtgraph.')
     pg = None
 
 try:
@@ -144,9 +145,6 @@ class MainWindow(QMainWindow):
 
         self.dirty = False
         
-        # setup UI
-        self.setupUi()
-
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
@@ -170,6 +168,9 @@ class MainWindow(QMainWindow):
             settings.setValue('compclass', SetChannelComponents())
         settings.sync()
 
+        # setup UI
+        self.setupUi()
+
         self.filteroptions = {}
         self.pickDlgs = {}
         self.picks = {}
@@ -188,8 +189,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PyLoT - do seismic processing the python way")
         self.setWindowIcon(pylot_icon)
-
-        xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
 
         _widget = QWidget()
         self._main_layout = QVBoxLayout()
@@ -213,20 +212,12 @@ class MainWindow(QMainWindow):
         self._main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self.refreshTabs)
 
-        # create central matplotlib figure canvas widget
-        plottitle = None#"Overview: {0} components ".format(self.getComponent())
-        if pg:
-            self.pg = True
-            self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
-                                             title=plottitle)
-        else:
-            self.pg = False
-            self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
-                                           title=plottitle)
-        self.dataPlot.setCursor(Qt.CrossCursor)
-
         # add scroll area used in case number of traces gets too high
         self.wf_scroll_area = QtGui.QScrollArea()
+
+        # create central matplotlib figure canvas widget
+        self.pg = pg
+        self.init_wfWidget()
 
         # init main widgets for main tabs
         wf_tab = QtGui.QWidget()
@@ -247,7 +238,6 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(events_tab, 'Eventlist')
         
         self.wf_layout.addWidget(self.wf_scroll_area)
-        self.wf_scroll_area.setWidget(self.dataPlot)
         self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
         self.init_event_table()
@@ -520,6 +510,24 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
+
+    def init_wfWidget(self):
+        settings = QSettings()
+        xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
+        plottitle = None#"Overview: {0} components ".format(self.getComponent())
+        self.disconnectWFplotEvents()
+        if str(settings.value('pyqtgraphic')) == 'false' or not pg:
+            self.pg = False
+            self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
+                                           title=plottitle)
+        else:
+            self.pg = True
+            self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
+                                             title=plottitle)
+        self.dataPlot.setCursor(Qt.CrossCursor)
+        self.wf_scroll_area.setWidget(self.dataPlot)
+        if self.get_current_event():
+            self.plotWaveformDataThread()
 
     def init_ref_test_buttons(self):
         '''
@@ -1662,12 +1670,12 @@ class MainWindow(QMainWindow):
         plotID = self.getStationID(station)
         if plotID is None:
             return
-        if pg:
+        if self.pg:
             pw = self.getPlotWidget().plotWidget
         else:
             ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        if pg:        
+        if self.pg:        
             dashed = QtCore.Qt.DashLine
             dotted = QtCore.Qt.DotLine
             phase_col = {
@@ -1699,7 +1707,7 @@ class MainWindow(QMainWindow):
             if not spe and epp and lpp:
                 spe = symmetrize_error(mpp - epp, lpp - mpp)
 
-            if pg:
+            if self.pg:
                 if picktype == 'manual':
                     if picks['epp'] and picks['lpp']:
                         pw.plot([epp, epp], ylims,
@@ -2252,6 +2260,7 @@ class MainWindow(QMainWindow):
             self._props = PropertiesDlg(self, infile=self.infile)
         
         if self._props.exec_():
+            self.init_wfWidget()
             return
 
     def helpHelp(self):
