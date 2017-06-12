@@ -476,12 +476,14 @@ class WaveformWidgetPG(QtGui.QWidget):
             alter_comp = compclass.getCompPosition(component)
             #alter_comp = str(alter_comp[0])
 
-            wfdata = wfdata.select(component=component)
-            wfdata += wfdata.select(component=alter_comp)
-        
+            st_select = wfdata.select(component=component)
+            st_select += wfdata.select(component=alter_comp)
+        else:
+            st_select = wfdata
+
         # list containing tuples of network, station, channel (for sorting)
         nsc = [] 
-        for trace in wfdata:
+        for trace in st_select:
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
@@ -496,7 +498,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             print('Warning: Could not set zoom limits')
         
         for n, (network, station, channel) in enumerate(nsc):
-            st = wfdata.select(network=network, station=station, channel=channel)
+            st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0]
             if mapping:
                 comp = channel[-1]
@@ -623,18 +625,20 @@ class WaveformWidget(FigureCanvas):
             alter_comp = compclass.getCompPosition(component)
             #alter_comp = str(alter_comp[0])
 
-            wfdata = wfdata.select(component=component)
-            wfdata += wfdata.select(component=alter_comp)
+            st_select = wfdata.select(component=component)
+            st_select += wfdata.select(component=alter_comp)
+        else:
+            st_select = wfdata
         
         # list containing tuples of network, station, channel (for sorting)
         nsc = [] 
-        for trace in wfdata:
+        for trace in st_select:
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
 
         for n, (network, station, channel) in enumerate(nsc):
-            st = wfdata.select(network=network, station=station, channel=channel)
+            st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0]
             if mapping:
                 comp = channel[-1]
