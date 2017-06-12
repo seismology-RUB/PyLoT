@@ -2371,9 +2371,20 @@ class Event(object):
         self.notes = ''
         self._testEvent = False
         self._refEvent = False
+        try:
+            self.get_notes()
+        except:
+            pass
+
+    def get_notes(self):
+        notesfile = os.path.join(self.path, 'notes.txt')
+        if os.path.isfile(notesfile):
+            with open(notesfile) as infile:
+                text = '[eventInfo: '+str(infile.readlines()[0].split('\n')[0])+']'
+                self.addNotes(text)
 
     def addNotes(self, notes):
-        self.notes = notes
+        self.notes = str(notes)
 
     def clearNotes(self):
         self.notes = None
