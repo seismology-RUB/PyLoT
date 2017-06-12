@@ -1234,7 +1234,10 @@ class MainWindow(QMainWindow):
 
     def disconnect_pg(self):
         if self.poS_id:
-            self.dataPlot.plotWidget.scene().sigMouseClicked.disconnect()
+            try:
+                self.dataPlot.plotWidget.scene().sigMouseClicked.disconnect()
+            except:
+                pass
         
     def disconnect_mpl(self):
         if self.poS_id:
