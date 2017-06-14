@@ -2461,6 +2461,9 @@ def create_window():
     if app is None:
         app = QApplication(sys.argv)
         app_created = True
+    app.setOrganizationName("QtPyLoT");
+    app.setOrganizationDomain("rub.de");
+    app.setApplicationName("RUB");
     app.references = set()
     #app.references.add(window)
     #window.show()
