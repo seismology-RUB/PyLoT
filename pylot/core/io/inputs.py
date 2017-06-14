@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pylot.core.util.errors import ParameterError
-
+import default_parameters
 
 class AutoPickParameter(object):
     '''
@@ -44,48 +44,15 @@ class AutoPickParameter(object):
         contain all parameters.
         '''
 
+        self.__init_default_paras()
+        self.__init_subsettings()
         self.__filename = fnin
-        parFileCont = {}
+        self._verbosity = verbosity
+        self._parFileCont = {}
         # io from parsed arguments alternatively
         for key, val in kwargs.items():
-            parFileCont[key] = val
-
-        if self.__filename is not None:
-            inputFile = open(self.__filename, 'r')
-        else:
-            return
-        try:
-            lines = inputFile.readlines()
-            for line in lines:
-                parspl = line.split('\t')[:2]
-                parFileCont[parspl[0].strip()] = parspl[1]
-        except IndexError as e:
-            if verbosity > 0:
-                self._printParameterError(e)
-            inputFile.seek(0)
-            lines = inputFile.readlines()
-            for line in lines:
-                if not line.startswith(('#', '%', '\n', ' ')):
-                    parspl = line.split('#')[:2]
-                    parFileCont[parspl[1].strip()] = parspl[0].strip()
-        for key, value in parFileCont.items():
-            try:
-                val = int(value)
-            except:
-                try:
-                    val = float(value)
-                except:
-                    if len(value.split(' ')) > 1:
-                        vallist = value.strip().split(' ')
-                        val = []
-                        for val0 in vallist:
-                            val0 = float(val0)
-                            val.append(val0)
-                    else:
-                        val = str(value.strip())
-            parFileCont[key] = val
-        self.__parameter = parFileCont
-
+            self._parFileCont[key] = val
+        self.from_file()
         if fnout:
             self.export2File(fnout)
 
@@ -100,16 +67,28 @@ class AutoPickParameter(object):
             string += 'Empty parameter dictionary.'
         return string
 
+    # Set default values of parameter names
+    def __init_default_paras(self):
+        parameters=default_parameters.defaults
+        self.__defaults = parameters
+
+    def __init_subsettings(self):
+        self._settings_main=default_parameters.settings_main
+        self._settings_special_pick=default_parameters.settings_special_pick
+        
     # String representation of the object
     def __repr__(self):
         return "AutoPickParameter('%s')" % self.__filename
 
     # Boolean test
     def __nonzero__(self):
-        return self.__parameter
+        return bool(self.__parameter)
 
     def __getitem__(self, key):
-        return self.__parameter[key]
+        try:
+            return self.__parameter[key]
+        except:
+            return None
 
     def __setitem__(self, key, value):
         self.__parameter[key] = value
@@ -147,21 +126,157 @@ class AutoPickParameter(object):
                 self._printParameterError(e)
                 raise ParameterError(e)
 
-    def setParam(self, **kwargs):
-        for param, value in kwargs.items():
-            self.__setitem__(param, value)
-            # print(self)
+    def get_defaults(self):
+        return self.__defaults
 
+    def get_main_para_names(self):
+        return self._settings_main
+
+    def get_special_para_names(self):
+        return self._settings_special_pick
+
+    def get_all_para_names(self):
+        all_names=[]
+        all_names += self.get_main_para_names()['dirs']
+        all_names += self.get_main_para_names()['nlloc']
+        all_names += self.get_main_para_names()['smoment']
+        all_names += self.get_main_para_names()['pick']
+        all_names += self.get_special_para_names()['z']
+        all_names += self.get_special_para_names()['h']
+        all_names += self.get_special_para_names()['fm']
+        all_names += self.get_special_para_names()['quality']
+        return all_names
+
+    def checkValue(self, param, value):
+        is_type = type(value)
+        expect_type = self.get_defaults()[param]['type']
+        if not is_type == expect_type and not is_type == tuple:
+            message = 'Type check failed for param: {}, is type: {}, expected type:{}'
+            message = message.format(param, is_type, expect_type)
+            print(Warning(message))
+        
+    def setParamKV(self, param, value):
+        self.__setitem__(param, value)
+
+    def setParam(self, **kwargs):
+        for key in kwargs:
+            self.__setitem__(key, kwargs[key])
+        
     @staticmethod
     def _printParameterError(errmsg):
         print('ParameterError:\n non-existent parameter %s' % errmsg)
 
+    def reset_defaults(self):
+        defaults = self.get_defaults()
+        for param in defaults:
+            self.setParamKV(param, defaults[param]['value'])
+        
+    def from_file(self, fnin=None):
+        if not fnin:
+            if self.__filename is not None:
+                fnin = self.__filename
+            else:
+                return
+
+        if isinstance(fnin, (list, tuple)):
+            fnin = fnin[0]
+
+        inputFile = open(fnin, 'r')
+        try:
+            lines = inputFile.readlines()
+            for line in lines:
+                parspl = line.split('\t')[:2]
+                self._parFileCont[parspl[0].strip()] = parspl[1]
+        except IndexError as e:
+            if self._verbosity > 0:
+                self._printParameterError(e)
+            inputFile.seek(0)
+            lines = inputFile.readlines()
+            for line in lines:
+                if not line.startswith(('#', '%', '\n', ' ')):
+                    parspl = line.split('#')[:2]
+                    self._parFileCont[parspl[1].strip()] = parspl[0].strip()
+        for key, value in self._parFileCont.items():
+            try:
+                val = int(value)
+            except:
+                try:
+                    val = float(value)
+                except:
+                    if len(value.split(' ')) > 1:
+                        vallist = value.strip().split(' ')
+                        val = []
+                        for val0 in vallist:
+                            val0 = float(val0)
+                            val.append(val0)
+                    else:
+                        val = str(value.strip())
+            self._parFileCont[key] = val
+        self.__parameter = self._parFileCont
+
     def export2File(self, fnout):
         fid_out = open(fnout, 'w')
         lines = []
-        for key, value in self.iteritems():
-            lines.append('{key}\t{value}'.format(key=key, value=value))
-        fid_out.writelines(lines)
+        # for key, value in self.iteritems():
+        #     lines.append('{key}\t{value}\n'.format(key=key, value=value))
+        # fid_out.writelines(lines)
+
+        header = ('%This is a parameter input file for PyLoT/autoPyLoT.\n'+
+                  '%All main and special settings regarding data handling\n'+
+                  '%and picking are to be set here!\n'+
+                  '%Parameters are optimized for local data sets!\n')
+        seperator = '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
+
+        fid_out.write(header)
+        self.write_section(fid_out, self.get_main_para_names()['dirs'],
+                           'main settings', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['nlloc'],
+                           'NLLoc settings', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['smoment'],
+                           'parameters for seismic moment estimation', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['pick'],
+                           'common settings picker', seperator)
+        fid_out.write(('#special settings for calculating CF#\n'+
+                       '%!!Edit the following only if you know what you are doing!!%\n'))
+        self.write_section(fid_out, self.get_special_para_names()['z'],
+                           'Z-component', None)
+        self.write_section(fid_out, self.get_special_para_names()['h'],
+                           'H-components', None)
+        self.write_section(fid_out, self.get_special_para_names()['fm'],
+                           'first-motion picker', None)                           
+        self.write_section(fid_out, self.get_special_para_names()['quality'],
+                           'quality assessment', None)
+
+    def write_section(self, fid, names, title, seperator):
+        if seperator:
+            fid.write(seperator)
+        fid.write('#{}#\n'.format(title))
+        l_val = 50
+        l_name = 15
+        l_ttip = 100
+        for name in names:
+            value = self[name]
+            if type(value) == list or type(value) == tuple:
+                value_tmp = ''
+                for vl in value:
+                    value_tmp+= '{} '.format(vl)
+                value = value_tmp
+            tooltip = self.get_defaults()[name]['tooltip']
+            if not len(str(value)) > l_val:
+                value = '{:<{}} '.format(str(value), l_val)
+            else:
+                value = '{} '.format(str(value))
+            name += '#'
+            if not len(name) > l_name:
+                name = '#{:<{}} '.format(name, l_name)
+            else:
+                name = '#{} '.format(name)
+            if not len(tooltip) > l_ttip:
+                ttip = '%{:<{}}\n'.format(tooltip, l_ttip)
+            else:
+                ttip = '%{}\n'.format(tooltip)
+            line = value+name+ttip
+            fid.write(line)
 
 
 class FilterOptions(object):

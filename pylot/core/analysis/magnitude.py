@@ -201,22 +201,21 @@ class RichterMagnitude(Magnitude):
                   "mm".format(st[0].stats.station, wapp))
 
         # check for plot flag (for debugging only)
+        fig = None
         if self.plot_flag > 1:
             st.plot()
-            f = plt.figure(2)
-            plt.plot(th, sqH)
-            plt.plot(th[iwin], sqH[iwin], 'g')
-            plt.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
-            plt.title(
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(th, sqH)
+            ax.plot(th[iwin], sqH[iwin], 'g')
+            ax.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
+            ax.title(
                 'Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
                 % (st[0].stats.station, wapp))
-            plt.xlabel('Time [s]')
-            plt.ylabel('Displacement [mm]')
-            plt.show()
-            raw_input()
-            plt.close(f)
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Displacement [mm]')
 
-        return wapp
+        return wapp, fig
 
     def calc(self):
         for a in self.arrivals:
@@ -234,7 +233,7 @@ class RichterMagnitude(Magnitude):
                 continue
             delta = degrees2kilometers(a.distance)
             onset = pick.time
-            a0 = self.peak_to_peak(wf, onset)
+            a0, self.p2p_fig = self.peak_to_peak(wf, onset)
             amplitude = ope.Amplitude(generic_amplitude=a0 * 1e-3)
             amplitude.unit = 'm'
             amplitude.category = 'point'
@@ -581,9 +580,6 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
-        plt.show()
-        raw_input()
-        plt.close(f1)
 
     return w0, fc
 
@@ -685,7 +681,7 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
 
     if iplot > 1:
-        plt.figure(iplot)
+        plt.figure()#iplot)
         plt.loglog(f, S, 'k')
         plt.loglog([f[0], fc], [w0, w0], 'g')
         plt.loglog([fc, fc], [w0 / 100, w0], 'g')
@@ -694,7 +690,7 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/Hz]')
         plt.grid()
-        plt.figure(iplot + 1)
+        plt.figure()#iplot + 1)
         plt.subplot(311)
         plt.plot(f[il:ir], STD, '*')
         plt.title('Common Standard Deviations')
@@ -707,8 +703,5 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         plt.plot(f[il:ir], stdfc, '*')
         plt.title('Standard Deviations of Corner Frequencies')
         plt.xlabel('Corner Frequencies [Hz]')
-        plt.show()
-        raw_input()
-        plt.close()
 
     return w0, fc

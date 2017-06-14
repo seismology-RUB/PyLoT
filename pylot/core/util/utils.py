@@ -7,6 +7,7 @@ from scipy.interpolate import splrep, splev
 import os
 import pwd
 import re
+import warnings
 import subprocess
 from obspy import UTCDateTime, read
 from pylot.core.io.inputs import AutoPickParameter
@@ -381,9 +382,11 @@ def prepTimeAxis(stime, trace):
         print('shorten time axes by one datum')
         time_ax = np.arange(stime, etime - tincr, tincr)
     if len(time_ax) != nsamp:
-        raise ValueError('{0} samples of data \n '
-                         '{1} length of time vector \n'
-                         'delta: {2}'.format(nsamp, len(time_ax), tincr))
+        print('Station {0}, {1} samples of data \n '
+                      '{2} length of time vector \n'
+                      'delta: {3}'.format(trace.stats.station,
+                                   nsamp, len(time_ax), tincr))
+        time_ax = None
     return time_ax
 
 
