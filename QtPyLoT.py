@@ -63,7 +63,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
+from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -650,6 +650,8 @@ class MainWindow(QMainWindow):
         data[type] += Data(self, evtdata=fname)
         if not loc:
             self.updatePicks(type=type)
+        if self.get_current_event.picks:
+            self.plotWaveformDataThread()
         self.drawPicks(picktype=type)
         self.draw()
         self.setDirty(True)
@@ -732,10 +734,14 @@ class MainWindow(QMainWindow):
         '''
         Return event path of event (type QtPylot.Event) currently selected in eventbox.
         '''
-        if not eventbox:
-            eventbox = self.eventBox
-        return str(eventbox.currentText().split('|')[0]).strip()
-        
+        return self.get_current_event(eventbox).path 
+
+    def get_current_event_name(self, eventbox=None):
+        '''
+        Return event path of event (type QtPylot.Event) currently selected in eventbox.
+        '''
+        return self.get_current_event_path(eventbox).split('/')[-1]
+    
     def getLastEvent(self):
         return self.recentfiles[0]
 
@@ -908,41 +914,46 @@ class MainWindow(QMainWindow):
 
         def getSavePath(e):
             print('warning: {0}'.format(e))
-            directory = os.path.realpath(self.getRoot())
+            directory = self.get_current_event_path()
+            eventname = self.get_current_event_name()
+            filename = 'picks_'+eventname
+            outpath = os.path.join(directory, filename)
             file_filter = "QuakeML file (*.xml);;VELEST observation file " \
                           "format (*.cnv);;NonLinLoc observation file (*.obs)"
             title = 'Save pick data ...'
             fname, selected_filter = QFileDialog.getSaveFileName(self,
                                                                  title,
-                                                                 directory,
+                                                                 outpath,
                                                                  file_filter)
 
             fbasename, exform = os.path.splitext(fname)
 
-            if not exform and selected_filter:
+            if not exform and selected_filter or not exform in OUTPUTFORMATS:
                 exform = selected_filter.split('*')[1][:-1]
-
+            if not exform in OUTPUTFORMATS:
+                return fname, exform
             return fbasename, exform
 
         settings = QSettings()
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
-        try:
-            self.get_data().applyEVTData(self.getPicks())
-        except OverwriteError:
-            msgBox = QMessageBox()
-            msgBox.setText("Picks have been modified!")
-            msgBox.setInformativeText(
-                "Do you want to save the changes and overwrite the picks?")
-            msgBox.setDetailedText(self.get_data().getPicksStr())
-            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-            msgBox.setDefaultButton(QMessageBox.Save)
-            ret = msgBox.exec_()
-            if ret == QMessageBox.Save:
-                self.get_data().resetPicks()
-                return self.saveData()
-            elif ret == QMessageBox.Cancel:
-                return False
+        # try:
+        #     self.get_data().applyEVTData(self.getPicks())
+        # except OverwriteError:
+        #     msgBox = QMessageBox()
+        #     msgBox.setText("Picks have been modified!")
+        #     msgBox.setInformativeText(
+        #         "Do you want to save the changes and overwrite the picks?")
+        #     msgBox.setDetailedText(self.get_data().getPicksStr())
+        #     msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+        #     msgBox.setDefaultButton(QMessageBox.Save)
+        #     ret = msgBox.exec_()
+        #     if ret == QMessageBox.Save:
+        #         self.get_data().resetPicks()
+        #         return self.saveData()
+        #     elif ret == QMessageBox.Cancel:
+        #         return False
+        # MP MP changed due to new event structure not uniquely refering to data object
         try:
             self.get_data().exportEvent(fbasename, exform)
         except FormatError as e:
@@ -1523,7 +1534,7 @@ class MainWindow(QMainWindow):
             self.get_current_event().setPick(station, pickDlg.getPicks())
             self.enableSaveManualPicksAction()
             if replot:
-                self.plotWaveformData()
+                self.plotWaveformDataThread()
                 self.drawPicks()
                 self.draw()
             else:
@@ -1627,31 +1638,36 @@ class MainWindow(QMainWindow):
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
-        rval = False
         if not stat_picks:
-            stat_picks = picks
+            rval = False
         else:
-            msgBox = QMessageBox(self)
-            msgBox.setText("The picks for station {0} have been "
-                           "changed.".format(station))
-            msgBox.setDetailedText("Old picks:\n"
-                                   "{old_picks}\n\n"
-                                   "New picks:\n"
-                                   "{new_picks}".format(old_picks=stat_picks,
-                                                        new_picks=picks))
-            msgBox.setInformativeText("Do you want to save your changes?")
-            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-            msgBox.setDefaultButton(QMessageBox.Save)
-            ret = msgBox.exec_()
-            if ret == QMessageBox.Save:
-                stat_picks = picks
-                rval = True
-            elif ret == QMessageBox.Cancel:
-                pass
-            else:
-                raise Exception('FATAL: Should never occur!')
-        self.getPicks(type=type)[station] = stat_picks
+            #set picks (ugly syntax?)
+            self.getPicks(type=type)[station] = picks
+            rval = True            
         return rval
+        # if not stat_picks:
+        #     stat_picks = picks
+        # else:
+        #     msgBox = QMessageBox(self)
+        #     msgBox.setText("The picks for station {0} have been "
+        #                    "changed.".format(station))
+        #     msgBox.setDetailedText("Old picks:\n"
+        #                            "{old_picks}\n\n"
+        #                            "New picks:\n"
+        #                            "{new_picks}".format(old_picks=stat_picks,
+        #                                                 new_picks=picks))
+        #     msgBox.setInformativeText("Do you want to save your changes?")
+        #     msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+        #     msgBox.setDefaultButton(QMessageBox.Save)
+        #     ret = msgBox.exec_()
+        #     if ret == QMessageBox.Save:
+        #         stat_picks = picks
+        #         rval = True
+        #     elif ret == QMessageBox.Cancel:
+        #         pass
+        #     else:
+        #         raise Exception('FATAL: Should never occur!')
+        # MP MP prompt redundant because new picks have to be accepted in the first place closing PickDlg
 
     def updatePicks(self, type='manual'):
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
@@ -2461,6 +2477,9 @@ def create_window():
     if app is None:
         app = QApplication(sys.argv)
         app_created = True
+    app.setOrganizationName("QtPyLoT");
+    app.setOrganizationDomain("rub.de");
+    app.setApplicationName("RUB");
     app.references = set()
     #app.references.add(window)
     #window.show()
