@@ -1626,8 +1626,14 @@ class MainWindow(QMainWindow):
         self.thread.quit()
 
     def addPicks(self, station, picks, type='manual'):
-        # stat_picks = self.getPicksOnStation(station, type)
-        # rval = False
+        stat_picks = self.getPicksOnStation(station, type)
+        if not stat_picks:
+            rval = False
+        else:
+            #set picks (ugly syntax?)
+            self.getPicks(type=type)[station] = picks
+            rval = True            
+        return rval
         # if not stat_picks:
         #     stat_picks = picks
         # else:
@@ -1651,10 +1657,6 @@ class MainWindow(QMainWindow):
         #     else:
         #         raise Exception('FATAL: Should never occur!')
         # MP MP prompt redundant because new picks have to be accepted in the first place closing PickDlg
-        stat_picks = picks
-        rval = True
-        self.getPicks(type=type)[station] = stat_picks
-        return rval
 
     def updatePicks(self, type='manual'):
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
