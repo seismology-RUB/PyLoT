@@ -2392,8 +2392,12 @@ class Event(object):
         except:
             pass
 
-    def get_notes(self):
+    def get_notes_path(self):
         notesfile = os.path.join(self.path, 'notes.txt')
+        return notesfile
+    
+    def get_notes(self):
+        notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
                 text = '[eventInfo: '+str(infile.readlines()[0].split('\n')[0])+']'
@@ -2454,8 +2458,38 @@ class Event(object):
 
     def getAutopicks(self):
         return self.autopicks
+
+    def save(self, filename):
+        '''
+        Save PyLoT Event to a file. 
+        Can be loaded by using event.load(filename).
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+
+        try:
+            outfile = open(filename, 'wb')
+            cPickle.dump(self, outfile, -1)
+        except Exception as e:
+            print('Could not pickle PyLoT event. Reason: {}'.format(e))
+
+    @staticmethod
+    def load(filename):
+        '''
+        Load project from filename.
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+        infile = open(filename, 'rb')
+        event = cPickle.load(infile)
+        print('Loaded %s' % filename)
+        return event
+
     
-        
 class getExistingDirectories(QFileDialog):
     '''
     File dialog with possibility to select multiple folders.
