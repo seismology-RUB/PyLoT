@@ -716,6 +716,8 @@ class MainWindow(QMainWindow):
         '''
         if self.dataStructure:
             directory = self.get_current_event_path(eventbox)
+            if not directory:
+                return
             fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
@@ -734,13 +736,17 @@ class MainWindow(QMainWindow):
         '''
         Return event path of event (type QtPylot.Event) currently selected in eventbox.
         '''
-        return self.get_current_event(eventbox).path 
-
+        event = self.get_current_event(eventbox)
+        if event:
+            return event.path
+        
     def get_current_event_name(self, eventbox=None):
         '''
         Return event path of event (type QtPylot.Event) currently selected in eventbox.
         '''
-        return self.get_current_event_path(eventbox).split('/')[-1]
+        path = self.get_current_event_path(eventbox)
+        if path:
+            return path.split('/')[-1]
     
     def getLastEvent(self):
         return self.recentfiles[0]

@@ -1610,7 +1610,6 @@ class TuneAutopicker(QWidget):
         self.eventBox = self.parent.createEventBox()
         self.eventBox.setMaxVisibleItems(20)        
         self.fill_eventbox()
-        self.eventBox.setCurrentIndex(0)
         self.trace_layout.addWidget(self.eventBox)
         
     def init_stationlist(self):
@@ -1712,6 +1711,9 @@ class TuneAutopicker(QWidget):
         return widget
 
     def gen_pick_dlg(self):
+        if not self.get_current_event():
+            self.pickDlg = None
+            return
         station = self.get_current_station()
         data = self.data.getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
@@ -1800,7 +1802,7 @@ class TuneAutopicker(QWidget):
         id1 = self.figure_tabs.insertTab(1, self.overview, 'Overview')
         id2 = self.figure_tabs.insertTab(2, self.p_tabs, 'P')
         id3 = self.figure_tabs.insertTab(3, self.s_tabs, 'S')
-        if picked:
+        if picked and self.get_current_event():
             self.fill_p_tabs(canvas_dict)
             self.fill_s_tabs(canvas_dict)
             self.toggle_autopickTabs(bool(self.fig_dict['mainFig'].axes))
@@ -1839,7 +1841,23 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
+        # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
+        index_start = self.eventBox.currentIndex()
+        index = index_start
+        if index == -1:
+            index += 1
+        nevents = self.eventBox.model().rowCount()
+        if self.eventBox.itemData(index).isTestEvent():
+            for index in range(nevents):
+                if not self.eventBox.itemData(index).isTestEvent():
+                    break
+                elif index == nevents - 1:
+                    index = -1
+        self.eventBox.setCurrentIndex(index)
+        if not index == index_start:
+            self.eventBox.activated.emit(index)
+        # update parent
         self.parent.fill_eventbox()
 
     def update_eventID(self):
@@ -1910,7 +1928,8 @@ class TuneAutopicker(QWidget):
 
     def clear_all(self):
         if hasattr(self, 'pickDlg'):
-            self.pickDlg.setParent(None)
+            if self.pickDlg:
+                self.pickDlg.setParent(None)
             del(self.pickDlg)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
