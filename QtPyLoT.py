@@ -1523,7 +1523,7 @@ class MainWindow(QMainWindow):
             self.get_current_event().setPick(station, pickDlg.getPicks())
             self.enableSaveManualPicksAction()
             if replot:
-                self.plotWaveformData()
+                self.plotWaveformDataThread()
                 self.drawPicks()
                 self.draw()
             else:
