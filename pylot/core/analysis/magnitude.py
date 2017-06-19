@@ -17,10 +17,14 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
 from pylot.core.util.utils import common_range, fit_curve
 
 def richter_magnitude_scaling(delta):
-    relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
-                                       '.pylot', 'richter_scaling.data'))
+    distance = np.arange(0, 1000, 10)
+    richter_scaling = array([1.4, 1.5, 1.7, 1.9, 2.1, 2.3, 2.4, 2.5, 2.6, 2.8, 2.8, 2.9, 
+                     2.9, 3.0, 3.1, 3.1, 3.2, 3.2, 3.3, 3.3, 3.4, 3.4, 3.5, 3.5, 
+                     3.6, 3.7, 3.7, 3.8, 3.8, 3.9, 3.9, 4.0, 4.0, 4.1, 4.2, 4.2,
+                     4.2, 4.2, 4.3, 4.3, 4.3, 4.4, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 
+                     5.1, 5.2, 5.4, 5.5, 5.7])
     # prepare spline interpolation to calculate return value
-    func, params = fit_curve(relation[:, 0], relation[:, 1])
+    func, params = fit_curve(distance, richter_scaling)
     return func(delta, params)
 
 
