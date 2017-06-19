@@ -1626,30 +1626,33 @@ class MainWindow(QMainWindow):
         self.thread.quit()
 
     def addPicks(self, station, picks, type='manual'):
-        stat_picks = self.getPicksOnStation(station, type)
-        rval = False
-        if not stat_picks:
-            stat_picks = picks
-        else:
-            msgBox = QMessageBox(self)
-            msgBox.setText("The picks for station {0} have been "
-                           "changed.".format(station))
-            msgBox.setDetailedText("Old picks:\n"
-                                   "{old_picks}\n\n"
-                                   "New picks:\n"
-                                   "{new_picks}".format(old_picks=stat_picks,
-                                                        new_picks=picks))
-            msgBox.setInformativeText("Do you want to save your changes?")
-            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-            msgBox.setDefaultButton(QMessageBox.Save)
-            ret = msgBox.exec_()
-            if ret == QMessageBox.Save:
-                stat_picks = picks
-                rval = True
-            elif ret == QMessageBox.Cancel:
-                pass
-            else:
-                raise Exception('FATAL: Should never occur!')
+        # stat_picks = self.getPicksOnStation(station, type)
+        # rval = False
+        # if not stat_picks:
+        #     stat_picks = picks
+        # else:
+        #     msgBox = QMessageBox(self)
+        #     msgBox.setText("The picks for station {0} have been "
+        #                    "changed.".format(station))
+        #     msgBox.setDetailedText("Old picks:\n"
+        #                            "{old_picks}\n\n"
+        #                            "New picks:\n"
+        #                            "{new_picks}".format(old_picks=stat_picks,
+        #                                                 new_picks=picks))
+        #     msgBox.setInformativeText("Do you want to save your changes?")
+        #     msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+        #     msgBox.setDefaultButton(QMessageBox.Save)
+        #     ret = msgBox.exec_()
+        #     if ret == QMessageBox.Save:
+        #         stat_picks = picks
+        #         rval = True
+        #     elif ret == QMessageBox.Cancel:
+        #         pass
+        #     else:
+        #         raise Exception('FATAL: Should never occur!')
+        # MP MP prompt redundant because new picks have to be accepted in the first place closing PickDlg
+        stat_picks = picks
+        rval = True
         self.getPicks(type=type)[station] = stat_picks
         return rval
 
