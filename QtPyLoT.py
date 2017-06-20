@@ -985,7 +985,6 @@ class MainWindow(QMainWindow):
         # export to given path
         self.get_data().exportEvent(fbasename, exform)
         # all files save (ui clean)
-        self.setDirty(False)
         self.update_status('Picks saved as %s' % (fbasename + exform))
         self.disableSaveManualPicksAction()
         return True
