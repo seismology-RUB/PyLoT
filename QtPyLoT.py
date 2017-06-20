@@ -44,8 +44,8 @@ from obspy import UTCDateTime
 
 try:
     import pyqtgraph as pg
-except:
-    print('QtPyLoT: Could not import pyqtgraph.')
+except Exception as e:
+    print('QtPyLoT: Could not import pyqtgraph. {}'.format(e))
     pg = None
 
 try:
@@ -943,9 +943,9 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
-        # try:
-        #     self.get_data().applyEVTData(self.getPicks())
-        # except OverwriteError:
+        try:
+            self.get_data().applyEVTData(self.getPicks())
+        except OverwriteError:
         #     msgBox = QMessageBox()
         #     msgBox.setText("Picks have been modified!")
         #     msgBox.setInformativeText(
@@ -955,11 +955,11 @@ class MainWindow(QMainWindow):
         #     msgBox.setDefaultButton(QMessageBox.Save)
         #     ret = msgBox.exec_()
         #     if ret == QMessageBox.Save:
-        #         self.get_data().resetPicks()
-        #         return self.saveData()
+              self.get_data().resetPicks()
+              return self.saveData()
         #     elif ret == QMessageBox.Cancel:
         #         return False
-        # MP MP changed due to new event structure not uniquely refering to data object
+        # MP MP changed to suppress unnecessary user prompt
         try:
             self.get_data().exportEvent(fbasename, exform)
         except FormatError as e:
@@ -985,7 +985,6 @@ class MainWindow(QMainWindow):
         # export to given path
         self.get_data().exportEvent(fbasename, exform)
         # all files save (ui clean)
-        self.setDirty(False)
         self.update_status('Picks saved as %s' % (fbasename + exform))
         self.disableSaveManualPicksAction()
         return True

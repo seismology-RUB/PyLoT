@@ -130,21 +130,35 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print("!!No source parameter estimation possible!!")
             print("                 !!!              ")
 
-        datapath = datastructure.expandDataPath()
-        if fnames == 'None' and not parameter.hasParam('eventID'):
-            # multiple event processing
-            # read each event in database
-            events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
-        elif fnames == 'None' and parameter.hasParam('eventID'):
-            # single event processing
-            events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+        if not input_dict:
+            # started in production mode
+            datapath = datastructure.expandDataPath()
+            if fnames == 'None' and not parameter['eventID']:
+                # multiple event processing
+                # read each event in database
+                events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
+            elif fnames == 'None' and parameter['eventID']:
+                # single event processing
+                events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+            else:
+                # autoPyLoT was initialized from GUI
+                events = []
+                events.append(eventid)
+                evID = os.path.split(eventid)[-1]
+                locflag = 2
         else:
-            # autoPyLoT was initialized from GUI
+            # started in tune mode
+            datapath = os.path.join(parameter['rootpath'],
+                                    parameter['datapath'])
             events = []
-            events.append(eventid)
-            evID = os.path.split(eventid)[-1]
-            locflag = 2
+            events.append(os.path.join(datapath,
+                                       parameter['database'],
+                                       parameter['eventID']))
 
+        if not events:
+            print('autoPyLoT: No events given. Return!')
+            return
+        
         for event in events:
             if fnames == 'None':
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
@@ -385,9 +399,5 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
     
-    try:
-        picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
-                                   eventid=str(cla.eventid), savepath=str(cla.spath))
-    except ValueError:
-        print("autoPyLoT was running in production mode.")
-                             
+    picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
+                      eventid=str(cla.eventid), savepath=str(cla.spath))
