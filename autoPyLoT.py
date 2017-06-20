@@ -385,9 +385,5 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
     
-    try:
-        picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
-                                   eventid=str(cla.eventid), savepath=str(cla.spath))
-    except ValueError:
-        print("autoPyLoT was running in production mode.")
-                             
+    picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
+                      eventid=str(cla.eventid), savepath=str(cla.spath))
