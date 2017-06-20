@@ -44,8 +44,8 @@ from obspy import UTCDateTime
 
 try:
     import pyqtgraph as pg
-except:
-    print('QtPyLoT: Could not import pyqtgraph.')
+except Exception as e:
+    print('QtPyLoT: Could not import pyqtgraph. {}'.format(e))
     pg = None
 
 try:
