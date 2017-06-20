@@ -943,9 +943,9 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
-        # try:
-        #     self.get_data().applyEVTData(self.getPicks())
-        # except OverwriteError:
+        try:
+            self.get_data().applyEVTData(self.getPicks())
+        except OverwriteError:
         #     msgBox = QMessageBox()
         #     msgBox.setText("Picks have been modified!")
         #     msgBox.setInformativeText(
@@ -955,11 +955,11 @@ class MainWindow(QMainWindow):
         #     msgBox.setDefaultButton(QMessageBox.Save)
         #     ret = msgBox.exec_()
         #     if ret == QMessageBox.Save:
-        #         self.get_data().resetPicks()
-        #         return self.saveData()
+              self.get_data().resetPicks()
+              return self.saveData()
         #     elif ret == QMessageBox.Cancel:
         #         return False
-        # MP MP changed due to new event structure not uniquely refering to data object
+        # MP MP changed to suppress unnecessary user prompt
         try:
             self.get_data().exportEvent(fbasename, exform)
         except FormatError as e:
