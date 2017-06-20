@@ -650,7 +650,7 @@ class MainWindow(QMainWindow):
         data[type] += Data(self, evtdata=fname)
         if not loc:
             self.updatePicks(type=type)
-        if self.get_current_event.picks:
+        if self.get_current_event().picks:
             self.plotWaveformDataThread()
         self.drawPicks(picktype=type)
         self.draw()
@@ -716,6 +716,8 @@ class MainWindow(QMainWindow):
         '''
         if self.dataStructure:
             directory = self.get_current_event_path(eventbox)
+            if not directory:
+                return
             fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
         else:
             raise DatastructureError('not specified')
@@ -734,13 +736,17 @@ class MainWindow(QMainWindow):
         '''
         Return event path of event (type QtPylot.Event) currently selected in eventbox.
         '''
-        return self.get_current_event(eventbox).path 
-
+        event = self.get_current_event(eventbox)
+        if event:
+            return event.path
+        
     def get_current_event_name(self, eventbox=None):
         '''
         Return event path of event (type QtPylot.Event) currently selected in eventbox.
         '''
-        return self.get_current_event_path(eventbox).split('/')[-1]
+        path = self.get_current_event_path(eventbox)
+        if path:
+            return path.split('/')[-1]
     
     def getLastEvent(self):
         return self.recentfiles[0]
@@ -2392,8 +2398,12 @@ class Event(object):
         except:
             pass
 
-    def get_notes(self):
+    def get_notes_path(self):
         notesfile = os.path.join(self.path, 'notes.txt')
+        return notesfile
+    
+    def get_notes(self):
+        notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
                 text = '[eventInfo: '+str(infile.readlines()[0].split('\n')[0])+']'
@@ -2454,8 +2464,38 @@ class Event(object):
 
     def getAutopicks(self):
         return self.autopicks
+
+    def save(self, filename):
+        '''
+        Save PyLoT Event to a file. 
+        Can be loaded by using event.load(filename).
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+
+        try:
+            outfile = open(filename, 'wb')
+            cPickle.dump(self, outfile, -1)
+        except Exception as e:
+            print('Could not pickle PyLoT event. Reason: {}'.format(e))
+
+    @staticmethod
+    def load(filename):
+        '''
+        Load project from filename.
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+        infile = open(filename, 'rb')
+        event = cPickle.load(infile)
+        print('Loaded %s' % filename)
+        return event
+
     
-        
 class getExistingDirectories(QFileDialog):
     '''
     File dialog with possibility to select multiple folders.
