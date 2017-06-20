@@ -650,7 +650,7 @@ class MainWindow(QMainWindow):
         data[type] += Data(self, evtdata=fname)
         if not loc:
             self.updatePicks(type=type)
-        if self.get_current_event.picks:
+        if self.get_current_event().picks:
             self.plotWaveformDataThread()
         self.drawPicks(picktype=type)
         self.draw()
