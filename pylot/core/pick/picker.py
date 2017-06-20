@@ -223,28 +223,29 @@ class AICPicker(AutoPicker):
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             imax = np.argmax(self.Data[0].data[islope])
-            if imax == 0:
-                print('AICPicker: Maximum for slope determination right at the beginning of the window!')
-                print('Choose longer slope determination window!')
-                if self.iplot > 1:
-                    if not self.fig:
-                        fig = plt.figure() #self.iplot) ### WHY? MP MP
-                    else:
-                        fig = self.fig
-                    ax = fig.add_subplot(111)
-                    x = self.Data[0].data
-                    ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
-                    ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', legend='Smoothed AIC-CF')
-                    ax.legend()
-                    ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                    ax.set_yticks([])
-                    ax.set_title(self.Data[0].stats.station)
-                return
-
             iislope = islope[0][0:imax]
-            if len(iislope) <= 3:
+            if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
+                print("AICPicker: Not enough data samples left for slope calculation!")
+                print("Calculating slope from initial onset to maximum of AIC function ...")
                 imax = np.argmax(aicsmooth[islope])
+                if imax == 0:
+                    print("AICPicker: Maximum for slope determination right at the beginning of the window!")
+                    print("Choose longer slope determination window!")
+                    if self.iplot > 1:
+                        if not self.fig:
+                            fig = plt.figure() #self.iplot) ### WHY? MP MP
+                        else:
+                            fig = self.fig
+                        ax = fig.add_subplot(111)
+                        x = self.Data[0].data
+                        ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
+                        ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', legend='Smoothed AIC-CF')
+                        ax.legend()
+                        ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                        ax.set_yticks([])
+                        ax.set_title(self.Data[0].stats.station)
+                    return
                 iislope = islope[0][0:imax]
             dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1
