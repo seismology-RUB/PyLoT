@@ -275,7 +275,11 @@ defaults = {'rootpath': {'type': str,
             
             'wdttolerance': {'type': float,
                              'tooltip': 'maximum allowed deviation from Wadati-diagram',
-                             'value': 1.0}
+                             'value': 1.0},
+            
+            'localMag': {'type': float,
+                         'tooltip': 'maximum allowed deviation from Wadati-diagram',
+                         'value': 1.0}
 }
 
 settings_main={
@@ -297,7 +301,8 @@ settings_main={
     'smoment':[
         'vp',
         'rho',
-        'Qp'],
+        'Qp',
+        'localMag'],
     'pick':[
         'extent',
         'pstart',
