@@ -239,8 +239,8 @@ class AICPicker(AutoPicker):
                             fig = self.fig
                         ax = fig.add_subplot(111)
                         x = self.Data[0].data
-                        ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
-                        ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', legend='Smoothed AIC-CF')
+                        ax.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
+                        ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
                         ax.legend()
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                         ax.set_yticks([])
