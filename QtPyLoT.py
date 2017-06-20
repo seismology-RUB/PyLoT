@@ -2196,6 +2196,7 @@ class MainWindow(QMainWindow):
         self.project.parameter=self._inputs
         self.project.save(filename)
         self.setDirty(False)
+        self.saveProjectAsAction.setEnabled(True)
         self.update_status('Creating new project...', duration=1000)
         return True
             
@@ -2260,7 +2261,7 @@ class MainWindow(QMainWindow):
         
     def setDirty(self, value):
         self.saveProjectAction.setEnabled(value)
-        self.saveProjectAsAction.setEnabled(value)        
+        self.saveProjectAsAction.setEnabled(True)
         self.project.setDirty(value)
         self.dirty = value
 
