@@ -106,7 +106,9 @@ class MainWindow(QMainWindow):
         self._inputs = AutoPickParameter(infile)
         self._props = None
 
+        self.dirty = False
         self.project = Project()
+        self.project.parameter = self._inputs
         self.tap = None
         self.paraBox = None
         self.array_map = None
@@ -143,8 +145,6 @@ class MainWindow(QMainWindow):
             self.data = Data(self)
         self.autodata = Data(self)
 
-        self.dirty = False
-        
         if settings.value("user/FullName", None) is None:
             fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
             settings.setValue("user/FullName", fulluser)
@@ -756,7 +756,7 @@ class MainWindow(QMainWindow):
         Creates and adds events by user selection of event folders to GUI.
         '''
         if not self.project:
-            self.project = Project()
+            self.createNewProject()
         ed = getExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
             eventlist = ed.selectedFiles()
@@ -783,8 +783,8 @@ class MainWindow(QMainWindow):
                     }
         except Exception as e:
             dirs = {
-                'database': ''
-                'datapath': ''
+                'database': '',
+                'datapath': '',
                 'rootpath': ''
                     }
             print('Warning: Could not automatically init folder structure. ({})'.format(e))
@@ -803,7 +803,16 @@ class MainWindow(QMainWindow):
             dirs_box = self.paraBox.get_groupbox_exclusive('Directories')
             if not dirs_box.exec_():
                 return
-        
+            self.project.rootpath = dirs['rootpath']
+        else:
+            if hasattr(self.project, 'rootpath'):
+                if not self.project.rootpath == dirs['rootpath']:
+                    QMessageBox.warning(self, "PyLoT Warning",
+                                        'Rootpath missmatch to current project!')
+                    return
+            else:
+                 self.project.rootpath = dirs['rootpath']
+            
         self.project.add_eventlist(eventlist)
         self.init_events()
         self.setDirty(True)
@@ -1349,6 +1358,8 @@ class MainWindow(QMainWindow):
         self.disconnectWFplotEvents()
         if self.pg:
             self.dataPlot.plotWidget.getPlotItem().clear()
+            self.dataPlot.plotWidget.hideAxis('bottom')
+            self.dataPlot.plotWidget.hideAxis('left')                    
         else:
             self.dataPlot.getAxes().cla()            
         self.loadlocationaction.setEnabled(False)
@@ -2210,29 +2221,18 @@ class MainWindow(QMainWindow):
                 self.data = Data(self, evtdata=event)
                 self.setDirty(True)
 
-    def createNewProject(self, exists=False):
+    def createNewProject(self):
         '''
         Create new project file.
         '''
-        if not exists:
-            if not self.okToContinue():
-                return
-        dlg = QFileDialog()
-        fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
-        filename = fnm[0]
-        if not len(fnm[0]):
-            return False
-        if not filename.split('.')[-1] == 'plp':
-            filename = fnm[0] + '.plp'
-        if not exists:
-            self.project = Project()
-            self.init_events(new=True)
-            self.setDirty(True)
-        self.project.parameter=self._inputs
-        self.project.save(filename)
+        if not self.okToContinue():
+            return
+        self.project = Project()
+        self.init_events(new=True)
         self.setDirty(False)
+        self.project.parameter=self._inputs
         self.saveProjectAsAction.setEnabled(True)
-        self.update_status('Creating new project...', duration=1000)
+        self.update_status('Created new project...', duration=1000)
         return True
             
     def loadProject(self, fnm=None):
@@ -2261,8 +2261,26 @@ class MainWindow(QMainWindow):
                     return
             self.init_array_tab()
 
-    def saveProjectAs(self):
-        self.saveProject(new=True)
+    def saveProjectAs(self, exists=False):
+        '''
+        Save back project to new pickle file.
+        '''
+        if not exists:
+            if not self.okToContinue():
+                return
+        dlg = QFileDialog()
+        fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
+        filename = fnm[0]
+        if not len(fnm[0]):
+            return False
+        if not filename.split('.')[-1] == 'plp':
+            filename = fnm[0] + '.plp'
+        self.project.parameter=self._inputs
+        self.project.save(filename)
+        self.setDirty(False)
+        self.saveProjectAsAction.setEnabled(True)
+        self.update_status('Saved new project to {}'.format(filename), duration=5000)
+        return True
         
     def saveProject(self, new=False):
         '''
@@ -2270,14 +2288,14 @@ class MainWindow(QMainWindow):
         '''
         if self.project and not new:
             if not self.project.location:
-                if not self.createNewProject(exists=True):
+                if not self.saveProjectAs(exists=True):
                     self.setDirty(True)
                     return False
             else:
                 self.project.parameter=self._inputs
                 self.project.save()
             if not self.project.dirty:
-                print('Saved back project to file:\n{}'.format(self.project.location))
+                self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 self.setDirty(False)
                 return True
             else:
@@ -2285,7 +2303,7 @@ class MainWindow(QMainWindow):
                 qmb = QMessageBox.warning(self,'Could not save project',
                                           'Could not save back to original file.\nChoose new file')
                 self.setDirty(True)
-        return self.createNewProject(exists=True)
+        return self.saveProjectAs(exists=True)
                 
     def draw(self):
         self.fill_eventbox()
@@ -2340,6 +2358,7 @@ class Project(object):
     def __init__(self):
         self.eventlist = []
         self.location = None
+        self.rootpath = None
         self.dirty = False
         self.parameter = None
         self._table = None
@@ -2353,6 +2372,9 @@ class Project(object):
             return
         for item in eventlist:
             event = Event(item)
+            event.rootpath = self.parameter['rootpath']
+            event.database = self.parameter['database']
+            event.datapath = self.parameter['datapath']
             if not event.path in self.getPaths():
                 self.eventlist.append(event)
                 self.setDirty()
@@ -2424,6 +2446,9 @@ class Event(object):
     '''
     def __init__(self, path):
         self.path = path
+        self.database = path.split('/')[-2]
+        self.datapath = path.split('/')[-3]
+        self.rootpath = os.path.join(*path.split('/')[:-3])
         self.autopicks = {}
         self.picks = {}
         self.notes = ''
