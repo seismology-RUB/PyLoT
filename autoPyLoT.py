@@ -253,8 +253,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
                         local_mag = LocalMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True,\
-                                                     iplot)
+                                                   parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                   True, iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -311,8 +311,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                 picks[station]['P'].update(props)
                             evt = moment_mag.updated_event()
                             local_mag = LocalMagnitude(corr_dat, evt,
-                                                         parameter.get('sstop'), True, \
-                                                         iplot)
+                                                       parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                       True, iplot)
                             for station, amplitude in local_mag.amplitudes.items():
                                 picks[station]['S']['Ao'] = amplitude.generic_amplitude
                             evt = local_mag.updated_event()

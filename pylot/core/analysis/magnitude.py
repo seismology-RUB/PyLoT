@@ -38,10 +38,10 @@ class Magnitude(object):
 
     def __init__(self, stream, event, verbosity=False, iplot=0):
         self._type = "M"
+        self._stream = stream
         self._plot_flag = iplot
         self._verbosity = verbosity
         self._event = event
-        self._stream = stream
         self._magnitudes = dict()
 
     def __str__(self):
@@ -153,10 +153,11 @@ class LocalMagnitude(Magnitude):
 
     _amplitudes = dict()
 
-    def __init__(self, stream, event, calc_win, verbosity=False, iplot=0):
+    def __init__(self, stream, event, calc_win, wascaling=None, verbosity=False, iplot=0):
         super(LocalMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._calc_win = calc_win
+        self._wascaling = wascaling
         self._type = 'ML'
         self.calc()
 
@@ -167,6 +168,10 @@ class LocalMagnitude(Magnitude):
     @calc_win.setter
     def calc_win(self, value):
         self._calc_win = value
+
+    @property
+    def wascaling(self):
+        return self._wascaling
 
     @property
     def amplitudes(self):
@@ -251,10 +256,16 @@ class LocalMagnitude(Magnitude):
             self.event.amplitudes.append(amplitude)
             self.amplitudes = (station, amplitude)
             # using standard Gutenberg-Richter relation
-            # TODO make the ML calculation more flexible by allowing
-            # use of custom relation functions
-            magnitude = ope.StationMagnitude(
-                mag=np.log10(a0) + richter_magnitude_scaling(delta))
+            # or scale WA amplitude with given scaling relation
+            if self.wascaling == None:
+                print("Calculating original Richter magnitude ...")
+                magnitude = ope.StationMagnitude(mag=np.log10(a0) \
+                            + richter_magnitude_scaling(delta))
+            else:
+                print("Calculating scaled local magnitude ...")
+                magnitude = ope.StationMagnitude(mag=np.log10(a0) \
+                            + self.wascaling[0] * np.log10(delta) + self.wascaling[1] 
+                            * delta + self.wascaling[2])
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
