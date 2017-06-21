@@ -279,11 +279,11 @@ defaults = {'rootpath': {'type': str,
             
             'WAscaling': {'type': float,
                          'tooltip': 'Scaling relation of Wood-Anderson amplitude [nm]',
-                         'value': []},
+                         'value': 1.0},
 
-            'magscaling': {'type': (float),
-                         'tooltip': 'Scaling relation for derived local magnitude',
-                         'value': []}
+            'magscaling': {'type': float,
+                         'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
+                         'value': 1.0}
 }
 
 settings_main={
