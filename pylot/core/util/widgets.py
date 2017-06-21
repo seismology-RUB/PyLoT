@@ -845,17 +845,21 @@ class PickDlg(QDialog):
         self.s_button = QPushButton('S', self)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
-        # button shortcuts (1 for P-button, 2 for S-button)
-        self.p_button.setShortcut(QKeySequence('1'))
-        self.s_button.setShortcut(QKeySequence('2'))
         # set button tooltips
         self.p_button.setToolTip('Hotkey: "1"')
         self.s_button.setToolTip('Hotkey: "2"')
-
+                                               
         # create accept/reject button
         self.accept_button = QPushButton('&Accept Picks')
         self.reject_button = QPushButton('&Reject Picks')
         self.disable_ar_buttons()
+
+        # add hotkeys
+        self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
+        self._shortcut_space.activated.connect(self.accept_button.clicked)
+        # button shortcuts (1 for P-button, 2 for S-button)
+        self.p_button.setShortcut(QKeySequence('1'))
+        self.s_button.setShortcut(QKeySequence('2'))
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
