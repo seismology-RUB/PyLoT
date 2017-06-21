@@ -1857,7 +1857,7 @@ class TuneAutopicker(QWidget):
     def fill_eventbox(self):
         # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
-        index_start = self.eventBox.currentIndex()
+        index_start = self.parent.eventBox.currentIndex()
         index = index_start
         if index == -1:
             index += 1
