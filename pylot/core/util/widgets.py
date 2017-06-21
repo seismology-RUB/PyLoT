@@ -2152,16 +2152,21 @@ class AutoPickParaBox(QtGui.QWidget):
             layout.insertWidget(position, groupbox)
 
     def get_groupbox_exclusive(self, name):
-        widget = QtGui.QWidget(self, 1)
-        self._exclusive_widget = widget
+        dialog = QtGui.QDialog(self.parent())
+        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
+        self._exclusive_dialog = dialog
         layout = QtGui.QVBoxLayout()
-        button = QtGui.QPushButton('Okay')        
-        widget.setLayout(layout)
+        dialog.setLayout(layout)
         layout.addWidget(self.groupboxes[name])
-        layout.addWidget(button)
-        button.clicked.connect(widget.close)
-        button.clicked.connect(self.refresh)
-        return widget
+        layout.addWidget(buttonbox)
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.accepted.connect(self.refresh)
+        buttonbox.accepted.connect(self.params_from_gui)
+        buttonbox.rejected.connect(dialog.reject)
+        buttonbox.rejected.connect(self.refresh)
+        buttonbox.rejected.connect(self.params_to_gui)
+        return dialog
         
     def add_to_layout(self, layout, name, items, position):
         groupbox = QtGui.QGroupBox(name)
@@ -2319,8 +2324,8 @@ class AutoPickParaBox(QtGui.QWidget):
     def show(self):
         self.refresh()
         self.show_parameter()
-        if hasattr(self, '_exclusive_widget'):
-            self._exclusive_widget.close()
+        if hasattr(self, '_exclusive_dialog'):
+            self._exclusive_dialog.close()
         QtGui.QWidget.show(self)
             
     def _warn(self, message):
