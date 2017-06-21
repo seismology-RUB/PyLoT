@@ -752,6 +752,7 @@ class PickDlg(QDialog):
             self._init_autopicks = {}
         self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
+        self.nextStation = QtGui.QCheckBox('Continue with next station.')
 
         # initialize panning attributes
         self.press = None
@@ -876,7 +877,9 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetPicksAction)
         if self._embedded:
             _dialtoolbar.addWidget(self.accept_button)
-            _dialtoolbar.addWidget(self.reject_button)            
+            _dialtoolbar.addWidget(self.reject_button)
+        else:
+            _dialtoolbar.addWidget(self.nextStation)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -1728,7 +1731,6 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
-        pickDlg.update_picks.connect(self.parent.drawPicks)
         pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
         pickDlg.update_picks.connect(self.parent.enableSaveManualPicksAction)
         self.pickDlg = QtGui.QWidget()
@@ -1738,7 +1740,15 @@ class TuneAutopicker(QWidget):
 
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
+        replot = self.parent.addPicks(station, picks)
         self.get_current_event().setPick(station, picks)
+        if self.get_current_event() == self.parent.get_current_event():
+            if replot:
+                self.parent.plotWaveformDataThread()
+                self.parent.drawPicks()
+            else:
+                self.parent.drawPicks(station)
+            self.parent.draw()
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())

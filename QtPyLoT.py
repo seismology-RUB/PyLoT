@@ -172,7 +172,6 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         self.filteroptions = {}
-        self.pickDlgs = {}
         self.picks = {}
         self.autopicks = {}
         self.loc = False
@@ -1565,7 +1564,9 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(ycoord)
 
         if wfID is None: return
-
+        self.pickDialog(wfID)
+        
+    def pickDialog(self, wfID, nextStation=False):
         station = self.getStationName(wfID)
         if not station:
             return
@@ -1576,21 +1577,23 @@ class MainWindow(QMainWindow):
                           station=station,
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'))
+        pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
-            if not pickDlg.getPicks():
-                return
-            self.setDirty(True)
-            self.update_status('picks accepted ({0})'.format(station))
-            replot = self.addPicks(station, pickDlg.getPicks())
-            self.get_current_event().setPick(station, pickDlg.getPicks())
-            self.enableSaveManualPicksAction()
-            if replot:
-                self.plotWaveformDataThread()
-                self.drawPicks()
-                self.draw()
-            else:
-                self.drawPicks(station)
-                self.draw()
+            if pickDlg.getPicks():
+                self.setDirty(True)
+                self.update_status('picks accepted ({0})'.format(station))
+                replot = self.addPicks(station, pickDlg.getPicks())
+                self.get_current_event().setPick(station, pickDlg.getPicks())
+                self.enableSaveManualPicksAction()
+                if replot:
+                    self.plotWaveformDataThread()
+                    self.drawPicks()
+                    self.draw()
+                else:
+                    self.drawPicks(station)
+                    self.draw()
+            if pickDlg.nextStation.isChecked():
+                self.pickDialog(wfID - 1, nextStation=pickDlg.nextStation.isChecked())
         else:
             self.update_status('picks discarded ({0})'.format(station))
         if not self.get_loc_flag() and self.check4Loc():
