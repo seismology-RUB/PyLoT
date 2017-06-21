@@ -1979,7 +1979,8 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_special_pick_parameters_tab()
         self.params_to_gui()
         self._toggle_advanced_settings()
-        self.resize(720, 1280)        
+        self.resize(720, 1280)
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -2107,31 +2108,29 @@ class AutoPickParaBox(QtGui.QWidget):
         scrollA = QtGui.QScrollArea()
         scrollA.setWidgetResizable(True)
         scrollA.setWidget(widget)
-
         widget.setLayout(layout)
-        
         self.tabs.addTab(scrollA, name)
 
     def add_main_parameters_tab(self):
         self.add_to_layout(self._main_layout, 'Directories',
-                           self.parameter.get_main_para_names()['dirs'])
+                           self.parameter.get_main_para_names()['dirs'], 0)
         self.add_to_layout(self._main_layout, 'NLLoc',
-                           self.parameter.get_main_para_names()['nlloc'])
+                           self.parameter.get_main_para_names()['nlloc'], 1)
         self.add_to_layout(self._main_layout, 'Seismic Moment',
-                           self.parameter.get_main_para_names()['smoment'])
+                           self.parameter.get_main_para_names()['smoment'], 2)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'])
+                           self.parameter.get_main_para_names()['pick'], 3)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
         self.add_to_layout(self._advanced_layout, 'Z-component',
-                           self.parameter.get_special_para_names()['z'])
+                           self.parameter.get_special_para_names()['z'], 0)
         self.add_to_layout(self._advanced_layout, 'H-components',
-                           self.parameter.get_special_para_names()['h'])
+                           self.parameter.get_special_para_names()['h'], 1)
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
-                           self.parameter.get_special_para_names()['fm'])
+                           self.parameter.get_special_para_names()['fm'], 2)
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'])
+                           self.parameter.get_special_para_names()['quality'], 3)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
     # def gen_h_seperator(self):
@@ -2145,12 +2144,32 @@ class AutoPickParaBox(QtGui.QWidget):
     #     font.setBold(True)
     #     label.setFont(font)
     #     return label
+
+    def refresh(self):
+        for groupbox in self.groupboxes.values():
+            layout = groupbox._parentLayout
+            position = groupbox._position
+            layout.insertWidget(position, groupbox)
+
+    def get_groupbox_exclusive(self, name):
+        widget = QtGui.QWidget(self, 1)
+        self._exclusive_widget = widget
+        layout = QtGui.QVBoxLayout()
+        button = QtGui.QPushButton('Okay')        
+        widget.setLayout(layout)
+        layout.addWidget(self.groupboxes[name])
+        layout.addWidget(button)
+        button.clicked.connect(widget.close)
+        button.clicked.connect(self.refresh)
+        return widget
         
-    def add_to_layout(self, layout, name, items):
+    def add_to_layout(self, layout, name, items, position):
         groupbox = QtGui.QGroupBox(name)
+        groupbox._position = position
+        groupbox._parentLayout = layout
         self.groupboxes[name] = groupbox
         groupbox.setLayout(self.init_boxes(items))
-        layout.addWidget(groupbox)
+        layout.insertWidget(position, groupbox)
 
     def show_groupboxes(self):
         for name in self.groupboxes.keys():
@@ -2174,6 +2193,16 @@ class AutoPickParaBox(QtGui.QWidget):
         else:
             print('Groupbox {} not part of object.'.format(name))
 
+    def show_file_buttons(self):
+        self.saveButton.show()
+        self.loadButton.show()
+        self.defaultsButton.show()
+        
+    def hide_file_buttons(self):
+        self.saveButton.hide()
+        self.loadButton.hide()
+        self.defaultsButton.hide()
+        
     def show_parameter(self, name=None):
         if not name:
             for name in self.boxes.keys():
@@ -2286,6 +2315,13 @@ class AutoPickParaBox(QtGui.QWidget):
         except Exception as e:
             self._warn('Could not restore defaults:\n{}'.format(e))
             return
+        
+    def show(self):
+        self.refresh()
+        self.show_parameter()
+        if hasattr(self, '_exclusive_widget'):
+            self._exclusive_widget.close()
+        QtGui.QWidget.show(self)
             
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
