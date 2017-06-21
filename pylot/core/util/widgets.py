@@ -2118,8 +2118,10 @@ class AutoPickParaBox(QtGui.QWidget):
                            self.parameter.get_main_para_names()['nlloc'], 1)
         self.add_to_layout(self._main_layout, 'Seismic Moment',
                            self.parameter.get_main_para_names()['smoment'], 2)
+        self.add_to_layout(self._main_layout, 'Local Magnitude',
+                           self.parameter.get_main_para_names()['localmag'], 3)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'], 3)
+                           self.parameter.get_main_para_names()['pick'], 4)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
