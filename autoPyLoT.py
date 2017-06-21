@@ -16,7 +16,7 @@ import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
 import pylot.core.loc.nll as nll
 #from PySide.QtGui import QWidget, QInputDialog
-from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
+from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
@@ -252,7 +252,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
-                        local_mag = RichterMagnitude(corr_dat, evt,
+                        local_mag = LocalMagnitude(corr_dat, evt,
                                                      parameter.get('sstop'), True,\
                                                      iplot)
                         for station, amplitude in local_mag.amplitudes.items():
@@ -310,7 +310,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             for station, props in moment_mag.moment_props.items():
                                 picks[station]['P'].update(props)
                             evt = moment_mag.updated_event()
-                            local_mag = RichterMagnitude(corr_dat, evt,
+                            local_mag = LocalMagnitude(corr_dat, evt,
                                                          parameter.get('sstop'), True, \
                                                          iplot)
                             for station, amplitude in local_mag.amplitudes.items():

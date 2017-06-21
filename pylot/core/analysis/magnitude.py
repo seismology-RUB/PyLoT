@@ -136,7 +136,7 @@ class Magnitude(object):
         return None
 
 
-class RichterMagnitude(Magnitude):
+class LocalMagnitude(Magnitude):
     """
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
     seismograph. Has to be derived from instrument corrected traces!
@@ -154,7 +154,7 @@ class RichterMagnitude(Magnitude):
     _amplitudes = dict()
 
     def __init__(self, stream, event, calc_win, verbosity=False, iplot=0):
-        super(RichterMagnitude, self).__init__(stream, event, verbosity, iplot)
+        super(LocalMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._calc_win = calc_win
         self._type = 'ML'

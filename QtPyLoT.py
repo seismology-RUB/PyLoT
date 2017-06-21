@@ -55,7 +55,7 @@ except ImportError:
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar    
 from matplotlib.figure import Figure
 
-from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
+from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, AutoPickParameter
 from autoPyLoT import autoPyLoT
@@ -2150,7 +2150,7 @@ class MainWindow(QMainWindow):
         # if not rest_flag:
         #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
-            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
+            local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
             return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'), verbosity = True)
