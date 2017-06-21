@@ -140,7 +140,8 @@ class AutoPickParameter(object):
         all_names += self.get_main_para_names()['dirs']
         all_names += self.get_main_para_names()['nlloc']
         all_names += self.get_main_para_names()['smoment']
-        all_names += self.get_main_para_names()['pick']
+        all_names += self.get_main_para_names()['localmag']
+        all_names += self.get_main_para_names()['pick']        
         all_names += self.get_special_para_names()['z']
         all_names += self.get_special_para_names()['h']
         all_names += self.get_special_para_names()['fm']
@@ -234,6 +235,8 @@ class AutoPickParameter(object):
                            'NLLoc settings', seperator)
         self.write_section(fid_out, self.get_main_para_names()['smoment'],
                            'parameters for seismic moment estimation', seperator)
+        self.write_section(fid_out, self.get_main_para_names()['localmag'],
+                           'settings local magnitude', seperator)
         self.write_section(fid_out, self.get_main_para_names()['pick'],
                            'common settings picker', seperator)
         fid_out.write(('#special settings for calculating CF#\n'+
