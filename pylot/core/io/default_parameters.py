@@ -277,13 +277,13 @@ defaults = {'rootpath': {'type': str,
                              'tooltip': 'maximum allowed deviation from Wadati-diagram',
                              'value': 1.0},
             
-            'WAscaling': {'type': float,
-                         'tooltip': 'Scaling relation of Wood-Anderson amplitude [nm]',
-                         'value': 1.0},
+            'WAscaling': {'type': (float, float, float),
+                         'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm]',
+                         'value': (1.0, 1.0, 1.0)},
 
-            'magscaling': {'type': float,
+            'magscaling': {'type': (float, float),
                          'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
-                         'value': 1.0}
+                         'value': (1.0, 1.0)}
 }
 
 settings_main={
