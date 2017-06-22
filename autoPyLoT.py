@@ -18,7 +18,7 @@ import pylot.core.loc.nll as nll
 #from PySide.QtGui import QWidget, QInputDialog
 from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import PylotParameter
+from pylot.core.io.inputs import AutoPickParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
     remove_underscores
@@ -35,7 +35,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
-    `~pylot.core.io.inputs.PylotParameter`
+    `~pylot.core.io.inputs.AutoPickParameter`
     :type inputfile: str
     :return:
 
@@ -71,13 +71,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     if not parameter:
         if inputfile:
-            parameter = PylotParameter(inputfile)
+            parameter = AutoPickParameter(inputfile)
             iplot = parameter['iplot']
         else:
             print('No parameters set and no input file given. Choose either of both.')
             return
     else:
-        if not type(parameter) == PylotParameter:
+        if not type(parameter) == AutoPickParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
             return
         if inputfile:
@@ -252,12 +252,17 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
+                        net_mw = moment_mag.net_magnitude()
+                        print("Network moment magnitude: %4.1f" % net_mw.mag)
+                        # calculate local (Richter) magntiude
                         local_mag = LocalMagnitude(corr_dat, evt,
                                                    parameter.get('sstop'), parameter.get('WAscaling'), \
                                                    True, iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
-                        evt = local_mag.updated_event()
+                        evt = local_mag.updated_event(parameter.get('magscaling'))
+                        net_ml = local_mag.net_magnitude()
+                        print("Network local magnitude: %4.1f" % net_ml.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -310,14 +315,17 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             for station, props in moment_mag.moment_props.items():
                                 picks[station]['P'].update(props)
                             evt = moment_mag.updated_event()
+                            net_mw = moment_mag.net_magnitude()
+                            print("Network moment magnitude: %4.1f" % net_mw.mag)
+                            # calculate local (Richter) magntiude
                             local_mag = LocalMagnitude(corr_dat, evt,
                                                        parameter.get('sstop'), parameter.get('WAscaling'), \
                                                        True, iplot)
                             for station, amplitude in local_mag.amplitudes.items():
                                 picks[station]['S']['Ao'] = amplitude.generic_amplitude
-                            evt = local_mag.updated_event()
-                            net_mw = moment_mag.net_magnitude()
-                            print("Network moment magnitude: %4.1f" % net_mw.mag)
+                            evt = local_mag.updated_event(parameter.get('magscaling'))
+                            net_ml = local_mag.net_magnitude(parameter.get('magscaling'))
+                            print("Network local magnitude: %4.1f" % net_ml.mag)
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
@@ -328,26 +336,26 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             data.applyEVTData(picks)
             if evt is not None:
                 data.applyEVTData(evt, 'event')
-            fnqml = '%s/autoPyLoT' % event
+            fnqml = '%s/picks_%s' % (event, evID)
             data.exportEvent(fnqml)
             # HYPO71
-            hypo71file = '%s/autoPyLoT_HYPO71_phases' % event
+            hypo71file = '%s/%s_HYPO71_phases' % (event, evID)
             hypo71.export(picks, hypo71file, parameter)
             # HYPOSAT
-            hyposatfile = '%s/autoPyLoT_HYPOSAT_phases' % event
+            hyposatfile = '%s/%s_HYPOSAT_phases' % (event, evID)
             hyposat.export(picks, hyposatfile, parameter)
             if locflag == 1:
             	# VELEST
-            	velestfile = '%s/autoPyLoT_VELEST_phases.cnv' % event
+            	velestfile = '%s/%s_VELEST_phases.cnv' % (event, evID)
             	velest.export(picks, velestfile, parameter, evt)
             	# hypoDD
-            	hypoddfile = '%s/autoPyLoT_hypoDD_phases.pha' % event
+            	hypoddfile = '%s/%s_hypoDD_phases.pha' % (event, evID)
             	hypodd.export(picks, hypoddfile, parameter, evt)
             	# FOCMEC
-            	focmecfile = '%s/autoPyLoT_FOCMEC.in' % event
+            	focmecfile = '%s/%s_FOCMEC.in' % (event, evID)
             	focmec.export(picks, focmecfile, parameter, evt)
             	# HASH
-            	hashfile = '%s/autoPyLoT_HASH' % event
+            	hashfile = '%s/%s_HASH' % (event, evID)
             	hash.export(picks, hashfile, parameter, evt)
 
             endsplash = '''------------------------------------------\n'
