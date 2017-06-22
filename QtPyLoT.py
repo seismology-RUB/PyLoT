@@ -55,9 +55,9 @@ except ImportError:
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar    
 from matplotlib.figure import Figure
 
-from pylot.core.analysis.magnitude import RichterMagnitude, MomentMagnitude
+from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import FilterOptions, AutoPickParameter
+from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
@@ -73,7 +73,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker, AutoPickParaBox
+    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread, Thread
@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
             self.infile = infile[0]
         else:
              self.infile = infile
-        self._inputs = AutoPickParameter(infile)
+        self._inputs = PylotParameter(infile)
         self._props = None
 
         self.dirty = False
@@ -799,7 +799,7 @@ class MainWindow(QMainWindow):
                 self.paraBox.setValue(box, dirs[directory])
                 #show needed parameter in box
                 self.paraBox.show_parameter(directory)
-            dirs_box = self.paraBox.get_groupbox_exclusive('Directories')
+            dirs_box = self.paraBox.get_groupbox_dialog('Directories')
             if not dirs_box.exec_():
                 return
             self.project.rootpath = dirs['rootpath']
@@ -2150,7 +2150,7 @@ class MainWindow(QMainWindow):
         # if not rest_flag:
         #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
-            local_mag = RichterMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
+            local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'), verbosity = True)
             return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'), self.inputs.get('Qp'), self.inputs.get('rho'), verbosity = True)
@@ -2331,7 +2331,7 @@ class MainWindow(QMainWindow):
 
     def setParameter(self, show=True):
         if not self.paraBox:
-            self.paraBox = AutoPickParaBox(self._inputs)
+            self.paraBox = PylotParaBox(self._inputs)
             self.paraBox._apply.clicked.connect(self._setDirty)
             self.paraBox._okay.clicked.connect(self._setDirty)
         if show:

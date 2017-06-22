@@ -16,9 +16,9 @@ import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
 import pylot.core.loc.nll as nll
 #from PySide.QtGui import QWidget, QInputDialog
-from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
+from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
     remove_underscores
@@ -35,7 +35,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
-    `~pylot.core.io.inputs.AutoPickParameter`
+    `~pylot.core.io.inputs.PylotParameter`
     :type inputfile: str
     :return:
 
@@ -71,13 +71,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     if not parameter:
         if inputfile:
-            parameter = AutoPickParameter(inputfile)
+            parameter = PylotParameter(inputfile)
             iplot = parameter['iplot']
         else:
             print('No parameters set and no input file given. Choose either of both.')
             return
     else:
-        if not type(parameter) == AutoPickParameter:
+        if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
             return
         if inputfile:
@@ -252,9 +252,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
-                        local_mag = RichterMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True,\
-                                                     iplot)
+                        local_mag = LocalMagnitude(corr_dat, evt,
+                                                   parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                   True, iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -310,9 +310,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             for station, props in moment_mag.moment_props.items():
                                 picks[station]['P'].update(props)
                             evt = moment_mag.updated_event()
-                            local_mag = RichterMagnitude(corr_dat, evt,
-                                                         parameter.get('sstop'), True, \
-                                                         iplot)
+                            local_mag = LocalMagnitude(corr_dat, evt,
+                                                       parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                       True, iplot)
                             for station, amplitude in local_mag.amplitudes.items():
                                 picks[station]['S']['Ao'] = amplitude.generic_amplitude
                             evt = local_mag.updated_event()

@@ -36,7 +36,7 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import FilterOptions, AutoPickParameter
+from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
@@ -1662,7 +1662,7 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.paraBox = AutoPickParaBox(self.parameter)
+        self.paraBox = PylotParaBox(self.parameter)
         self.paraBox.set_tune_mode(True)
         self.update_eventID()
         self.parameter_layout.addWidget(self.paraBox)
@@ -1968,13 +1968,13 @@ class TuneAutopicker(QWidget):
         self.qmb.show()        
     
                 
-class AutoPickParaBox(QtGui.QWidget):     
+class PylotParaBox(QtGui.QWidget):     
     def __init__(self, parameter, parent=None):
         '''
         Generate Widget containing parameters for automatic picking algorithm.
 
         :param: parameter
-        :type: AutoPickParameter (object)
+        :type: PylotParameter (object)
 
         '''
         QtGui.QWidget.__init__(self, parent)
@@ -1987,6 +1987,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.labels = {}
         self.boxes = {}
         self.groupboxes = {}
+        self._exclusive_widgets = []
         self._init_sublayouts()
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
@@ -2034,7 +2035,7 @@ class AutoPickParaBox(QtGui.QWidget):
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
-        self._advanced_layout.addWidget(self._advanced_cb)
+        self._advanced_layout.insertWidget(0, self._advanced_cb)
         self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
 
     def _toggle_advanced_settings(self):
@@ -2140,13 +2141,13 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def add_special_pick_parameters_tab(self):
         self.add_to_layout(self._advanced_layout, 'Z-component',
-                           self.parameter.get_special_para_names()['z'], 0)
+                           self.parameter.get_special_para_names()['z'], 1)
         self.add_to_layout(self._advanced_layout, 'H-components',
-                           self.parameter.get_special_para_names()['h'], 1)
+                           self.parameter.get_special_para_names()['h'], 2)
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
-                           self.parameter.get_special_para_names()['fm'], 2)
+                           self.parameter.get_special_para_names()['fm'], 3)
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'], 3)
+                           self.parameter.get_special_para_names()['quality'], 4)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
     # def gen_h_seperator(self):
@@ -2168,20 +2169,29 @@ class AutoPickParaBox(QtGui.QWidget):
             layout.insertWidget(position, groupbox)
 
     def get_groupbox_exclusive(self, name):
+        widget = QtGui.QWidget(self, 1)
+        layout = QtGui.QVBoxLayout()
+        widget.setLayout(layout)
+        layout.addWidget(self.groupboxes[name])
+        self._exclusive_widgets.append(widget)
+        return widget
+
+    def get_groupbox_dialog(self, name):
+        widget = self.get_groupbox_exclusive(name)
         dialog = QtGui.QDialog(self.parent())
-        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
-                                           QDialogButtonBox.Cancel)
-        self._exclusive_dialog = dialog
         layout = QtGui.QVBoxLayout()
         dialog.setLayout(layout)
-        layout.addWidget(self.groupboxes[name])
-        layout.addWidget(buttonbox)
+        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
         buttonbox.accepted.connect(dialog.accept)
         buttonbox.accepted.connect(self.refresh)
         buttonbox.accepted.connect(self.params_from_gui)
         buttonbox.rejected.connect(dialog.reject)
         buttonbox.rejected.connect(self.refresh)
         buttonbox.rejected.connect(self.params_to_gui)
+        layout.addWidget(widget)
+        layout.addWidget(buttonbox)
+        self._exclusive_dialog = dialog
         return dialog
         
     def add_to_layout(self, layout, name, items, position):
@@ -2342,6 +2352,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.show_parameter()
         if hasattr(self, '_exclusive_dialog'):
             self._exclusive_dialog.close()
+        self._exclusive_widgets = []
         QtGui.QWidget.show(self)
             
     def _warn(self, message):
@@ -2510,7 +2521,7 @@ class InputsTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         datstruct = para.get('datastructure')
         if datstruct == 'SeisComp':
            index = 0
@@ -2766,7 +2777,7 @@ class LocalisationTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         nllocroot = para.get('nllocroot')
         nllocbin = para.get('nllocbin')
         loctool = self.locToolComboBox.setCurrentIndex(3)

@@ -4,9 +4,9 @@
 from pylot.core.util.errors import ParameterError
 import default_parameters
 
-class AutoPickParameter(object):
+class PylotParameter(object):
     '''
-    AutoPickParameters is a parameter type object capable to read and/or write
+    PylotParameter is a parameter type object capable to read and/or write
     parameter ASCII.
 
     :param fn str: Filename of the input file
@@ -78,7 +78,7 @@ class AutoPickParameter(object):
         
     # String representation of the object
     def __repr__(self):
-        return "AutoPickParameter('%s')" % self.__filename
+        return "PylotParameter('%s')" % self.__filename
 
     # Boolean test
     def __nonzero__(self):
