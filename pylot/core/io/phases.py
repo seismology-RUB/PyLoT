@@ -8,7 +8,7 @@ import scipy.io as sio
 import warnings
 from obspy.core import UTCDateTime
 
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_arrival, create_event, \
     create_magnitude, create_origin, create_pick
 from pylot.core.pick.utils import select_for_phase
@@ -116,7 +116,7 @@ def picksdict_from_pilot(fn):
     picks = dict()
     phases_pilot = sio.loadmat(fn)
     stations = stations_from_pilot(phases_pilot['stat'])
-    params = AutoPickParameter(TIMEERROR_DEFAULTS)
+    params = PylotParameter(TIMEERROR_DEFAULTS)
     timeerrors = dict(P=params.get('timeerrorsP'),
                       S=params.get('timeerrorsS'))
     for n, station in enumerate(stations):
@@ -295,14 +295,14 @@ def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0
 def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
     from obspy import read
 
-    from pylot.core.io.inputs import AutoPickParameter
+    from pylot.core.io.inputs import PylotParameter
     from pylot.core.pick.utils import earllatepicker
 
     if fn_param is None:
         import pylot.core.util.defaults as defaults
         fn_param = defaults.AUTOMATIC_DEFAULTS
 
-    default = AutoPickParameter(fn_param, verbosity)
+    default = PylotParameter(fn_param, verbosity)
 
     search_base = os.path.join(root_dir, db_dir, event_id)
     phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))

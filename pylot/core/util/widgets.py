@@ -36,7 +36,7 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import FilterOptions, AutoPickParameter
+from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
@@ -1662,7 +1662,7 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.paraBox = AutoPickParaBox(self.parameter)
+        self.paraBox = PylotParaBox(self.parameter)
         self.paraBox.set_tune_mode(True)
         self.update_eventID()
         self.parameter_layout.addWidget(self.paraBox)
@@ -1968,13 +1968,13 @@ class TuneAutopicker(QWidget):
         self.qmb.show()        
     
                 
-class AutoPickParaBox(QtGui.QWidget):     
+class PylotParaBox(QtGui.QWidget):     
     def __init__(self, parameter, parent=None):
         '''
         Generate Widget containing parameters for automatic picking algorithm.
 
         :param: parameter
-        :type: AutoPickParameter (object)
+        :type: PylotParameter (object)
 
         '''
         QtGui.QWidget.__init__(self, parent)
@@ -2521,7 +2521,7 @@ class InputsTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         datstruct = para.get('datastructure')
         if datstruct == 'SeisComp':
            index = 0
@@ -2777,7 +2777,7 @@ class LocalisationTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         nllocroot = para.get('nllocroot')
         nllocbin = para.get('nllocbin')
         loctool = self.locToolComboBox.setCurrentIndex(3)

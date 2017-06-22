@@ -18,7 +18,7 @@ import pylot.core.loc.nll as nll
 #from PySide.QtGui import QWidget, QInputDialog
 from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
     remove_underscores
@@ -35,7 +35,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
-    `~pylot.core.io.inputs.AutoPickParameter`
+    `~pylot.core.io.inputs.PylotParameter`
     :type inputfile: str
     :return:
 
@@ -71,13 +71,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     if not parameter:
         if inputfile:
-            parameter = AutoPickParameter(inputfile)
+            parameter = PylotParameter(inputfile)
             iplot = parameter['iplot']
         else:
             print('No parameters set and no input file given. Choose either of both.')
             return
     else:
-        if not type(parameter) == AutoPickParameter:
+        if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
             return
         if inputfile:
