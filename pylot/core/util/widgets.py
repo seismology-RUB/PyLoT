@@ -2034,7 +2034,7 @@ class AutoPickParaBox(QtGui.QWidget):
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
-        self._advanced_layout.addWidget(self._advanced_cb)
+        self._advanced_layout.insertWidget(self._advanced_cb, 0)
         self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
 
     def _toggle_advanced_settings(self):
@@ -2140,13 +2140,13 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def add_special_pick_parameters_tab(self):
         self.add_to_layout(self._advanced_layout, 'Z-component',
-                           self.parameter.get_special_para_names()['z'], 0)
+                           self.parameter.get_special_para_names()['z'], 1)
         self.add_to_layout(self._advanced_layout, 'H-components',
-                           self.parameter.get_special_para_names()['h'], 1)
+                           self.parameter.get_special_para_names()['h'], 2)
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
-                           self.parameter.get_special_para_names()['fm'], 2)
+                           self.parameter.get_special_para_names()['fm'], 3)
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'], 3)
+                           self.parameter.get_special_para_names()['quality'], 4)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
     # def gen_h_seperator(self):
