@@ -282,8 +282,24 @@ defaults = {'rootpath': {'type': str,
                          'value': (1.0, 1.0, 1.0)},
 
             'magscaling': {'type': (float, float),
-                         'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
-                         'value': (1.0, 1.0)}
+                           'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
+                           'value': (1.0, 1.0)},
+            
+            'minfreq': {'type': float,
+                        'tooltip': 'Lower filter frequency',
+                        'value': 1.0},
+            
+            'maxfreq': {'type': float,
+                        'tooltip': 'Upper filter frequency',
+                        'value': 10.0},
+            
+            'filter_order': {'type': int,
+                             'tooltip': 'filter order',
+                             'value': 2},
+            
+            'filter_type': {'type': str,
+                            'tooltip': 'filter type (bandpass, bandstop, lowpass, highpass)',
+                            'value': None}
 }
 
 settings_main={
@@ -309,6 +325,11 @@ settings_main={
     'localmag':[
         'WAscaling',
         'magscaling'],
+    'filter':[
+        'minfreq',
+        'maxfreq',
+        'filter_order',
+        'filter_type'],
     'pick':[
         'extent',
         'pstart',

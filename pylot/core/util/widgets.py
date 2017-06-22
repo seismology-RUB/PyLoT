@@ -2135,8 +2135,10 @@ class PylotParaBox(QtGui.QWidget):
                            self.parameter.get_main_para_names()['smoment'], 2)
         self.add_to_layout(self._main_layout, 'Local Magnitude',
                            self.parameter.get_main_para_names()['localmag'], 3)
+        self.add_to_layout(self._main_layout, 'Filter Settings',
+                           self.parameter.get_main_para_names()['filter'], 4)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'], 4)
+                           self.parameter.get_main_para_names()['pick'], 5)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
