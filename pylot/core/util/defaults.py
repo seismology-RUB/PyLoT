@@ -56,27 +56,55 @@ OUTPUTFORMATS = {'.xml': 'QUAKEML',
 LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=hypodd)
 
 
-class SetChannelComponents:
-    def getdefaultCompPosition():
+class SetChannelComponents(object):
+    def __init__(self):
+        self.setDefaultCompPosition()
+        
+    def setDefaultCompPosition(self):
         # default component order
-        CompPosition_Map = dict(Z=2, N=1, E=0)
-        CompPosition_Map['1'] = 1
-        CompPosition_Map['2'] = 0
-        CompPosition_Map['3'] = 2
-        CompName_Map = dict(Z='3', N='1', E='2')
-        CompName_Map['1'] = str(1)
-        CompName_Map['2'] = str(2)
-        CompName_Map['3'] = str(3)
-        return CompPosition_Map, CompName_Map
+        self.compPosition_Map = dict(Z=2, N=1, E=0)
+        self.compName_Map = {'3': 'Z',
+                             '1': 'N',
+                             '2': 'E'}
+        
+    def _getCurrentPosition(self, component):
+        for key, value in self.compName_Map.items():
+            if value == component:
+                return key, value
+        errMsg = 'getCurrentPosition: Could not find former position of component {}.'.format(component)
+        raise ValueError(errMsg)
 
-    CompPosition_Map, CompName_Map = getdefaultCompPosition()
+    def _switch(self, component, component_alter):
+        # Without switching, multiple definitions of the same alter_comp are possible
+        old_alter_comp, _ = self._getCurrentPosition(component)
+        old_comp = self.compName_Map[component_alter]
+        if not old_alter_comp == component_alter and not old_comp == component:
+            self.compName_Map[old_alter_comp] = old_comp
+            print('switch: Automatically switched component {} to {}'.format(old_alter_comp, old_comp))
 
-    def setCompPosition(self, component, position):
-       self.CompPosition_Map[component] = position
-       self.CompName_Map[component] = str(position)
+    def setCompPosition(self, component_alter, component, switch=True):
+        component_alter = str(component_alter)
+        if not component_alter in self.compName_Map.keys():
+            errMsg='setCompPosition: Unrecognized alternative component {}. Expecting one of {}.'
+            raise ValueError(errMsg.format(component_alter, self.compName_Map.keys()))
+        if not component in self.compPosition_Map.keys():
+            errMsg='setCompPosition: Unrecognized target component {}. Expecting one of {}.'
+            raise ValueError(errMsg.format(component, self.compPosition_Map.keys()))
+        print('setCompPosition: set component {} to {}'.format(component_alter, component))
+        if switch:
+            self._switch(component, component_alter)
+        self.compName_Map[component_alter] = component
 
-    def getCompPosition(self, component): 
-        self.comppos = self.CompPosition_Map[component]
-        self.compname = self.CompName_Map[component] 
-        return self.comppos, self.compname 
+    def getCompPosition(self, component):
+        return self._getCurrentPosition(component)[0]
+        
+    def getPlotPosition(self, component):
+        component = str(component)
+        if component in self.compPosition_Map.keys():
+            return self.compPosition_Map[component]
+        elif component in self.compName_Map.keys():
+            return self.compPosition_Map[self.compName_Map[component]]
+        else:
+            errMsg='getCompPosition: Unrecognized component {}. Expecting one of {} or {}.'
+            raise ValueError(errMsg.format(component, self.compPosition_Map.keys(), self.compName_Map.keys()))
    

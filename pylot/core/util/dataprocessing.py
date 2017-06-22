@@ -169,7 +169,8 @@ def read_metadata(path_to_inventory):
     dlfile = list()
     invfile = list()
     respfile = list()
-    inv = dict(dless=dlfile, xml=invfile, resp=respfile)
+    # possible file extensions specified here:
+    inv = dict(dless=dlfile, xml=invfile, resp=respfile, dseed=dlfile)
     if os.path.isfile(path_to_inventory):
         ext = os.path.splitext(path_to_inventory)[1].split('.')[1]
         inv[ext] += [path_to_inventory]

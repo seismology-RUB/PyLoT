@@ -11,7 +11,7 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
@@ -81,7 +81,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
 
     :param pickparam: container of picking parameters from input file,
            usually autoPyLoT.in
-    :type pickparam: AutoPickParameter
+    :type pickparam: PylotParameter
     :param verbose:
     :type verbose: bool
 

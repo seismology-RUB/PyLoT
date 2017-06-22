@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys
+import sys, os
 from PySide.QtCore import QThread, Signal, Qt
 from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
 
@@ -64,7 +64,9 @@ class Thread(QThread):
         except Exception as e:
             self._executed = False
             self._executedError = e
-            print(e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print('Exception: {}, file: {}, line: {}'.format(exc_type, fname, exc_tb.tb_lineno))
         sys.stdout = sys.__stdout__        
 
     def __del__(self):

@@ -16,9 +16,9 @@ import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
 import pylot.core.loc.nll as nll
 #from PySide.QtGui import QWidget, QInputDialog
-from pylot.core.analysis.magnitude import MomentMagnitude, RichterMagnitude
+from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
 from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
     remove_underscores
@@ -35,7 +35,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     :param inputfile: path to the input file containing all parameter
     information for automatic picking (for formatting details, see.
-    `~pylot.core.io.inputs.AutoPickParameter`
+    `~pylot.core.io.inputs.PylotParameter`
     :type inputfile: str
     :return:
 
@@ -71,13 +71,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     if not parameter:
         if inputfile:
-            parameter = AutoPickParameter(inputfile)
+            parameter = PylotParameter(inputfile)
             iplot = parameter['iplot']
         else:
             print('No parameters set and no input file given. Choose either of both.')
             return
     else:
-        if not type(parameter) == AutoPickParameter:
+        if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
             return
         if inputfile:
@@ -130,21 +130,35 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print("!!No source parameter estimation possible!!")
             print("                 !!!              ")
 
-        datapath = datastructure.expandDataPath()
-        if fnames == 'None' and not parameter.hasParam('eventID'):
-            # multiple event processing
-            # read each event in database
-            events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
-        elif fnames == 'None' and parameter.hasParam('eventID'):
-            # single event processing
-            events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+        if not input_dict:
+            # started in production mode
+            datapath = datastructure.expandDataPath()
+            if fnames == 'None' and not parameter['eventID']:
+                # multiple event processing
+                # read each event in database
+                events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
+            elif fnames == 'None' and parameter['eventID']:
+                # single event processing
+                events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+            else:
+                # autoPyLoT was initialized from GUI
+                events = []
+                events.append(eventid)
+                evID = os.path.split(eventid)[-1]
+                locflag = 2
         else:
-            # autoPyLoT was initialized from GUI
+            # started in tune mode
+            datapath = os.path.join(parameter['rootpath'],
+                                    parameter['datapath'])
             events = []
-            events.append(eventid)
-            evID = os.path.split(eventid)[-1]
-            locflag = 2
+            events.append(os.path.join(datapath,
+                                       parameter['database'],
+                                       parameter['eventID']))
 
+        if not events:
+            print('autoPyLoT: No events given. Return!')
+            return
+        
         for event in events:
             if fnames == 'None':
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
@@ -238,9 +252,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         for station, props in moment_mag.moment_props.items():
                             picks[station]['P'].update(props)
                         evt = moment_mag.updated_event()
-                        local_mag = RichterMagnitude(corr_dat, evt,
-                                                     parameter.get('sstop'), True,\
-                                                     iplot)
+                        local_mag = LocalMagnitude(corr_dat, evt,
+                                                   parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                   True, iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
                         evt = local_mag.updated_event()
@@ -296,9 +310,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             for station, props in moment_mag.moment_props.items():
                                 picks[station]['P'].update(props)
                             evt = moment_mag.updated_event()
-                            local_mag = RichterMagnitude(corr_dat, evt,
-                                                         parameter.get('sstop'), True, \
-                                                         iplot)
+                            local_mag = LocalMagnitude(corr_dat, evt,
+                                                       parameter.get('sstop'), parameter.get('WAscaling'), \
+                                                       True, iplot)
                             for station, amplitude in local_mag.amplitudes.items():
                                 picks[station]['S']['Ao'] = amplitude.generic_amplitude
                             evt = local_mag.updated_event()
@@ -357,8 +371,15 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(
         description='''autoPyLoT automatically picks phase onset times using higher order statistics,
-                       autoregressive prediction and AIC''')
+                       autoregressive prediction and AIC followed by locating the seismic events using 
+                       NLLoc''')
 
+    #parser.add_argument('-d', '-D', '--input_dict', type=str,
+    #                    action='store',
+    #                    help='''optional, dictionary containing processing parameters''')
+    #parser.add_argument('-p', '-P', '--parameter', type=str,
+    #                    action='store',
+    #                    help='''parameter file, default=None''')
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
                         help='''full path to the file containing the input
@@ -369,17 +390,14 @@ if __name__ == "__main__":
     parser.add_argument('-e', '-E', '--eventid', type=str,
                         action='store',
                         help='''optional, event path incl. event ID''')
-    # parser.add_argument('-p', '-P', '--plot', action='store',
-    #                     help='show interactive plots')
     parser.add_argument('-s', '-S', '--spath', type=str,
                         action='store',
                         help='''optional, save path for autoPyLoT output''')
-    parser.add_argument('-v', '-V', '--version', action='version',
-                        version='autoPyLoT ' + __version__,
-                        help='show version information and exit')
+    #parser.add_argument('-v', '-V', '--version', action='version',
+    #                    version='autoPyLoT ' + __version__,
+    #                    help='show version information and exit')
 
     cla = parser.parse_args()
-
-    picks, mainFig = autoPyLoT(inputfile=str(cla.inputfile),
-                               fnames=str(cla.fnames), eventid=str(cla.eventid), 
-                               savepath=str(cla.spath))
+    
+    picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
+                      eventid=str(cla.eventid), savepath=str(cla.spath))

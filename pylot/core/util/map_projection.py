@@ -43,7 +43,7 @@ class map_projection(QtGui.QWidget):
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
-            station=str(self.station_names[index])
+            station=str(self.station_names[index].split('.')[-1])
             try:
                 pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
@@ -51,7 +51,7 @@ class map_projection(QtGui.QWidget):
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station))
             except Exception as e:
-                message = 'Could not generate Plot for station {st}.\n{er}'.format(st=station, er=e)
+                message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
                 return
@@ -120,8 +120,9 @@ class map_projection(QtGui.QWidget):
             lon=[]
             for station in parser.stations:
                 station_name=station[0].station_call_letters
+                network=station[0].network_code
                 if not station_name in station_names:
-                    station_names.append(station_name)
+                    station_names.append(network+'.'+station_name)
                     lat.append(station[0].latitude)
                     lon.append(station[0].longitude)
             return station_names, lat, lon
@@ -137,6 +138,7 @@ class map_projection(QtGui.QWidget):
             picks=[]
             for station in station_names:
                 try:
+                    station=station.split('.')[-1]
                     picks.append(self.picks_dict[station][phase]['mpp'])
                 except:
                     picks.append(np.nan)
@@ -234,9 +236,9 @@ class map_projection(QtGui.QWidget):
                                          self.picks_no_nan, (self.latgrid, self.longrid), method='linear') ##################
 
     def draw_contour_filled(self, nlevel='50'):
-        levels = np.linspace(min(self.picks_rel), max(self.picks_rel), nlevel)
+        levels = np.linspace(min(self.picks_no_nan), max(self.picks_no_nan), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_no_nan,
-                                              levels, latlon=True, zorder=9)
+                                              levels, latlon=True, zorder=9, alpha=0.5)
 
     def scatter_all_stations(self):
         self.sc = self.basemap.scatter(self.lon, self.lat, s=50, facecolor='none', latlon=True,

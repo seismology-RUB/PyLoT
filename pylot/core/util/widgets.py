@@ -12,6 +12,11 @@ import copy
 import datetime
 import numpy as np
 
+try:
+    import pyqtgraph as pg
+except:
+    pg = None
+
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals
 
@@ -31,17 +36,22 @@ from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
 from pylot.core.io.data import Data
-from pylot.core.io.inputs import FilterOptions, AutoPickParameter
+from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, \
-    SetChannelComponents
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 import icons_rc
+
+if pg:
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+    pg.setConfigOptions(antialias=True)
+    #pg.setConfigOption('leftButtonPan', False)
 
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",
@@ -394,6 +404,174 @@ class PlotWidget(FigureCanvas):
         return self._parent
 
 
+class WaveformWidgetPG(QtGui.QWidget):
+    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
+        QtGui.QWidget.__init__(self, parent)#, 1)
+        self.setParent(parent)
+        self._parent = parent
+        # attribute plotdict is a dictionary connecting position and a name
+        self.plotdict = dict()
+        # create plot
+        self.main_layout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel()
+        self.setLayout(self.main_layout)
+        self.plotWidget = pg.PlotWidget(title=title, autoDownsample=True)
+        self.main_layout.addWidget(self.plotWidget)
+        self.main_layout.addWidget(self.label)
+        self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self.plotWidget.hideAxis('bottom')
+        self.plotWidget.hideAxis('left')        
+        self.reinitMoveProxy()
+        self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+
+    def reinitMoveProxy(self):
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.plotWidget.addItem(self.vLine, ignoreBounds=True)
+        self.plotWidget.addItem(self.hLine, ignoreBounds=True)
+        
+    def mouseMoved(self, evt):
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+        if self.plotWidget.sceneBoundingRect().contains(pos):
+            mousePoint = self.plotWidget.getPlotItem().vb.mapSceneToView(pos)
+            x, y, = (mousePoint.x(), mousePoint.y())
+            #if x > 0:# and index < len(data1):
+            wfID = self._parent.getWFID(y)
+            station = self._parent.getStationName(wfID)
+            if self._parent.get_current_event():
+                self.label.setText("station = {}, t = {} [s]".format(station, x))
+            self.vLine.setPos(mousePoint.x())
+            self.hLine.setPos(mousePoint.y())
+
+    def getPlotDict(self):
+        return self.plotdict
+
+    def setPlotDict(self, key, value):
+        self.plotdict[key] = value
+
+    def clearPlotDict(self):
+        self.plotdict = dict()
+
+    def getParent(self):
+        return self._parent
+
+    def setParent(self, parent):
+        self._parent = parent
+
+    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+                   noiselevel=None, scaleddata=False, mapping=True,
+                   component='*', nth_sample=1, iniPick=None):
+        self.title = title
+        self.clearPlotDict()
+        wfstart, wfend = full_range(wfdata)
+        nmax = 0
+        
+        settings = QSettings()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
+
+        if not component == '*':
+            alter_comp = compclass.getCompPosition(component)
+            #alter_comp = str(alter_comp[0])
+
+            st_select = wfdata.select(component=component)
+            st_select += wfdata.select(component=alter_comp)
+        else:
+            st_select = wfdata
+
+        # list containing tuples of network, station, channel (for sorting)
+        nsc = [] 
+        for trace in st_select:
+            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
+        nsc.sort()
+        nsc.reverse()
+        plots = []
+
+        try:
+            self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
+                                                       xMax=float(wfend-wfstart),
+                                                       yMin=-0.5,
+                                                       yMax=len(nsc)+0.5)
+        except:
+            print('Warning: Could not set zoom limits')
+        
+        for n, (network, station, channel) in enumerate(nsc):
+            st = st_select.select(network=network, station=station, channel=channel)
+            trace = st[0]
+            if mapping:
+                comp = channel[-1]
+                n = compclass.getPlotPosition(str(comp))
+                #n = n[0]
+            if n > nmax:
+                nmax = n
+            msg = 'plotting %s channel of station %s' % (channel, station)
+            print(msg)
+            stime = trace.stats.starttime - wfstart
+            time_ax = prepTimeAxis(stime, trace)
+            if time_ax is not None:
+            	if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
+                data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
+                plots.append((times, data))
+                self.setPlotDict(n, (station, channel, network))
+        self.xlabel = 'seconds since {0}'.format(wfstart)
+        self.ylabel = ''
+        self.setXLims([0, wfend - wfstart])
+        self.setYLims([-0.5, nmax + 0.5])
+        return plots
+
+    # def getAxes(self):
+    #     return self.axes
+
+    # def getXLims(self):
+    #     return self.getAxes().get_xlim()
+
+    # def getYLims(self):
+    #     return self.getAxes().get_ylim()
+
+    def setXLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setXRange(float(lims[0]), float(lims[1]), padding=0)
+
+    def setYLims(self, lims):
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        vb.setYRange(float(lims[0]), float(lims[1]), padding=0)
+
+    def setYTickLabels(self, pos, labels):
+        ticks = zip(pos, labels)
+        minorTicks = [(0, 0) for item in labels]
+        # leftAx.tickLength = 5
+        # leftAx.orientation = 'right'
+        self.getAxItem('left').setTicks([ticks, minorTicks])
+
+    def updateXLabel(self, text):
+        self.getAxItem('bottom').setLabel(text)
+        self.draw()
+
+    def updateYLabel(self, text):
+        self.getAxItem('left').setLabel(text)        
+        self.draw()
+
+    def getAxItem(self, position):
+        return self.plotWidget.getPlotItem().axes[position]['item']
+
+    def updateTitle(self, text):
+        self.plotWidget.getPlotItem().setTitle(text)
+        self.draw()
+
+    def updateWidget(self):#, xlabel, ylabel, title):
+        self.updateXLabel(self.xlabel)
+        self.updateYLabel(self.ylabel)
+        self.updateTitle(self.title)
+
+    def draw(self):
+        pass
+
+
 class WaveformWidget(FigureCanvas):
     def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
 
@@ -431,35 +609,41 @@ class WaveformWidget(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1):
+                   component='*', nth_sample=1, iniPick=None):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
         nmax = 0
         
-        compclass = SetChannelComponents()
+        settings = QSettings()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
 
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
-            alter_comp = str(alter_comp[0])
+            #alter_comp = str(alter_comp[0])
 
-            wfdata = wfdata.select(component=component)
-            wfdata += wfdata.select(component=alter_comp)
+            st_select = wfdata.select(component=component)
+            st_select += wfdata.select(component=alter_comp)
+        else:
+            st_select = wfdata
         
         # list containing tuples of network, station, channel (for sorting)
         nsc = [] 
-        for trace in wfdata:
+        for trace in st_select:
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
 
         for n, (network, station, channel) in enumerate(nsc):
-            st = wfdata.select(network=network, station=station, channel=channel)
+            st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0]
             if mapping:
                 comp = channel[-1]
-                n = compclass.getCompPosition(str(comp))
-                n = n[0]
+                n = compclass.getPlotPosition(str(comp))
+                #n = n[0]
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
@@ -477,6 +661,11 @@ class WaveformWidget(FigureCanvas):
                    for level in noiselevel:
                        self.getAxes().plot([time_ax[0], time_ax[-1]],
                                            [level, level], '--k')
+                if iniPick:
+                    ax = self.getAxes()
+                    ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
+                              colors='m', linestyles='dashed',
+                              linewidth=2)
                 self.setPlotDict(n, (station, channel, network))
         xlabel = 'seconds since {0}'.format(wfstart)
         ylabel = ''
@@ -563,6 +752,7 @@ class PickDlg(QDialog):
             self._init_autopicks = {}
         self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
+        self.nextStation = QtGui.QCheckBox('Continue with next station.')
 
         # initialize panning attributes
         self.press = None
@@ -656,17 +846,21 @@ class PickDlg(QDialog):
         self.s_button = QPushButton('S', self)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
-        # button shortcuts (1 for P-button, 2 for S-button)
-        self.p_button.setShortcut(QKeySequence('1'))
-        self.s_button.setShortcut(QKeySequence('2'))
         # set button tooltips
         self.p_button.setToolTip('Hotkey: "1"')
         self.s_button.setToolTip('Hotkey: "2"')
-
+                                               
         # create accept/reject button
         self.accept_button = QPushButton('&Accept Picks')
         self.reject_button = QPushButton('&Reject Picks')
         self.disable_ar_buttons()
+
+        # add hotkeys
+        self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
+        self._shortcut_space.activated.connect(self.accept_button.clicked)
+        # button shortcuts (1 for P-button, 2 for S-button)
+        self.p_button.setShortcut(QKeySequence('1'))
+        self.s_button.setShortcut(QKeySequence('2'))
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -683,7 +877,9 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetPicksAction)
         if self._embedded:
             _dialtoolbar.addWidget(self.accept_button)
-            _dialtoolbar.addWidget(self.reject_button)            
+            _dialtoolbar.addWidget(self.reject_button)
+        else:
+            _dialtoolbar.addWidget(self.nextStation)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -954,7 +1150,7 @@ class PickDlg(QDialog):
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
-
+        
         nfac = parameter.get('nfacP')
         twins = parameter.get('tsnrz')
         noise_win = twins[0]
@@ -965,6 +1161,9 @@ class PickDlg(QDialog):
         while itrace > len(wfdata) - 1:
             itrace -= 1
 
+        stime = self.getStartTime()
+        stime_diff = wfdata[itrace].stats.starttime-stime
+            
         # copy data for plotting
         data = self.getWFData().copy()
 
@@ -975,7 +1174,7 @@ class PickDlg(QDialog):
             data.filter(**filteroptions)
             wfdata.filter(**filteroptions)
 
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick, itrace)
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff, itrace)
 
         snr = result[0]
         noiselevel = result[2]
@@ -988,7 +1187,7 @@ class PickDlg(QDialog):
 
         # remove mean noise level from waveforms
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
+            t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace=trace, window=inoise)
 
@@ -1001,7 +1200,8 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
                                         noiselevel=(trace_number + noiselevel,
-                                                    trace_number - noiselevel))
+                                                    trace_number - noiselevel),
+                                        iniPick=ini_pick)
 
     def setIniPickS(self, gui_event, wfdata):
 
@@ -1014,6 +1214,9 @@ class PickDlg(QDialog):
         gap_win = twins[1]
         signal_win = twins[2]
 
+        stime = self.getStartTime()
+        stime_diff = wfdata[0].stats.starttime-stime
+        
         # copy data for plotting
         data = self.getWFData().copy()
 
@@ -1025,7 +1228,7 @@ class PickDlg(QDialog):
             wfdata.filter(**filteroptions)
 
         # determine SNR and noiselevel
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick)
+        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff)
         snr = result[0]
         noiselevel = result[2]
 
@@ -1036,7 +1239,7 @@ class PickDlg(QDialog):
 
         # prepare plotting of data
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - self.getStartTime(), trace)
+            t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
 
@@ -1060,7 +1263,8 @@ class PickDlg(QDialog):
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
                                         noiselevel=noiselevels,
-                                        scaleddata=True)
+                                        scaleddata=True,
+                                        iniPick=ini_pick)
 
     def setPick(self, gui_event):
 
@@ -1091,14 +1295,19 @@ class PickDlg(QDialog):
         else:
             nfac = parameter.get('nfacS')
             TSNR = parameter.get('tsnrh')
-           
-        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]), pick)
-
+            
         # return absolute time values for phases
         stime = self.getStartTime()
-        epp = stime + epp
+        stime_diff = wfdata[0].stats.starttime-stime
+           
+        [epp, lpp, spe] = earllatepicker(wfdata, nfac, (TSNR[0], TSNR[1], TSNR[2]),
+                                         pick-stime_diff, verbosity=1)
+        
         mpp = stime + pick
-        lpp = stime + lpp
+        if epp:
+            epp = stime + epp + stime_diff
+        if lpp:
+            lpp = stime + lpp + stime_diff
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
@@ -1147,8 +1356,8 @@ class PickDlg(QDialog):
         ax = self.getPlotWidget().axes
         ylims = self.getGlobalLimits('y')
         phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
+            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b', 'c:'),
+            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
         }
         if self.getPicks(picktype):
             if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
@@ -1164,23 +1373,29 @@ class PickDlg(QDialog):
             return
 
         mpp = picks['mpp'] - self.getStartTime()
-        epp = picks['epp'] - self.getStartTime()
-        lpp = picks['lpp'] - self.getStartTime()
+        if picks['epp'] and picks['lpp']:
+            epp = picks['epp'] - self.getStartTime()
+            lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
         if picktype == 'manual':
-            ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                            alpha=.25, color=colors[0])
+            if picks['epp'] and picks['lpp']:            
+                ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                alpha=.25, color=colors[0], label='EPP, LPP')
             if spe:
-                ax.plot([mpp - spe, mpp - spe], ylims, colors[1],
-                        [mpp, mpp], ylims, colors[2],
-                        [mpp + spe, mpp + spe], ylims, colors[1])
+                ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
+                ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
+                ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+            else:
+                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase)) 
+                
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
                     mpp, ylims[0], colors[4])
             ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
         else:
             raise TypeError('Unknown picktype {0}'.format(picktype))
+        ax.legend()
             
 
     def panPress(self, gui_event):
@@ -1402,7 +1617,6 @@ class TuneAutopicker(QWidget):
         self.eventBox = self.parent.createEventBox()
         self.eventBox.setMaxVisibleItems(20)        
         self.fill_eventbox()
-        self.eventBox.setCurrentIndex(0)
         self.trace_layout.addWidget(self.eventBox)
         
     def init_stationlist(self):
@@ -1424,12 +1638,14 @@ class TuneAutopicker(QWidget):
         stations = []
         for trace in self.data.getWFData():
             station = trace.stats.station
-            if not station in stations:
-                stations.append(str(station))
+            network = trace.stats.network
+            ns_tup = (str(network), str(station))
+            if not ns_tup in stations:
+                stations.append(ns_tup)
         stations.sort()
         model = self.stationBox.model()
-        for station in stations:
-            item = QtGui.QStandardItem(str(station))
+        for network, station in stations:
+            item = QtGui.QStandardItem(network+'.'+station)
             if station in self.get_current_event().picks:
                 item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
@@ -1446,10 +1662,10 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.parameters = AutoPickParaBox(self.parameter)
-        self.parameters.set_tune_mode(True)
+        self.paraBox = PylotParaBox(self.parameter)
+        self.paraBox.set_tune_mode(True)
         self.update_eventID()
-        self.parameter_layout.addWidget(self.parameters)
+        self.parameter_layout.addWidget(self.paraBox)
         self.parameter_layout.addWidget(self.pb_widget)
         self.tune_layout.insertLayout(1, self.parameter_layout)
 
@@ -1491,7 +1707,7 @@ class TuneAutopicker(QWidget):
             return event.autopicks[station]
         
     def get_current_station(self):
-        return str(self.stationBox.currentText())
+        return str(self.stationBox.currentText()).split('.')[-1]
     
     def gen_tab_widget(self, name, canvas):
         widget = QtGui.QWidget()
@@ -1502,6 +1718,9 @@ class TuneAutopicker(QWidget):
         return widget
 
     def gen_pick_dlg(self):
+        if not self.get_current_event():
+            self.pickDlg = None
+            return
         station = self.get_current_station()
         data = self.data.getWFData()
         pickDlg = PickDlg(self, data=data.select(station=station),
@@ -1512,7 +1731,6 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
-        pickDlg.update_picks.connect(self.parent.drawPicks)
         pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
         pickDlg.update_picks.connect(self.parent.enableSaveManualPicksAction)
         self.pickDlg = QtGui.QWidget()
@@ -1522,7 +1740,15 @@ class TuneAutopicker(QWidget):
 
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
+        replot = self.parent.addPicks(station, picks)
         self.get_current_event().setPick(station, picks)
+        if self.get_current_event() == self.parent.get_current_event():
+            if replot:
+                self.parent.plotWaveformDataThread()
+                self.parent.drawPicks()
+            else:
+                self.parent.drawPicks(station)
+            self.parent.draw()
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
@@ -1590,7 +1816,7 @@ class TuneAutopicker(QWidget):
         id1 = self.figure_tabs.insertTab(1, self.overview, 'Overview')
         id2 = self.figure_tabs.insertTab(2, self.p_tabs, 'P')
         id3 = self.figure_tabs.insertTab(3, self.s_tabs, 'S')
-        if picked:
+        if picked and self.get_current_event():
             self.fill_p_tabs(canvas_dict)
             self.fill_s_tabs(canvas_dict)
             self.toggle_autopickTabs(bool(self.fig_dict['mainFig'].axes))
@@ -1629,11 +1855,27 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
+        # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
+        index_start = self.parent.eventBox.currentIndex()
+        index = index_start
+        if index == -1:
+            index += 1
+        nevents = self.eventBox.model().rowCount()
+        if self.eventBox.itemData(index).isTestEvent():
+            for index in range(nevents):
+                if not self.eventBox.itemData(index).isTestEvent():
+                    break
+                elif index == nevents - 1:
+                    index = -1
+        self.eventBox.setCurrentIndex(index)
+        if not index == index_start:
+            self.eventBox.activated.emit(index)
+        # update parent
         self.parent.fill_eventbox()
 
     def update_eventID(self):
-        self.parameters.boxes['eventID'].setText(
+        self.paraBox.boxes['eventID'].setText(
             self.get_current_event_name())
         self.figure_tabs.setCurrentIndex(0)
 
@@ -1681,7 +1923,7 @@ class TuneAutopicker(QWidget):
 
     def enable(self, bool):
         self.pick_button.setEnabled(bool)
-        self.parameters.setEnabled(bool)
+        self.paraBox.setEnabled(bool)
         self.eventBox.setEnabled(bool)
         self.stationBox.setEnabled(bool)
         self.overview.setEnabled(bool)
@@ -1689,7 +1931,7 @@ class TuneAutopicker(QWidget):
         self.s_tabs.setEnabled(bool)        
         
     def params_from_gui(self):
-        parameters = self.parameters.params_from_gui()
+        parameters = self.paraBox.params_from_gui()
         if self.parent:
             self.parent._inputs = parameters
         return parameters
@@ -1700,7 +1942,8 @@ class TuneAutopicker(QWidget):
 
     def clear_all(self):
         if hasattr(self, 'pickDlg'):
-            self.pickDlg.setParent(None)
+            if self.pickDlg:
+                self.pickDlg.setParent(None)
             del(self.pickDlg)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
@@ -1725,35 +1968,41 @@ class TuneAutopicker(QWidget):
         self.qmb.show()        
     
                 
-class AutoPickParaBox(QtGui.QWidget):     
+class PylotParaBox(QtGui.QWidget):     
     def __init__(self, parameter, parent=None):
         '''
         Generate Widget containing parameters for automatic picking algorithm.
 
         :param: parameter
-        :type: AutoPickParameter (object)
+        :type: PylotParameter (object)
 
         '''
         QtGui.QWidget.__init__(self, parent)
         self.parameter = parameter
         self.tabs = QtGui.QTabWidget()
         self.layout = QtGui.QVBoxLayout()
-        self._init_buttons()
-        self.layout.addWidget(self.tabs)
+        self._init_save_buttons()
+        self._init_tabs()
+        self._init_dialog_buttons()
+        self.labels = {}
         self.boxes = {}
+        self.groupboxes = {}
+        self._exclusive_widgets = []
         self._init_sublayouts()
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
         self.add_special_pick_parameters_tab()
         self.params_to_gui()
         self._toggle_advanced_settings()
+        self.resize(720, 1280)
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
         self._advanced_layout = QtGui.QVBoxLayout()
         self._create_advanced_cb()
 
-    def _init_buttons(self):
+    def _init_save_buttons(self):
         self._buttons_layout = QtGui.QHBoxLayout()
         self.loadButton = QtGui.QPushButton('&Load settings')
         self.saveButton = QtGui.QPushButton('&Save settings')
@@ -1765,10 +2014,28 @@ class AutoPickParaBox(QtGui.QWidget):
         self.loadButton.clicked.connect(self.openFile)
         self.saveButton.clicked.connect(self.saveFile)
         self.defaultsButton.clicked.connect(self.restoreDefaults)
+
+    def _init_tabs(self):
+        self.layout.addWidget(self.tabs)
+
+    def _init_dialog_buttons(self):
+        self._dialog_buttons = QtGui.QHBoxLayout()
+        self._okay =  QtGui.QPushButton('Ok')
+        self._close = QtGui.QPushButton('Close')
+        self._apply = QtGui.QPushButton('Apply')
+        self._dialog_buttons.addWidget(self._okay)
+        self._dialog_buttons.addWidget(self._close)
+        self._dialog_buttons.addWidget(self._apply)
+        self._okay.clicked.connect(self.params_from_gui)
+        self._okay.clicked.connect(self.close)
+        self._apply.clicked.connect(self.params_from_gui)
+        self._close.clicked.connect(self.params_to_gui)
+        self._close.clicked.connect(self.close)
+        self.layout.addLayout(self._dialog_buttons)
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
-        self._advanced_layout.addWidget(self._advanced_cb)
+        self._advanced_layout.insertWidget(0, self._advanced_cb)
         self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
 
     def _toggle_advanced_settings(self):
@@ -1788,12 +2055,18 @@ class AutoPickParaBox(QtGui.QWidget):
                         b.setEnabled(enable)
                         
     def set_tune_mode(self, bool):
-        keys = ['rootpath', 'datapath', 'database',
-                'eventID', 'invdir', 'nllocbin',
-                'nllocroot', 'phasefile',
-                'ctrfile', 'ttpatter', 'outpatter']
-        for key in keys:
-            self.boxes[key].setEnabled(not(bool))
+        names = ['Directories', 'NLLoc',
+                 'Seismic Moment']
+        for name in names:
+            self.hide_groupbox(name)
+        if bool:
+            self._apply.hide()
+            self._okay.hide()
+            self._close.hide()
+        else:
+            self._apply.show()
+            self._okay.show()
+            self._close.show()
         
     def init_boxes(self, parameter_names):
         grid = QtGui.QGridLayout()
@@ -1816,6 +2089,7 @@ class AutoPickParaBox(QtGui.QWidget):
                     boxes.append(self.create_box(typ, tooltip))
                 box = self.create_multi_box(boxes)
                 self.boxes[name] = boxes
+            self.labels[name] = label                
             label.setToolTip(tooltip)
             grid.addWidget(label, index1, 1)
             grid.addWidget(box, index1, 2)
@@ -1826,6 +2100,8 @@ class AutoPickParaBox(QtGui.QWidget):
             box = QtGui.QLineEdit()
         elif typ == float:
             box = QtGui.QDoubleSpinBox()
+            box.setDecimals(5)
+            box.setRange(-10e5, 10e5)            
         elif typ == int:
             box = QtGui.QSpinBox()
         elif typ == bool:
@@ -1836,7 +2112,7 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def create_multi_box(self, boxes):
         box = QtGui.QWidget()
-        hl = QtGui.QHBoxLayout()
+        hl = QtGui.QVBoxLayout()
         for b in boxes:
             hl.addWidget(b)
         box.setLayout(hl)
@@ -1847,52 +2123,148 @@ class AutoPickParaBox(QtGui.QWidget):
         scrollA = QtGui.QScrollArea()
         scrollA.setWidgetResizable(True)
         scrollA.setWidget(widget)
-
         widget.setLayout(layout)
-        
         self.tabs.addTab(scrollA, name)
 
     def add_main_parameters_tab(self):
         self.add_to_layout(self._main_layout, 'Directories',
-                           self.parameter.get_main_para_names()['dirs'])
+                           self.parameter.get_main_para_names()['dirs'], 0)
         self.add_to_layout(self._main_layout, 'NLLoc',
-                           self.parameter.get_main_para_names()['nlloc'])
+                           self.parameter.get_main_para_names()['nlloc'], 1)
         self.add_to_layout(self._main_layout, 'Seismic Moment',
-                           self.parameter.get_main_para_names()['smoment'])
+                           self.parameter.get_main_para_names()['smoment'], 2)
+        self.add_to_layout(self._main_layout, 'Local Magnitude',
+                           self.parameter.get_main_para_names()['localmag'], 3)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'],
-                           False)
+                           self.parameter.get_main_para_names()['pick'], 4)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
         self.add_to_layout(self._advanced_layout, 'Z-component',
-                           self.parameter.get_special_para_names()['z'])
+                           self.parameter.get_special_para_names()['z'], 1)
         self.add_to_layout(self._advanced_layout, 'H-components',
-                           self.parameter.get_special_para_names()['h'])
+                           self.parameter.get_special_para_names()['h'], 2)
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
-                           self.parameter.get_special_para_names()['fm'])
+                           self.parameter.get_special_para_names()['fm'], 3)
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'],
-                           False)
+                           self.parameter.get_special_para_names()['quality'], 4)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
-    def gen_h_seperator(self):
-        seperator = QtGui.QFrame()
-        seperator.setFrameShape(QtGui.QFrame.HLine)
-        return seperator
+    # def gen_h_seperator(self):
+    #     seperator = QtGui.QFrame()
+    #     seperator.setFrameShape(QtGui.QFrame.HLine)
+    #     return seperator
 
-    def gen_headline(self, text):
-        label=QtGui.QLabel(text)
-        font=QtGui.QFont()
-        font.setBold(True)
-        label.setFont(font)
-        return label
+    # def gen_headline(self, text):
+    #     label=QtGui.QLabel(text)
+    #     font=QtGui.QFont()
+    #     font.setBold(True)
+    #     label.setFont(font)
+    #     return label
+
+    def refresh(self):
+        for groupbox in self.groupboxes.values():
+            layout = groupbox._parentLayout
+            position = groupbox._position
+            layout.insertWidget(position, groupbox)
+
+    def get_groupbox_exclusive(self, name):
+        widget = QtGui.QWidget(self, 1)
+        layout = QtGui.QVBoxLayout()
+        widget.setLayout(layout)
+        layout.addWidget(self.groupboxes[name])
+        self._exclusive_widgets.append(widget)
+        return widget
+
+    def get_groupbox_dialog(self, name):
+        widget = self.get_groupbox_exclusive(name)
+        dialog = QtGui.QDialog(self.parent())
+        layout = QtGui.QVBoxLayout()
+        dialog.setLayout(layout)
+        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.accepted.connect(self.refresh)
+        buttonbox.accepted.connect(self.params_from_gui)
+        buttonbox.rejected.connect(dialog.reject)
+        buttonbox.rejected.connect(self.refresh)
+        buttonbox.rejected.connect(self.params_to_gui)
+        layout.addWidget(widget)
+        layout.addWidget(buttonbox)
+        self._exclusive_dialog = dialog
+        return dialog
         
-    def add_to_layout(self, layout, name, items, seperator=True):
-        layout.addWidget(self.gen_headline(name))
-        layout.addLayout(self.init_boxes(items))
-        if seperator:
-            layout.addWidget(self.gen_h_seperator())
+    def add_to_layout(self, layout, name, items, position):
+        groupbox = QtGui.QGroupBox(name)
+        groupbox._position = position
+        groupbox._parentLayout = layout
+        self.groupboxes[name] = groupbox
+        groupbox.setLayout(self.init_boxes(items))
+        layout.insertWidget(position, groupbox)
+
+    def show_groupboxes(self):
+        for name in self.groupboxes.keys():
+            self.show_groupbox(name)
+        self._advanced_cb.show()
+
+    def hide_groupboxes(self):
+        for name in self.groupboxes.keys():
+            self.hide_groupbox(name)
+        self._advanced_cb.hide()
+
+    def show_groupbox(self, name):
+        if name in self.groupboxes.keys():
+            self.groupboxes[name].show()
+        else:
+            print('Groupbox {} not part of object.'.format(name))
+
+    def hide_groupbox(self, name):
+        if name in self.groupboxes.keys():
+            self.groupboxes[name].hide()
+        else:
+            print('Groupbox {} not part of object.'.format(name))
+
+    def show_file_buttons(self):
+        self.saveButton.show()
+        self.loadButton.show()
+        self.defaultsButton.show()
+        
+    def hide_file_buttons(self):
+        self.saveButton.hide()
+        self.loadButton.hide()
+        self.defaultsButton.hide()
+        
+    def show_parameter(self, name=None):
+        if not name:
+            for name in self.boxes.keys():
+                self.show_parameter(name)
+            return
+        if name in self.boxes.keys() and name in self.labels.keys():
+            # comprising case type(self.boxes[name]) == list
+            boxes = self.boxes[name]
+            if not type(boxes) == list:
+                boxes = [boxes]
+            for box in boxes:
+                box.show()
+            self.labels[name].show()
+        else:
+            print('Parameter {} not part of object.'.format(name))
+
+    def hide_parameter(self, name=None):
+        if not name:
+            for name in self.boxes.keys():
+                self.hide_parameter(name)
+            return
+        if name in self.boxes.keys() and name in self.labels.keys():
+            # comprising case type(self.boxes[name]) == list
+            boxes = self.boxes[name]
+            if not type(boxes) == list:
+                boxes = [boxes]
+            for box in boxes:
+                box.hide()
+            self.labels[name].hide()
+        else:
+            print('Parameter {} not part of object.'.format(name))
 
     def params_from_gui(self):
         for param in self.parameter.get_all_para_names():
@@ -1916,7 +2288,8 @@ class AutoPickParaBox(QtGui.QWidget):
         if type(box) == QtGui.QLineEdit:
             box.setText(str(value))
         elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
-            box.setMaximum(100*value)
+            if not value:
+                value = 0.
             box.setValue(value)
         elif type(box) == QtGui.QCheckBox:
             if value == 'True':
@@ -1944,7 +2317,8 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def openFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getOpenFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')
+        fname = fd.getOpenFileName(self, 'Browse for settings file.',
+                                   filter='PyLoT input file (*.in)')
         if fname[0]:
             try:
                 self.parameter.from_file(fname[0])
@@ -1955,7 +2329,8 @@ class AutoPickParaBox(QtGui.QWidget):
 
     def saveFile(self):
         fd = QtGui.QFileDialog()
-        fname = fd.getSaveFileName(self, 'Browse for settings file.', filter='PyLoT input file (*.in)')        
+        fname = fd.getSaveFileName(self, 'Browse for settings file.',
+                                   filter='PyLoT input file (*.in)')        
         if fname[0]:
             try:
                 self.params_from_gui()
@@ -1971,6 +2346,14 @@ class AutoPickParaBox(QtGui.QWidget):
         except Exception as e:
             self._warn('Could not restore defaults:\n{}'.format(e))
             return
+        
+    def show(self):
+        self.refresh()
+        self.show_parameter()
+        if hasattr(self, '_exclusive_dialog'):
+            self._exclusive_dialog.close()
+        self._exclusive_widgets = []
+        QtGui.QWidget.show(self)
             
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
@@ -2023,6 +2406,14 @@ class PropertiesDlg(QDialog):
             if values is not None:
                 self.setValues(values)
 
+    def close(self):
+        self.reset_current()
+        QDialog.close(self)
+
+    def show(self):
+        self.keep_current()
+        QDialog.show(self)
+
     def restore(self):
         for widint in range(self.tabWidget.count()):
             curwid = self.tabWidget.widget(widint)
@@ -2030,23 +2421,39 @@ class PropertiesDlg(QDialog):
             if values is not None:
                 self.setValues(values)
 
+    def keep_current(self):
+        self._current_values = []
+        for widint in range(self.tabWidget.count()):
+            curwid = self.tabWidget.widget(widint)
+            values = curwid.getValues()
+            if values is not None:
+                self._current_values.append(values)
+
+    def reset_current(self):
+        for values in self._current_values():
+            self.setValues(values)
+
 
     @staticmethod
     def setValues(tabValues):
         settings = QSettings()
-        compclass = SetChannelComponents()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
+            
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
             if value is not None:
                 if setting.startswith('Channel Z'):
                     component = 'Z'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
                 elif setting.startswith('Channel E'):
                     component = 'E'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
                 elif setting.startswith('Channel N'):
                     component = 'N'
-                    compclass.setCompPosition(component, value)
+                    compclass.setCompPosition(value, component, False)
         settings.sync()
 
 
@@ -2059,6 +2466,7 @@ class PropTab(QWidget):
 
     def resetValues(self, infile=None):
         return None
+    
 
 class InputsTab(PropTab):
     def __init__(self, parent, infile=None):
@@ -2113,7 +2521,7 @@ class InputsTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         datstruct = para.get('datastructure')
         if datstruct == 'SeisComp':
            index = 0
@@ -2170,6 +2578,7 @@ class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
         self.init_layout()
+        self.add_pg_cb()
         self.add_nth_sample()
         self.setLayout(self.main_layout)
         
@@ -2184,15 +2593,28 @@ class GraphicsTab(PropTab):
         
         self.spinbox_nth_sample = QtGui.QSpinBox()
         label = QLabel('nth sample')
-        self.spinbox_nth_sample.setMinimum(1)
-        self.spinbox_nth_sample.setMaximum(100)
-        self.spinbox_nth_sample.setValue(int(nth_sample))
         label.setToolTip('Plot every nth sample (to speed up plotting)')
-        self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.spinbox_nth_sample, 0, 1)
+        self.spinbox_nth_sample.setMinimum(1)
+        self.spinbox_nth_sample.setMaximum(10e3)
+        self.spinbox_nth_sample.setValue(int(nth_sample))
+        self.main_layout.addWidget(label, 1, 0)
+        self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
+    def add_pg_cb(self):
+        text = {True: 'Use pyqtgraphic library for plotting',
+                False: 'Cannot use library: pyqtgraphic not found on system'}
+        label = QLabel('PyQt graphic')
+        label.setToolTip(text[bool(pg)])
+        label.setEnabled(bool(pg))
+        self.checkbox_pg = QtGui.QCheckBox()
+        self.checkbox_pg.setEnabled(bool(pg))
+        self.checkbox_pg.setChecked(bool(pg))
+        self.main_layout.addWidget(label, 0, 0)
+        self.main_layout.addWidget(self.checkbox_pg, 0, 1)
+        
     def getValues(self):
-        values = {'nth_sample': self.spinbox_nth_sample.value()}
+        values = {'nth_sample': self.spinbox_nth_sample.value(),
+                  'pyqtgraphic': self.checkbox_pg.isChecked()}
         return values
         
 
@@ -2200,7 +2622,11 @@ class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)
 
-        compclass = SetChannelComponents()
+        settings = QSettings()
+        compclass = settings.value('compclass')
+        if not compclass:
+            print('Warning: No settings for channel components found. Using default')
+            compclass = SetChannelComponents()
 
         ChannelOrderLabelZ = QLabel("Channel Z [up/down, default=3]")
         ChannelOrderLabelN = QLabel("Channel N [north/south, default=1]")
@@ -2215,12 +2641,12 @@ class ChannelOrderTab(PropTab):
         self.ChannelOrderEEdit.setMaxLength(1)
         self.ChannelOrderEEdit.setFixedSize(20, 20)
         # get channel order settings
-        zpos, zcomp = compclass.getCompPosition('Z')
-        epos, ecomp = compclass.getCompPosition('E')
-        npos, ncomp = compclass.getCompPosition('N')
+        zcomp = compclass.getCompPosition('Z')
+        ncomp = compclass.getCompPosition('N')
+        ecomp = compclass.getCompPosition('E')
         self.ChannelOrderZEdit.setText("%s" % zcomp) 
-        self.ChannelOrderNEdit.setText("%s" % ecomp)
-        self.ChannelOrderEEdit.setText("%s" % ncomp)
+        self.ChannelOrderNEdit.setText("%s" % ncomp)
+        self.ChannelOrderEEdit.setText("%s" % ecomp)
 
         layout = QGridLayout()
         layout.addWidget(ChannelOrderLabelZ, 0, 0)
@@ -2231,7 +2657,34 @@ class ChannelOrderTab(PropTab):
         layout.addWidget(self.ChannelOrderEEdit, 2, 1)
 
         self.setLayout(layout)
+        self.connectSignals()
 
+    def connectSignals(self):
+        self.ChannelOrderZEdit.textEdited.connect(self.checkDoubleZ)
+        self.ChannelOrderNEdit.textEdited.connect(self.checkDoubleN)
+        self.ChannelOrderEEdit.textEdited.connect(self.checkDoubleE)
+
+    def checkDoubleZ(self, text):
+        self.checkDouble(text, 'Z')
+        
+    def checkDoubleN(self, text):
+        self.checkDouble(text, 'N')
+        
+    def checkDoubleE(self, text):
+        self.checkDouble(text, 'E')
+        
+    def checkDouble(self, text, comp):
+        channelOrderEdits = {
+            'Z': self.ChannelOrderZEdit,
+            'N': self.ChannelOrderNEdit,
+            'E': self.ChannelOrderEEdit
+        }
+        for key in channelOrderEdits.keys():
+            if key == comp:
+                continue
+            if str(channelOrderEdits[key].text()) == str(text):
+                channelOrderEdits[key].setText('')
+        
     def getValues(self):
         values = {"Channel Z [up/down, default=3]": int(self.ChannelOrderZEdit.text()),
                   "Channel N [north/south, default=1]": int(self.ChannelOrderNEdit.text()),
@@ -2247,10 +2700,11 @@ class ChannelOrderTab(PropTab):
                   "Channel E [east/west, default=2]": self.ChannelOrderEEdit.setText("%d" % Edefault)}
         return values
 
-    def getComponents(self):
- 
-        self.CompName = dict(Z='10', N='11', E='12')
+    # MP MP: No idea why this function exists!?
+    # def getComponents(self):
+    #     self.CompName = dict(Z='10', N='11', E='12')
 
+        
 class LocalisationTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(LocalisationTab, self).__init__(parent)
@@ -2323,7 +2777,7 @@ class LocalisationTab(PropTab):
         return values
 
     def resetValues(self, infile):
-        para = AutoPickParameter(infile)
+        para = PylotParameter(infile)
         nllocroot = para.get('nllocroot')
         nllocbin = para.get('nllocbin')
         loctool = self.locToolComboBox.setCurrentIndex(3)
