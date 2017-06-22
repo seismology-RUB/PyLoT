@@ -2034,7 +2034,7 @@ class AutoPickParaBox(QtGui.QWidget):
         
     def _create_advanced_cb(self):
         self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
-        self._advanced_layout.insertWidget(self._advanced_cb, 0)
+        self._advanced_layout.insertWidget(0, self._advanced_cb)
         self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
 
     def _toggle_advanced_settings(self):
