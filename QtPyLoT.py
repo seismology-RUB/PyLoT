@@ -799,7 +799,7 @@ class MainWindow(QMainWindow):
                 self.paraBox.setValue(box, dirs[directory])
                 #show needed parameter in box
                 self.paraBox.show_parameter(directory)
-            dirs_box = self.paraBox.get_groupbox_exclusive('Directories')
+            dirs_box = self.paraBox.get_groupbox_dialog('Directories')
             if not dirs_box.exec_():
                 return
             self.project.rootpath = dirs['rootpath']

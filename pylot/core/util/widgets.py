@@ -1987,6 +1987,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.labels = {}
         self.boxes = {}
         self.groupboxes = {}
+        self._exclusive_widgets = []
         self._init_sublayouts()
         self.setLayout(self.layout)
         self.add_main_parameters_tab()
@@ -2168,20 +2169,29 @@ class AutoPickParaBox(QtGui.QWidget):
             layout.insertWidget(position, groupbox)
 
     def get_groupbox_exclusive(self, name):
+        widget = QtGui.QWidget(self, 1)
+        layout = QtGui.QVBoxLayout()
+        widget.setLayout(layout)
+        layout.addWidget(self.groupboxes[name])
+        self._exclusive_widgets.append(widget)
+        return widget
+
+    def get_groupbox_dialog(self, name):
+        widget = self.get_groupbox_exclusive(name)
         dialog = QtGui.QDialog(self.parent())
-        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
-                                           QDialogButtonBox.Cancel)
-        self._exclusive_dialog = dialog
         layout = QtGui.QVBoxLayout()
         dialog.setLayout(layout)
-        layout.addWidget(self.groupboxes[name])
-        layout.addWidget(buttonbox)
+        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
         buttonbox.accepted.connect(dialog.accept)
         buttonbox.accepted.connect(self.refresh)
         buttonbox.accepted.connect(self.params_from_gui)
         buttonbox.rejected.connect(dialog.reject)
         buttonbox.rejected.connect(self.refresh)
         buttonbox.rejected.connect(self.params_to_gui)
+        layout.addWidget(widget)
+        layout.addWidget(buttonbox)
+        self._exclusive_dialog = dialog
         return dialog
         
     def add_to_layout(self, layout, name, items, position):
@@ -2342,6 +2352,7 @@ class AutoPickParaBox(QtGui.QWidget):
         self.show_parameter()
         if hasattr(self, '_exclusive_dialog'):
             self._exclusive_dialog.close()
+        self._exclusive_widgets = []
         QtGui.QWidget.show(self)
             
     def _warn(self, message):
