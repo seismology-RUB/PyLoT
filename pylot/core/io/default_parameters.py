@@ -277,8 +277,12 @@ defaults = {'rootpath': {'type': str,
                              'tooltip': 'maximum allowed deviation from Wadati-diagram',
                              'value': 1.0},
             
-            'localMag': {'type': float,
-                         'tooltip': 'maximum allowed deviation from Wadati-diagram',
+            'WAscaling': {'type': float,
+                         'tooltip': 'Scaling relation of Wood-Anderson amplitude [nm]',
+                         'value': 1.0},
+
+            'magscaling': {'type': float,
+                         'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
                          'value': 1.0}
 }
 
@@ -301,8 +305,10 @@ settings_main={
     'smoment':[
         'vp',
         'rho',
-        'Qp',
-        'localMag'],
+        'Qp'],
+    'localmag':[
+        'WAscaling',
+        'magscaling'],
     'pick':[
         'extent',
         'pstart',

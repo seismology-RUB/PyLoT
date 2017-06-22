@@ -752,6 +752,7 @@ class PickDlg(QDialog):
             self._init_autopicks = {}
         self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
+        self.nextStation = QtGui.QCheckBox('Continue with next station.')
 
         # initialize panning attributes
         self.press = None
@@ -845,17 +846,21 @@ class PickDlg(QDialog):
         self.s_button = QPushButton('S', self)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
-        # button shortcuts (1 for P-button, 2 for S-button)
-        self.p_button.setShortcut(QKeySequence('1'))
-        self.s_button.setShortcut(QKeySequence('2'))
         # set button tooltips
         self.p_button.setToolTip('Hotkey: "1"')
         self.s_button.setToolTip('Hotkey: "2"')
-
+                                               
         # create accept/reject button
         self.accept_button = QPushButton('&Accept Picks')
         self.reject_button = QPushButton('&Reject Picks')
         self.disable_ar_buttons()
+
+        # add hotkeys
+        self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
+        self._shortcut_space.activated.connect(self.accept_button.clicked)
+        # button shortcuts (1 for P-button, 2 for S-button)
+        self.p_button.setShortcut(QKeySequence('1'))
+        self.s_button.setShortcut(QKeySequence('2'))
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -872,7 +877,9 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetPicksAction)
         if self._embedded:
             _dialtoolbar.addWidget(self.accept_button)
-            _dialtoolbar.addWidget(self.reject_button)            
+            _dialtoolbar.addWidget(self.reject_button)
+        else:
+            _dialtoolbar.addWidget(self.nextStation)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -1724,7 +1731,6 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
-        pickDlg.update_picks.connect(self.parent.drawPicks)
         pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
         pickDlg.update_picks.connect(self.parent.enableSaveManualPicksAction)
         self.pickDlg = QtGui.QWidget()
@@ -1734,7 +1740,15 @@ class TuneAutopicker(QWidget):
 
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
+        replot = self.parent.addPicks(station, picks)
         self.get_current_event().setPick(station, picks)
+        if self.get_current_event() == self.parent.get_current_event():
+            if replot:
+                self.parent.plotWaveformDataThread()
+                self.parent.drawPicks()
+            else:
+                self.parent.drawPicks(station)
+            self.parent.draw()
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
@@ -1843,7 +1857,7 @@ class TuneAutopicker(QWidget):
     def fill_eventbox(self):
         # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
-        index_start = self.eventBox.currentIndex()
+        index_start = self.parent.eventBox.currentIndex()
         index = index_start
         if index == -1:
             index += 1
@@ -1979,7 +1993,8 @@ class AutoPickParaBox(QtGui.QWidget):
         self.add_special_pick_parameters_tab()
         self.params_to_gui()
         self._toggle_advanced_settings()
-        self.resize(720, 1280)        
+        self.resize(720, 1280)
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -2107,31 +2122,31 @@ class AutoPickParaBox(QtGui.QWidget):
         scrollA = QtGui.QScrollArea()
         scrollA.setWidgetResizable(True)
         scrollA.setWidget(widget)
-
         widget.setLayout(layout)
-        
         self.tabs.addTab(scrollA, name)
 
     def add_main_parameters_tab(self):
         self.add_to_layout(self._main_layout, 'Directories',
-                           self.parameter.get_main_para_names()['dirs'])
+                           self.parameter.get_main_para_names()['dirs'], 0)
         self.add_to_layout(self._main_layout, 'NLLoc',
-                           self.parameter.get_main_para_names()['nlloc'])
+                           self.parameter.get_main_para_names()['nlloc'], 1)
         self.add_to_layout(self._main_layout, 'Seismic Moment',
-                           self.parameter.get_main_para_names()['smoment'])
+                           self.parameter.get_main_para_names()['smoment'], 2)
+        self.add_to_layout(self._main_layout, 'Local Magnitude',
+                           self.parameter.get_main_para_names()['localmag'], 3)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'])
+                           self.parameter.get_main_para_names()['pick'], 4)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
         self.add_to_layout(self._advanced_layout, 'Z-component',
-                           self.parameter.get_special_para_names()['z'])
+                           self.parameter.get_special_para_names()['z'], 0)
         self.add_to_layout(self._advanced_layout, 'H-components',
-                           self.parameter.get_special_para_names()['h'])
+                           self.parameter.get_special_para_names()['h'], 1)
         self.add_to_layout(self._advanced_layout, 'First-motion picker',
-                           self.parameter.get_special_para_names()['fm'])
+                           self.parameter.get_special_para_names()['fm'], 2)
         self.add_to_layout(self._advanced_layout, 'Quality assessment',
-                           self.parameter.get_special_para_names()['quality'])
+                           self.parameter.get_special_para_names()['quality'], 3)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
     # def gen_h_seperator(self):
@@ -2145,12 +2160,37 @@ class AutoPickParaBox(QtGui.QWidget):
     #     font.setBold(True)
     #     label.setFont(font)
     #     return label
+
+    def refresh(self):
+        for groupbox in self.groupboxes.values():
+            layout = groupbox._parentLayout
+            position = groupbox._position
+            layout.insertWidget(position, groupbox)
+
+    def get_groupbox_exclusive(self, name):
+        dialog = QtGui.QDialog(self.parent())
+        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
+        self._exclusive_dialog = dialog
+        layout = QtGui.QVBoxLayout()
+        dialog.setLayout(layout)
+        layout.addWidget(self.groupboxes[name])
+        layout.addWidget(buttonbox)
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.accepted.connect(self.refresh)
+        buttonbox.accepted.connect(self.params_from_gui)
+        buttonbox.rejected.connect(dialog.reject)
+        buttonbox.rejected.connect(self.refresh)
+        buttonbox.rejected.connect(self.params_to_gui)
+        return dialog
         
-    def add_to_layout(self, layout, name, items):
+    def add_to_layout(self, layout, name, items, position):
         groupbox = QtGui.QGroupBox(name)
+        groupbox._position = position
+        groupbox._parentLayout = layout
         self.groupboxes[name] = groupbox
         groupbox.setLayout(self.init_boxes(items))
-        layout.addWidget(groupbox)
+        layout.insertWidget(position, groupbox)
 
     def show_groupboxes(self):
         for name in self.groupboxes.keys():
@@ -2174,6 +2214,16 @@ class AutoPickParaBox(QtGui.QWidget):
         else:
             print('Groupbox {} not part of object.'.format(name))
 
+    def show_file_buttons(self):
+        self.saveButton.show()
+        self.loadButton.show()
+        self.defaultsButton.show()
+        
+    def hide_file_buttons(self):
+        self.saveButton.hide()
+        self.loadButton.hide()
+        self.defaultsButton.hide()
+        
     def show_parameter(self, name=None):
         if not name:
             for name in self.boxes.keys():
@@ -2286,6 +2336,13 @@ class AutoPickParaBox(QtGui.QWidget):
         except Exception as e:
             self._warn('Could not restore defaults:\n{}'.format(e))
             return
+        
+    def show(self):
+        self.refresh()
+        self.show_parameter()
+        if hasattr(self, '_exclusive_dialog'):
+            self._exclusive_dialog.close()
+        QtGui.QWidget.show(self)
             
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
