@@ -979,7 +979,6 @@ class MainWindow(QMainWindow):
 
             if not exform and selected_filter or not exform in OUTPUTFORMATS:
                 exform = selected_filter.split('*')[1][:-1]
-            if not exform in OUTPUTFORMATS:
                 return fname, exform
             return fbasename, exform
 
