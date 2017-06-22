@@ -637,9 +637,31 @@ class MainWindow(QMainWindow):
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
         self.load_data(fname_dict, type=type)
 
-    def load_data(self, fname=None, type='manual', loc=False):
+    def load_multiple_data(self, type='manual'):
         if not self.okToContinue():
             return
+        refresh=False
+        events = self.project.eventlist
+        fext = '.xml'
+        for event in events:
+            path = event.path
+            eventname = path.split('/')[-1]
+            filename = os.path.join(path, 'picks_'+eventname+fext)
+            if os.path.isfile(filename):
+                self.load_data(filename, draw=False, event=event, overwrite=True)
+                refresh=True
+        if not refresh:
+            return
+        if self.get_current_event().picks:
+            self.plotWaveformDataThread()
+        self.drawPicks(picktype=type)
+        self.draw()
+        self.setDirty(True)
+
+    def load_data(self, fname=None, type='manual', loc=False, draw=True, event=None, overwrite=False):
+        if not overwrite:
+            if not self.okToContinue():
+                return
         if fname is None:
             action = self.sender()
             if isinstance(action, QAction):
@@ -647,13 +669,15 @@ class MainWindow(QMainWindow):
         self.set_fname(fname, type)
         data = dict(auto=self.autodata, manual=self.data)
         data[type] += Data(self, evtdata=fname)
+        print('Loading {} picks from file {}.'.format(type, fname))
         if not loc:
-            self.updatePicks(type=type)
-        if self.get_current_event().picks:
-            self.plotWaveformDataThread()
-        self.drawPicks(picktype=type)
-        self.draw()
-        self.setDirty(True)
+            self.updatePicks(type=type, event=event)
+        if draw:
+            if self.get_current_event().picks:
+                self.plotWaveformDataThread()
+            self.drawPicks(picktype=type)
+            self.draw()
+            self.setDirty(True)
 
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
@@ -979,7 +1003,6 @@ class MainWindow(QMainWindow):
 
             if not exform and selected_filter or not exform in OUTPUTFORMATS:
                 exform = selected_filter.split('*')[1][:-1]
-            if not exform in OUTPUTFORMATS:
                 return fname, exform
             return fbasename, exform
 
@@ -1723,13 +1746,15 @@ class MainWindow(QMainWindow):
         #         raise Exception('FATAL: Should never occur!')
         # MP MP prompt redundant because new picks have to be accepted in the first place closing PickDlg
 
-    def updatePicks(self, type='manual'):
+    def updatePicks(self, type='manual', event=None):
+        if not event:
+            event = self.get_current_event()
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
         if type == 'manual':
-            self.get_current_event().addPicks(picks)
+            event.addPicks(picks)
             self.picks.update(picks)
         elif type == 'auto':
-            self.get_current_event().addAutopicks(picks)            
+            event.addAutopicks(picks)            
             self.autopicks.update(picks)
         self.check4Comparison()
 
