@@ -352,26 +352,26 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             data.applyEVTData(picks)
             if evt is not None:
                 data.applyEVTData(evt, 'event')
-            fnqml = '%s/picks_%s' % (event, evID)
+            fnqml = '%s/PyLoT_%s' % (event, evID)
             data.exportEvent(fnqml)
             # HYPO71
-            hypo71file = '%s/%s_HYPO71_phases' % (event, evID)
+            hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
             hypo71.export(picks, hypo71file, parameter)
             # HYPOSAT
-            hyposatfile = '%s/%s_HYPOSAT_phases' % (event, evID)
+            hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (event, evID)
             hyposat.export(picks, hyposatfile, parameter)
             if locflag == 1:
             	# VELEST
-            	velestfile = '%s/%s_VELEST_phases.cnv' % (event, evID)
+            	velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (event, evID)
             	velest.export(picks, velestfile, parameter, evt)
             	# hypoDD
-            	hypoddfile = '%s/%s_hypoDD_phases.pha' % (event, evID)
+            	hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (event, evID)
             	hypodd.export(picks, hypoddfile, parameter, evt)
             	# FOCMEC
-            	focmecfile = '%s/%s_FOCMEC.in' % (event, evID)
+            	focmecfile = '%s/PyLoT_%s_FOCMEC.in' % (event, evID)
             	focmec.export(picks, focmecfile, parameter, evt)
             	# HASH
-            	hashfile = '%s/%s_HASH' % (event, evID)
+            	hashfile = '%s/PyLoT_%s_HASH' % (event, evID)
             	hash.export(picks, hashfile, parameter, evt)
 
             endsplash = '''------------------------------------------\n'
