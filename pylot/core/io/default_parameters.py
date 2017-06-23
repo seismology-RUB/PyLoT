@@ -284,7 +284,7 @@ defaults = {'rootpath': {'type': str,
 
             'magscaling': {'type': (float, float),
                          'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]. \
-                                     If zeros are set, no scaling is of network magnitude is applied.',
+                                     If zeros are set, no scaling of network magnitude is applied!',
                          'value': (0., 0.)}
 }
 
