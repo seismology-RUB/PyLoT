@@ -648,7 +648,7 @@ class MainWindow(QMainWindow):
         for event in events:
             path = event.path
             eventname = path.split('/')[-1]
-            filename = os.path.join(path, 'picks_'+eventname+fext)
+            filename = os.path.join(path, 'PyLoT_'+eventname+fext)
             if os.path.isfile(filename):
                 self.load_data(filename, draw=False, event=event, overwrite=True)
                 refresh=True
@@ -992,7 +992,7 @@ class MainWindow(QMainWindow):
             print('warning: {0}'.format(e))
             directory = self.get_current_event_path()
             eventname = self.get_current_event_name()
-            filename = 'picks_'+eventname
+            filename = 'PyLoT_'+eventname
             outpath = os.path.join(directory, filename)
             file_filter = "QuakeML file (*.xml);;VELEST observation file " \
                           "format (*.cnv);;NonLinLoc observation file (*.obs)"
