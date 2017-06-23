@@ -22,6 +22,7 @@ class map_projection(QtGui.QWidget):
         self.parser = parent.metadata[1]
         self.picks = None
         self.picks_dict = None
+        self.eventLoc = None
         self.figure = figure
         self.init_graphics()
         self.init_stations()
@@ -244,6 +245,10 @@ class map_projection(QtGui.QWidget):
         self.sc = self.basemap.scatter(self.lon, self.lat, s=50, facecolor='none', latlon=True,
                                   zorder=10, picker=True, edgecolor='m', label='Not Picked')
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
+        if self.eventLoc:
+            lat, lon = self.eventLoc
+            self.sc_event = self.basemap.scatter(lon, lat, s=100, facecolor='red',
+                                                 latlon=True, zorder=11, label='Event (might be outside map region)')
 
     def scatter_picked_stations(self):
         lon = self.lon_no_nan
@@ -274,8 +279,7 @@ class map_projection(QtGui.QWidget):
 
     def refresh_drawings(self, picks=None):
         self.picks_dict = picks
-        self.remove_drawings()
-        self.draw_everything()
+        self._refresh_drawings()
 
     def _refresh_drawings(self):
         self.remove_drawings()
@@ -303,6 +307,9 @@ class map_projection(QtGui.QWidget):
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
             del(self.sc_picked)
+        if hasattr(self, 'sc_event'):
+            self.sc_event.remove()
+            del(self.sc_event)
         if hasattr(self, 'cbar'):
             self.cbar.remove()
             del(self.cbar)
