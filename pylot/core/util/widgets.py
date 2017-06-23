@@ -1687,8 +1687,8 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
         
     def get_current_event(self):
-        index = self.eventBox.currentIndex()
-        return self.eventBox.itemData(index)
+        path = self.eventBox.currentText()
+        return self.parent.project.getEventFromPath(path)
         
     def get_current_event_name(self):
         return self.eventBox.currentText().split('/')[-1]
@@ -1855,6 +1855,9 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
+        project = self.parent.project
+        if not project:
+            return
         # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
         index_start = self.parent.eventBox.currentIndex()
@@ -1862,10 +1865,13 @@ class TuneAutopicker(QWidget):
         if index == -1:
             index += 1
         nevents = self.eventBox.model().rowCount()
-        if self.eventBox.itemData(index).isTestEvent():
+        path = self.eventBox.itemText(index)
+        if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
-                if not self.eventBox.itemData(index).isTestEvent():
+                path = self.eventBox.itemText(index)                
+                if not project.getEventFromPath(index).isTestEvent():
                     break
+                #in case all events are marked as test events
                 elif index == nevents - 1:
                     index = -1
         self.eventBox.setCurrentIndex(index)

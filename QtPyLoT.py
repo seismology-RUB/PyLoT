@@ -41,6 +41,8 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime
+from obspy.core.event import Event as ObsPyEvent
+from obspy.core.event import Origin
 
 try:
     import pyqtgraph as pg
@@ -752,8 +754,8 @@ class MainWindow(QMainWindow):
         '''
         if not eventbox:
             eventbox = self.eventBox
-        index = eventbox.currentIndex()
-        return eventbox.itemData(index)
+        path = eventbox.currentText()
+        return self.project.getEventFromPath(path)
 
     def get_current_event_path(self, eventbox=None):
         '''
@@ -953,7 +955,8 @@ class MainWindow(QMainWindow):
                            '{} unequal {}.'
                            .format(event.path, self.eventBox.itemText(id)))
                 raise ValueError(message)
-            eventBox.setItemData(id, event)
+            #not working with obspy events
+            #eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
         self.refreshRefTestButtons()
 
@@ -2468,11 +2471,13 @@ class Project(object):
         return project
     
 
-class Event(object):
+class Event(ObsPyEvent):
     '''
-    Pickable class containing information on a single event.
+    Pickable class derived from ~obspy.core.event.Event containing information on a single event.
     '''
     def __init__(self, path):
+        # initialize super class
+        super(Event, self).__init__()
         self.path = path
         self.database = path.split('/')[-2]
         self.datapath = path.split('/')[-3]
@@ -2482,10 +2487,7 @@ class Event(object):
         self.notes = ''
         self._testEvent = False
         self._refEvent = False
-        try:
-            self.get_notes()
-        except:
-            pass
+        self.get_notes()
 
     def get_notes_path(self):
         notesfile = os.path.join(self.path, 'notes.txt')
@@ -2495,8 +2497,15 @@ class Event(object):
         notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
-                text = '[eventInfo: '+str(infile.readlines()[0].split('\n')[0])+']'
+                path = str(infile.readlines()[0].split('\n')[0])
+                text = '[eventInfo: '+path+']'
                 self.addNotes(text)
+                try:
+                    datetime = UTCDateTime(path.split('/')[-1])
+                    origin = Origin(time=datetime, latitude=0, longitude=0)
+                    self.origins.append(origin)
+                except:
+                    pass
 
     def addNotes(self, notes):
         self.notes = str(notes)
