@@ -1996,6 +1996,12 @@ class MainWindow(QMainWindow):
         if not self.array_map:
             return
         # refresh with new picks here!!!
+        event = self.get_current_event()
+        if hasattr(event, 'origins'):
+            if event.origins:
+                lat = event.origins[0].latitude
+                lon = event.origins[0].longitude
+                self.array_map.eventLoc = (lat, lon)
         self.array_map.refresh_drawings(self.get_current_event().getPicks())
         self._eventChanged[1] = False
 
