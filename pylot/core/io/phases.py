@@ -382,12 +382,12 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
     if not out_dir:
-        fnout_prefix = os.path.join(root_dir, db_dir, event_id, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(root_dir, db_dir, event_id, 'PyLoT_{0}.'.format(event_id))
     else:
         out_dir = os.path.join(out_dir, db_dir)
         if not os.path.isdir(out_dir):
             os.makedirs(out_dir)
-        fnout_prefix = os.path.join(out_dir, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
