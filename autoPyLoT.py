@@ -243,7 +243,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         # get latest NLLoc-location file if several are available
                         nllocfile = max(glob.glob(locsearch), key=os.path.getctime)
                         evt = read_events(nllocfile)[0]
-                        # calculating seismic moment Mo and moment magnitude Mw
+                        # calculate seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
                                                      parameter.get('rho'), True, \
@@ -255,14 +255,22 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         net_mw = moment_mag.net_magnitude()
                         print("Network moment magnitude: %4.1f" % net_mw.mag)
                         # calculate local (Richter) magntiude
+                        WAscaling = parameter.get('WAscaling')
+                        magscaling = parameter.get('magscaling')
                         local_mag = LocalMagnitude(corr_dat, evt,
-                                                   parameter.get('sstop'), parameter.get('WAscaling'), \
-                                                   True, iplot)
+                                                   parameter.get('sstop'), 
+                                                   WAscaling, True, iplot)
                         for station, amplitude in local_mag.amplitudes.items():
                             picks[station]['S']['Ao'] = amplitude.generic_amplitude
-                        evt = local_mag.updated_event(parameter.get('magscaling'))
-                        net_ml = local_mag.net_magnitude()
+                        print("Local station magnitudes scaled with:")
+                        print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0], 
+                                                                       WAscaling[1],
+                                                                       WAscaling[2]))
+                        evt = local_mag.updated_event(magscaling)
+                        net_ml = local_mag.net_magnitude(magscaling)
                         print("Network local magnitude: %4.1f" % net_ml.mag)
+                        print("Network local magnitude scaled with:")
+                        print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -306,7 +314,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                 nlloccounter = maxnumit
                         evt = read_events(nllocfile)[0]
                         if locflag < 2:
-                            # calculating seismic moment Mo and moment magnitude Mw
+                            # calculate seismic moment Mo and moment magnitude Mw
                             moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                          parameter.get('Qp'),
                                                          parameter.get('rho'), True, \
@@ -318,14 +326,22 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             net_mw = moment_mag.net_magnitude()
                             print("Network moment magnitude: %4.1f" % net_mw.mag)
                             # calculate local (Richter) magntiude
+                            WAscaling = parameter.get('WAscaling')
+                            magscaling = parameter.get('magscaling')
                             local_mag = LocalMagnitude(corr_dat, evt,
-                                                       parameter.get('sstop'), parameter.get('WAscaling'), \
-                                                       True, iplot)
+                                                       parameter.get('sstop'), 
+                                                       WAscaling, True, iplot)
                             for station, amplitude in local_mag.amplitudes.items():
                                 picks[station]['S']['Ao'] = amplitude.generic_amplitude
-                            evt = local_mag.updated_event(parameter.get('magscaling'))
-                            net_ml = local_mag.net_magnitude(parameter.get('magscaling'))
+                            print("Local station magnitudes scaled with:")
+                            print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0], 
+                                                                           WAscaling[1],
+                                                                           WAscaling[2]))
+                            evt = local_mag.updated_event(magscaling)
+                            net_ml = local_mag.net_magnitude(magscaling)
                             print("Network local magnitude: %4.1f" % net_ml.mag)
+                            print("Network local magnitude scaled with:")
+                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
