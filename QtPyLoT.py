@@ -42,7 +42,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
 import numpy as np
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
-from obspy.core.event import Origin
+from obspy.core.event import Origin, Magnitude, ResourceIdentifier
 
 try:
     import pyqtgraph as pg
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
             dirs = {
                 'database': path.split('/')[-2],
                 'datapath': path.split('/')[-3],
-                'rootpath': os.path.join(*path.split('/')[:-3])
+                'rootpath': '/'+os.path.join(*path.split('/')[:-3])
                     }
         except Exception as e:
             dirs = {
@@ -2411,6 +2411,62 @@ class Project(object):
                 self.setDirty()
             else:
                 print('Skipping event with path {}. Already part of project.'.format(event.path))
+        self.search_eventfile_info()
+
+    def read_eventfile_info(self, filename, separator=','):
+        '''
+        Try to read event information from file (:param:filename) comparing specific event datetimes.
+        File structure (each row): event, date, time, magnitude, latitude, longitude, depth
+        separated by :param:separator each.
+        '''
+        infile = open(filename, 'r')
+        for line in infile.readlines():
+            event, date, time, mag, lat, lon, depth  = line.split(separator)[:7]
+            #skip first line
+            try:
+                month, day, year = date.split('/')
+            except:
+                continue
+            year = int(year)
+            #hardcoded, if year only consists of 2 digits (e.g. 16 instead of 2016)
+            if year<100:
+                year += 2000
+            datetime = '{}-{}-{}T{}'.format(year, month, day, time)                
+            try:
+                datetime = UTCDateTime(datetime)
+            except Exception as e:
+                print(e, datetime, filename)
+                continue
+            for event in self.eventlist:
+                if not event.origins:
+                    continue
+                origin = event.origins[0] #should have only one origin
+                if origin.time == datetime:
+                    origin.latitude = float(lat)
+                    origin.longitude = float(lon)
+                    origin.depth = float(depth)
+                    event.magnitudes.append(Magnitude(resource_id=event.resource_id,
+                                                      mag=float(mag),
+                                                      mag_type='M'))
+                    
+    def search_eventfile_info(self):
+        '''
+        Search all datapaths in rootpath for filenames with given file extension fext
+        and try to read event info from it
+        '''
+        datapaths = []
+        fext='.csv'
+        for event in self.eventlist:
+            if not event.datapath in datapaths:
+                datapaths.append(event.datapath)
+        for datapath in datapaths:
+            datapath = os.path.join(self.rootpath, datapath)
+            for filename in os.listdir(datapath):
+                if os.path.isfile(os.path.join(datapath, filename)) and filename.endswith(fext):
+                    try:
+                        self.read_eventfile_info(filename)
+                    except Exception as e:
+                        print('Failed on reading eventfile info from file {}: {}'.format(filename, e))
 
     def getPaths(self):
         '''
@@ -2477,11 +2533,11 @@ class Event(ObsPyEvent):
     '''
     def __init__(self, path):
         # initialize super class
-        super(Event, self).__init__()
+        super(Event, self).__init__(resource_id=ResourceIdentifier(path.split('/')[-1]))
         self.path = path
         self.database = path.split('/')[-2]
         self.datapath = path.split('/')[-3]
-        self.rootpath = os.path.join(*path.split('/')[:-3])
+        self.rootpath = '/' + os.path.join(*path.split('/')[:-3])
         self.autopicks = {}
         self.picks = {}
         self.notes = ''
@@ -2502,7 +2558,7 @@ class Event(ObsPyEvent):
                 self.addNotes(text)
                 try:
                     datetime = UTCDateTime(path.split('/')[-1])
-                    origin = Origin(time=datetime, latitude=0, longitude=0)
+                    origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0)
                     self.origins.append(origin)
                 except:
                     pass
