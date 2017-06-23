@@ -43,6 +43,7 @@ import numpy as np
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, Magnitude, ResourceIdentifier
+from obspy.core.util import AttribDict
 
 try:
     import pyqtgraph as pg
@@ -1795,7 +1796,7 @@ class MainWindow(QMainWindow):
 
         for phase in stat_picks:
             picks = stat_picks[phase]
-            if type(stat_picks[phase]) is not dict:
+            if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
             colors = phase_col[phase[0].upper()]
 
@@ -2021,19 +2022,19 @@ class MainWindow(QMainWindow):
             # changes attributes of the corresponding event
             table = self.project._table
             event = self.project.getEventFromPath(table[row][0].text())
-            if column == 3 or column == 4:
+            if column == 8 or column == 9:
                 #toggle checked states (exclusive)
-                item_ref = table[row][3]
-                item_test = table[row][4]
-                if column == 3 and item_ref.checkState():
+                item_ref = table[row][8]
+                item_test = table[row][9]
+                if column == 8 and item_ref.checkState():
                     item_test.setCheckState(QtCore.Qt.Unchecked)
                     event.setRefEvent(True)
-                elif column == 3 and not item_ref.checkState():
+                elif column == 8 and not item_ref.checkState():
                     event.setRefEvent(False)                    
-                elif column == 4 and item_test.checkState():
+                elif column == 9 and item_test.checkState():
                     item_ref.setCheckState(QtCore.Qt.Unchecked)
                     event.setTestEvent(True)
-                elif column == 4 and not item_test.checkState():
+                elif column == 9 and not item_test.checkState():
                     event.setTestEvent(False)
                 self.fill_eventbox()
             elif column == 5:
@@ -2049,11 +2050,19 @@ class MainWindow(QMainWindow):
             
         # init new qtable
         self.event_table = QtGui.QTableWidget()
-        self.event_table.setColumnCount(6)
+        self.event_table.setColumnCount(11)
         self.event_table.setRowCount(len(eventlist))
-        self.event_table.setHorizontalHeaderLabels(['Event', '[N] MP',
-                                            '[N] AP', 'Tuning Set',
-                                            'Test Set', 'Notes'])
+        self.event_table.setHorizontalHeaderLabels(['Event',
+                                                    'Time',
+                                                    'Lat',
+                                                    'Lon',
+                                                    'Depth',
+                                                    'Mag',
+                                                    '[N] MP',
+                                                    '[N] AP',
+                                                    'Tuning Set',
+                                                    'Test Set',
+                                                    'Notes'])
 
         # iterate through eventlist and generate items for table rows
         self.project._table = []
@@ -2065,6 +2074,11 @@ class MainWindow(QMainWindow):
             if event.autopicks:
                 event_nautopicks = len(event.autopicks)
             item_path = QtGui.QTableWidgetItem()
+            item_time = QtGui.QTableWidgetItem()
+            item_lat = QtGui.QTableWidgetItem()
+            item_lon = QtGui.QTableWidgetItem()
+            item_depth = QtGui.QTableWidgetItem()
+            item_mag = QtGui.QTableWidgetItem()                        
             item_nmp = QtGui.QTableWidgetItem(str(event_npicks))
             item_nmp.setIcon(self.manupicksicon_small)
             item_nap = QtGui.QTableWidgetItem(str(event_nautopicks))
@@ -2076,7 +2090,19 @@ class MainWindow(QMainWindow):
             item_ref.setBackground(self._colors['ref'])
             item_test.setBackground(self._colors['test'])
             item_path.setText(event.path)
-            item_notes.setText(event.notes)            
+            if hasattr(event, 'origins'):
+                if event.origins:
+                    origin = event.origins[0]
+                    item_time.setText(str(origin.time).split('.')[0])
+                    item_lon.setText(str(origin.longitude))
+                    item_lat.setText(str(origin.latitude))
+                    item_depth.setText(str(origin.depth))
+            if hasattr(event, 'magnitudes'):
+                if event.magnitudes:
+                    magnitude = event.magnitudes[0]
+                    item_mag.setText(str(magnitude.mag))
+            item_notes.setText(event.notes)
+            
             set_enabled(item_path, True, False)
             set_enabled(item_nmp, True, False)
             set_enabled(item_nap, True, False)
@@ -2096,7 +2122,8 @@ class MainWindow(QMainWindow):
             else:
                 item_test.setCheckState(QtCore.Qt.Unchecked)
                 
-            column=[item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
+            column=[item_path, item_time, item_lat, item_lon, item_depth, item_mag,
+                    item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(column)
 
         for r_index, row in enumerate(self.project._table):
@@ -2462,7 +2489,8 @@ class Project(object):
         for datapath in datapaths:
             datapath = os.path.join(self.rootpath, datapath)
             for filename in os.listdir(datapath):
-                if os.path.isfile(os.path.join(datapath, filename)) and filename.endswith(fext):
+                filename = os.path.join(datapath, filename)
+                if os.path.isfile(filename) and filename.endswith(fext):
                     try:
                         self.read_eventfile_info(filename)
                     except Exception as e:
@@ -2558,7 +2586,7 @@ class Event(ObsPyEvent):
                 self.addNotes(text)
                 try:
                     datetime = UTCDateTime(path.split('/')[-1])
-                    origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0)
+                    origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0, depth=0)
                     self.origins.append(origin)
                 except:
                     pass
