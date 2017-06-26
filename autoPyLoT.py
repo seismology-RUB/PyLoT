@@ -354,13 +354,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.applyEVTData(evt, 'event')
             fnqml = '%s/PyLoT_%s' % (event, evID)
             data.exportEvent(fnqml, fnext='.xml', fcheck='manual')
-            # HYPO71
-            hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
-            hypo71.export(picks, hypo71file, parameter)
-            # HYPOSAT
-            hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (event, evID)
-            hyposat.export(picks, hyposatfile, parameter)
             if locflag == 1:
+                # HYPO71
+                hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
+                hypo71.export(picks, hypo71file, parameter)
+                # HYPOSAT
+                hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (event, evID)
+                hyposat.export(picks, hyposatfile, parameter)
             	# VELEST
             	velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (event, evID)
             	velest.export(picks, velestfile, parameter, evt)
