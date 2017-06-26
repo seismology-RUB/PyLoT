@@ -1868,11 +1868,12 @@ class TuneAutopicker(QWidget):
         path = self.eventBox.itemText(index)
         if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
-                path = self.eventBox.itemText(index)                
-                if not project.getEventFromPath(index).isTestEvent():
-                    break
-                #in case all events are marked as test events
-                elif index == nevents - 1:
+                path = self.eventBox.itemText(index)
+                if project.getEventFromPath(index):
+                    if not project.getEventFromPath(index).isTestEvent():
+                        break
+                #in case all events are marked as test events and last event is reached
+                if index == nevents - 1:
                     index = -1
         self.eventBox.setCurrentIndex(index)
         if not index == index_start:
