@@ -146,6 +146,7 @@ class MainWindow(QMainWindow):
             self.data = Data(self, lastEvent)
         else:
             self.data = Data(self)
+            self.data._new = False
         self.autodata = Data(self)
 
         if settings.value("user/FullName", None) is None:

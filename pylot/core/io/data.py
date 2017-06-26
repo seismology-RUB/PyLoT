@@ -350,7 +350,7 @@ class Data(object):
             information on the event to the actual data
             :param event:
             """
-            if not self.isNew():
+            if self.isNew():
                 self.setEvtData(event)
             else:
                 # prevent overwriting original pick information
