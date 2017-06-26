@@ -818,6 +818,10 @@ class MainWindow(QMainWindow):
                     }
             print('Warning: Could not automatically init folder structure. ({})'.format(e))
             
+        settings = QSettings()
+        settings.setValue("data/dataRoot", dirs['rootpath'])
+        settings.sync()
+        
         if not self.project.eventlist:
             #init parameter object
             self.setParameter(show=False)
