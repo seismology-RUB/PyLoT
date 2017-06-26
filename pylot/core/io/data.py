@@ -6,11 +6,11 @@ import os
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.io.sac import SacIOError
-from obspy.core.event import Event
+from obspy.core.event import Event as ObsPyEvent
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
-from pylot.core.util.utils import fnConstructor, full_range
+from pylot.core.util.utils import Event, fnConstructor, full_range
 
 class Data(object):
     """
@@ -33,7 +33,7 @@ class Data(object):
             self.comp = 'Z'
             self.wfdata = Stream()
         self._new = False
-        if isinstance(evtdata, Event):
+        if isinstance(evtdata, ObsPyEvent) or isinstance(evtdata, Event):
             pass
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
@@ -49,7 +49,7 @@ class Data(object):
                 if 'Unknown format for file' in e.message:
                     if 'PHASES' in evtdata:
                         picks = picksdict_from_pilot(evtdata)
-                        evtdata = Event()
+                        evtdata = ObsPyEvent()
                         evtdata.picks = picks_from_picksdict(picks)
                     elif 'LOC' in evtdata:
                         raise NotImplementedError('PILOT location information '
@@ -61,7 +61,7 @@ class Data(object):
                     raise e
         else:  # create an empty Event object
             self.setNew()
-            evtdata = Event()
+            evtdata = ObsPyEvent()
             evtdata.picks = []
         self.evtdata = evtdata
         self.wforiginal = None

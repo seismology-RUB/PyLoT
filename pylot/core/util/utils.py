@@ -10,9 +10,134 @@ import re
 import warnings
 import subprocess
 from obspy import UTCDateTime, read
+from obspy.core.event import Event as ObsPyEvent
+from obspy.core.event import Origin, Magnitude, ResourceIdentifier
 from pylot.core.io.inputs import PylotParameter
 
 
+class Event(ObsPyEvent):
+    '''
+    Pickable class derived from ~obspy.core.event.Event containing information on a single event.
+    '''
+    def __init__(self, path):
+        # initialize super class
+        super(Event, self).__init__(resource_id=ResourceIdentifier(path.split('/')[-1]))
+        self.path = path
+        self.database = path.split('/')[-2]
+        self.datapath = path.split('/')[-3]
+        self.rootpath = '/' + os.path.join(*path.split('/')[:-3])
+        self.autopicks = {}
+        self.picks = {}
+        self.notes = ''
+        self._testEvent = False
+        self._refEvent = False
+        self.get_notes()
+
+    def get_notes_path(self):
+        notesfile = os.path.join(self.path, 'notes.txt')
+        return notesfile
+    
+    def get_notes(self):
+        notesfile = self.get_notes_path()
+        if os.path.isfile(notesfile):
+            with open(notesfile) as infile:
+                path = str(infile.readlines()[0].split('\n')[0])
+                text = '[eventInfo: '+path+']'
+                self.addNotes(text)
+                try:
+                    datetime = UTCDateTime(path.split('/')[-1])
+                    origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0, depth=0)
+                    self.origins.append(origin)
+                except:
+                    pass
+
+    def addNotes(self, notes):
+        self.notes = str(notes)
+
+    def clearNotes(self):
+        self.notes = None
+
+    def isRefEvent(self):
+        return self._refEvent
+
+    def isTestEvent(self):
+        return self._testEvent
+
+    def setRefEvent(self, bool):
+        self._refEvent = bool
+        if bool: self._testEvent = False
+
+    def setTestEvent(self, bool):
+        self._testEvent = bool
+        if bool: self._refEvent = False
+
+    def addPicks(self, picks):
+        for station in picks:
+            self.picks[station] = picks[station]
+        
+    def addAutopicks(self, autopicks):
+        for station in autopicks:
+            self.autopicks[station] = autopicks[station]
+        
+    def setPick(self, station, pick):
+        if pick:
+            self.picks[station] = pick
+
+    def setPicks(self, picks):
+        self.picks = picks
+        
+    def getPick(self, station):
+        if station in self.picks.keys():
+            return self.picks[station]
+
+    def getPicks(self):
+        return self.picks
+
+    def setAutopick(self, station, autopick):
+        if autopick:
+            self.autopicks[station] = autopick
+
+    def setAutopicks(self, autopicks):
+        self.autopicks = autopicks
+        
+    def getAutopick(self, station):
+        if station in self.autopicks.keys():
+            return self.autopicks[station]
+
+    def getAutopicks(self):
+        return self.autopicks
+
+    def save(self, filename):
+        '''
+        Save PyLoT Event to a file. 
+        Can be loaded by using event.load(filename).
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+
+        try:
+            outfile = open(filename, 'wb')
+            cPickle.dump(self, outfile, -1)
+        except Exception as e:
+            print('Could not pickle PyLoT event. Reason: {}'.format(e))
+
+    @staticmethod
+    def load(filename):
+        '''
+        Load project from filename.
+        '''
+        try:
+            import cPickle
+        except ImportError:
+            import _pickle as cPickle
+        infile = open(filename, 'rb')
+        event = cPickle.load(infile)
+        print('Loaded %s' % filename)
+        return event
+
+    
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
