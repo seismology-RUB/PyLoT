@@ -70,8 +70,9 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
-from pylot.core.util.utils import Event, fnConstructor, getLogin, \
+from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range
+from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
@@ -174,8 +175,8 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         self.filteroptions = {}
-        self.picks = {}
-        self.autopicks = {}
+        self.pylot_picks = {}
+        self.pylot_autopicks = {}
         self.loc = False
 
     def setupUi(self):
@@ -654,7 +655,7 @@ class MainWindow(QMainWindow):
                 refresh=True
         if not refresh:
             return
-        if self.get_current_event().picks:
+        if self.get_current_event().pylot_picks:
             self.plotWaveformDataThread()
         self.drawPicks(picktype=type)
         self.draw()
@@ -675,7 +676,7 @@ class MainWindow(QMainWindow):
         if not loc:
             self.updatePicks(type=type, event=event)
         if draw:
-            if self.get_current_event().picks:
+            if self.get_current_event().pylot_picks:
                 self.plotWaveformDataThread()
             self.drawPicks(picktype=type)
             self.draw()
@@ -702,8 +703,8 @@ class MainWindow(QMainWindow):
     def getWFFnames(self):
         try:
             evt = self.get_data().get_evt_data()
-            if evt.picks:
-                for pick in evt.picks:
+            if evt.pylot_picks:
+                for pick in evt.pylot_picks:
                     try:
                         if pick.waveform_id is not None:
                             fname = pick.waveform_id.getSEEDstring()
@@ -906,10 +907,10 @@ class MainWindow(QMainWindow):
             event_path = event.path
             event_npicks = 0
             event_nautopicks = 0
-            if event.picks:
-                event_npicks = len(event.picks)
-            if event.autopicks:
-                event_nautopicks = len(event.autopicks)
+            if event.pylot_picks:
+                event_npicks = len(event.pylot_picks)
+            if event.pylot_autopicks:
+                event_nautopicks = len(event.pylot_autopicks)
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
@@ -1013,7 +1014,7 @@ class MainWindow(QMainWindow):
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
         try:
-            self.get_data().applyEVTData(self.getPicks())
+            self.get_data().applyEVTData(self.get_current_event(), typ='event')#getPicks())
         except OverwriteError:
         #     msgBox = QMessageBox()
         #     msgBox.setText("Picks have been modified!")
@@ -1083,7 +1084,7 @@ class MainWindow(QMainWindow):
             return self.get_current_event().getPicks()
         if type == 'auto':
             return self.get_current_event().getAutopicks()
-        # rdict = dict(auto=self.autopicks, manual=self.picks)
+        # rdict = dict(auto=self.pylot_autopicks, manual=self.pylot_picks)
         # return rdict[type]
 
     def getPicksOnStation(self, station, type='manual'):
@@ -1157,7 +1158,7 @@ class MainWindow(QMainWindow):
         if event:
             self.ref_event_button.setChecked(event.isRefEvent())
             self.test_event_button.setChecked(event.isTestEvent())
-            self.enableRefTestButtons(bool(self.get_current_event().picks))
+            self.enableRefTestButtons(bool(self.get_current_event().pylot_picks))
             return
         self.ref_event_button.setChecked(False)
         self.test_event_button.setChecked(False)
@@ -1216,14 +1217,14 @@ class MainWindow(QMainWindow):
             if not event:
                 return
             # update picks saved in GUI mainwindow (to be changed in future!!) MP MP
-            if not event.picks:
-                self.picks = {}
+            if not event.pylot_picks:
+                self.pylot_picks = {}
             else:
-                self.picks = event.picks
-            if not event.autopicks:
-                self.autopicks = {}
+                self.pylot_picks = event.pylot_picks
+            if not event.pylot_autopicks:
+                self.pylot_autopicks = {}
             else:
-                self.autopicks = event.autopicks
+                self.pylot_autopicks = event.pylot_autopicks
         # if current tab is waveformPlot-tab and the data in this tab was not yet refreshed
         if self.tabs.currentIndex() == 0:
             if self._eventChanged[0]:
@@ -1369,12 +1370,12 @@ class MainWindow(QMainWindow):
         self.openautopicksaction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         event = self.get_current_event()
-        if event.picks:
-            self.picks = event.picks
+        if event.pylot_picks:
+            self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
             self.enableSaveManualPicksAction()
-        if event.autopicks:
-            self.autopicks = event.autopicks
+        if event.pylot_autopicks:
+            self.pylot_autopicks = event.pylot_autopicks
             self.drawPicks(picktype='auto')
             self.compare_action.setEnabled(True)
         self.draw()
@@ -1755,10 +1756,10 @@ class MainWindow(QMainWindow):
         picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
         if type == 'manual':
             event.addPicks(picks)
-            self.picks.update(picks)
+            self.pylot_picks.update(picks)
         elif type == 'auto':
             event.addAutopicks(picks)            
-            self.autopicks.update(picks)
+            self.pylot_autopicks.update(picks)
         self.check4Comparison()
 
     def drawPicks(self, station=None, picktype='manual'):
@@ -1909,8 +1910,8 @@ class MainWindow(QMainWindow):
         finally:
             os.remove(phasepath)
 
-        self.get_data().applyEVTData(lt.read_location(locpath), type='event')
-        self.get_data().applyEVTData(self.calc_magnitude(), type='event')
+        self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
+        self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
 
     def init_array_tab(self):
         '''
@@ -2074,10 +2075,10 @@ class MainWindow(QMainWindow):
         for index, event in enumerate(eventlist):
             event_npicks = 0
             event_nautopicks = 0
-            if event.picks:
-                event_npicks = len(event.picks)
-            if event.autopicks:
-                event_nautopicks = len(event.autopicks)
+            if event.pylot_picks:
+                event_npicks = len(event.pylot_picks)
+            if event.pylot_autopicks:
+                event_nautopicks = len(event.pylot_autopicks)
             item_path = QtGui.QTableWidgetItem()
             item_time = QtGui.QTableWidgetItem()
             item_lat = QtGui.QTableWidgetItem()
@@ -2111,7 +2112,7 @@ class MainWindow(QMainWindow):
             set_enabled(item_path, True, False)
             set_enabled(item_nmp, True, False)
             set_enabled(item_nap, True, False)
-            if event.picks:
+            if event.pylot_picks:
                 set_enabled(item_ref, True, True)
                 set_enabled(item_test, True, True)
             else:
@@ -2376,7 +2377,7 @@ class MainWindow(QMainWindow):
         self.setDirty(True)
         
     def setDirty(self, value):
-        self.saveProjectAction.setEnabled(value)
+        self.saveProjectAction.setEnabled(bool(self.get_current_event().picks))
         self.saveProjectAsAction.setEnabled(True)
         self.project.setDirty(value)
         self.dirty = value

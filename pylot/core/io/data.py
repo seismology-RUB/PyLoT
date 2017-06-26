@@ -10,7 +10,8 @@ from obspy.core.event import Event as ObsPyEvent
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
-from pylot.core.util.utils import Event, fnConstructor, full_range
+from pylot.core.util.utils import fnConstructor, full_range
+from pylot.core.util.event import Event
 
 class Data(object):
     """
@@ -279,12 +280,12 @@ class Data(object):
     def setEvtData(self, event):
         self.evtdata = event
 
-    def applyEVTData(self, data, type='pick', authority_id='rub'):
+    def applyEVTData(self, data, typ='pick', authority_id='rub'):
 
         """
 
         :param data:
-        :param type:
+        :param typ:
         :param authority_id:
         :raise OverwriteError:
         """
@@ -338,7 +339,7 @@ class Data(object):
         applydata = {'pick': applyPicks,
                      'event': applyEvent}
 
-        applydata[type](data)
+        applydata[typ](data)
 
 
 class GenericDataStructure(object):

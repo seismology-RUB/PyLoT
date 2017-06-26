@@ -7,6 +7,7 @@ import os
 import scipy.io as sio
 import warnings
 from obspy.core import UTCDateTime
+from obspy.core.util import AttribDict
 
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_arrival, create_event, \
@@ -231,7 +232,7 @@ def picks_from_picksdict(picks, creation_info=None):
     picks_list = list()
     for station, onsets in picks.items():
         for label, phase in onsets.items():
-            if not isinstance(phase, dict):
+            if not isinstance(phase, dict) and not isinstance(phase, AttribDict):
                 continue
             onset = phase['mpp']
             try:

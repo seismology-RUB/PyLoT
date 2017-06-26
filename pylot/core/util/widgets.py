@@ -1646,7 +1646,7 @@ class TuneAutopicker(QWidget):
         model = self.stationBox.model()
         for network, station in stations:
             item = QtGui.QStandardItem(network+'.'+station)
-            if station in self.get_current_event().picks:
+            if station in self.get_current_event().pylot_picks:
                 item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
 
@@ -1698,13 +1698,13 @@ class TuneAutopicker(QWidget):
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
-        if station in event.picks.keys():
-            return event.picks[station]
+        if station in event.pylot_picks.keys():
+            return event.pylot_picks[station]
         
     def get_current_event_autopicks(self, station):
         event = self.get_current_event()
-        if event.autopicks:
-            return event.autopicks[station]
+        if event.pylot_autopicks:
+            return event.pylot_autopicks[station]
         
     def get_current_station(self):
         return str(self.stationBox.currentText()).split('.')[-1]
@@ -1917,8 +1917,8 @@ class TuneAutopicker(QWidget):
             self._warn('Could not execute picker:\n{}'.format(
                 self.ap_thread._executedError))
             return
-        self.picks = self.ap_thread.data
-        if not self.picks:
+        self.pylot_picks = self.ap_thread.data
+        if not self.pylot_picks:
             self._warn('No picks found. See terminal output.')
             return
         #renew tabs

@@ -7,6 +7,8 @@ from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, Magnitude, ResourceIdentifier
 
+from pylot.core.io.phases import picks_from_picksdict
+
 
 class Event(ObsPyEvent):
     '''
@@ -65,8 +67,13 @@ class Event(ObsPyEvent):
         if bool: self._refEvent = False
 
     def addPicks(self, picks):
+        '''
+        add pylot picks and overwrite existing
+        '''
         for station in picks:
             self.pylot_picks[station] = picks[station]
+        #add ObsPy picks
+        self.picks = picks_from_picksdict(self.pylot_picks)
         
     def addAutopicks(self, autopicks):
         for station in autopicks:
@@ -75,10 +82,15 @@ class Event(ObsPyEvent):
     def setPick(self, station, pick):
         if pick:
             self.pylot_picks[station] = pick
-
-    def setPicks(self, picks):
-        self.pylot_picks = picks
+        self.picks = picks_from_picksdict(self.pylot_picks)
         
+    def setPicks(self, picks):
+        '''
+        set pylot picks and delete and overwrite all existing
+        '''
+        self.pylot_picks = picks
+        self.picks = picks_from_picksdict(self.pylot_picks)
+                
     def getPick(self, station):
         if station in self.pylot_picks.keys():
             return self.pylot_picks[station]
