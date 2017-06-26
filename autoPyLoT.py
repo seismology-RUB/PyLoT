@@ -353,7 +353,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             if evt is not None:
                 data.applyEVTData(evt, 'event')
             fnqml = '%s/PyLoT_%s' % (event, evID)
-            data.exportEvent(fnqml)
+            data.exportEvent(fnqml, fnext='.xml', fcheck='manual')
             # HYPO71
             hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
             hypo71.export(picks, hypo71file, parameter)

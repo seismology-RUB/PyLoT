@@ -145,12 +145,13 @@ class Data(object):
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
-    def exportEvent(self, fnout, fnext='.xml'):
+    def exportEvent(self, fnout, fnext='.xml', fcheck='auto'):
 
         """
 
         :param fnout:
         :param fnext:
+        :param fcheck:
         :raise KeyError:
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
@@ -161,13 +162,35 @@ class Data(object):
             errmsg = '{0}; selected file extension {1} not ' \
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
+   
+        # check for already existing xml-file
+        if fnext == '.xml':
+            if os.path.isfile(fnout + fnext):
+                print("xml-file already exists! Check content ...")
+                cat_old = read_events(fnout + fnext)
+                checkflag = 0
+                for j in range(len(cat_old.events[0].picks)):
+                   if cat_old.events[0].picks[j].method_id.id.split('/')[1] == fcheck:
+                      print("Found %s pick(s), append to new catalog." % fcheck)
+                      checkflag = 1
+                      break
+                if checkflag == 1:
+                    self.get_evt_data().write(fnout + fnext, format=evtformat)
+                    cat_new = read_events(fnout + fnext)
+                    cat_new.append(cat_old.events[0])
+                    cat_new.write(fnout + fnext, format=evtformat)
+                else:
+                    self.get_evt_data().write(fnout + fnext, format=evtformat)
+            else:
+                self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event via ObsPy
-        try:
-            self.get_evt_data().write(fnout + fnext, format=evtformat)
-        except KeyError as e:
-            raise KeyError('''{0} export format
-                              not implemented: {1}'''.format(evtformat, e))
+        else:
+            try:
+                self.get_evt_data().write(fnout + fnext, format=evtformat)
+            except KeyError as e:
+                raise KeyError('''{0} export format
+                                  not implemented: {1}'''.format(evtformat, e))
 
     def getComp(self):
         """
