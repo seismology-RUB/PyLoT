@@ -968,7 +968,7 @@ class MainWindow(QMainWindow):
             caption = "Open an event file"
             fname = QFileDialog().getOpenFileName(self, caption=caption,
                                                   filter=filt,
-                                                  dir=self.getRoot())
+                                                  dir=self.get_current_event_path())
             fname = fname[0]
         else:
             fname = str(action.data().toString())
