@@ -669,6 +669,8 @@ class MainWindow(QMainWindow):
             action = self.sender()
             if isinstance(action, QAction):
                 fname = self.filename_from_action(action)
+                if not fname:
+                    return
         self.set_fname(fname, type)
         data = dict(auto=self.autodata, manual=self.data)
         data[type] += Data(self, evtdata=fname)
