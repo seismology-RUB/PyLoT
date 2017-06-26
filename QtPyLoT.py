@@ -314,21 +314,21 @@ class MainWindow(QMainWindow):
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openmanualpicksaction = self.createAction(self, "Load &manual picks ...",
+        self.openmanualpicksaction = self.createAction(self, "Load event ...",
                                                        self.load_data,
                                                        "Ctrl+M",
                                                        manupicksicon,
-                                                       "Load manual picks for "
+                                                       "Load event information for "
                                                        "the displayed event.")
         self.openmanualpicksaction.setEnabled(False)
         self.openmanualpicksaction.setData(None)
 
-        self.openautopicksaction = self.createAction(self, "Load &automatic picks ... ",
-                                                     self.load_autopicks,
+        self.openautopicksaction = self.createAction(self, "Load event information &automatically ... ",
+                                                     self.load_multiple_data,
                                                      "Ctrl+A",
                                                      autopicksicon,
-                                                     "Load automatic picks "
-                                                     "for the displayed event.")
+                                                     "Load event data automatically "
+                                                     "for for all events.")
         self.openautopicksaction.setEnabled(False)
         self.openautopicksaction.setData(None)
 
