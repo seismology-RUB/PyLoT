@@ -196,6 +196,7 @@ def picksdict_from_picks(evt):
         phase = {}
         station = pick.waveform_id.station_code
         channel = pick.waveform_id.channel_code
+        network = pick.waveform_id.network_code
         try:
             onsets = picks[station]
         except KeyError as e:
@@ -216,6 +217,7 @@ def picksdict_from_picks(evt):
         phase['lpp'] = lpp
         phase['spe'] = spe
         phase['channel'] = channel
+        phase['network'] = network
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):

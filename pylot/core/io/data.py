@@ -61,7 +61,7 @@ class Data(object):
                 else:
                     raise e
         else:  # create an empty Event object
-            self.setNew()
+            #self.setNew()
             evtdata = ObsPyEvent()
             evtdata.picks = []
         self.evtdata = evtdata
