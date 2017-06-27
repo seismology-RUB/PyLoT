@@ -98,8 +98,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
         exf = ['root', 'dpath', 'dbase']
         
-        if parameter.hasParam('eventID') and fnames == 'None':
-            dsfields['eventID'] = parameter.get('eventID')
+        if parameter['eventID'] is not '*' and fnames == 'None':
+            dsfields['eventID'] = parameter['eventID']
             exf.append('eventID')
 
         datastructure.modifyFields(**dsfields)
@@ -133,13 +133,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
-            if fnames == 'None' and not parameter['eventID']:
+            if fnames == 'None' and parameter['eventID'] is '*':
                 # multiple event processing
                 # read each event in database
                 events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
-            elif fnames == 'None' and parameter['eventID']:
+            elif fnames == 'None' and parameter['eventID'] is not '*':
                 # single event processing
-                events = glob.glob(os.path.join(datapath, parameter.get('eventID')))
+                events = glob.glob(os.path.join(datapath, parameter['eventID']))
             else:
                 # autoPyLoT was initialized from GUI
                 events = []
