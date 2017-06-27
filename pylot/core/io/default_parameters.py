@@ -14,7 +14,7 @@ defaults = {'rootpath': {'type': str,
                          'value': ''},
             
             'eventID': {'type': str,
-                        'tooltip': 'event ID for single event processing',
+                        'tooltip': 'event ID for single event processing (* for all events found in database)',
                         'value': ''},
             
             'extent': {'type': str,
