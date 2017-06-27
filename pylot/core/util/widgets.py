@@ -1646,7 +1646,7 @@ class TuneAutopicker(QWidget):
         model = self.stationBox.model()
         for network, station in stations:
             item = QtGui.QStandardItem(network+'.'+station)
-            if station in self.get_current_event().picks:
+            if station in self.get_current_event().pylot_picks:
                 item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
 
@@ -1687,8 +1687,8 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
         
     def get_current_event(self):
-        index = self.eventBox.currentIndex()
-        return self.eventBox.itemData(index)
+        path = self.eventBox.currentText()
+        return self.parent.project.getEventFromPath(path)
         
     def get_current_event_name(self):
         return self.eventBox.currentText().split('/')[-1]
@@ -1698,13 +1698,13 @@ class TuneAutopicker(QWidget):
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
-        if station in event.picks.keys():
-            return event.picks[station]
+        if station in event.pylot_picks.keys():
+            return event.pylot_picks[station]
         
     def get_current_event_autopicks(self, station):
         event = self.get_current_event()
-        if event.autopicks:
-            return event.autopicks[station]
+        if event.pylot_autopicks:
+            return event.pylot_autopicks[station]
         
     def get_current_station(self):
         return str(self.stationBox.currentText()).split('.')[-1]
@@ -1855,6 +1855,9 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
+        project = self.parent.project
+        if not project:
+            return
         # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
         index_start = self.parent.eventBox.currentIndex()
@@ -1862,11 +1865,15 @@ class TuneAutopicker(QWidget):
         if index == -1:
             index += 1
         nevents = self.eventBox.model().rowCount()
-        if self.eventBox.itemData(index).isTestEvent():
+        path = self.eventBox.itemText(index)
+        if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
-                if not self.eventBox.itemData(index).isTestEvent():
-                    break
-                elif index == nevents - 1:
+                path = self.eventBox.itemText(index)
+                if project.getEventFromPath(index):
+                    if not project.getEventFromPath(index).isTestEvent():
+                        break
+                #in case all events are marked as test events and last event is reached
+                if index == nevents - 1:
                     index = -1
         self.eventBox.setCurrentIndex(index)
         if not index == index_start:
@@ -1911,8 +1918,8 @@ class TuneAutopicker(QWidget):
             self._warn('Could not execute picker:\n{}'.format(
                 self.ap_thread._executedError))
             return
-        self.picks = self.ap_thread.data
-        if not self.picks:
+        self.pylot_picks = self.ap_thread.data
+        if not self.pylot_picks:
             self._warn('No picks found. See terminal output.')
             return
         #renew tabs

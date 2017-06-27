@@ -7,6 +7,7 @@ import os
 import scipy.io as sio
 import warnings
 from obspy.core import UTCDateTime
+from obspy.core.util import AttribDict
 
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_arrival, create_event, \
@@ -195,6 +196,7 @@ def picksdict_from_picks(evt):
         phase = {}
         station = pick.waveform_id.station_code
         channel = pick.waveform_id.channel_code
+        network = pick.waveform_id.network_code
         try:
             onsets = picks[station]
         except KeyError as e:
@@ -215,6 +217,7 @@ def picksdict_from_picks(evt):
         phase['lpp'] = lpp
         phase['spe'] = spe
         phase['channel'] = channel
+        phase['network'] = network
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
@@ -231,7 +234,7 @@ def picks_from_picksdict(picks, creation_info=None):
     picks_list = list()
     for station, onsets in picks.items():
         for label, phase in onsets.items():
-            if not isinstance(phase, dict):
+            if not isinstance(phase, dict) and not isinstance(phase, AttribDict):
                 continue
             onset = phase['mpp']
             try:
@@ -382,12 +385,12 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     evt.picks = picks_from_picksdict(picks_dict)
     # write phase information to file
     if not out_dir:
-        fnout_prefix = os.path.join(root_dir, db_dir, event_id, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(root_dir, db_dir, event_id, 'PyLoT_{0}.'.format(event_id))
     else:
         out_dir = os.path.join(out_dir, db_dir)
         if not os.path.isdir(out_dir):
             os.makedirs(out_dir)
-        fnout_prefix = os.path.join(out_dir, '{0}.'.format(event_id))
+        fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
     #evt.write(fnout_prefix + 'cnv', format='VELEST')
 
@@ -835,9 +838,10 @@ def merge_picks(event, picks):
         err = pick.time_errors
         phase = pick.phase_hint
         station = pick.waveform_id.station_code
+        network = pick.waveform_id.network_code
         method = pick.method_id
         for p in event.picks:
             if p.waveform_id.station_code == station and p.phase_hint == phase:
-                p.time, p.time_errors, p.method_id = time, err, method
-        del time, err, phase, station, method
+                p.time, p.time_errors, p.waveform_id.network_code, p.method_id = time, err, network, method
+        del time, err, phase, station, network, method
     return event

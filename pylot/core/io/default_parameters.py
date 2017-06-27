@@ -14,7 +14,7 @@ defaults = {'rootpath': {'type': str,
                          'value': ''},
             
             'eventID': {'type': str,
-                        'tooltip': 'event ID for single event processing',
+                        'tooltip': 'event ID for single event processing (* for all events found in database)',
                         'value': ''},
             
             'extent': {'type': str,
@@ -278,12 +278,14 @@ defaults = {'rootpath': {'type': str,
                              'value': 1.0},
             
             'WAscaling': {'type': (float, float, float),
-                         'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm]',
-                         'value': (1.0, 1.0, 1.0)},
+                         'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm] \
+                                     If zeros are set, original Richter magnitude is calculated!',
+                         'value': (0., 0., 0.)},
 
             'magscaling': {'type': (float, float),
-                         'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]',
-                         'value': (1.0, 1.0)}
+                         'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]. \
+                                     If zeros are set, no scaling of network magnitude is applied!',
+                         'value': (0., 0.)}
 }
 
 settings_main={
