@@ -215,6 +215,8 @@ class LocalMagnitude(Magnitude):
         th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
+        ii = min([iwin[len(iwin)-1], len(th)])
+        iwin = iwin[0:ii]
         wapp = np.max(sqH[iwin])
         if self.verbose:
             print("Determined Wood-Anderson peak-to-peak amplitude for station {0}: {1} "
