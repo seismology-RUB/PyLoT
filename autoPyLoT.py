@@ -274,6 +274,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
+                        locflag = 9
                 else:
                     # get theoretical P-onset times from NLLoc-location file
                     locsearch = '%s/loc/%s.????????.??????.grid?.loc.hyp' % (nllocroot, nllocout)
