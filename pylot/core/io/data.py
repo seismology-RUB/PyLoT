@@ -74,6 +74,8 @@ class Data(object):
 
     def __add__(self, other):
         assert isinstance(other, Data), "operands must be of same type 'Data'"
+        rs_id = self.get_evt_data().get('resource_id')
+        rs_id_other = other.get_evt_data().get('resource_id')        
         if other.isNew() and not self.isNew():
             picks_to_add = other.get_evt_data().picks
             old_picks = self.get_evt_data().picks
@@ -85,7 +87,7 @@ class Data(object):
             self.evtdata = new.get_evt_data()
         elif self.isNew() and other.isNew():
             pass
-        elif self.get_evt_data().get('id') == other.get_evt_data().get('id'):
+        elif rs_id == rs_id_other:
             other.setNew()
             return self + other
         else:
@@ -354,10 +356,16 @@ class Data(object):
                 self.setEvtData(event)
             else:
                 # prevent overwriting original pick information
-                picks =  copy.deepcopy(self.get_evt_data().picks)
+                event_old = self.get_evt_data()
+                print(event_old.resource_id, event.resource_id)
+                if not event_old.resource_id == event.resource_id:
+                    print("WARNING: Missmatch in event resource id's: {} and {}".format(
+                        event_old.resource_id,
+                        event.resource_id))
+                picks = copy.deepcopy(event_old.picks)
                 event = merge_picks(event, picks)
                 # apply event information from location
-                self.get_evt_data().update(event)
+                event_old.update(event)
 
         applydata = {'pick': applyPicks,
                      'event': applyEvent}

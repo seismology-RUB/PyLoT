@@ -15,8 +15,9 @@ class Event(ObsPyEvent):
     Pickable class derived from ~obspy.core.event.Event containing information on a single event.
     '''
     def __init__(self, path):
+        self.pylot_id = path.split('/')[-1]
         # initialize super class
-        super(Event, self).__init__(resource_id=ResourceIdentifier(path.split('/')[-1]))
+        super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/'+self.pylot_id))
         self.path = path
         self.database = path.split('/')[-2]
         self.datapath = path.split('/')[-3]

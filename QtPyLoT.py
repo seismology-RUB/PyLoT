@@ -675,7 +675,24 @@ class MainWindow(QMainWindow):
         if not event:
             event = self.get_current_event()
         data = Data(self, event)
-        data += Data(self, evtdata=fname)
+        try:
+            data_new = Data(self, evtdata=fname)
+            data += data_new
+        except ValueError:
+            qmb = QMessageBox(self, icon=QMessageBox.Question,
+                              text='Warning: Missmatch in event identifiers {} and {}. Continue?'.format(
+                                  data_new.get_evt_data().resource_id,
+                                  data.get_evt_data().resource_id),
+                              windowTitle='PyLoT - Load data warning')
+            qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            qmb.setDefaultButton(QMessageBox.No)
+            ret = qmb.exec_()
+            if ret == qmb.Yes:
+                data_new.setNew()
+                data += data_new
+            else:
+                return
+
         self.data = data
         print('Loading {} picks from file {}.'.format(type, fname))
         if not loc:
