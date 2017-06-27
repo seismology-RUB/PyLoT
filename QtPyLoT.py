@@ -657,9 +657,7 @@ class MainWindow(QMainWindow):
         if not refresh:
             return
         if self.get_current_event().pylot_picks:
-            self.plotWaveformDataThread()
-        self.drawPicks(picktype=type)
-        self.draw()
+            self.refreshEvents()
         self.setDirty(True)
 
     def load_data(self, fname=None, type='manual', loc=False, draw=True, event=None, overwrite=False):
@@ -673,16 +671,18 @@ class MainWindow(QMainWindow):
                 if not fname:
                     return
         self.set_fname(fname, type)
-        data = dict(auto=self.autodata, manual=self.data)
-        data[type] += Data(self, evtdata=fname)
+        #data = dict(auto=self.autodata, manual=self.data)
+        if not event:
+            event = self.get_current_event()
+        data = Data(self, event)
+        data += Data(self, evtdata=fname)
+        self.data = data
         print('Loading {} picks from file {}.'.format(type, fname))
         if not loc:
             self.updatePicks(type=type, event=event)
         if draw:
             if self.get_current_event().pylot_picks:
-                self.plotWaveformDataThread()
-            self.drawPicks(picktype=type)
-            self.draw()
+                self.refreshEvents()
             self.setDirty(True)
 
     def add_recentfile(self, event):
