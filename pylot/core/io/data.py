@@ -363,6 +363,8 @@ class Data(object):
                      'event': applyEvent}
 
         applydata[typ](data)
+        self._new = False
+        
 
 
 class GenericDataStructure(object):

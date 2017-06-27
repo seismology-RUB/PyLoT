@@ -351,7 +351,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             # and fault mechanism calculation routines
             # ObsPy event object
             data.applyEVTData(picks)
-            data._new = False
             if evt is not None:
                 data.applyEVTData(evt, 'event')
             fnqml = '%s/PyLoT_%s' % (event, evID)
