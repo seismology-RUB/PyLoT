@@ -188,11 +188,26 @@ class Data(object):
 
         # try exporting event via ObsPy
         elif fnext == '.obs':
+            # check for stations picked automatically as well as manually
+            # Prefer manual picks!
+            evtdata_copy = self.get_evt_data().copy()
+            evtdata_org = self.get_evt_data()
+            for i in range(len(evtdata_org.picks)):
+                if evtdata_org.picks[i].method_id == 'manual':
+                   mstation = evtdata_org.picks[i].waveform_id.station_code
+                   mstation_ext = mstation + '_'
+                   for k in range(len(evtdata_copy.picks)):
+                       if evtdata_copy.picks[k].waveform_id.station_code == mstation  or \
+                          evtdata_copy.picks[k].waveform_id.station_code == mstation_ext and \
+                          evtdata_copy.picks[k].method_id == 'auto':
+                          del evtdata_copy.picks[k]
+                          break
+                
+
             try:
-                self.get_evt_data().write(fnout + fnext, format=evtformat)
+                evtdata_copy.write(fnout + fnext, format=evtformat)
                 # write header afterwards
-                evtdata = self.get_evt_data()
-                evid = str(evtdata.resource_id).split('/')[1]
+                evid = str(evtdata_org.resource_id).split('/')[1]
                 header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
                 nllocfile = open(fnout + fnext)
                 l = nllocfile.readlines()
