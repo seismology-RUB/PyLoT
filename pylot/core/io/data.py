@@ -187,12 +187,23 @@ class Data(object):
                 self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event via ObsPy
-        else:
+        elif fnext == '.obs':
             try:
                 self.get_evt_data().write(fnout + fnext, format=evtformat)
             except KeyError as e:
                 raise KeyError('''{0} export format
                                   not implemented: {1}'''.format(evtformat, e))
+            # write header afterwards
+            evtdata = self.get_evt_data()
+            evid = str(evtdata.resource_id).split('/')[1]
+            header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
+            nllocfile = open(fnout + fnext)
+            l = nllocfile.readlines()
+            nllocfile.close()
+            l.insert(0, header)
+            nllocfile = open(fnout + fnext, 'w')
+            nllocfile.write("".join(l))
+            nllocfile.close()
 
     def getComp(self):
         """
