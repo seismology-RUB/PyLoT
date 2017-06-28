@@ -274,6 +274,10 @@ class MainWindow(QMainWindow):
         openEventsIcon.addPixmap(QPixmap(':/icons/openpicks.png'))
         saveEventsIcon = QIcon()
         saveEventsIcon.addPixmap(QPixmap(':/icons/savepicks.png'))
+        prefIcon = QIcon()
+        prefIcon.addPixmap(QPixmap(':/icons/preferences.png'))
+        paraIcon = QIcon()
+        paraIcon.addPixmap(QPixmap(':/icons/parameter.png'))
         self.autopicksicon_small = QIcon()
         self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
         self.manupicksicon_small = QIcon()
@@ -371,7 +375,7 @@ class MainWindow(QMainWindow):
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
                                              QKeySequence.Preferences,
-                                             QIcon(None),
+                                             prefIcon,
                                              "Edit PyLoT app preferences.")
         quitAction = self.createAction(self, "&Quit",
                                        QCoreApplication.instance().quit,
@@ -379,7 +383,7 @@ class MainWindow(QMainWindow):
                                        "Close event and quit PyLoT")
         self.parameterAction = self.createAction(self, "Parameter",
                                                  self.setParameter,
-                                                 None, QIcon(None),
+                                                 None, paraIcon,
                                                  "Modify Parameter")
         self.filterAction = self.createAction(self, "&Filter ...",
                                               self.filterWaveformData,
@@ -389,7 +393,7 @@ class MainWindow(QMainWindow):
                                               desired seismic phase.""", True)
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
-                                             "Alt+F", QIcon(None),
+                                             "Alt+F", filter_icon,
                                              """Adjust filter parameters.""")
         self.selectPAction = self.createAction(self, "&P", self.alterPhase,
                                                "Alt+P",
