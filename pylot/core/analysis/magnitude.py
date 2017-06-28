@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created autumn/winter 2015.
+Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
@@ -17,10 +18,17 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
 from pylot.core.util.utils import common_range, fit_curve
 
 def richter_magnitude_scaling(delta):
-    relation = np.loadtxt(os.path.join(os.path.expanduser('~'),
-                                       '.pylot', 'richter_scaling.data'))
+    distance = np.array([0, 10, 20, 25, 30, 35,40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
+                         120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 230, 240, 250,
+                         260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380,
+                         390, 400, 430, 470, 510, 560, 600, 700, 800, 900, 1000])
+    richter_scaling = np.array([1.4, 1.5, 1.7, 1.9, 2.1, 2.3, 2.4, 2.5, 2.6, 2.8, 2.8, 2.9, 
+                     2.9, 3.0, 3.1, 3.1, 3.2, 3.2, 3.3, 3.3, 3.4, 3.4, 3.5, 3.5, 
+                     3.6, 3.7, 3.7, 3.8, 3.8, 3.9, 3.9, 4.0, 4.0, 4.1, 4.2, 4.2,
+                     4.2, 4.2, 4.3, 4.3, 4.3, 4.4, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 
+                     5.1, 5.2, 5.4, 5.5, 5.7])
     # prepare spline interpolation to calculate return value
-    func, params = fit_curve(relation[:, 0], relation[:, 1])
+    func, params = fit_curve(distance, richter_scaling)
     return func(delta, params)
 
 
@@ -31,10 +39,10 @@ class Magnitude(object):
 
     def __init__(self, stream, event, verbosity=False, iplot=0):
         self._type = "M"
+        self._stream = stream
         self._plot_flag = iplot
         self._verbosity = verbosity
         self._event = event
-        self._stream = stream
         self._magnitudes = dict()
 
     def __str__(self):
@@ -108,28 +116,35 @@ class Magnitude(object):
     def calc(self):
         pass
 
-    def updated_event(self):
-        self.event.magnitudes.append(self.net_magnitude())
+    def updated_event(self, magscaling=None):
+        self.event.magnitudes.append(self.net_magnitude(magscaling))
         return self.event
 
-    def net_magnitude(self):
+    def net_magnitude(self, magscaling=None):
         if self:
-            # TODO if an average Magnitude instead of the median is calculated
-            # StationMagnitudeContributions should be added to the returned
-            # Magnitude object
-            # mag_error => weights (magnitude error estimate from peak_to_peak, calcsourcespec?)
-            # weights => StationMagnitdeContribution
-            mag = ope.Magnitude(
-                mag=np.median([M.mag for M in self.magnitudes.values()]),
-                magnitude_type=self.type,
-                origin_id=self.origin_id,
-                station_count=len(self.magnitudes),
-                azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+                # scaling necessary
+                print("Scaling network magnitude ...")
+                mag = ope.Magnitude(
+                    mag=np.median([M.mag for M in self.magnitudes.values()]) *\
+                                   magscaling[0] + magscaling[1],
+                    magnitude_type=self.type,
+                    origin_id=self.origin_id,
+                    station_count=len(self.magnitudes),
+                    azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            else:
+                # no saling necessary
+                mag = ope.Magnitude(
+                    mag=np.median([M.mag for M in self.magnitudes.values()]),
+                    magnitude_type=self.type,
+                    origin_id=self.origin_id,
+                    station_count=len(self.magnitudes),
+                    azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
         return None
 
 
-class RichterMagnitude(Magnitude):
+class LocalMagnitude(Magnitude):
     """
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
     seismograph. Has to be derived from instrument corrected traces!
@@ -146,10 +161,11 @@ class RichterMagnitude(Magnitude):
 
     _amplitudes = dict()
 
-    def __init__(self, stream, event, calc_win, verbosity=False, iplot=0):
-        super(RichterMagnitude, self).__init__(stream, event, verbosity, iplot)
+    def __init__(self, stream, event, calc_win, wascaling, verbosity=False, iplot=0):
+        super(LocalMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._calc_win = calc_win
+        self._wascaling = wascaling
         self._type = 'ML'
         self.calc()
 
@@ -160,6 +176,10 @@ class RichterMagnitude(Magnitude):
     @calc_win.setter
     def calc_win(self, value):
         self._calc_win = value
+
+    @property
+    def wascaling(self):
+        return self._wascaling
 
     @property
     def amplitudes(self):
@@ -195,6 +215,8 @@ class RichterMagnitude(Magnitude):
         th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
+        ii = min([iwin[len(iwin)-1], len(th)])
+        iwin = iwin[0:ii]
         wapp = np.max(sqH[iwin])
         if self.verbose:
             print("Determined Wood-Anderson peak-to-peak amplitude for station {0}: {1} "
@@ -244,10 +266,17 @@ class RichterMagnitude(Magnitude):
             self.event.amplitudes.append(amplitude)
             self.amplitudes = (station, amplitude)
             # using standard Gutenberg-Richter relation
-            # TODO make the ML calculation more flexible by allowing
-            # use of custom relation functions
-            magnitude = ope.StationMagnitude(
-                mag=np.log10(a0) + richter_magnitude_scaling(delta))
+            # or scale WA amplitude with given scaling relation
+            if str(self.wascaling) == '[0.0, 0.0, 0.0]':
+                print("Calculating original Richter magnitude ...")
+                magnitude = ope.StationMagnitude(mag=np.log10(a0) \
+                            + richter_magnitude_scaling(delta))
+            else:
+                print("Calculating scaled local magnitude ...")
+                a0 = a0 * 1e03 # mm to nm (see Havskov & Ottemöller, 2010)
+                magnitude = ope.StationMagnitude(mag=np.log10(a0) \
+                            + self.wascaling[0] * np.log10(delta) + self.wascaling[1] 
+                            * delta + self.wascaling[2])
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id

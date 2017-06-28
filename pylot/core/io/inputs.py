@@ -4,9 +4,9 @@
 from pylot.core.util.errors import ParameterError
 import default_parameters
 
-class AutoPickParameter(object):
+class PylotParameter(object):
     '''
-    AutoPickParameters is a parameter type object capable to read and/or write
+    PylotParameter is a parameter type object capable to read and/or write
     parameter ASCII.
 
     :param fn str: Filename of the input file
@@ -78,7 +78,7 @@ class AutoPickParameter(object):
         
     # String representation of the object
     def __repr__(self):
-        return "AutoPickParameter('%s')" % self.__filename
+        return "PylotParameter('%s')" % self.__filename
 
     # Boolean test
     def __nonzero__(self):
@@ -140,7 +140,8 @@ class AutoPickParameter(object):
         all_names += self.get_main_para_names()['dirs']
         all_names += self.get_main_para_names()['nlloc']
         all_names += self.get_main_para_names()['smoment']
-        all_names += self.get_main_para_names()['pick']
+        all_names += self.get_main_para_names()['localmag']
+        all_names += self.get_main_para_names()['pick']        
         all_names += self.get_special_para_names()['z']
         all_names += self.get_special_para_names()['h']
         all_names += self.get_special_para_names()['fm']
@@ -220,22 +221,23 @@ class AutoPickParameter(object):
         # for key, value in self.iteritems():
         #     lines.append('{key}\t{value}\n'.format(key=key, value=value))
         # fid_out.writelines(lines)
-
         header = ('%This is a parameter input file for PyLoT/autoPyLoT.\n'+
                   '%All main and special settings regarding data handling\n'+
                   '%and picking are to be set here!\n'+
-                  '%Parameters are optimized for local data sets!\n')
-        seperator = '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
+                  '%Parameters are optimized for %{} data sets!\n'.format(self.get_main_para_names()['pick'][0]))
+        separator = '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
 
         fid_out.write(header)
         self.write_section(fid_out, self.get_main_para_names()['dirs'],
-                           'main settings', seperator)
+                           'main settings', separator)
         self.write_section(fid_out, self.get_main_para_names()['nlloc'],
-                           'NLLoc settings', seperator)
+                           'NLLoc settings', separator)
         self.write_section(fid_out, self.get_main_para_names()['smoment'],
-                           'parameters for seismic moment estimation', seperator)
+                           'parameters for seismic moment estimation', separator)
+        self.write_section(fid_out, self.get_main_para_names()['localmag'],
+                           'settings local magnitude', separator)
         self.write_section(fid_out, self.get_main_para_names()['pick'],
-                           'common settings picker', seperator)
+                           'common settings picker', separator)
         fid_out.write(('#special settings for calculating CF#\n'+
                        '%!!Edit the following only if you know what you are doing!!%\n'))
         self.write_section(fid_out, self.get_special_para_names()['z'],
@@ -247,9 +249,9 @@ class AutoPickParameter(object):
         self.write_section(fid_out, self.get_special_para_names()['quality'],
                            'quality assessment', None)
 
-    def write_section(self, fid, names, title, seperator):
-        if seperator:
-            fid.write(seperator)
+    def write_section(self, fid, names, title, separator):
+        if separator:
+            fid.write(separator)
         fid.write('#{}#\n'.format(title))
         l_val = 50
         l_name = 15

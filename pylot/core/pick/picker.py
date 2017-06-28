@@ -212,6 +212,14 @@ class AICPicker(AutoPicker):
                 self.Data[0].data = self.Data[0].data * 1000000
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
+            ii = min([isignal[len(isignal)-1], len(self.Tcf)])
+            isignal = isignal[0:ii]
+            try:
+               aic[isignal]
+            except IndexError as e:
+               msg = "Time series out of bounds! {}".format(e)
+               print(msg)
+               return
             # calculate SNR from CF
             self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / \
                        max(abs(aic[inoise] - np.mean(aic[inoise])))
@@ -223,28 +231,29 @@ class AICPicker(AutoPicker):
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             imax = np.argmax(self.Data[0].data[islope])
-            if imax == 0:
-                print('AICPicker: Maximum for slope determination right at the beginning of the window!')
-                print('Choose longer slope determination window!')
-                if self.iplot > 1:
-                    if not self.fig:
-                        fig = plt.figure() #self.iplot) ### WHY? MP MP
-                    else:
-                        fig = self.fig
-                    ax = fig.add_subplot(111)
-                    x = self.Data[0].data
-                    ax.plot(self.Tcf, x / max(x), 'k', legend='(HOS-/AR-) Data')
-                    ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', legend='Smoothed AIC-CF')
-                    ax.legend()
-                    ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
-                    ax.set_yticks([])
-                    ax.set_title(self.Data[0].stats.station)
-                return
-
             iislope = islope[0][0:imax]
-            if len(iislope) <= 3:
+            if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
+                print("AICPicker: Not enough data samples left for slope calculation!")
+                print("Calculating slope from initial onset to maximum of AIC function ...")
                 imax = np.argmax(aicsmooth[islope])
+                if imax == 0:
+                    print("AICPicker: Maximum for slope determination right at the beginning of the window!")
+                    print("Choose longer slope determination window!")
+                    if self.iplot > 1:
+                        if not self.fig:
+                            fig = plt.figure() #self.iplot) ### WHY? MP MP
+                        else:
+                            fig = self.fig
+                        ax = fig.add_subplot(111)
+                        x = self.Data[0].data
+                        ax.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
+                        ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
+                        ax.legend()
+                        ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
+                        ax.set_yticks([])
+                        ax.set_title(self.Data[0].stats.station)
+                    return
                 iislope = islope[0][0:imax]
             dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1

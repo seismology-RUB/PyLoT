@@ -10,9 +10,9 @@ import re
 import warnings
 import subprocess
 from obspy import UTCDateTime, read
-from pylot.core.io.inputs import AutoPickParameter
+from pylot.core.io.inputs import PylotParameter
 
-
+    
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
@@ -497,7 +497,7 @@ def which(program, infile=None):
             bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
             
         if os.path.exists(bpath):
-            nllocpath = ":" + AutoPickParameter(bpath).get('nllocbin')
+            nllocpath = ":" + PylotParameter(bpath).get('nllocbin')
             os.environ['PATH'] += nllocpath
     except ImportError as e:
         print(e.message)
