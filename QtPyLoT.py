@@ -247,25 +247,37 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentIndex(0)
         
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
-        saveIcon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
-        openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
         newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
         
         # create resource icons
-        locactionicon = QIcon()
-        locactionicon.addPixmap(QPixmap(':/icons/locactionicon.png'))
-        manupicksicon = QIcon()
-        manupicksicon.addPixmap(QPixmap(':/icons/manupicsicon.png'))
-        autopicksicon = QIcon()
-        autopicksicon.addPixmap(QPixmap(':/icons/autopicsicon.png'))
+        addIcon = QIcon()
+        addIcon.addPixmap(QPixmap(':/icons/add.png'))
+        saveIcon = QIcon()
+        saveIcon.addPixmap(QPixmap(':/icons/save.png'))
+        saveasIcon = QIcon()
+        saveasIcon.addPixmap(QPixmap(':/icons/saveas.png'))
+        saveProjectIcon = QIcon()
+        saveProjectIcon.addPixmap(QPixmap(':/icons/saveproject.png'))
+        saveProjectAsIcon = QIcon()
+        saveProjectAsIcon.addPixmap(QPixmap(':/icons/saveprojectas.png'))
+        openIcon = QIcon()
+        openIcon.addPixmap(QPixmap(':/icons/openfile.png'))
+        openProjectIcon = QIcon()
+        openProjectIcon.addPixmap(QPixmap(':/icons/openproject.png'))
+        openLocIcon = QIcon()
+        openLocIcon.addPixmap(QPixmap(':/icons/openloc.png'))
+        openEventIcon = QIcon()
+        openEventIcon.addPixmap(QPixmap(':/icons/openpick.png'))
+        openEventsIcon = QIcon()
+        openEventsIcon.addPixmap(QPixmap(':/icons/openpicks.png'))
+        saveEventsIcon = QIcon()
+        saveEventsIcon.addPixmap(QPixmap(':/icons/savepicks.png'))
         self.autopicksicon_small = QIcon()
         self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
         self.manupicksicon_small = QIcon()
         self.manupicksicon_small.addPixmap(QPixmap(':/icons/manupicksicon_small.png'))            
-        saveProjectIcon = QIcon()
-        saveProjectIcon.addPixmap(QPixmap(':/icons/Library-icon.png'))
         loadpiloticon = QIcon()
         loadpiloticon.addPixmap(QPixmap(':/icons/Matlab_PILOT_icon.png'))
         p_icon = QIcon()
@@ -283,7 +295,7 @@ class MainWindow(QMainWindow):
         e_icon = QIcon()
         e_icon.addPixmap(QPixmap(':/icons/key_E.png'))
         autotune_icon = QIcon()
-        autotune_icon.addPixmap(QPixmap(':/icons/autopick_button.png'))
+        autotune_icon.addPixmap(QPixmap(':/icons/tune.png'))
         autopylot_icon = QIcon()
         autopylot_icon.addPixmap(QPixmap(':/icons/autopylot_button'))
         locate_icon = QIcon()
@@ -297,7 +309,7 @@ class MainWindow(QMainWindow):
         self.openProjectAction = self.createAction(self, "&Open project ...",
                                                    self.loadProject,
                                                    QKeySequence.Open,
-                                                   openIcon,
+                                                   openProjectIcon,
                                                    "Load project file")
         self.saveProjectAction = self.createAction(self, "&Save project ...",
                                                    self.saveProject,
@@ -308,7 +320,7 @@ class MainWindow(QMainWindow):
         self.saveProjectAsAction = self.createAction(self, "Save project as ...",
                                                      self.saveProjectAs,
                                                      QKeySequence.SaveAs,
-                                                     saveProjectIcon,
+                                                     saveProjectAsIcon,
                                                      "Save project file as...")
         self.saveProjectAsAction.setEnabled(False)
         # newEventAction = self.createAction(self, "&New event ...",
@@ -318,7 +330,7 @@ class MainWindow(QMainWindow):
         self.openmanualpicksaction = self.createAction(self, "Load event ...",
                                                        self.load_data,
                                                        "Ctrl+M",
-                                                       manupicksicon,
+                                                       openEventIcon,
                                                        "Load event information for "
                                                        "the displayed event.")
         self.openmanualpicksaction.setEnabled(False)
@@ -327,7 +339,7 @@ class MainWindow(QMainWindow):
         self.openautopicksaction = self.createAction(self, "Load event information &automatically ... ",
                                                      self.load_multiple_data,
                                                      "Ctrl+A",
-                                                     autopicksicon,
+                                                     openEventsIcon,
                                                      "Load event data automatically "
                                                      "for for all events.")
         self.openautopicksaction.setEnabled(False)
@@ -335,7 +347,7 @@ class MainWindow(QMainWindow):
 
         self.loadlocationaction = self.createAction(self, "Load &location ...",
                                                     self.load_loc, "Ctrl+L",
-                                                    locactionicon,
+                                                    openLocIcon,
                                                     "Load location information on "
                                                     "the displayed event.")
         self.loadlocationaction.setEnabled(False)
@@ -349,12 +361,12 @@ class MainWindow(QMainWindow):
 
         self.saveManualPicksAction = self.createAction(self, "Save &picks ...",
                                                        self.saveData, "Ctrl+P",
-                                                       saveIcon, "Save event pick data.")
+                                                       saveEventsIcon, "Save event pick data.")
         self.disableSaveManualPicksAction()
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
                                                     self.add_events,
-                                                    "Ctrl+E", newFolderIcon,
+                                                    "Ctrl+E", addIcon,
                                                     "Add event data")
         prefsEventAction = self.createAction(self, "Preferences",
                                              self.PyLoTprefs,
@@ -427,8 +439,8 @@ class MainWindow(QMainWindow):
         fileToolActions = (self.newProjectAction, self.addEventDataAction,
                            self.openProjectAction, self.saveProjectAction,
                            self.saveProjectAsAction, self.openmanualpicksaction,
-                           self.openautopicksaction, self.loadlocationaction,
-                           self.loadpilotevent, self.saveManualPicksAction)
+                           self.openautopicksaction, self.saveManualPicksAction,
+                           self.loadlocationaction, self.loadpilotevent)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
 
@@ -2401,7 +2413,7 @@ class MainWindow(QMainWindow):
         self.setDirty(True)
         
     def setDirty(self, value):
-        self.saveProjectAction.setEnabled(bool(self.get_current_event().picks))
+        self.saveProjectAction.setEnabled(value)
         self.saveProjectAsAction.setEnabled(True)
         self.project.setDirty(value)
         self.dirty = value
