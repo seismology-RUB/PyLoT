@@ -2185,7 +2185,7 @@ class PylotParaBox(QtGui.QWidget):
 
     def get_groupbox_dialog(self, name):
         widget = self.get_groupbox_exclusive(name)
-        dialog = QtGui.QDialog(self.parent(), 1)
+        dialog = QtGui.QDialog(self.parent())
         layout = QtGui.QVBoxLayout()
         dialog.setLayout(layout)
         buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
