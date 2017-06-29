@@ -202,6 +202,10 @@ class Data(object):
                           evtdata_copy.picks[k].method_id == 'auto':
                           del evtdata_copy.picks[k]
                           break
+            lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
+            if lendiff is not 0:
+               print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+
             if fnext == '.obs':
                try:
                    evtdata_copy.write(fnout + fnext, format=evtformat)
