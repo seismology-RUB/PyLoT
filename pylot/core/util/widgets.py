@@ -1361,8 +1361,8 @@ class PickDlg(QDialog):
         }
         if self.getPicks(picktype):
             if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
-                picks = self.getPicks(picktype)[phase]
-                colors = phase_col[phase[0].upper()]
++                picks = self.getPicks(picktype)[phase]
++                colors = phase_col[phase[0].upper()]
             elif phase is None:
                 for phase in self.getPicks(picktype):
                     self.drawPicks(phase, picktype)
