@@ -248,10 +248,11 @@ class MainWindow(QMainWindow):
         
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
-        newIcon = self.style().standardIcon(QStyle.SP_FileIcon)
         newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
         
         # create resource icons
+        newIcon = QIcon()
+        newIcon.addPixmap(QPixmap(':/icons/newfile.png'))
         addIcon = QIcon()
         addIcon.addPixmap(QPixmap(':/icons/add.png'))
         saveIcon = QIcon()
@@ -442,11 +443,15 @@ class MainWindow(QMainWindow):
         fileToolBar = self.addToolBar("FileTools")
         fileToolActions = (self.newProjectAction, self.addEventDataAction,
                            self.openProjectAction, self.saveProjectAction,
-                           self.saveProjectAsAction, self.openmanualpicksaction,
-                           self.openautopicksaction, self.saveManualPicksAction,
-                           self.loadlocationaction, self.loadpilotevent)
+                           self.saveProjectAsAction)
         fileToolBar.setObjectName("FileTools")
         self.addActions(fileToolBar, fileToolActions)
+        eventToolActions = (self.openmanualpicksaction, self.openautopicksaction,
+                            self.saveManualPicksAction, self.loadlocationaction,
+                            self.loadpilotevent)
+        eventToolBar = self.addToolBar("EventTools")
+        eventToolBar.setObjectName("EventTools")
+        self.addActions(eventToolBar, eventToolActions)
 
         # phaseToolBar = self.addToolBar("PhaseTools")
         # phaseToolActions = (self.selectPAction, self.selectSAction)

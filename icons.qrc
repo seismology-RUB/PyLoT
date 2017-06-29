@@ -2,6 +2,7 @@
     <qresource>
         <file>icons/pylot.ico</file>
         <file>icons/pylot.png</file>
+        <file>icons/newfile.png</file>
         <file>icons/open.png</file>
         <file>icons/openproject.png</file>
         <file>icons/add.png</file>
