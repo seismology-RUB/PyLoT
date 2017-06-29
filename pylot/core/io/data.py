@@ -188,11 +188,47 @@ class Data(object):
 
         # try exporting event via ObsPy
         else:
-            try:
-                self.get_evt_data().write(fnout + fnext, format=evtformat)
-            except KeyError as e:
-                raise KeyError('''{0} export format
-                                  not implemented: {1}'''.format(evtformat, e))
+            # check for stations picked automatically as well as manually
+            # Prefer manual picks!
+            evtdata_copy = self.get_evt_data().copy()
+            evtdata_org = self.get_evt_data()
+            for i in range(len(evtdata_org.picks)):
+                if evtdata_org.picks[i].method_id == 'manual':
+                   mstation = evtdata_org.picks[i].waveform_id.station_code
+                   mstation_ext = mstation + '_'
+                   for k in range(len(evtdata_copy.picks)):
+                       if evtdata_copy.picks[k].waveform_id.station_code == mstation  or \
+                          evtdata_copy.picks[k].waveform_id.station_code == mstation_ext and \
+                          evtdata_copy.picks[k].method_id == 'auto':
+                          del evtdata_copy.picks[k]
+                          break
+            lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
+            if lendiff is not 0:
+               print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+
+            if fnext == '.obs':
+               try:
+                   evtdata_copy.write(fnout + fnext, format=evtformat)
+                   # write header afterwards
+                   evid = str(evtdata_org.resource_id).split('/')[1]
+                   header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
+                   nllocfile = open(fnout + fnext)
+                   l = nllocfile.readlines()
+                   nllocfile.close()
+                   l.insert(0, header)
+                   nllocfile = open(fnout + fnext, 'w')
+                   nllocfile.write("".join(l))
+                   nllocfile.close()
+               except KeyError as e:
+                   raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+            if fnext == '.cnv':
+               try:
+                   evtdata_org.write(fnout + fnext, format=evtformat)
+               except KeyError as e:
+                   raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+
 
     def getComp(self):
         """

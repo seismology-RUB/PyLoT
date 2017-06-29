@@ -35,6 +35,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
+from obspy.core.util import AttribDict
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
@@ -1360,9 +1361,11 @@ class PickDlg(QDialog):
             'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
         }
         if self.getPicks(picktype):
-            if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
-                picks = self.getPicks(picktype)[phase]
-                colors = phase_col[phase[0].upper()]
+            if phase is not None:
+                if (type(self.getPicks(picktype)[phase]) is dict
+                    or type(self.getPicks(picktype)[phase]) is AttribDict):
+                    picks = self.getPicks(picktype)[phase]
+                    colors = phase_col[phase[0].upper()]
             elif phase is None:
                 for phase in self.getPicks(picktype):
                     self.drawPicks(phase, picktype)
