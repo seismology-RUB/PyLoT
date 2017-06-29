@@ -170,6 +170,11 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
         if settings.value('compclass', None) is None:
             settings.setValue('compclass', SetChannelComponents())
+        if settings.value('output/Format', None) is None:
+            outformat = QInputDialog.getText(self,
+                                             "Enter output format (*.xml, *.cnv, *.obs):",
+                                             "Format")
+            settings.setValue("output/Format", outformat)
         settings.sync()
 
         # setup UI
@@ -1040,9 +1045,16 @@ class MainWindow(QMainWindow):
             eventname = self.get_current_event_name()
             filename = 'PyLoT_'+eventname
             outpath = os.path.join(directory, filename)
-            file_filter = "QuakeML file (*.xml);;VELEST observation file " \
-                          "format (*.cnv);;NonLinLoc observation file (*.obs)"
             title = 'Save pick data ...'
+            outformat = settings.value('output/Format')
+            outformat = outformat[0:4]
+            if outformat == '.obs':
+               file_filter = "NonLinLoc observation file (*.obs)"
+            elif outformat == '.cnv':
+               file_filter = "VELEST observation file format (*.cnv)"
+            elif outformat == '.xml':
+               file_filter = "QuakeML file (*.xml)"
+             
             fname, selected_filter = QFileDialog.getSaveFileName(self,
                                                                  title,
                                                                  outpath,
