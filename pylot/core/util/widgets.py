@@ -2556,7 +2556,7 @@ class OutputsTab(PropTab):
         settings = QSettings()
         curval = settings.value("output/Format", None)
 
-        eventOutputLabel = QLabel("event/picks ouput format")
+        eventOutputLabel = QLabel("event/picks output format")
         self.eventOutputComboBox = QComboBox()
         eventoutputformats = OUTPUTFORMATS.keys()
         self.eventOutputComboBox.addItems(eventoutputformats)
@@ -2582,7 +2582,21 @@ class PhasesTab(PropTab):
     def __init__(self, parent=None):
         super(PhasesTab, self).__init__(parent)
 
-        pass
+        PphasesLabel = QLabel("P Phases to pick")
+        SphasesLabel = QLabel("S Phases to pick")
+        self.PphasesEdit = QLineEdit()
+        self.SphasesEdit = QLineEdit()
+        Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
+        Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
+        self.PphasesEdit.setText("%s" % Pphases)
+        self.SphasesEdit.setText("%s" % Sphases)
+
+        layout = QGridLayout()
+        layout.addWidget(PphasesLabel, 0, 0)
+        layout.addWidget(SphasesLabel, 1, 0)
+        layout.addWidget(self.PphasesEdit, 0, 1)
+        layout.addWidget(self.SphasesEdit, 1, 1)
+        self.setLayout(layout)
 
 
 class GraphicsTab(PropTab):
