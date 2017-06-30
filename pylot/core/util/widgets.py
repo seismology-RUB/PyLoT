@@ -926,8 +926,20 @@ class PickDlg(QDialog):
 
     def addPickPhases(self, menuBar):
         settings = QtCore.QSettings()
-        phases = {'P': settings.value('p_phases').split(','),
-                  'S': settings.value('s_phases').split(',')}
+        p_phases = settings.value('p_phases')
+        s_phases = settings.value('s_phases')
+        
+        if p_phases:
+            p_phases = p_phases.split(',')
+        else:
+            p_phases = []
+        if s_phases:
+            s_phases = s_phases.split(',')
+        else:
+            s_phases = []
+            
+        phases = {'P': p_phases,
+                  'S': s_phases}
         if not 'P' in phases['P'] and not 'p' in phases['P']:
             phases['P'] = ['P'] + phases['P']
         if not 'S' in phases['S'] and not 's' in phases['S']:
