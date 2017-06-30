@@ -807,6 +807,14 @@ class PickDlg(QDialog):
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def setupUi(self):
+        menuBar = QtGui.QMenuBar(self)
+        exitMenu = menuBar.addMenu('File')
+        
+        self.addPickPhases(menuBar)
+        
+        exitAction = QtGui.QAction('Close', self)        
+        exitAction.triggered.connect(self.close)
+        exitMenu.addAction(exitAction)
 
         # create matplotlib toolbar to inherit functionality
         self.figToolBar = NavigationToolbar2QT(self.getPlotWidget(), self)
@@ -848,8 +856,8 @@ class PickDlg(QDialog):
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
         # set button tooltips
-        self.p_button.setToolTip('Hotkey: "1"')
-        self.s_button.setToolTip('Hotkey: "2"')
+        # self.p_button.setToolTip('Hotkey: "1"')
+        # self.s_button.setToolTip('Hotkey: "2"')
                                                
         # create accept/reject button
         self.accept_button = QPushButton('&Accept Picks')
@@ -860,8 +868,8 @@ class PickDlg(QDialog):
         self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
         # button shortcuts (1 for P-button, 2 for S-button)
-        self.p_button.setShortcut(QKeySequence('1'))
-        self.s_button.setShortcut(QKeySequence('2'))
+        # self.p_button.setShortcut(QKeySequence('1'))
+        # self.s_button.setShortcut(QKeySequence('2'))
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -893,9 +901,13 @@ class PickDlg(QDialog):
         # merge widgets and layouts to establish the dialog
         if not self._embedded:
             _innerlayout.addWidget(_buttonbox)
+        _outerlayout.addWidget(menuBar)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
-
+        _outerlayout.setStretch(0, 0)
+        _outerlayout.setStretch(1, 1)
+        _outerlayout.setStretch(2, 100)
+        
         # connect widget element signals with slots (methods to the dialog
         # object
         self.p_button.clicked.connect(self.p_clicked)
@@ -911,6 +923,48 @@ class PickDlg(QDialog):
         self.setLayout(_outerlayout)
         self.resize(1280, 720)        
 
+    def addPickPhases(self, menuBar):
+        settings = QtCore.QSettings()
+        phases = {'P': settings.value('p_phases').split(','),
+                  'S': settings.value('s_phases').split(',')}
+        if not 'P' in phases['P'] and not 'p' in phases['P']:
+            phases['P'] = ['P'] + phases['P']
+        if not 'S' in phases['S'] and not 's' in phases['S']:
+            phases['S'] = ['S'] + phases['S']
+        
+        picksMenu = menuBar.addMenu('Picks')
+        self.picksActions = {}
+
+        # dictionary points on corresponding phase_select function
+        phaseSelect = {'P': self.p_phase_select,
+                       'S': self.s_phase_select}
+
+        nHotkey = 4 # max hotkeys per phase
+        hotkey = 1 # start hotkey
+        
+        # loop over P and S (use explicit list instead of iter over dict.keys to keep order)
+        for phaseIndex, phaseID in enumerate(['P', 'S']):
+            # loop through phases in list
+            for index, phase in enumerate(phases[phaseID]):
+                # remove zeros
+                phase = phase.strip()
+                # add hotkeys
+                if not index >= nHotkey:
+                    shortcut = str(hotkey)
+                    hotkey += 1
+                else:
+                    shortcut = None
+                # create action and add to menu
+                # phase name transferred using lambda function
+                slot = lambda phase=phase, phaseID=phaseID: phaseSelect[phaseID](phase)
+                picksAction = createAction(parent=self, text=phase,
+                                           slot=slot,
+                                           shortcut=shortcut)
+                picksMenu.addAction(picksAction)
+                self.picksActions[str(phase)] = picksAction # save action in dictionary
+            if phaseIndex == 0:
+                picksMenu.addSeparator()
+        
     def disconnectPressEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidpress)
@@ -953,9 +1007,32 @@ class PickDlg(QDialog):
     def enable_ar_buttons(self, bool=True):
         self.accept_button.setEnabled(bool)
         self.reject_button.setEnabled(bool)        
+
+    def p_phase_select(self, phase):
+        if not self.p_button.isChecked():
+            self.p_button.setChecked(True)
+            self.p_button.setText(phase)
+        else:
+            if str(phase) == str(self.p_button.text()):
+                self.reset_p_button()
+            else:
+                self.p_button.setText(phase)
+        self.p_clicked()
+        
+    def s_phase_select(self, phase):
+        if not self.s_button.isChecked():
+            self.s_button.setChecked(True)
+            self.s_button.setText(phase)
+        else:
+            if str(phase) == str(self.s_button.text()):
+                self.reset_s_button()
+            else:
+                self.s_button.setText(phase)
+        self.s_clicked()
         
     def p_clicked(self):
         if self.p_button.isChecked():
+            self.reset_s_button()
             self.s_button.setEnabled(False)
             self.init_p_pick()
         else:
@@ -963,7 +1040,8 @@ class PickDlg(QDialog):
 
     def s_clicked(self):
         if self.s_button.isChecked():
-            self.p_button.setEnabled(False)
+            self.reset_p_button()
+            self.p_button.setEnabled(False)            
             self.init_s_pick()
         else:
             self.leave_picking_mode()
@@ -972,13 +1050,13 @@ class PickDlg(QDialog):
         self.set_button_color(self.p_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
-        self.currentPhase = 'P'
+        self.currentPhase = str(self.p_button.text())
 
     def init_s_pick(self):
         self.set_button_color(self.s_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
-        self.currentPhase = 'S'
+        self.currentPhase = str(self.s_button.text())
 
     def set_button_color(self, button, color = None):
         if type(color) == QtGui.QColor:
@@ -990,14 +1068,22 @@ class PickDlg(QDialog):
         elif type(color) == str or not color:        
             button.setStyleSheet("background-color: {}".format(color))    
 
+    def reset_p_button(self):
+        self.set_button_color(self.p_button)
+        self.p_button.setEnabled(True)
+        self.p_button.setChecked(False)
+        self.p_button.setText('P')
+        
+    def reset_s_button(self):
+        self.set_button_color(self.s_button)
+        self.s_button.setEnabled(True)
+        self.s_button.setChecked(False)
+        self.s_button.setText('S')        
+        
     def leave_picking_mode(self):
         self.currentPhase = None
-        self.set_button_color(self.p_button)
-        self.set_button_color(self.s_button)
-        self.p_button.setEnabled(True)
-        self.s_button.setEnabled(True)
-        self.p_button.setChecked(False)
-        self.s_button.setChecked(False)
+        self.reset_p_button()
+        self.reset_s_button()
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
         self.drawAllPicks()
@@ -1058,7 +1144,7 @@ class PickDlg(QDialog):
         return self._user
 
     def getFilterOptions(self, phase):
-        options = self.filteroptions[phase]
+        options = self.filteroptions[phase[0]]
         return FilterOptions(**options)
 
     def getXLims(self):
@@ -1134,10 +1220,10 @@ class PickDlg(QDialog):
         self.cidpress = self.connectPressEvent(self.setPick)
 
         print(self.currentPhase)
-        if self.currentPhase == 'P':
+        if self.currentPhase.startswith('P'):
             self.set_button_color(self.p_button, 'green')
             self.setIniPickP(gui_event, wfdata, trace_number)
-        elif self.currentPhase == 'S':
+        elif self.currentPhase.startswith('S'):
             self.set_button_color(self.s_button, 'green')
             self.setIniPickS(gui_event, wfdata)
             
@@ -1170,7 +1256,7 @@ class PickDlg(QDialog):
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
-        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        filteroptions = self.getFilterOptions(phase[0]).parseFilterOptions()
         if filteroptions:
             data.filter(**filteroptions)
             wfdata.filter(**filteroptions)
@@ -2577,6 +2663,7 @@ class OutputsTab(PropTab):
     def resetValues(self, infile):
         values = {"output/Format": self.eventOutputComboBox.setCurrentIndex(1)}
         return values
+    
 
 class PhasesTab(PropTab):
     def __init__(self, parent=None):
@@ -2584,33 +2671,26 @@ class PhasesTab(PropTab):
 
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
-        # self.PphasesEdit = QLineEdit()
-        # self.SphasesEdit = QLineEdit()
+        self.PphasesEdit = QLineEdit()
+        self.SphasesEdit = QLineEdit()
         Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
         Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
-        # self.PphasesEdit.setText("%s" % Pphases)
-        # self.SphasesEdit.setText("%s" % Sphases)
+        self.PphasesEdit.setText("%s" % Pphases)
+        self.SphasesEdit.setText("%s" % Sphases)
 
         layout = QGridLayout()
         layout.addWidget(PphasesLabel, 0, 0)
         layout.addWidget(SphasesLabel, 1, 0)
 
-        self.phaseButtons = {}
-
-        # loop over P and S
-        for phaseIndex, phases in enumerate([Pphases, Sphases]):
-            # loop through phases in string
-            for index, phase in enumerate(phases.split(',')):
-                index += 1 # skip first column with label
-                button = QtGui.QPushButton(str(phase))
-                button.setCheckable(True) # make button checkable
-                button.setChecked(True) # default checked?
-                layout.addWidget(button, phaseIndex, index) # add button to position
-                self.phaseButtons[str(phase)] = button # save button in dictionary for later use
-        # layout.addWidget(self.PphasesEdit, 0, 1)
-        # layout.addWidget(self.SphasesEdit, 1, 1)
+        layout.addWidget(self.PphasesEdit, 0, 1)
+        layout.addWidget(self.SphasesEdit, 1, 1)
         self.setLayout(layout)
 
+    def getValues(self):
+        values = {'p_phases': self.PphasesEdit.text(),
+                  's_phases': self.SphasesEdit.text()}
+        return values
+    
 
 class GraphicsTab(PropTab):
     def __init__(self, parent=None):
