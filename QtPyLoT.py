@@ -1037,28 +1037,37 @@ class MainWindow(QMainWindow):
             self.set_fname(self.get_data().getEventFileName(), type)
         return self.get_fnames(type)
 
-    def saveData(self):
+    def saveData(self, directory=None, outformat=None):
 
-        def getSavePath(e):
+        def getSavePath(e, directory, outformat):
             print('warning: {0}'.format(e))
-            directory = self.get_current_event_path()
+            if not directory:
+               dlgflag = 1
+               directory = self.get_current_event_path()
+            else:
+               dlgflag = 0
             eventname = self.get_current_event_name()
             filename = 'PyLoT_'+eventname
             outpath = os.path.join(directory, filename)
             title = 'Save pick data ...'
-            outformat = settings.value('output/Format')
-            outformat = outformat[0:4]
+            if not outformat: 
+               outformat = settings.value('output/Format')
+               outformat = outformat[0:4]
+            else:
+               selected_filter = "NonLinLoc observation file (*.obs)"
+               fname = outpath
             if outformat == '.obs':
                file_filter = "NonLinLoc observation file (*.obs)"
             elif outformat == '.cnv':
                file_filter = "VELEST observation file format (*.cnv)"
             elif outformat == '.xml':
                file_filter = "QuakeML file (*.xml)"
-             
-            fname, selected_filter = QFileDialog.getSaveFileName(self,
-                                                                 title,
-                                                                 outpath,
-                                                                 file_filter)
+
+            if dlgflag == 1:
+               fname, selected_filter = QFileDialog.getSaveFileName(self,
+                                                                    title,
+                                                                    outpath,
+                                                                    file_filter)
 
             fbasename, exform = os.path.splitext(fname)
 
@@ -1090,9 +1099,9 @@ class MainWindow(QMainWindow):
         try:
             self.get_data().exportEvent(fbasename, exform)
         except FormatError as e:
-            fbasename, exform = getSavePath(e)
+            fbasename, exform = getSavePath(e, directory, outformat)
         except AttributeError as e:
-            fbasename, exform = getSavePath(e)
+            fbasename, exform = getSavePath(e, directory, outformat)
 
         # catch all possible cases before going on
         if not fbasename:
@@ -1962,11 +1971,14 @@ class MainWindow(QMainWindow):
 
         outfile = settings.value("{0}/outputFile".format(loctool),
                                  os.path.split(os.tempnam())[-1])
-        phasefile = os.path.split(os.tempnam())[-1]
+        obsdir = os.path.join(locroot, 'obs')
+        self.saveData(directory=obsdir, outformat='.obs')
+        eventname = self.get_current_event_name()
+        filename = 'PyLoT_'+eventname
+        locpath = os.path.join(locroot, 'loc', filename)
+        phasefile = os.path.join(obsdir, filename + '.obs')
         phasepath = os.path.join(locroot, 'obs', phasefile)
-        locpath = os.path.join(locroot, 'loc', outfile)
-        lt.export(self.getPicks(), phasepath, self.project.parameter)
-        lt.modify_inputs(infile, locroot, outfile, phasefile, ttt)
+        lt.modify_inputs(infile, locroot, filename, phasefile, ttt)
         try:
             lt.locate(infile)
         except RuntimeError as e:
@@ -1975,7 +1987,7 @@ class MainWindow(QMainWindow):
             os.remove(phasepath)
 
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
-        self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
+        #self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
 
     def init_array_tab(self):
         '''
