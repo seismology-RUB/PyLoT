@@ -1589,6 +1589,11 @@ class MainWindow(QMainWindow):
         if wfID in plot_dict.keys():
             return plot_dict[wfID][0]
 
+    def getNetworkName(self, wfID):
+        plot_dict = self.getPlotWidget().getPlotDict()
+        if wfID in plot_dict.keys():
+            return plot_dict[wfID][2]
+        
     def alterPhase(self):
         pass
 
@@ -1653,13 +1658,14 @@ class MainWindow(QMainWindow):
         
     def pickDialog(self, wfID, nextStation=False):
         station = self.getStationName(wfID)
+        network = self.getNetworkName(wfID)
         if not station:
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
         pickDlg = PickDlg(self, parameter=self._inputs, 
                           data=data.select(station=station),
-                          station=station,
+                          station=station, network=network,
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'))
         pickDlg.nextStation.setChecked(nextStation)

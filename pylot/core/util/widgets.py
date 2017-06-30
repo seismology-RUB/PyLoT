@@ -708,7 +708,7 @@ class WaveformWidget(FigureCanvas):
         self.draw()
 
     def updateTitle(self, text):
-        self.getAxes().set_title(text)
+        self.getAxes().set_title(text, verticalalignment='bottom')
         self.draw()
 
     def updateWidget(self, xlabel, ylabel, title):
@@ -725,7 +725,7 @@ class WaveformWidget(FigureCanvas):
 
 class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)    
-    def __init__(self, parent=None, data=None, station=None, picks=None,
+    def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False):
         super(PickDlg, self).__init__(parent)
 
@@ -733,6 +733,7 @@ class PickDlg(QDialog):
         self.parameter = parameter
         self._embedded = embedded
         self.station = station
+        self.network = network
         self.rotate = rotate
         self.components = 'ZNE'
         self.currentPhase = None
@@ -1122,6 +1123,8 @@ class PickDlg(QDialog):
         return self.components
 
     def getStation(self):
+        if self.network and self.station:
+            return self.network+'.'+self.station
         return self.station
 
     def getPlotWidget(self):
@@ -1219,7 +1222,6 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
-        print(self.currentPhase)
         if self.currentPhase.startswith('P'):
             self.set_button_color(self.p_button, 'green')
             self.setIniPickP(gui_event, wfdata, trace_number)
@@ -1476,7 +1478,8 @@ class PickDlg(QDialog):
                 ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
                 ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
             else:
-                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase)) 
+                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+            ax.text(mpp, ylims[1], phase)
                 
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
