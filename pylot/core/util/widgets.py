@@ -2672,12 +2672,16 @@ class PhasesTab(PropTab):
     def __init__(self, parent=None):
         super(PhasesTab, self).__init__(parent)
 
-        PphasesLabel = QLabel("P Phases to pick")
-        SphasesLabel = QLabel("S Phases to pick")
         self.PphasesEdit = QLineEdit()
         self.SphasesEdit = QLineEdit()
-        Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
-        Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
+
+        PphasesLabel = QLabel("P Phases to pick")
+        SphasesLabel = QLabel("S Phases to pick")
+
+        settings = QSettings()
+        Pphases = settings.value('p_phases')
+        Sphases = settings.value('s_phases')
+
         self.PphasesEdit.setText("%s" % Pphases)
         self.SphasesEdit.setText("%s" % Sphases)
 
@@ -2692,6 +2696,13 @@ class PhasesTab(PropTab):
     def getValues(self):
         values = {'p_phases': self.PphasesEdit.text(),
                   's_phases': self.SphasesEdit.text()}
+        return values
+
+    def resetValues(self, infile=None):
+        Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
+        Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
+        values = {'p_phases': self.PphasesEdit.setText(Pphases),
+                  's_phases': self.SphasesEdit.setText(Sphases)}
         return values
     
 
@@ -2738,7 +2749,12 @@ class GraphicsTab(PropTab):
                   'pyqtgraphic': self.checkbox_pg.isChecked()}
         return values
         
+    def resetValues(self, infile=None):
+        values = {'nth_sample': self.spinbox_nth_sample.setValue(1),
+                  'pyqtgraphic': self.checkbox_pg.setChecked(True)}
+        return values
 
+    
 class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)
