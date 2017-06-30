@@ -809,14 +809,14 @@ class PickDlg(QDialog):
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
-        exitMenu = menuBar.addMenu('File')
-        
+        if not self._embedded:
+            exitMenu = menuBar.addMenu('File')
+            exitAction = QtGui.QAction('Close', self)        
+            exitAction.triggered.connect(self.close)
+            exitMenu.addAction(exitAction)
+
         self.addPickPhases(menuBar)
         
-        exitAction = QtGui.QAction('Close', self)        
-        exitAction.triggered.connect(self.close)
-        exitMenu.addAction(exitAction)
-
         # create matplotlib toolbar to inherit functionality
         self.figToolBar = NavigationToolbar2QT(self.getPlotWidget(), self)
         self.figToolBar.hide()
@@ -906,8 +906,8 @@ class PickDlg(QDialog):
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
         _outerlayout.setStretch(0, 0)
-        _outerlayout.setStretch(1, 1)
-        _outerlayout.setStretch(2, 100)
+        _outerlayout.setStretch(1, 0)
+        _outerlayout.setStretch(2, 1)
         
         # connect widget element signals with slots (methods to the dialog
         # object
