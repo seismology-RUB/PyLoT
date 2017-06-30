@@ -1431,6 +1431,7 @@ class MainWindow(QMainWindow):
             self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
             self.enableSaveManualPicksAction()
+            self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.pylot_autopicks = event.pylot_autopicks
             self.drawPicks(picktype='auto')
@@ -1958,7 +1959,7 @@ class MainWindow(QMainWindow):
         phasefile = os.path.split(os.tempnam())[-1]
         phasepath = os.path.join(locroot, 'obs', phasefile)
         locpath = os.path.join(locroot, 'loc', outfile)
-        lt.export(self.getPicks(), phasepath)
+        lt.export(self.getPicks(), phasepath, self.project.parameter)
         lt.modify_inputs(infile, locroot, outfile, phasefile, ttt)
         try:
             lt.locate(infile)
