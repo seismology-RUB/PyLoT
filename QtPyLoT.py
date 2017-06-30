@@ -1431,6 +1431,7 @@ class MainWindow(QMainWindow):
             self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
             self.enableSaveManualPicksAction()
+            self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.pylot_autopicks = event.pylot_autopicks
             self.drawPicks(picktype='auto')
