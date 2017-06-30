@@ -2584,18 +2584,31 @@ class PhasesTab(PropTab):
 
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
-        self.PphasesEdit = QLineEdit()
-        self.SphasesEdit = QLineEdit()
+        # self.PphasesEdit = QLineEdit()
+        # self.SphasesEdit = QLineEdit()
         Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
         Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
-        self.PphasesEdit.setText("%s" % Pphases)
-        self.SphasesEdit.setText("%s" % Sphases)
+        # self.PphasesEdit.setText("%s" % Pphases)
+        # self.SphasesEdit.setText("%s" % Sphases)
 
         layout = QGridLayout()
         layout.addWidget(PphasesLabel, 0, 0)
         layout.addWidget(SphasesLabel, 1, 0)
-        layout.addWidget(self.PphasesEdit, 0, 1)
-        layout.addWidget(self.SphasesEdit, 1, 1)
+
+        self.phaseButtons = {}
+
+        # loop over P and S
+        for phaseIndex, phases in enumerate([Pphases, Sphases]):
+            # loop through phases in string
+            for index, phase in enumerate(phases.split(',')):
+                index += 1 # skip first column with label
+                button = QtGui.QPushButton(str(phase))
+                button.setCheckable(True) # make button checkable
+                button.setChecked(True) # default checked?
+                layout.addWidget(button, phaseIndex, index) # add button to position
+                self.phaseButtons[str(phase)] = button # save button in dictionary for later use
+        # layout.addWidget(self.PphasesEdit, 0, 1)
+        # layout.addWidget(self.SphasesEdit, 1, 1)
         self.setLayout(layout)
 
 
