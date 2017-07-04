@@ -238,7 +238,7 @@ class PylotParameter(object):
         self.write_section(fid_out, self.get_main_para_names()['localmag'],
                            'settings local magnitude', separator)
         self.write_section(fid_out, self.get_main_para_names()['filter'],
-                           'filter settings', seperator)
+                           'filter settings', separator)
         self.write_section(fid_out, self.get_main_para_names()['pick'],
                            'common settings picker', separator)
         fid_out.write(('#special settings for calculating CF#\n'+

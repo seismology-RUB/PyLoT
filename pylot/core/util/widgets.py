@@ -2263,10 +2263,10 @@ class PylotParaBox(QtGui.QWidget):
                            self.parameter.get_special_para_names()['quality'], 4)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
-    # def gen_h_seperator(self):
-    #     seperator = QtGui.QFrame()
-    #     seperator.setFrameShape(QtGui.QFrame.HLine)
-    #     return seperator
+    # def gen_h_separator(self):
+    #     separator = QtGui.QFrame()
+    #     separator.setFrameShape(QtGui.QFrame.HLine)
+    #     return separator
 
     # def gen_headline(self, text):
     #     label=QtGui.QLabel(text)
