@@ -209,7 +209,10 @@ class PylotParameter(object):
                         vallist = value.strip().split(' ')
                         val = []
                         for val0 in vallist:
-                            val0 = float(val0)
+                            try:
+                                val0 = float(val0)
+                            except:
+                                pass
                             val.append(val0)
                     else:
                         val = str(value.strip())

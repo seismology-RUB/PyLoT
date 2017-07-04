@@ -1569,7 +1569,18 @@ class MainWindow(QMainWindow):
             self.project.filteroptions[self.getSeismicPhase()] = filterOptions
         else:
             self.project.filteroptions[seismicPhase] = filterOptions
+        self._inputs.setParamKV('minfreq', float(filterOptions.getFreq()[0]))
+        self._inputs.setParamKV('maxfreq', float(filterOptions.getFreq()[1]))
+        self._inputs.setParamKV('filter_order', int(filterOptions.getOrder()))
+        self._inputs.setParamKV('filter_type', str(filterOptions.getFilterType()))
 
+    def filterOptionsFromParameter(self):
+        if not self.project:
+            return
+        self.project.filteroptions.setFreq([self._inputs['minfreq'], self._inputs['axfreq']])
+        self.project.filteroptions.setOrder(self._inputs['filter_order'])
+        self.project.filteroptions.setFilterType(self._inputs['filter_type'])
+        
     def updateFilterOptions(self):
         try:
             settings = QSettings()
@@ -2394,6 +2405,9 @@ class MainWindow(QMainWindow):
             if hasattr(self.project, 'parameter'):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
+            if not hasattr(self.project, 'filteroptions'):
+                self.project.filteroptions = {'P': FilterOptions(),
+                                              'S': FilterOptions()}
             self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
@@ -2473,9 +2487,11 @@ class MainWindow(QMainWindow):
             self.paraBox = PylotParaBox(self._inputs)
             self.paraBox._apply.clicked.connect(self._setDirty)
             self.paraBox._okay.clicked.connect(self._setDirty)
+            self.paraBox._apply.clicked.connect(self.filterOptionsFromParameter)
+            self.paraBox._okay.clicked.connect(self.filterOptionsFromParameter)
         if show:
             self.paraBox.show()
-        
+
     def PyLoTprefs(self):
         if not self._props:
             self._props = PropertiesDlg(self, infile=self.infile)

@@ -2082,7 +2082,7 @@ class TuneAutopicker(QWidget):
 class PylotParaBox(QtGui.QWidget):     
     def __init__(self, parameter, parent=None):
         '''
-        Generate Widget containing parameters for automatic picking algorithm.
+        Generate Widget containing parameters for PyLoT.
 
         :param: parameter
         :type: PylotParameter (object)
@@ -2183,8 +2183,6 @@ class PylotParaBox(QtGui.QWidget):
         grid = QtGui.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
-            text = name + ' [?]'
-            label = QtGui.QLabel(text)
             default_item = self.parameter.get_defaults()[name]
             tooltip = default_item['tooltip']
             tooltip += ' | type: {}'.format(default_item['type'])
@@ -2192,14 +2190,19 @@ class PylotParaBox(QtGui.QWidget):
                 typ = default_item['type']
                 box = self.create_box(typ, tooltip)
                 self.boxes[name] = box
+                namestring = default_item['namestring']
             elif type(default_item['type']) == tuple:
                 boxes = []
                 values = self.parameter[name]
                 for index2, val in enumerate(values):
                     typ = default_item['type'][index2]
                     boxes.append(self.create_box(typ, tooltip))
-                box = self.create_multi_box(boxes)
+                headline = default_item['namestring'][1:]
+                box, lower = self.create_multi_box(boxes, headline)
                 self.boxes[name] = boxes
+                namestring = default_item['namestring'][0]                    
+            text = namestring + ' [?]'
+            label = QtGui.QLabel(text)
             self.labels[name] = label                
             label.setToolTip(tooltip)
             grid.addWidget(label, index1, 1)
@@ -2211,8 +2214,8 @@ class PylotParaBox(QtGui.QWidget):
             box = QtGui.QLineEdit()
         elif typ == float:
             box = QtGui.QDoubleSpinBox()
-            box.setDecimals(5)
-            box.setRange(-10e5, 10e5)            
+            box.setDecimals(4)
+            box.setRange(-10e4, 10e4)            
         elif typ == int:
             box = QtGui.QSpinBox()
         elif typ == bool:
@@ -2221,13 +2224,20 @@ class PylotParaBox(QtGui.QWidget):
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
-    def create_multi_box(self, boxes):
+    def create_multi_box(self, boxes, headline=None):
         box = QtGui.QWidget()
-        hl = QtGui.QVBoxLayout()
-        for b in boxes:
-            hl.addWidget(b)
-        box.setLayout(hl)
-        return box
+        gl = QtGui.QGridLayout()
+        row = 0
+        if headline:
+            for index, item in enumerate(headline):
+                if not item:
+                    continue
+                gl.addWidget(QtGui.QLabel(item), 0, index, 4)
+                row = 1
+        for index, b in enumerate(boxes):
+            gl.addWidget(b, row, index)
+        box.setLayout(gl)
+        return box, row
 
     def add_tab(self, layout, name):
         widget = QtGui.QWidget()
@@ -2467,7 +2477,7 @@ class PylotParaBox(QtGui.QWidget):
             self._exclusive_dialog.close()
         self._exclusive_widgets = []
         QtGui.QWidget.show(self)
-            
+
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
