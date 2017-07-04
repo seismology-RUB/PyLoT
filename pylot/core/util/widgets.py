@@ -3013,13 +3013,60 @@ class FilterOptionsDialog(QDialog):
         adjust parameters for filtering seismic data.
         """
         super(FilterOptionsDialog, self).__init__()
-
         if parent is not None and parent.getFilters():
-            self.filterOptions = parent.getFilterOptions()
+            self.filterOptions = parent.getFilters()
         elif filterOptions is not None:
-            self.filterOptions = FilterOptions(filterOptions)
+            self.filterOptions = filterOptions
         else:
-            self.filterOptions = FilterOptions()
+            self.filterOptions = {'P': FilterOptions(),
+                                  'S': FilterOptions()}
+
+        self.setWindowTitle(titleString)
+        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P']),
+                                    'S': FilterOptionsWidget(self.filterOptions['S'])}
+        self.setupUI()
+        self.connectButtons()
+        
+    def setupUI(self):
+        self.main_layout = QtGui.QVBoxLayout()
+        self.filter_layout = QtGui.QHBoxLayout()
+        self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
+                           'S': QtGui.QGroupBox('S Filter')}
+        
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                          QDialogButtonBox.Cancel)
+
+        for key in ['P', 'S']:
+            groupbox = self.groupBoxes[key]
+            box_layout = QtGui.QVBoxLayout()
+            groupbox.setLayout(box_layout)
+            
+            self.filter_layout.addWidget(groupbox)
+            box_layout.addWidget(self.filterOptionWidgets[key])
+            
+        self.main_layout.addLayout(self.filter_layout)
+        self.main_layout.addWidget(self.buttonBox)
+        self.setLayout(self.main_layout)
+
+    def connectButtons(self):
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def accept(self):
+        for foWidget in self.filterOptionWidgets.values():
+            foWidget.updateUi()
+        QDialog.accept(self)
+
+    def getFilterOptions(self):
+        filteroptions = {'P': self.filterOptionWidgets['P'].getFilterOptions(),
+                         'S': self.filterOptionWidgets['S'].getFilterOptions()}
+        return filteroptions
+
+        
+class FilterOptionsWidget(QWidget):
+    def __init__(self, filterOptions):
+        super(FilterOptionsWidget, self).__init__()
+        self.filterOptions = filterOptions
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -3083,13 +3130,9 @@ class FilterOptionsDialog(QDialog):
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
-                                          QDialogButtonBox.Cancel)
-
         grid = QGridLayout()
         grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
         grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
-        grid.addWidget(self.buttonBox, 2, 2, 1, 2)
 
         self.setLayout(grid)
 
@@ -3097,8 +3140,6 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox.valueChanged.connect(self.updateUi)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
 
     def updateUi(self):
         type = self.selectTypeCombo.currentText()
@@ -3135,10 +3176,6 @@ class FilterOptionsDialog(QDialog):
         if dlg.exec_():
             return dlg.getFilterOptions()
         return None
-
-    def accept(self):
-        self.updateUi()
-        QDialog.accept(self)
 
 
 class LoadDataDlg(QDialog):

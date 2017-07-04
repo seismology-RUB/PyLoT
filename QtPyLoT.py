@@ -180,7 +180,8 @@ class MainWindow(QMainWindow):
         # setup UI
         self.setupUi()
 
-        self.filteroptions = {}
+        self.filteroptions = {'P': FilterOptions(),
+                              'S': FilterOptions()}
         self.pylot_picks = {}
         self.pylot_autopicks = {}
         self.loc = False
@@ -1541,7 +1542,7 @@ class MainWindow(QMainWindow):
         self.draw()
 
     def adjustFilterOptions(self):
-        fstring = "Filter Options ({0})".format(self.getSeismicPhase())
+        fstring = "Filter Options"
         filterDlg = FilterOptionsDialog(titleString=fstring,
                                         parent=self)
         if filterDlg.exec_():
@@ -1553,33 +1554,46 @@ class MainWindow(QMainWindow):
                 self.plotWaveformDataThread()
 
     def getFilterOptions(self):
-        try:
-            return self.project.filteroptions[self.getSeismicPhase()]
-        except AttributeError as e:
-            print(e)
-            return FilterOptions(None, None, None)
+        return self.filteroptions
+        # try:
+        #     return self.filteroptions[self.getSeismicPhase()]
+        # except AttributeError as e:
+        #     print(e)
+        #     return FilterOptions(None, None, None)
 
     def getFilters(self):
         return self.filteroptions
 
-    def setFilterOptions(self, filterOptions, seismicPhase=None):
-        if not self.project:
-            return
-        if seismicPhase is None:
-            self.project.filteroptions[self.getSeismicPhase()] = filterOptions
-        else:
-            self.project.filteroptions[seismicPhase] = filterOptions
-        self._inputs.setParamKV('minfreq', float(filterOptions.getFreq()[0]))
-        self._inputs.setParamKV('maxfreq', float(filterOptions.getFreq()[1]))
-        self._inputs.setParamKV('filter_order', int(filterOptions.getOrder()))
-        self._inputs.setParamKV('filter_type', str(filterOptions.getFilterType()))
+    def setFilterOptions(self, filterOptions):#, seismicPhase=None):
+        # if seismicPhase is None:
+        #     self.getFilterOptions()[self.getSeismicPhase()] = filterOptions
+        # else:
+        #     self.getFilterOptions()[seismicPhase] = filterOptions
+        self.filterOptions = filterOptions
+        filterP = filterOptions['P']
+        filterS = filterOptions['S']
+        minP, maxP = filterP.getFreq()
+        minS, maxS = filterS.getFreq()
+        self._inputs.setParamKV('minfreq', (minP, minS))
+        self._inputs.setParamKV('maxfreq', (maxP, maxS))
+        self._inputs.setParamKV('filter_order', (filterP.getOrder(), filterS.getOrder()))
+        self._inputs.setParamKV('filter_type', (filterP.getFilterType(), filterS.getFilterType()))
 
     def filterOptionsFromParameter(self):
-        if not self.project:
-            return
-        self.project.filteroptions.setFreq([self._inputs['minfreq'], self._inputs['axfreq']])
-        self.project.filteroptions.setOrder(self._inputs['filter_order'])
-        self.project.filteroptions.setFilterType(self._inputs['filter_type'])
+        minP, minS = self._inputs['minfreq']
+        maxP, maxS = self._inputs['maxfreq']
+        orderP, orderS = self._inputs['filter_order']
+        typeP, typeS = self._inputs['filter_type']
+        
+        filterP = self.getFilterOptions()['P']
+        filterP.setFreq([minP, maxP])
+        filterP.setOrder(orderP)
+        filterP.setFilterType(typeP)
+        
+        filterS = self.getFilterOptions()['S']
+        filterS.setFreq([minS, maxS])
+        filterS.setOrder(orderS)
+        filterS.setFilterType(typeS)
         
     def updateFilterOptions(self):
         try:
@@ -2405,9 +2419,6 @@ class MainWindow(QMainWindow):
             if hasattr(self.project, 'parameter'):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
-            if not hasattr(self.project, 'filteroptions'):
-                self.project.filteroptions = {'P': FilterOptions(),
-                                              'S': FilterOptions()}
             self.tabs.setCurrentIndex(0) # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
@@ -2517,10 +2528,6 @@ class Project(object):
         self.eventlist = []
         self.location = None
         self.rootpath = None
-        self.filteroptions = {
-            'P': FilterOptions(),
-            'S': FilterOptions()
-        }
         self.dirty = False
         self.parameter = None
         self._table = None
