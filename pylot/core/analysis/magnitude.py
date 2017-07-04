@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created autumn/winter 2015.
+Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
@@ -115,23 +116,30 @@ class Magnitude(object):
     def calc(self):
         pass
 
-    def updated_event(self):
-        self.event.magnitudes.append(self.net_magnitude())
+    def updated_event(self, magscaling=None):
+        self.event.magnitudes.append(self.net_magnitude(magscaling))
         return self.event
 
-    def net_magnitude(self):
+    def net_magnitude(self, magscaling=None):
         if self:
-            # TODO if an average Magnitude instead of the median is calculated
-            # StationMagnitudeContributions should be added to the returned
-            # Magnitude object
-            # mag_error => weights (magnitude error estimate from peak_to_peak, calcsourcespec?)
-            # weights => StationMagnitdeContribution
-            mag = ope.Magnitude(
-                mag=np.median([M.mag for M in self.magnitudes.values()]),
-                magnitude_type=self.type,
-                origin_id=self.origin_id,
-                station_count=len(self.magnitudes),
-                azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+                # scaling necessary
+                print("Scaling network magnitude ...")
+                mag = ope.Magnitude(
+                    mag=np.median([M.mag for M in self.magnitudes.values()]) *\
+                                   magscaling[0] + magscaling[1],
+                    magnitude_type=self.type,
+                    origin_id=self.origin_id,
+                    station_count=len(self.magnitudes),
+                    azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
+            else:
+                # no saling necessary
+                mag = ope.Magnitude(
+                    mag=np.median([M.mag for M in self.magnitudes.values()]),
+                    magnitude_type=self.type,
+                    origin_id=self.origin_id,
+                    station_count=len(self.magnitudes),
+                    azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
         return None
 
@@ -153,7 +161,7 @@ class LocalMagnitude(Magnitude):
 
     _amplitudes = dict()
 
-    def __init__(self, stream, event, calc_win, wascaling=None, verbosity=False, iplot=0):
+    def __init__(self, stream, event, calc_win, wascaling, verbosity=False, iplot=0):
         super(LocalMagnitude, self).__init__(stream, event, verbosity, iplot)
 
         self._calc_win = calc_win
@@ -207,6 +215,8 @@ class LocalMagnitude(Magnitude):
         th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
+        ii = min([iwin[len(iwin)-1], len(th)])
+        iwin = iwin[0:ii]
         wapp = np.max(sqH[iwin])
         if self.verbose:
             print("Determined Wood-Anderson peak-to-peak amplitude for station {0}: {1} "
@@ -257,12 +267,13 @@ class LocalMagnitude(Magnitude):
             self.amplitudes = (station, amplitude)
             # using standard Gutenberg-Richter relation
             # or scale WA amplitude with given scaling relation
-            if self.wascaling == None:
+            if str(self.wascaling) == '[0.0, 0.0, 0.0]':
                 print("Calculating original Richter magnitude ...")
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
                             + richter_magnitude_scaling(delta))
             else:
                 print("Calculating scaled local magnitude ...")
+                a0 = a0 * 1e03 # mm to nm (see Havskov & Ottemöller, 2010)
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
                             + self.wascaling[0] * np.log10(delta) + self.wascaling[1] 
                             * delta + self.wascaling[2])

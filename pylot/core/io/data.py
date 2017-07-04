@@ -6,11 +6,12 @@ import os
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.io.sac import SacIOError
-from obspy.core.event import Event
+from obspy.core.event import Event as ObsPyEvent
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.utils import fnConstructor, full_range
+from pylot.core.util.event import Event
 
 class Data(object):
     """
@@ -33,7 +34,7 @@ class Data(object):
             self.comp = 'Z'
             self.wfdata = Stream()
         self._new = False
-        if isinstance(evtdata, Event):
+        if isinstance(evtdata, ObsPyEvent) or isinstance(evtdata, Event):
             pass
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
@@ -49,7 +50,7 @@ class Data(object):
                 if 'Unknown format for file' in e.message:
                     if 'PHASES' in evtdata:
                         picks = picksdict_from_pilot(evtdata)
-                        evtdata = Event()
+                        evtdata = ObsPyEvent()
                         evtdata.picks = picks_from_picksdict(picks)
                     elif 'LOC' in evtdata:
                         raise NotImplementedError('PILOT location information '
@@ -61,7 +62,7 @@ class Data(object):
                     raise e
         else:  # create an empty Event object
             self.setNew()
-            evtdata = Event()
+            evtdata = ObsPyEvent()
             evtdata.picks = []
         self.evtdata = evtdata
         self.wforiginal = None
@@ -73,6 +74,8 @@ class Data(object):
 
     def __add__(self, other):
         assert isinstance(other, Data), "operands must be of same type 'Data'"
+        rs_id = self.get_evt_data().get('resource_id')
+        rs_id_other = other.get_evt_data().get('resource_id')        
         if other.isNew() and not self.isNew():
             picks_to_add = other.get_evt_data().picks
             old_picks = self.get_evt_data().picks
@@ -84,7 +87,7 @@ class Data(object):
             self.evtdata = new.get_evt_data()
         elif self.isNew() and other.isNew():
             pass
-        elif self.get_evt_data().get('id') == other.get_evt_data().get('id'):
+        elif rs_id == rs_id_other:
             other.setNew()
             return self + other
         else:
@@ -95,7 +98,7 @@ class Data(object):
     def getPicksStr(self):
         picks_str = ''
         for pick in self.get_evt_data().picks:
-            picks_str += str(pick) + '\n'
+            picks_str += str(PyLoT) + '\n'
         return picks_str
 
     def getParent(self):
@@ -144,12 +147,13 @@ class Data(object):
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
-    def exportEvent(self, fnout, fnext='.xml'):
+    def exportEvent(self, fnout, fnext='.xml', fcheck='auto'):
 
         """
 
         :param fnout:
         :param fnext:
+        :param fcheck:
         :raise KeyError:
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
@@ -160,13 +164,71 @@ class Data(object):
             errmsg = '{0}; selected file extension {1} not ' \
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
+   
+        # check for already existing xml-file
+        if fnext == '.xml':
+            if os.path.isfile(fnout + fnext):
+                print("xml-file already exists! Check content ...")
+                cat_old = read_events(fnout + fnext)
+                checkflag = 0
+                for j in range(len(cat_old.events[0].picks)):
+                   if cat_old.events[0].picks[j].method_id.id.split('/')[1] == fcheck:
+                      print("Found %s pick(s), append to new catalog." % fcheck)
+                      checkflag = 1
+                      break
+                if checkflag == 1:
+                    self.get_evt_data().write(fnout + fnext, format=evtformat)
+                    cat_new = read_events(fnout + fnext)
+                    cat_new.append(cat_old.events[0])
+                    cat_new.write(fnout + fnext, format=evtformat)
+                else:
+                    self.get_evt_data().write(fnout + fnext, format=evtformat)
+            else:
+                self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event via ObsPy
-        try:
-            self.get_evt_data().write(fnout + fnext, format=evtformat)
-        except KeyError as e:
-            raise KeyError('''{0} export format
-                              not implemented: {1}'''.format(evtformat, e))
+        else:
+            # check for stations picked automatically as well as manually
+            # Prefer manual picks!
+            evtdata_copy = self.get_evt_data().copy()
+            evtdata_org = self.get_evt_data()
+            for i in range(len(evtdata_org.picks)):
+                if evtdata_org.picks[i].method_id == 'manual':
+                   mstation = evtdata_org.picks[i].waveform_id.station_code
+                   mstation_ext = mstation + '_'
+                   for k in range(len(evtdata_copy.picks)):
+                       if evtdata_copy.picks[k].waveform_id.station_code == mstation  or \
+                          evtdata_copy.picks[k].waveform_id.station_code == mstation_ext and \
+                          evtdata_copy.picks[k].method_id == 'auto':
+                          del evtdata_copy.picks[k]
+                          break
+            lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
+            if lendiff is not 0:
+               print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+
+            if fnext == '.obs':
+               try:
+                   evtdata_copy.write(fnout + fnext, format=evtformat)
+                   # write header afterwards
+                   evid = str(evtdata_org.resource_id).split('/')[1]
+                   header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
+                   nllocfile = open(fnout + fnext)
+                   l = nllocfile.readlines()
+                   nllocfile.close()
+                   l.insert(0, header)
+                   nllocfile = open(fnout + fnext, 'w')
+                   nllocfile.write("".join(l))
+                   nllocfile.close()
+               except KeyError as e:
+                   raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+            if fnext == '.cnv':
+               try:
+                   evtdata_org.write(fnout + fnext, format=evtformat)
+               except KeyError as e:
+                   raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+
 
     def getComp(self):
         """
@@ -279,12 +341,12 @@ class Data(object):
     def setEvtData(self, event):
         self.evtdata = event
 
-    def applyEVTData(self, data, type='pick', authority_id='rub'):
+    def applyEVTData(self, data, typ='pick', authority_id='rub'):
 
         """
 
         :param data:
-        :param type:
+        :param typ:
         :param authority_id:
         :raise OverwriteError:
         """
@@ -326,19 +388,27 @@ class Data(object):
             information on the event to the actual data
             :param event:
             """
-            if not self.isNew():
+            if self.isNew():
                 self.setEvtData(event)
             else:
                 # prevent overwriting original pick information
-                picks =  copy.deepcopy(self.get_evt_data().picks)
+                event_old = self.get_evt_data()
+                print(event_old.resource_id, event.resource_id)
+                if not event_old.resource_id == event.resource_id:
+                    print("WARNING: Missmatch in event resource id's: {} and {}".format(
+                        event_old.resource_id,
+                        event.resource_id))
+                picks = copy.deepcopy(event_old.picks)
                 event = merge_picks(event, picks)
                 # apply event information from location
-                self.get_evt_data().update(event)
+                event_old.update(event)
 
         applydata = {'pick': applyPicks,
                      'event': applyEvent}
 
-        applydata[type](data)
+        applydata[typ](data)
+        self._new = False
+        
 
 
 class GenericDataStructure(object):

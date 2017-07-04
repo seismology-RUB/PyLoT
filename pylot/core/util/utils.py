@@ -12,7 +12,7 @@ import subprocess
 from obspy import UTCDateTime, read
 from pylot.core.io.inputs import PylotParameter
 
-
+    
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)

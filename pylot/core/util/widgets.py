@@ -35,6 +35,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
+from obspy.core.util import AttribDict 
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
@@ -707,7 +708,7 @@ class WaveformWidget(FigureCanvas):
         self.draw()
 
     def updateTitle(self, text):
-        self.getAxes().set_title(text)
+        self.getAxes().set_title(text, verticalalignment='bottom')
         self.draw()
 
     def updateWidget(self, xlabel, ylabel, title):
@@ -724,7 +725,7 @@ class WaveformWidget(FigureCanvas):
 
 class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)    
-    def __init__(self, parent=None, data=None, station=None, picks=None,
+    def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False):
         super(PickDlg, self).__init__(parent)
 
@@ -732,6 +733,7 @@ class PickDlg(QDialog):
         self.parameter = parameter
         self._embedded = embedded
         self.station = station
+        self.network = network
         self.rotate = rotate
         self.components = 'ZNE'
         self.currentPhase = None
@@ -806,7 +808,15 @@ class PickDlg(QDialog):
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
     def setupUi(self):
+        menuBar = QtGui.QMenuBar(self)
+        if not self._embedded:
+            exitMenu = menuBar.addMenu('File')
+            exitAction = QtGui.QAction('Close', self)        
+            exitAction.triggered.connect(self.close)
+            exitMenu.addAction(exitAction)
 
+        self.addPickPhases(menuBar)
+        
         # create matplotlib toolbar to inherit functionality
         self.figToolBar = NavigationToolbar2QT(self.getPlotWidget(), self)
         self.figToolBar.hide()
@@ -847,8 +857,8 @@ class PickDlg(QDialog):
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
         # set button tooltips
-        self.p_button.setToolTip('Hotkey: "1"')
-        self.s_button.setToolTip('Hotkey: "2"')
+        # self.p_button.setToolTip('Hotkey: "1"')
+        # self.s_button.setToolTip('Hotkey: "2"')
                                                
         # create accept/reject button
         self.accept_button = QPushButton('&Accept Picks')
@@ -859,8 +869,8 @@ class PickDlg(QDialog):
         self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
         # button shortcuts (1 for P-button, 2 for S-button)
-        self.p_button.setShortcut(QKeySequence('1'))
-        self.s_button.setShortcut(QKeySequence('2'))
+        # self.p_button.setShortcut(QKeySequence('1'))
+        # self.s_button.setShortcut(QKeySequence('2'))
         
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
@@ -892,9 +902,13 @@ class PickDlg(QDialog):
         # merge widgets and layouts to establish the dialog
         if not self._embedded:
             _innerlayout.addWidget(_buttonbox)
+        _outerlayout.addWidget(menuBar)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
-
+        _outerlayout.setStretch(0, 0)
+        _outerlayout.setStretch(1, 0)
+        _outerlayout.setStretch(2, 1)
+        
         # connect widget element signals with slots (methods to the dialog
         # object
         self.p_button.clicked.connect(self.p_clicked)
@@ -910,6 +924,60 @@ class PickDlg(QDialog):
         self.setLayout(_outerlayout)
         self.resize(1280, 720)        
 
+    def addPickPhases(self, menuBar):
+        settings = QtCore.QSettings()
+        p_phases = settings.value('p_phases')
+        s_phases = settings.value('s_phases')
+        
+        if p_phases:
+            p_phases = p_phases.split(',')
+        else:
+            p_phases = []
+        if s_phases:
+            s_phases = s_phases.split(',')
+        else:
+            s_phases = []
+            
+        phases = {'P': p_phases,
+                  'S': s_phases}
+        if not 'P' in phases['P'] and not 'p' in phases['P']:
+            phases['P'] = ['P'] + phases['P']
+        if not 'S' in phases['S'] and not 's' in phases['S']:
+            phases['S'] = ['S'] + phases['S']
+        
+        picksMenu = menuBar.addMenu('Picks')
+        self.picksActions = {}
+
+        # dictionary points on corresponding phase_select function
+        phaseSelect = {'P': self.p_phase_select,
+                       'S': self.s_phase_select}
+
+        nHotkey = 4 # max hotkeys per phase
+        hotkey = 1 # start hotkey
+        
+        # loop over P and S (use explicit list instead of iter over dict.keys to keep order)
+        for phaseIndex, phaseID in enumerate(['P', 'S']):
+            # loop through phases in list
+            for index, phase in enumerate(phases[phaseID]):
+                # remove zeros
+                phase = phase.strip()
+                # add hotkeys
+                if not index >= nHotkey:
+                    shortcut = str(hotkey)
+                    hotkey += 1
+                else:
+                    shortcut = None
+                # create action and add to menu
+                # phase name transferred using lambda function
+                slot = lambda phase=phase, phaseID=phaseID: phaseSelect[phaseID](phase)
+                picksAction = createAction(parent=self, text=phase,
+                                           slot=slot,
+                                           shortcut=shortcut)
+                picksMenu.addAction(picksAction)
+                self.picksActions[str(phase)] = picksAction # save action in dictionary
+            if phaseIndex == 0:
+                picksMenu.addSeparator()
+        
     def disconnectPressEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidpress)
@@ -952,9 +1020,32 @@ class PickDlg(QDialog):
     def enable_ar_buttons(self, bool=True):
         self.accept_button.setEnabled(bool)
         self.reject_button.setEnabled(bool)        
+
+    def p_phase_select(self, phase):
+        if not self.p_button.isChecked():
+            self.p_button.setChecked(True)
+            self.p_button.setText(phase)
+        else:
+            if str(phase) == str(self.p_button.text()):
+                self.reset_p_button()
+            else:
+                self.p_button.setText(phase)
+        self.p_clicked()
+        
+    def s_phase_select(self, phase):
+        if not self.s_button.isChecked():
+            self.s_button.setChecked(True)
+            self.s_button.setText(phase)
+        else:
+            if str(phase) == str(self.s_button.text()):
+                self.reset_s_button()
+            else:
+                self.s_button.setText(phase)
+        self.s_clicked()
         
     def p_clicked(self):
         if self.p_button.isChecked():
+            self.reset_s_button()
             self.s_button.setEnabled(False)
             self.init_p_pick()
         else:
@@ -962,7 +1053,8 @@ class PickDlg(QDialog):
 
     def s_clicked(self):
         if self.s_button.isChecked():
-            self.p_button.setEnabled(False)
+            self.reset_p_button()
+            self.p_button.setEnabled(False)            
             self.init_s_pick()
         else:
             self.leave_picking_mode()
@@ -971,13 +1063,13 @@ class PickDlg(QDialog):
         self.set_button_color(self.p_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
-        self.currentPhase = 'P'
+        self.currentPhase = str(self.p_button.text())
 
     def init_s_pick(self):
         self.set_button_color(self.s_button, 'yellow')
         self.updateCurrentLimits()
         self.activatePicking()
-        self.currentPhase = 'S'
+        self.currentPhase = str(self.s_button.text())
 
     def set_button_color(self, button, color = None):
         if type(color) == QtGui.QColor:
@@ -989,14 +1081,22 @@ class PickDlg(QDialog):
         elif type(color) == str or not color:        
             button.setStyleSheet("background-color: {}".format(color))    
 
+    def reset_p_button(self):
+        self.set_button_color(self.p_button)
+        self.p_button.setEnabled(True)
+        self.p_button.setChecked(False)
+        self.p_button.setText('P')
+        
+    def reset_s_button(self):
+        self.set_button_color(self.s_button)
+        self.s_button.setEnabled(True)
+        self.s_button.setChecked(False)
+        self.s_button.setText('S')        
+        
     def leave_picking_mode(self):
         self.currentPhase = None
-        self.set_button_color(self.p_button)
-        self.set_button_color(self.s_button)
-        self.p_button.setEnabled(True)
-        self.s_button.setEnabled(True)
-        self.p_button.setChecked(False)
-        self.s_button.setChecked(False)
+        self.reset_p_button()
+        self.reset_s_button()
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
         self.drawAllPicks()
@@ -1035,6 +1135,8 @@ class PickDlg(QDialog):
         return self.components
 
     def getStation(self):
+        if self.network and self.station:
+            return self.network+'.'+self.station
         return self.station
 
     def getPlotWidget(self):
@@ -1057,7 +1159,7 @@ class PickDlg(QDialog):
         return self._user
 
     def getFilterOptions(self, phase):
-        options = self.filteroptions[phase]
+        options = self.filteroptions[phase[0]]
         return FilterOptions(**options)
 
     def getXLims(self):
@@ -1132,11 +1234,10 @@ class PickDlg(QDialog):
         self.disconnectMotionEvent()
         self.cidpress = self.connectPressEvent(self.setPick)
 
-        print(self.currentPhase)
-        if self.currentPhase == 'P':
+        if self.currentPhase.startswith('P'):
             self.set_button_color(self.p_button, 'green')
             self.setIniPickP(gui_event, wfdata, trace_number)
-        elif self.currentPhase == 'S':
+        elif self.currentPhase.startswith('S'):
             self.set_button_color(self.s_button, 'green')
             self.setIniPickS(gui_event, wfdata)
             
@@ -1169,7 +1270,7 @@ class PickDlg(QDialog):
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
-        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
+        filteroptions = self.getFilterOptions(phase[0]).parseFilterOptions()
         if filteroptions:
             data.filter(**filteroptions)
             wfdata.filter(**filteroptions)
@@ -1360,9 +1461,11 @@ class PickDlg(QDialog):
             'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
         }
         if self.getPicks(picktype):
-            if phase is not None and type(self.getPicks(picktype)[phase]) is dict:
-                picks = self.getPicks(picktype)[phase]
-                colors = phase_col[phase[0].upper()]
+            if phase is not None: 
+                if (type(self.getPicks(picktype)[phase]) is dict 
+                    or type(self.getPicks(picktype)[phase]) is AttribDict): 
+                    picks = self.getPicks(picktype)[phase] 
+                    colors = phase_col[phase[0].upper()] 
             elif phase is None:
                 for phase in self.getPicks(picktype):
                     self.drawPicks(phase, picktype)
@@ -1387,7 +1490,8 @@ class PickDlg(QDialog):
                 ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
                 ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
             else:
-                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase)) 
+                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+            ax.text(mpp, ylims[1], phase)
                 
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
@@ -1646,7 +1750,7 @@ class TuneAutopicker(QWidget):
         model = self.stationBox.model()
         for network, station in stations:
             item = QtGui.QStandardItem(network+'.'+station)
-            if station in self.get_current_event().picks:
+            if station in self.get_current_event().pylot_picks:
                 item.setBackground(self.parent._colors['ref'])
             model.appendRow(item)
 
@@ -1687,8 +1791,8 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
         
     def get_current_event(self):
-        index = self.eventBox.currentIndex()
-        return self.eventBox.itemData(index)
+        path = self.eventBox.currentText()
+        return self.parent.project.getEventFromPath(path)
         
     def get_current_event_name(self):
         return self.eventBox.currentText().split('/')[-1]
@@ -1698,13 +1802,13 @@ class TuneAutopicker(QWidget):
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
-        if station in event.picks.keys():
-            return event.picks[station]
+        if station in event.pylot_picks.keys():
+            return event.pylot_picks[station]
         
     def get_current_event_autopicks(self, station):
         event = self.get_current_event()
-        if event.autopicks:
-            return event.autopicks[station]
+        if event.pylot_autopicks:
+            return event.pylot_autopicks[station]
         
     def get_current_station(self):
         return str(self.stationBox.currentText()).split('.')[-1]
@@ -1855,6 +1959,9 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
+        project = self.parent.project
+        if not project:
+            return
         # update own list
         self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
         index_start = self.parent.eventBox.currentIndex()
@@ -1862,11 +1969,15 @@ class TuneAutopicker(QWidget):
         if index == -1:
             index += 1
         nevents = self.eventBox.model().rowCount()
-        if self.eventBox.itemData(index).isTestEvent():
+        path = self.eventBox.itemText(index)
+        if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
-                if not self.eventBox.itemData(index).isTestEvent():
-                    break
-                elif index == nevents - 1:
+                path = self.eventBox.itemText(index)
+                if project.getEventFromPath(index):
+                    if not project.getEventFromPath(index).isTestEvent():
+                        break
+                #in case all events are marked as test events and last event is reached
+                if index == nevents - 1:
                     index = -1
         self.eventBox.setCurrentIndex(index)
         if not index == index_start:
@@ -1911,8 +2022,8 @@ class TuneAutopicker(QWidget):
             self._warn('Could not execute picker:\n{}'.format(
                 self.ap_thread._executedError))
             return
-        self.picks = self.ap_thread.data
-        if not self.picks:
+        self.pylot_picks = self.ap_thread.data
+        if not self.pylot_picks:
             self._warn('No picks found. See terminal output.')
             return
         #renew tabs
@@ -2456,6 +2567,7 @@ class PropertiesDlg(QDialog):
                 elif setting.startswith('Channel N'):
                     component = 'N'
                     compclass.setCompPosition(value, component, False)
+                    
         settings.sync()
 
 
@@ -2547,7 +2659,7 @@ class OutputsTab(PropTab):
         settings = QSettings()
         curval = settings.value("output/Format", None)
 
-        eventOutputLabel = QLabel("event ouput format")
+        eventOutputLabel = QLabel("event/picks output format")
         self.eventOutputComboBox = QComboBox()
         eventoutputformats = OUTPUTFORMATS.keys()
         self.eventOutputComboBox.addItems(eventoutputformats)
@@ -2568,13 +2680,45 @@ class OutputsTab(PropTab):
     def resetValues(self, infile):
         values = {"output/Format": self.eventOutputComboBox.setCurrentIndex(1)}
         return values
+    
 
 class PhasesTab(PropTab):
     def __init__(self, parent=None):
         super(PhasesTab, self).__init__(parent)
 
-        pass
+        self.PphasesEdit = QLineEdit()
+        self.SphasesEdit = QLineEdit()
 
+        PphasesLabel = QLabel("P Phases to pick")
+        SphasesLabel = QLabel("S Phases to pick")
+
+        settings = QSettings()
+        Pphases = settings.value('p_phases')
+        Sphases = settings.value('s_phases')
+
+        self.PphasesEdit.setText("%s" % Pphases)
+        self.SphasesEdit.setText("%s" % Sphases)
+
+        layout = QGridLayout()
+        layout.addWidget(PphasesLabel, 0, 0)
+        layout.addWidget(SphasesLabel, 1, 0)
+
+        layout.addWidget(self.PphasesEdit, 0, 1)
+        layout.addWidget(self.SphasesEdit, 1, 1)
+        self.setLayout(layout)
+
+    def getValues(self):
+        values = {'p_phases': self.PphasesEdit.text(),
+                  's_phases': self.SphasesEdit.text()}
+        return values
+
+    def resetValues(self, infile=None):
+        Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
+        Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
+        values = {'p_phases': self.PphasesEdit.setText(Pphases),
+                  's_phases': self.SphasesEdit.setText(Sphases)}
+        return values
+    
 
 class GraphicsTab(PropTab):
     def __init__(self, parent=None):
@@ -2619,7 +2763,12 @@ class GraphicsTab(PropTab):
                   'pyqtgraphic': self.checkbox_pg.isChecked()}
         return values
         
+    def resetValues(self, infile=None):
+        values = {'nth_sample': self.spinbox_nth_sample.setValue(1),
+                  'pyqtgraphic': self.checkbox_pg.setChecked(True)}
+        return values
 
+    
 class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)

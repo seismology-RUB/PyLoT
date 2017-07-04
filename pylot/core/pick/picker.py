@@ -212,6 +212,14 @@ class AICPicker(AutoPicker):
                 self.Data[0].data = self.Data[0].data * 1000000
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
+            ii = min([isignal[len(isignal)-1], len(self.Tcf)])
+            isignal = isignal[0:ii]
+            try:
+               aic[isignal]
+            except IndexError as e:
+               msg = "Time series out of bounds! {}".format(e)
+               print(msg)
+               return
             # calculate SNR from CF
             self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / \
                        max(abs(aic[inoise] - np.mean(aic[inoise])))
