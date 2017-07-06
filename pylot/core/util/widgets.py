@@ -3015,8 +3015,8 @@ class FilterOptionsDialog(QDialog):
         super(FilterOptionsDialog, self).__init__()
         if parent is not None and parent.getFilters():
             self.filterOptions = parent.getFilters()
-        elif filterOptions is not None:
-            self.filterOptions = filterOptions
+        # elif filterOptions is not None:
+        #     self.filterOptions = filterOptions
         else:
             self.filterOptions = {'P': FilterOptions(),
                                   'S': FilterOptions()}
@@ -3024,10 +3024,11 @@ class FilterOptionsDialog(QDialog):
         self.setWindowTitle(titleString)
         self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P']),
                                     'S': FilterOptionsWidget(self.filterOptions['S'])}
-        self.setupUI()
+        self.setupUi()
+        self.updateUi()
         self.connectButtons()
         
-    def setupUI(self):
+    def setupUi(self):
         self.main_layout = QtGui.QVBoxLayout()
         self.filter_layout = QtGui.QHBoxLayout()
         self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
@@ -3053,10 +3054,13 @@ class FilterOptionsDialog(QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
     def accept(self):
-        for foWidget in self.filterOptionWidgets.values():
-            foWidget.updateUi()
+        self.updateUi()
         QDialog.accept(self)
 
+    def updateUi(self):
+        for foWidget in self.filterOptionWidgets.values():
+            foWidget.updateUi()
+        
     def getFilterOptions(self):
         filteroptions = {'P': self.filterOptionWidgets['P'].getFilterOptions(),
                          'S': self.filterOptionWidgets['S'].getFilterOptions()}
@@ -3087,20 +3091,20 @@ class FilterOptionsWidget(QWidget):
         self.freqmaxSpinBox.setDecimals(2)
         self.freqmaxSpinBox.setSuffix(' Hz')
 
-        if _enable:
+        # if _enable:
+        #     self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
+        #     if self.getFilterOptions().getFilterType() in ['bandpass',
+        #                                                    'bandstop']:
+        #         self.freqmaxSpinBox.setValue(
+        #             self.getFilterOptions().getFreq()[1])
+        # else:
+        try:
             self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
-            if self.getFilterOptions().getFilterType() in ['bandpass',
-                                                           'bandstop']:
-                self.freqmaxSpinBox.setValue(
-                    self.getFilterOptions().getFreq()[1])
-        else:
-            try:
-                self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
-                self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
-            except TypeError as e:
-                print(e)
-                self.freqmaxSpinBox.setValue(1.)
-                self.freqminSpinBox.setValue(.1)
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+        except TypeError as e:
+            print(e)
+            self.freqmaxSpinBox.setValue(1.)
+            self.freqminSpinBox.setValue(.1)
 
         typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
 
@@ -3130,6 +3134,11 @@ class FilterOptionsWidget(QWidget):
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
+        try:
+            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
+        except:
+            self.orderSpinBox.setValue(2)
+            
         grid = QGridLayout()
         grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
         grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
@@ -3145,15 +3154,23 @@ class FilterOptionsWidget(QWidget):
         type = self.selectTypeCombo.currentText()
         _enable = type in ['bandpass', 'bandstop']
         freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
-        self.freqmaxLabel.setEnabled(_enable)
-        self.freqmaxSpinBox.setEnabled(_enable)
-
+        self.freqmaxLabel.setEnabled(True)
+        self.freqmaxSpinBox.setEnabled(True)
+        self.freqminLabel.setEnabled(True)
+        self.freqminSpinBox.setEnabled(True)
+        self.freqminLabel.setText("minimum:")
+        self.freqmaxLabel.setText("maximum:")            
+        
         if not _enable:
-            self.freqminLabel.setText("cutoff:")
-            self.freqmaxSpinBox.setValue(freq[0])
-            freq.remove(freq[1])
+            if type == 'highpass':
+                self.freqminLabel.setText("cutoff:")
+                self.freqmaxLabel.setEnabled(False)
+                self.freqmaxSpinBox.setEnabled(False)
+            elif type == 'lowpass':
+                self.freqmaxLabel.setText("cutoff:")
+                self.freqminLabel.setEnabled(False)
+                self.freqminSpinBox.setEnabled(False)
         else:
-            self.freqminLabel.setText("minimum:")
             if not isSorted(freq):
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "

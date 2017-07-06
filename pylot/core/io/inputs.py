@@ -341,12 +341,13 @@ class FilterOptions(object):
     def parseFilterOptions(self):
         if self:
             robject = {'type': self.getFilterType(), 'corners': self.getOrder()}
-            if len(self.getFreq()) > 1:
+            if not self.getFilterType() in ['highpass', 'lowpass']:
                 robject['freqmin'] = self.getFreq()[0]
                 robject['freqmax'] = self.getFreq()[1]
-            else:
-                robject['freq'] = self.getFreq() if type(self.getFreq()) is \
-                                                    float else self.getFreq()[0]
+            elif self.getFilterType() == 'highpass':
+                robject['freq'] = self.getFreq()[0]
+            elif self.getFilterType() == 'lowpass':
+                robject['freq'] = self.getFreq()[1]
             return robject
         return None
 

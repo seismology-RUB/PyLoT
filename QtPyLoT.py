@@ -1531,7 +1531,7 @@ class MainWindow(QMainWindow):
     def filterWaveformData(self):
         if self.get_data():
             if self.getFilterOptions() and self.filterAction.isChecked():
-                kwargs = self.getFilterOptions().parseFilterOptions()
+                kwargs = self.getFilterOptions()['P'].parseFilterOptions()
                 self.pushFilterWF(kwargs)
             elif self.filterAction.isChecked():
                 self.adjustFilterOptions()
@@ -2501,6 +2501,7 @@ class MainWindow(QMainWindow):
             self.paraBox._apply.clicked.connect(self.filterOptionsFromParameter)
             self.paraBox._okay.clicked.connect(self.filterOptionsFromParameter)
         if show:
+            self.paraBox.params_to_gui()
             self.paraBox.show()
 
     def PyLoTprefs(self):
