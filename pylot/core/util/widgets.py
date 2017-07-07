@@ -35,7 +35,8 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
 from obspy import Stream, UTCDateTime
-from obspy.core.util import AttribDict 
+from obspy.core.util import AttribDict
+from obspy.taup import TauPyModel
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
@@ -726,7 +727,7 @@ class WaveformWidget(FigureCanvas):
 class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)    
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
-                 autopicks=None, rotate=False, parameter=None, embedded=False):
+                 autopicks=None, rotate=False, parameter=None, embedded=False, model='iasp91'):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
@@ -807,6 +808,15 @@ class PickDlg(QDialog):
         self.cidrelease = self.connectReleaseEvent(self.panRelease)
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
 
+        # init expected picks using obspy Taup
+        try:
+            if self.parent().metadata:
+                self.model = TauPyModel(model)
+                self.get_arrivals()
+                self.drawArrivals()
+        except Exception as e:
+            print('Warning: Could not init expected picks from taup: {}'.format(e))
+            
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
         if not self._embedded:
@@ -924,6 +934,43 @@ class PickDlg(QDialog):
         self.setLayout(_outerlayout)
         self.resize(1280, 720)        
 
+    def get_arrivals(self):
+        phases = self.prepare_phases()
+        station_id = self.data.traces[0].get_id()
+        parser = self.parent().metadata[1]
+        station_coords = parser.get_coordinates(station_id)
+        source_origin = self.parent().get_current_event().origins[0]
+        arrivals = self.model.get_travel_times_geo(source_origin.depth,
+                                                   source_origin.latitude,
+                                                   source_origin.longitude,
+                                                   station_coords['latitude'],
+                                                   station_coords['longitude'],
+                                                   phases)
+        self.arrivals = arrivals
+
+    def prepare_phases(self):
+        settings = QtCore.QSettings()
+        p_phases = settings.value('p_phases')
+        s_phases = settings.value('s_phases')
+        phases = p_phases + s_phases
+        phases = phases.split(',')
+        phases = [phase.strip() for phase in phases]
+        return phases
+
+    def drawArrivals(self):
+        if not self.arrivals:
+            return
+        ax = self.getPlotWidget().axes
+        ylims = self.getGlobalLimits('y')
+        stime = self.getStartTime()
+        source_origin = self.parent().get_current_event().origins[0]
+        source_time = source_origin.time
+        for arrival in self.arrivals:
+            arrival_time_abs = source_time + arrival.time
+            time_rel = arrival_time_abs - stime
+            ax.plot([time_rel, time_rel], ylims, '0.3', linestyle='dashed')
+            ax.text(time_rel, ylims[0], arrival.name, color='0.5')
+        
     def addPickPhases(self, menuBar):
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
@@ -1100,6 +1147,7 @@ class PickDlg(QDialog):
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
         self.drawAllPicks()
+        self.drawArrivals()
         self.setPlotLabels()
         self.resetZoomAction.trigger()
         self.deactivatePicking()
