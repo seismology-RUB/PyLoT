@@ -2274,8 +2274,7 @@ class MainWindow(QMainWindow):
                 if ans == QMessageBox.No:
                     if not set_inv(settings):
                         return None
-            else:
-                self.read_metadata_thread(fninv)
+            self.read_metadata_thread(fninv)
         
     def calc_magnitude(self, type='ML'):
         self.get_metadata()
