@@ -8,6 +8,7 @@ import glob
 import os
 import datetime
 from obspy import read_events
+from obspy.core.event import ResourceIdentifier
 import pylot.core.loc.hyposat as hyposat
 import pylot.core.loc.hypo71 as hypo71
 import pylot.core.loc.velest as velest
@@ -24,6 +25,7 @@ from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
     remove_underscores
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
+from pylot.core.util.event import Event
 
 __version__ = _getVersionString()
 
@@ -160,6 +162,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             return
         
         for event in events:
+            pylot_event = Event(event) #event should be path to event directory
+            data.setEvtData(pylot_event)
             if fnames == 'None':
                 data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
                 evID = os.path.split(event)[-1]
@@ -352,6 +356,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             # ObsPy event object
             data.applyEVTData(picks)
             if evt is not None:
+                event_id = event.split('/')[-1]
+                evt.resource_id = ResourceIdentifier('smi:local/' + event_id)
                 data.applyEVTData(evt, 'event')
             fnqml = '%s/PyLoT_%s' % (event, evID)
             data.exportEvent(fnqml, fnext='.xml', fcheck='manual')
