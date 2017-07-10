@@ -393,13 +393,13 @@ class Data(object):
             else:
                 # prevent overwriting original pick information
                 event_old = self.get_evt_data()
-                print(event_old.resource_id, event.resource_id)
                 if not event_old.resource_id == event.resource_id:
                     print("WARNING: Missmatch in event resource id's: {} and {}".format(
                         event_old.resource_id,
                         event.resource_id))
-                picks = copy.deepcopy(event_old.picks)
-                event = merge_picks(event, picks)
+                else:
+                    picks = copy.deepcopy(event_old.picks)
+                    event = merge_picks(event, picks)
                 # apply event information from location
                 event_old.update(event)
 
