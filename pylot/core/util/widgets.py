@@ -738,6 +738,9 @@ class PickDlg(QDialog):
         self.rotate = rotate
         self.components = 'ZNE'
         self.currentPhase = None
+        self.phaseText = []
+        self.arrivals = []
+        self.arrivalsText = []
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -957,20 +960,39 @@ class PickDlg(QDialog):
         phases = [phase.strip() for phase in phases]
         return phases
 
-    def drawArrivals(self):
+    def drawArrivals(self, textOnly=False):
         if not self.arrivals:
             return
         ax = self.getPlotWidget().axes
-        ylims = self.getGlobalLimits('y')
+        if not textOnly:
+            ylims = self.getGlobalLimits('y')
+        else:
+            ylims = self.getPlotWidget().getYLims()
         stime = self.getStartTime()
         source_origin = self.parent().get_current_event().origins[0]
         source_time = source_origin.time
         for arrival in self.arrivals:
             arrival_time_abs = source_time + arrival.time
             time_rel = arrival_time_abs - stime
-            ax.plot([time_rel, time_rel], ylims, '0.3', linestyle='dashed')
-            ax.text(time_rel, ylims[0], arrival.name, color='0.5')
+            if not textOnly:
+                ax.plot([time_rel, time_rel], ylims, '0.3', linestyle='dashed')
+            self.arrivalsText.append(ax.text(time_rel, ylims[0], arrival.name, color='0.5'))
+
+    def drawArrivalsText(self):
+        return self.drawArrivals(True)
+
+    def refreshArrivalsText(self):
+        self.removeArrivalsText()
+        self.drawArrivalsText()        
         
+    def removeArrivalsText(self):
+        for textItem in self.arrivalsText:
+            try:
+                textItem.remove()
+            except:
+                pass
+        self.arrivalsText = []
+
     def addPickPhases(self, menuBar):
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
@@ -1497,13 +1519,17 @@ class PickDlg(QDialog):
         self.leave_picking_mode()
 
     def drawAllPicks(self):
+        self.removePhaseText()
         self.drawPicks(picktype='manual')
         self.drawPicks(picktype='auto')
 
-    def drawPicks(self, phase=None, picktype='manual'):
+    def drawPicks(self, phase=None, picktype='manual', textOnly=False):
         # plotting picks
         ax = self.getPlotWidget().axes
-        ylims = self.getGlobalLimits('y')
+        if not textOnly:
+            ylims = self.getGlobalLimits('y')
+        else:
+            ylims = self.getPlotWidget().getYLims()
         phase_col = {
             'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b', 'c:'),
             'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
@@ -1516,7 +1542,7 @@ class PickDlg(QDialog):
                     colors = phase_col[phase[0].upper()] 
             elif phase is None:
                 for phase in self.getPicks(picktype):
-                    self.drawPicks(phase, picktype)
+                    self.drawPicks(phase, picktype, textOnly)
                 return
             else:
                 return
@@ -1524,32 +1550,48 @@ class PickDlg(QDialog):
             return
 
         mpp = picks['mpp'] - self.getStartTime()
-        if picks['epp'] and picks['lpp']:
+        if picks['epp'] and picks['lpp'] and not textOnly:
             epp = picks['epp'] - self.getStartTime()
             lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
         if picktype == 'manual':
-            if picks['epp'] and picks['lpp']:            
-                ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                alpha=.25, color=colors[0], label='EPP, LPP')
-            if spe:
-                ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
-                ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
-                ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
-            else:
-                ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
-            ax.text(mpp, ylims[1], phase)
-                
+            if not textOnly:
+                if picks['epp'] and picks['lpp']:            
+                    ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                    alpha=.25, color=colors[0], label='EPP, LPP')
+                if spe:
+                    ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
+                    ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
+                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+                else:
+                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+            # append phase text (if textOnly: draw with current ylims)
+            self.phaseText.append(ax.text(mpp, ylims[1], phase))
         elif picktype == 'auto':
             ax.plot(mpp, ylims[1], colors[3],
                     mpp, ylims[0], colors[4])
             ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
         else:
             raise TypeError('Unknown picktype {0}'.format(picktype))
+        
         ax.legend()
-            
 
+    def drawPhaseText(self):
+        return self.drawPicks(picktype='manual', textOnly=True)
+
+    def removePhaseText(self):
+        for textItem in self.phaseText:
+            try:
+                textItem.remove()
+            except:
+                pass
+        self.phaseText = []
+
+    def refreshPhaseText(self):
+        self.removePhaseText()
+        self.drawPhaseText()
+    
     def panPress(self, gui_event):
         ax = self.getPlotWidget().axes
         if gui_event.inaxes != ax: return
@@ -1561,6 +1603,8 @@ class PickDlg(QDialog):
     def panRelease(self, gui_event):
         ax = self.getPlotWidget().axes
         self.press = None
+        self.refreshPhaseText()
+        self.refreshArrivalsText()
         ax.figure.canvas.draw()
 
     def panMotion(self, gui_event):
@@ -1682,6 +1726,8 @@ class PickDlg(QDialog):
 
         self.getPlotWidget().setXLims(new_xlim)
         self.getPlotWidget().setYLims(new_ylim)
+        self.refreshArrivalsText()
+        self.refreshPhaseText()
         self.draw()
 
     def resetZoom(self):
