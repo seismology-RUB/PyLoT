@@ -197,7 +197,11 @@ class Data(object):
                        if evtdata_copy.picks[i].phase_hint[0] == 'P':
                           if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[0] or \
                              evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]:
-                             print("Uncertainty exceeds adjusted upper time error!")
+                             print("Uncertainty exceeds or equal adjusted upper time error!")
+                             print("Adjusted uncertainty: {}".format(upperErrors[0]))
+                             print("Pick uncertainty: {}".format(
+                                  max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
+                                      evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
                              print("P-Pick of station {} will not be saved in outputfile".format(
                                                    evtdata_copy.picks[i].waveform_id.station_code)) 
                              del evtdata_copy.picks[i]
@@ -205,7 +209,11 @@ class Data(object):
                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
                           if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[1] or \
                              evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]:
-                             print("Uncertainty exceeds adjusted upper time error!")
+                             print("Uncertainty exceeds or equal adjusted upper time error!")
+                             print("Adjusted uncertainty: {}".format(upperErrors[1]))
+                             print("Pick uncertainty: {}".format(
+                                  max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
+                                      evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
                              print("S-Pick of station {} will not be saved in outputfile".format(
                                                    evtdata_copy.picks[i].waveform_id.station_code)) 
                              del evtdata_copy.picks[i]
