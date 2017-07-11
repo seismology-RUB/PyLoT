@@ -1539,7 +1539,7 @@ class MainWindow(QMainWindow):
     def filterWaveformData(self):
         if self.get_data():
             if self.getFilterOptions() and self.filterAction.isChecked():
-                kwargs = self.getFilterOptions()['P'].parseFilterOptions()
+                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
             elif self.filterAction.isChecked():
                 self.adjustFilterOptions()
@@ -1557,7 +1557,7 @@ class MainWindow(QMainWindow):
             filteroptions = self.filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
             if self.filterAction.isChecked():
-                kwargs = self.getFilterOptions().parseFilterOptions()
+                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
 

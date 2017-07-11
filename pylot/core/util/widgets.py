@@ -752,7 +752,10 @@ class PickDlg(QDialog):
         else:
             self.autopicks = {}
             self._init_autopicks = {}
-        self.filteroptions = FILTERDEFAULTS
+        if hasattr(self.parent(), 'filteroptions'):
+            self.filteroptions = self.parent().filteroptions
+        else:
+            self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
         self.nextStation = QtGui.QCheckBox('Continue with next station.')
 
@@ -1160,7 +1163,10 @@ class PickDlg(QDialog):
 
     def getFilterOptions(self, phase):
         options = self.filteroptions[phase[0]]
-        return FilterOptions(**options)
+        if type(options) == dict:
+            return FilterOptions(**options)
+        else:
+            return options
 
     def getXLims(self):
         return self.cur_xlim
