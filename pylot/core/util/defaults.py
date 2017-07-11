@@ -12,38 +12,27 @@ from pylot.core.loc import hyposat
 from pylot.core.loc import hypo71
 from pylot.core.loc import hypodd
 from pylot.core.loc import velest
+from pylot.core.io.inputs import PylotParameter
 
-
-def readFilterInformation(fname):
-    def convert2FreqRange(*args):
-        if len(args) > 1:
-            return [float(arg) for arg in args]
-        elif len(args) == 1:
-            return float(args[0])
-        return None
-
-    filter_file = open(fname, 'r')
-    filter_information = dict()
-    for filter_line in filter_file.readlines():
-        filter_line = filter_line.split(' ')
-        for n, pos in enumerate(filter_line):
-            if pos == '\n':
-                filter_line[n] = ''
-        filter_information[filter_line[0]] = {'filtertype': filter_line[1]
-        if filter_line[1]
-        else None,
-                                              'order': int(filter_line[2])
-                                              if filter_line[1]
-                                              else None,
-                                              'freq': convert2FreqRange(*filter_line[3:])
-                                              if filter_line[1]
-                                              else None}
+def readDefaultFilterInformation(fname):
+    pparam = PylotParameter(fname)
+    return readFilterInformation(pparam)
+    
+def readFilterInformation(pylot_parameter):
+    p_filter = {'filtertype': pylot_parameter['filter_type'][0],
+                'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
+                'order': int(pylot_parameter['filter_order'][0])}
+    s_filter = {'filtertype': pylot_parameter['filter_type'][1],
+                'freq': [pylot_parameter['minfreq'][1], pylot_parameter['maxfreq'][1]],
+                'order': int(pylot_parameter['filter_order'][1])}
+    filter_information = {'P': p_filter,
+                          'S': s_filter}
     return filter_information
 
 
-FILTERDEFAULTS = readFilterInformation(os.path.join(os.path.expanduser('~'),
-                                                    '.pylot',
-                                                    'filter.in'))
+FILTERDEFAULTS = readDefaultFilterInformation(os.path.join(os.path.expanduser('~'),
+                                                           '.pylot',
+                                                           'pylot.in'))
 
 TIMEERROR_DEFAULTS = os.path.join(os.path.expanduser('~'),
                                   '.pylot',

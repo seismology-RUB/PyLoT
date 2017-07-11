@@ -2048,7 +2048,7 @@ class TuneAutopicker(QWidget):
         return parameters
 
     def set_stretch(self):
-        self.tune_layout.setStretch(0, 3)
+        self.tune_layout.setStretch(0, 2)
         self.tune_layout.setStretch(1, 1)        
 
     def clear_all(self):
@@ -2079,7 +2079,9 @@ class TuneAutopicker(QWidget):
         self.qmb.show()        
     
                 
-class PylotParaBox(QtGui.QWidget):     
+class PylotParaBox(QtGui.QWidget):
+    accepted = QtCore.Signal(str)
+    rejected = QtCore.Signal(str)    
     def __init__(self, parameter, parent=None):
         '''
         Generate Widget containing parameters for PyLoT.
@@ -2106,7 +2108,9 @@ class PylotParaBox(QtGui.QWidget):
         self.params_to_gui()
         self._toggle_advanced_settings()
         self.resize(720, 1280)
-        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)        
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+        self.accepted.connect(self.params_from_gui)
+        self.rejected.connect(self.params_to_gui)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -2137,10 +2141,9 @@ class PylotParaBox(QtGui.QWidget):
         self._dialog_buttons.addWidget(self._okay)
         self._dialog_buttons.addWidget(self._close)
         self._dialog_buttons.addWidget(self._apply)
-        self._okay.clicked.connect(self.params_from_gui)
+        self._okay.clicked.connect(self.accept)
         self._okay.clicked.connect(self.close)
-        self._apply.clicked.connect(self.params_from_gui)
-        self._close.clicked.connect(self.params_to_gui)
+        self._apply.clicked.connect(self.accept)
         self._close.clicked.connect(self.close)
         self.layout.addLayout(self._dialog_buttons)
         
@@ -2478,6 +2481,13 @@ class PylotParaBox(QtGui.QWidget):
         self._exclusive_widgets = []
         QtGui.QWidget.show(self)
 
+    def close(self):
+        self.rejected.emit('reject')
+        QtGui.QWidget.close(self)
+
+    def accept(self):
+        self.accepted.emit('accept')
+        
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
@@ -3058,8 +3068,10 @@ class FilterOptionsDialog(QDialog):
         QDialog.accept(self)
 
     def updateUi(self):
+        returnvals = []
         for foWidget in self.filterOptionWidgets.values():
-            foWidget.updateUi()
+            returnvals.append(foWidget.updateUi())
+        return returnvals
         
     def getFilterOptions(self):
         filteroptions = {'P': self.filterOptionWidgets['P'].getFilterOptions(),
@@ -3174,15 +3186,17 @@ class FilterOptionsWidget(QWidget):
             if not isSorted(freq):
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "
-                                    "same value as minimum frequency (notch)!")
+                                    "same value as minimum frequency (notch)! "
+                                    "Adjusted maximum frequency automatically!")
                 self.freqmaxSpinBox.setValue(freq[0])
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
-                return
+                return False
 
         self.getFilterOptions().setFilterType(type)
         self.getFilterOptions().setFreq(freq)
         self.getFilterOptions().setOrder(self.orderSpinBox.value())
+        return True
 
     def getFilterOptions(self):
         return self.filterOptions

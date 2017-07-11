@@ -50,9 +50,9 @@ for regional distance seismicity
 
     cp path-to-pylot/inputs/autoPyLoT_regional.in ~/.pylot/autoPyLoT.in
 
-and some extra information on filtering, error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling relation
+and some extra information on error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling relation
 
-    cp path-to-pylot/inputs/filter.in path-to-pylot/inputs/PILOT_TimeErrors.in path-to-pylot/inputs/richter_scaling.data ~/.pylot/
+    cp path-to-pylot/inputs/PILOT_TimeErrors.in path-to-pylot/inputs/richter_scaling.data ~/.pylot/
 
 You may need to do some modifications to these files. Especially folder names should be reviewed.
 

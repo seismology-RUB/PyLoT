@@ -65,7 +65,8 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents
+from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents, \
+    readFilterInformation
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -180,8 +181,15 @@ class MainWindow(QMainWindow):
         # setup UI
         self.setupUi()
 
-        self.filteroptions = {'P': FilterOptions(),
-                              'S': FilterOptions()}
+        filter_info = readFilterInformation(self._inputs)
+        p_filter = filter_info['P']
+        s_filter = filter_info['S']
+        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
+                                                 p_filter['freq'],
+                                                 p_filter['order']),
+                              'S': FilterOptions(s_filter['filtertype'],
+                                                 s_filter['freq'],
+                                                 s_filter['order'])}
         self.pylot_picks = {}
         self.pylot_autopicks = {}
         self.loc = False
@@ -1543,16 +1551,23 @@ class MainWindow(QMainWindow):
 
     def adjustFilterOptions(self):
         fstring = "Filter Options"
-        filterDlg = FilterOptionsDialog(titleString=fstring,
-                                        parent=self)
-        if filterDlg.exec_():
-            filteroptions = filterDlg.getFilterOptions()
+        self.filterDlg = FilterOptionsDialog(titleString=fstring,
+                                             parent=self)
+        if self.filterDlg.exec_():
+            filteroptions = self.filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
             if self.filterAction.isChecked():
                 kwargs = self.getFilterOptions().parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
 
+    def checkFilterOptions(self):
+        fstring = "Filter Options"
+        self.filterDlg = FilterOptionsDialog(titleString=fstring,
+                                             parent=self)
+        filteroptions = self.filterDlg.getFilterOptions()
+        self.setFilterOptions(filteroptions)        
+        
     def getFilterOptions(self):
         return self.filteroptions
         # try:
@@ -1584,7 +1599,7 @@ class MainWindow(QMainWindow):
         maxP, maxS = self._inputs['maxfreq']
         orderP, orderS = self._inputs['filter_order']
         typeP, typeS = self._inputs['filter_type']
-        
+
         filterP = self.getFilterOptions()['P']
         filterP.setFreq([minP, maxP])
         filterP.setOrder(orderP)
@@ -1594,6 +1609,8 @@ class MainWindow(QMainWindow):
         filterS.setFreq([minS, maxS])
         filterS.setOrder(orderS)
         filterS.setFilterType(typeS)
+        
+        self.checkFilterOptions()
         
     def updateFilterOptions(self):
         try:
@@ -2496,10 +2513,8 @@ class MainWindow(QMainWindow):
     def setParameter(self, show=True):
         if not self.paraBox:
             self.paraBox = PylotParaBox(self._inputs)
-            self.paraBox._apply.clicked.connect(self._setDirty)
-            self.paraBox._okay.clicked.connect(self._setDirty)
-            self.paraBox._apply.clicked.connect(self.filterOptionsFromParameter)
-            self.paraBox._okay.clicked.connect(self.filterOptionsFromParameter)
+            self.paraBox.accepted.connect(self._setDirty)
+            self.paraBox.accepted.connect(self.filterOptionsFromParameter)
         if show:
             self.paraBox.params_to_gui()
             self.paraBox.show()

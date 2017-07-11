@@ -159,8 +159,7 @@ def buildPyLoT(verbosity=None):
 
 def installPyLoT(verbosity=None):
     files_to_copy = {'autoPyLoT_local.in':['~', '.pylot'],
-                     'autoPyLoT_regional.in':['~', '.pylot'],
-                     'filter.in':['~', '.pylot']}
+                     'autoPyLoT_regional.in':['~', '.pylot']}
     if verbosity > 0:
         print ('starting installation of PyLoT ...')
     if verbosity > 1:
