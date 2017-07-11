@@ -1079,6 +1079,10 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         fbasename = self.getEventFileName()
         exform = settings.value('data/exportFormat', 'QUAKEML')
+     
+        uppererrorP = self._inputs['timeerrorsP']
+        uppererrorS = self._inputs['timeerrorsS']
+
         try:
             self.get_data().applyEVTData(self.get_current_event(), typ='event')#getPicks())
         except OverwriteError:
@@ -1097,7 +1101,7 @@ class MainWindow(QMainWindow):
         #         return False
         # MP MP changed to suppress unnecessary user prompt
         try:
-            self.get_data().exportEvent(fbasename, exform)
+            self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
         except FormatError as e:
             fbasename, exform = getSavePath(e, directory, outformat)
         except AttributeError as e:
@@ -1119,7 +1123,7 @@ class MainWindow(QMainWindow):
         #         return False
 
         # export to given path
-        self.get_data().exportEvent(fbasename, exform)
+        self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
         # all files save (ui clean)
         self.update_status('Picks saved as %s' % (fbasename + exform))
         self.disableSaveManualPicksAction()

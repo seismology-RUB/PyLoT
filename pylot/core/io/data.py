@@ -147,10 +147,9 @@ class Data(object):
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
-    def exportEvent(self, fnout, fnext='.xml', fcheck='auto'):
+    def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
 
         """
-
         :param fnout:
         :param fnext:
         :param fcheck:
@@ -188,10 +187,32 @@ class Data(object):
 
         # try exporting event via ObsPy
         else:
-            # check for stations picked automatically as well as manually
-            # Prefer manual picks!
             evtdata_copy = self.get_evt_data().copy()
             evtdata_org = self.get_evt_data()
+            if upperErrors:
+               # check for pick uncertainties exceeding adjusted upper errors
+               # Picks with larger uncertainties will not be saved in output file!
+               for j in range(len(evtdata_org.picks)):
+                   for i in range(len(evtdata_copy.picks)):
+                       if evtdata_copy.picks[i].phase_hint[0] == 'P':
+                          if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[0] or \
+                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]:
+                             print("Uncertainty exceeds adjusted upper time error!")
+                             print("P-Pick of station {} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code)) 
+                             del evtdata_copy.picks[i]
+                             break
+                       if evtdata_copy.picks[i].phase_hint[0] == 'S':
+                          if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[1] or \
+                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]:
+                             print("Uncertainty exceeds adjusted upper time error!")
+                             print("S-Pick of station {} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code)) 
+                             del evtdata_copy.picks[i]
+                             break
+                      
+            # check for stations picked automatically as well as manually
+            # Prefer manual picks!
             for i in range(len(evtdata_org.picks)):
                 if evtdata_org.picks[i].method_id == 'manual':
                    mstation = evtdata_org.picks[i].waveform_id.station_code
