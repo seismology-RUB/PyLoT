@@ -196,9 +196,9 @@ class Data(object):
                    mstation = evtdata_org.picks[i].waveform_id.station_code
                    mstation_ext = mstation + '_'
                    for k in range(len(evtdata_copy.picks)):
-                       if evtdata_copy.picks[k].waveform_id.station_code == mstation  or \
-                          evtdata_copy.picks[k].waveform_id.station_code == mstation_ext and \
-                          evtdata_copy.picks[k].method_id == 'auto':
+                       if ((evtdata_copy.picks[k].waveform_id.station_code == mstation)  or \
+                          (evtdata_copy.picks[k].waveform_id.station_code == mstation_ext)) and \
+                          (evtdata_copy.picks[k].method_id == 'auto'):
                           del evtdata_copy.picks[k]
                           break
             lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
@@ -211,8 +211,8 @@ class Data(object):
                for j in range(len(evtdata_org.picks)):
                    for i in range(len(evtdata_copy.picks)):
                        if evtdata_copy.picks[i].phase_hint[0] == 'P':
-                          if evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0] or \
-                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
+                          if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
+                             (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
                              print("Uncertainty exceeds or equal adjusted upper time error!")
                              print("Adjusted uncertainty: {}".format(upperErrors[0]))
                              print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
@@ -223,8 +223,8 @@ class Data(object):
                              del evtdata_copy.picks[i]
                              break
                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
-                          if evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1] or \
-                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
+                          if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
+                             (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
                              print("Uncertainty exceeds or equal adjusted upper time error!")
                              print("Adjusted uncertainty: {}".format(upperErrors[1]))
                              print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
