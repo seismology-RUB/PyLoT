@@ -756,7 +756,10 @@ class PickDlg(QDialog):
         else:
             self.autopicks = {}
             self._init_autopicks = {}
-        self.filteroptions = FILTERDEFAULTS
+        if hasattr(self.parent(), 'filteroptions'):
+            self.filteroptions = self.parent().filteroptions
+        else:
+            self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
         self.nextStation = QtGui.QCheckBox('Continue with next station.')
 
@@ -1230,7 +1233,10 @@ class PickDlg(QDialog):
 
     def getFilterOptions(self, phase):
         options = self.filteroptions[phase[0]]
-        return FilterOptions(**options)
+        if type(options) == dict:
+            return FilterOptions(**options)
+        else:
+            return options
 
     def getXLims(self):
         return self.cur_xlim
@@ -2142,7 +2148,7 @@ class TuneAutopicker(QWidget):
         return parameters
 
     def set_stretch(self):
-        self.tune_layout.setStretch(0, 3)
+        self.tune_layout.setStretch(0, 2)
         self.tune_layout.setStretch(1, 1)        
 
     def clear_all(self):
@@ -2173,10 +2179,12 @@ class TuneAutopicker(QWidget):
         self.qmb.show()        
     
                 
-class PylotParaBox(QtGui.QWidget):     
+class PylotParaBox(QtGui.QWidget):
+    accepted = QtCore.Signal(str)
+    rejected = QtCore.Signal(str)    
     def __init__(self, parameter, parent=None):
         '''
-        Generate Widget containing parameters for automatic picking algorithm.
+        Generate Widget containing parameters for PyLoT.
 
         :param: parameter
         :type: PylotParameter (object)
@@ -2200,7 +2208,9 @@ class PylotParaBox(QtGui.QWidget):
         self.params_to_gui()
         self._toggle_advanced_settings()
         self.resize(720, 1280)
-        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)        
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+        self.accepted.connect(self.params_from_gui)
+        self.rejected.connect(self.params_to_gui)        
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -2231,10 +2241,9 @@ class PylotParaBox(QtGui.QWidget):
         self._dialog_buttons.addWidget(self._okay)
         self._dialog_buttons.addWidget(self._close)
         self._dialog_buttons.addWidget(self._apply)
-        self._okay.clicked.connect(self.params_from_gui)
+        self._okay.clicked.connect(self.accept)
         self._okay.clicked.connect(self.close)
-        self._apply.clicked.connect(self.params_from_gui)
-        self._close.clicked.connect(self.params_to_gui)
+        self._apply.clicked.connect(self.accept)
         self._close.clicked.connect(self.close)
         self.layout.addLayout(self._dialog_buttons)
         
@@ -2277,8 +2286,6 @@ class PylotParaBox(QtGui.QWidget):
         grid = QtGui.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
-            text = name + ' [?]'
-            label = QtGui.QLabel(text)
             default_item = self.parameter.get_defaults()[name]
             tooltip = default_item['tooltip']
             tooltip += ' | type: {}'.format(default_item['type'])
@@ -2286,14 +2293,19 @@ class PylotParaBox(QtGui.QWidget):
                 typ = default_item['type']
                 box = self.create_box(typ, tooltip)
                 self.boxes[name] = box
+                namestring = default_item['namestring']
             elif type(default_item['type']) == tuple:
                 boxes = []
                 values = self.parameter[name]
                 for index2, val in enumerate(values):
                     typ = default_item['type'][index2]
                     boxes.append(self.create_box(typ, tooltip))
-                box = self.create_multi_box(boxes)
+                headline = default_item['namestring'][1:]
+                box, lower = self.create_multi_box(boxes, headline)
                 self.boxes[name] = boxes
+                namestring = default_item['namestring'][0]                    
+            text = namestring + ' [?]'
+            label = QtGui.QLabel(text)
             self.labels[name] = label                
             label.setToolTip(tooltip)
             grid.addWidget(label, index1, 1)
@@ -2305,8 +2317,8 @@ class PylotParaBox(QtGui.QWidget):
             box = QtGui.QLineEdit()
         elif typ == float:
             box = QtGui.QDoubleSpinBox()
-            box.setDecimals(5)
-            box.setRange(-10e5, 10e5)            
+            box.setDecimals(4)
+            box.setRange(-10e4, 10e4)            
         elif typ == int:
             box = QtGui.QSpinBox()
         elif typ == bool:
@@ -2315,13 +2327,20 @@ class PylotParaBox(QtGui.QWidget):
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
-    def create_multi_box(self, boxes):
+    def create_multi_box(self, boxes, headline=None):
         box = QtGui.QWidget()
-        hl = QtGui.QVBoxLayout()
-        for b in boxes:
-            hl.addWidget(b)
-        box.setLayout(hl)
-        return box
+        gl = QtGui.QGridLayout()
+        row = 0
+        if headline:
+            for index, item in enumerate(headline):
+                if not item:
+                    continue
+                gl.addWidget(QtGui.QLabel(item), 0, index, 4)
+                row = 1
+        for index, b in enumerate(boxes):
+            gl.addWidget(b, row, index)
+        box.setLayout(gl)
+        return box, row
 
     def add_tab(self, layout, name):
         widget = QtGui.QWidget()
@@ -2340,8 +2359,10 @@ class PylotParaBox(QtGui.QWidget):
                            self.parameter.get_main_para_names()['smoment'], 2)
         self.add_to_layout(self._main_layout, 'Local Magnitude',
                            self.parameter.get_main_para_names()['localmag'], 3)
+        self.add_to_layout(self._main_layout, 'Filter Settings',
+                           self.parameter.get_main_para_names()['filter'], 4)
         self.add_to_layout(self._main_layout, 'Common Settings Characteristic Function',
-                           self.parameter.get_main_para_names()['pick'], 4)
+                           self.parameter.get_main_para_names()['pick'], 5)
         self.add_tab(self._main_layout, 'Main Settings')
 
     def add_special_pick_parameters_tab(self):
@@ -2355,10 +2376,10 @@ class PylotParaBox(QtGui.QWidget):
                            self.parameter.get_special_para_names()['quality'], 4)
         self.add_tab(self._advanced_layout, 'Advanced Settings')
 
-    # def gen_h_seperator(self):
-    #     seperator = QtGui.QFrame()
-    #     seperator.setFrameShape(QtGui.QFrame.HLine)
-    #     return seperator
+    # def gen_h_separator(self):
+    #     separator = QtGui.QFrame()
+    #     separator.setFrameShape(QtGui.QFrame.HLine)
+    #     return separator
 
     # def gen_headline(self, text):
     #     label=QtGui.QLabel(text)
@@ -2559,7 +2580,14 @@ class PylotParaBox(QtGui.QWidget):
             self._exclusive_dialog.close()
         self._exclusive_widgets = []
         QtGui.QWidget.show(self)
-            
+
+    def close(self):
+        self.rejected.emit('reject')
+        QtGui.QWidget.close(self)
+
+    def accept(self):
+        self.accepted.emit('accept')
+        
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
@@ -3095,13 +3123,65 @@ class FilterOptionsDialog(QDialog):
         adjust parameters for filtering seismic data.
         """
         super(FilterOptionsDialog, self).__init__()
-
-        if parent is not None and parent.getFilterOptions():
-            self.filterOptions = parent.getFilterOptions()
-        elif filterOptions is not None:
-            self.filterOptions = FilterOptions(filterOptions)
+        if parent is not None and parent.getFilters():
+            self.filterOptions = parent.getFilters()
+        # elif filterOptions is not None:
+        #     self.filterOptions = filterOptions
         else:
-            self.filterOptions = FilterOptions()
+            self.filterOptions = {'P': FilterOptions(),
+                                  'S': FilterOptions()}
+
+        self.setWindowTitle(titleString)
+        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P']),
+                                    'S': FilterOptionsWidget(self.filterOptions['S'])}
+        self.setupUi()
+        self.updateUi()
+        self.connectButtons()
+        
+    def setupUi(self):
+        self.main_layout = QtGui.QVBoxLayout()
+        self.filter_layout = QtGui.QHBoxLayout()
+        self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
+                           'S': QtGui.QGroupBox('S Filter')}
+        
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                          QDialogButtonBox.Cancel)
+
+        for key in ['P', 'S']:
+            groupbox = self.groupBoxes[key]
+            box_layout = QtGui.QVBoxLayout()
+            groupbox.setLayout(box_layout)
+            
+            self.filter_layout.addWidget(groupbox)
+            box_layout.addWidget(self.filterOptionWidgets[key])
+            
+        self.main_layout.addLayout(self.filter_layout)
+        self.main_layout.addWidget(self.buttonBox)
+        self.setLayout(self.main_layout)
+
+    def connectButtons(self):
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def accept(self):
+        self.updateUi()
+        QDialog.accept(self)
+
+    def updateUi(self):
+        returnvals = []
+        for foWidget in self.filterOptionWidgets.values():
+            foWidget.updateUi()
+        
+    def getFilterOptions(self):
+        filteroptions = {'P': self.filterOptionWidgets['P'].getFilterOptions(),
+                         'S': self.filterOptionWidgets['S'].getFilterOptions()}
+        return filteroptions
+
+        
+class FilterOptionsWidget(QWidget):
+    def __init__(self, filterOptions):
+        super(FilterOptionsWidget, self).__init__()
+        self.filterOptions = filterOptions
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -3112,6 +3192,7 @@ class FilterOptionsDialog(QDialog):
         self.freqminSpinBox = QDoubleSpinBox()
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
+        self.freqminSpinBox.setSingleStep(0.01)        
         self.freqminSpinBox.setSuffix(' Hz')
         self.freqminSpinBox.setEnabled(_enable)
 
@@ -3120,22 +3201,23 @@ class FilterOptionsDialog(QDialog):
         self.freqmaxSpinBox = QDoubleSpinBox()
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
         self.freqmaxSpinBox.setDecimals(2)
+        self.freqmaxSpinBox.setSingleStep(0.01)
         self.freqmaxSpinBox.setSuffix(' Hz')
 
-        if _enable:
+        # if _enable:
+        #     self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
+        #     if self.getFilterOptions().getFilterType() in ['bandpass',
+        #                                                    'bandstop']:
+        #         self.freqmaxSpinBox.setValue(
+        #             self.getFilterOptions().getFreq()[1])
+        # else:
+        try:
             self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
-            if self.getFilterOptions().getFilterType() in ['bandpass',
-                                                           'bandstop']:
-                self.freqmaxSpinBox.setValue(
-                    self.getFilterOptions().getFreq()[1])
-        else:
-            try:
-                self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq())
-                self.freqminSpinBox.setValue(self.getFilterOptions().getFreq())
-            except TypeError as e:
-                print(e)
-                self.freqmaxSpinBox.setValue(1.)
-                self.freqminSpinBox.setValue(.1)
+            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
+        except TypeError as e:
+            print(e)
+            self.freqmaxSpinBox.setValue(1.)
+            self.freqminSpinBox.setValue(.1)
 
         typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
 
@@ -3165,44 +3247,60 @@ class FilterOptionsDialog(QDialog):
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
-                                          QDialogButtonBox.Cancel)
-
+        try:
+            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
+        except:
+            self.orderSpinBox.setValue(2)
+            
         grid = QGridLayout()
         grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
         grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
-        grid.addWidget(self.buttonBox, 2, 2, 1, 2)
 
         self.setLayout(grid)
 
-        self.freqminSpinBox.valueChanged.connect(self.updateUi)
-        self.freqmaxSpinBox.valueChanged.connect(self.updateUi)
+        self.freqminSpinBox.valueChanged.connect(self.checkMin)
+        self.freqmaxSpinBox.valueChanged.connect(self.checkMax)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
 
+    def checkMin(self):
+        if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
+            self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+            
+    def checkMax(self):
+        if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
+            self.freqminSpinBox.setValue(self.freqmaxSpinBox.value())
+        
     def updateUi(self):
         type = self.selectTypeCombo.currentText()
         _enable = type in ['bandpass', 'bandstop']
         freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
-        self.freqmaxLabel.setEnabled(_enable)
-        self.freqmaxSpinBox.setEnabled(_enable)
-
+        self.freqmaxLabel.setEnabled(True)
+        self.freqmaxSpinBox.setEnabled(True)
+        self.freqminLabel.setEnabled(True)
+        self.freqminSpinBox.setEnabled(True)
+        self.freqminLabel.setText("minimum:")
+        self.freqmaxLabel.setText("maximum:")            
+        
         if not _enable:
-            self.freqminLabel.setText("cutoff:")
-            self.freqmaxSpinBox.setValue(freq[0])
-            freq.remove(freq[1])
+            if type == 'highpass':
+                self.freqminLabel.setText("cutoff:")
+                self.freqmaxLabel.setEnabled(False)
+                self.freqmaxSpinBox.setEnabled(False)
+            elif type == 'lowpass':
+                self.freqmaxLabel.setText("cutoff:")
+                self.freqminLabel.setEnabled(False)
+                self.freqminSpinBox.setEnabled(False)
         else:
-            self.freqminLabel.setText("minimum:")
             if not isSorted(freq):
                 QMessageBox.warning(self, "Value error",
                                     "Maximum frequency must be at least the "
-                                    "same value as minimum frequency (notch)!")
-                self.freqmaxSpinBox.setValue(freq[0])
+                                    "same value as minimum frequency (notch)! "
+                                    "Adjusted maximum frequency automatically!")
+                freq[1] = freq[0]
+                self.freqmaxSpinBox.setValue(freq[1])
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
-                return
 
         self.getFilterOptions().setFilterType(type)
         self.getFilterOptions().setFreq(freq)
@@ -3217,10 +3315,6 @@ class FilterOptionsDialog(QDialog):
         if dlg.exec_():
             return dlg.getFilterOptions()
         return None
-
-    def accept(self):
-        self.updateUi()
-        QDialog.accept(self)
 
 
 class LoadDataDlg(QDialog):

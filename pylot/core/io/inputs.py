@@ -141,7 +141,8 @@ class PylotParameter(object):
         all_names += self.get_main_para_names()['nlloc']
         all_names += self.get_main_para_names()['smoment']
         all_names += self.get_main_para_names()['localmag']
-        all_names += self.get_main_para_names()['pick']        
+        all_names += self.get_main_para_names()['pick']
+        all_names += self.get_main_para_names()['filter']                
         all_names += self.get_special_para_names()['z']
         all_names += self.get_special_para_names()['h']
         all_names += self.get_special_para_names()['fm']
@@ -239,6 +240,8 @@ class PylotParameter(object):
                            'parameters for seismic moment estimation', separator)
         self.write_section(fid_out, self.get_main_para_names()['localmag'],
                            'settings local magnitude', separator)
+        self.write_section(fid_out, self.get_main_para_names()['filter'],
+                           'filter settings', separator)
         self.write_section(fid_out, self.get_main_para_names()['pick'],
                            'common settings picker', separator)
         fid_out.write(('#special settings for calculating CF#\n'+
@@ -338,12 +341,13 @@ class FilterOptions(object):
     def parseFilterOptions(self):
         if self:
             robject = {'type': self.getFilterType(), 'corners': self.getOrder()}
-            if len(self.getFreq()) > 1:
+            if not self.getFilterType() in ['highpass', 'lowpass']:
                 robject['freqmin'] = self.getFreq()[0]
                 robject['freqmax'] = self.getFreq()[1]
-            else:
-                robject['freq'] = self.getFreq() if type(self.getFreq()) is \
-                                                    float else self.getFreq()[0]
+            elif self.getFilterType() == 'highpass':
+                robject['freq'] = self.getFreq()[0]
+            elif self.getFilterType() == 'lowpass':
+                robject['freq'] = self.getFreq()[1]
             return robject
         return None
 

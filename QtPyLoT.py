@@ -65,7 +65,8 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents
+from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents, \
+    readFilterInformation
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError, ProcessingError
 from pylot.core.util.connection import checkurl
@@ -180,7 +181,15 @@ class MainWindow(QMainWindow):
         # setup UI
         self.setupUi()
 
-        self.filteroptions = {}
+        filter_info = readFilterInformation(self._inputs)
+        p_filter = filter_info['P']
+        s_filter = filter_info['S']
+        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
+                                                 p_filter['freq'],
+                                                 p_filter['order']),
+                              'S': FilterOptions(s_filter['filtertype'],
+                                                 s_filter['freq'],
+                                                 s_filter['order'])}
         self.pylot_picks = {}
         self.pylot_autopicks = {}
         self.loc = False
@@ -1539,44 +1548,84 @@ class MainWindow(QMainWindow):
     def filterWaveformData(self):
         if self.get_data():
             if self.getFilterOptions() and self.filterAction.isChecked():
-                kwargs = self.getFilterOptions().parseFilterOptions()
+                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
             elif self.filterAction.isChecked():
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        self.plotWaveformData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 
     def adjustFilterOptions(self):
-        fstring = "Filter Options ({0})".format(self.getSeismicPhase())
-        filterDlg = FilterOptionsDialog(titleString=fstring,
-                                        parent=self)
-        if filterDlg.exec_():
-            filteroptions = filterDlg.getFilterOptions()
+        fstring = "Filter Options"
+        self.filterDlg = FilterOptionsDialog(titleString=fstring,
+                                             parent=self)
+        if self.filterDlg.exec_():
+            filteroptions = self.filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
             if self.filterAction.isChecked():
-                kwargs = self.getFilterOptions().parseFilterOptions()
+                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
-                self.plotWaveformData()
+                self.plotWaveformDataThread()
 
+    def checkFilterOptions(self):
+        fstring = "Filter Options"
+        self.filterDlg = FilterOptionsDialog(titleString=fstring,
+                                             parent=self)
+        filteroptions = self.filterDlg.getFilterOptions()
+        self.setFilterOptions(filteroptions)
+        filterP = filteroptions['P']
+        filterS = filteroptions['S']
+        minP, maxP = filterP.getFreq()
+        minS, maxS = filterS.getFreq()
+        self.paraBox.params_to_gui()
+        
     def getFilterOptions(self):
-        try:
-            return self.filteroptions[self.getSeismicPhase()]
-        except AttributeError as e:
-            print(e)
-            return FilterOptions(None, None, None)
+        return self.filteroptions
+        # try:
+        #     return self.filteroptions[self.getSeismicPhase()]
+        # except AttributeError as e:
+        #     print(e)
+        #     return FilterOptions(None, None, None)
 
     def getFilters(self):
         return self.filteroptions
 
-    def setFilterOptions(self, filterOptions, seismicPhase=None):
-        if seismicPhase is None:
-            self.getFilters()[self.getSeismicPhase()] = filterOptions
-        else:
-            self.getFilters()[seismicPhase] = filterOptions
+    def setFilterOptions(self, filterOptions):#, seismicPhase=None):
+        # if seismicPhase is None:
+        #     self.getFilterOptions()[self.getSeismicPhase()] = filterOptions
+        # else:
+        #     self.getFilterOptions()[seismicPhase] = filterOptions
+        self.filterOptions = filterOptions
+        filterP = filterOptions['P']
+        filterS = filterOptions['S']
+        minP, maxP = filterP.getFreq()
+        minS, maxS = filterS.getFreq()
+        self._inputs.setParamKV('minfreq', (minP, minS))
+        self._inputs.setParamKV('maxfreq', (maxP, maxS))
+        self._inputs.setParamKV('filter_order', (filterP.getOrder(), filterS.getOrder()))
+        self._inputs.setParamKV('filter_type', (filterP.getFilterType(), filterS.getFilterType()))
 
+    def filterOptionsFromParameter(self):
+        minP, minS = self._inputs['minfreq']
+        maxP, maxS = self._inputs['maxfreq']
+        orderP, orderS = self._inputs['filter_order']
+        typeP, typeS = self._inputs['filter_type']
+
+        filterP = self.getFilterOptions()['P']
+        filterP.setFreq([minP, maxP])
+        filterP.setOrder(orderP)
+        filterP.setFilterType(typeP)
+        
+        filterS = self.getFilterOptions()['S']
+        filterS.setFreq([minS, maxS])
+        filterS.setOrder(orderS)
+        filterS.setFilterType(typeS)
+        
+        self.checkFilterOptions()
+        
     def updateFilterOptions(self):
         try:
             settings = QSettings()
@@ -2477,11 +2526,12 @@ class MainWindow(QMainWindow):
     def setParameter(self, show=True):
         if not self.paraBox:
             self.paraBox = PylotParaBox(self._inputs)
-            self.paraBox._apply.clicked.connect(self._setDirty)
-            self.paraBox._okay.clicked.connect(self._setDirty)
+            self.paraBox.accepted.connect(self._setDirty)
+            self.paraBox.accepted.connect(self.filterOptionsFromParameter)
         if show:
+            self.paraBox.params_to_gui()
             self.paraBox.show()
-        
+
     def PyLoTprefs(self):
         if not self._props:
             self._props = PropertiesDlg(self, infile=self.infile)
