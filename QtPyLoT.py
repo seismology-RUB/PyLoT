@@ -1072,9 +1072,6 @@ class MainWindow(QMainWindow):
             #fbasename, exform = os.path.splitext(fname)
             fbasename = fname
             exform = ['.obs', '.xml', '.cnv']
-            print(fname)
-            print(fbasename)
-            print(exform)
             #if not exform and selected_filter or not exform in OUTPUTFORMATS:
             #    exform = selected_filter.split('*')[1][:-1]
             #    return fname, exform
