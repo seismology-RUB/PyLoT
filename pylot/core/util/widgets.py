@@ -3076,8 +3076,7 @@ class FilterOptionsDialog(QDialog):
     def updateUi(self):
         returnvals = []
         for foWidget in self.filterOptionWidgets.values():
-            returnvals.append(foWidget.updateUi())
-        return returnvals
+            foWidget.updateUi()
         
     def getFilterOptions(self):
         filteroptions = {'P': self.filterOptionWidgets['P'].getFilterOptions(),
@@ -3099,6 +3098,7 @@ class FilterOptionsWidget(QWidget):
         self.freqminSpinBox = QDoubleSpinBox()
         self.freqminSpinBox.setRange(5e-7, 1e6)
         self.freqminSpinBox.setDecimals(2)
+        self.freqminSpinBox.setSingleStep(0.01)        
         self.freqminSpinBox.setSuffix(' Hz')
         self.freqminSpinBox.setEnabled(_enable)
 
@@ -3107,6 +3107,7 @@ class FilterOptionsWidget(QWidget):
         self.freqmaxSpinBox = QDoubleSpinBox()
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
         self.freqmaxSpinBox.setDecimals(2)
+        self.freqmaxSpinBox.setSingleStep(0.01)
         self.freqmaxSpinBox.setSuffix(' Hz')
 
         # if _enable:
@@ -3163,11 +3164,19 @@ class FilterOptionsWidget(QWidget):
 
         self.setLayout(grid)
 
-        self.freqminSpinBox.valueChanged.connect(self.updateUi)
-        self.freqmaxSpinBox.valueChanged.connect(self.updateUi)
+        self.freqminSpinBox.valueChanged.connect(self.checkMin)
+        self.freqmaxSpinBox.valueChanged.connect(self.checkMax)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
 
+    def checkMin(self):
+        if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
+            self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+            
+    def checkMax(self):
+        if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
+            self.freqminSpinBox.setValue(self.freqmaxSpinBox.value())
+        
     def updateUi(self):
         type = self.selectTypeCombo.currentText()
         _enable = type in ['bandpass', 'bandstop']
@@ -3194,15 +3203,14 @@ class FilterOptionsWidget(QWidget):
                                     "Maximum frequency must be at least the "
                                     "same value as minimum frequency (notch)! "
                                     "Adjusted maximum frequency automatically!")
-                self.freqmaxSpinBox.setValue(freq[0])
+                freq[1] = freq[0]
+                self.freqmaxSpinBox.setValue(freq[1])
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
-                return False
 
         self.getFilterOptions().setFilterType(type)
         self.getFilterOptions().setFreq(freq)
         self.getFilterOptions().setOrder(self.orderSpinBox.value())
-        return True
 
     def getFilterOptions(self):
         return self.filterOptions

@@ -1566,7 +1566,12 @@ class MainWindow(QMainWindow):
         self.filterDlg = FilterOptionsDialog(titleString=fstring,
                                              parent=self)
         filteroptions = self.filterDlg.getFilterOptions()
-        self.setFilterOptions(filteroptions)        
+        self.setFilterOptions(filteroptions)
+        filterP = filteroptions['P']
+        filterS = filteroptions['S']
+        minP, maxP = filterP.getFreq()
+        minS, maxS = filterS.getFreq()
+        self.paraBox.params_to_gui()
         
     def getFilterOptions(self):
         return self.filteroptions
