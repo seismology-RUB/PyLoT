@@ -189,40 +189,6 @@ class Data(object):
         else:
             evtdata_copy = self.get_evt_data().copy()
             evtdata_org = self.get_evt_data()
-            if upperErrors:
-               # check for pick uncertainties exceeding adjusted upper errors
-               # Picks with larger uncertainties will not be saved in output file!
-               for j in range(len(evtdata_org.picks)):
-                   for i in range(len(evtdata_copy.picks)):
-                       if evtdata_copy.picks[i].phase_hint[0] == 'P':
-                          if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[0] or \
-                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0] or \
-                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
-                             print("Uncertainty exceeds or equal adjusted upper time error!")
-                             print("Adjusted uncertainty: {}".format(upperErrors[0]))
-                             print("Pick uncertainty: {}".format(
-                                  max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
-                                      evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
-                             print("{1} P-Pick of station {0} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code, 
-                                                   evtdata_copy.picks[i].method_id)) 
-                             del evtdata_copy.picks[i]
-                             break
-                       if evtdata_copy.picks[i].phase_hint[0] == 'S':
-                          if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[1] or \
-                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1] or \
-                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
-                             print("Uncertainty exceeds or equal adjusted upper time error!")
-                             print("Adjusted uncertainty: {}".format(upperErrors[1]))
-                             print("Pick uncertainty: {}".format(
-                                  max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
-                                      evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
-                             print("{1} S-Pick of station {0} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code,
-                                                   evtdata_copy.picks[i].method_id)) 
-                             del evtdata_copy.picks[i]
-                             break
-                      
             # check for stations picked automatically as well as manually
             # Prefer manual picks!
             for i in range(len(evtdata_org.picks)):
@@ -238,6 +204,37 @@ class Data(object):
             lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
             if lendiff is not 0:
                print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+
+            if upperErrors:
+               # check for pick uncertainties exceeding adjusted upper errors
+               # Picks with larger uncertainties will not be saved in output file!
+               for j in range(len(evtdata_org.picks)):
+                   for i in range(len(evtdata_copy.picks)):
+                       if evtdata_copy.picks[i].phase_hint[0] == 'P':
+                          if evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0] or \
+                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
+                             print("Uncertainty exceeds or equal adjusted upper time error!")
+                             print("Adjusted uncertainty: {}".format(upperErrors[0]))
+                             print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                             print("{1} P-Pick of station {0} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code, 
+                                                   evtdata_copy.picks[i].method_id)) 
+                             print("#")
+                             del evtdata_copy.picks[i]
+                             break
+                       if evtdata_copy.picks[i].phase_hint[0] == 'S':
+                          if evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1] or \
+                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
+                             print("Uncertainty exceeds or equal adjusted upper time error!")
+                             print("Adjusted uncertainty: {}".format(upperErrors[1]))
+                             print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                             print("{1} S-Pick of station {0} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code,
+                                                   evtdata_copy.picks[i].method_id)) 
+                             print("#")
+                             del evtdata_copy.picks[i]
+                             break
+                      
 
             if fnext == '.obs':
                try:
