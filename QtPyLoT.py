@@ -1050,18 +1050,18 @@ class MainWindow(QMainWindow):
             filename = 'PyLoT_'+eventname
             outpath = os.path.join(directory, filename)
             title = 'Save pick data ...'
-            if not outformat: 
-               outformat = settings.value('output/Format')
-               outformat = outformat[0:4]
-            else:
-               selected_filter = "NonLinLoc observation file (*.obs)"
-               fname = outpath
-            if outformat == '.obs':
-               file_filter = "NonLinLoc observation file (*.obs)"
-            elif outformat == '.cnv':
-               file_filter = "VELEST observation file format (*.cnv)"
-            elif outformat == '.xml':
-               file_filter = "QuakeML file (*.xml)"
+            #if not outformat: 
+            #   outformat = settings.value('output/Format')
+            #   outformat = outformat[0:4]
+            #else:
+            #   selected_filter = "NonLinLoc observation file (*.obs)"
+            #   fname = outpath
+            #if outformat == '.obs':
+            #   file_filter = "NonLinLoc observation file (*.obs)"
+            #elif outformat == '.cnv':
+            #   file_filter = "VELEST observation file format (*.cnv)"
+            #elif outformat == '.xml':
+            file_filter = "(*.xml *.obs *.cnv)"
 
             if dlgflag == 1:
                fname, selected_filter = QFileDialog.getSaveFileName(self,
@@ -1069,11 +1069,15 @@ class MainWindow(QMainWindow):
                                                                     outpath,
                                                                     file_filter)
 
-            fbasename, exform = os.path.splitext(fname)
-
-            if not exform and selected_filter or not exform in OUTPUTFORMATS:
-                exform = selected_filter.split('*')[1][:-1]
-                return fname, exform
+            #fbasename, exform = os.path.splitext(fname)
+            fbasename = fname
+            exform = ['.obs', '.xml', '.cnv']
+            print(fname)
+            print(fbasename)
+            print(exform)
+            #if not exform and selected_filter or not exform in OUTPUTFORMATS:
+            #    exform = selected_filter.split('*')[1][:-1]
+            #    return fname, exform
             return fbasename, exform
 
         settings = QSettings()
@@ -1123,9 +1127,13 @@ class MainWindow(QMainWindow):
         #         return False
 
         # export to given path
-        self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
+        #self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
+        self.get_data().exportEvent(fbasename, exform[0], upperErrors=[uppererrorP[3], uppererrorS[3]])
+        self.get_data().exportEvent(fbasename, exform[1], upperErrors=[uppererrorP[3], uppererrorS[3]])
+        #self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
         # all files save (ui clean)
-        self.update_status('Picks saved as %s' % (fbasename + exform))
+        self.update_status('Picks saved as %s, %s, and %s' % (fbasename + exform[0], fbasename + exform[1], 
+                                                              fbasename + exform[2]))
         self.disableSaveManualPicksAction()
         return True
 

@@ -2575,7 +2575,7 @@ class PropertiesDlg(QDialog):
         self.setWindowTitle("PyLoT Properties")
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(InputsTab(self), "Inputs")
-        self.tabWidget.addTab(OutputsTab(self), "Outputs")
+        #self.tabWidget.addTab(OutputsTab(self), "Outputs")
         self.tabWidget.addTab(PhasesTab(self), "Phases")
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
         #self.tabWidget.addTab(LocalisationTab(self), "Loc. Tools")
