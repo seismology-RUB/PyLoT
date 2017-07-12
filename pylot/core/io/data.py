@@ -202,8 +202,9 @@ class Data(object):
                              print("Pick uncertainty: {}".format(
                                   max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
                                       evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
-                             print("P-Pick of station {} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code)) 
+                             print("{1} P-Pick of station {0} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code, 
+                                                   evtdata_copy.picks[i].method_id)) 
                              del evtdata_copy.picks[i]
                              break
                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
@@ -214,8 +215,9 @@ class Data(object):
                              print("Pick uncertainty: {}".format(
                                   max([evtdata_copy.picks[i].time_errors['lower_uncertainty'],
                                       evtdata_copy.picks[i].time_errors['upper_uncertainty']])))
-                             print("S-Pick of station {} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code)) 
+                             print("{1} S-Pick of station {0} will not be saved in outputfile".format(
+                                                   evtdata_copy.picks[i].waveform_id.station_code,
+                                                   evtdata_copy.picks[i].method_id)) 
                              del evtdata_copy.picks[i]
                              break
                       
