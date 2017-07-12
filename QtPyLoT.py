@@ -2462,9 +2462,6 @@ class MainWindow(QMainWindow):
         '''
         Save back project to new pickle file.
         '''
-        if not exists:
-            if not self.okToContinue():
-                return
         dlg = QFileDialog()
         fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
         filename = fnm[0]
