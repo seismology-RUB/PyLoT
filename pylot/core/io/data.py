@@ -196,7 +196,8 @@ class Data(object):
                    for i in range(len(evtdata_copy.picks)):
                        if evtdata_copy.picks[i].phase_hint[0] == 'P':
                           if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[0] or \
-                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]:
+                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0] or \
+                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
                              print("Uncertainty exceeds or equal adjusted upper time error!")
                              print("Adjusted uncertainty: {}".format(upperErrors[0]))
                              print("Pick uncertainty: {}".format(
@@ -209,7 +210,8 @@ class Data(object):
                              break
                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
                           if evtdata_copy.picks[i].time_errors['lower_uncertainty'] >= upperErrors[1] or \
-                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]:
+                             evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1] or \
+                             evtdata_copy.picks[i].time_errors['uncertainty'] == None:
                              print("Uncertainty exceeds or equal adjusted upper time error!")
                              print("Adjusted uncertainty: {}".format(upperErrors[1]))
                              print("Pick uncertainty: {}".format(
