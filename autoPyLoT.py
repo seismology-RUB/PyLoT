@@ -47,12 +47,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     splash = '''************************************\n
                 *********autoPyLoT starting*********\n
                 The Python picking and Location Tool\n
-                Version {version} 2015\n
+                Version {version} 2017\n
                 \n
                 Authors:\n
-                S. Wehling-Benatelli (Ruhr-Universitaet Bochum)\n
                 L. Kueperkoch (BESTEC GmbH, Landau i. d. Pfalz)\n
-                K. Olbert (Christian-Albrechts Universitaet zu Kiel)\n
+                S. Wehling-Benatelli (Ruhr-Universitaet Bochum)\n
+                M. Paffrath (Ruhr-Universitaet Bochum)\n
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
 
