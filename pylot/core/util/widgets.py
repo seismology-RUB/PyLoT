@@ -1804,6 +1804,10 @@ class TuneAutopicker(QWidget):
         self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
+        if hasattr(parent, 'metadata'):
+            self.metadata = self.parent.metadata
+        else:
+            self.metadata = None
         #self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         #self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
@@ -2148,7 +2152,7 @@ class TuneAutopicker(QWidget):
         return parameters
 
     def set_stretch(self):
-        self.tune_layout.setStretch(0, 2)
+        self.tune_layout.setStretch(0, 3)
         self.tune_layout.setStretch(1, 1)        
 
     def clear_all(self):
@@ -2330,17 +2334,17 @@ class PylotParaBox(QtGui.QWidget):
     def create_multi_box(self, boxes, headline=None):
         box = QtGui.QWidget()
         gl = QtGui.QGridLayout()
-        row = 0
+        column = 0
         if headline:
             for index, item in enumerate(headline):
                 if not item:
                     continue
-                gl.addWidget(QtGui.QLabel(item), 0, index, 4)
-                row = 1
+                gl.addWidget(QtGui.QLabel(item), index, 0, 2)
+                column = 1
         for index, b in enumerate(boxes):
-            gl.addWidget(b, row, index)
+            gl.addWidget(b, index, column)
         box.setLayout(gl)
-        return box, row
+        return box, column
 
     def add_tab(self, layout, name):
         widget = QtGui.QWidget()

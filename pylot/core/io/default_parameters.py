@@ -114,7 +114,7 @@ defaults = {'rootpath': {'type': str,
             'bpz2': {'type': (float, float),
                      'tooltip': 'lower/upper corner freq. of second band pass filter Z-comp. [Hz]',
                      'value': (2, 30),
-                     'namestring': ('Z-bandpass 2', '', '')},
+                     'namestring': ('Z-bandpass 2', 'Lower', 'Upper')},
             
             'bph1': {'type': (float, float),
                      'tooltip': 'lower/upper corner freq. of first band pass filter H-comp. [Hz]',
@@ -124,7 +124,7 @@ defaults = {'rootpath': {'type': str,
             'bph2': {'type': (float, float),
                      'tooltip': 'lower/upper corner freq. of second band pass filter z-comp. [Hz]',
                      'value': (2, 20),
-                     'namestring': ('H-bandpass 2', '', '')},
+                     'namestring': ('H-bandpass 2', 'Lower', 'Upper')},
             
             'algoP': {'type': str,
                       'tooltip': 'choose algorithm for P-onset determination (HOS, ARZ, or AR3)',
@@ -366,17 +366,17 @@ defaults = {'rootpath': {'type': str,
             'maxfreq': {'type': (float, float),
                         'tooltip': 'Upper filter frequency [P, S]',
                         'value': (10.0, 10.0),
-                        'namestring': ('Upper freq.', '', '')},
+                        'namestring': ('Upper freq.', 'P', 'S')},
             
             'filter_order': {'type': (int, int),
                              'tooltip': 'filter order [P, S]',
                              'value': (2, 2),
-                             'namestring': ('Order', '', '')},
+                             'namestring': ('Order', 'P', 'S')},
             
             'filter_type': {'type': (str, str),
                             'tooltip': 'filter type (bandpass, bandstop, lowpass, highpass) [P, S]',
                             'value': ('bandpass' , 'bandpass'),
-                            'namestring': ('Type', '', '')}
+                            'namestring': ('Type', 'P', 'S')}
 }
 
 settings_main={
