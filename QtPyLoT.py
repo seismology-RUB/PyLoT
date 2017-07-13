@@ -2575,7 +2575,7 @@ class Project(object):
                 self.setDirty()
             else:
                 print('Skipping event with path {}. Already part of project.'.format(event.path))
-        self.search_eventfile_info()
+        #self.search_eventfile_info()
 
     def read_eventfile_info(self, filename, separator=','):
         '''

@@ -369,18 +369,18 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 # HYPOSAT
                 hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (event, evID)
                 hyposat.export(picks, hyposatfile, parameter)
-            	# VELEST
-            	velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (event, evID)
-            	velest.export(picks, velestfile, parameter, evt)
-            	# hypoDD
-            	hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (event, evID)
-            	hypodd.export(picks, hypoddfile, parameter, evt)
-            	# FOCMEC
-            	focmecfile = '%s/PyLoT_%s_FOCMEC.in' % (event, evID)
-            	focmec.export(picks, focmecfile, parameter, evt)
-            	# HASH
-            	hashfile = '%s/PyLoT_%s_HASH' % (event, evID)
-            	hash.export(picks, hashfile, parameter, evt)
+                # VELEST
+                velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (event, evID)
+                velest.export(picks, velestfile, parameter, evt)
+                # hypoDD
+                hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (event, evID)
+                hypodd.export(picks, hypoddfile, parameter, evt)
+                # FOCMEC
+                focmecfile = '%s/PyLoT_%s_FOCMEC.in' % (event, evID)
+                focmec.export(picks, focmecfile, parameter, evt)
+                # HASH
+                hashfile = '%s/PyLoT_%s_HASH' % (event, evID)
+                hash.export(picks, hashfile, parameter, evt)
 
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'

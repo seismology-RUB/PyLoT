@@ -70,9 +70,9 @@ def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
              title=None):
     # try method or data
     try:
-    	_axes.plot(x, y()) # y provided as method 
+        _axes.plot(x, y()) # y provided as method 
     except:
-    	_axes.plot(x, y)   # y provided as data
+        _axes.plot(x, y)   # y provided as data
 
     if title:
         _axes.set_title(title)
@@ -513,7 +513,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
-            	if not scaleddata:
+                if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
@@ -653,7 +653,7 @@ class WaveformWidget(FigureCanvas):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
-            	if not scaleddata:
+                if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
@@ -865,7 +865,7 @@ class PickDlg(QDialog):
                                              tip='Delete current picks.')
 
         # create other widget elements
-        phaseitems = [None] + FILTERDEFAULTS.keys()
+        phaseitems = [None] + list(FILTERDEFAULTS.keys())
 
         # create buttons for P and S filter and picking
         self.p_button = QPushButton('P', self)

@@ -5,7 +5,10 @@ import hashlib
 import numpy as np
 from scipy.interpolate import splrep, splev
 import os
-import pwd
+try:
+    import pwd
+except:
+    print('Warning: Could not import module pwd')
 import re
 import warnings
 import subprocess
@@ -258,7 +261,7 @@ def getLogin():
     returns the actual user's login ID
     :return: login ID
     '''
-    return pwd.getpwuid(os.getuid())[0]
+    return os.getlogin()
 
 
 def getOwner(fn):

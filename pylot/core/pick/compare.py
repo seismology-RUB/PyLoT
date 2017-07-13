@@ -480,7 +480,7 @@ def main():
     Insheim = PDFstatistics(root_dir)
     Insheim.curphase = 'p'
     qdlist = Insheim.get('qdf', 0.2)
-    print qdlist
+    print(qdlist)
 
 
 if __name__ == "__main__":
