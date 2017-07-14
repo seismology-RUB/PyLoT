@@ -468,7 +468,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0):
         self.title = title
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
@@ -515,7 +515,8 @@ class WaveformWidgetPG(QtGui.QWidget):
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
-            print(msg)
+            if verbosity:
+                print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
@@ -702,7 +703,7 @@ class WaveformWidget(FigureCanvas):
         self.getAxes().set_ylim(lims)
 
     def setYTickLabels(self, pos, labels):
-        self.getAxes().set_yticks(pos)
+        self.getAxes().set_yticks(list(pos))
         self.getAxes().set_yticklabels(labels)
         self.draw()
 
@@ -1354,8 +1355,13 @@ class PickDlg(QDialog):
         phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase[0]).parseFilterOptions()
         if filteroptions:
-            data.filter(**filteroptions)
-            wfdata.filter(**filteroptions)
+            try:
+                data.filter(**filteroptions)
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
 
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff, itrace)
 
@@ -1407,8 +1413,13 @@ class PickDlg(QDialog):
         phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         if filteroptions:
-            data.filter(**filteroptions)
-            wfdata.filter(**filteroptions)
+            try:
+                data.filter(**filteroptions)
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
 
         # determine SNR and noiselevel
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff)
@@ -1469,7 +1480,14 @@ class PickDlg(QDialog):
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
         if filteroptions:
-            wfdata.filter(**filteroptions)
+            try:
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setPick: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
+
+                
 
         # get earliest and latest possible pick and symmetric pick error
         if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':

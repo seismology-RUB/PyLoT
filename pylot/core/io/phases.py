@@ -360,7 +360,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
                                            default.get('nfac{0}'.format(phase)),
                                            default.get('tsnrz' if phase == 'P' else 'tsnrh'),
                                            Pick1=rel_pick,
-                                           iplot=None,
+                                           iplot=0,
                                            verbosity=0)
             if epp is None or lpp is None:
                 continue

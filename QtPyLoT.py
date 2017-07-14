@@ -1348,13 +1348,13 @@ class MainWindow(QMainWindow):
         call modal plot thread method when finished.
         '''
         if load:
-            wfd_thread = Thread(self, self.loadWaveformData,
+            self.wfd_thread = Thread(self, self.loadWaveformData,
                                 progressText='Reading data input...')
         if load and plot:
-            wfd_thread.finished.connect(self.plotWaveformDataThread)
+            self.wfd_thread.finished.connect(self.plotWaveformDataThread)
 
         if load:
-            wfd_thread.start()
+            self.wfd_thread.start()
 
         if plot and not load:
             self.plotWaveformDataThread()

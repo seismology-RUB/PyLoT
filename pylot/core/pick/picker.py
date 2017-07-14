@@ -34,7 +34,7 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=None, aus=None, Tsmooth=None, Pick1=None, fig=None):
+    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object

@@ -14,7 +14,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, verbosity=1, fig=None):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -144,7 +144,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=None, verbosity=1, fig=None):
     return EPick, LPick, PickError
 
 
-def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=None, fig=None):
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
     '''
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
