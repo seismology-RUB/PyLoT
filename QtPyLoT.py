@@ -82,7 +82,12 @@ from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import AutoPickThread, Thread
 from pylot.core.util.version import get_git_version as _getVersionString
-import icons_rc
+if sys.version_info.major == 3:
+    import icons_rc_3 as icons_rc
+elif sys.version_info.major == 2:
+    import icons_rc_2 as icons_rc
+else:
+    raise ImportError('Could not determine python version.')
 
 locateTool = dict(nll=nll)
 

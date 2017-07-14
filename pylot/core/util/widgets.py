@@ -6,6 +6,7 @@ Created on Wed Mar 19 11:27:35 2014
 """
 
 import os
+import sys
 import getpass
 import warnings
 import copy
@@ -47,7 +48,12 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
-import icons_rc
+if sys.version_info.major == 3:
+    import icons_rc_3 as icons_rc
+elif sys.version_info.major == 2:
+    import icons_rc_2 as icons_rc
+else:
+    raise ImportError('Could not determine python version.')
 
 if pg:
     pg.setConfigOption('background', 'w')
