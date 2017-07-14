@@ -480,14 +480,15 @@ def getResolutionWindow(snr, extent):
         'global': {'HRW': 40., 'MRW': 100., 'LRW': 200., 'VLRW': 300.}
     }
 
-    if snr < 1.5:
-        time_resolution = res_wins[extent]['VLRW']
-    elif snr < 2.:
-        time_resolution = res_wins[extent]['LRW']
-    elif snr < 3.:
-        time_resolution = res_wins[extent]['MRW']
-    elif snr >3.:
-        time_resolution = res_wins[extent]['HRW']
+    if snr:
+        if snr < 1.5:
+            time_resolution = res_wins[extent]['VLRW']
+        elif snr < 2.:
+            time_resolution = res_wins[extent]['LRW']
+        elif snr < 3.:
+            time_resolution = res_wins[extent]['MRW']
+        elif snr >3.:
+            time_resolution = res_wins[extent]['HRW']
     else:
         time_resolution = res_wins[extent]['VLRW']
         

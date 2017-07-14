@@ -1940,6 +1940,9 @@ class MainWindow(QMainWindow):
             if picks['epp'] and picks['lpp']:
                 epp = picks['epp'] - stime
                 lpp = picks['lpp'] - stime
+            else:
+                epp = None
+                lpp = None
             spe = picks['spe']
             
             if not spe and epp and lpp:

@@ -829,7 +829,7 @@ class PickDlg(QDialog):
                 self.drawArrivals()
         except Exception as e:
             print('Warning: Could not init expected picks from taup: {}'.format(e))
-            
+
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
         if not self._embedded:
@@ -952,7 +952,11 @@ class PickDlg(QDialog):
         station_id = self.data.traces[0].get_id()
         parser = self.parent().metadata[1]
         station_coords = parser.get_coordinates(station_id)
-        source_origin = self.parent().get_current_event().origins[0]
+        origins = self.parent().get_current_event().origins
+        if origins:
+            source_origin = origins[0]
+        else:
+            raise ValueError('No source origin given.')
         arrivals = self.model.get_travel_times_geo(source_origin.depth,
                                                    source_origin.latitude,
                                                    source_origin.longitude,
@@ -2760,7 +2764,7 @@ class InputsTab(PropTab):
 
         from pylot.core.util.structure import DATASTRUCTURE
 
-        self.structureSelect.addItems(DATASTRUCTURE.keys())
+        self.structureSelect.addItems(list(DATASTRUCTURE.keys()))
 
         dsind = findComboBoxIndex(self.structureSelect, curstructure)
 

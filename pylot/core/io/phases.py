@@ -253,8 +253,8 @@ def picks_from_picksdict(picks, creation_info=None):
                 lpp = phase['lpp']
                 pick.time_errors.lower_uncertainty = onset - epp
                 pick.time_errors.upper_uncertainty = lpp - onset
-            except KeyError as e:
-                warnings.warn(e.message, RuntimeWarning)
+            except (KeyError, TypeError) as e:
+                warnings.warn(str(e), RuntimeWarning)
             try:
                 picker = phase['picker']
             except KeyError as e:
@@ -274,7 +274,7 @@ def picks_from_picksdict(picks, creation_info=None):
                 else:
                     pick.polarity = 'undecidable'
             except KeyError as e:
-                if 'fm' in e.message: # no polarity information found for this phase
+                if 'fm' in str(e): # no polarity information found for this phase
                     pass
                 else:
                     raise e
