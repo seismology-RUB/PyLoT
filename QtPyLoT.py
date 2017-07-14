@@ -716,7 +716,7 @@ class MainWindow(QMainWindow):
             event = self.get_current_event()
         data = Data(self, event)
         try:
-            data_new = Data(self, evtdata=fname)
+            data_new = Data(self, evtdata=str(fname))
             data += data_new
         except ValueError:
             qmb = QMessageBox(self, icon=QMessageBox.Question,
