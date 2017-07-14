@@ -357,7 +357,7 @@ def getSNR(X, TSNR, t1, tracenum=0):
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
     SNR = None
-    SNRdb = None
+    SNRdB = None
     noiselevel = None
     
     x = X[tracenum].data
