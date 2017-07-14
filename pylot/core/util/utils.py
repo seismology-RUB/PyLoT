@@ -5,10 +5,7 @@ import hashlib
 import numpy as np
 from scipy.interpolate import splrep, splev
 import os
-try:
-    import pwd
-except:
-    print('Warning: Could not import module pwd')
+import platform
 import re
 import warnings
 import subprocess
@@ -271,7 +268,15 @@ def getOwner(fn):
     :type fn: str
     :return: login ID of the file's owner
     '''
-    return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    system_name = platform.system()
+    if system_name in ["Linux", "Darwin"]:
+        import pwd
+        return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    elif system_name == "Windows":
+        import win32security
+        f = win32security.GetFileSecurity(fn, win32security.OWNER_SECURITY_INFORMATION)
+        (username, domain, sid_name_use) = win32security.LookupAccountSid(None, f.GetSecurityDescriptorOwner())
+        return username
 
 
 def getPatternLine(fn, pattern):
