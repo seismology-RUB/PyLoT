@@ -170,13 +170,14 @@ class Data(object):
                 print("xml-file already exists! Check content ...")
                 cat_old = read_events(fnout + fnext)
                 checkflag = 0
-                for j in range(len(cat_old.events[0].picks)):
-                   if cat_old.events[0].picks[j].method_id.id.split('/')[1] == fcheck:
-                      print("Found %s pick(s), append to new catalog." % fcheck)
-                      checkflag = 1
-                      break
+                picks = cat_old.events[0].picks
+                for j, pick in reversed(list(enumerate(picks))):
+                    if pick.method_id.id.split('/')[1] == fcheck:
+                        picks.remove(j)
+                        print("Found %s pick(s), remove them and append new picks to catalog." % fcheck)
+                        checkflag = 1
                 if checkflag == 1:
-                    self.get_evt_data().write(fnout + fnext, format=evtformat)
+                    event = self.get_evt_data().write(fnout + fnext, format=evtformat)
                     cat_new = read_events(fnout + fnext)
                     cat_new.append(cat_old.events[0])
                     cat_new.write(fnout + fnext, format=evtformat)
@@ -187,6 +188,7 @@ class Data(object):
 
         # try exporting event via ObsPy
         else:
+            print(self.get_evt_data())
             evtdata_copy = self.get_evt_data().copy()
             evtdata_org = self.get_evt_data()
             # check for stations picked automatically as well as manually
