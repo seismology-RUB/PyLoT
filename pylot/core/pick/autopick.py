@@ -297,7 +297,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
                         else:
                             fig = None
                     Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
-                                     tsnrz[3], iplot, fig)
+                                     tsnrz[2], iplot, fig)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
                         Pweight = 9
