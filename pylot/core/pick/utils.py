@@ -645,7 +645,12 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     return checkedonsets
 
-
+def RMS(X):
+    '''
+    Function returns root mean square of a given array X
+    '''
+    return np.sqrt(np.sum(np.power(X, 2))/len(X))
+    
 def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None):
     '''
     Function to detect spuriously picked noise peaks.
@@ -942,71 +947,80 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     if len(ndat) == 0:  # check for other components
         ndat = X.select(component="1")
 
-    z = zdat[0].data
+    # get earliest time of all 3 traces
+    min_t = min(zdat[0].stats.starttime, edat[0].stats.starttime, ndat[0].stats.starttime)
+    
+    # generate time arrays for all 3 traces
     tz = np.arange(0, zdat[0].stats.npts / zdat[0].stats.sampling_rate,
                    zdat[0].stats.delta)
+    tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
+                   ndat[0].stats.delta)
+    te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
+                   edat[0].stats.delta)
 
-    # calculate RMS trace from vertical component
-    absz = np.sqrt(np.power(z, 2))
-    # calculate RMS trace from both horizontal traces
-    # make sure, both traces have equal lengths
-    lene = len(edat[0].data)
-    lenn = len(ndat[0].data)
-    minlen = min([lene, lenn])
-    absen = np.sqrt(np.power(edat[0].data[0:minlen - 1], 2) \
-                    + np.power(ndat[0].data[0:minlen - 1], 2))
+    zdiff = (zdat[0].stats.starttime - min_t)
+    ndiff = (ndat[0].stats.starttime - min_t)
+    ediff = (edat[0].stats.starttime - min_t)
+    
+    # get signal windows
+    isignalz = getsignalwin(tz, pick-zdiff, checkwin)
+    isignaln = getsignalwin(tn, pick-ndiff, checkwin)
+    isignale = getsignalwin(te, pick-ediff, checkwin)
 
-    # get signal window
-    isignal = getsignalwin(tz, pick, checkwin)
-
-    # calculate energy levels
-    try:
-       zcodalevel = max(absz[isignal])
-    except:
-       ii = np.where(isignal <= len(absz))
-       isignal = isignal[ii]
-       zcodalevel = max(absz[isignal - 1])
-    try:
-       encodalevel = max(absen[isignal])
-    except:
-       ii = np.where(isignal <= len(absen))
-       isignal = isignal[ii]
-       encodalevel = max(absen[isignal - 1])
+    # calculate RMS of traces
+    rmsz = RMS(zdat[0].data[isignalz])
+    rmsn = RMS(ndat[0].data[isignaln])
+    rmse = RMS(edat[0].data[isignale])
 
     # calculate threshold
-    minsiglevel = encodalevel * zfac
+    minsiglevel = (rmsn + rmse) * zfac
 
     # vertical P-coda level must exceed horizontal P-coda level
     # zfac times encodalevel
-    if zcodalevel < minsiglevel:
+    if rmsz < minsiglevel:
         print ("checkZ4S: Maybe S onset? Skip this P pick!")
     else:
         print ("checkZ4S: P onset passes checkZ4S test!")
         returnflag = 1
 
     if iplot > 1:
-        te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
-                       edat[0].stats.delta)
-        tn = np.arange(0, ndat[0].stats.npts / ndat[0].stats.sampling_rate,
-                       ndat[0].stats.delta)
-        if not fig:
-            fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(tz, z / max(z), 'k')
-        ax.axvspan(tz[isignal[0]], tz[isignal[-1]], color='b', alpha=0.2,
-                   lw=0, label='Signal Window')
-        ax.plot(te, edat[0].data / max(edat[0].data) + 1, 'k')
-        ax.plot(tn, ndat[0].data / max(ndat[0].data) + 2, 'k')
-        ax.plot([tz[isignal[0]], tz[isignal[len(isignal) - 1]]],
-                [minsiglevel / max(z), minsiglevel / max(z)], 'g',
-                linewidth=2, label='Minimum Signal Level')
-        ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
-        ax.set_ylabel('Normalized Counts')
-        ax.set_yticks([0, 1, 2], [zdat[0].stats.channel, edat[0].stats.channel,
-                                  ndat[0].stats.channel])
-        ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
-        ax.legend()
+        rms_dict = {'Z': rmsz,
+                    'N': rmsn,
+                    'E': rmse}
 
+        traces_dict = {'Z': zdat[0],
+                       'N': ndat[0],
+                       'E': edat[0]}
+
+        diff_dict = {'Z': zdiff,
+                     'N': ndiff,
+                     'E': ediff}
+
+        signal_dict  = {'Z': isignalz,
+                        'N': isignaln,
+                        'E': isignale}
+
+        for i, key in enumerate(['Z', 'N', 'E']):
+            rms = rms_dict[key]
+            trace = traces_dict[key]
+            t = np.arange(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate+diff_dict[key],
+                          trace.stats.delta)            
+            if i == 0:
+                ax1 = fig.add_subplot(3, 1, i+1)
+                ax = ax1
+                ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
+            else:
+                ax = fig.add_subplot(3,1,i+1, sharex=ax1)
+            ax.plot(t, abs(trace.data), color='b', label='abs')
+            ax.plot(t, trace.data, color='k')
+            name = str(trace.stats.channel) + ': {}'.format(rms)
+            ax.plot([pick, pick+checkwin], [rms, rms], 'r', label='RMS {}'.format(name))
+            ax.plot([pick, pick], ax.get_ylim(), 'm', label='Pick')
+            ax.set_ylabel('Normalized Counts')
+            ax.axvspan(pick, pick+checkwin, color='c', alpha=0.2,
+                       lw=0)
+            ax.legend()
+        ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
     return returnflag
 
 
