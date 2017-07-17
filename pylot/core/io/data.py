@@ -196,7 +196,7 @@ class Data(object):
         from pylot.core.util.defaults import OUTPUTFORMATS
 
         if not type(fcheck)==list:
-            fcheck=list(fcheck)
+            fcheck=[fcheck]
 
         try:
             evtformat = OUTPUTFORMATS[fnext]

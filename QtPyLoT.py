@@ -1113,6 +1113,7 @@ class MainWindow(QMainWindow):
         # elif ret == QMessageBox.Cancel:
         #         return False
         # MP MP changed to suppress unnecessary user prompt
+        fcheck = ['manual', 'origins', 'magnitude']
         try:
             self.get_data().exportEvent(fbasename, exform, fcheck='manual',
                                         upperErrors=[uppererrorP[3], uppererrorS[3]])
