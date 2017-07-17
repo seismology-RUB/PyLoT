@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pylot.core.util.errors import ParameterError
-import default_parameters
+from pylot.core.io import default_parameters
 
 class PylotParameter(object):
     '''

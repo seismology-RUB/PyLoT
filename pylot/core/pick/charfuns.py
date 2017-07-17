@@ -307,7 +307,7 @@ class HOScf(CharacteristicFunction):
 class ARZcf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from single trace ...'
+        print('Calculating AR-prediction error from single trace ...')
         x = self.getDataArray(self.getCut())
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -430,7 +430,7 @@ class ARZcf(CharacteristicFunction):
 class ARHcf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from both horizontal traces ...'
+        print('Calculating AR-prediction error from both horizontal traces ...')
 
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
@@ -567,7 +567,7 @@ class ARHcf(CharacteristicFunction):
 class AR3Ccf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from all 3 components ...'
+        print('Calculating AR-prediction error from all 3 components ...')
 
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)

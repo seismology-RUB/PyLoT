@@ -6,6 +6,7 @@ Created on Wed Mar 19 11:27:35 2014
 """
 
 import os
+import sys
 import getpass
 import warnings
 import copy
@@ -47,7 +48,12 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
-import icons_rc
+if sys.version_info.major == 3:
+    import icons_rc_3 as icons_rc
+elif sys.version_info.major == 2:
+    import icons_rc_2 as icons_rc
+else:
+    raise ImportError('Could not determine python version.')
 
 if pg:
     pg.setConfigOption('background', 'w')
@@ -70,9 +76,9 @@ def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
              title=None):
     # try method or data
     try:
-    	_axes.plot(x, y()) # y provided as method 
+        _axes.plot(x, y()) # y provided as method 
     except:
-    	_axes.plot(x, y)   # y provided as data
+        _axes.plot(x, y)   # y provided as data
 
     if title:
         _axes.set_title(title)
@@ -462,7 +468,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0):
         self.title = title
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
@@ -509,11 +515,12 @@ class WaveformWidgetPG(QtGui.QWidget):
             if n > nmax:
                 nmax = n
             msg = 'plotting %s channel of station %s' % (channel, station)
-            print(msg)
+            if verbosity:
+                print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
-            	if not scaleddata:
+                if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
@@ -653,7 +660,7 @@ class WaveformWidget(FigureCanvas):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
-            	if not scaleddata:
+                if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
@@ -696,7 +703,7 @@ class WaveformWidget(FigureCanvas):
         self.getAxes().set_ylim(lims)
 
     def setYTickLabels(self, pos, labels):
-        self.getAxes().set_yticks(pos)
+        self.getAxes().set_yticks(list(pos))
         self.getAxes().set_yticklabels(labels)
         self.draw()
 
@@ -822,7 +829,7 @@ class PickDlg(QDialog):
                 self.drawArrivals()
         except Exception as e:
             print('Warning: Could not init expected picks from taup: {}'.format(e))
-            
+
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
         if not self._embedded:
@@ -865,7 +872,7 @@ class PickDlg(QDialog):
                                              tip='Delete current picks.')
 
         # create other widget elements
-        phaseitems = [None] + FILTERDEFAULTS.keys()
+        phaseitems = [None] + list(FILTERDEFAULTS.keys())
 
         # create buttons for P and S filter and picking
         self.p_button = QPushButton('P', self)
@@ -945,7 +952,11 @@ class PickDlg(QDialog):
         station_id = self.data.traces[0].get_id()
         parser = self.parent().metadata[1]
         station_coords = parser.get_coordinates(station_id)
-        source_origin = self.parent().get_current_event().origins[0]
+        origins = self.parent().get_current_event().origins
+        if origins:
+            source_origin = origins[0]
+        else:
+            raise ValueError('No source origin given.')
         arrivals = self.model.get_travel_times_geo(source_origin.depth,
                                                    source_origin.latitude,
                                                    source_origin.longitude,
@@ -1348,8 +1359,13 @@ class PickDlg(QDialog):
         phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase[0]).parseFilterOptions()
         if filteroptions:
-            data.filter(**filteroptions)
-            wfdata.filter(**filteroptions)
+            try:
+                data.filter(**filteroptions)
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
 
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff, itrace)
 
@@ -1401,8 +1417,13 @@ class PickDlg(QDialog):
         phase = self.currentPhase
         filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         if filteroptions:
-            data.filter(**filteroptions)
-            wfdata.filter(**filteroptions)
+            try:
+                data.filter(**filteroptions)
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
 
         # determine SNR and noiselevel
         result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick-stime_diff)
@@ -1463,7 +1484,14 @@ class PickDlg(QDialog):
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
         if filteroptions:
-            wfdata.filter(**filteroptions)
+            try:
+                wfdata.filter(**filteroptions)
+            except ValueError as e:
+                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                                             'Denied', 'setPick: Could not filter waveform: {}'.format(e))
+                self.qmb.show()
+
+                
 
         # get earliest and latest possible pick and symmetric pick error
         if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
@@ -2736,7 +2764,7 @@ class InputsTab(PropTab):
 
         from pylot.core.util.structure import DATASTRUCTURE
 
-        self.structureSelect.addItems(DATASTRUCTURE.keys())
+        self.structureSelect.addItems(list(DATASTRUCTURE.keys()))
 
         dsind = findComboBoxIndex(self.structureSelect, curstructure)
 

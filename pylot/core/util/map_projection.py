@@ -19,6 +19,7 @@ class map_projection(QtGui.QWidget):
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
+        self.metadata = parent.metadata
         self.parser = parent.metadata[1]
         self.picks = None
         self.picks_dict = None

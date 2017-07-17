@@ -5,7 +5,7 @@ import hashlib
 import numpy as np
 from scipy.interpolate import splrep, splev
 import os
-import pwd
+import platform
 import re
 import warnings
 import subprocess
@@ -258,7 +258,7 @@ def getLogin():
     returns the actual user's login ID
     :return: login ID
     '''
-    return pwd.getpwuid(os.getuid())[0]
+    return os.getlogin()
 
 
 def getOwner(fn):
@@ -268,7 +268,15 @@ def getOwner(fn):
     :type fn: str
     :return: login ID of the file's owner
     '''
-    return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    system_name = platform.system()
+    if system_name in ["Linux", "Darwin"]:
+        import pwd
+        return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    elif system_name == "Windows":
+        import win32security
+        f = win32security.GetFileSecurity(fn, win32security.OWNER_SECURITY_INFORMATION)
+        (username, domain, sid_name_use) = win32security.LookupAccountSid(None, f.GetSecurityDescriptorOwner())
+        return username
 
 
 def getPatternLine(fn, pattern):

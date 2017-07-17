@@ -4,7 +4,6 @@
 import os
 import glob
 import sys
-from obspy.io.xseed import Parser
 
 import numpy as np
 
@@ -170,7 +169,7 @@ def read_metadata(path_to_inventory):
     invfile = list()
     respfile = list()
     # possible file extensions specified here:
-    inv = dict(dless=dlfile, xml=invfile, resp=respfile, dseed=dlfile)
+    inv = dict(dless=dlfile, xml=invfile, resp=respfile, dseed=dlfile[:])
     if os.path.isfile(path_to_inventory):
         ext = os.path.splitext(path_to_inventory)[1].split('.')[1]
         inv[ext] += [path_to_inventory]

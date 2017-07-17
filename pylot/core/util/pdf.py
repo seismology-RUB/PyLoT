@@ -59,7 +59,7 @@ def exp_parameter(te, tm, tl, eta):
     return tm, sig1, sig2, a
 
 
-def gauss_branches(k, (mu, sig1, sig2, a1, a2)):
+def gauss_branches(k, param_tuple):
     '''
     function gauss_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and two scaling factors a1 and a2 and return a
@@ -79,6 +79,9 @@ def gauss_branches(k, (mu, sig1, sig2, a1, a2)):
     :returns fun_vals: list with function values along axes x
     '''
 
+    #python 3 workaround
+    mu, sig1, sig2, a1, a2 = param_tuple
+    
     def _func(k, mu, sig1, sig2, a1, a2):
         if k < mu:
             rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
@@ -93,7 +96,7 @@ def gauss_branches(k, (mu, sig1, sig2, a1, a2)):
         return _func(k, mu, sig1, sig2, a1, a2)
 
 
-def exp_branches(k, (mu, sig1, sig2, a)):
+def exp_branches(k, param_tuple):
     '''
     function exp_branches takes an axes x, a center value mu, two sigma
     values sig1 and sig2 and a scaling factor a and return a
@@ -107,6 +110,9 @@ def exp_branches(k, (mu, sig1, sig2, a)):
     :returns fun_vals: list with function values along axes x:
     '''
 
+    #python 3 workaround
+    mu, sig1, sig2, a = param_tuple
+    
     def _func(k, mu, sig1, sig2, a):
         mu = float(mu)
         if k < mu:
