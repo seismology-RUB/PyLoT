@@ -174,7 +174,7 @@ class Data(object):
         picks = event.picks
         #remove existing picks
         for j, pick in reversed(list(enumerate(picks))):
-            if pick.method_id.id.split('/')[1] == picktype:
+            if picktype in str(pick.method_id.id):
                 picks.pop(j)
                 checkflag = 1
         if checkflag:
@@ -182,7 +182,7 @@ class Data(object):
 
         #append new picks
         for pick in self.get_evt_data().picks:
-            if pick.method_id.id.split('/')[1] == picktype:                    
+            if picktype in str(pick.method_id.id):
                 picks.append(pick)
 
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):

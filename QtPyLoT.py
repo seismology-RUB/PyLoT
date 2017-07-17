@@ -1115,7 +1115,7 @@ class MainWindow(QMainWindow):
         # MP MP changed to suppress unnecessary user prompt
         fcheck = ['manual', 'origins', 'magnitude']
         try:
-            self.get_data().exportEvent(fbasename, exform, fcheck='manual',
+            self.get_data().exportEvent(fbasename, exform, fcheck=fcheck,
                                         upperErrors=[uppererrorP[3], uppererrorS[3]])
         except FormatError as e:
             fbasename, exform = getSavePath(e, directory, outformat)
@@ -1139,15 +1139,15 @@ class MainWindow(QMainWindow):
 
         # export to given path
         #self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
-        try:
-            self.get_data().exportEvent(fbasename, exform[0], fcheck='manual',
-                                        upperErrors=[uppererrorP[3], uppererrorS[3]])
-            self.get_data().exportEvent(fbasename, exform[1], fcheck='manual',
-                                        upperErrors=[uppererrorP[3], uppererrorS[3]])
-        except Exception as e:
-            QMessageBox.warning(self, "PyLoT Warning",
-                                "Could not save event: {}".format(e))
-            return
+        #try:
+        self.get_data().exportEvent(fbasename, exform[0], fcheck=fcheck,
+                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
+        self.get_data().exportEvent(fbasename, exform[1], fcheck=fcheck,
+                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
+        # except Exception as e:
+        #     QMessageBox.warning(self, "PyLoT Warning",
+        #                         "Could not save event: {}".format(e))
+        #     return
         #self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
         # all files save (ui clean)
         self.update_status('Picks saved as %s, %s, and %s' % (fbasename + exform[0], fbasename + exform[1],
