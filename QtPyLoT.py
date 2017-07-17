@@ -1071,7 +1071,7 @@ class MainWindow(QMainWindow):
             else:
                 dlgflag = 0
             eventname = self.get_current_event_name()
-            filename = 'PyLoT_' + eventname
+            filename = 'PyLoT_' + eventname + '.xml'
             outpath = os.path.join(directory, filename)
             title = 'Save pick data ...'
             file_filter = "(*.xml *.obs *.cnv)"
