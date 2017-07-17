@@ -147,6 +147,44 @@ class Data(object):
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
+    def checkEvent(self, event, fcheck, forceOverwrite=False):
+        if 'origin' in fcheck:
+            self.replaceOrigin(event, forceOverwrite)
+        if 'magnitude' in fcheck:
+            self.replaceMagnitude(event, forceOverwrite)
+        if 'auto' in fcheck:
+            self.replacePicks(event, 'auto')
+        if 'manual' in fcheck:
+            self.replacePicks(event, 'manual')
+        
+    def replaceOrigin(self, event, forceOverwrite=False):
+        if self.get_evt_data().origins or forceOverwrite:
+            if event.origins:
+                print("Found origin, replace it by new origin." )
+            event.origins = self.get_evt_data().origins
+    
+    def replaceMagnitude(self, event, forceOverwrite=False):
+        if self.get_evt_data().magnitudes or forceOverwrite:
+            if event.magnitudes:
+                print("Found magnitude, replace it by new magnitude")
+            event.magnitudes = self.get_evt_data().magnitudes
+    
+    def replacePicks(self, event, picktype):
+        checkflag = 0
+        picks = event.picks
+        #remove existing picks
+        for j, pick in reversed(list(enumerate(picks))):
+            if pick.method_id.id.split('/')[1] == picktype:
+                picks.pop(j)
+                checkflag = 1
+        if checkflag:
+            print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
+
+        #append new picks
+        for pick in self.get_evt_data().picks:
+            if pick.method_id.id.split('/')[1] == picktype:                    
+                picks.append(pick)
+
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
 
         """
@@ -156,6 +194,9 @@ class Data(object):
         :raise KeyError:
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
+
+        if not type(fcheck)==list:
+            fcheck=list(fcheck)
 
         try:
             evtformat = OUTPUTFORMATS[fnext]
@@ -177,21 +218,7 @@ class Data(object):
                 if not event.resource_id == self.get_evt_data().resource_id:
                     raise IOError("Missmatching event resource id's: {} and {}".format(event.resource_id,
                                                                                        self.get_evt_data().resource_id))
-                checkflag = 0
-                picks = event.picks
-                #remove existing picks
-                for j, pick in reversed(list(enumerate(picks))):
-                    if pick.method_id.id.split('/')[1] == fcheck:
-                        picks.pop(j)
-                        checkflag = 1
-                if checkflag:
-                    print("Found %s pick(s), remove them and append new picks to catalog." % fcheck)
-
-                #append new picks
-                for pick in self.get_evt_data().picks:
-                    if pick.method_id.id.split('/')[1] == fcheck:                    
-                        picks.append(pick)
-
+                self.checkEvent(event, fcheck)
                 self.setEvtData(event)
             self.get_evt_data().write(fnout + fnext, format=evtformat)
 
