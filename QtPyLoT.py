@@ -1111,7 +1111,8 @@ class MainWindow(QMainWindow):
         #         return False
         # MP MP changed to suppress unnecessary user prompt
         try:
-            self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
+            self.get_data().exportEvent(fbasename, exform, fcheck='manual',
+                                        upperErrors=[uppererrorP[3], uppererrorS[3]])
         except FormatError as e:
             fbasename, exform = getSavePath(e, directory, outformat)
         except AttributeError as e:
@@ -1134,8 +1135,10 @@ class MainWindow(QMainWindow):
 
         # export to given path
         #self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
-        self.get_data().exportEvent(fbasename, exform[0], upperErrors=[uppererrorP[3], uppererrorS[3]])
-        self.get_data().exportEvent(fbasename, exform[1], upperErrors=[uppererrorP[3], uppererrorS[3]])
+        self.get_data().exportEvent(fbasename, exform[0], fcheck='manual',
+                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
+        self.get_data().exportEvent(fbasename, exform[1], fcheck='manual',
+                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
         #self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
         # all files save (ui clean)
         self.update_status('Picks saved as %s, %s, and %s' % (fbasename + exform[0], fbasename + exform[1], 

@@ -168,23 +168,32 @@ class Data(object):
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
                 print("xml-file already exists! Check content ...")
-                cat_old = read_events(fnout + fnext)
+                cat = read_events(fnout + fnext)
+                if len(cat) > 1:
+                    raise IOError('Ambigious event information in file {}'.format(fnout + fnext))
+                if len(cat) < 1:
+                    raise IOError('No event information in file {}'.format(fnout + fnext))
+                event = cat[0]
+                if not event.resource_id == self.get_evt_data().resource_id:
+                    raise IOError("Missmatching event resource id's: {} and {}".format(event.resource_id,
+                                                                                       self.get_evt_data().resource_id))
                 checkflag = 0
-                picks = cat_old.events[0].picks
+                picks = event.picks
+                #remove existing picks
                 for j, pick in reversed(list(enumerate(picks))):
                     if pick.method_id.id.split('/')[1] == fcheck:
-                        picks.remove(j)
-                        print("Found %s pick(s), remove them and append new picks to catalog." % fcheck)
+                        picks.pop(j)
                         checkflag = 1
-                if checkflag == 1:
-                    event = self.get_evt_data().write(fnout + fnext, format=evtformat)
-                    cat_new = read_events(fnout + fnext)
-                    cat_new.append(cat_old.events[0])
-                    cat_new.write(fnout + fnext, format=evtformat)
-                else:
-                    self.get_evt_data().write(fnout + fnext, format=evtformat)
-            else:
-                self.get_evt_data().write(fnout + fnext, format=evtformat)
+                if checkflag:
+                    print("Found %s pick(s), remove them and append new picks to catalog." % fcheck)
+
+                #append new picks
+                for pick in self.get_evt_data().picks:
+                    if pick.method_id.id.split('/')[1] == fcheck:                    
+                        picks.append(pick)
+
+                self.setEvtData(event)
+            self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event via ObsPy
         else:
