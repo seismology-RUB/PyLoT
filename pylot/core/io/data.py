@@ -188,10 +188,10 @@ class Data(object):
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
 
         """
-        :param fnout:
-        :param fnext:
-        :param fcheck:
-        :raise KeyError:
+        :param fnout: basename of file
+        :param fnext: file extension
+        :param fcheck: check and delete existing information
+        can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
 

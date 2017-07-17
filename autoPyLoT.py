@@ -361,7 +361,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 evt.resource_id = ResourceIdentifier('smi:local/' + event_id)
                 data.applyEVTData(evt, 'event')
             fnqml = '%s/PyLoT_%s' % (event, evID)
-            data.exportEvent(fnqml, fnext='.xml', fcheck='manual')
+            data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
             if locflag == 1:
                 # HYPO71
                 hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
