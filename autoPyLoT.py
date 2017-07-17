@@ -201,7 +201,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             metadata =  read_metadata(parameter.get('invdir'))
             print("Restitute data ...")
             corr_dat = restitute_data(wfdat.copy(), *metadata)
-            if not corr_dat:
+            if not corr_dat and locflag:
                 locflag = 2               
             print('Working on event %s. Stations: %s' % (event, station))
             print(wfdat)
