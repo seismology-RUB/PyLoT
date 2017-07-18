@@ -917,6 +917,10 @@ class MainWindow(QMainWindow):
         self.init_events()
         self.setDirty(True)
 
+    def removeEvent(self, eventID):
+        self.project.remove_event_by_id(eventID)
+        self.init_events()
+
     def createEventBox(self):
         '''
         Eventbox generator.
@@ -1308,6 +1312,10 @@ class MainWindow(QMainWindow):
         # which will read in data input twice. Therefore current tab is changed to 0
         # in loadProject before calling this function.
         plotted = False
+        if self.tabs.currentIndex() == 2:
+            self.init_event_table()
+        self.refreshRefTestButtons()
+        
         # only refresh first/second tab when an event was changed.
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.get_current_event()
@@ -1337,10 +1345,6 @@ class MainWindow(QMainWindow):
                 if not plotted and self._eventChanged[0]:
                     # newWF(False) = load data without plotting
                     self.newWF(plot=False)
-
-        if self.tabs.currentIndex() == 2:
-            self.init_event_table()
-        self.refreshRefTestButtons()
 
     def newWF(self, plot=True):
         '''
@@ -2599,8 +2603,18 @@ class Project(object):
                 self.setDirty()
             else:
                 print('Skipping event with path {}. Already part of project.'.format(event.path))
+        self.eventlist.sort(key=lambda x: x.pylot_id)
         self.search_eventfile_info()
 
+    def remove_event(self, event):
+        self.eventlist.remove(event)
+
+    def remove_event_by_id(self, eventID):
+        for event in self.eventlist:
+            if eventID in str(event.resource_id):
+                self.remove_event(event)
+                break
+            
     def read_eventfile_info(self, filename, separator=','):
         '''
         Try to read event information from file (:param:filename) comparing specific event datetimes.
@@ -2609,7 +2623,7 @@ class Project(object):
         '''
         infile = open(filename, 'r')
         for line in infile.readlines():
-            event, date, time, mag, lat, lon, depth = line.split(separator)[:7]
+            eventID, date, time, mag, lat, lon, depth = line.split(separator)[:7]
             # skip first line
             try:
                 month, day, year = date.split('/')
@@ -2626,20 +2640,24 @@ class Project(object):
                 print(e, datetime, filename)
                 continue
             for event in self.eventlist:
-                if event.origins:
-                    origin = event.origins[0]  # should have only one origin
-                    if origin.time == datetime:
-                        origin.latitude = float(lat)
-                        origin.longitude = float(lon)
-                        origin.depth = float(depth)
-                elif not event.origins:
-                    origin = Origin(resource_id=event.resource_id,
-                                    time=datetime, latitude=float(lat),
-                                    longitude=float(lon), depth=float(depth))
-                    event.origins.append(origin)
-                event.magnitudes.append(Magnitude(resource_id=event.resource_id,
-                mag=float(mag),
-                mag_type='M'))
+                if eventID in str(event.resource_id) or event.origins:
+                    if event.origins:
+                        origin = event.origins[0]  # should have only one origin
+                        if origin.time == datetime:
+                            origin.latitude = float(lat)
+                            origin.longitude = float(lon)
+                            origin.depth = float(depth)
+                        else:
+                            continue
+                    elif not event.origins:
+                        origin = Origin(resource_id=event.resource_id,
+                                        time=datetime, latitude=float(lat),
+                                        longitude=float(lon), depth=float(depth))
+                        event.origins.append(origin)
+                    event.magnitudes.append(Magnitude(resource_id=event.resource_id,
+                                                      mag=float(mag),
+                                                      mag_type='M'))
+                    break
 
     def search_eventfile_info(self):
         '''

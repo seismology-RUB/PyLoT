@@ -5,7 +5,7 @@ import os
 
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
-from obspy.core.event import Origin, Magnitude, ResourceIdentifier
+from obspy.core.event import Origin, ResourceIdentifier
 
 from pylot.core.io.phases import picks_from_picksdict
 
