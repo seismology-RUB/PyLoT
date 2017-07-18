@@ -514,8 +514,8 @@ class WaveformWidgetPG(QtGui.QWidget):
                 #n = n[0]
             if n > nmax:
                 nmax = n
-            msg = 'plotting %s channel of station %s' % (channel, station)
             if verbosity:
+                msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
@@ -618,7 +618,7 @@ class WaveformWidget(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0):
         self.getAxes().cla()
         self.clearPlotDict()
         wfstart, wfend = full_range(wfdata)
@@ -655,8 +655,9 @@ class WaveformWidget(FigureCanvas):
                 #n = n[0]
             if n > nmax:
                 nmax = n
-            msg = 'plotting %s channel of station %s' % (channel, station)
-            print(msg)
+            if verbosity:
+                msg = 'plotting %s channel of station %s' % (channel, station)
+                print(msg)
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
@@ -748,6 +749,7 @@ class PickDlg(QDialog):
         self.phaseText = []
         self.arrivals = []
         self.arrivalsText = []
+        self.cidpick = []
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -829,6 +831,9 @@ class PickDlg(QDialog):
                 self.drawArrivals()
         except Exception as e:
             print('Warning: Could not init expected picks from taup: {}'.format(e))
+
+        # init pick delete (with right click)
+        self.connect_pick_delete()
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
@@ -1198,6 +1203,7 @@ class PickDlg(QDialog):
         self.cidpress = self.connectPressEvent(self.setIniPick)
         self.filterWFData()
         self.pick_block = self.togglePickBlocker()
+        self.disconnect_pick_delete()
 
     def deactivatePicking(self):
         self.disconnectPressEvent()
@@ -1205,6 +1211,7 @@ class PickDlg(QDialog):
         self.cidmotion = self.connectMotionEvent(self.panMotion)
         self.cidrelease = self.connectReleaseEvent(self.panRelease)
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+        self.connect_pick_delete()
             
     def getParameter(self):
         return self.parameter
@@ -1597,9 +1604,9 @@ class PickDlg(QDialog):
                 if spe:
                     ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
                     ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
-                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase), picker=5)
                 else:
-                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase))
         elif picktype == 'auto':
@@ -1610,6 +1617,43 @@ class PickDlg(QDialog):
             raise TypeError('Unknown picktype {0}'.format(picktype))
         
         ax.legend()
+
+    def connect_pick_delete(self):
+        self.cidpick = self.getPlotWidget().mpl_connect('pick_event', self.onpick_delete)
+
+    def disconnect_pick_delete(self):
+        if hasattr(self, 'cidpick'):
+            self.getPlotWidget().mpl_disconnect(self.cidpick)
+
+    def onpick_delete(self, event):
+        if not event.mouseevent.button == 3:
+            return
+        x = event.mouseevent.xdata
+        self.remove_pick_by_x(x)
+        self.resetPlot()
+
+    def remove_pick_by_x(self, x):
+        if not self.picks and not self.autopicks:
+            return
+        # init empty list and get station starttime
+        X=[]
+        starttime = self.getStartTime()
+        # init dictionarys to iterate through and iterate over them
+        allpicks = [self.picks, self.autopicks]
+        for index_ptype, picks in enumerate(allpicks):
+            for phase in picks:
+                pick_rel = picks[phase]['mpp'] - starttime
+                # add relative pick time, phaseID and picktype index
+                X.append((pick_rel, phase, index_ptype))
+        # find index and value closest to x
+        index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1]-x))
+        # unpack the found value
+        pick_rel, phase, index_ptype = X[index]
+        # delete the value from corresponding dictionary
+        allpicks[index_ptype].pop(phase)
+        # information output
+        msg = 'Deleted pick for phase {}, {}[s] from starttime {}'
+        print(msg.format(phase, pick_rel, starttime))
 
     def drawPhaseText(self):
         return self.drawPicks(picktype='manual', textOnly=True)
