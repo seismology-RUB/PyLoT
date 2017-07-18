@@ -600,7 +600,11 @@ class WaveformWidget(FigureCanvas):
                                        color='m', lw=1)
         # update labels of the entire widget
         self.updateWidget(xlabel, ylabel, title)
-
+        try:
+            self.figure.tight_layout()
+        except:
+            pass
+        
     def getPlotDict(self):
         return self.plotdict
 
