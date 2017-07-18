@@ -753,6 +753,7 @@ class PickDlg(QDialog):
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
+        self._dirty = False
         if picks:
             self.picks = picks
             self._init_picks = copy.deepcopy(picks)
@@ -952,6 +953,9 @@ class PickDlg(QDialog):
         self.setLayout(_outerlayout)
         self.resize(1280, 720)        
 
+    def setDirty(self, bool):
+        self._dirty = bool
+        
     def get_arrivals(self):
         phases = self.prepare_phases()
         station_id = self.data.traces[0].get_id()
@@ -1558,6 +1562,7 @@ class PickDlg(QDialog):
         self.zoomAction.setEnabled(True)
         self.pick_block = self.togglePickBlocker()
         self.leave_picking_mode()
+        self.setDirty(True)
 
     def drawAllPicks(self):
         self.removePhaseText()
@@ -1654,6 +1659,7 @@ class PickDlg(QDialog):
         # information output
         msg = 'Deleted pick for phase {}, {}[s] from starttime {}'
         print(msg.format(phase, pick_rel, starttime))
+        self.setDirty(True)
 
     def drawPhaseText(self):
         return self.drawPicks(picktype='manual', textOnly=True)

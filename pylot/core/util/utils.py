@@ -370,7 +370,7 @@ def key_for_set_value(d):
     return r
 
 
-def prepTimeAxis(stime, trace):
+def prepTimeAxis(stime, trace, verbosity=0):
     '''
     takes a starttime and a trace object and returns a valid time axis for
     plotting
@@ -384,16 +384,18 @@ def prepTimeAxis(stime, trace):
     etime = stime + nsamp / srate
     time_ax = np.arange(stime, etime, tincr)
     if len(time_ax) < nsamp:
-        print('elongate time axes by one datum')
+        if verbosity:
+            print('elongate time axes by one datum')
         time_ax = np.arange(stime, etime + tincr, tincr)
     elif len(time_ax) > nsamp:
-        print('shorten time axes by one datum')
+        if verbosity:
+            print('shorten time axes by one datum')
         time_ax = np.arange(stime, etime - tincr, tincr)
     if len(time_ax) != nsamp:
         print('Station {0}, {1} samples of data \n '
-                      '{2} length of time vector \n'
-                      'delta: {3}'.format(trace.stats.station,
-                                   nsamp, len(time_ax), tincr))
+              '{2} length of time vector \n'
+              'delta: {3}'.format(trace.stats.station,
+                                  nsamp, len(time_ax), tincr))
         time_ax = None
     return time_ax
 

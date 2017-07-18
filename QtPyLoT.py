@@ -1751,7 +1751,7 @@ class MainWindow(QMainWindow):
                           autopicks=self.getPicksOnStation(station, 'auto'))
         pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
-            if pickDlg.getPicks():
+            if pickDlg._dirty:
                 self.setDirty(True)
                 self.update_status('picks accepted ({0})'.format(station))
                 replot = self.addPicks(station, pickDlg.getPicks())
@@ -1864,12 +1864,12 @@ class MainWindow(QMainWindow):
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
-        if not stat_picks:
+        if not stat_picks and picks:
             rval = False
         else:
-            # set picks (ugly syntax?)
-            self.getPicks(type=type)[station] = picks
             rval = True
+        # set picks (ugly syntax?)
+        self.getPicks(type=type)[station] = picks
         return rval
         # if not stat_picks:
         #     stat_picks = picks

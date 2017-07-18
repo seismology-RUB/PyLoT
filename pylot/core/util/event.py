@@ -83,6 +83,11 @@ class Event(ObsPyEvent):
     def setPick(self, station, pick):
         if pick:
             self.pylot_picks[station] = pick
+        else:
+            try:
+                self.pylot_picks.pop(station)
+            except Exception as e:
+                print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.picks = picks_from_picksdict(self.pylot_picks)
         
     def setPicks(self, picks):
