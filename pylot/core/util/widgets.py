@@ -666,7 +666,7 @@ class WaveformWidget(FigureCanvas):
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index%nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index%nth_sample]
-                self.getAxes().plot(times, data, 'k')
+                self.getAxes().plot(times, data, 'k', linewidth=0.7)
                 if noiselevel is not None:
                    for level in noiselevel:
                        self.getAxes().plot([time_ax[0], time_ax[-1]],
