@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
-
+        
         # create resource icons
         newIcon = QIcon()
         newIcon.addPixmap(QPixmap(':/icons/newfile.png'))
@@ -917,9 +917,16 @@ class MainWindow(QMainWindow):
         self.init_events()
         self.setDirty(True)
 
-    def removeEvent(self, eventID):
-        self.project.remove_event_by_id(eventID)
-        self.init_events()
+    def remove_event(self, event):
+        qmb = QMessageBox(self, icon=QMessageBox.Question,
+                          text='Are you sure you want to delete event {}?'.format(event.pylot_id))
+        qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        qmb.setDefaultButton(QMessageBox.Yes)
+        ret = qmb.exec_()
+        if not ret == qmb.Yes:
+            return
+        self.project.remove_event(event)
+        self.init_events(True)
 
     def createEventBox(self):
         '''
@@ -2187,27 +2194,31 @@ class MainWindow(QMainWindow):
             # changes attributes of the corresponding event
             table = self.project._table
             event = self.project.getEventFromPath(table[row][0].text())
-            if column == 8 or column == 9:
+            if column == 9 or column == 10:
                 # toggle checked states (exclusive)
-                item_ref = table[row][8]
-                item_test = table[row][9]
-                if column == 8 and item_ref.checkState():
+                item_ref = table[row][9]
+                item_test = table[row][10]
+                if column == 9 and item_ref.checkState():
                     item_test.setCheckState(QtCore.Qt.Unchecked)
                     event.setRefEvent(True)
-                elif column == 8 and not item_ref.checkState():
+                elif column == 9 and not item_ref.checkState():
                     event.setRefEvent(False)
-                elif column == 9 and item_test.checkState():
+                elif column == 10 and item_test.checkState():
                     item_ref.setCheckState(QtCore.Qt.Unchecked)
                     event.setTestEvent(True)
-                elif column == 9 and not item_test.checkState():
+                elif column == 10 and not item_test.checkState():
                     event.setTestEvent(False)
                 self.fill_eventbox()
-            elif column == 5:
+            elif column == 11:
                 # update event notes
-                notes = table[row][5].text()
+                notes = table[row][11].text()
                 event.addNotes(notes)
                 self.fill_eventbox()
 
+        # generate delete icon
+        del_icon = QIcon()
+        del_icon.addPixmap(QPixmap(':/icons/delete.png'))
+                
         # remove old table
         if hasattr(self, 'event_table'):
             self.event_table.setParent(None)
@@ -2215,9 +2226,10 @@ class MainWindow(QMainWindow):
 
         # init new qtable
         self.event_table = QtGui.QTableWidget()
-        self.event_table.setColumnCount(11)
+        self.event_table.setColumnCount(12)
         self.event_table.setRowCount(len(eventlist))
-        self.event_table.setHorizontalHeaderLabels(['Event',
+        self.event_table.setHorizontalHeaderLabels(['',
+                                                    'Event',
                                                     'Time',
                                                     'Lat',
                                                     'Lon',
@@ -2238,6 +2250,10 @@ class MainWindow(QMainWindow):
                 event_npicks = len(event.pylot_picks)
             if event.pylot_autopicks:
                 event_nautopicks = len(event.pylot_autopicks)
+
+            # init table items for current row
+            item_delete = QtGui.QPushButton()
+            item_delete.setIcon(del_icon)
             item_path = QtGui.QTableWidgetItem()
             item_time = QtGui.QTableWidgetItem()
             item_lat = QtGui.QTableWidgetItem()
@@ -2252,6 +2268,8 @@ class MainWindow(QMainWindow):
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
 
+            # manipulate items
+            item_delete.clicked.connect(lambda ev=event: self.remove_event(ev))
             item_ref.setBackground(self._colors['ref'])
             item_test.setBackground(self._colors['test'])
             item_path.setText(event.path)
@@ -2287,13 +2305,16 @@ class MainWindow(QMainWindow):
             else:
                 item_test.setCheckState(QtCore.Qt.Unchecked)
 
-            column = [item_path, item_time, item_lat, item_lon, item_depth, item_mag,
+            column = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_mag,
                       item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(column)
 
         for r_index, row in enumerate(self.project._table):
             for c_index, item in enumerate(row):
-                self.event_table.setItem(r_index, c_index, item)
+                if type(item) == QtGui.QTableWidgetItem:
+                    self.event_table.setItem(r_index, c_index, item)
+                elif type(item) in [QtGui.QWidget, QtGui.QPushButton]:
+                    self.event_table.setCellWidget(r_index, c_index, item)                
 
         header = self.event_table.horizontalHeader()
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
