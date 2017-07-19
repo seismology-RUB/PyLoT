@@ -2123,10 +2123,10 @@ class MainWindow(QMainWindow):
             if self.array_map:
                 self.array_map.setParent(None)
                 self.array_layout.removeWidget(self.array_map)
-        if not self.array_map:
-            self.get_metadata()
-            if not self.metadata:
-                return
+            elif not self.array_map:
+                self.get_metadata()
+                if not self.metadata:
+                    return
         self.am_figure = Figure()
         self.am_canvas = FigureCanvas(self.am_figure)
         self.am_toolbar = NavigationToolbar(self.am_canvas, self)
@@ -2360,7 +2360,7 @@ class MainWindow(QMainWindow):
         if hasattr(self.project, 'metadata'):
             self.metadata = self.project.metadata
             return True
-        if hasattr(self.project, 'invPath'):
+        if hasattr(self.project, 'inv_path'):
             settings.setValue("inventoryFile", self.project.inv_path)
 
         fninv = settings.value("inventoryFile", None)
@@ -2369,7 +2369,7 @@ class MainWindow(QMainWindow):
             if not set_inv(settings):
                 return None
         elif fninv is not None and not self.metadata:
-            if not hasattr(self.project, 'invPath'):
+            if not hasattr(self.project, 'inv_path'):
                 ans = QMessageBox.question(self, self.tr("Use default metadata..."),
                                            self.tr(
                                                "Do you want to use the default value for metadata?"),
@@ -2504,6 +2504,10 @@ class MainWindow(QMainWindow):
                 if self.project.metadata:
                     self.init_array_map(index=0)
                     return
+            if hasattr(self.project, 'inv_path'):
+                self.init_array_map(index=0)
+                return
+
             self.init_array_tab()
 
     def saveProjectAs(self, exists=False):
