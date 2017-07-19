@@ -2583,7 +2583,8 @@ class MainWindow(QMainWindow):
 
     def PyLoTprefs(self):
         if not self._props:
-            self._props = PropertiesDlg(self, infile=self.infile)
+            self._props = PropertiesDlg(self, infile=self.infile,
+                                        inputs=self._inputs)
 
         if self._props.exec_():
             self.init_wfWidget()
