@@ -775,6 +775,7 @@ class PhaseDefaults (QtGui.QDialog):
                  current_phases=[]):
         super (PhaseDefaults, self).__init__ (parent)
         self.nrow = nrow
+        self.checktoggle = True
         self.main_layout = QtGui.QVBoxLayout ()
         self.sub_layout = QtGui.QGridLayout ()
         self.phase_names = phase_defaults
@@ -786,18 +787,27 @@ class PhaseDefaults (QtGui.QDialog):
         self.selected_phases = []
 
     def setButtons(self):
+        self._check_all_button = QtGui.QPushButton('Check/Uncheck all')
         self._buttonbox = QDialogButtonBox (QDialogButtonBox.Ok |
                                             QDialogButtonBox.Cancel)
 
     def setupUi(self):
         self.setLayout (self.main_layout)
+        self.main_layout.addWidget(self._check_all_button)
         self.main_layout.addLayout (self.sub_layout)
         self.init_phase_layout ()
         self.main_layout.addWidget (self._buttonbox)
 
     def connectSignals(self):
+        self._check_all_button.clicked.connect(self.toggleAllChecked)
         self._buttonbox.accepted.connect (self.accept)
         self._buttonbox.rejected.connect (self.reject)
+
+    def toggleAllChecked(self):
+        for box in self._checkboxes.values():
+            box.setChecked(self.checktoggle)
+            print(box.text(), box.isChecked())
+        self.checktoggle = not self.checktoggle
 
     def init_phase_layout(self):
         self._checkboxes = {}
@@ -1084,8 +1094,8 @@ class PickDlg (QDialog):
             self.arrivals.plot(ax=ax, show=False)
             ax.legend()
             self.phaseplot.new = False
+            self.phaseplot.draw()
         self.phaseplot.show()
-        self.phaseplot.draw()
 
     def setDirty(self, bool):
         self._dirty = bool
@@ -3081,8 +3091,10 @@ class PhasesTab (PropTab):
             parameter = self.inputs
             if parameter.get ('extent') == 'global':
                 # get all default phase names known to obspy.taup
-                # in a list
-                phases = get_phase_names ('ttall')
+                # in a list and remove duplicates
+                phases = list(set(get_phase_names ('ttall')))
+                phases.sort()
+
         phaseDefaults = PhaseDefaults (self, phase_defaults=phases,
                                        current_phases=current_phases)
         if phaseDefaults.exec_ ():
