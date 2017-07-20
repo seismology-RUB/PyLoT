@@ -4,7 +4,7 @@ Created on Wed Mar 19 11:27:35 2014
 
 @author: sebastianw
 """
-
+5
 import os
 import sys
 import getpass
@@ -909,7 +909,7 @@ class PickDlg (QDialog):
         except Exception as e:
             print ('Warning: Could not init expected picks from taup: {}'.format (e))
             self.activateArrivalsButton (False)
-            
+
         # init pick delete (with right click)
         self.connect_pick_delete ()
 
@@ -1565,7 +1565,7 @@ class PickDlg (QDialog):
         horiz_comp = find_horizontals (data)
         data = scaleWFData (data, noiselevel * 2.5, horiz_comp)
 
-        x_res = getResolutionWindow (snr, parameter.get ('inp'))
+        x_res = getResolutionWindow (snr, parameter.get ('extent'))
 
         self.setXLims (tuple ([ini_pick - x_res, ini_pick + x_res]))
         traces = self.getTraceID (horiz_comp)
