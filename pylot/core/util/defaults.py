@@ -30,6 +30,9 @@ def readFilterInformation(pylot_parameter):
     return filter_information
 
 
+# suffix for phase name if not phase identified by last letter (P, p, etc.)
+ALTSUFFIX = ['diff', 'n', 'g', '1', '2', '3']
+
 FILTERDEFAULTS = readDefaultFilterInformation(os.path.join(os.path.expanduser('~'),
                                                            '.pylot',
                                                            'pylot.in'))

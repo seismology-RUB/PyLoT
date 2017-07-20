@@ -4,7 +4,7 @@ Created on Wed Mar 19 11:27:35 2014
 
 @author: sebastianw
 """
-5
+
 import os
 import sys
 import getpass
@@ -45,7 +45,8 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, LOCTOOLS, SetChannelComponents
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, ALTSUFFIX,\
+    LOCTOOLS, SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
 from autoPyLoT import autoPyLoT
@@ -114,6 +115,32 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     if checkable:
         action.setCheckable (True)
     return action
+
+def loopIdentifyPhase(phase):
+    phase_copy = phase
+    while not identifyPhase (phase_copy):
+        identified = False
+        for alt_suf in ALTSUFFIX:
+            if phase_copy.endswith (alt_suf):
+                phase_copy = phase_copy.split (alt_suf)[0]
+                identified = True
+        if not identified:
+            phase_copy = phase_copy[:-1]
+        if len (phase_copy) < 1:
+            print ('Warning: Could not identify phase {}!'.format (phase))
+            return
+    return phase_copy
+
+def identifyPhase(phase):
+    # common phase suffix for P and S
+    common_P = ['P', 'p']
+    common_S = ['S', 's']
+    if phase[-1] in common_P:
+        return 'P'
+    if phase[-1] in common_S:
+        return 'S'
+    else:
+        return False
 
 
 class ComparisonDialog (QDialog):
@@ -966,7 +993,7 @@ class PickDlg (QDialog):
         # self.p_button.setToolTip('Hotkey: "1"')
         # self.s_button.setToolTip('Hotkey: "2"')
 
-        self.plot_arrivals_button = QPushButton ('Plot arrivals')
+        self.plot_arrivals_button = QPushButton ('Plot phases')
         self.plot_arrivals_button.setCheckable(True)
 
         # create accept/reject button
@@ -1264,13 +1291,16 @@ class PickDlg (QDialog):
         self.set_button_color (self.p_button, 'yellow')
         self.updateCurrentLimits ()
         self.activatePicking ()
-        self.currentPhase = str (self.p_button.text ())
+        self.currentPhase = str(self.p_button.text ())
 
     def init_s_pick(self):
         self.set_button_color (self.s_button, 'yellow')
         self.updateCurrentLimits ()
         self.activatePicking ()
-        self.currentPhase = str (self.s_button.text ())
+        self.currentPhase = str(self.s_button.text ())
+
+    def getPhaseID(self, phase):
+        return identifyPhase (loopIdentifyPhase (phase))
 
     def set_button_color(self, button, color=None):
         if type (color) == QtGui.QColor:
@@ -1363,7 +1393,7 @@ class PickDlg (QDialog):
         return self._user
 
     def getFilterOptions(self, phase):
-        options = self.filteroptions[phase[0]]
+        options = self.filteroptions[self.getPhaseID(phase)]
         if type (options) == dict:
             return FilterOptions (**options)
         else:
@@ -1441,10 +1471,10 @@ class PickDlg (QDialog):
         self.disconnectMotionEvent ()
         self.cidpress = self.connectPressEvent (self.setPick)
 
-        if self.currentPhase.startswith ('P'):
+        if self.getPhaseID(self.currentPhase) == 'P':
             self.set_button_color (self.p_button, 'green')
             self.setIniPickP (gui_event, wfdata, trace_number)
-        elif self.currentPhase.startswith ('S'):
+        elif self.getPhaseID(self.currentPhase) == 'S':
             self.set_button_color (self.s_button, 'green')
             self.setIniPickS (gui_event, wfdata)
 
@@ -1477,7 +1507,7 @@ class PickDlg (QDialog):
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
-        filteroptions = self.getFilterOptions (phase[0]).parseFilterOptions ()
+        filteroptions = self.getFilterOptions (self.getPhaseID(phase)).parseFilterOptions ()
         if filteroptions:
             try:
                 data.filter (**filteroptions)
@@ -1535,7 +1565,7 @@ class PickDlg (QDialog):
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
-        filteroptions = self.getFilterOptions (phase).parseFilterOptions ()
+        filteroptions = self.getFilterOptions (self.getPhaseID(phase)).parseFilterOptions ()
         if filteroptions:
             try:
                 data.filter (**filteroptions)
@@ -1599,7 +1629,7 @@ class PickDlg (QDialog):
         phase = self.currentPhase
 
         # get filter parameter for the phase to be picked
-        filteroptions = self.getFilterOptions (phase).parseFilterOptions ()
+        filteroptions = self.getFilterOptions (self.getPhaseID(phase)).parseFilterOptions ()
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData ().copy ().select (channel=channel)
@@ -1692,7 +1722,7 @@ class PickDlg (QDialog):
                 if (type (self.getPicks (picktype)[phase]) is dict
                     or type (self.getPicks (picktype)[phase]) is AttribDict):
                     picks = self.getPicks (picktype)[phase]
-                    colors = phase_col[phase[0].upper ()]
+                    colors = phase_col[self.getPhaseID(phase)]
             elif phase is None:
                 for phase in self.getPicks (picktype):
                     self.drawPicks (phase, picktype, textOnly)
@@ -1824,7 +1854,7 @@ class PickDlg (QDialog):
         phase = self.currentPhase
         filtoptions = None
         if phase:
-            filtoptions = self.getFilterOptions (phase).parseFilterOptions ()
+            filtoptions = self.getFilterOptions (self.getPhaseID(phase)).parseFilterOptions ()
         if self.filterAction.isChecked ():
             if not phase:
                 filtoptions = FilterOptionsDialog.getFilterObject ()
@@ -3011,9 +3041,6 @@ class PhasesTab (PropTab):
         self.Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
         self.Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
 
-        # suffix for phase name if not phase identified by last letter (P, p, etc.)
-        self.alt_suffix = ['diff', 'n', 'g', '1', '2', '3']  # alternative suffix
-
         self.PphasesEdit = QLineEdit ()
         self.SphasesEdit = QLineEdit ()
 
@@ -3077,36 +3104,10 @@ class PhasesTab (PropTab):
         sorted_phases = {'P': [],
                          'S': []}
         for phase in phases:
-            idf_phase = self.loopIdentifyPhase (phase)
+            idf_phase = loopIdentifyPhase (phase)
             if idf_phase:
-                sorted_phases[self.identifyPhase (idf_phase)].append (phase)
+                sorted_phases[identifyPhase (idf_phase)].append (phase)
         return sorted_phases
-
-    def loopIdentifyPhase(self, phase):
-        phase_copy = phase
-        while not self.identifyPhase (phase_copy):
-            identified = False
-            for alt_suf in self.alt_suffix:
-                if phase_copy.endswith (alt_suf):
-                    phase_copy = phase_copy.split (alt_suf)[0]
-                    identified = True
-            if not identified:
-                phase_copy = phase_copy[:-1]
-            if len (phase_copy) < 1:
-                print ('Warning: Could not identify phase {}!'.format (phase))
-                return
-        return phase_copy
-
-    def identifyPhase(self, phase):
-        # common phase suffix for P and S
-        common_P = ['P', 'p']
-        common_S = ['S', 's']
-        if phase[-1] in common_P:
-            return 'P'
-        if phase[-1] in common_S:
-            return 'S'
-        else:
-            return False
 
     def getValues(self):
         p_phases = self.PphasesEdit.text ()
