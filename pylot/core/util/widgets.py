@@ -3011,6 +3011,9 @@ class PhasesTab (PropTab):
         self.Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
         self.Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
 
+        # suffix for phase name if not phase identified by last letter (P, p, etc.)
+        self.alt_suffix = ['diff', 'n', 'g', '1', '2', '3']  # alternative suffix
+
         self.PphasesEdit = QLineEdit ()
         self.SphasesEdit = QLineEdit ()
 
@@ -3073,17 +3076,17 @@ class PhasesTab (PropTab):
     def sortPhases(self, phases):
         sorted_phases = {'P': [],
                          'S': []}
-        # suffix for phase name if not phase identified by last letter (P, p, etc.)
-        alt_PS = ['diff', 'n', 'g', '1', '2', '3']  # alternative suffix
         for phase in phases:
-            self.loopIdentifyPhase (phase, alt_PS, sorted_phases)
+            idf_phase = self.loopIdentifyPhase (phase)
+            if idf_phase:
+                sorted_phases[self.identifyPhase (idf_phase)].append (phase)
         return sorted_phases
 
-    def loopIdentifyPhase(self, phase, alt_PS, sorted_phases):
+    def loopIdentifyPhase(self, phase):
         phase_copy = phase
         while not self.identifyPhase (phase_copy):
             identified = False
-            for alt_suf in alt_PS:
+            for alt_suf in self.alt_suffix:
                 if phase_copy.endswith (alt_suf):
                     phase_copy = phase_copy.split (alt_suf)[0]
                     identified = True
@@ -3092,7 +3095,7 @@ class PhasesTab (PropTab):
             if len (phase_copy) < 1:
                 print ('Warning: Could not identify phase {}!'.format (phase))
                 return
-        sorted_phases[self.identifyPhase (phase_copy)].append (phase)
+        return phase_copy
 
     def identifyPhase(self, phase):
         # common phase suffix for P and S
