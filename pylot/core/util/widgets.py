@@ -806,7 +806,6 @@ class PhaseDefaults (QtGui.QDialog):
     def toggleAllChecked(self):
         for box in self._checkboxes.values():
             box.setChecked(self.checktoggle)
-            print(box.text(), box.isChecked())
         self.checktoggle = not self.checktoggle
 
     def init_phase_layout(self):
