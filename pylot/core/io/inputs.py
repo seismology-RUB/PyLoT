@@ -107,7 +107,7 @@ class PylotParameter(object):
             yield key, value
 
     def hasParam(self, parameter):
-        if self.__parameter.has_key(parameter):
+        if parameter in self.__parameter.keys():
             return True
         return False
 
