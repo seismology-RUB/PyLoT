@@ -241,8 +241,8 @@ def picks_from_picksdict(picks, creation_info=None):
                 continue
             onset = phase['mpp']
             try:
-            	ccode = phase['channel']
-            	ncode = phase['network']
+                ccode = phase['channel']
+                ncode = phase['network']
             except:
                 continue
             pick = ope.Pick()
@@ -900,34 +900,34 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         for Pick in arrivals_copy:
             if Pick.phase_hint[0] == 'P':
                 if Pick.time_errors.uncertainty <= ErrorsP[0]:     
-  	            Pw0.append(Pick.time_errors.uncertainty)      
+                    Pw0.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsP[0]) and \
                      (Pick.time_errors.uncertainty <= ErrorsP[1]):
                     Pw1.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsP[1]) and \
                      (Pick.time_errors.uncertainty <= ErrorsP[2]):
-  	            Pw2.append(Pick.time_errors.uncertainty)      
+                    Pw2.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsP[2]) and \
                      (Pick.time_errors.uncertainty <= ErrorsP[3]):
-  	            Pw3.append(Pick.time_errors.uncertainty)      
+                    Pw3.append(Pick.time_errors.uncertainty)      
                 elif Pick.time_errors.uncertainty > ErrorsP[3]:
-  	            Pw4.append(Pick.time_errors.uncertainty)      
+                    Pw4.append(Pick.time_errors.uncertainty)      
                 else:
                     pass
             elif Pick.phase_hint[0] == 'S':
                 if Pick.time_errors.uncertainty <= ErrorsS[0]:     
-  	            Sw0.append(Pick.time_errors.uncertainty)      
+                    Sw0.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsS[0]) and \
                      (Pick.time_errors.uncertainty <= ErrorsS[1]):
-  	            Sw1.append(Pick.time_errors.uncertainty)      
+                    Sw1.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsS[1]) and \
                      (Pick.time_errors.uncertainty <= ErrorsS[2]):
                     Sw2.append(Pick.time_errors.uncertainty)      
                 elif (Pick.time_errors.uncertainty > ErrorsS[2]) and \
                      (Pick.time_errors.uncertainty <= ErrorsS[3]):
-  	            Sw3.append(Pick.time_errors.uncertainty)      
+                    Sw3.append(Pick.time_errors.uncertainty)      
                 elif Pick.time_errors.uncertainty > ErrorsS[3]:
-  	            Sw4.append(Pick.time_errors.uncertainty)      
+                    Sw4.append(Pick.time_errors.uncertainty)      
                 else:
                     pass
             else:
