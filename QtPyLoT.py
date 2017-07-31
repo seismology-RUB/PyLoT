@@ -81,7 +81,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.thread import AutoPickThread, Thread
+from pylot.core.util.thread import AutoPickThread, Thread, MultiThread
 from pylot.core.util.version import get_git_version as _getVersionString
 
 if sys.version_info.major == 3:
@@ -1838,6 +1838,36 @@ class MainWindow(QMainWindow):
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
         self.tap.fill_tabs(picked=True)
 
+    # def autoPick(self):
+    #     self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output')
+    #     if not os.path.exists(self.autosave):
+    #         QMessageBox.warning(self, "PyLoT Warning",
+    #                             "No autoPyLoT output declared!")
+    #         return
+    #     self.listWidget = QListWidget()
+    #     self.setDirty(True)
+    #     self.logDockWidget = QDockWidget("AutoPickLog", self)
+    #     self.logDockWidget.setObjectName("LogDockWidget")
+    #     self.logDockWidget.setAllowedAreas(
+    #         Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+    #     self.logDockWidget.setWidget(self.listWidget)
+    #     self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
+    #     self.addListItem('Loading default values from PyLoT-input file %s'
+    #                      % self.infile)
+    #     autopick_parameter = self._inputs
+    #     self.addListItem(str(autopick_parameter))
+    #     receventid = self.get_current_event_path()
+    #     self.thread = AutoPickThread(parent=self,
+    #                                  func=autoPyLoT,
+    #                                  infile=self.infile,
+    #                                  fnames=self.fnames,
+    #                                  eventid=receventid,
+    #                                  savepath=self.autosave)
+
+    #     self.thread.message.connect(self.addListItem)
+    #     self.thread.start()
+    #     self.thread.finished.connect(self.finalizeAutoPick)
+
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output')
         if not os.path.exists(self.autosave):
@@ -1852,26 +1882,44 @@ class MainWindow(QMainWindow):
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.logDockWidget.setWidget(self.listWidget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        self.addListItem('Loading default values from PyLoT-input file %s'
-                         % self.infile)
-        autopick_parameter = self._inputs
-        self.addListItem(str(autopick_parameter))
-        receventid = self.get_current_event_path()
-        self.thread = AutoPickThread(parent=self,
-                                     func=autoPyLoT,
-                                     infile=self.infile,
-                                     fnames=self.fnames,
-                                     eventid=receventid,
-                                     savepath=self.autosave)
+        # self.addListItem('Loading default values from PyLoT-input file %s'
+        #                  % self.infile)
 
-        self.thread.message.connect(self.addListItem)
-        self.thread.start()
-        self.thread.finished.connect(self.finalizeAutoPick)
+        stations = []
+        # catch all station names
+        for trace in self.data.getWFData():
+            station = trace.stats.station
+            if not station in stations:
+                stations.append(station)
+        
+        mp_args = []
+        # create input_dict for each station in a list for multiprocessing.Pool iteration
+        for station in stations:
+            args = {'parameter': self._inputs,
+                    'station': station,
+                    'fnames': 'None',
+                    'eventid': self.get_current_event_path (),
+                    'iplot': 0,
+                    'fig_dict': None,
+                    'locflag': 0}
+            mp_args.append(args)
+            
+        self.mp_thread = MultiThread (self, autoPyLoT, args=mp_args,
+                                      ncores=0,
+                                      progressText='Picking event...',
+                                      pb_widget=None,
+                                      redirect_stdout=True)
+        
+        self.addListItem(str(self._inputs))
+
+        self.mp_thread.message.connect(self.addListItem)
+        self.mp_thread.start()
+        self.mp_thread.finished.connect(self.finalizeAutoPick)
 
     def finalizeAutoPick(self):
         self.drawPicks(picktype='auto')
         self.draw()
-        self.thread.quit()
+        self.mp_thread.quit()
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
@@ -2218,7 +2266,7 @@ class MainWindow(QMainWindow):
         # generate delete icon
         del_icon = QIcon()
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
-                
+
         # remove old table
         if hasattr(self, 'event_table'):
             self.event_table.setParent(None)
