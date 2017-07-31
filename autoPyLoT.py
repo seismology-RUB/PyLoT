@@ -58,19 +58,19 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
     locflag = 1
     if input_dict and isinstance(input_dict, dict):
-        if input_dict.has_key('parameter'):
+        if 'parameter' in input_dict:
             parameter = input_dict['parameter']
-        if input_dict.has_key('fig_dict'):
+        if 'fig_dict' in input_dict:
             fig_dict = input_dict['fig_dict']
-        if input_dict.has_key('station'):
+        if 'station' in input_dict:
             station = input_dict['station']
-        if input_dict.has_key('fnames'):
+        if 'fnames' in input_dict:
             fnames = input_dict['fnames']
-        if input_dict.has_key('eventid'):
+        if 'eventid' in input_dict:
             eventid = input_dict['eventid']
-        if input_dict.has_key('iplot'):
+        if 'iplot' in input_dict:
             iplot = input_dict['iplot']
-        if input_dict.has_key('locflag'):
+        if 'locflag' in input_dict:
             locflag = input_dict['locflag']
 
     if not parameter:
@@ -210,7 +210,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             ##########################################################
             # !automated picking starts here!
             if input_dict:
-                if input_dict.has_key('fig_dict'):
+                if 'fig_dict' in input_dict:
                     fig_dict = input_dict['fig_dict']
                     picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
             else:
@@ -296,7 +296,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                 break
                             print("autoPyLoT: Starting with iteration No. %d ..." % nlloccounter)
                             if input_dict:
-                                if input_dict.has_key('fig_dict'):
+                                if 'fig_dict' in input_dict:
                                     fig_dict = input_dict['fig_dict']
                                     picks = iteratepicker(wfdat, nllocfile, picks, badpicks, parameter, fig_dict=fig_dict)
                             else:
