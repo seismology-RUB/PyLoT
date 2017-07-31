@@ -66,6 +66,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             station = input_dict['station']
         if input_dict.has_key('fnames'):
             fnames = input_dict['fnames']
+        if input_dict.has_key('eventid'):
+            eventid = input_dict['eventid']
         if input_dict.has_key('iplot'):
             iplot = input_dict['iplot']
         if input_dict.has_key('locflag'):
@@ -155,7 +157,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             events = []
             events.append(os.path.join(datapath,
                                        parameter['database'],
-                                       parameter['eventID']))
+                                       eventid))
 
         if not events:
             print('autoPyLoT: No events given. Return!')
