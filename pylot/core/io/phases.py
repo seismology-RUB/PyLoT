@@ -3,8 +3,11 @@
 
 import glob
 import obspy.core.event as ope
+from obspy.core.event import read_events
 import os
 import scipy.io as sio
+import matplotlib.pyplot as plt
+import numpy as np
 import warnings
 from obspy.core import UTCDateTime
 from obspy.core.util import AttribDict
@@ -845,3 +848,150 @@ def merge_picks(event, picks):
                 p.time, p.time_errors, p.waveform_id.network_code, p.method_id = time, err, network, method
         del time, err, phase, station, network, method
     return event
+
+def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
+    """
+   Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
+   Uncertainties are tranformed into quality classes and visualized via histogram if desired.
+   Ludger Küperkoch, BESTEC GmbH, 07/2017
+   """
+
+    # read all onset weights
+    Pw0 = []
+    Pw1 = []
+    Pw2 = []
+    Pw3 = []
+    Pw4 = []
+    Sw0 = []
+    Sw1 = []
+    Sw2 = []
+    Sw3 = []
+    Sw4 = []
+    for names in xmlnames: 
+        print("Getting onset weights from {}".format(names))
+        cat = read_events(names)
+        cat_copy = cat.copy()
+        arrivals = cat.events[0].picks
+        arrivals_copy = cat_copy.events[0].picks
+        # Prefere manual picks if qualities are sufficient!
+        for Pick in arrivals:
+            if Pick.method_id.id == 'manual':
+                mstation = Pick.waveform_id.station_code
+                mstation_ext = mstation + '_'
+                for mpick in arrivals_copy:
+                    if mpick.phase_hint[0] == 'P':
+                        if ((mpick.waveform_id.station_code == mstation) or \
+                           (mpick.waveform_id.station_code == mstation_ext)) and \
+                           (mpick.method_id == 'auto') and \
+                           (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
+                           del mpick
+                           break
+                    elif mpick.phase_hint[0] == 'S':
+                        if ((mpick.waveform_id.station_code == mstation) or \
+                           (mpick.waveform_id.station_code == mstation_ext)) and \
+                           (mpick.method_id == 'auto') and \
+                           (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
+                           del mpick
+                           break
+        lendiff = len(arrivals) - len(arrivals_copy)
+        if lendiff is not 0:
+            print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
+
+        for Pick in arrivals_copy:
+            if Pick.phase_hint[0] == 'P':
+                if Pick.time_errors.uncertainty <= ErrorsP[0]:     
+  	            Pw0.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsP[0]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsP[1]):
+                    Pw1.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsP[1]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsP[2]):
+  	            Pw2.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsP[2]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsP[3]):
+  	            Pw3.append(Pick.time_errors.uncertainty)      
+                elif Pick.time_errors.uncertainty > ErrorsP[3]:
+  	            Pw4.append(Pick.time_errors.uncertainty)      
+                else:
+                    pass
+            elif Pick.phase_hint[0] == 'S':
+                if Pick.time_errors.uncertainty <= ErrorsS[0]:     
+  	            Sw0.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsS[0]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsS[1]):
+  	            Sw1.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsS[1]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsS[2]):
+                    Sw2.append(Pick.time_errors.uncertainty)      
+                elif (Pick.time_errors.uncertainty > ErrorsS[2]) and \
+                     (Pick.time_errors.uncertainty <= ErrorsS[3]):
+  	            Sw3.append(Pick.time_errors.uncertainty)      
+                elif Pick.time_errors.uncertainty > ErrorsS[3]:
+  	            Sw4.append(Pick.time_errors.uncertainty)      
+                else:
+                    pass
+            else:
+                print("Phase hint not defined for picking!")
+                pass
+
+    if plotflag == 0:
+        Punc = [Pw0, Pw1, Pw2, Pw3, Pw4]
+        Sunc = [Sw0, Sw1, Sw2, Sw3, Sw4]
+        return Puns, Sunc
+    else:
+        # get percentage of weights
+        numPweights = np.sum([len(Pw0), len(Pw1), len(Pw2), len(Pw3), len(Pw4)])
+        numSweights = np.sum([len(Sw0), len(Sw1), len(Sw2), len(Sw3), len(Sw4)])
+        try:
+            P0perc = 100 / numPweights * len(Pw0)
+        except:
+            P0perc = 0
+        try:
+            P1perc = 100 / numPweights * len(Pw1)
+        except:
+            P1perc = 0
+        try:
+            P2perc = 100 / numPweights * len(Pw2)
+        except:
+            P2perc = 0
+        try:
+            P3perc = 100 / numPweights * len(Pw3)
+        except:
+            P3perc = 0
+        try:
+            P4perc = 100 / numPweights * len(Pw4)
+        except:
+            P4perc = 0
+        try:
+            S0perc = 100 / numSweights * len(Sw0)
+        except:
+            Soperc = 0
+        try:
+            S1perc = 100 / numSweights * len(Sw1)
+        except:
+            S1perc = 0
+        try:
+            S2perc = 100 / numSweights * len(Sw2)
+        except:
+            S2perc = 0
+        try:
+            S3perc = 100 / numSweights * len(Sw3)
+        except:
+            S3perc = 0
+        try:
+            S4perc = 100 / numSweights * len(Sw4)
+        except:
+            S4perc = 0
+
+        weights = ('0', '1', '2', '3', '4')
+        y_pos = np.arange(len(weights))
+        width = 0.34
+        plt.bar(y_pos - width, [P0perc, P1perc, P2perc, P3perc, P4perc], width, color='black')
+        plt.bar(y_pos, [S0perc, S1perc, S2perc, S3perc, S4perc], width, color='red')
+        plt.ylabel('%')
+        plt.xticks(y_pos, weights)
+        plt.xlim([-0.5, 4.5])
+        plt.xlabel('Qualities')
+        plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights)) 
+        plt.show()
+
