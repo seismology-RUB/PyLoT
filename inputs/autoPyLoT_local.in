@@ -80,8 +80,8 @@ ARH                                 #algoS#        %choose algorithm for S-onset
 0.2                                 #fmpickwin#    %pick window around P onset for calculating zero crossings
 %quality assessment%
 #inital AIC onset#
-0.01 0.02 0.04 0.08                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
-0.04 0.08 0.16 0.32                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
+0.05 0.10 0.20 0.40                 #timeerrorsP#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P
+0.10 0.20 0.40 0.80                 #timeerrorsS#   %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S
 4                                   #minAICPslope#  %below this slope [counts/s] the initial P pick is rejected
 1.2                                 #minAICPSNR#    %below this SNR the initial P pick is rejected
 2                                   #minAICSslope#  %below this slope [counts/s] the initial S pick is rejected
