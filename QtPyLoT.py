@@ -81,7 +81,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.thread import AutoPickThread, Thread, MultiThread
+from pylot.core.util.thread import AutoPickThread, Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
 
 if sys.version_info.major == 3:
@@ -1885,36 +1885,22 @@ class MainWindow(QMainWindow):
         # self.addListItem('Loading default values from PyLoT-input file %s'
         #                  % self.infile)
 
-        stations = []
-        # catch all station names
-        for trace in self.data.getWFData():
-            station = trace.stats.station
-            if not station in stations:
-                stations.append(station)
-        
-        mp_args = []
-        # create input_dict for each station in a list for multiprocessing.Pool iteration
-        for station in stations:
-            args = {'parameter': self._inputs,
-                    'station': station,
-                    'fnames': 'None',
-                    'eventid': self.get_current_event_path (),
-                    'iplot': 0,
-                    'fig_dict': None,
-                    'locflag': 0}
-            mp_args.append(args)
-            
-        self.mp_thread = MultiThread (self, autoPyLoT, args=mp_args,
-                                      ncores=0,
-                                      progressText='Picking event...',
-                                      pb_widget=None,
-                                      redirect_stdout=True)
-        
+        args = {'parameter': self._inputs,
+                'station': 'all',
+                'fnames': 'None',
+                'eventid': self.get_current_event_path (),
+                'iplot': 0,
+                'fig_dict': None,
+                'locflag': 0}
+
+        self.mp_thread = QtCore.QThreadPool()
+        self.mp_worker = Worker(autoPyLoT, args, redirect_stdout=True)
+        self.mp_thread.start(self.mp_worker)
+
         self.addListItem(str(self._inputs))
 
-        self.mp_thread.message.connect(self.addListItem)
-        self.mp_thread.start()
-        self.mp_thread.finished.connect(self.finalizeAutoPick)
+        self.mp_worker.signals.message.connect(self.addListItem)
+        #self.mp_thread.finished.connect(self.finalizeAutoPick)
 
     def finalizeAutoPick(self):
         self.drawPicks(picktype='auto')
