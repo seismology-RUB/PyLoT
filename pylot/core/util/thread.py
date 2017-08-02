@@ -137,7 +137,7 @@ class Worker(QRunnable):
         else:
             self.signals.result.emit(result)
         finally:
-            self.signals.finished.emit()
+            self.signals.finished.emit('Done')
 
     def write(self, text):
         self.signals.message.emit(text)
