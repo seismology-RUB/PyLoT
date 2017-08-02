@@ -27,6 +27,7 @@ from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
 from pylot.core.util.event import Event
 from pylot.core.util.utils import real_None
+from pylot.core.util.defaults import SEPARATOR
 
 __version__ = _getVersionString()
 
@@ -60,7 +61,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     parameter = real_None(parameter)
     inputfile = real_None(inputfile)
     eventid = real_None(eventid)
-    
+
     locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
@@ -83,8 +84,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             parameter = PylotParameter(inputfile)
             iplot = parameter['iplot']
         else:
-            print('No parameters set and no input file given. Choose either of both.')
-            return
+            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+            print('Using default input file {}'.format(infile))
+            parameter = PylotParameter(infile)
     else:
         if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
@@ -92,7 +94,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if inputfile:
             print('Parameters set and input file given. Choose either of both.')
             return
-            
+
     data = Data()
 
     evt = None
@@ -167,7 +169,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not events:
             print('autoPyLoT: No events given. Return!')
             return
-        
+
+        # transform system path separator to '/'
+        for index, event in enumerate(events):
+            event = event.replace(SEPARATOR, '/')
+            events[index] = event
+
         for event in events:
             pylot_event = Event(event) #event should be path to event directory
             data.setEvtData(pylot_event)
