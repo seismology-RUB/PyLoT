@@ -181,6 +181,11 @@ def fnConstructor(s):
         fn = '_' + fn
     return fn
 
+def real_None(value):
+    if value == 'None':
+        return None
+    else:
+        return value
 
 def four_digits(year):
     """

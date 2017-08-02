@@ -26,6 +26,7 @@ from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.version import get_git_version as _getVersionString
 from pylot.core.util.event import Event
+from pylot.core.util.utils import real_None
 
 __version__ = _getVersionString()
 
@@ -56,6 +57,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 ***********************************'''.format(version=_getVersionString())
     print(splash)
 
+    parameter = real_None(parameter)
+    inputfile = real_None(inputfile)
+    eventid = real_None(eventid)
+    
     locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
@@ -433,5 +438,5 @@ if __name__ == "__main__":
 
     cla = parser.parse_args()
     
-    picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames), 
+    picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
                       eventid=str(cla.eventid), savepath=str(cla.spath))
