@@ -7,6 +7,8 @@ Created on Wed Feb 26 12:31:25 2014
 """
 
 import os
+import platform
+
 from pylot.core.loc import nll
 from pylot.core.loc import hyposat
 from pylot.core.loc import hypo71
@@ -29,6 +31,12 @@ def readFilterInformation(pylot_parameter):
                           'S': s_filter}
     return filter_information
 
+# determine system dependent path separator
+system_name = platform.system()
+if system_name in ["Linux", "Darwin"]:
+    SEPARATOR = '/'
+elif system_name == "Windows":
+    SEPARATOR = '\\'
 
 # suffix for phase name if not phase identified by last letter (P, p, etc.)
 ALTSUFFIX = ['diff', 'n', 'g', '1', '2', '3']
