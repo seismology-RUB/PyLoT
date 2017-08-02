@@ -7,6 +7,8 @@ Created on Wed Mar 19 11:27:35 2014
 
 import os
 import sys
+import multiprocessing
+import subprocess
 import getpass
 import warnings
 import copy
@@ -32,7 +34,7 @@ from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
     QGridLayout, QIcon, QKeySequence, QLabel, QLineEdit, QMessageBox, \
-    QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QWidget, \
+    QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog, QKeySequence
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
@@ -2831,6 +2833,144 @@ class PylotParaBox (QtGui.QWidget):
         self.qmb = QtGui.QMessageBox (QtGui.QMessageBox.Icon.Warning,
                                       'Warning', message)
         self.qmb.show ()
+
+
+class AutoPickDlg (QDialog):
+    def __init__(self, parent=None, sge=False):
+        super (AutoPickDlg, self).__init__ (parent)
+
+        if not self.parent():
+            print('WARNING: No parent given! PyLoT parameter can not be read!')
+
+        self.pp_export = os.path.join(os.path.expanduser('~'), '.pylot', '.pylot_exported.in')
+
+        self.sge = sge
+        self.layout = QVBoxLayout()
+        self.setWindowTitle('Pick whole project...')
+        self.setLayout(self.layout)
+
+        self.setupUI()
+        self.resize(720, 0)
+
+    def setupUI(self):
+        self.init_sb_ncores()
+        self.init_gb()
+
+        self.layout.addLayout(self.layout_ncores, 2)
+        self.layout.addWidget(self.gb)
+        self.addJobWidget()
+
+    def init_sb_ncores(self):
+        self.layout_ncores = QHBoxLayout()
+        self.label_ncores = QLabel('Number of CPU cores:')
+        self.sb_ncores = QSpinBox()
+        if not self.sge:
+            maxcores = multiprocessing.cpu_count ()
+            self.sb_ncores.setMinimum(1)
+            self.sb_ncores.setMaximum (maxcores)
+            self.sb_ncores.setEnabled(False) # not yet implemented in autoPyLoT
+            self.layout_ncores.addWidget(self.label_ncores)
+            self.layout_ncores.addWidget(self.sb_ncores)
+            self.layout_ncores.setStretch(0, 1)
+            self.layout_ncores.setStretch(1, 0)
+
+    def init_gb(self):
+        title_sge = {
+            True: 'Submit autoPyLoT process to grid engine',
+            False: 'Spawn autoPyLot process on local machine'
+        }
+
+        self.gb = QGroupBox (title_sge[self.sge])
+
+    def addJobWidget(self):
+        widget_sge = {
+            True: Submit2Grid(),
+            False: SubmitLocal()
+        }
+
+        self.job_widget = widget_sge[self.sge]
+        self.job_widget.button.clicked.connect(self.accept)
+
+        self.jobLayout = QVBoxLayout()
+        self.jobLayout.addWidget(self.job_widget)
+
+        self.gb.setLayout(self.jobLayout)
+
+    def exportParameter(self):
+        pylot_params = self.parent()._inputs
+        pylot_params.export2File(self.pp_export)
+
+    def accept(self):
+        self.job_widget.start(self.pp_export)
+        QDialog.accept(self)
+
+
+class Submit2Grid (QWidget):
+    def __init__(self, parent=None):
+        super (Submit2Grid, self).__init__ (parent)
+        self.main_layout = QVBoxLayout()
+        self.sub_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.label = QLabel('Full GE command (without script name):')
+        self.textedit = QLineEdit()
+        self.button = QPushButton('Run')
+
+        self.script_fn = '.autoPyLot.sh'
+
+        self.sub_layout.addWidget(self.label)
+        self.sub_layout.addWidget(self.textedit)
+
+        self.main_layout.addLayout(self.sub_layout)
+        self.main_layout.addWidget(self.button)
+
+        self.setDefaultCommand()
+
+    def setDefaultCommand(self):
+        default_command = 'qsub -l low -cwd -q "TARGET_MACHINE" -pe mpi-fu NCORES'
+        self.textedit.setText(default_command)
+
+    def start(self, pp_export):
+        self.genShellScript(pp_export)
+        self.execute_script()
+
+    def genShellScript(self, pp_export):
+        outfile = open(self.script_fn, 'w')
+        outfile.write('#!/bin/sh\n\n')
+        outfile.write('python autoPyLoT.py -i {} \n'.format(pp_export))
+        outfile.close()
+
+    def execute_script(self):
+        command = self.textedit.text().strip()
+        command += ' '
+        command += self.script_fn
+        pid = subprocess.Popen(command)
+        print('exec. command: {}'.format (command))
+        print('Spawned autoPyLoT process with pid {}'.format (pid))
+
+
+class SubmitLocal (QWidget):
+    def __init__(self, parent=None):
+        super (SubmitLocal, self).__init__ (parent)
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.button = QPushButton('Run')
+
+        self.script_fn = ['python', 'autoPyLoT.py', '-i']
+
+        self.main_layout.addWidget(self.button)
+
+    def start(self):
+        print('subprocess Popen')
+
+    def start(self, pp_export):
+        self.execute_command(pp_export)
+
+    def execute_command(self, pp_export):
+        command = self.script_fn
+        command.append(pp_export)
+        print ('exec. command: {}'.format (command))
+        p = subprocess.Popen (command)
+        print ('Spawned autoPyLoT process with pid {}'.format (p.pid))
 
 
 class PropertiesDlg (QDialog):
