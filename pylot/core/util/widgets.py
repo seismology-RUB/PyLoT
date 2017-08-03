@@ -2927,7 +2927,7 @@ class Submit2Grid(QWidget):
         self.setDefaultCommand()
 
     def setDefaultCommand(self):
-        default_command = 'qsub -l low -cwd -q "TARGET_MACHINE" -pe mpi-fu NCORES'
+        default_command = 'qsub -l low -cwd -q TARGET_MACHINE -pe mpi-fu NCORES'
         self.textedit.setText(default_command)
 
     def start(self, pp_export):
@@ -2941,12 +2941,11 @@ class Submit2Grid(QWidget):
         outfile.close()
 
     def execute_script(self):
-        command = self.textedit.text().strip()
-        command += ' '
-        command += self.script_fn
-        pid = subprocess.Popen(command)
-        print('exec. command: {}'.format(command))
-        print('Spawned autoPyLoT process with pid {}'.format(pid))
+        command = self.textedit.text().strip().split(' ')
+        command.append(self.script_fn)
+        p = subprocess.Popen(command)
+        print('exec. command: {}'.format(str(command)))
+        print('Spawned autoPyLoT process with pid {}'.format(p.pid))
 
 
 class SubmitLocal(QWidget):
@@ -2969,7 +2968,7 @@ class SubmitLocal(QWidget):
     def execute_command(self, pp_export):
         command = self.script_fn
         command.append(pp_export)
-        print('exec. command: {}'.format(command))
+        print('exec. command: {}'.format(str(command)))
         p = subprocess.Popen(command)
         print('Spawned autoPyLoT process with pid {}'.format(p.pid))
 
