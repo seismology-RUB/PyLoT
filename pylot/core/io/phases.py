@@ -2,21 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import obspy.core.event as ope
-from obspy.core.event import read_events
 import os
-import scipy.io as sio
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
+import obspy.core.event as ope
+import scipy.io as sio
 from obspy.core import UTCDateTime
+from obspy.core.event import read_events
 from obspy.core.util import AttribDict
-
 from pylot.core.io.inputs import PylotParameter
-from pylot.core.io.location import create_arrival, create_event, \
-    create_magnitude, create_origin, create_pick
+from pylot.core.io.location import create_event, \
+    create_magnitude
 from pylot.core.pick.utils import select_for_phase
 from pylot.core.util.utils import getOwner, full_range, four_digits
+
 
 def add_amplitudes(event, amplitudes):
     amplitude_list = []
@@ -35,6 +36,7 @@ def add_amplitudes(event, amplitudes):
             continue
     event.amplitudes = amplitude_list
     return event
+
 
 def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     """
@@ -203,7 +205,7 @@ def picksdict_from_picks(evt):
         try:
             onsets = picks[station]
         except KeyError as e:
-            #print(e)
+            # print(e)
             onsets = {}
         mpp = pick.time
         spe = pick.time_errors.uncertainty
@@ -232,6 +234,7 @@ def picksdict_from_picks(evt):
         onsets[pick.phase_hint] = phase.copy()
         picks[station] = onsets.copy()
     return picks
+
 
 def picks_from_picksdict(picks, creation_info=None):
     picks_list = list()
@@ -266,8 +269,8 @@ def picks_from_picksdict(picks, creation_info=None):
             pick.phase_hint = label
             pick.method_id = ope.ResourceIdentifier(id=picker)
             pick.waveform_id = ope.WaveformStreamID(station_code=station,
-                                                      channel_code=ccode,
-                                                      network_code=ncode)
+                                                    channel_code=ccode,
+                                                    network_code=ncode)
             try:
                 polarity = phase['fm']
                 if polarity == 'U' or '+':
@@ -277,7 +280,7 @@ def picks_from_picksdict(picks, creation_info=None):
                 else:
                     pick.polarity = 'undecidable'
             except KeyError as e:
-                if 'fm' in str(e): # no polarity information found for this phase
+                if 'fm' in str(e):  # no polarity information found for this phase
                     pass
                 else:
                     raise e
@@ -289,13 +292,12 @@ def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0
     import glob
 
     db_root = os.path.join(root_dir, db_dir)
-    evt_list = glob.glob1(db_root,'e????.???.??')
+    evt_list = glob.glob1(db_root, 'e????.???.??')
 
     for evt in evt_list:
         if verbosity > 0:
             print('Reassessing event {0}'.format(evt))
         reassess_pilot_event(root_dir, db_dir, evt, out_dir, fn_param, verbosity)
-
 
 
 def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
@@ -305,7 +307,6 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     from pylot.core.pick.utils import earllatepicker
 
     if fn_param is None:
-        import pylot.core.util.defaults as defaults
         fn_param = defaults.AUTOMATIC_DEFAULTS
 
     default = PylotParameter(fn_param, verbosity)
@@ -339,7 +340,8 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
                 except Exception as e:
                     if 'No file matching file pattern:' in e.message:
                         if verbosity > 0:
-                            warnings.warn('no waveform data found for station {station}'.format(station=station), RuntimeWarning)
+                            warnings.warn('no waveform data found for station {station}'.format(station=station),
+                                          RuntimeWarning)
                         datacheck.append(fn_pattern + ' (no data)\n')
                         continue
                     else:
@@ -395,7 +397,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
             os.makedirs(out_dir)
         fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
-    #evt.write(fnout_prefix + 'cnv', format='VELEST')
+    # evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
 def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
@@ -424,10 +426,10 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
     :param: eventinfo, optional, needed for VELEST-cnv file 
             and FOCMEC- and HASH-input files 
     :type:  `obspy.core.event.Event` object
-    """ 
+    """
 
     if fformat == 'NLLoc':
-        print ("Writing phases to %s for NLLoc" % filename)
+        print("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
@@ -451,7 +453,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                 ss = onset.second
                 ms = onset.microsecond
                 ss_ms = ss + ms / 1000000.0
-                pweight = 1 # use pick
+                pweight = 1  # use pick
                 try:
                     if arrivals[key]['P']['weight'] >= 4:
                         pweight = 0  # do not use pick
@@ -478,7 +480,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                 ss = onset.second
                 ms = onset.microsecond
                 ss_ms = ss + ms / 1000000.0
-                sweight = 1 # use pick
+                sweight = 1  # use pick
                 try:
                     if arrivals[key]['S']['weight'] >= 4:
                         sweight = 0  # do not use pick
@@ -496,15 +498,15 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
 
         fid.close()
     elif fformat == 'HYPO71':
-        print ("Writing phases to %s for HYPO71" % filename)
+        print("Writing phases to %s for HYPO71" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('                                                                %s\n' %
-                                                                            parameter.get('eventID'))
+                  parameter.get('eventID'))
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
-                if len(stat) > 4: # HYPO71 handles only 4-string station IDs
+                if len(stat) > 4:  # HYPO71 handles only 4-string station IDs
                     stat = stat[1:5]
                 Ponset = arrivals[key]['P']['mpp']
                 Sonset = arrivals[key]['S']['mpp']
@@ -544,36 +546,36 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                     elif sweight >= 2:
                         sstr = 'E'
                     fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (stat,
-                                                                                             pstr,
-                                                                                             fm,
-                                                                                             pweight,
-                                                                                             year,
-                                                                                             month,
-                                                                                             day,
-                                                                                             hh,
-                                                                                             mm,
-                                                                                             ss_ms,
-                                                                                             Sss_ms,
-                                                                                             sstr,
-                                                                                             sweight,
-                                                                                             Ao))
+                                                                                               pstr,
+                                                                                               fm,
+                                                                                               pweight,
+                                                                                               year,
+                                                                                               month,
+                                                                                               day,
+                                                                                               hh,
+                                                                                               mm,
+                                                                                               ss_ms,
+                                                                                               Sss_ms,
+                                                                                               sstr,
+                                                                                               sweight,
+                                                                                               Ao))
                 else:
                     fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (stat,
-                                                                                             pstr,
-                                                                                             fm,
-                                                                                             pweight,
-                                                                                             year,
-                                                                                             month,
-                                                                                             day,
-                                                                                             hh,
-                                                                                             mm,
-                                                                                             ss_ms,
-                                                                                             Ao))
+                                                                                               pstr,
+                                                                                               fm,
+                                                                                               pweight,
+                                                                                               year,
+                                                                                               month,
+                                                                                               day,
+                                                                                               hh,
+                                                                                               mm,
+                                                                                               ss_ms,
+                                                                                               Ao))
 
         fid.close()
 
     elif fformat == 'HYPOSAT':
-        print ("Writing phases to %s for HYPOSAT" % filename)
+        print("Writing phases to %s for HYPOSAT" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
@@ -595,7 +597,7 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                     # use symmetrized picking error as std
                     # (read the HYPOSAT manual)
                     pstd = arrivals[key]['P']['spe']
-                    fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n' 
+                    fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
             # S onsets
             if arrivals[key].has_key('S') and arrivals[key]['S']:
@@ -610,12 +612,12 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                     sms = Sonset.microsecond
                     Sss = sss + sms / 1000000.0
                     sstd = arrivals[key]['S']['spe']
-                    fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n' 
+                    fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, syear, smonth, sday, shh, smm, Sss, sstd))
         fid.close()
 
     elif fformat == 'VELEST':
-        print ("Writing phases to %s for VELEST" % filename)
+        print("Writing phases to %s for VELEST" % filename)
         fid = open("%s" % filename, 'w')
         # get informations needed in cnv-file
         # check, whether latitude is N or S and longitude is E or W
@@ -631,14 +633,14 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         # get last two integers of origin year
         stime = eventsource['time']
         if stime.year - 2000 >= 0:
-           syear = stime.year - 2000
+            syear = stime.year - 2000
         else:
-           syear = stime.year - 1900
-        ifx = 0 # default value, see VELEST manual, pp. 22-23
+            syear = stime.year - 1900
+        ifx = 0  # default value, see VELEST manual, pp. 22-23
         # write header
         fid.write('%s%02d%02d %02d%02d %05.2f %7.4f%c %8.4f%c %7.2f %6.2f     %02.0f  0.0 0.03  1.0  1.0\n' % (
-                   syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
-                   cns, eventsource['longitude'], cew, eventsource['depth'],eventinfo.magnitudes[0]['mag'], ifx))
+            syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
+            cns, eventsource['longitude'], cew, eventsource['depth'], eventinfo.magnitudes[0]['mag'], ifx))
         n = 0
         for key in arrivals:
             # P onsets
@@ -646,33 +648,33 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                 if arrivals[key]['P']['weight'] < 4:
                     n += 1
                     stat = key
-                    if len(stat) > 4: # VELEST handles only 4-string station IDs
+                    if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
                     Ponset = arrivals[key]['P']['mpp']
                     Pweight = arrivals[key]['P']['weight']
-                    Prt = Ponset - stime # onset time relative to source time
+                    Prt = Ponset - stime  # onset time relative to source time
                     if n % 6 is not 0:
-                        fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))  
+                        fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
                     else:
-                        fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))  
-            # S onsets
+                        fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
+                        # S onsets
             if arrivals[key].has_key('S'):
                 if arrivals[key]['S']['weight'] < 4:
                     n += 1
                     stat = key
-                    if len(stat) > 4: # VELEST handles only 4-string station IDs
+                    if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
                     Sonset = arrivals[key]['S']['mpp']
                     Sweight = arrivals[key]['S']['weight']
-                    Srt = Ponset - stime # onset time relative to source time
+                    Srt = Ponset - stime  # onset time relative to source time
                     if n % 6 is not 0:
-                        fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))  
+                        fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
                     else:
-                        fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))  
+                        fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))
         fid.close()
 
     elif fformat == 'hypoDD':
-        print ("Writing phases to %s for hypoDD" % filename)
+        print("Writing phases to %s for hypoDD" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for hypoDD-phase file
         eventsource = eventinfo.origins[0]
@@ -681,59 +683,62 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         hddID = event.split('.')[0][1:5]
         # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
-                      stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second, 
-                      eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
-                      eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
+            stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
+            eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
+            eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
         for key in arrivals:
             if arrivals[key].has_key('P'):
                 # P onsets
                 if arrivals[key]['P']['weight'] < 4:
                     Ponset = arrivals[key]['P']['mpp']
-                    Prt = Ponset - stime # onset time relative to source time
-                    fid.write('%s    %6.3f  1  P\n' % (key, Prt)) 
-                # S onsets
+                    Prt = Ponset - stime  # onset time relative to source time
+                    fid.write('%s    %6.3f  1  P\n' % (key, Prt))
+                    # S onsets
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
-                    Srt = Sonset - stime # onset time relative to source time
-                    fid.write('%-5s    %6.3f  1  S\n' % (key, Srt)) 
+                    Srt = Sonset - stime  # onset time relative to source time
+                    fid.write('%-5s    %6.3f  1  S\n' % (key, Srt))
 
         fid.close()
 
     elif fformat == 'FOCMEC':
-        print ("Writing phases to %s for FOCMEC" % filename)
+        print("Writing phases to %s for FOCMEC" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for FOCMEC-input file
         eventsource = eventinfo.origins[0]
         stime = eventsource['time']
         # write header line including event information
         fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (parameter.get('eventID'),
-                   stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
-                   eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
-                   eventinfo.magnitudes[0]['mag']))
+                                                                             stime.year, stime.month, stime.day,
+                                                                             stime.hour, stime.minute, stime.second,
+                                                                             eventsource['latitude'],
+                                                                             eventsource['longitude'],
+                                                                             eventsource['depth'] / 1000,
+                                                                             eventinfo.magnitudes[0]['mag']))
         picks = eventinfo.picks
         for key in arrivals:
             if arrivals[key].has_key('P'):
                 if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
-                         station = picks[i].waveform_id.station_code
-                         if station == stat:
-                             # get resource ID
-                             resid_picks = picks[i].get('resource_id')
-                             # find same ID in eventinfo
-                             # there it is the pick_id!!
-                             for j in range(len(eventinfo.origins[0].arrivals)):
-                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
-                                 if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
-                                     if len(stat) > 4: # FOCMEC handles only 4-string station IDs
-                                         stat = stat[1:5]
-                                     az = eventinfo.origins[0].arrivals[j].get('azimuth')
-                                     inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
-                                     fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
-                                                                        az,
-                                                                        inz,
-                                                    arrivals[key]['P']['fm']))
-                                     break
+                        station = picks[i].waveform_id.station_code
+                        if station == stat:
+                            # get resource ID
+                            resid_picks = picks[i].get('resource_id')
+                            # find same ID in eventinfo
+                            # there it is the pick_id!!
+                            for j in range(len(eventinfo.origins[0].arrivals)):
+                                resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
+                                if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
+                                    if len(stat) > 4:  # FOCMEC handles only 4-string station IDs
+                                        stat = stat[1:5]
+                                    az = eventinfo.origins[0].arrivals[j].get('azimuth')
+                                    inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
+                                    fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
+                                                                           az,
+                                                                           inz,
+                                                                           arrivals[key]['P']['fm']))
+                                    break
 
         fid.close()
 
@@ -742,9 +747,9 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         # HASH-driver 1 and 2 (see HASH manual!)
         filename1 = filename + 'drv1' + '.phase'
         filename2 = filename + 'drv2' + '.phase'
-        print ("Writing phases to %s for HASH for HASH-driver 1" % filename1)
+        print("Writing phases to %s for HASH for HASH-driver 1" % filename1)
         fid1 = open("%s" % filename1, 'w')
-        print ("Writing phases to %s for HASH for HASH-driver 2" % filename2)
+        print("Writing phases to %s for HASH for HASH-driver 2" % filename2)
         fid2 = open("%s" % filename2, 'w')
         # get event information needed for HASH-input file
         eventsource = eventinfo.origins[0]
@@ -759,26 +764,32 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         erz = eventsource.depth_errors['uncertainty']
         stime = eventsource['time']
         if stime.year - 2000 >= 0:
-           syear = stime.year - 2000
+            syear = stime.year - 2000
         else:
-           syear = stime.year - 1900
+            syear = stime.year - 1900
         picks = eventinfo.picks
         # write header line including event information
         # for HASH-driver 1
         fid1.write('%s%02d%02d%02d%02d%5.2f%2dN%5.2f%3dE%5.2f%6.3f%4.2f%5.2f%5.2f%s\n' % (syear,
-                             stime.month, stime.day, stime.hour, stime.minute, stime.second, 
-                                       latdeg, latmin, londeg, lonmin, eventsource['depth'], 
-                                                   eventinfo.magnitudes[0]['mag'], erh, erz, 
-                                                                                    hashID))
+                                                                                          stime.month, stime.day,
+                                                                                          stime.hour, stime.minute,
+                                                                                          stime.second,
+                                                                                          latdeg, latmin, londeg,
+                                                                                          lonmin, eventsource['depth'],
+                                                                                          eventinfo.magnitudes[0][
+                                                                                              'mag'], erh, erz,
+                                                                                          hashID))
         # write header line including event information
         # for HASH-driver 2
-        fid2.write('%d%02d%02d%02d%02d%5.2f%dN%5.2f%3dE%6.2f%5.2f    %d                                          %5.2f %5.2f                                        %4.2f      %s \n' % (syear, stime.month, stime.day, 
-                                               stime.hour, stime.minute, stime.second, 
-                                                         latdeg,latmin,londeg, lonmin, 
-                                                                 eventsource['depth'], 
-                                           eventsource['quality']['used_phase_count'],
-                                               erh, erz, eventinfo.magnitudes[0]['mag'],
-                                                                                hashID))
+        fid2.write(
+            '%d%02d%02d%02d%02d%5.2f%dN%5.2f%3dE%6.2f%5.2f    %d                                          %5.2f %5.2f                                        %4.2f      %s \n' % (
+                syear, stime.month, stime.day,
+                stime.hour, stime.minute, stime.second,
+                latdeg, latmin, londeg, lonmin,
+                eventsource['depth'],
+                eventsource['quality']['used_phase_count'],
+                erh, erz, eventinfo.magnitudes[0]['mag'],
+                hashID))
 
         # write phase lines
         for key in arrivals:
@@ -789,36 +800,38 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
                     ncode = arrivals[key]['P']['network']
 
                     if arrivals[key]['P']['weight'] < 2:
-                        Pqual='I'
+                        Pqual = 'I'
                     else:
-                        Pqual='E'
-                    
+                        Pqual = 'E'
+
                     for i in range(len(picks)):
-                         station = picks[i].waveform_id.station_code
-                         if station == stat:
-                             # get resource ID
-                             resid_picks = picks[i].get('resource_id')
-                             # find same ID in eventinfo
-                             # there it is the pick_id!!
-                             for j in range(len(eventinfo.origins[0].arrivals)):
-                                 resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
-                                 if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
-                                     if len(stat) > 4: # HASH handles only 4-string station IDs
-                                         stat = stat[1:5]
-                                     az = eventinfo.origins[0].arrivals[j].get('azimuth')
-                                     inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
-                                     dist = eventinfo.origins[0].arrivals[j].get('distance') 
-                                     # write phase line for HASH-driver 1
-                                     fid1.write('%-4s%sP%s%d                   0                                   %3.1f          %03d %03d   2     1   %s\n' % (stat, Pqual, arrivals[key]['P']['fm'], arrivals[key]['P']['weight'], 
-                                                                               dist, inz, az, ccode))
-                                     # write phase line for HASH-driver 2
-                                     fid2.write('%-4s %s   %s %s %s                    \n' % (
-                                                                                           stat,
-                                                                                          ncode,
-                                                                                          ccode,
-                                                                                          Pqual,
-                                                                       arrivals[key]['P']['fm']))
-                                     break
+                        station = picks[i].waveform_id.station_code
+                        if station == stat:
+                            # get resource ID
+                            resid_picks = picks[i].get('resource_id')
+                            # find same ID in eventinfo
+                            # there it is the pick_id!!
+                            for j in range(len(eventinfo.origins[0].arrivals)):
+                                resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
+                                if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
+                                    if len(stat) > 4:  # HASH handles only 4-string station IDs
+                                        stat = stat[1:5]
+                                    az = eventinfo.origins[0].arrivals[j].get('azimuth')
+                                    inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
+                                    dist = eventinfo.origins[0].arrivals[j].get('distance')
+                                    # write phase line for HASH-driver 1
+                                    fid1.write(
+                                        '%-4s%sP%s%d                   0                                   %3.1f          %03d %03d   2     1   %s\n' % (
+                                            stat, Pqual, arrivals[key]['P']['fm'], arrivals[key]['P']['weight'],
+                                            dist, inz, az, ccode))
+                                    # write phase line for HASH-driver 2
+                                    fid2.write('%-4s %s   %s %s %s                    \n' % (
+                                        stat,
+                                        ncode,
+                                        ccode,
+                                        Pqual,
+                                        arrivals[key]['P']['fm']))
+                                    break
 
         fid1.write('                                    %s' % hashID)
         fid1.close()
@@ -849,6 +862,7 @@ def merge_picks(event, picks):
         del time, err, phase, station, network, method
     return event
 
+
 def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     """
    Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
@@ -867,7 +881,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     Sw2 = []
     Sw3 = []
     Sw4 = []
-    for names in xmlnames: 
+    for names in xmlnames:
         print("Getting onset weights from {}".format(names))
         cat = read_events(names)
         cat_copy = cat.copy()
@@ -881,53 +895,53 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                 for mpick in arrivals_copy:
                     if mpick.phase_hint[0] == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or \
-                           (mpick.waveform_id.station_code == mstation_ext)) and \
-                           ((mpick.method_id).split('/')[1] == 'auto') and \
-                           (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
-                           del mpick
-                           break
+                                    (mpick.waveform_id.station_code == mstation_ext)) and \
+                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                                (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
+                            del mpick
+                            break
                     elif mpick.phase_hint[0] == 'S':
                         if ((mpick.waveform_id.station_code == mstation) or \
-                           (mpick.waveform_id.station_code == mstation_ext)) and \
-                           ((mpick.method_id).split('/')[1] == 'auto') and \
-                           (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
-                           del mpick
-                           break
+                                    (mpick.waveform_id.station_code == mstation_ext)) and \
+                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                                (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
+                            del mpick
+                            break
         lendiff = len(arrivals) - len(arrivals_copy)
         if lendiff is not 0:
             print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
 
         for Pick in arrivals_copy:
             if Pick.phase_hint[0] == 'P':
-                if Pick.time_errors.uncertainty <= ErrorsP[0]:     
-                    Pw0.append(Pick.time_errors.uncertainty)      
+                if Pick.time_errors.uncertainty <= ErrorsP[0]:
+                    Pw0.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsP[0]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsP[1]):
-                    Pw1.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsP[1]):
+                    Pw1.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsP[1]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsP[2]):
-                    Pw2.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsP[2]):
+                    Pw2.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsP[2]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsP[3]):
-                    Pw3.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsP[3]):
+                    Pw3.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsP[3]:
-                    Pw4.append(Pick.time_errors.uncertainty)      
+                    Pw4.append(Pick.time_errors.uncertainty)
                 else:
                     pass
             elif Pick.phase_hint[0] == 'S':
-                if Pick.time_errors.uncertainty <= ErrorsS[0]:     
-                    Sw0.append(Pick.time_errors.uncertainty)      
+                if Pick.time_errors.uncertainty <= ErrorsS[0]:
+                    Sw0.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsS[0]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsS[1]):
-                    Sw1.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsS[1]):
+                    Sw1.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsS[1]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsS[2]):
-                    Sw2.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsS[2]):
+                    Sw2.append(Pick.time_errors.uncertainty)
                 elif (Pick.time_errors.uncertainty > ErrorsS[2]) and \
-                     (Pick.time_errors.uncertainty <= ErrorsS[3]):
-                    Sw3.append(Pick.time_errors.uncertainty)      
+                        (Pick.time_errors.uncertainty <= ErrorsS[3]):
+                    Sw3.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsS[3]:
-                    Sw4.append(Pick.time_errors.uncertainty)      
+                    Sw4.append(Pick.time_errors.uncertainty)
                 else:
                     pass
             else:
@@ -992,6 +1006,5 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         plt.xticks(y_pos, weights)
         plt.xlim([-0.5, 4.5])
         plt.xlabel('Qualities')
-        plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights)) 
+        plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights))
         plt.show()
-

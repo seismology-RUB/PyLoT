@@ -12,6 +12,7 @@ from obspy.core import Stream
 from pylot.core.pick.utils import getsignalwin
 from scipy.optimize import curve_fit
 
+
 class Magnitude(object):
     '''
     Superclass for calculating Wood-Anderson peak-to-peak
@@ -44,7 +45,6 @@ class Magnitude(object):
         self.setiplot(iplot)
         self.calcwapp()
         self.calcsourcespec()
-
 
     def getwfstream(self):
         return self.wfstream
@@ -85,6 +85,7 @@ class Magnitude(object):
     def calcsourcespec(self):
         self.sourcespek = None
 
+
 class WApp(Magnitude):
     '''
     Method to derive peak-to-peak amplitude as seen on a Wood-Anderson-
@@ -92,8 +93,8 @@ class WApp(Magnitude):
     '''
 
     def calcwapp(self):
-        print ("Getting Wood-Anderson peak-to-peak amplitude ...")
-        print ("Simulating Wood-Anderson seismograph ...")
+        print("Getting Wood-Anderson peak-to-peak amplitude ...")
+        print("Simulating Wood-Anderson seismograph ...")
 
         self.wapp = None
         stream = self.getwfstream()
@@ -118,7 +119,7 @@ class WApp(Magnitude):
         # get maximum peak within pick window
         iwin = getsignalwin(th, self.getTo(), self.getpwin())
         self.wapp = np.max(sqH[iwin])
-        print ("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
+        print("Determined Wood-Anderson peak-to-peak amplitude: %f mm") % self.wapp
 
         if self.getiplot() > 1:
             stream.plot()
@@ -143,10 +144,10 @@ class DCfc(Magnitude):
     '''
 
     def calcsourcespec(self):
-        print ("Calculating source spectrum ....")
+        print("Calculating source spectrum ....")
 
-        self.w0 = None # DC-value
-        self.fc = None # corner frequency
+        self.w0 = None  # DC-value
+        self.fc = None  # corner frequency
 
         stream = self.getwfstream()
         tr = stream[0]
@@ -159,14 +160,14 @@ class DCfc(Magnitude):
         # fft
         fny = tr.stats.sampling_rate / 2
         l = len(xdat) / tr.stats.sampling_rate
-        n = tr.stats.sampling_rate * l # number of fft bins after Bath
+        n = tr.stats.sampling_rate * l  # number of fft bins after Bath
         # find next power of 2 of data length
         m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
         N = int(np.power(m, 2))
         y = tr.stats.delta * np.fft.fft(xdat, N)
-        Y = abs(y[: N/2])
+        Y = abs(y[: N / 2])
         L = (N - 1) / tr.stats.sampling_rate
-        f = np.arange(0, fny, 1/L)
+        f = np.arange(0, fny, 1 / L)
 
         # remove zero-frequency and frequencies above
         # corner frequency of seismometer (assumed
@@ -185,20 +186,18 @@ class DCfc(Magnitude):
         [optspecfit, pcov] = curve_fit(synthsourcespec, F, YY.real, [DCin, Fcin])
         self.w0 = optspecfit[0]
         self.fc = optspecfit[1]
-        print ("DCfc: Determined DC-value: %e m/Hz, \n" \
-               "Determined corner frequency: %f Hz" % (self.w0, self.fc)) 
-        
-        
-        #if self.getiplot() > 1:
-        iplot=2
-        if iplot > 1:
-            print ("DCfc: Determined DC-value: %e m/Hz, \n"
-                   "Determined corner frequency: %f Hz" % (self.w0, self.fc))
+        print("DCfc: Determined DC-value: %e m/Hz, \n" \
+              "Determined corner frequency: %f Hz" % (self.w0, self.fc))
 
+        # if self.getiplot() > 1:
+        iplot = 2
+        if iplot > 1:
+            print("DCfc: Determined DC-value: %e m/Hz, \n"
+                  "Determined corner frequency: %f Hz" % (self.w0, self.fc))
 
         if self.getiplot() > 1:
             f1 = plt.figure()
-            plt.subplot(2,1,1)
+            plt.subplot(2, 1, 1)
             # show displacement in mm
             plt.plot(t, np.multiply(tr, 1000), 'k')
             plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
@@ -206,12 +205,12 @@ class DCfc(Magnitude):
             plt.xlabel('Time since %s' % tr.stats.starttime)
             plt.ylabel('Displacement [mm]')
 
-            plt.subplot(2,1,2)
+            plt.subplot(2, 1, 2)
             plt.loglog(f, Y.real, 'k')
             plt.loglog(F, YY.real)
             plt.loglog(F, fit, 'g')
             plt.title('Source Spectrum from P Pulse, DC=%e m/Hz, fc=%4.1f Hz' \
-                       % (self.w0, self.fc))
+                      % (self.w0, self.fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
@@ -235,8 +234,7 @@ def synthsourcespec(f, omega0, fcorner):
     :type:  float
     '''
 
-    #ssp = omega0 / (pow(2, (1 + f / fcorner)))
+    # ssp = omega0 / (pow(2, (1 + f / fcorner)))
     ssp = omega0 / (1 + pow(2, (f / fcorner)))
 
     return ssp
-

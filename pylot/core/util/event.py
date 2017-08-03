@@ -6,7 +6,6 @@ import os
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier
-
 from pylot.core.io.phases import picks_from_picksdict
 
 
@@ -14,10 +13,11 @@ class Event(ObsPyEvent):
     '''
     Pickable class derived from ~obspy.core.event.Event containing information on a single event.
     '''
+
     def __init__(self, path):
         self.pylot_id = path.split('/')[-1]
         # initialize super class
-        super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/'+self.pylot_id))
+        super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/' + self.pylot_id))
         self.path = path
         self.database = path.split('/')[-2]
         self.datapath = path.split('/')[-3]
@@ -32,13 +32,13 @@ class Event(ObsPyEvent):
     def get_notes_path(self):
         notesfile = os.path.join(self.path, 'notes.txt')
         return notesfile
-    
+
     def get_notes(self):
         notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
                 path = str(infile.readlines()[0].split('\n')[0])
-                text = '[eventInfo: '+path+']'
+                text = '[eventInfo: ' + path + ']'
                 self.addNotes(text)
                 try:
                     datetime = UTCDateTime(path.split('/')[-1])
@@ -73,13 +73,13 @@ class Event(ObsPyEvent):
         '''
         for station in picks:
             self.pylot_picks[station] = picks[station]
-        #add ObsPy picks
+        # add ObsPy picks
         self.picks = picks_from_picksdict(self.pylot_picks)
-        
+
     def addAutopicks(self, autopicks):
         for station in autopicks:
             self.pylot_autopicks[station] = autopicks[station]
-        
+
     def setPick(self, station, pick):
         if pick:
             self.pylot_picks[station] = pick
@@ -89,14 +89,14 @@ class Event(ObsPyEvent):
             except Exception as e:
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.picks = picks_from_picksdict(self.pylot_picks)
-        
+
     def setPicks(self, picks):
         '''
         set pylot picks and delete and overwrite all existing
         '''
         self.pylot_picks = picks
         self.picks = picks_from_picksdict(self.pylot_picks)
-                
+
     def getPick(self, station):
         if station in self.pylot_picks.keys():
             return self.pylot_picks[station]
@@ -110,7 +110,7 @@ class Event(ObsPyEvent):
 
     def setAutopicks(self, autopicks):
         self.pylot_autopicks = autopicks
-        
+
     def getAutopick(self, station):
         if station in self.pylot_autopicks.keys():
             return self.pylot_autopicks[station]

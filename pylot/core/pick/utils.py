@@ -9,6 +9,7 @@
 """
 
 import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
@@ -41,11 +42,11 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
     if verbosity == 2:
-        print('earllatepicker:')        
+        print('earllatepicker:')
         print('nfac:', nfac)
         print('Init pick:', Pick1)
         print('TSNR (T_noise, T_gap, T_signal):', TSNR)
-        
+
     LPick = None
     EPick = None
     PickError = None
@@ -69,14 +70,14 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         print('x_inoise:', x[inoise])
         print('x_isignal:', x[isignal])
         print('nlevel:', nlevel)
-    
+
     # get time where signal exceeds nlevel
     ilup, = np.where(x[isignal] > nlevel)
     ildown, = np.where(x[isignal] < -nlevel)
     if not ilup.size and not ildown.size:
         if verbosity:
-            print ("earllatepicker: Signal lower than noise level!\n"
-                   "Skip this trace!")
+            print("earllatepicker: Signal lower than noise level!\n"
+                  "Skip this trace!")
         return LPick, EPick, PickError
     il = min(np.min(ilup) if ilup.size else float('inf'),
              np.min(ildown) if ildown.size else float('inf'))
@@ -118,7 +119,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
 
     if iplot > 1:
         if not fig:
-            fig = plt.figure()#iplot)
+            fig = plt.figure()  # iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
@@ -131,9 +132,9 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], '--k', label='lpp')
         ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], '--k', label='epp')
         ax.plot([Pick1 + PickError, Pick1 + PickError],
-                 [max(x) / 2, -max(x) / 2], 'r--', label='spe')
+                [max(x) / 2, -max(x) / 2], 'r--', label='spe')
         ax.plot([Pick1 - PickError, Pick1 - PickError],
-                 [max(x) / 2, -max(x) / 2], 'r--')
+                [max(x) / 2, -max(x) / 2], 'r--')
         ax.set_xlabel('Time [s] since %s' % X[0].stats.starttime)
         ax.set_yticks([])
         ax.set_title(
@@ -173,7 +174,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
 
     FM = None
     if Pick is not None:
-        print ("fmpicker: Get first motion (polarity) of onset using unfiltered seismogram...")
+        print("fmpicker: Get first motion (polarity) of onset using unfiltered seismogram...")
 
         xraw = Xraw[0].data
         xfilt = Xfilt[0].data
@@ -212,15 +213,15 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         else:
             li1 = index1[0]
         if np.size(xraw[ipick[0][1]:ipick[0][li1]]) == 0:
-            print ("fmpicker: Onset on unfiltered trace too emergent for first motion determination!")
+            print("fmpicker: Onset on unfiltered trace too emergent for first motion determination!")
             P1 = None
         else:
             imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][li1]]))
             if imax1 == 0:
                 imax1 = np.argmax(abs(xraw[ipick[0][1]:ipick[0][index1[1]]]))
                 if imax1 == 0:
-                    print ("fmpicker: Zero crossings too close!")
-                    print ("Skip first motion determination!")
+                    print("fmpicker: Zero crossings too close!")
+                    print("Skip first motion determination!")
                     return FM
 
             islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
@@ -254,15 +255,15 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         else:
             li2 = index2[0]
         if np.size(xfilt[ipick[0][1]:ipick[0][li2]]) == 0:
-            print ("fmpicker: Onset on filtered trace too emergent for first motion determination!")
+            print("fmpicker: Onset on filtered trace too emergent for first motion determination!")
             P2 = None
         else:
             imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][li2]]))
             if imax2 == 0:
                 imax2 = np.argmax(abs(xfilt[ipick[0][1]:ipick[0][index2[1]]]))
                 if imax2 == 0:
-                    print ("fmpicker: Zero crossings too close!")
-                    print ("Skip first motion determination!")
+                    print("fmpicker: Zero crossings too close!")
+                    print("Skip first motion determination!")
                     return FM
 
             islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
@@ -286,11 +287,11 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             elif P1[0] > 0 >= P2[0]:
                 FM = '+'
 
-        print ("fmpicker: Found polarity %s" % FM)
+        print("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
         if not fig:
-            fig = plt.figure()#iplot)
+            fig = plt.figure()  # iplot)
         ax1 = fig.add_subplot(211)
         ax1.plot(t, xraw, 'k')
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
@@ -304,11 +305,11 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         ax1.set_title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
             0].stats.station)
 
-        ax2=fig.add_subplot(2,1,2, sharex=ax1)
+        ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
         ax2.set_title('First-Motion Determination, Filtered Data')
         ax2.plot(t, xfilt, 'k')
         ax2.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
-                       linewidth=2)
+                 linewidth=2)
         if P2 is not None:
             ax2.plot(t[islope2], xfilt[islope2])
             ax2.plot(zc2, np.zeros(len(zc2)), '*g', markersize=14)
@@ -359,7 +360,7 @@ def getSNR(X, TSNR, t1, tracenum=0):
     SNR = None
     SNRdB = None
     noiselevel = None
-    
+
     x = X[tracenum].data
     npts = X[tracenum].stats.npts
     sr = X[tracenum].stats.sampling_rate
@@ -372,7 +373,7 @@ def getSNR(X, TSNR, t1, tracenum=0):
     # get signal window
     isignal = getsignalwin(t, t1, TSNR[2])
     if np.size(inoise) < 1:
-        print ("getSNR: Empty array inoise, check noise window!")
+        print("getSNR: Empty array inoise, check noise window!")
         return SNR, SNRdB, noiselevel
 
     # demean over entire waveform
@@ -380,13 +381,13 @@ def getSNR(X, TSNR, t1, tracenum=0):
 
     # calculate ratios
     noiselevel = np.sqrt(np.mean(np.square(x[inoise])))
-    #signallevel = np.sqrt(np.mean(np.square(x[isignal])))
+    # signallevel = np.sqrt(np.mean(np.square(x[isignal])))
 
     if np.size(isignal) < 1:
-        print ("getSNR: Empty array isignal, check signal window!")
+        print("getSNR: Empty array isignal, check signal window!")
         return SNR, SNRdB, noiselevel
-    
-    #noiselevel = np.abs(x[inoise]).max()
+
+    # noiselevel = np.abs(x[inoise]).max()
     signallevel = np.abs(x[isignal]).max()
 
     SNR = signallevel / noiselevel
@@ -418,9 +419,9 @@ def getnoisewin(t, t1, tnoise, tgap):
     inoise, = np.where((t <= max([t1 - tgap, 0])) \
                        & (t >= max([t1 - tnoise - tgap, 0])))
     if np.size(inoise) < 1:
-        inoise, = np.where((t>=t[0]) & (t<=t1))
+        inoise, = np.where((t >= t[0]) & (t <= t1))
         if np.size(inoise) < 1:
-            print ("getnoisewin: Empty array inoise, check noise window!")
+            print("getnoisewin: Empty array inoise, check noise window!")
 
     return inoise
 
@@ -444,7 +445,7 @@ def getsignalwin(t, t1, tsignal):
     isignal, = np.where((t <= min([t1 + tsignal, len(t)])) \
                         & (t >= t1))
     if np.size(isignal) < 1:
-        print ("getsignalwin: Empty array isignal, check signal window!")
+        print("getsignalwin: Empty array isignal, check signal window!")
 
     return isignal
 
@@ -473,7 +474,7 @@ def getResolutionWindow(snr, extent):
     >>> getResolutionWindow(2)
     2.5
     """
-    
+
     res_wins = {
         'regional': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
         'local': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
@@ -487,11 +488,11 @@ def getResolutionWindow(snr, extent):
             time_resolution = res_wins[extent]['LRW']
         elif snr < 3.:
             time_resolution = res_wins[extent]['MRW']
-        elif snr >3.:
+        elif snr > 3.:
             time_resolution = res_wins[extent]['HRW']
     else:
         time_resolution = res_wins[extent]['VLRW']
-        
+
     return time_resolution / 2
 
 
@@ -573,8 +574,8 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
         # calculate vp/vs ratio before check
         vpvsr = p1[0] + 1
-        print ("###############################################")
-        print ("wadaticheck: Average Vp/Vs ratio before check: %f" % vpvsr)
+        print("###############################################")
+        print("wadaticheck: Average Vp/Vs ratio before check: %f" % vpvsr)
 
         checkedPpicks = []
         checkedSpicks = []
@@ -611,23 +612,23 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
             # calculate vp/vs ratio after check
             cvpvsr = p2[0] + 1
-            print ("wadaticheck: Average Vp/Vs ratio after check: %f" % cvpvsr)
-            print ("wadatacheck: Skipped %d S pick(s)" % ibad)
+            print("wadaticheck: Average Vp/Vs ratio after check: %f" % cvpvsr)
+            print("wadatacheck: Skipped %d S pick(s)" % ibad)
         else:
-            print ("###############################################")
-            print ("wadatacheck: Not enough checked S-P times available!")
-            print ("Skip Wadati check!")
+            print("###############################################")
+            print("wadatacheck: Not enough checked S-P times available!")
+            print("Skip Wadati check!")
 
         checkedonsets = pickdic
 
     else:
-        print ("wadaticheck: Not enough S-P times available for reliable regression!")
-        print ("Skip wadati check!")
+        print("wadaticheck: Not enough S-P times available for reliable regression!")
+        print("Skip wadati check!")
         wfitflag = 1
 
     # plot results
     if iplot > 0:
-        plt.figure()#iplot)
+        plt.figure()  # iplot)
         f1, = plt.plot(Ppicks, SPtimes, 'ro')
         if wfitflag == 0:
             f2, = plt.plot(Ppicks, wdfit, 'k')
@@ -645,12 +646,14 @@ def wadaticheck(pickdic, dttolerance, iplot):
 
     return checkedonsets
 
+
 def RMS(X):
     '''
     Function returns root mean square of a given array X
     '''
-    return np.sqrt(np.sum(np.power(X, 2))/len(X))
-    
+    return np.sqrt(np.sum(np.power(X, 2)) / len(X))
+
+
 def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None):
     '''
     Function to detect spuriously picked noise peaks.
@@ -684,7 +687,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    print ("Checking signal length ...")
+    print("Checking signal length ...")
 
     if len(X) > 1:
         # all three components available
@@ -714,21 +717,21 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     numoverthr = len(np.where(rms[isignal] >= minsiglevel)[0])
 
     if numoverthr >= minnum:
-        print ("checksignallength: Signal reached required length.")
+        print("checksignallength: Signal reached required length.")
         returnflag = 1
     else:
-        print ("checksignallength: Signal shorter than required minimum signal length!")
-        print ("Presumably picked noise peak, pick is rejected!")
-        print ("(min. signal length required: %s s)" % minsiglength)
+        print("checksignallength: Signal shorter than required minimum signal length!")
+        print("Presumably picked noise peak, pick is rejected!")
+        print("(min. signal length required: %s s)" % minsiglength)
         returnflag = 0
 
     if iplot == 2:
         if not fig:
-            fig = plt.figure()#iplot)
+            fig = plt.figure()  # iplot)
         ax = fig.add_subplot(111)
         ax.plot(t, rms, 'k', label='RMS Data')
-        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')        
-        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')        
+        ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+        ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
                 [minsiglevel, minsiglevel], 'g', linewidth=2, label='Minimum Signal Level')
         ax.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2, label='Onset')
@@ -771,8 +774,8 @@ def checkPonsets(pickdic, dttolerance, iplot):
             stations.append(key)
 
     # apply jackknife bootstrapping on variance of P onsets
-    print ("###############################################")
-    print ("checkPonsets: Apply jackknife bootstrapping on P-onset times ...")
+    print("###############################################")
+    print("checkPonsets: Apply jackknife bootstrapping on P-onset times ...")
     [xjack, PHI_pseudo, PHI_sub] = jackknife(Ppicks, 'VAR', 1)
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
@@ -780,7 +783,7 @@ def checkPonsets(pickdic, dttolerance, iplot):
     # these picks did not pass jackknife test
     badjk = np.where(PHI_pseudo > 5 * xjack)
     badjkstations = np.array(stations)[badjk]
-    print ("checkPonsets: %d pick(s) did not pass jackknife test!" % len(badjkstations))
+    print("checkPonsets: %d pick(s) did not pass jackknife test!" % len(badjkstations))
     print(badjkstations)
 
     # calculate median from these picks
@@ -793,9 +796,9 @@ def checkPonsets(pickdic, dttolerance, iplot):
     goodstations = np.array(stations)[igood]
     badstations = np.array(stations)[ibad]
 
-    print ("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
-    print ("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
-                                                             + len(badjkstations), len(stations)))
+    print("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
+    print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
+                                                            + len(badjkstations), len(stations)))
 
     goodmarker = 'goodPonsetcheck'
     badmarker = 'badPonsetcheck'
@@ -863,8 +866,8 @@ def jackknife(X, phi, h):
     g = len(X) / h
 
     if type(g) is not int:
-        print ("jackknife: Cannot divide quantity X in equal sized subgroups!")
-        print ("Choose another size for subgroups!")
+        print("jackknife: Cannot divide quantity X in equal sized subgroups!")
+        print("Choose another size for subgroups!")
         return PHI_jack, PHI_pseudo, PHI_sub
     else:
         # estimator of undisturbed spot check
@@ -932,7 +935,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    print ("Check for spuriously picked S onset instead of P onset ...")
+    print("Check for spuriously picked S onset instead of P onset ...")
 
     returnflag = 0
 
@@ -949,7 +952,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
 
     # get earliest time of all 3 traces
     min_t = min(zdat[0].stats.starttime, edat[0].stats.starttime, ndat[0].stats.starttime)
-    
+
     # generate time arrays for all 3 traces
     tz = np.arange(0, zdat[0].stats.npts / zdat[0].stats.sampling_rate,
                    zdat[0].stats.delta)
@@ -961,11 +964,11 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     zdiff = (zdat[0].stats.starttime - min_t)
     ndiff = (ndat[0].stats.starttime - min_t)
     ediff = (edat[0].stats.starttime - min_t)
-    
+
     # get signal windows
-    isignalz = getsignalwin(tz, pick-zdiff, checkwin)
-    isignaln = getsignalwin(tn, pick-ndiff, checkwin)
-    isignale = getsignalwin(te, pick-ediff, checkwin)
+    isignalz = getsignalwin(tz, pick - zdiff, checkwin)
+    isignaln = getsignalwin(tn, pick - ndiff, checkwin)
+    isignale = getsignalwin(te, pick - ediff, checkwin)
 
     # calculate RMS of traces
     rmsz = RMS(zdat[0].data[isignalz])
@@ -978,9 +981,9 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     # vertical P-coda level must exceed horizontal P-coda level
     # zfac times encodalevel
     if rmsz < minsiglevel:
-        print ("checkZ4S: Maybe S onset? Skip this P pick!")
+        print("checkZ4S: Maybe S onset? Skip this P pick!")
     else:
-        print ("checkZ4S: P onset passes checkZ4S test!")
+        print("checkZ4S: P onset passes checkZ4S test!")
         returnflag = 1
 
     if iplot > 1:
@@ -996,28 +999,28 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
                      'N': ndiff,
                      'E': ediff}
 
-        signal_dict  = {'Z': isignalz,
-                        'N': isignaln,
-                        'E': isignale}
+        signal_dict = {'Z': isignalz,
+                       'N': isignaln,
+                       'E': isignale}
 
         for i, key in enumerate(['Z', 'N', 'E']):
             rms = rms_dict[key]
             trace = traces_dict[key]
-            t = np.arange(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate+diff_dict[key],
-                          trace.stats.delta)            
+            t = np.arange(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate + diff_dict[key],
+                          trace.stats.delta)
             if i == 0:
-                ax1 = fig.add_subplot(3, 1, i+1)
+                ax1 = fig.add_subplot(3, 1, i + 1)
                 ax = ax1
                 ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
             else:
-                ax = fig.add_subplot(3,1,i+1, sharex=ax1)
+                ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
             ax.plot(t, abs(trace.data), color='b', label='abs')
             ax.plot(t, trace.data, color='k')
             name = str(trace.stats.channel) + ': {}'.format(rms)
-            ax.plot([pick, pick+checkwin], [rms, rms], 'r', label='RMS {}'.format(name))
+            ax.plot([pick, pick + checkwin], [rms, rms], 'r', label='RMS {}'.format(name))
             ax.plot([pick, pick], ax.get_ylim(), 'm', label='Pick')
             ax.set_ylabel('Normalized Counts')
-            ax.axvspan(pick, pick+checkwin, color='c', alpha=0.2,
+            ax.axvspan(pick, pick + checkwin, color='c', alpha=0.2,
                        lw=0)
             ax.legend()
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)

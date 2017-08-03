@@ -4,11 +4,10 @@
 import copy
 import operator
 import os
-import numpy as np
-import glob
-import matplotlib.pyplot as plt
-from obspy import read_events
 
+import matplotlib.pyplot as plt
+import numpy as np
+from obspy import read_events
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.utils import find_in_list
@@ -334,7 +333,7 @@ class PDFDictionary(object):
                     axarr[l].set_title(phase)
                     if l is 0:
                         axann = axarr[l].annotate(station, xy=(.05, .5),
-                                                     xycoords='axes fraction')
+                                                  xycoords='axes fraction')
                         bbox_props = dict(boxstyle='round', facecolor='lightgrey',
                                           alpha=.7)
                         axann.set_bbox(bbox_props)
@@ -351,7 +350,6 @@ class PDFstatistics(object):
     This object can be used to get various statistic values from probabillity density functions.
     Takes a path as argument.
     """
-
 
     def __init__(self, directory):
         """Initiates some values needed when dealing with pdfs later"""
@@ -449,7 +447,7 @@ class PDFstatistics(object):
         else:
             raise ValueError("for call to method {0} value has to be "
                              "defined but is 'None' ".format(method_options[
-                                                             property.upper()]))
+                                                                 property.upper()]))
 
         for pdf_dict in self:
             # create worklist
@@ -459,7 +457,7 @@ class PDFstatistics(object):
 
         return rlist
 
-    def writeThetaToFile(self,array,out_dir):
+    def writeThetaToFile(self, array, out_dir):
         """
         Method to write array like data to file. Useful since acquiring can take
         serious amount of time when dealing with large databases.
@@ -471,12 +469,12 @@ class PDFstatistics(object):
         """
         fid = open(os.path.join(out_dir), 'w')
         for val in array:
-            fid.write(str(val)+'\n')
+            fid.write(str(val) + '\n')
         fid.close()
 
 
 def main():
-    root_dir ='/home/sebastianp/Codetesting/xmls/'
+    root_dir = '/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
     Insheim.curphase = 'p'
     qdlist = Insheim.get('qdf', 0.2)

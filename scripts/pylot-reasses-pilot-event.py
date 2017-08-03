@@ -3,8 +3,8 @@
 
 import argparse
 
-from pylot.core.util.version import get_git_version as _getVersionString
 from pylot.core.io.phases import reassess_pilot_event
+from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 __author__ = 'S. Wehling-Benatelli'

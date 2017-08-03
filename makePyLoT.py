@@ -158,12 +158,12 @@ def buildPyLoT(verbosity=None):
 
 
 def installPyLoT(verbosity=None):
-    files_to_copy = {'autoPyLoT_local.in':['~', '.pylot'],
-                     'autoPyLoT_regional.in':['~', '.pylot']}
+    files_to_copy = {'autoPyLoT_local.in': ['~', '.pylot'],
+                     'autoPyLoT_regional.in': ['~', '.pylot']}
     if verbosity > 0:
-        print ('starting installation of PyLoT ...')
+        print('starting installation of PyLoT ...')
     if verbosity > 1:
-        print ('copying input files into destination folder ...')
+        print('copying input files into destination folder ...')
     ans = input('please specify scope of interest '
                 '([0]=local, 1=regional) :') or 0
     if not isinstance(ans, int):
@@ -182,14 +182,12 @@ def installPyLoT(verbosity=None):
         assert not os.path.isabs(srcfile), 'source files seem to be ' \
                                            'corrupted ...'
         if verbosity > 1:
-            print ('copying file {file} to folder {dest}'.format(file=file, dest=destination))
+            print('copying file {file} to folder {dest}'.format(file=file, dest=destination))
         shutil.copyfile(srcfile, destination)
         if link_file:
             if verbosity:
                 print('linking input file for autoPyLoT ...')
             os.symlink(destination, link_dest)
-
-
 
 
 def cleanUp(verbosity=None):

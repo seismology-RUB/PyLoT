@@ -23,10 +23,11 @@ https://www.iconfinder.com/iconsets/flavour
     (http://www.gnu.org/copyleft/lesser.html)
 """
 
-import os
-import sys
-import platform
 import argparse
+import os
+import platform
+import sys
+
 import matplotlib
 
 matplotlib.use('Qt4Agg')
@@ -66,10 +67,10 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, OUTPUTFORMATS, SetChannelComponents, \
+from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents, \
     readFilterInformation
 from pylot.core.util.errors import FormatError, DatastructureError, \
-    OverwriteError, ProcessingError
+    OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
@@ -81,7 +82,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.thread import AutoPickThread, Thread, Worker
+from pylot.core.util.thread import Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
 
 if sys.version_info.major == 3:
@@ -270,7 +271,7 @@ class MainWindow(QMainWindow):
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
-        
+
         # create resource icons
         newIcon = QIcon()
         newIcon.addPixmap(QPixmap(':/icons/newfile.png'))
@@ -1149,8 +1150,8 @@ class MainWindow(QMainWindow):
         #         return False
 
         # export to given path
-        #self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
-        #try:
+        # self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
+        # try:
         self.get_data().exportEvent(fbasename, exform[0], fcheck=fcheck,
                                     upperErrors=[uppererrorP[3], uppererrorS[3]])
         self.get_data().exportEvent(fbasename, exform[1], fcheck=fcheck,
@@ -1159,7 +1160,7 @@ class MainWindow(QMainWindow):
         #     QMessageBox.warning(self, "PyLoT Warning",
         #                         "Could not save event: {}".format(e))
         #     return
-        #self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
+        # self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
         # all files save (ui clean)
         self.update_status('Picks saved as %s, %s, and %s' % (fbasename + exform[0], fbasename + exform[1],
                                                               fbasename + exform[2]))
@@ -1322,7 +1323,7 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
         self.refreshRefTestButtons()
-        
+
         # only refresh first/second tab when an event was changed.
         if self._eventChanged[0] or self._eventChanged[1]:
             event = self.get_current_event()
@@ -1888,7 +1889,7 @@ class MainWindow(QMainWindow):
         args = {'parameter': self._inputs,
                 'station': 'all',
                 'fnames': 'None',
-                'eventid': self.get_current_event_path (),
+                'eventid': self.get_current_event_path(),
                 'iplot': 0,
                 'fig_dict': None,
                 'locflag': 0}
@@ -1900,7 +1901,7 @@ class MainWindow(QMainWindow):
         self.addListItem(str(self._inputs))
 
         self.mp_worker.signals.message.connect(self.addListItem)
-        #self.mp_thread.finished.connect(self.finalizeAutoPick)
+        # self.mp_thread.finished.connect(self.finalizeAutoPick)
 
     def finalizeAutoPick(self):
         self.drawPicks(picktype='auto')
@@ -2348,7 +2349,7 @@ class MainWindow(QMainWindow):
                 if type(item) == QtGui.QTableWidgetItem:
                     self.event_table.setItem(r_index, c_index, item)
                 elif type(item) in [QtGui.QWidget, QtGui.QPushButton]:
-                    self.event_table.setCellWidget(r_index, c_index, item)                
+                    self.event_table.setCellWidget(r_index, c_index, item)
 
         header = self.event_table.horizontalHeader()
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
@@ -2674,7 +2675,7 @@ class Project(object):
             if eventID in str(event.resource_id):
                 self.remove_event(event)
                 break
-            
+
     def read_eventfile_info(self, filename, separator=','):
         '''
         Try to read event information from file (:param:filename) comparing specific event datetimes.

@@ -9,6 +9,7 @@
 """
 
 import argparse
+
 import obspy
 from pylot.core.pick.utils import getSNR
 
@@ -27,4 +28,5 @@ if __name__ == "__main__":
                              'are calculated',
                         dest='time')
     args = parser.parse_args()
-    print getSNR(args.data, args.tsnr, args.time)
+    print
+    getSNR(args.data, args.tsnr, args.time)

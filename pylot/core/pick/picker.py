@@ -19,11 +19,12 @@ calculated after Diehl & Kissling (2009).
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from pylot.core.pick.utils import getnoisewin, getsignalwin
-from pylot.core.pick.charfuns import CharacteristicFunction
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+from pylot.core.pick.charfuns import CharacteristicFunction
+from pylot.core.pick.utils import getnoisewin, getsignalwin
 
 
 class AutoPicker(object):
@@ -212,14 +213,14 @@ class AICPicker(AutoPicker):
                 self.Data[0].data = self.Data[0].data * 1000000
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
-            ii = min([isignal[len(isignal)-1], len(self.Tcf)])
+            ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
             isignal = isignal[0:ii]
             try:
-               aic[isignal]
+                aic[isignal]
             except IndexError as e:
-               msg = "Time series out of bounds! {}".format(e)
-               print(msg)
-               return
+                msg = "Time series out of bounds! {}".format(e)
+                print(msg)
+                return
             # calculate SNR from CF
             self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / \
                        max(abs(aic[inoise] - np.mean(aic[inoise])))
@@ -242,7 +243,7 @@ class AICPicker(AutoPicker):
                     print("Choose longer slope determination window!")
                     if self.iplot > 1:
                         if not self.fig:
-                            fig = plt.figure() #self.iplot) ### WHY? MP MP
+                            fig = plt.figure()  # self.iplot) ### WHY? MP MP
                         else:
                             fig = self.fig
                         ax = fig.add_subplot(111)
@@ -271,7 +272,7 @@ class AICPicker(AutoPicker):
 
         if self.iplot > 1:
             if not self.fig:
-                fig = plt.figure()#self.iplot)
+                fig = plt.figure()  # self.iplot)
             else:
                 fig = self.fig
             ax1 = fig.add_subplot(211)
@@ -283,21 +284,25 @@ class AICPicker(AutoPicker):
             ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
             ax1.set_yticks([])
             ax1.legend()
-            
+
             if self.Pick is not None:
-                ax2 = fig.add_subplot(2,1,2, sharex=ax1)
+                ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
                 ax2.plot(self.Tcf, x, 'k', label='Data')
-                ax1.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
-                ax1.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-                ax1.axvspan(self.Tcf[iislope[0]],self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')
-                
-                ax2.axvspan(self.Tcf[inoise[0]],self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
-                ax2.axvspan(self.Tcf[isignal[0]],self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-                ax2.axvspan(self.Tcf[iislope[0]],self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0, label='Slope Window')                
+                ax1.axvspan(self.Tcf[inoise[0]], self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+                ax1.axvspan(self.Tcf[isignal[0]], self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0,
+                            label='Signal Window')
+                ax1.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
+                            label='Slope Window')
+
+                ax2.axvspan(self.Tcf[inoise[0]], self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
+                ax2.axvspan(self.Tcf[isignal[0]], self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0,
+                            label='Signal Window')
+                ax2.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
+                            label='Slope Window')
                 ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2, label='Slope')
-                
+
                 ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
-                                                                                self.SNR, self.slope))
+                                                                                 self.SNR, self.slope))
                 ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
@@ -307,7 +312,7 @@ class AICPicker(AutoPicker):
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')
-            
+
         return
 
 
@@ -317,7 +322,7 @@ class PragPicker(AutoPicker):
     '''
 
     def calcPick(self):
-        
+
         if self.getpick1() is not None:
             print('PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...')
 
@@ -402,7 +407,7 @@ class PragPicker(AutoPicker):
 
             if self.getiplot() > 1:
                 if not self.fig:
-                    fig = plt.figure()#self.getiplot())
+                    fig = plt.figure()  # self.getiplot())
                 else:
                     fig = self.fig
                 ax = fig.add_subplot(111)

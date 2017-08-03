@@ -3,15 +3,17 @@
 
 import copy
 import os
+
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
-from obspy.io.sac import SacIOError
 from obspy.core.event import Event as ObsPyEvent
+from obspy.io.sac import SacIOError
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
-from pylot.core.util.utils import fnConstructor, full_range
 from pylot.core.util.event import Event
+from pylot.core.util.utils import fnConstructor, full_range
+
 
 class Data(object):
     """
@@ -75,7 +77,7 @@ class Data(object):
     def __add__(self, other):
         assert isinstance(other, Data), "operands must be of same type 'Data'"
         rs_id = self.get_evt_data().get('resource_id')
-        rs_id_other = other.get_evt_data().get('resource_id')        
+        rs_id_other = other.get_evt_data().get('resource_id')
         if other.isNew() and not self.isNew():
             picks_to_add = other.get_evt_data().picks
             old_picks = self.get_evt_data().picks
@@ -156,23 +158,23 @@ class Data(object):
             self.replacePicks(event, 'auto')
         if 'manual' in fcheck:
             self.replacePicks(event, 'manual')
-        
+
     def replaceOrigin(self, event, forceOverwrite=False):
         if self.get_evt_data().origins or forceOverwrite:
             if event.origins:
-                print("Found origin, replace it by new origin." )
+                print("Found origin, replace it by new origin.")
             event.origins = self.get_evt_data().origins
-    
+
     def replaceMagnitude(self, event, forceOverwrite=False):
         if self.get_evt_data().magnitudes or forceOverwrite:
             if event.magnitudes:
                 print("Found magnitude, replace it by new magnitude")
             event.magnitudes = self.get_evt_data().magnitudes
-    
+
     def replacePicks(self, event, picktype):
         checkflag = 0
         picks = event.picks
-        #remove existing picks
+        # remove existing picks
         for j, pick in reversed(list(enumerate(picks))):
             if picktype in str(pick.method_id.id):
                 picks.pop(j)
@@ -180,7 +182,7 @@ class Data(object):
         if checkflag:
             print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
 
-        #append new picks
+        # append new picks
         for pick in self.get_evt_data().picks:
             if picktype in str(pick.method_id.id):
                 picks.append(pick)
@@ -195,8 +197,8 @@ class Data(object):
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
 
-        if not type(fcheck)==list:
-            fcheck=[fcheck]
+        if not type(fcheck) == list:
+            fcheck = [fcheck]
 
         try:
             evtformat = OUTPUTFORMATS[fnext]
@@ -204,7 +206,7 @@ class Data(object):
             errmsg = '{0}; selected file extension {1} not ' \
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
-   
+
         # check for already existing xml-file
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
@@ -231,72 +233,70 @@ class Data(object):
             # Prefer manual picks!
             for i in range(len(evtdata_org.picks)):
                 if evtdata_org.picks[i].method_id == 'manual':
-                   mstation = evtdata_org.picks[i].waveform_id.station_code
-                   mstation_ext = mstation + '_'
-                   for k in range(len(evtdata_copy.picks)):
-                       if ((evtdata_copy.picks[k].waveform_id.station_code == mstation)  or \
-                          (evtdata_copy.picks[k].waveform_id.station_code == mstation_ext)) and \
-                          (evtdata_copy.picks[k].method_id == 'auto'):
-                          del evtdata_copy.picks[k]
-                          break
+                    mstation = evtdata_org.picks[i].waveform_id.station_code
+                    mstation_ext = mstation + '_'
+                    for k in range(len(evtdata_copy.picks)):
+                        if ((evtdata_copy.picks[k].waveform_id.station_code == mstation) or \
+                                    (evtdata_copy.picks[k].waveform_id.station_code == mstation_ext)) and \
+                                (evtdata_copy.picks[k].method_id == 'auto'):
+                            del evtdata_copy.picks[k]
+                            break
             lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
             if lendiff is not 0:
-               print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+                print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
 
             if upperErrors:
-               # check for pick uncertainties exceeding adjusted upper errors
-               # Picks with larger uncertainties will not be saved in output file!
-               for j in range(len(evtdata_org.picks)):
-                   for i in range(len(evtdata_copy.picks)):
-                       if evtdata_copy.picks[i].phase_hint[0] == 'P':
-                          if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                             (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
-                             print("Uncertainty exceeds or equal adjusted upper time error!")
-                             print("Adjusted uncertainty: {}".format(upperErrors[0]))
-                             print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
-                             print("{1} P-Pick of station {0} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code, 
-                                                   evtdata_copy.picks[i].method_id)) 
-                             print("#")
-                             del evtdata_copy.picks[i]
-                             break
-                       if evtdata_copy.picks[i].phase_hint[0] == 'S':
-                          if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                             (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
-                             print("Uncertainty exceeds or equal adjusted upper time error!")
-                             print("Adjusted uncertainty: {}".format(upperErrors[1]))
-                             print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
-                             print("{1} S-Pick of station {0} will not be saved in outputfile".format(
-                                                   evtdata_copy.picks[i].waveform_id.station_code,
-                                                   evtdata_copy.picks[i].method_id)) 
-                             print("#")
-                             del evtdata_copy.picks[i]
-                             break
-                      
+                # check for pick uncertainties exceeding adjusted upper errors
+                # Picks with larger uncertainties will not be saved in output file!
+                for j in range(len(evtdata_org.picks)):
+                    for i in range(len(evtdata_copy.picks)):
+                        if evtdata_copy.picks[i].phase_hint[0] == 'P':
+                            if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
+                                    (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
+                                print("Uncertainty exceeds or equal adjusted upper time error!")
+                                print("Adjusted uncertainty: {}".format(upperErrors[0]))
+                                print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                                print("{1} P-Pick of station {0} will not be saved in outputfile".format(
+                                    evtdata_copy.picks[i].waveform_id.station_code,
+                                    evtdata_copy.picks[i].method_id))
+                                print("#")
+                                del evtdata_copy.picks[i]
+                                break
+                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
+                            if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
+                                    (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
+                                print("Uncertainty exceeds or equal adjusted upper time error!")
+                                print("Adjusted uncertainty: {}".format(upperErrors[1]))
+                                print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                                print("{1} S-Pick of station {0} will not be saved in outputfile".format(
+                                    evtdata_copy.picks[i].waveform_id.station_code,
+                                    evtdata_copy.picks[i].method_id))
+                                print("#")
+                                del evtdata_copy.picks[i]
+                                break
 
             if fnext == '.obs':
-               try:
-                   evtdata_copy.write(fnout + fnext, format=evtformat)
-                   # write header afterwards
-                   evid = str(evtdata_org.resource_id).split('/')[1]
-                   header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
-                   nllocfile = open(fnout + fnext)
-                   l = nllocfile.readlines()
-                   nllocfile.close()
-                   l.insert(0, header)
-                   nllocfile = open(fnout + fnext, 'w')
-                   nllocfile.write("".join(l))
-                   nllocfile.close()
-               except KeyError as e:
-                   raise KeyError('''{0} export format
+                try:
+                    evtdata_copy.write(fnout + fnext, format=evtformat)
+                    # write header afterwards
+                    evid = str(evtdata_org.resource_id).split('/')[1]
+                    header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
+                    nllocfile = open(fnout + fnext)
+                    l = nllocfile.readlines()
+                    nllocfile.close()
+                    l.insert(0, header)
+                    nllocfile = open(fnout + fnext, 'w')
+                    nllocfile.write("".join(l))
+                    nllocfile.close()
+                except KeyError as e:
+                    raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.cnv':
-               try:
-                   evtdata_org.write(fnout + fnext, format=evtformat)
-               except KeyError as e:
-                   raise KeyError('''{0} export format
+                try:
+                    evtdata_org.write(fnout + fnext, format=evtformat)
+                except KeyError as e:
+                    raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
-
 
     def getComp(self):
         """
@@ -362,7 +362,7 @@ class Data(object):
                 except Exception as e:
                     warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
-                    warnmsg += '{0}\n{1}\n'.format(fname, se)
+                warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print(warnmsg)
@@ -427,28 +427,27 @@ class Data(object):
             :raise OverwriteError: raises an OverwriteError if the picks list is
              not empty. The GUI will then ask for a decision.
             """
-            #firstonset = find_firstonset(picks)
+            # firstonset = find_firstonset(picks)
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
                 if picks[key]['P']['picker'] == 'auto':
-                   print("Existing picks will be overwritten!")
-                   picks = picks_from_picksdict(picks)
-                   break
+                    print("Existing picks will be overwritten!")
+                    picks = picks_from_picksdict(picks)
+                    break
                 else:
-                   if self.get_evt_data().picks:
-                       raise OverwriteError('Existing picks would be overwritten!')
-                       break
-                   else:
-                       picks = picks_from_picksdict(picks)
-                       break
+                    if self.get_evt_data().picks:
+                        raise OverwriteError('Existing picks would be overwritten!')
+                        break
+                    else:
+                        picks = picks_from_picksdict(picks)
+                        break
             self.get_evt_data().picks = picks
             # if 'smi:local' in self.getID() and firstonset:
             #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
             #     ID = ResourceIdentifier('event/' + fonset_str)
             #     ID.convertIDToQuakeMLURI(authority_id=authority_id)
             #     self.get_evt_data().resource_id = ID
-
 
         def applyEvent(event):
             """
@@ -476,7 +475,6 @@ class Data(object):
 
         applydata[typ](data)
         self._new = False
-        
 
 
 class GenericDataStructure(object):

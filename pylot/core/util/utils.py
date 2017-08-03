@@ -2,25 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import numpy as np
-from scipy.interpolate import splrep, splev
 import os
 import platform
 import re
-import warnings
 import subprocess
+
+import numpy as np
 from obspy import UTCDateTime, read
 from pylot.core.io.inputs import PylotParameter
+from scipy.interpolate import splrep, splev
 
-    
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+
 def fit_curve(x, y):
     return splev, splrep(x, y)
+
 
 def getindexbounds(f, eta):
     mi = f.argmax()
@@ -34,9 +36,9 @@ def getindexbounds(f, eta):
 def gen_Pool(ncores='max'):
     import multiprocessing
 
-    if ncores=='max':
-        ncores=multiprocessing.cpu_count()
-        
+    if ncores == 'max':
+        ncores = multiprocessing.cpu_count()
+
     pool = multiprocessing.Pool(ncores)
     return pool
 
@@ -106,6 +108,7 @@ def findComboBoxIndex(combo_box, val):
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
 
+
 def find_in_list(list, str):
     """
     takes a list of strings and a string and returns the first list item
@@ -134,6 +137,7 @@ def find_in_list(list, str):
     if rlist:
         return rlist[0]
     return None
+
 
 def find_nearest(array, value):
     '''
@@ -181,11 +185,13 @@ def fnConstructor(s):
         fn = '_' + fn
     return fn
 
+
 def real_None(value):
     if value == 'None':
         return None
     else:
         return value
+
 
 def four_digits(year):
     """
@@ -306,6 +312,7 @@ def getPatternLine(fn, pattern):
             return line
 
     return None
+
 
 def is_executable(fn):
     """
@@ -492,6 +499,7 @@ def runProgram(cmd, parameter=None):
 
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
+
 def which(program, infile=None):
     """
     takes a program name and returns the full path to the executable or None
@@ -510,7 +518,7 @@ def which(program, infile=None):
             bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         else:
             bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
-            
+
         if os.path.exists(bpath):
             nllocpath = ":" + PylotParameter(bpath).get('nllocbin')
             os.environ['PATH'] += nllocpath
@@ -537,6 +545,7 @@ def which(program, infile=None):
                     return candidate
 
     return None
+
 
 if __name__ == "__main__":
     import doctest

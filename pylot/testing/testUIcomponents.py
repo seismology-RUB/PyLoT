@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 
-import sys, time
+import sys
+import time
+
 from PySide.QtGui import QApplication
 from pylot.core.util.widgets import FilterOptionsDialog, PropertiesDlg, HelpForm
 

@@ -6,6 +6,7 @@ from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
+
 def export(picks, fnout, parameter):
     '''
     Take <picks> dictionary and exports picking data to a HYPOSAT

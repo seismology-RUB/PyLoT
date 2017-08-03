@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pylot.core.util.errors import ParameterError
 from pylot.core.io import default_parameters
+from pylot.core.util.errors import ParameterError
+
 
 class PylotParameter(object):
     '''
@@ -69,13 +70,13 @@ class PylotParameter(object):
 
     # Set default values of parameter names
     def __init_default_paras(self):
-        parameters=default_parameters.defaults
+        parameters = default_parameters.defaults
         self.__defaults = parameters
 
     def __init_subsettings(self):
-        self._settings_main=default_parameters.settings_main
-        self._settings_special_pick=default_parameters.settings_special_pick
-        
+        self._settings_main = default_parameters.settings_main
+        self._settings_special_pick = default_parameters.settings_special_pick
+
     # String representation of the object
     def __repr__(self):
         return "PylotParameter('%s')" % self.__filename
@@ -136,13 +137,13 @@ class PylotParameter(object):
         return self._settings_special_pick
 
     def get_all_para_names(self):
-        all_names=[]
+        all_names = []
         all_names += self.get_main_para_names()['dirs']
         all_names += self.get_main_para_names()['nlloc']
         all_names += self.get_main_para_names()['smoment']
         all_names += self.get_main_para_names()['localmag']
         all_names += self.get_main_para_names()['pick']
-        all_names += self.get_main_para_names()['filter']                
+        all_names += self.get_main_para_names()['filter']
         all_names += self.get_special_para_names()['z']
         all_names += self.get_special_para_names()['h']
         all_names += self.get_special_para_names()['fm']
@@ -156,14 +157,14 @@ class PylotParameter(object):
             message = 'Type check failed for param: {}, is type: {}, expected type:{}'
             message = message.format(param, is_type, expect_type)
             print(Warning(message))
-        
+
     def setParamKV(self, param, value):
         self.__setitem__(param, value)
 
     def setParam(self, **kwargs):
         for key in kwargs:
             self.__setitem__(key, kwargs[key])
-        
+
     @staticmethod
     def _printParameterError(errmsg):
         print('ParameterError:\n non-existent parameter %s' % errmsg)
@@ -172,7 +173,7 @@ class PylotParameter(object):
         defaults = self.get_defaults()
         for param in defaults:
             self.setParamKV(param, defaults[param]['value'])
-        
+
     def from_file(self, fnin=None):
         if not fnin:
             if self.__filename is not None:
@@ -225,9 +226,9 @@ class PylotParameter(object):
         # for key, value in self.iteritems():
         #     lines.append('{key}\t{value}\n'.format(key=key, value=value))
         # fid_out.writelines(lines)
-        header = ('%This is a parameter input file for PyLoT/autoPyLoT.\n'+
-                  '%All main and special settings regarding data handling\n'+
-                  '%and picking are to be set here!\n'+
+        header = ('%This is a parameter input file for PyLoT/autoPyLoT.\n' +
+                  '%All main and special settings regarding data handling\n' +
+                  '%and picking are to be set here!\n' +
                   '%Parameters are optimized for %{} data sets!\n'.format(self.get_main_para_names()['pick'][0]))
         separator = '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
 
@@ -244,14 +245,14 @@ class PylotParameter(object):
                            'filter settings', separator)
         self.write_section(fid_out, self.get_main_para_names()['pick'],
                            'common settings picker', separator)
-        fid_out.write(('#special settings for calculating CF#\n'+
+        fid_out.write(('#special settings for calculating CF#\n' +
                        '%!!Edit the following only if you know what you are doing!!%\n'))
         self.write_section(fid_out, self.get_special_para_names()['z'],
                            'Z-component', None)
         self.write_section(fid_out, self.get_special_para_names()['h'],
                            'H-components', None)
         self.write_section(fid_out, self.get_special_para_names()['fm'],
-                           'first-motion picker', None)                           
+                           'first-motion picker', None)
         self.write_section(fid_out, self.get_special_para_names()['quality'],
                            'quality assessment', None)
 
@@ -267,7 +268,7 @@ class PylotParameter(object):
             if type(value) == list or type(value) == tuple:
                 value_tmp = ''
                 for vl in value:
-                    value_tmp+= '{} '.format(vl)
+                    value_tmp += '{} '.format(vl)
                 value = value_tmp
             tooltip = self.get_defaults()[name]['tooltip']
             if not len(str(value)) > l_val:
@@ -283,7 +284,7 @@ class PylotParameter(object):
                 ttip = '%{:<{}}\n'.format(tooltip, l_ttip)
             else:
                 ttip = '%{}\n'.format(tooltip)
-            line = value+name+ttip
+            line = value + name + ttip
             fid.write(line)
 
 

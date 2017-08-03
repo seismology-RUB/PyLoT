@@ -11,6 +11,7 @@
 """
 
 import argparse
+
 import obspy
 from pylot.core.pick.utils import earllatepicker
 

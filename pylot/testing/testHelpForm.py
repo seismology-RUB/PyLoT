@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, time
+import sys
+
 from PySide.QtGui import QApplication
 from pylot.core.util.widgets import HelpForm
 

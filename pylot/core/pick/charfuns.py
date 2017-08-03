@@ -17,7 +17,6 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 :author: MAGS2 EP3 working group
 """
 
-import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 
@@ -466,7 +465,7 @@ class ARHcf(CharacteristicFunction):
             # prediction error = CF
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
                                            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (
-                                    2 * lpred))
+                                        2 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0
@@ -608,7 +607,7 @@ class AR3Ccf(CharacteristicFunction):
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
                                            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
                                            + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (
-                                    3 * lpred))
+                                        3 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import glob
+import os
 import sys
 
 import numpy as np
-
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
 from pylot.core.util.utils import key_for_set_value, find_in_list, \
@@ -116,7 +115,7 @@ def make_time_line(line, datetime):
     return newline
 
 
-def evt_head_check(root_dir, out_dir = None):
+def evt_head_check(root_dir, out_dir=None):
     """
     A function to make sure that an arbitrary number of .gse files have correct values in their header.
     :param root_dir: a directory leading to the .gse files.
@@ -183,7 +182,7 @@ def read_metadata(path_to_inventory):
         print("Neither dataless-SEED file, inventory-xml file nor "
               "RESP-file found!")
         print("!!WRONG CALCULATION OF SOURCE PARAMETERS!!")
-        robj = None, 
+        robj = None,
     elif invtype == 'dless':  # prevent multiple read of large dlsv
         print("Reading metadata information from dataless-SEED file ...")
         if len(inv[invtype]) == 1:
@@ -201,7 +200,7 @@ def restitute_trace(input_tuple):
     tr, invtype, inobj, unit, force = input_tuple
 
     remove_trace = False
-    
+
     seed_id = tr.get_id()
     # check, whether this trace has already been corrected
     if 'processing' in tr.stats.keys() \
@@ -244,14 +243,14 @@ def restitute_trace(input_tuple):
         remove_trace = True
     # apply restitution to data
     print("Correcting instrument at station %s, channel %s" \
-            % (tr.stats.station, tr.stats.channel))
+          % (tr.stats.station, tr.stats.channel))
     try:
         if invtype in ['resp', 'dless']:
             try:
-               tr.simulate(**kwargs)
+                tr.simulate(**kwargs)
             except ValueError as e:
-               vmsg = '{0}'.format(e)
-               print(vmsg)
+                vmsg = '{0}'.format(e)
+                print(vmsg)
 
         else:
             tr.attach_response(inventory)
@@ -293,15 +292,15 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
     for tr in data:
         input_tuples.append((tr, invtype, inobj, unit, force))
         data.remove(tr)
-        
+
     pool = gen_Pool()
     result = pool.map(restitute_trace, input_tuples)
     pool.close()
-    
+
     for tr, remove_trace in result:
         if not remove_trace:
             data.traces.append(tr)
-        
+
     # check if ALL traces could be restituted, take care of large datasets
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
@@ -343,8 +342,8 @@ def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
             trace.stats.station, trace.stats.channel))
     # get corner frequencies for pre-filtering
     fny = trace.stats.sampling_rate / 2
-    fc21 = fny - (fny * thi[0]/100.)
-    fc22 = fny - (fny * thi[1]/100.)
+    fc21 = fny - (fny * thi[0] / 100.)
+    fc22 = fny - (fny * thi[1] / 100.)
     return (tlow[0], tlow[1], fc21, fc22)
 
 

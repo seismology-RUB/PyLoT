@@ -3,6 +3,7 @@
 
 import matplotlib.pyplot as plt
 
+
 def create_bin_list(l_boundary, u_boundary, nbins=100):
     """
     takes two boundaries and a number of bins and creates a list of bins for

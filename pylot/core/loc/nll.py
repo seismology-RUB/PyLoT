@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import subprocess
-import os
 import glob
+import os
+import subprocess
+
 from obspy import read_events
 from pylot.core.io.phases import writephases
 from pylot.core.util.utils import getPatternLine, runProgram, which
@@ -11,8 +12,10 @@ from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
+
 class NLLocError(EnvironmentError):
     pass
+
 
 def export(picks, fnout, parameter):
     '''
@@ -58,7 +61,7 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0\n' % (phasefile, tttable, nllocout)
 
     # modification of NLLoc-control file
-    print ("Modifying  NLLoc-control file %s ..." % ctrfile)
+    print("Modifying  NLLoc-control file %s ..." % ctrfile)
     curlocfiles = getPatternLine(ctrfile, 'LOCFILES')
     nllfile = open(ctrfile, 'r')
     filedata = nllfile.read()
@@ -94,7 +97,7 @@ def locate(fnin, infile=None):
 
 def read_location(fn):
     path, file = os.path.split(fn)
-    file = glob.glob1(path, file +  '.[0-9]*.grid0.loc.hyp')
+    file = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
     if len(file) > 1:
         raise IOError('ambiguous location name {0}'.format(file))
     fn = os.path.join(path, file[0])

@@ -9,17 +9,19 @@ Created on Wed Feb 26 12:31:25 2014
 import os
 import platform
 
-from pylot.core.loc import nll
-from pylot.core.loc import hyposat
+from pylot.core.io.inputs import PylotParameter
 from pylot.core.loc import hypo71
 from pylot.core.loc import hypodd
+from pylot.core.loc import hyposat
+from pylot.core.loc import nll
 from pylot.core.loc import velest
-from pylot.core.io.inputs import PylotParameter
+
 
 def readDefaultFilterInformation(fname):
     pparam = PylotParameter(fname)
     return readFilterInformation(pparam)
-    
+
+
 def readFilterInformation(pylot_parameter):
     p_filter = {'filtertype': pylot_parameter['filter_type'][0],
                 'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
@@ -30,6 +32,7 @@ def readFilterInformation(pylot_parameter):
     filter_information = {'P': p_filter,
                           'S': s_filter}
     return filter_information
+
 
 # determine system dependent path separator
 system_name = platform.system()
@@ -59,14 +62,14 @@ LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=h
 class SetChannelComponents(object):
     def __init__(self):
         self.setDefaultCompPosition()
-        
+
     def setDefaultCompPosition(self):
         # default component order
         self.compPosition_Map = dict(Z=2, N=1, E=0)
         self.compName_Map = {'3': 'Z',
                              '1': 'N',
                              '2': 'E'}
-        
+
     def _getCurrentPosition(self, component):
         for key, value in self.compName_Map.items():
             if value == component:
@@ -85,10 +88,10 @@ class SetChannelComponents(object):
     def setCompPosition(self, component_alter, component, switch=True):
         component_alter = str(component_alter)
         if not component_alter in self.compName_Map.keys():
-            errMsg='setCompPosition: Unrecognized alternative component {}. Expecting one of {}.'
+            errMsg = 'setCompPosition: Unrecognized alternative component {}. Expecting one of {}.'
             raise ValueError(errMsg.format(component_alter, self.compName_Map.keys()))
         if not component in self.compPosition_Map.keys():
-            errMsg='setCompPosition: Unrecognized target component {}. Expecting one of {}.'
+            errMsg = 'setCompPosition: Unrecognized target component {}. Expecting one of {}.'
             raise ValueError(errMsg.format(component, self.compPosition_Map.keys()))
         print('setCompPosition: set component {} to {}'.format(component_alter, component))
         if switch:
@@ -97,7 +100,7 @@ class SetChannelComponents(object):
 
     def getCompPosition(self, component):
         return self._getCurrentPosition(component)[0]
-        
+
     def getPlotPosition(self, component):
         component = str(component)
         if component in self.compPosition_Map.keys():
@@ -105,6 +108,5 @@ class SetChannelComponents(object):
         elif component in self.compName_Map.keys():
             return self.compPosition_Map[self.compName_Map[component]]
         else:
-            errMsg='getCompPosition: Unrecognized component {}. Expecting one of {} or {}.'
+            errMsg = 'getCompPosition: Unrecognized component {}. Expecting one of {} or {}.'
             raise ValueError(errMsg.format(component, self.compPosition_Map.keys(), self.compName_Map.keys()))
-   

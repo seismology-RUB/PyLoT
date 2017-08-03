@@ -2,19 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+
 import numpy as np
 from obspy import UTCDateTime
-from pylot.core.util.utils import fit_curve, find_nearest, clims
+from pylot.core.util.utils import fit_curve, clims
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 __author__ = 'sebastianw'
+
 
 def create_axis(x0, incr, npts):
     ax = np.zeros(npts)
     for i in range(npts):
         ax[i] = x0 + incr * i
     return ax
+
 
 def gauss_parameter(te, tm, tl, eta):
     '''
@@ -79,9 +82,9 @@ def gauss_branches(k, param_tuple):
     :returns fun_vals: list with function values along axes x
     '''
 
-    #python 3 workaround
+    # python 3 workaround
     mu, sig1, sig2, a1, a2 = param_tuple
-    
+
     def _func(k, mu, sig1, sig2, a1, a2):
         if k < mu:
             rval = a1 * 1 / (np.sqrt(2 * np.pi) * sig1) * np.exp(-((k - mu) / sig1) ** 2 / 2)
@@ -110,9 +113,9 @@ def exp_branches(k, param_tuple):
     :returns fun_vals: list with function values along axes x:
     '''
 
-    #python 3 workaround
+    # python 3 workaround
     mu, sig1, sig2, a = param_tuple
-    
+
     def _func(k, mu, sig1, sig2, a):
         mu = float(mu)
         if k < mu:
@@ -313,14 +316,14 @@ class ProbabilityDensityFunction(object):
         :return float: rval
         '''
 
-        #rval = 0
-        #for x in self.axis:
+        # rval = 0
+        # for x in self.axis:
         #    rval += x * self.data(x)
         rval = self.mu
         # Not sure about this! That might not be the barycentre.
         # However, for std calculation (next function)
         # self.mu is also used!! (LK, 02/2017) 
-        return rval 
+        return rval
 
     def standard_deviation(self):
         mu = self.mu
@@ -394,7 +397,6 @@ class ProbabilityDensityFunction(object):
         qu = self.quantile(1 - prob_value)
         return qu - ql
 
-
     def quantile_dist_frac(self, x):
         """
         takes a probability value and returns the fraction of two
@@ -411,8 +413,7 @@ class ProbabilityDensityFunction(object):
         """
         if x <= 0 or x >= 0.25:
             raise ValueError('Value out of range.')
-        return self.quantile_distance(0.5-x)/self.quantile_distance(x)
-
+        return self.quantile_distance(0.5 - x) / self.quantile_distance(x)
 
     def plot(self, label=None):
         import matplotlib.pyplot as plt
@@ -486,4 +487,3 @@ class ProbabilityDensityFunction(object):
         x0, npts = self.commonlimits(incr, other)
 
         return x0, incr, npts
-
