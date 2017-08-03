@@ -2944,7 +2944,10 @@ class Submit2Grid(QWidget):
         command = self.textedit.text().strip().split(' ')
         command.append(self.script_fn)
         p = subprocess.Popen(command)
-        print('exec. command: {}'.format(str(command)))
+        cmd_str = str()
+        for item in command:
+            cmd_str += item + ' '
+        print('exec. command: {}'.format(cmd_str))
         print('Spawned autoPyLoT process with pid {}'.format(p.pid))
 
 
@@ -2968,7 +2971,10 @@ class SubmitLocal(QWidget):
     def execute_command(self, pp_export):
         command = self.script_fn
         command.append(pp_export)
-        print('exec. command: {}'.format(str(command)))
+        cmd_str = str()
+        for item in command:
+            cmd_str += item + ' '
+        print('exec. command: {}'.format(cmd_str))
         p = subprocess.Popen(command)
         print('Spawned autoPyLoT process with pid {}'.format(p.pid))
 
