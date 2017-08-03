@@ -269,7 +269,7 @@ def restitute_trace(input_tuple):
     return tr, remove_trace
 
 
-def restitute_data(data, invtype, inobj, unit='VEL', force=False):
+def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -293,7 +293,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
         input_tuples.append((tr, invtype, inobj, unit, force))
         data.remove(tr)
 
-    pool = gen_Pool()
+    pool = gen_Pool(ncores)
     result = pool.map(restitute_trace, input_tuples)
     pool.close()
 

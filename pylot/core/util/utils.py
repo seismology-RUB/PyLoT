@@ -33,10 +33,14 @@ def getindexbounds(f, eta):
     return mi, l, u
 
 
-def gen_Pool(ncores='max'):
+def gen_Pool(ncores=0):
+    '''
+    :param ncores: number of CPU cores for multiprocessing.Pool, if ncores == 0 use all available
+    :return: multiprocessing.Pool object
+    '''
     import multiprocessing
 
-    if ncores == 'max':
+    if ncores == 0:
         ncores = multiprocessing.cpu_count()
 
     pool = multiprocessing.Pool(ncores)

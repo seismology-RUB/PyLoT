@@ -34,7 +34,7 @@ __version__ = _getVersionString()
 
 
 def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None, station='all',
-              iplot=0):
+              iplot=0, ncores=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -48,6 +48,16 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     .. rubric:: Example
 
     """
+
+    if ncores == 1:
+        sp_info = 'autoPyLoT is running serial on 1 cores.'
+    else:
+        if ncores == 0:
+            ncores_readable = 'all available'
+        else:
+            ncores_readable = ncores
+        sp_info = 'autoPyLoT is running in parallel on {} cores.'.format(ncores_readable)
+
     splash = '''************************************\n
                 *********autoPyLoT starting*********\n
                 The Python picking and Location Tool\n
@@ -57,8 +67,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 L. Kueperkoch (BESTEC GmbH, Landau i. d. Pfalz)\n
                 S. Wehling-Benatelli (Ruhr-Universitaet Bochum)\n
                 M. Paffrath (Ruhr-Universitaet Bochum)\n
-                ***********************************'''.format(version=_getVersionString())
+                
+                {sp}
+                ***********************************'''.format(version=_getVersionString(),
+                                                              sp=sp_info)
     print(splash)
+
 
     parameter = real_None(parameter)
     inputfile = real_None(inputfile)
@@ -84,7 +98,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     if not parameter:
         if inputfile:
             parameter = PylotParameter(inputfile)
-            iplot = parameter['iplot']
+            #iplot = parameter['iplot']
         else:
             infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
             print('Using default input file {}'.format(infile))
@@ -216,7 +230,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = remove_underscores(wfdat)
             metadata = read_metadata(parameter.get('invdir'))
             print("Restitute data ...")
-            corr_dat = restitute_data(wfdat.copy(), *metadata)
+            corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
             print('Working on event %s. Stations: %s' % (event, station))
@@ -226,9 +240,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             if input_dict:
                 if 'fig_dict' in input_dict:
                     fig_dict = input_dict['fig_dict']
-                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict)
+                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict, ncores=ncores)
             else:
-                picks = autopickevent(wfdat, parameter, iplot=iplot)
+                picks = autopickevent(wfdat, parameter, iplot=iplot, ncores=ncores)
             ##########################################################
             # locating
             if locflag > 0:
@@ -442,6 +456,9 @@ if __name__ == "__main__":
     parser.add_argument('-s', '-S', '--spath', type=str,
                         action='store',
                         help='''optional, save path for autoPyLoT output''')
+    parser.add_argument('-c', '-C', '--ncores', type=int,
+                        action='store', default=0,
+                        help='''optional, number of CPU cores used for parallel processing (default: all available)''')
     # parser.add_argument('-v', '-V', '--version', action='version',
     #                    version='autoPyLoT ' + __version__,
     #                    help='show version information and exit')
@@ -449,4 +466,5 @@ if __name__ == "__main__":
     cla = parser.parse_args()
 
     picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
-                      eventid=str(cla.eventid), savepath=str(cla.spath))
+                      eventid=str(cla.eventid), savepath=str(cla.spath),
+                      ncores=cla.ncores)

@@ -21,7 +21,7 @@ from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
 from pylot.core.util.utils import getPatternLine, gen_Pool
 
 
-def autopickevent(data, param, iplot=0, fig_dict=None):
+def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0):
     stations = []
     all_onsets = {}
     input_tuples = []
@@ -50,7 +50,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None):
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
         return all_onsets
 
-    pool = gen_Pool()
+    pool = gen_Pool(ncores)
     result = pool.map(call_autopickstation, input_tuples)
     pool.close()
 

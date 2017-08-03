@@ -2869,7 +2869,6 @@ class AutoPickDlg(QDialog):
             maxcores = multiprocessing.cpu_count()
             self.sb_ncores.setMinimum(1)
             self.sb_ncores.setMaximum(maxcores)
-            self.sb_ncores.setEnabled(False)  # not yet implemented in autoPyLoT
             self.layout_ncores.addWidget(self.label_ncores)
             self.layout_ncores.addWidget(self.sb_ncores)
             self.layout_ncores.setStretch(0, 1)
@@ -2903,7 +2902,7 @@ class AutoPickDlg(QDialog):
 
     def accept(self):
         self.exportParameter()
-        self.job_widget.start(self.pp_export)
+        self.job_widget.start(self.pp_export, self.sb_ncores.value())
         QDialog.accept(self)
 
 
@@ -2931,7 +2930,7 @@ class Submit2Grid(QWidget):
         default_command = 'qsub -l low -cwd -q TARGET_MACHINE -pe mpi-fu NCORES'
         self.textedit.setText(default_command)
 
-    def start(self, pp_export):
+    def start(self, pp_export, ncores=None):
         self.genShellScript(pp_export)
         self.execute_script()
 
@@ -2966,12 +2965,14 @@ class SubmitLocal(QWidget):
     def start(self):
         print('subprocess Popen')
 
-    def start(self, pp_export):
-        self.execute_command(pp_export)
+    def start(self, pp_export, ncores):
+        self.execute_command(pp_export, ncores)
 
-    def execute_command(self, pp_export):
+    def execute_command(self, pp_export, ncores):
         command = self.script_fn
         command.append(pp_export)
+        command.append('--ncores')
+        command.append(str(ncores))
         cmd_str = str()
         for item in command:
             cmd_str += item + ' '
