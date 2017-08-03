@@ -2969,7 +2969,7 @@ class SubmitLocal(QWidget):
         self.execute_command(pp_export, ncores)
 
     def execute_command(self, pp_export, ncores):
-        command = self.script_fn
+        command = self.script_fn[:]
         command.append(pp_export)
         command.append('--ncores')
         command.append(str(ncores))

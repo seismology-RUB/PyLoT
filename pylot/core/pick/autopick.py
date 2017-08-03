@@ -306,8 +306,11 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
                 Pweight = 9
         ##############################################################
         # go on with processing if AIC onset passes quality control
-        if (aicpick.getSlope() >= minAICPslope and
-                    aicpick.getSNR() >= minAICPSNR and Pflag == 1):
+        slope = aicpick.getSlope()
+        if not slope:
+            slope = 0
+        if (slope >= minAICPslope and
+            aicpick.getSNR() >= minAICPSNR and Pflag == 1):
             aicPflag = 1
             msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -499,9 +502,12 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
                                aictsmoothS, fig=fig)
         ###############################################################
         # go on with processing if AIC onset passes quality control
-        if (aicarhpick.getSlope() >= minAICSslope and
-                    aicarhpick.getSNR() >= minAICSSNR and
-                    aicarhpick.getpick() is not None):
+        slope = aicpick.getSlope()
+        if not slope:
+            slope = 0
+        if (slope >= minAICSslope and
+            aicarhpick.getSNR() >= minAICSSNR and
+            aicarhpick.getpick() is not None):
             aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
