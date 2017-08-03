@@ -164,9 +164,14 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 # multiple event processing
                 # read each event in database
                 events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
-            elif fnames == 'None' and parameter['eventID'] is not '*':
+            elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
                 # single event processing
                 events = glob.glob(os.path.join(datapath, parameter['eventID']))
+            elif fnames == 'None' and type(parameter['eventID']) == list:
+                # multiple event processing
+                events = []
+                for eventID in parameter['eventID']:
+                    events.append(os.path.join(datapath, eventID))
             else:
                 # autoPyLoT was initialized from GUI
                 events = []
@@ -450,7 +455,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')
-    parser.add_argument('-e', '-E', '--eventid', type=str,
+    parser.add_argument('-e', '--eventid', type=str,
                         action='store',
                         help='''optional, event path incl. event ID''')
     parser.add_argument('-s', '-S', '--spath', type=str,

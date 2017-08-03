@@ -2898,7 +2898,14 @@ class AutoPickDlg(QDialog):
 
     def exportParameter(self):
         pylot_params = self.parent()._inputs
+        self.addEvents2pp(pylot_params)
         pylot_params.export2File(self.pp_export)
+
+    def addEvents2pp(self, pylot_parameter):
+        eventIDs = []
+        for event in self.parent().project.eventlist:
+            eventIDs.append(event.pylot_id)
+        pylot_parameter['eventID'] = eventIDs
 
     def accept(self):
         self.exportParameter()
