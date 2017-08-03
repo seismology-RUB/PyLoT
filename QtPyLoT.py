@@ -487,19 +487,19 @@ class MainWindow(QMainWindow):
 
         self.auto_tune.setEnabled(False)
 
-        self.auto_pick = self.createAction(parent=self, text='autopick this event',
+        self.auto_pick = self.createAction(parent=self, text='Current event',
                                            slot=self.autoPick, shortcut='Alt+Ctrl+A',
                                            icon=autopylot_icon, tip='Automatically pick'
                                            ' the displayed waveforms.')
         self.auto_pick.setEnabled(False)
 
-        self.auto_pick_local = self.createAction(parent=self, text='autopick project...',
+        self.auto_pick_local = self.createAction(parent=self, text='Whole project (local machine)...',
                                                  slot=self.autoPickProject, shortcut=None,
                                                  icon=self.autopicksicon_small, tip='Automatically pick'
                                                  ' the complete project on local machine.')
         self.auto_pick_local.setEnabled(False)
 
-        self.auto_pick_sge = self.createAction(parent=self, text='autopick project on grid engine...',
+        self.auto_pick_sge = self.createAction(parent=self, text='Whole project (grid engine)...',
                                                slot=self.autoPickProjectSGE, shortcut=None,
                                                icon=self.autopicksicon_small, tip='Automatically pick'
                                                ' the complete project on grid engine.')
@@ -537,6 +537,9 @@ class MainWindow(QMainWindow):
                        printAction)
 
         self.pickMenu = self.menuBar().addMenu('&Picking')
+        self.autoPickMenu = self.pickMenu.addMenu('Automatic picking')
+        self.autoPickMenu.setEnabled(False)
+
         pickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
@@ -565,7 +568,7 @@ class MainWindow(QMainWindow):
         locationToolBar.setObjectName("LocationTools")
 
         self.addActions(self.editMenu, editActions)
-        self.addActions(self.pickMenu, pickActions)
+        self.addActions(self.autoPickMenu, pickActions)
         self.addActions(self.helpMenu, helpActions)
 
         self.addActions(fileToolBar, fileToolActions)
@@ -1503,6 +1506,7 @@ class MainWindow(QMainWindow):
         self.auto_pick.setEnabled(True)
         self.auto_pick_local.setEnabled(True)
         self.auto_pick_sge.setEnabled(True)
+        self.autoPickMenu.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
         self.n_action.setEnabled(True)
@@ -1534,6 +1538,7 @@ class MainWindow(QMainWindow):
         self.auto_pick.setEnabled(False)
         self.auto_pick_local.setEnabled(False)
         self.auto_pick_sge.setEnabled(False)
+        self.autoPickMenu.setEnabled(False)
         self.z_action.setEnabled(False)
         self.e_action.setEnabled(False)
         self.n_action.setEnabled(False)
