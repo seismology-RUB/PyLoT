@@ -43,13 +43,15 @@ class AutoPickThread(QThread):
 class Thread(QThread):
     message = Signal(str)
 
-    def __init__(self, parent, func, arg=None, progressText=None, pb_widget=None, redirect_stdout=False):
+    def __init__(self, parent, func, arg=None, progressText=None,
+                 pb_widget=None, redirect_stdout=False, abortButton=False):
         QThread.__init__(self, parent)
         self.func = func
         self.arg = arg
         self.progressText = progressText
         self.pb_widget = pb_widget
         self.redirect_stdout = redirect_stdout
+        self.abortButton = abortButton
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
 
@@ -87,7 +89,8 @@ class Thread(QThread):
             pb.setRange(0, 0)
             hl.addWidget(pb)
             hl.addWidget(QLabel(self.progressText))
-            hl.addWidget(delete_button)
+            if self.abortButton:
+                hl.addWidget(delete_button)
             self.pb_widget.setLayout(hl)
             self.pb_widget.show()
 
