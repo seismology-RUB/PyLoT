@@ -2902,6 +2902,7 @@ class AutoPickDlg(QDialog):
         pylot_params.export2File(self.pp_export)
 
     def accept(self):
+        self.exportParameter()
         self.job_widget.start(self.pp_export)
         QDialog.accept(self)
 

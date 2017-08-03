@@ -79,7 +79,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox
+    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox, AutoPickDlg
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -126,6 +126,8 @@ class MainWindow(QMainWindow):
         self.array_map = None
         self._metadata = None
         self._eventChanged = [False, False]
+        self.apd_local = None
+        self.apd_sge = None
 
         self.poS_id = None
         self.ae_id = None
@@ -443,37 +445,6 @@ class MainWindow(QMainWindow):
                                        """Show either the documentation
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
-        self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
-                                self.openProjectAction, self.saveProjectAction,
-                                self.saveProjectAsAction,
-                                self.openmanualpicksaction, self.saveManualPicksAction, None,
-                                prefsEventAction, self.parameterAction, quitAction)
-        self.fileMenu.aboutToShow.connect(self.updateFileMenu)
-        self.updateFileMenu()
-
-        self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (self.filterAction, filterEditAction, None,
-                       self.selectPAction, self.selectSAction, None,
-                       printAction)
-        self.addActions(self.editMenu, editActions)
-
-        self.helpMenu = self.menuBar().addMenu('&Help')
-        helpActions = (helpAction,)
-        self.addActions(self.helpMenu, helpActions)
-
-        fileToolBar = self.addToolBar("FileTools")
-        fileToolActions = (self.newProjectAction, self.addEventDataAction,
-                           self.openProjectAction, self.saveProjectAction,
-                           self.saveProjectAsAction)
-        fileToolBar.setObjectName("FileTools")
-        self.addActions(fileToolBar, fileToolActions)
-        eventToolActions = (self.openmanualpicksaction, self.openautopicksaction,
-                            self.saveManualPicksAction, self.loadlocationaction,
-                            self.loadpilotevent)
-        eventToolBar = self.addToolBar("EventTools")
-        eventToolBar.setObjectName("EventTools")
-        self.addActions(eventToolBar, eventToolActions)
 
         # phaseToolBar = self.addToolBar("PhaseTools")
         # phaseToolActions = (self.selectPAction, self.selectSAction)
@@ -507,10 +478,8 @@ class MainWindow(QMainWindow):
                                           checkable=True)
         self.e_action.setEnabled(False)
 
-        componentToolBar = self.addToolBar("ComponentSelection")
+
         componentActions = (self.z_action, self.n_action, self.e_action)
-        componentToolBar.setObjectName("PhaseTools")
-        self.addActions(componentToolBar, componentActions)
 
         self.auto_tune = self.createAction(parent=self, text='autoTune',
                                            slot=self.tune_autopicker, shortcut='Alt+Ctrl+A',
@@ -518,15 +487,25 @@ class MainWindow(QMainWindow):
 
         self.auto_tune.setEnabled(False)
 
-        self.auto_pick = self.createAction(parent=self, text='autoPick',
+        self.auto_pick = self.createAction(parent=self, text='autopick this event',
                                            slot=self.autoPick, shortcut='Alt+Ctrl+A',
                                            icon=autopylot_icon, tip='Automatically pick'
-                                                                    ' the displayed waveforms.')
+                                           ' the displayed waveforms.')
         self.auto_pick.setEnabled(False)
 
-        autoPickToolBar = self.addToolBar("autoPyLoT")
+        self.auto_pick_local = self.createAction(parent=self, text='autopick project...',
+                                                 slot=self.autoPickProject, shortcut=None,
+                                                 icon=self.autopicksicon_small, tip='Automatically pick'
+                                                 ' the complete project on local machine.')
+        self.auto_pick_local.setEnabled(False)
+
+        self.auto_pick_sge = self.createAction(parent=self, text='autopick project on grid engine...',
+                                               slot=self.autoPickProjectSGE, shortcut=None,
+                                               icon=self.autopicksicon_small, tip='Automatically pick'
+                                               ' the complete project on grid engine.')
+        self.auto_pick_sge.setEnabled(False)
+
         autoPickActions = (self.auto_tune, self.auto_pick, self.compare_action)
-        self.addActions(autoPickToolBar, autoPickActions)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -540,9 +519,59 @@ class MainWindow(QMainWindow):
                                                  'the displayed manual arrivals.')
         self.locateEvent.setEnabled(False)
 
-        locationToolBar = self.addToolBar("LocationTools")
         locationToolActions = (self.locateEvent,)
+
+        # add top menu
+        self.fileMenu = self.menuBar().addMenu('&File')
+        self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
+                                self.openProjectAction, self.saveProjectAction,
+                                self.saveProjectAsAction,
+                                self.openmanualpicksaction, self.saveManualPicksAction, None,
+                                prefsEventAction, self.parameterAction, quitAction)
+        self.fileMenu.aboutToShow.connect(self.updateFileMenu)
+        self.updateFileMenu()
+
+        self.editMenu = self.menuBar().addMenu('&Edit')
+        editActions = (self.filterAction, filterEditAction, None,
+                       self.selectPAction, self.selectSAction, None,
+                       printAction)
+
+        self.pickMenu = self.menuBar().addMenu('&Picking')
+        pickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
+
+        self.helpMenu = self.menuBar().addMenu('&Help')
+        helpActions = (helpAction,)
+
+        fileToolActions = (self.newProjectAction, self.addEventDataAction,
+                           self.openProjectAction, self.saveProjectAction,
+                           self.saveProjectAsAction)
+
+
+        eventToolActions = (self.openmanualpicksaction, self.openautopicksaction,
+                            self.saveManualPicksAction, self.loadlocationaction,
+                            self.loadpilotevent)
+
+
+        fileToolBar = self.addToolBar("FileTools")
+        eventToolBar = self.addToolBar("EventTools")
+        componentToolBar = self.addToolBar("ComponentSelection")
+        autoPickToolBar = self.addToolBar("autoPyLoT")
+        locationToolBar = self.addToolBar("LocationTools")
+
+        fileToolBar.setObjectName("FileTools")
+        eventToolBar.setObjectName("EventTools")
+        componentToolBar.setObjectName("PhaseTools")
+        autoPickToolBar.setObjectName('autopickTools')
         locationToolBar.setObjectName("LocationTools")
+
+        self.addActions(self.editMenu, editActions)
+        self.addActions(self.pickMenu, pickActions)
+        self.addActions(self.helpMenu, helpActions)
+
+        self.addActions(fileToolBar, fileToolActions)
+        self.addActions(eventToolBar, eventToolActions)
+        self.addActions(componentToolBar, componentActions)
+        self.addActions(autoPickToolBar, autoPickActions)
         self.addActions(locationToolBar, locationToolActions)
 
         self.eventLabel = QLabel()
@@ -1472,6 +1501,8 @@ class MainWindow(QMainWindow):
         self.loadlocationaction.setEnabled(True)
         self.auto_tune.setEnabled(True)
         self.auto_pick.setEnabled(True)
+        self.auto_pick_local.setEnabled(True)
+        self.auto_pick_sge.setEnabled(True)
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
         self.n_action.setEnabled(True)
@@ -1501,6 +1532,8 @@ class MainWindow(QMainWindow):
         self.loadlocationaction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
+        self.auto_pick_local.setEnabled(False)
+        self.auto_pick_sge.setEnabled(False)
         self.z_action.setEnabled(False)
         self.e_action.setEnabled(False)
         self.n_action.setEnabled(False)
@@ -1839,36 +1872,6 @@ class MainWindow(QMainWindow):
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
         self.tap.fill_tabs(picked=True)
 
-    # def autoPick(self):
-    #     self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output')
-    #     if not os.path.exists(self.autosave):
-    #         QMessageBox.warning(self, "PyLoT Warning",
-    #                             "No autoPyLoT output declared!")
-    #         return
-    #     self.listWidget = QListWidget()
-    #     self.setDirty(True)
-    #     self.logDockWidget = QDockWidget("AutoPickLog", self)
-    #     self.logDockWidget.setObjectName("LogDockWidget")
-    #     self.logDockWidget.setAllowedAreas(
-    #         Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-    #     self.logDockWidget.setWidget(self.listWidget)
-    #     self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-    #     self.addListItem('Loading default values from PyLoT-input file %s'
-    #                      % self.infile)
-    #     autopick_parameter = self._inputs
-    #     self.addListItem(str(autopick_parameter))
-    #     receventid = self.get_current_event_path()
-    #     self.thread = AutoPickThread(parent=self,
-    #                                  func=autoPyLoT,
-    #                                  infile=self.infile,
-    #                                  fnames=self.fnames,
-    #                                  eventid=receventid,
-    #                                  savepath=self.autosave)
-
-    #     self.thread.message.connect(self.addListItem)
-    #     self.thread.start()
-    #     self.thread.finished.connect(self.finalizeAutoPick)
-
     def autoPick(self):
         self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output')
         if not os.path.exists(self.autosave):
@@ -1902,6 +1905,16 @@ class MainWindow(QMainWindow):
 
         self.mp_worker.signals.message.connect(self.addListItem)
         # self.mp_thread.finished.connect(self.finalizeAutoPick)
+
+    def autoPickProject(self):
+        if not self.apd_local:
+            self.apd_local = AutoPickDlg(self, sge=False)
+        self.apd_local.show()
+
+    def autoPickProjectSGE(self):
+        if not self.apd_sge:
+            self.apd_sge = AutoPickDlg(self, sge=True)
+        self.apd_sge.show()
 
     def finalizeAutoPick(self):
         self.drawPicks(picktype='auto')
