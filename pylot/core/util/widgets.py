@@ -2762,7 +2762,7 @@ class PylotParaBox(QtGui.QWidget):
         elif type(box) == QtGui.QCheckBox:
             if value == 'True':
                 value = True
-            if value == 'False':
+            if value == 'False' or value is None:
                 value = False
             box.setChecked(value)
         elif type(box) == list:
