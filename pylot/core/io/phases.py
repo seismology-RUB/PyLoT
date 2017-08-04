@@ -951,7 +951,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     if plotflag == 0:
         Punc = [Pw0, Pw1, Pw2, Pw3, Pw4]
         Sunc = [Sw0, Sw1, Sw2, Sw3, Sw4]
-        return Puns, Sunc
+        return Punc, Sunc
     else:
         # get percentage of weights
         numPweights = np.sum([len(Pw0), len(Pw1), len(Pw2), len(Pw3), len(Pw4)])
@@ -979,7 +979,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         try:
             S0perc = 100 / numSweights * len(Sw0)
         except:
-            Soperc = 0
+            S0perc = 0
         try:
             S1perc = 100 / numSweights * len(Sw1)
         except:
