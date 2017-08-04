@@ -379,9 +379,14 @@ defaults = {'rootpath': {'type': str,
                             'namestring': ('Type', 'P', 'S')},
 
             'use_taup': {'type': bool,
-                         'tooltip': 'use estimated traveltimes from taupy for calculating windows for CF',
+                         'tooltip': 'use estimated traveltimes from TauPy for calculating windows for CF',
                          'value': True,
-                         'namestring': 'Use Taupy'}
+                         'namestring': 'Use Taupy'},
+
+            'taup_model': {'type': str,
+                           'tooltip': 'define TauPy model for traveltime estimation',
+                           'value': 'iasp91',
+                           'namestring': 'Taupy model'}
             }
 
 settings_main = {
@@ -419,6 +424,7 @@ settings_main = {
         'sstart',
         'sstop',
         'use_taup',
+        'taup_model',
         'bpz1',
         'bpz2',
         'bph1',
