@@ -4,19 +4,19 @@
 %Parameters are optimized for %extent data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #main settings#
-                                                   #rootpath#       %project path                                                                                        
-                                                   #datapath#       %data path                                                                                           
-                                                   #database#       %name of data base                                                                                   
-e0010.065.17                                       #eventID#        %event ID for single event processing (* for all events found in database)                           
-                                                   #invdir#         %full path to  inventory or dataless-seed file                                                       
+/home/marcel/marcel_scratch                        #rootpath#       %project path                                                                                        
+alparray                                           #datapath#       %data path                                                                                           
+waveforms                                          #database#       %name of data base                                                                                   
+e0006.036.13                                       #eventID#        %event ID for single event processing (* for all events found in database)                           
+None                                               #invdir#         %full path to  inventory or dataless-seed file                                                       
 PILOT                                              #datastructure#  %choose data structure                                                                               
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #NLLoc settings#
-                                                   #nllocbin#       %path to NLLoc executable                                                                            
-                                                   #nllocroot#      %root of NLLoc-processing directory                                                                  
+/progs/bin                                         #nllocbin#       %path to NLLoc executable                                                                            
+/home/ludger/NLLOC/Insheim                         #nllocroot#      %root of NLLoc-processing directory                                                                  
 AUTOPHASES.obs                                     #phasefile#      %name of autoPyLoT-output phase file for NLLoc                                                       
-Insheim_min1d2015_auto.in                          #ctrfile#        %name of autoPyLoT-output control file for NLLoc                                                     
+Insheim_min1d032016_auto.in                        #ctrfile#        %name of autoPyLoT-output control file for NLLoc                                                     
 ttime                                              #ttpatter#       %pattern of NLLoc ttimes from grid                                                                   
 AUTOLOC_nlloc                                      #outpatter#      %pattern of NLLoc-output file                                                                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,70 +26,71 @@ AUTOLOC_nlloc                                      #outpatter#      %pattern of 
 300.0 0.8                                          #Qp#             %quality factor for P waves (Qp*f^a); list(Qp, a)                                                    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #settings local magnitude#
-0.0 0.0 0.0                                        #WAscaling#      %Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm]                           If zeros are set, original Richter magnitude is calculated!
-0.0 0.0                                            #magscaling#     %Scaling relation for derived local magnitude [a*Ml+b].                            If zeros are set, no scaling of network magnitude is applied!
+1.0 1.0 1.0                                        #WAscaling#      %Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm]                           If zeros are set, original Richter magnitude is calculated!
+1.0 1.0                                            #magscaling#     %Scaling relation for derived local magnitude [a*Ml+b].                            If zeros are set, no scaling of network magnitude is applied!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #filter settings#
-1.0 1.0                                            #minfreq#        %Lower filter frequency [P, S]                                                                       
-10.0 10.0                                          #maxfreq#        %Upper filter frequency [P, S]                                                                       
-2 2                                                #filter_order#   %filter order [P, S]                                                                                 
+0.01 0.01                                          #minfreq#        %Lower filter frequency [P, S]                                                                       
+0.3 0.3                                            #maxfreq#        %Upper filter frequency [P, S]                                                                       
+3 3                                                #filter_order#   %filter order [P, S]                                                                                 
 bandpass bandpass                                  #filter_type#    %filter type (bandpass, bandstop, lowpass, highpass) [P, S]                                          
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #common settings picker#
-local                                              #extent#         %extent of array ("local", "regional" or "global")                                                   
-15.0                                               #pstart#         %start time [s] for calculating CF for P-picking                                                     
-60.0                                               #pstop#          %end time [s] for calculating CF for P-picking                                                       
--1.0                                               #sstart#         %start time [s] relative to P-onset for calculating CF for S-picking                                 
-10.0                                               #sstop#          %end time [s] after P-onset for calculating CF for S-picking                                         
-2.0 20.0                                           #bpz1#           %lower/upper corner freq. of first band pass filter Z-comp. [Hz]                                     
-2.0 30.0                                           #bpz2#           %lower/upper corner freq. of second band pass filter Z-comp. [Hz]                                    
-2.0 15.0                                           #bph1#           %lower/upper corner freq. of first band pass filter H-comp. [Hz]                                     
-2.0 20.0                                           #bph2#           %lower/upper corner freq. of second band pass filter z-comp. [Hz]                                    
+global                                             #extent#         %extent of array ("local", "regional" or "global")                                                   
+50.0                                               #pstart#         %start time [s] for calculating CF for P-picking                                                     
+600.0                                              #pstop#          %end time [s] for calculating CF for P-picking                                                       
+200.0                                              #sstart#         %start time [s] relative to P-onset for calculating CF for S-picking                                 
+1150.0                                             #sstop#          %end time [s] after P-onset for calculating CF for S-picking                                         
+True                                               #use_taup#       %use estimated traveltimes from taupy for calculating windows for CF                                 
+0.05 0.5                                           #bpz1#           %lower/upper corner freq. of first band pass filter Z-comp. [Hz]                                     
+0.01 0.5                                           #bpz2#           %lower/upper corner freq. of second band pass filter Z-comp. [Hz]                                    
+0.05 0.5                                           #bph1#           %lower/upper corner freq. of first band pass filter H-comp. [Hz]                                     
+0.01 0.5                                           #bph2#           %lower/upper corner freq. of second band pass filter z-comp. [Hz]                                    
 #special settings for calculating CF#
 %!!Edit the following only if you know what you are doing!!%
 #Z-component#
 HOS                                                #algoP#          %choose algorithm for P-onset determination (HOS, ARZ, or AR3)                                       
-7.0                                                #tlta#           %for HOS-/AR-AIC-picker, length of LTA window [s]                                                    
+15.0                                               #tlta#           %for HOS-/AR-AIC-picker, length of LTA window [s]                                                    
 4                                                  #hosorder#       %for HOS-picker, order of Higher Order Statistics                                                    
 2                                                  #Parorder#       %for AR-picker, order of AR process of Z-component                                                   
-1.2                                                #tdet1z#         %for AR-picker, length of AR determination window [s] for Z-component, 1st pick                      
-0.4                                                #tpred1z#        %for AR-picker, length of AR prediction window [s] for Z-component, 1st pick                         
-0.6                                                #tdet2z#         %for AR-picker, length of AR determination window [s] for Z-component, 2nd pick                      
-0.2                                                #tpred2z#        %for AR-picker, length of AR prediction window [s] for Z-component, 2nd pick                         
+6.0                                                #tdet1z#         %for AR-picker, length of AR determination window [s] for Z-component, 1st pick                      
+2.0                                                #tpred1z#        %for AR-picker, length of AR prediction window [s] for Z-component, 1st pick                         
+3.0                                                #tdet2z#         %for AR-picker, length of AR determination window [s] for Z-component, 2nd pick                      
+1.0                                                #tpred2z#        %for AR-picker, length of AR prediction window [s] for Z-component, 2nd pick                         
 0.001                                              #addnoise#       %add noise to seismogram for stable AR prediction                                                    
-3.0 0.1 0.5 1.0                                    #tsnrz#          %for HOS/AR, window lengths for SNR-and slope estimation [tnoise, tsafetey, tsignal, tslope] [s]     
-3.0                                                #pickwinP#       %for initial AIC pick, length of P-pick window [s]                                                   
-6.0                                                #Precalcwin#     %for HOS/AR, window length [s] for recalculation of CF (relative to 1st pick)                        
-0.2                                                #aictsmooth#     %for HOS/AR, take average of samples for smoothing of AIC-function [s]                               
-0.1                                                #tsmoothP#       %for HOS/AR, take average of samples for smoothing CF [s]                                            
+60.0 10.0 150.0 3.0                                #tsnrz#          %for HOS/AR, window lengths for SNR-and slope estimation [tnoise, tsafetey, tsignal, tslope] [s]     
+10.0                                               #pickwinP#       %for initial AIC pick, length of P-pick window [s]                                                   
+20.0                                               #Precalcwin#     %for HOS/AR, window length [s] for recalculation of CF (relative to 1st pick)                        
+6.0                                                #aictsmooth#     %for HOS/AR, take average of samples for smoothing of AIC-function [s]                               
+4.0                                                #tsmoothP#       %for HOS/AR, take average of samples for smoothing CF [s]                                            
 0.001                                              #ausP#           %for HOS/AR, artificial uplift of samples (aus) of CF (P)                                            
-1.3                                                #nfacP#          %for HOS/AR, noise factor for noise level determination (P)                                          
+1.1                                                #nfacP#          %for HOS/AR, noise factor for noise level determination (P)                                          
 #H-components#
 ARH                                                #algoS#          %choose algorithm for S-onset determination (ARH or AR3)                                             
-0.8                                                #tdet1h#         %for HOS/AR, length of AR-determination window [s], H-components, 1st pick                           
-0.4                                                #tpred1h#        %for HOS/AR, length of AR-prediction window [s], H-components, 1st pick                              
-0.6                                                #tdet2h#         %for HOS/AR, length of AR-determinaton window [s], H-components, 2nd pick                            
-0.3                                                #tpred2h#        %for HOS/AR, length of AR-prediction window [s], H-components, 2nd pick                              
+6.0                                                #tdet1h#         %for HOS/AR, length of AR-determination window [s], H-components, 1st pick                           
+4.0                                                #tpred1h#        %for HOS/AR, length of AR-prediction window [s], H-components, 1st pick                              
+6.0                                                #tdet2h#         %for HOS/AR, length of AR-determinaton window [s], H-components, 2nd pick                            
+3.0                                                #tpred2h#        %for HOS/AR, length of AR-prediction window [s], H-components, 2nd pick                              
 4                                                  #Sarorder#       %for AR-picker, order of AR process of H-components                                                  
 5.0                                                #Srecalcwin#     %for AR-picker, window length [s] for recalculation of CF (2nd pick) (H)                             
-3.0                                                #pickwinS#       %for initial AIC pick, length of S-pick window [s]                                                   
-2.0 0.2 1.5 0.5                                    #tsnrh#          %for ARH/AR3, window lengths for SNR-and slope estimation [tnoise, tsafetey, tsignal, tslope] [s]    
-0.5                                                #aictsmoothS#    %for AIC-picker, take average of samples for smoothing of AIC-function [s]                           
-0.7                                                #tsmoothS#       %for AR-picker, take average of samples for smoothing CF [s] (S)                                     
+15.0                                               #pickwinS#       %for initial AIC pick, length of S-pick window [s]                                                   
+100.0 10.0 40.0 6.0                                #tsnrh#          %for ARH/AR3, window lengths for SNR-and slope estimation [tnoise, tsafetey, tsignal, tslope] [s]    
+2.0                                                #aictsmoothS#    %for AIC-picker, take average of samples for smoothing of AIC-function [s]                           
+3.0                                                #tsmoothS#       %for AR-picker, take average of samples for smoothing CF [s] (S)                                     
 0.9                                                #ausS#           %for HOS/AR, artificial uplift of samples (aus) of CF (S)                                            
-1.5                                                #nfacS#          %for AR-picker, noise factor for noise level determination (S)                                       
+1.2                                                #nfacS#          %for AR-picker, noise factor for noise level determination (S)                                       
 #first-motion picker#
 1                                                  #minfmweight#    %minimum required P weight for first-motion determination                                            
 2.0                                                #minFMSNR#       %miniumum required SNR for first-motion determination                                                
 0.2                                                #fmpickwin#      %pick window around P onset for calculating zero crossings                                           
 #quality assessment#
-0.01 0.02 0.04 0.08                                #timeerrorsP#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P                           
-0.04 0.08 0.16 0.32                                #timeerrorsS#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S                           
-0.8                                                #minAICPslope#   %below this slope [counts/s] the initial P pick is rejected                                          
+1.0 2.0 4.0 8.0                                    #timeerrorsP#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P                           
+4.0 8.0 16.0 32.0                                  #timeerrorsS#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S                           
+0.5                                                #minAICPslope#   %below this slope [counts/s] the initial P pick is rejected                                          
 1.1                                                #minAICPSNR#     %below this SNR the initial P pick is rejected                                                       
 1.0                                                #minAICSslope#   %below this slope [counts/s] the initial S pick is rejected                                          
 1.5                                                #minAICSSNR#     %below this SNR the initial S pick is rejected                                                       
-1.0                                                #minsiglength#   %length of signal part for which amplitudes must exceed noiselevel [s]                               
+5.0                                                #minsiglength#   %length of signal part for which amplitudes must exceed noiselevel [s]                               
 1.0                                                #noisefactor#    %noiselevel*noisefactor=threshold                                                                    
 10.0                                               #minpercent#     %required percentage of amplitudes exceeding threshold                                               
 1.5                                                #zfac#           %P-amplitude must exceed at least zfac times RMS-S amplitude                                         

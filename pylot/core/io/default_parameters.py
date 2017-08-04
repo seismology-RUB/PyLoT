@@ -376,7 +376,12 @@ defaults = {'rootpath': {'type': str,
             'filter_type': {'type': (str, str),
                             'tooltip': 'filter type (bandpass, bandstop, lowpass, highpass) [P, S]',
                             'value': ('bandpass', 'bandpass'),
-                            'namestring': ('Type', 'P', 'S')}
+                            'namestring': ('Type', 'P', 'S')},
+
+            'use_taup': {'type': bool,
+                         'tooltip': 'use estimated traveltimes from taupy for calculating windows for CF',
+                         'value': True,
+                         'namestring': 'Use Taupy'}
             }
 
 settings_main = {
@@ -413,6 +418,7 @@ settings_main = {
         'pstop',
         'sstart',
         'sstop',
+        'use_taup',
         'bpz1',
         'bpz2',
         'bph1',
