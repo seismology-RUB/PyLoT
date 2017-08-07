@@ -10,14 +10,31 @@ import subprocess
 import numpy as np
 from obspy import UTCDateTime, read
 from pylot.core.io.inputs import PylotParameter
-from scipy.interpolate import splrep, splev
 
+from scipy.interpolate import splrep, splev
 
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
+
+
+def readDefaultFilterInformation(fname):
+    pparam = PylotParameter(fname)
+    return readFilterInformation(pparam)
+
+
+def readFilterInformation(pylot_parameter):
+    p_filter = {'filtertype': pylot_parameter['filter_type'][0],
+                'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
+                'order': int(pylot_parameter['filter_order'][0])}
+    s_filter = {'filtertype': pylot_parameter['filter_type'][1],
+                'freq': [pylot_parameter['minfreq'][1], pylot_parameter['maxfreq'][1]],
+                'order': int(pylot_parameter['filter_order'][1])}
+    filter_information = {'P': p_filter,
+                          'S': s_filter}
+    return filter_information
 
 
 def fit_curve(x, y):
@@ -549,6 +566,51 @@ def which(program, infile=None):
                     return candidate
 
     return None
+
+
+def loopIdentifyPhase(phase):
+    '''
+    Loop through phase string and try to recognize its type (P or S wave).
+    Global variable ALTSUFFIX gives alternative suffix for phases if they do not end with P, p or S, s.
+    If ALTSUFFIX is not given, the function will cut the last letter of the phase string until string ends
+    with P or S.
+    :param phase: phase name (str)
+    :return:
+    '''
+    from pylot.core.util.defaults import ALTSUFFIX
+
+    phase_copy = phase
+    while not identifyPhase(phase_copy):
+        identified = False
+        for alt_suf in ALTSUFFIX:
+            if phase_copy.endswith(alt_suf):
+                phase_copy = phase_copy.split(alt_suf)[0]
+                identified = True
+        if not identified:
+            phase_copy = phase_copy[:-1]
+        if len(phase_copy) < 1:
+            print('Warning: Could not identify phase {}!'.format(phase))
+            return
+    return phase_copy
+
+
+def identifyPhase(phase):
+    '''
+    Returns capital P or S if phase string is identified by last letter. Else returns False.
+    :param phase: phase name (str)
+    :return: 'P', 'S' or False
+    '''
+    # common phase suffix for P and S
+    common_P = ['P', 'p']
+    common_S = ['S', 's']
+    if phase[-1] in common_P:
+        return 'P'
+    if phase[-1] in common_S:
+        return 'S'
+    else:
+        return False
+
+
 
 
 if __name__ == "__main__":

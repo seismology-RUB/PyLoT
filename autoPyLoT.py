@@ -111,8 +111,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print('Parameters set and input file given. Choose either of both.')
             return
 
-    data = Data()
-
     evt = None
 
     # reading parameter file
@@ -192,16 +190,24 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             return
 
         # transform system path separator to '/'
-        for index, event in enumerate(events):
-            event = event.replace(SEPARATOR, '/')
-            events[index] = event
+        for index, eventpath in enumerate(events):
+            eventpath = eventpath.replace(SEPARATOR, '/')
+            events[index] = eventpath
 
-        for event in events:
-            pylot_event = Event(event)  # event should be path to event directory
-            data.setEvtData(pylot_event)
+        for eventpath in events:
+            evID = os.path.split(eventpath)[-1]
+            fext = '.xml'
+            filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
+            try:
+                data = Data(evtdata=filename)
+                print('Reading event data from filename {}...'.format(filename))
+            except Exception as e:
+                print('Could not read event from file {}: {}'.format(filename, e))
+                data = Data()
+                pylot_event = Event(eventpath)  # event should be path to event directory
+                data.setEvtData(pylot_event)
             if fnames == 'None':
-                data.setWFData(glob.glob(os.path.join(datapath, event, '*')))
-                evID = os.path.split(event)[-1]
+                data.setWFData(glob.glob(os.path.join(datapath, eventpath, '*')))
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in
@@ -218,7 +224,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             else:
                 data.setWFData(fnames)
 
-                event = events[0]
+                eventpath = events[0]
                 # now = datetime.datetime.now()
                 # evID = '%d%02d%02d%02d%02d' % (now.year,
                 #                               now.month,
@@ -238,16 +244,18 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
-            print('Working on event %s. Stations: %s' % (event, station))
+            print('Working on event %s. Stations: %s' % (eventpath, station))
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
             if input_dict:
                 if 'fig_dict' in input_dict:
                     fig_dict = input_dict['fig_dict']
-                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict, ncores=ncores)
+                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
+                                          ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
             else:
-                picks = autopickevent(wfdat, parameter, iplot=iplot, ncores=ncores)
+                picks = autopickevent(wfdat, parameter, iplot=iplot,
+                                      ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
             ##########################################################
             # locating
             if locflag > 0:
@@ -393,29 +401,29 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             # ObsPy event object
             data.applyEVTData(picks)
             if evt is not None:
-                event_id = event.split('/')[-1]
+                event_id = eventpath.split('/')[-1]
                 evt.resource_id = ResourceIdentifier('smi:local/' + event_id)
                 data.applyEVTData(evt, 'event')
-            fnqml = '%s/PyLoT_%s' % (event, evID)
+            fnqml = '%s/PyLoT_%s' % (eventpath, evID)
             data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
             if locflag == 1:
                 # HYPO71
-                hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (event, evID)
+                hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (eventpath, evID)
                 hypo71.export(picks, hypo71file, parameter)
                 # HYPOSAT
-                hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (event, evID)
+                hyposatfile = '%s/PyLoT_%s_HYPOSAT_phases' % (eventpath, evID)
                 hyposat.export(picks, hyposatfile, parameter)
                 # VELEST
-                velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (event, evID)
+                velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (eventpath, evID)
                 velest.export(picks, velestfile, parameter, evt)
                 # hypoDD
-                hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (event, evID)
+                hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (eventpath, evID)
                 hypodd.export(picks, hypoddfile, parameter, evt)
                 # FOCMEC
-                focmecfile = '%s/PyLoT_%s_FOCMEC.in' % (event, evID)
+                focmecfile = '%s/PyLoT_%s_FOCMEC.in' % (eventpath, evID)
                 focmec.export(picks, focmecfile, parameter, evt)
                 # HASH
-                hashfile = '%s/PyLoT_%s_HASH' % (event, evID)
+                hashfile = '%s/PyLoT_%s_HASH' % (eventpath, evID)
                 hash.export(picks, hashfile, parameter, evt)
 
             endsplash = '''------------------------------------------\n'

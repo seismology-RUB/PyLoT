@@ -18,10 +18,13 @@ from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine, gen_Pool
+from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopIdentifyPhase, \
+    full_range
+
+from obspy.taup import TauPyModel
 
 
-def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0):
+def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, origin=None):
     stations = []
     all_onsets = {}
     input_tuples = []
@@ -42,9 +45,11 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0):
         topick = data.select(station=station)
 
         if not iplot:
-            input_tuples.append((topick, param, apverbose))
+            input_tuples.append((topick, param, apverbose, metadata, origin))
         if iplot > 0:
-            all_onsets[station] = autopickstation(topick, param, verbose=apverbose, iplot=iplot, fig_dict=fig_dict)
+            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
+                                                  iplot=iplot, fig_dict=fig_dict,
+                                                  metadata=metadata, origin=origin)
 
     if iplot > 0:
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
@@ -69,12 +74,13 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0):
 
 
 def call_autopickstation(input_tuple):
-    wfstream, pickparam, verbose = input_tuple
+    wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
-    return autopickstation(wfstream, pickparam, verbose, iplot=0)
+    return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
 
 
-def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
+def autopickstation(wfstream, pickparam, verbose=False,
+                    iplot=0, fig_dict=None, metadata=None, origin=None):
     """
     :param wfstream: `~obspy.core.stream.Stream`  containing waveform
     :type wfstream: obspy.core.stream.Stream
@@ -117,6 +123,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
     algoS = pickparam.get('algoS')
     sstart = pickparam.get('sstart')
     sstop = pickparam.get('sstop')
+    use_taup = pickparam.get('use_taup')
+    taup_model = pickparam.get('taup_model')
     bph1 = pickparam.get('bph1')
     bph2 = pickparam.get('bph2')
     tsnrh = pickparam.get('tsnrh')
@@ -182,6 +190,8 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
 
+    wfstart, wfend = full_range(wfstream)
+
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
@@ -197,7 +207,47 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
         z_copy[0].data = tr_filt.data
         ##############################################################
         # check length of waveform and compare with cut times
-        Lc = pstop - pstart
+
+        # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
+        # if not given: sets Lc to infinity to use full stream
+        if use_taup:
+            Lc = np.inf
+            print('autopickstation: use_taup flag active.')
+            if not metadata[1]:
+                print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
+            else:
+                if origin:
+                    source_origin = origin[0]
+                    station_id = wfstream[0].get_id()
+                    parser = metadata[1]
+                    station_coords = parser.get_coordinates(station_id)
+                    model = TauPyModel(taup_model)
+                    arrivals = model.get_travel_times_geo(
+                        source_origin.depth,
+                        source_origin.latitude,
+                        source_origin.longitude,
+                        station_coords['latitude'],
+                        station_coords['longitude']
+                    )
+                    phases = {'P': [],
+                              'S': []}
+                    for arr in arrivals:
+                        phases[identifyPhase(loopIdentifyPhase(arr.phase.name))].append(arr)
+
+                    # get first P and S onsets from arrivals list
+                    arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key = lambda t: t[1])
+                    arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key = lambda t: t[1])
+                    print('autopick: estimated first arrivals for P: {}, S:{} using TauPy'.format(estFirstP, estFirstS))
+
+                    # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
+                    pstart += (source_origin.time + estFirstP) - wfstart
+                    pstop += (source_origin.time + estFirstP) - wfstart
+                    Lc = pstop - pstart
+                else:
+                    print('No source origins given!')
+
+        else:
+            Lc = pstop - pstart
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         Ldiff = Lwf - Lc
         if Ldiff < 0:
@@ -238,6 +288,12 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None):
         else:
             fig = None
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig)
+        # add pstart and pstop to aic plot
+        if fig.axes:
+            for ax in fig.axes:
+                ax.vlines(pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
+                ax.vlines(pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
+                ax.legend()
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks

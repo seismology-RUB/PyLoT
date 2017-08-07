@@ -21,7 +21,7 @@ except:
     pg = None
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals
+from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -46,7 +46,7 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, ALTSUFFIX, \
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims
@@ -116,34 +116,6 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     if checkable:
         action.setCheckable(True)
     return action
-
-
-def loopIdentifyPhase(phase):
-    phase_copy = phase
-    while not identifyPhase(phase_copy):
-        identified = False
-        for alt_suf in ALTSUFFIX:
-            if phase_copy.endswith(alt_suf):
-                phase_copy = phase_copy.split(alt_suf)[0]
-                identified = True
-        if not identified:
-            phase_copy = phase_copy[:-1]
-        if len(phase_copy) < 1:
-            print('Warning: Could not identify phase {}!'.format(phase))
-            return
-    return phase_copy
-
-
-def identifyPhase(phase):
-    # common phase suffix for P and S
-    common_P = ['P', 'p']
-    common_S = ['S', 's']
-    if phase[-1] in common_P:
-        return 'P'
-    if phase[-1] in common_S:
-        return 'S'
-    else:
-        return False
 
 
 class ComparisonDialog(QDialog):

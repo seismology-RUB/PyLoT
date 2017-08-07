@@ -67,14 +67,13 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents, \
-    readFilterInformation
+from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
 from pylot.core.util.errors import FormatError, DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range
+    full_range, readFilterInformation
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -722,7 +721,7 @@ class MainWindow(QMainWindow):
         fext = '.xml'
         for event in events:
             path = event.path
-            eventname = path.split('/')[-1]
+            eventname = path.split('/')[-1] #or event.pylot_id
             filename = os.path.join(path, 'PyLoT_' + eventname + fext)
             if os.path.isfile(filename):
                 self.load_data(filename, draw=False, event=event, overwrite=True)

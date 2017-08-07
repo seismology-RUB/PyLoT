@@ -87,12 +87,14 @@ defaults = {'rootpath': {'type': str,
                    'namestring': ('Quality factor', 'Qp1', 'Qp2')},
 
             'pstart': {'type': float,
-                       'tooltip': 'start time [s] for calculating CF for P-picking',
+                       'tooltip': 'start time [s] for calculating CF for P-picking (if TauPy:'
+                                  ' seconds relative to estimated onset)',
                        'value': 15.0,
                        'namestring': 'P start'},
 
             'pstop': {'type': float,
-                      'tooltip': 'end time [s] for calculating CF for P-picking',
+                      'tooltip': 'end time [s] for calculating CF for P-picking (if TauPy:'
+                                 ' seconds relative to estimated onset)',
                       'value': 60.0,
                       'namestring': 'P stop'},
 
@@ -381,12 +383,12 @@ defaults = {'rootpath': {'type': str,
             'use_taup': {'type': bool,
                          'tooltip': 'use estimated traveltimes from TauPy for calculating windows for CF',
                          'value': True,
-                         'namestring': 'Use Taupy'},
+                         'namestring': 'Use TauPy'},
 
             'taup_model': {'type': str,
                            'tooltip': 'define TauPy model for traveltime estimation',
                            'value': 'iasp91',
-                           'namestring': 'Taupy model'}
+                           'namestring': 'TauPy model'}
             }
 
 settings_main = {

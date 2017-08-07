@@ -9,29 +9,12 @@ Created on Wed Feb 26 12:31:25 2014
 import os
 import platform
 
-from pylot.core.io.inputs import PylotParameter
+from pylot.core.util.utils import readDefaultFilterInformation
 from pylot.core.loc import hypo71
 from pylot.core.loc import hypodd
 from pylot.core.loc import hyposat
 from pylot.core.loc import nll
 from pylot.core.loc import velest
-
-
-def readDefaultFilterInformation(fname):
-    pparam = PylotParameter(fname)
-    return readFilterInformation(pparam)
-
-
-def readFilterInformation(pylot_parameter):
-    p_filter = {'filtertype': pylot_parameter['filter_type'][0],
-                'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
-                'order': int(pylot_parameter['filter_order'][0])}
-    s_filter = {'filtertype': pylot_parameter['filter_type'][1],
-                'freq': [pylot_parameter['minfreq'][1], pylot_parameter['maxfreq'][1]],
-                'order': int(pylot_parameter['filter_order'][1])}
-    filter_information = {'P': p_filter,
-                          'S': s_filter}
-    return filter_information
 
 
 # determine system dependent path separator
