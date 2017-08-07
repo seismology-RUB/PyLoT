@@ -1105,7 +1105,7 @@ class MainWindow(QMainWindow):
             self.set_fname(self.get_data().getEventFileName(), type)
         return self.get_fnames(type)
 
-    def saveData(self, event=None, directory=None, outformats=['.obs', '.xml', '.cnv']):
+    def saveData(self, event=None, directory=None, outformats=['.xml', '.cnv']):
         '''
         Save event data to directory with specified output formats.
         :param event: PyLoT Event, if not set current event will be used
