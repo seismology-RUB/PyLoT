@@ -387,9 +387,10 @@ class MainWindow(QMainWindow):
                                                 " in former MatLab based version).")
         self.loadpilotevent.setEnabled(False)
 
-        self.saveManualPicksAction = self.createAction(self, "Save &picks ...",
+        self.saveManualPicksAction = self.createAction(self, "Save &event information ...",
                                                        self.saveData, "Ctrl+P",
-                                                       saveEventsIcon, "Save event pick data.")
+                                                       saveEventsIcon, "Save event pick data,"
+                                                                       " source origin and magnitude.")
         self.disableSaveManualPicksAction()
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
@@ -1104,99 +1105,64 @@ class MainWindow(QMainWindow):
             self.set_fname(self.get_data().getEventFileName(), type)
         return self.get_fnames(type)
 
-    def saveData(self, directory=None, outformat=None):
+    def saveData(self, event=None, directory=None, outformats=['.obs', '.xml', '.cnv']):
+        '''
+        Save event data to directory with specified output formats.
+        :param event: PyLoT Event, if not set current event will be used
+        :param directory: output directory, if not set default event path will be used
+        :param outformats: list of output formats
+        :return:
+        '''
+        if not event:
+            event = self.get_current_event()
 
-        def getSavePath(e, directory, outformat):
-            print('warning: {0}'.format(e))
+        def getSavePath(event, directory, outformats):
             if not directory:
-                dlgflag = 1
-                directory = self.get_current_event_path()
+                title = 'Save event data as {} to directory ...'.format(outformats)
+                directory = QFileDialog.getExistingDirectory(self,
+                                                             title,
+                                                             event.path)
             else:
-                dlgflag = 0
-            eventname = self.get_current_event_name()
-            filename = 'PyLoT_' + eventname + '.xml'
-            outpath = os.path.join(directory, filename)
-            title = 'Save pick data ...'
-            file_filter = "(*.xml *.obs *.cnv)"
+                directory = event.path
 
-            if dlgflag == 1:
-                fname, selected_filter = QFileDialog.getSaveFileName(self,
-                                                                     title,
-                                                                     outpath,
-                                                                     file_filter)
+            filename = 'PyLoT_' + event.pylot_id
+            eventfn = os.path.join(directory, filename)
 
-            try:
-                fbasename = fname
-            except:
-                fbasename = outpath
-            exform = ['.obs', '.xml', '.cnv']
-            return fbasename, exform
+            return eventfn
 
-        settings = QSettings()
-        fbasename = self.getEventFileName()
-        exform = settings.value('data/exportFormat', 'QUAKEML')
+        fbasename = getSavePath(event, directory, outformats)
 
         uppererrorP = self._inputs['timeerrorsP']
         uppererrorS = self._inputs['timeerrorsS']
 
         try:
-            self.get_data().applyEVTData(self.get_current_event(), typ='event')  # getPicks())
+            self.get_data().applyEVTData(event, typ='event')  # getPicks())
         except OverwriteError:
-            #     msgBox = QMessageBox()
-            #     msgBox.setText("Picks have been modified!")
-            #     msgBox.setInformativeText(
-            #         "Do you want to save the changes and overwrite the picks?")
-            #     msgBox.setDetailedText(self.get_data().getPicksStr())
-            #     msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-            #     msgBox.setDefaultButton(QMessageBox.Save)
-            #     ret = msgBox.exec_()
-            #     if ret == QMessageBox.Save:
             self.get_data().resetPicks()
-            return self.saveData()
-        # elif ret == QMessageBox.Cancel:
-        #         return False
-        # MP MP changed to suppress unnecessary user prompt
+            return self.saveData(event, directory, outformats)
+
         fcheck = ['manual', 'origins', 'magnitude']
-        try:
-            self.get_data().exportEvent(fbasename, exform, fcheck=fcheck,
-                                        upperErrors=[uppererrorP[3], uppererrorS[3]])
-        except FormatError as e:
-            fbasename, exform = getSavePath(e, directory, outformat)
-        except AttributeError as e:
-            fbasename, exform = getSavePath(e, directory, outformat)
 
-        # catch all possible cases before going on
-        if not fbasename:
-            return False
-        # warn overwriting
-        # elif os.path.exists(fbasename + exform):
-        #     ans = QMessageBox.question(self, self.tr("Overwrite file..."),
-        #                        self.tr("File already exists: {0}\n".format(fbasename + exform) + \
-        #                           "Overwrite file anyway?"),
-        #                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        #     # only negative answers have to be caught
-        #     if ans == QMessageBox.No:
-        #         self.saveData()
-        #     elif ans == QMessageBox.Cancel:
-        #         return False
+        saved_as = str()
+        for outformat in outformats:
+            try:
+                self.get_data().exportEvent(fbasename, outformat, fcheck=fcheck,
+                                            upperErrors=[uppererrorP[3], uppererrorS[3]])
+                saved_as += str(outformat) + ' '
+            except TypeError:
+                print('WARNING: Format: {} not yet implemented'.format(outformat)) #MP MP TODO: .obs export (event.copy)
 
-        # export to given path
-        # self.get_data().exportEvent(fbasename, exform, upperErrors=[uppererrorP[3], uppererrorS[3]])
-        # try:
-        self.get_data().exportEvent(fbasename, exform[0], fcheck=fcheck,
-                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
-        self.get_data().exportEvent(fbasename, exform[1], fcheck=fcheck,
-                                    upperErrors=[uppererrorP[3], uppererrorS[3]])
-        # except Exception as e:
-        #     QMessageBox.warning(self, "PyLoT Warning",
-        #                         "Could not save event: {}".format(e))
-        #     return
-        # self.get_data().exportEvent(fbasename, exform[2], upperErrors=[uppererrorP[3], uppererrorS[3]])
-        # all files save (ui clean)
-        self.update_status('Picks saved as %s, %s, and %s' % (fbasename + exform[0], fbasename + exform[1],
-                                                              fbasename + exform[2]))
+        msg = 'Event {} saved as {} in format(s) {}'.format(event.pylot_id, fbasename, saved_as.strip())
+        self.update_status(msg)
+        print(msg)
+
         self.disableSaveManualPicksAction()
         return True
+
+    def exportAllEvents(self, outformats=['.xml']):
+        for event in self.project.eventlist:
+            self.get_data().setEvtData(event)
+            self.saveData(event, event.path, outformats)
 
     def enableSaveManualPicksAction(self):
         self.saveManualPicksAction.setEnabled(True)
@@ -2113,7 +2079,7 @@ class MainWindow(QMainWindow):
         outfile = settings.value("{0}/outputFile".format(loctool),
                                  os.path.split(os.tempnam())[-1])
         obsdir = os.path.join(locroot, 'obs')
-        self.saveData(directory=obsdir, outformat='.obs')
+        self.saveData(event=self.get_current_event(), directory=obsdir, outformat='.obs')
         eventname = self.get_current_event_name()
         filename = 'PyLoT_' + eventname
         locpath = os.path.join(locroot, 'loc', filename)
