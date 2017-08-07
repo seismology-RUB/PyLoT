@@ -355,23 +355,23 @@ class MainWindow(QMainWindow):
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openmanualpicksaction = self.createAction(self, "Load event ...",
-                                                       self.load_data,
+        self.openEventAction = self.createAction(self, "Load event ...",
+                                                 self.load_data,
                                                        "Ctrl+M",
-                                                       openEventIcon,
+                                                 openEventIcon,
                                                        "Load event information for "
                                                        "the displayed event.")
-        self.openmanualpicksaction.setEnabled(False)
-        self.openmanualpicksaction.setData(None)
+        self.openEventAction.setEnabled(False)
+        self.openEventAction.setData(None)
 
-        self.openautopicksaction = self.createAction(self, "Load event information &automatically ... ",
-                                                     self.load_multiple_data,
+        self.openEventsAutoAction = self.createAction(self, "Load event information &automatically ... ",
+                                                      self.load_multiple_data,
                                                      "Ctrl+A",
-                                                     openEventsIcon,
+                                                      openEventsIcon,
                                                      "Load event data automatically "
                                                      "for for all events.")
-        self.openautopicksaction.setEnabled(False)
-        self.openautopicksaction.setData(None)
+        self.openEventsAutoAction.setEnabled(False)
+        self.openEventsAutoAction.setData(None)
 
         self.loadlocationaction = self.createAction(self, "Load &location ...",
                                                     self.load_loc, "Ctrl+L",
@@ -387,11 +387,11 @@ class MainWindow(QMainWindow):
                                                 " in former MatLab based version).")
         self.loadpilotevent.setEnabled(False)
 
-        self.saveManualPicksAction = self.createAction(self, "Save &event information ...",
-                                                       self.saveData, "Ctrl+P",
-                                                       saveEventsIcon, "Save event pick data,"
+        self.saveEventAction = self.createAction(self, "Save &event information ...",
+                                                 self.saveData, "Ctrl+P",
+                                                 saveEventsIcon, "Save event pick data,"
                                                                        " source origin and magnitude.")
-        self.disableSaveManualPicksAction()
+        self.disableSaveEventAction()
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
                                                     self.add_events,
@@ -526,7 +526,7 @@ class MainWindow(QMainWindow):
         self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
                                 self.openProjectAction, self.saveProjectAction,
                                 self.saveProjectAsAction,
-                                self.openmanualpicksaction, self.saveManualPicksAction, None,
+                                self.openEventAction, self.saveEventAction, None,
                                 prefsEventAction, self.parameterAction, quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -550,8 +550,8 @@ class MainWindow(QMainWindow):
                            self.saveProjectAsAction)
 
 
-        eventToolActions = (self.openmanualpicksaction, self.openautopicksaction,
-                            self.saveManualPicksAction, self.loadlocationaction,
+        eventToolActions = (self.openEventAction, self.openEventsAutoAction,
+                            self.saveEventAction, self.loadlocationaction,
                             self.loadpilotevent)
 
 
@@ -1156,7 +1156,7 @@ class MainWindow(QMainWindow):
         self.update_status(msg)
         print(msg)
 
-        self.disableSaveManualPicksAction()
+        self.disableSaveEventAction()
         return True
 
     def exportAllEvents(self, outformats=['.xml']):
@@ -1164,11 +1164,11 @@ class MainWindow(QMainWindow):
             self.get_data().setEvtData(event)
             self.saveData(event, event.path, outformats)
 
-    def enableSaveManualPicksAction(self):
-        self.saveManualPicksAction.setEnabled(True)
+    def enableSaveEventAction(self):
+        self.saveEventAction.setEnabled(True)
 
-    def disableSaveManualPicksAction(self):
-        self.saveManualPicksAction.setEnabled(False)
+    def disableSaveEventAction(self):
+        self.saveEventAction.setEnabled(False)
 
     def getinfile(self):
         return self.infile
@@ -1475,14 +1475,14 @@ class MainWindow(QMainWindow):
         self.z_action.setEnabled(True)
         self.e_action.setEnabled(True)
         self.n_action.setEnabled(True)
-        self.openmanualpicksaction.setEnabled(True)
-        self.openautopicksaction.setEnabled(True)
+        self.openEventAction.setEnabled(True)
+        self.openEventsAutoAction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
         event = self.get_current_event()
         if event.pylot_picks:
             self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
-            self.enableSaveManualPicksAction()
+            self.enableSaveEventAction()
             self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.pylot_autopicks = event.pylot_autopicks
@@ -1507,10 +1507,10 @@ class MainWindow(QMainWindow):
         self.z_action.setEnabled(False)
         self.e_action.setEnabled(False)
         self.n_action.setEnabled(False)
-        self.openmanualpicksaction.setEnabled(False)
-        self.openautopicksaction.setEnabled(False)
+        self.openEventAction.setEnabled(False)
+        self.openEventsAutoAction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
-        self.disableSaveManualPicksAction()
+        self.disableSaveEventAction()
         self.draw()
 
     def plotWaveformDataThread(self):
@@ -1771,7 +1771,7 @@ class MainWindow(QMainWindow):
                 self.update_status('picks accepted ({0})'.format(station))
                 replot = self.addPicks(station, pickDlg.getPicks())
                 self.get_current_event().setPick(station, pickDlg.getPicks())
-                self.enableSaveManualPicksAction()
+                self.enableSaveEventAction()
                 if replot:
                     self.plotWaveformDataThread()
                     self.drawPicks()

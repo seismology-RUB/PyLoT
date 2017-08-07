@@ -2149,7 +2149,7 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
         pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
-        pickDlg.update_picks.connect(self.parent.enableSaveManualPicksAction)
+        pickDlg.update_picks.connect(self.parent.enableSaveEventAction)
         self.pickDlg = QtGui.QWidget()
         hl = QtGui.QHBoxLayout()
         self.pickDlg.setLayout(hl)
