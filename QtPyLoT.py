@@ -2327,7 +2327,6 @@ class MainWindow(QMainWindow):
             item_notes = QtGui.QTableWidgetItem()
 
             # manipulate items
-            #item_delete.clicked.connect(lambda ev=event: self.remove_event(ev))
             item_ref.setBackground(self._colors['ref'])
             item_test.setBackground(self._colors['test'])
             item_path.setText(event.path)
