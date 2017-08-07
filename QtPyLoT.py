@@ -1847,6 +1847,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "PyLoT Warning",
                                 "No autoPyLoT output declared!")
             return
+        event = self.get_current_event()
+        self.saveData(event, event.path, outformats=['.xml'])
         self.listWidget = QListWidget()
         self.setDirty(True)
         self.logDockWidget = QDockWidget("AutoPickLog", self)
