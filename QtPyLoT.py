@@ -1110,11 +1110,13 @@ class MainWindow(QMainWindow):
         Save event data to directory with specified output formats.
         :param event: PyLoT Event, if not set current event will be used
         :param directory: output directory, if not set default event path will be used
-        :param outformats: list of output formats
+        :param outformats: str/list of output formats
         :return:
         '''
         if not event:
             event = self.get_current_event()
+        if not type(outformats) == list:
+            outformats = [outformats]
 
         def getSavePath(event, directory, outformats):
             if not directory:
