@@ -1156,7 +1156,6 @@ class MainWindow(QMainWindow):
         self.update_status(msg)
         print(msg)
 
-        self.disableSaveEventAction()
         return True
 
     def exportAllEvents(self, outformats=['.xml']):
@@ -1478,11 +1477,11 @@ class MainWindow(QMainWindow):
         self.openEventAction.setEnabled(True)
         self.openEventsAutoAction.setEnabled(True)
         self.loadpilotevent.setEnabled(True)
+        self.enableSaveEventAction()
         event = self.get_current_event()
         if event.pylot_picks:
             self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
-            self.enableSaveEventAction()
             self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.pylot_autopicks = event.pylot_autopicks
