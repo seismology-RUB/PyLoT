@@ -2550,6 +2550,7 @@ class MainWindow(QMainWindow):
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
+        self.exportAllEvents()
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
         return True
 
@@ -2565,6 +2566,7 @@ class MainWindow(QMainWindow):
             else:
                 self.project.parameter = self._inputs
                 self.project.save()
+                self.exportAllEvents()
             if not self.project.dirty:
                 self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 self.setDirty(False)
