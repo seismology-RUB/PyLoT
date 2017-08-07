@@ -2245,7 +2245,7 @@ class MainWindow(QMainWindow):
             # connected to cell changes in event table
             # changes attributes of the corresponding event
             table = self.project._table
-            event = self.project.getEventFromPath(table[row][0].text())
+            event = self.project.getEventFromPath(table[row][1].text())
             if column == 9 or column == 10:
                 # toggle checked states (exclusive)
                 item_ref = table[row][9]
