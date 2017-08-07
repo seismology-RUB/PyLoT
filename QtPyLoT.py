@@ -1877,8 +1877,8 @@ class MainWindow(QMainWindow):
         self.tap.fill_tabs(picked=True)
 
     def autoPick(self):
-        self.autosave = QFileDialog().getExistingDirectory(caption='Select autoPyLoT output')
-        if not os.path.exists(self.autosave):
+        autosave = self.get_current_event_path()
+        if not os.path.exists(autosave):
             QMessageBox.warning(self, "PyLoT Warning",
                                 "No autoPyLoT output declared!")
             return
