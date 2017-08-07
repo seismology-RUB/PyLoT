@@ -2227,19 +2227,25 @@ class MainWindow(QMainWindow):
         Build and initiate event table (3rd tab [index=2]) containing information of every event.
         '''
 
-        def set_enabled(item, enabled=True, checkable=False):
+        def set_enabled(item, selectable=True, checkable=False):
             # modify item flags depending on case needed
-            if enabled and not checkable:
+            if selectable and not checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
-            elif enabled and checkable:
+            elif selectable and checkable:
                 item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)
             else:
-                item.setFlags(QtCore.Qt.ItemIsSelectable)
+                item.setFlags(QtCore.Qt.ItemIsEnabled)
 
         if self.project:
             eventlist = self.project.eventlist
         else:
             eventlist = []
+
+        def cell_clicked(row=None, column=None):
+            table = self.project._table
+            event = self.project.getEventFromPath(table[row][1].text())
+            if column == 0:
+                self.remove_event(event)
 
         def cell_changed(row=None, column=None):
             # connected to cell changes in event table
@@ -2304,7 +2310,7 @@ class MainWindow(QMainWindow):
                 event_nautopicks = len(event.pylot_autopicks)
 
             # init table items for current row
-            item_delete = QtGui.QPushButton()
+            item_delete = QtGui.QTableWidgetItem()
             item_delete.setIcon(del_icon)
             item_path = QtGui.QTableWidgetItem()
             item_time = QtGui.QTableWidgetItem()
@@ -2321,7 +2327,7 @@ class MainWindow(QMainWindow):
             item_notes = QtGui.QTableWidgetItem()
 
             # manipulate items
-            item_delete.clicked.connect(lambda ev=event: self.remove_event(ev))
+            #item_delete.clicked.connect(lambda ev=event: self.remove_event(ev))
             item_ref.setBackground(self._colors['ref'])
             item_test.setBackground(self._colors['test'])
             item_path.setText(event.path)
@@ -2341,6 +2347,7 @@ class MainWindow(QMainWindow):
             set_enabled(item_path, True, False)
             set_enabled(item_nmp, True, False)
             set_enabled(item_nap, True, False)
+            set_enabled(item_delete, False, False)
             if event.pylot_picks:
                 set_enabled(item_ref, True, True)
                 set_enabled(item_test, True, True)
@@ -2372,6 +2379,7 @@ class MainWindow(QMainWindow):
         header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         self.event_table.cellChanged[int, int].connect(cell_changed)
+        self.event_table.cellClicked[int, int].connect(cell_clicked)
 
         self.events_layout.addWidget(self.event_table)
         self.tabs.setCurrentIndex(tabindex)
