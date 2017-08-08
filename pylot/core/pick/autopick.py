@@ -478,6 +478,21 @@ def autopickstation(wfstream, pickparam, verbose=False,
         print('autopickstation: No vertical component data available!, '
               'Skipping station!')
 
+    if ((len(edat) > 0 and len(ndat) == 0) or (
+        len(ndat) > 0 and len(edat) == 0)) and Pweight < 4:
+        msg = 'Go on picking S onset ...\n' \
+              '##################################################\n' \
+              'Only one horizontal component available!\n' \
+              'ARH prediction requires at least 2 components!\n' \
+              'Copying existing horizontal component ...'
+        if verbose: print(msg)
+
+        # check which component is missing
+        if len(edat) == 0:
+            edat = ndat
+        else:
+            ndat = edat
+
     if edat is not None and ndat is not None and len(edat) > 0 and len(
             ndat) > 0 and Pweight < 4:
         msg = 'Go on picking S onset ...\n' \
@@ -736,6 +751,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
+ 
     else:
         print('autopickstation: No horizontal component data available or ' \
               'bad P onset, skipping S picking!')
