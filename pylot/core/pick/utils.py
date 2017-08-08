@@ -700,6 +700,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         rms = np.sqrt((np.power(x1, 2) + np.power(x2, 2) + np.power(x3, 2)) / 3)
     else:
         x1 = X[0].data
+        ilen = len(x1)
         rms = np.sqrt(np.power(2, x1))
 
     t = np.arange(0, ilen / X[0].stats.sampling_rate,
