@@ -289,7 +289,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = None
         aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig)
         # add pstart and pstop to aic plot
-        if fig.axes:
+        if fig:
             for ax in fig.axes:
                 ax.vlines(pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
                 ax.vlines(pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
@@ -736,14 +736,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
-    elif (edat is not None and len(edat) > 0 and ndat is None) or (
-         edat is None and ndat is not None and len(ndat) > 0) and Pweight < 4: 
-        msg = 'Go on picking S onset ...\n' \
-              '##################################################\n' \
-              'Using only one horizontal component!' \
-              'Working on S onset of station {0}\nFiltering horizontal ' \
-              'traces ...'.format(edat[0].stats.station)
-        if verbose: print(msg)
     else:
         print('autopickstation: No horizontal component data available or ' \
               'bad P onset, skipping S picking!')
