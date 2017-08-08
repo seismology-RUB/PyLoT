@@ -44,27 +44,27 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     for station in stations:
         topick = data.select(station=station)
 
-        #if not iplot:
-        #    input_tuples.append((topick, param, apverbose, metadata, origin))
-        #if iplot > 0:
-        all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
-                                              iplot=iplot, fig_dict=fig_dict,
-                                              metadata=metadata, origin=origin)
+        if not iplot:
+            input_tuples.append((topick, param, apverbose, metadata, origin))
+        if iplot > 0:
+            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
+                                                  iplot=iplot, fig_dict=fig_dict,
+                                                  metadata=metadata, origin=origin)
 
-    #if iplot > 0:
-    #    print('iPlot Flag active: NO MULTIPROCESSING possible.')
-    #    return all_onsets
+    if iplot > 0:
+        print('iPlot Flag active: NO MULTIPROCESSING possible.')
+        return all_onsets
 
-    #pool = gen_Pool(ncores)
-    #result = pool.map(call_autopickstation, input_tuples)
-    #pool.close()
+    pool = gen_Pool(ncores)
+    result = pool.map(call_autopickstation, input_tuples)
+    pool.close()
 
-    #for pick in result:
-    #    station = pick['station']
-    #    pick.pop('station')
-    #    all_onsets[station] = pick
+    for pick in result:
+        station = pick['station']
+        pick.pop('station')
+        all_onsets[station] = pick
 
-    #return all_onsets
+    return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
