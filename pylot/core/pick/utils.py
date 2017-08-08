@@ -50,6 +50,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     LPick = None
     EPick = None
     PickError = None
+    plt_flag = 0
     if verbosity:
         print('earllatepicker: Get earliest and latest possible pick'
               ' relative to most likely pick ...')
@@ -120,6 +121,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     if iplot > 1:
         if not fig:
             fig = plt.figure()  # iplot)
+            plt_flag = 1
         ax = fig.add_subplot(111)
         ax.plot(t, x, 'k', label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
@@ -141,6 +143,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
             'Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' %
             X[0].stats.station)
         ax.legend()
+        if plt_flag == 1:
+            fig.show()
+            raw_input()
+            plt.close(fig)
 
     return EPick, LPick, PickError
 
@@ -167,6 +173,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
     :type: int
     '''
 
+    plt_flag = 0
     warnings.simplefilter('ignore', np.RankWarning)
 
     assert isinstance(Xraw, Stream), "%s is not a stream object" % str(Xraw)
@@ -292,6 +299,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
     if iplot > 1:
         if not fig:
             fig = plt.figure()  # iplot)
+            plt_flag = 1
         ax1 = fig.add_subplot(211)
         ax1.plot(t, xraw, 'k')
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
@@ -317,6 +325,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             ax2.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
         ax2.set_xlabel('Time [s] since %s' % Xraw[0].stats.starttime)
         ax2.set_yticks([])
+        if plt_flag == 1:
+            fig.show()
+            raw_input()
+            plt.close(fig)
 
     return FM
 
@@ -685,6 +697,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     : type:  int
     '''
 
+    plt_flag = 0
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
     print("Checking signal length ...")
@@ -729,6 +742,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     if iplot == 2:
         if not fig:
             fig = plt.figure()  # iplot)
+            plt_flag = 1
         ax = fig.add_subplot(111)
         ax.plot(t, rms, 'k', label='RMS Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
@@ -741,6 +755,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.set_ylabel('Counts')
         ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
         ax.set_yticks([])
+        if plt_flag == 1:
+            fig.show()
+            raw_input()
+            plt.close(fig)
 
     return returnflag
 

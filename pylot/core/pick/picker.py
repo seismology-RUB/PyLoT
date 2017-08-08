@@ -154,6 +154,7 @@ class AICPicker(AutoPicker):
         self.Pick = None
         self.slope = None
         self.SNR = None
+        plt_flag = 0
         # find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -244,6 +245,7 @@ class AICPicker(AutoPicker):
                     if self.iplot > 1:
                         if not self.fig:
                             fig = plt.figure()  # self.iplot) ### WHY? MP MP
+                            plt_flag = 1
                         else:
                             fig = self.fig
                         ax = fig.add_subplot(111)
@@ -254,6 +256,10 @@ class AICPicker(AutoPicker):
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                         ax.set_yticks([])
                         ax.set_title(self.Data[0].stats.station)
+                        if plt_flag == 1:
+                            fig.show()
+                            raw_input()
+                            plt.close(fig)
                     return
                 iislope = islope[0][0:imax]
             dataslope = self.Data[0].data[iislope]
@@ -273,6 +279,7 @@ class AICPicker(AutoPicker):
         if self.iplot > 1:
             if not self.fig:
                 fig = plt.figure()  # self.iplot)
+                plt_flag = 1
             else:
                 fig = self.fig
             ax1 = fig.add_subplot(211)
@@ -307,8 +314,16 @@ class AICPicker(AutoPicker):
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
                 ax2.legend()
+                if plt_flag == 1:
+                    fig.show()
+                    raw_input()
+                    plt.close(fig)
             else:
                 ax1.set_title(self.Data[0].stats.station)
+                if plt_flag == 1:
+                    fig.show()
+                    raw_input()
+                    plt.close(fig)
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')
@@ -330,6 +345,7 @@ class PragPicker(AutoPicker):
             self.SNR = None
             self.slope = None
             pickflag = 0
+            plt_flag = 0
             # smooth CF
             ismooth = int(round(self.Tsmooth / self.dt))
             cfsmooth = np.zeros(len(self.cf))
@@ -408,6 +424,7 @@ class PragPicker(AutoPicker):
             if self.getiplot() > 1:
                 if not self.fig:
                     fig = plt.figure()  # self.getiplot())
+                    plt_flag = 1
                 else:
                     fig = self.fig
                 ax = fig.add_subplot(111)
@@ -419,6 +436,10 @@ class PragPicker(AutoPicker):
                 ax.set_yticks([])
                 ax.set_title(self.Data[0].stats.station)
                 ax.legend()
+                if plt_flag == 1:
+                    fig.show()
+                    raw_input()
+                    plt.close(fig)
                 return
 
         else:

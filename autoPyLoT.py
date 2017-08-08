@@ -450,16 +450,13 @@ if __name__ == "__main__":
                        autoregressive prediction and AIC followed by locating the seismic events using 
                        NLLoc''')
 
-    # parser.add_argument('-d', '-D', '--input_dict', type=str,
-    #                    action='store',
-    #                    help='''optional, dictionary containing processing parameters''')
-    # parser.add_argument('-p', '-P', '--parameter', type=str,
-    #                    action='store',
-    #                    help='''parameter file, default=None''')
     parser.add_argument('-i', '-I', '--inputfile', type=str,
                         action='store',
                         help='''full path to the file containing the input
                         parameters for autoPyLoT''')
+    parser.add_argument('-p', '-P', '--iplot', type=int, 
+                        action='store',
+                        help='''Boolean flag for plotting: 0=none, 1=partial, 2=all''') 
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')
@@ -472,12 +469,9 @@ if __name__ == "__main__":
     parser.add_argument('-c', '-C', '--ncores', type=int,
                         action='store', default=0,
                         help='''optional, number of CPU cores used for parallel processing (default: all available)''')
-    # parser.add_argument('-v', '-V', '--version', action='version',
-    #                    version='autoPyLoT ' + __version__,
-    #                    help='show version information and exit')
 
     cla = parser.parse_args()
 
     picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
                       eventid=str(cla.eventid), savepath=str(cla.spath),
-                      ncores=cla.ncores)
+                      ncores=cla.ncores, iplot=str(cla.iplot))

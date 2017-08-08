@@ -44,27 +44,27 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     for station in stations:
         topick = data.select(station=station)
 
-        if not iplot:
-            input_tuples.append((topick, param, apverbose, metadata, origin))
-        if iplot > 0:
-            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
-                                                  iplot=iplot, fig_dict=fig_dict,
-                                                  metadata=metadata, origin=origin)
+        #if not iplot:
+        #    input_tuples.append((topick, param, apverbose, metadata, origin))
+        #if iplot > 0:
+        all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
+                                              iplot=iplot, fig_dict=fig_dict,
+                                              metadata=metadata, origin=origin)
 
-    if iplot > 0:
-        print('iPlot Flag active: NO MULTIPROCESSING possible.')
-        return all_onsets
+    #if iplot > 0:
+    #    print('iPlot Flag active: NO MULTIPROCESSING possible.')
+    #    return all_onsets
 
-    pool = gen_Pool(ncores)
-    result = pool.map(call_autopickstation, input_tuples)
-    pool.close()
+    #pool = gen_Pool(ncores)
+    #result = pool.map(call_autopickstation, input_tuples)
+    #pool.close()
 
-    for pick in result:
-        station = pick['station']
-        pick.pop('station')
-        all_onsets[station] = pick
+    #for pick in result:
+    #    station = pick['station']
+    #    pick.pop('station')
+    #    all_onsets[station] = pick
 
-    return all_onsets
+    #return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
@@ -95,10 +95,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
     # declaring pickparam variables (only for convenience)
     # read your autoPyLoT.in for details!
+    plt_flag = 0
 
     # special parameters for P picking
-    iplot = iplot
-
     algoP = pickparam.get('algoP')
     pstart = pickparam.get('pstart')
     pstop = pickparam.get('pstop')
@@ -761,6 +760,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         # plot vertical trace
         if not fig_dict:
             fig = plt.figure()
+            plt_flag = 1
         else:
             fig = fig_dict['mainFig']
         ax1 = fig.add_subplot(311)
@@ -905,6 +905,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)
             ax3.set_ylabel('Normalized Counts')
             ax3.set_title(trH2_filt.stats.channel)
+            if plt_flag == 1:
+                fig.show()
+                raw_input()
+                plt.close(fig)
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
