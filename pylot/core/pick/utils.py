@@ -720,7 +720,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
                   X[0].stats.delta)
 
     # get noise window in front of pick plus saftey gap
-    inoise = getnoisewin(t, pick - 0.5, TSNR[0], TSNR[1])
+    inoise = getnoisewin(t, pick, TSNR[0], TSNR[1])
     # get signal window
     isignal = getsignalwin(t, pick, minsiglength)
     # calculate minimum adjusted signal level
@@ -739,7 +739,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         print("(min. signal length required: %s s)" % minsiglength)
         returnflag = 0
 
-    if iplot == 2:
+    if iplot > 1:
         if not fig:
             fig = plt.figure()  # iplot)
             plt_flag = 1
