@@ -210,7 +210,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
         # if not given: sets Lc to infinity to use full stream
-        if use_taup:
+        if use_taup == 'True':
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata[1]:
@@ -736,6 +736,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
+    elif (edat is not None and len(edat) > 0 and ndat is None) or (
+         edat is None and ndat is not None and len(ndat) > 0) and Pweight < 4: 
+        msg = 'Go on picking S onset ...\n' \
+              '##################################################\n' \
+              'Using only one horizontal component!' \
+              'Working on S onset of station {0}\nFiltering horizontal ' \
+              'traces ...'.format(edat[0].stats.station)
+        if verbose: print(msg)
     else:
         print('autopickstation: No horizontal component data available or ' \
               'bad P onset, skipping S picking!')
