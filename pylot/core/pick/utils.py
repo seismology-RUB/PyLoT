@@ -51,6 +51,14 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     EPick = None
     PickError = None
     plt_flag = 0
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+           iplot = 2
+        else:
+           iplot = 0
+
     if verbosity:
         print('earllatepicker: Get earliest and latest possible pick'
               ' relative to most likely pick ...')
@@ -119,7 +127,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        if not fig:
+        if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
@@ -174,6 +182,14 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
     '''
 
     plt_flag = 0
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+           iplot = 2
+        else:
+           iplot = 0
+
     warnings.simplefilter('ignore', np.RankWarning)
 
     assert isinstance(Xraw, Stream), "%s is not a stream object" % str(Xraw)
@@ -297,7 +313,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         print("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        if not fig:
+        if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax1 = fig.add_subplot(211)
@@ -698,6 +714,14 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     '''
 
     plt_flag = 0
+    try:
+        iplot = int(self.iplot)
+    except:
+        if iplot == True or iplot == 'True':
+           iplot = 2
+        else:
+           iplot = 0
+
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
     print("Checking signal length ...")
@@ -740,7 +764,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         returnflag = 0
 
     if iplot > 1:
-        if not fig:
+        if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
