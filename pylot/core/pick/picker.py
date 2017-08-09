@@ -155,6 +155,14 @@ class AICPicker(AutoPicker):
         self.slope = None
         self.SNR = None
         plt_flag = 0
+        try:
+            iplot = int(self.iplot)
+        except:
+            if self.iplot == True or self.iplot == 'True':
+               iplot = 2
+            else:
+               iplot = 0
+
         # find NaN's
         nn = np.isnan(self.cf)
         if len(nn) > 1:
@@ -243,7 +251,7 @@ class AICPicker(AutoPicker):
                     print("AICPicker: Maximum for slope determination right at the beginning of the window!")
                     print("Choose longer slope determination window!")
                     if self.iplot > 1:
-                        if not self.fig:
+                        if self.fig == None or self.fig == 'None':
                             fig = plt.figure()  # self.iplot) ### WHY? MP MP
                             plt_flag = 1
                         else:
@@ -276,8 +284,8 @@ class AICPicker(AutoPicker):
             self.SNR = None
             self.slope = None
 
-        if self.iplot > 1:
-            if not self.fig:
+        if iplot > 1:
+            if self.fig == None or self.fig == 'None':
                 fig = plt.figure()  # self.iplot)
                 plt_flag = 1
             else:
@@ -337,6 +345,14 @@ class PragPicker(AutoPicker):
     '''
 
     def calcPick(self):
+
+        try:
+            iplot = int(self.getiplot())
+        except:
+            if self.getiplot() == True or self.getiplot() == 'True':
+               iplot = 2
+            else:
+               iplot = 0
 
         if self.getpick1() is not None:
             print('PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...')
@@ -421,8 +437,8 @@ class PragPicker(AutoPicker):
                 self.Pick = None
                 pickflag = 0
 
-            if self.getiplot() > 1:
-                if not self.fig:
+            if iplot > 1:
+                if self.fig == None or self.fig == 'None':
                     fig = plt.figure()  # self.getiplot())
                     plt_flag = 1
                 else:

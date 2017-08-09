@@ -756,9 +756,17 @@ def autopickstation(wfstream, pickparam, verbose=False,
               'bad P onset, skipping S picking!')
 
     ##############################################################
+    try:
+       iplot = int(iplot)
+    except:
+       if iplot == True or iplot == 'True':
+           iplot = 2
+       else:
+           iplot = 0
+
     if iplot > 0:
         # plot vertical trace
-        if not fig_dict:
+        if fig_dict == None or fig_dict == 'None':
             fig = plt.figure()
             plt_flag = 1
         else:
