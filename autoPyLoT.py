@@ -456,7 +456,7 @@ if __name__ == "__main__":
                         parameters for autoPyLoT''')
     parser.add_argument('-p', '-P', '--iplot', type=int, 
                         action='store',
-                        help='''Boolean flag for plotting: 0=none, 1=partial, 2=all''') 
+                        help='''Logical variable for plotting: 0=none, 1=partial, 2=all''') 
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')
@@ -468,7 +468,7 @@ if __name__ == "__main__":
                         help='''optional, save path for autoPyLoT output''')
     parser.add_argument('-c', '-C', '--ncores', type=int,
                         action='store', default=0,
-                        help='''optional, number of CPU cores used for parallel processing (default: all available)''')
+                        help='''optional, number of CPU cores used for parallel processing (default: all available(=0))''')
 
     cla = parser.parse_args()
 
