@@ -28,6 +28,14 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     stations = []
     all_onsets = {}
     input_tuples = []
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+           iplot = 2
+        else:
+           iplot = 0
+
 
     # get some parameters for quality control from
     # parameter input file (usually autoPyLoT.in).
@@ -44,7 +52,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     for station in stations:
         topick = data.select(station=station)
 
-        if not iplot:
+        if iplot == None or iplot == 'None' or iplot == 0:
             input_tuples.append((topick, param, apverbose, metadata, origin))
         if iplot > 0:
             all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
