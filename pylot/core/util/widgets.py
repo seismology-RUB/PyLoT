@@ -1733,16 +1733,20 @@ class PickDlg(QDialog):
                     ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase), picker=5)
                 else:
                     ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
+                    # append phase text (if textOnly: draw with current ylims)
+                    self.phaseText.append(ax.text(mpp, ylims[1], phase))
+        elif picktype == 'auto':
+            if not textOnly:
+                ax.plot(mpp, ylims[1], colors[3],
+                        mpp, ylims[0], colors[4])
+                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted',
+                          picker=5, label='{}-Pick (auto)'.format(phase))
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase))
-        elif picktype == 'auto':
-            ax.plot(mpp, ylims[1], colors[3],
-                    mpp, ylims[0], colors[4])
-            ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
         else:
             raise TypeError('Unknown picktype {0}'.format(picktype))
 
-        ax.legend()
+        ax.legend(loc=1)
 
     def connect_pick_delete(self):
         self.cidpick = self.getPlotWidget().mpl_connect('pick_event', self.onpick_delete)
@@ -1764,26 +1768,29 @@ class PickDlg(QDialog):
         # init empty list and get station starttime
         X = []
         starttime = self.getStartTime()
-        # init dictionarys to iterate through and iterate over them
-        allpicks = [self.picks, self.autopicks]
-        for index_ptype, picks in enumerate(allpicks):
+        # init dictionaries to iterate through and iterate over them
+        allpicks = {'manual': self.picks,
+                    'auto': self.autopicks}
+        for picktype in allpicks.keys():
+            picks = allpicks[picktype]
             for phase in picks:
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index
-                X.append((pick_rel, phase, index_ptype))
+                X.append((pick_rel, phase, picktype))
         # find index and value closest to x
         index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
         # unpack the found value
-        pick_rel, phase, index_ptype = X[index]
+        pick_rel, phase, picktype = X[index]
         # delete the value from corresponding dictionary
-        allpicks[index_ptype].pop(phase)
+        allpicks[picktype].pop(phase)
         # information output
-        msg = 'Deleted pick for phase {}, {}[s] from starttime {}'
-        print(msg.format(phase, pick_rel, starttime))
+        msg = 'Deleted {} pick for phase {}, {}[s] from starttime {}'
+        print(msg.format(picktype, phase, pick_rel, starttime))
         self.setDirty(True)
 
     def drawPhaseText(self):
-        return self.drawPicks(picktype='manual', textOnly=True)
+        self.drawPicks(picktype='manual', textOnly=True)
+        self.drawPicks(picktype='auto', textOnly=True)
 
     def removePhaseText(self):
         for textItem in self.phaseText:
@@ -1950,9 +1957,9 @@ class PickDlg(QDialog):
         #     print(pick, picks[pick])
 
     def discard(self):
-        picks = self._init_picks
-        self.picks = picks
-        self.update_picks.emit(picks)
+        self.picks = self._init_picks
+        self.autopicks = self._init_autopicks
+        self.update_picks.emit(self.picks)
         # for pick in picks:
         #     print(pick, picks[pick])
 
