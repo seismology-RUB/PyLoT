@@ -194,16 +194,25 @@ def picksdict_from_picks(evt):
     PyLoT
     :param evt: Event object contain all available information
     :type evt: `~obspy.core.event.Event`
-    :return: pick dictionary
+    :return: pick dictionary (auto and manual)
     """
-    picks = {}
+    picksdict = {
+        'manual': {},
+        'auto': {}
+    }
     for pick in evt.picks:
         phase = {}
         station = pick.waveform_id.station_code
         channel = pick.waveform_id.channel_code
         network = pick.waveform_id.network_code
         try:
-            onsets = picks[station]
+            picker = str(pick.method_id)
+            if picker.startswith('smi:local/'):
+                picker = picker.split('smi:local/')[1]
+        except IndexError:
+            picker = 'manual' # MP MP TODO maybe improve statement
+        try:
+            onsets = picksdict[picker][station]
         except KeyError as e:
             # print(e)
             onsets = {}
@@ -223,17 +232,11 @@ def picksdict_from_picks(evt):
         phase['spe'] = spe
         phase['channel'] = channel
         phase['network'] = network
-        try:
-            picker = str(pick.method_id)
-            if picker.startswith('smi:local/'):
-                picker = picker.split('smi:local/')[1]
-            phase['picker'] = picker
-        except IndexError:
-            pass
+        phase['picker'] = picker
 
         onsets[pick.phase_hint] = phase.copy()
-        picks[station] = onsets.copy()
-    return picks
+        picksdict[picker][station] = onsets.copy()
+    return picksdict
 
 
 def picks_from_picksdict(picks, creation_info=None):

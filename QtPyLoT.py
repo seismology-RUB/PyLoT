@@ -168,7 +168,6 @@ class MainWindow(QMainWindow):
                                           "Enter authority/institution name:",
                                           "Authority")
             settings.setValue("agency_id", agency)
-        self.fname = dict(manual=None, auto=None, loc=None)
         self.fnames = None
         self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
@@ -199,8 +198,6 @@ class MainWindow(QMainWindow):
                               'S': FilterOptions(s_filter['filtertype'],
                                                  s_filter['freq'],
                                                  s_filter['order'])}
-        self.pylot_picks = {}
-        self.pylot_autopicks = {}
         self.loc = False
 
     def setupUi(self):
@@ -714,7 +711,7 @@ class MainWindow(QMainWindow):
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
         self.load_data(fname_dict, type=type)
 
-    def load_multiple_data(self, type='manual'):
+    def load_multiple_data(self):
         if not self.okToContinue():
             return
         refresh = False
@@ -733,7 +730,7 @@ class MainWindow(QMainWindow):
             self.refreshEvents()
         self.setDirty(True)
 
-    def load_data(self, fname=None, type='manual', loc=False, draw=True, event=None, overwrite=False):
+    def load_data(self, fname=None, loc=False, draw=True, event=None, overwrite=False):
         if not overwrite:
             if not self.okToContinue():
                 return
@@ -743,8 +740,6 @@ class MainWindow(QMainWindow):
                 fname = self.filename_from_action(action)
                 if not fname:
                     return
-        self.set_fname(fname, type)
-        # data = dict(auto=self.autodata, manual=self.data)
         if not event:
             event = self.get_current_event()
         data = Data(self, event)
@@ -767,11 +762,12 @@ class MainWindow(QMainWindow):
                 return
 
         self.data = data
-        print('Loading {} picks from file {}.'.format(type, fname))
+        print('Loading event info from file {}.'.format(fname))
         if not loc:
-            self.updatePicks(type=type, event=event)
+            self.updatePicks(type='auto', event=event)
+            self.updatePicks(type='manual', event=event)
         if draw:
-            if self.get_current_event().pylot_picks:
+            if self.get_current_event().pylot_picks or self.get_current_event().pylot_autopicks:
                 self.refreshEvents()
             self.setDirty(True)
 
@@ -1092,14 +1088,6 @@ class MainWindow(QMainWindow):
             fname = str(action.data().toString())
         return fname
 
-    def get_fnames(self, type='manual'):
-        return self.fname[type]
-
-    def set_fname(self, fname, type):
-        if self.get_fnames(type) is not None:
-            self.add_recentfile(self.get_fnames(type))
-        self.fname[type] = fname
-
     def getEventFileName(self, type='manual'):
         if self.get_fnames(type) is None:
             self.set_fname(self.get_data().getEventFileName(), type)
@@ -1180,9 +1168,7 @@ class MainWindow(QMainWindow):
     def setComponent(self, component):
         self.dispComponent = component
 
-    def get_data(self, type='manual'):
-        if type == 'auto':
-            return self.autodata
+    def get_data(self):
         return self.data
 
     def getPicks(self, type='manual'):
@@ -1190,8 +1176,6 @@ class MainWindow(QMainWindow):
             return self.get_current_event().getPicks()
         if type == 'auto':
             return self.get_current_event().getAutopicks()
-            # rdict = dict(auto=self.pylot_autopicks, manual=self.pylot_picks)
-            # return rdict[type]
 
     def getPicksOnStation(self, station, type='manual'):
         try:
@@ -1327,15 +1311,6 @@ class MainWindow(QMainWindow):
             event = self.get_current_event()
             if not event:
                 return
-            # update picks saved in GUI mainwindow (to be changed in future!!) MP MP
-            if not event.pylot_picks:
-                self.pylot_picks = {}
-            else:
-                self.pylot_picks = event.pylot_picks
-            if not event.pylot_autopicks:
-                self.pylot_autopicks = {}
-            else:
-                self.pylot_autopicks = event.pylot_autopicks
         # if current tab is waveformPlot-tab and the data in this tab was not yet refreshed
         if self.tabs.currentIndex() == 0:
             if self._eventChanged[0]:
@@ -1482,11 +1457,9 @@ class MainWindow(QMainWindow):
         self.enableSaveEventAction()
         event = self.get_current_event()
         if event.pylot_picks:
-            self.pylot_picks = event.pylot_picks
             self.drawPicks(picktype='manual')
             self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
-            self.pylot_autopicks = event.pylot_autopicks
             self.drawPicks(picktype='auto')
             self.compare_action.setEnabled(True)
         self.draw()
@@ -1930,16 +1903,20 @@ class MainWindow(QMainWindow):
     def updatePicks(self, type='manual', event=None):
         if not event:
             event = self.get_current_event()
-        picks = picksdict_from_picks(evt=self.get_data(type).get_evt_data())
+        picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data())
         if type == 'manual':
-            event.addPicks(picks)
-            self.pylot_picks.update(picks)
+            event.addPicks(picksdict['manual'])
+            #event.picks.update(picks) MP MP idea
         elif type == 'auto':
-            event.addAutopicks(picks)
-            self.pylot_autopicks.update(picks)
+            event.addAutopicks(picksdict['auto'])
         self.check4Comparison()
 
-    def drawPicks(self, station=None, picktype='manual'):
+    def drawPicks(self, station=None, picktype=None):
+        # if picktype not specified, draw both
+        if not picktype:
+            self.drawPicks(station, 'manual')
+            self.drawPicks(station, 'auto')
+            return
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
