@@ -826,7 +826,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
         ax1.set_ylim([-1.5, 1.5])
         ax1.set_ylabel('Normalized Counts')
         # fig.suptitle(tr_filt.stats.starttime)
-
+        try:
+            len(edat[0])
+        except:
+            edat = ndat
+        try:
+            len(ndat[0])
+        except:
+            ndat = edat
         if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
             # plot horizontal traces
             ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
@@ -953,9 +960,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        lpickS = edat[0].stats.starttime + timeerrorsS[3]
-        epickS = edat[0].stats.starttime - timeerrorsS[3]
-        mpickS = edat[0].stats.starttime
+        try:
+            lpickS = edat[0].stats.starttime + timeerrorsS[3]
+            epickS = edat[0].stats.starttime - timeerrorsS[3]
+            mpickS = edat[0].stats.starttime
+        except:
+            lpickS = ndat[0].stats.starttime + timeerrorsS[3]
+            epickS = ndat[0].stats.starttime - timeerrorsS[3]
+            mpickS = ndat[0].stats.starttime
 
     # create dictionary
     # for P phase
@@ -965,8 +977,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
                  snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
                  Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    ccode = edat[0].stats.channel
-    ncode = edat[0].stats.network
+    try:
+        ccode = edat[0].stats.channel
+        ncode = edat[0].stats.network
+    except:
+        ccode = ndat[0].stats.channel
+        ncode = ndat[0].stats.network
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
