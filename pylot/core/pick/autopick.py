@@ -244,12 +244,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     # get first P and S onsets from arrivals list
                     arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key = lambda t: t[1])
                     arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key = lambda t: t[1])
-                    print('autopick: estimated first arrivals for P: {}, S:{} using TauPy'.format(estFirstP, estFirstS))
+                    print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
+                          ' origin time using TauPy'.format(estFirstP, estFirstS))
 
                     # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
-                    pstart += (source_origin.time + estFirstP) - wfstart
-                    pstop += (source_origin.time + estFirstP) - wfstart
+                    pstart += (source_origin.time + estFirstP) - zdat[0].stats.starttime
+                    pstop += (source_origin.time + estFirstP) - zdat[0].stats.starttime
                     Lc = pstop - pstart
+                    print('autopick: CF calculation times respectively:'
+                          ' pstart: {} s, pstop: {} s'.format(pstart, pstop))
                 else:
                     print('No source origins given!')
 
