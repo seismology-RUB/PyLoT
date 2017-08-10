@@ -580,7 +580,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                aictsmoothS, fig=fig)
         ###############################################################
         # go on with processing if AIC onset passes quality control
-        slope = aicpick.getSlope()
+        slope = aicarhpick.getSlope()
         if not slope:
             slope = 0
         if (slope >= minAICSslope and
