@@ -218,8 +218,10 @@ class AICPicker(AutoPicker):
             inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
             # check, if these are counts or m/s, important for slope estimation!
             # this is quick and dirty, better solution?
-            if max(self.Data[0].data < 1e-3):
+            if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
                 self.Data[0].data = self.Data[0].data * 1000000
+            elif max(self.Data[0].data < 1e-6):
+                self.Data[0].data = self.Data[0].data * 1e12
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
