@@ -197,6 +197,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
 
+
     wfstart, wfend = full_range(wfstream)
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
