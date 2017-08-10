@@ -221,7 +221,7 @@ class AICPicker(AutoPicker):
             if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
                 self.Data[0].data = self.Data[0].data * 1000000
             elif max(self.Data[0].data < 1e-6):
-                self.Data[0].data = self.Data[0].data * 1e12
+                self.Data[0].data = self.Data[0].data * 1e13
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
@@ -280,7 +280,7 @@ class AICPicker(AutoPicker):
             if datafit[0] >= datafit[len(datafit) - 1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
                 return
-            self.slope = 1 / len(dataslope) * (datafit[len(dataslope) - 1] - datafit[0])
+            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[len(dataslope) - 1] - datafit[0])
 
         else:
             self.SNR = None
