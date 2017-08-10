@@ -235,7 +235,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             li1 = index1[1]
         else:
             li1 = index1[0]
-        if np.size(xraw[ipick[0][1]:ipick[0][li1]]) == 0:
+        if np.size(xraw[ipick[0][1]:ipick[0][li1]]) == 0 or len(index1) <= 1:
             print("fmpicker: Onset on unfiltered trace too emergent for first motion determination!")
             P1 = None
         else:
@@ -277,7 +277,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             li2 = index2[1]
         else:
             li2 = index2[0]
-        if np.size(xfilt[ipick[0][1]:ipick[0][li2]]) == 0:
+        if np.size(xfilt[ipick[0][1]:ipick[0][li2]]) == 0 or len(index2) <= 1:
             print("fmpicker: Onset on filtered trace too emergent for first motion determination!")
             P2 = None
         else:
