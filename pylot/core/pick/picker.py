@@ -294,6 +294,8 @@ class AICPicker(AutoPicker):
                 fig = self.fig
             ax1 = fig.add_subplot(211)
             x = self.Data[0].data
+            if len(self.Tcf) > len(self.Data[0].data): # why? LK
+                self.Tcf = self.Tcf[0:len(self.Tcf)-1]
             ax1.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
