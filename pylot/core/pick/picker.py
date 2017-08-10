@@ -390,7 +390,8 @@ class PragPicker(AutoPicker):
             ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
             cfpick1 = 2 * self.cf[ipick1]
 
-            # check trend of CF, i.e. differences of CF and adjust aus regarding this trend
+            # check trend of CF, i.e. differences of CF and adjust aus ("artificial uplift 
+            # of picks") regarding this trend
             # prominent trend: decrease aus
             # flat: use given aus
             cfdiff = np.diff(cfipick)
@@ -416,15 +417,20 @@ class PragPicker(AutoPicker):
                             break
 
             # now we look to the left
-            for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
-                if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
-                    if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                        if cfpick1 >= self.cf[i]:
-                            pick_l = self.Tcf[i]
-                            self.Pick = pick_l
-                            flagpick_r = 1
-                            cfpick_l = self.cf[i]
-                            break
+            if len(self.cf) > ipick1 +1:
+                for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
+                    if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                        if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                            if cfpick1 >= self.cf[i]:
+                                pick_l = self.Tcf[i]
+                                self.Pick = pick_l
+                                flagpick_r = 1
+                                cfpick_l = self.cf[i]
+                                break
+            else:
+                msg ='PragPicker: Initial onset too close to start of CF! \
+                      Stop finalizing pick to the left.'
+                print(msg)
 
             # now decide which pick: left or right?
             if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= 3 * cfpick_r:
@@ -437,7 +443,7 @@ class PragPicker(AutoPicker):
                 self.Pick = pick_l
                 pickflag = 1
             else:
-                print('PragPicker: Could not find reliable onset!')
+                print("PragPicker: Could not find reliable onset!")
                 self.Pick = None
                 pickflag = 0
 
@@ -463,6 +469,6 @@ class PragPicker(AutoPicker):
                 return
 
         else:
-            print('PragPicker: No initial onset time given! Check input!')
+            print("PragPicker: No initial onset time given! Check input!")
             self.Pick = None
             return
