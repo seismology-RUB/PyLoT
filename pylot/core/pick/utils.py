@@ -715,7 +715,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
 
     plt_flag = 0
     try:
-        iplot = int(self.iplot)
+        iplot = int(iplot)
     except:
         if iplot == True or iplot == 'True':
            iplot = 2
