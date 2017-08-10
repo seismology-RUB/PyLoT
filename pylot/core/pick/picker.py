@@ -242,13 +242,14 @@ class AICPicker(AutoPicker):
                               & (self.Tcf >= self.Pick))
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
-            imax = np.argmax(self.Data[0].data[islope])
+            #imax = np.argmax(self.Data[0].data[islope])
+            imax = np.argmax(self.Data[0].data[islope[0][0]:islope[0][len(islope[0])-1]])
             iislope = islope[0][0:imax+1]
             if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
                 print("Calculating slope from initial onset to maximum of AIC function ...")
-                imax = np.argmax(aicsmooth[islope])
+                imax = np.argmax(aicsmooth[islope[0][0]:islope[0][len(islope[0])-1]])
                 if imax == 0:
                     print("AICPicker: Maximum for slope determination right at the beginning of the window!")
                     print("Choose longer slope determination window!")
