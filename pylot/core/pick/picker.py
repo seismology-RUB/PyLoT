@@ -243,7 +243,7 @@ class AICPicker(AutoPicker):
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             imax = np.argmax(self.Data[0].data[islope])
-            iislope = islope[0][0:imax]
+            iislope = islope[0][0:imax+1]
             if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
@@ -271,7 +271,7 @@ class AICPicker(AutoPicker):
                             raw_input()
                             plt.close(fig)
                     return
-                iislope = islope[0][0:imax]
+                iislope = islope[0][0:imax+1]
             dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
@@ -280,7 +280,7 @@ class AICPicker(AutoPicker):
             if datafit[0] >= datafit[len(datafit) - 1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
                 return
-            self.slope = 1 / tslope * (datafit[len(dataslope) - 1] - datafit[0])
+            self.slope = 1 / len(dataslope) * (datafit[len(dataslope) - 1] - datafit[0])
 
         else:
             self.SNR = None
