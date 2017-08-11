@@ -73,7 +73,7 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps
+    full_range, readFilterInformation
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1365,10 +1365,6 @@ class MainWindow(QMainWindow):
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
         self.data.setWFData(self.fnames)
-        wfdat = self.data.getWFData()  # all available streams
-        check4gaps(wfdat)
-        # trim station components to same start value
-        trim_station_components(wfdat, trim_start=True, trim_end=False)
         self._stime = full_range(self.get_data().getWFData())[0]
 
     def connectWFplotEvents(self):
@@ -1798,18 +1794,18 @@ class MainWindow(QMainWindow):
             fig = Figure()
             self.fig_dict[key] = fig
 
-        #if not self.tap:
-        # init TuneAutopicker object
-        self.tap = TuneAutopicker(self)
-        # first call of update to init tabs with empty canvas
-        self.update_autopicker()
-        # connect update signal of TuneAutopicker with update function
-        # creating and filling figure canvas
-        self.tap.update.connect(self.update_autopicker)
-        self.tap.figure_tabs.setCurrentIndex(0)
-        #else:
-        #    self.update_autopicker()
-        #    self.tap.fill_eventbox()
+        if not self.tap:
+            # init TuneAutopicker object
+            self.tap = TuneAutopicker(self)
+            # first call of update to init tabs with empty canvas
+            self.update_autopicker()
+            # connect update signal of TuneAutopicker with update function
+            # creating and filling figure canvas
+            self.tap.update.connect(self.update_autopicker)
+            self.tap.figure_tabs.setCurrentIndex(0)
+        else:
+            self.update_autopicker()
+            self.tap.fill_eventbox()
         self.tap.show()
 
     def update_autopicker(self):

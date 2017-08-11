@@ -205,6 +205,8 @@ def picksdict_from_picks(evt):
         station = pick.waveform_id.station_code
         channel = pick.waveform_id.channel_code
         network = pick.waveform_id.network_code
+        mpp = pick.time
+        spe = pick.time_errors.uncertainty
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
@@ -216,8 +218,6 @@ def picksdict_from_picks(evt):
         except KeyError as e:
             # print(e)
             onsets = {}
-        mpp = pick.time
-        spe = pick.time_errors.uncertainty
         try:
             lpp = mpp + pick.time_errors.upper_uncertainty
             epp = mpp - pick.time_errors.lower_uncertainty
