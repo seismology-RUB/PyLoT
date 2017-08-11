@@ -221,7 +221,7 @@ class AICPicker(AutoPicker):
             if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
                 self.Data[0].data = self.Data[0].data * 1000000
             elif max(self.Data[0].data < 1e-6):
-                self.Data[0].data = self.Data[0].data * 1e12
+                self.Data[0].data = self.Data[0].data * 1e13
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
@@ -242,13 +242,13 @@ class AICPicker(AutoPicker):
                               & (self.Tcf >= self.Pick))
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
-            imax = np.argmax(self.Data[0].data[islope])
+            imax = np.argmax(self.Data[0].data[islope[0][0]:islope[0][len(islope[0])-1]])
             iislope = islope[0][0:imax+1]
             if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
                 print("Calculating slope from initial onset to maximum of AIC function ...")
-                imax = np.argmax(aicsmooth[islope])
+                imax = np.argmax(aicsmooth[islope[0][0]:islope[0][len(islope[0])-1]])
                 if imax == 0:
                     print("AICPicker: Maximum for slope determination right at the beginning of the window!")
                     print("Choose longer slope determination window!")
@@ -280,7 +280,7 @@ class AICPicker(AutoPicker):
             if datafit[0] >= datafit[len(datafit) - 1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
                 return
-            self.slope = 1 / len(dataslope) * (datafit[len(dataslope) - 1] - datafit[0])
+            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[len(dataslope) - 1] - datafit[0])
 
         else:
             self.SNR = None
@@ -294,6 +294,8 @@ class AICPicker(AutoPicker):
                 fig = self.fig
             ax1 = fig.add_subplot(211)
             x = self.Data[0].data
+            if len(self.Tcf) > len(self.Data[0].data): # why? LK
+                self.Tcf = self.Tcf[0:len(self.Tcf)-1]
             ax1.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
@@ -388,7 +390,8 @@ class PragPicker(AutoPicker):
             ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
             cfpick1 = 2 * self.cf[ipick1]
 
-            # check trend of CF, i.e. differences of CF and adjust aus regarding this trend
+            # check trend of CF, i.e. differences of CF and adjust aus ("artificial uplift 
+            # of picks") regarding this trend
             # prominent trend: decrease aus
             # flat: use given aus
             cfdiff = np.diff(cfipick)
@@ -414,15 +417,20 @@ class PragPicker(AutoPicker):
                             break
 
             # now we look to the left
-            for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
-                if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
-                    if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
-                        if cfpick1 >= self.cf[i]:
-                            pick_l = self.Tcf[i]
-                            self.Pick = pick_l
-                            flagpick_r = 1
-                            cfpick_l = self.cf[i]
-                            break
+            if len(self.cf) > ipick1 +1:
+                for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
+                    if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                        if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
+                            if cfpick1 >= self.cf[i]:
+                                pick_l = self.Tcf[i]
+                                self.Pick = pick_l
+                                flagpick_r = 1
+                                cfpick_l = self.cf[i]
+                                break
+            else:
+                msg ='PragPicker: Initial onset too close to start of CF! \
+                      Stop finalizing pick to the left.'
+                print(msg)
 
             # now decide which pick: left or right?
             if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= 3 * cfpick_r:
@@ -435,7 +443,7 @@ class PragPicker(AutoPicker):
                 self.Pick = pick_l
                 pickflag = 1
             else:
-                print('PragPicker: Could not find reliable onset!')
+                print("PragPicker: Could not find reliable onset!")
                 self.Pick = None
                 pickflag = 0
 
@@ -461,6 +469,6 @@ class PragPicker(AutoPicker):
                 return
 
         else:
-            print('PragPicker: No initial onset time given! Check input!')
+            print("PragPicker: No initial onset time given! Check input!")
             self.Pick = None
             return
