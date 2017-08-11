@@ -219,11 +219,13 @@ class AICPicker(AutoPicker):
             # check, if these are counts or m/s, important for slope estimation!
             # this is quick and dirty, better solution?
             if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
-                self.Data[0].data = self.Data[0].data * 1000000
+                self.Data[0].data = self.Data[0].data * 1000000.
             elif max(self.Data[0].data < 1e-6):
                 self.Data[0].data = self.Data[0].data * 1e13
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
+            if len(isignal) == 0:
+                return
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
             isignal = isignal[0:ii]
             try:

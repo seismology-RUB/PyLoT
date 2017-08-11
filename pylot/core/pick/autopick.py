@@ -24,7 +24,7 @@ from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopI
 from obspy.taup import TauPyModel
 
 
-def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, origin=None):
+def autopickevent(data, param, iplot=0, fig_dict=None, ncores=1, metadata=None, origin=None):
     stations = []
     all_onsets = {}
     input_tuples = []
@@ -85,6 +85,15 @@ def call_autopickstation(input_tuple):
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
     return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+
+
+def get_source_coords(parser, station_id):
+    station_coords = None
+    try:
+        station_coords = parser.get_coordinates(station_id)
+    except Exception as e:
+        print('Could not get source coordinates for station {}: {}'.format(station_id, e))
+    return station_coords
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
@@ -224,11 +233,11 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
-                if origin:
+                station_id = wfstream[0].get_id()
+                parser = metadata[1]
+                station_coords = get_source_coords(parser, station_id)
+                if station_coords and origin:
                     source_origin = origin[0]
-                    station_id = wfstream[0].get_id()
-                    parser = metadata[1]
-                    station_coords = parser.get_coordinates(station_id)
                     model = TauPyModel(taup_model)
                     arrivals = model.get_travel_times_geo(
                         source_origin.depth,
@@ -254,9 +263,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     Lc = pstop - pstart
                     print('autopick: CF calculation times respectively:'
                           ' pstart: {} s, pstop: {} s'.format(pstart, pstop))
-                else:
+                elif not origin:
                     print('No source origins given!')
-
         else:
             Lc = pstop - pstart
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
