@@ -2248,7 +2248,7 @@ class TuneAutopicker(QWidget):
         else:
             self.disable_autopickTabs()
         try:
-            main_fig.tight_layout()
+            self.fig_dict['main_fig'].tight_layout()
         except:
             pass
         self.figure_tabs.setCurrentIndex(0)
