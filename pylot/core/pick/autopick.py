@@ -68,9 +68,10 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     pool.close()
 
     for pick in result:
-        station = pick['station']
-        pick.pop('station')
-        all_onsets[station] = pick
+        if pick:
+            station = pick['station']
+            pick.pop('station')
+            all_onsets[station] = pick
 
     return all_onsets
 
@@ -206,13 +207,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
 
-
-    wfstart, wfend = full_range(wfstream)
+    if not zdat:
+        print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
+        return
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
-              'trace ...\n{data}'.format(station=zdat[0].stats.station,
+              'trace ...\n{data}'.format(station=wfstream[0].stats.station,
                                          data=str(zdat))
         if verbose: print(msg)
         z_copy = zdat.copy()
@@ -972,14 +974,16 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        try:
+        if edat:
             lpickS = edat[0].stats.starttime + timeerrorsS[3]
             epickS = edat[0].stats.starttime - timeerrorsS[3]
             mpickS = edat[0].stats.starttime
-        except:
+        elif ndat:
             lpickS = ndat[0].stats.starttime + timeerrorsS[3]
             epickS = ndat[0].stats.starttime - timeerrorsS[3]
             mpickS = ndat[0].stats.starttime
+        else:
+            return
 
     # create dictionary
     # for P phase

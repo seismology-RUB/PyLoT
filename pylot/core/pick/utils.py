@@ -228,6 +228,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             if len(zc1) == 3:
                 break
 
+        if len(zc1) < 3:
+            print('fmpicker: Could not determine zero crossings!')
+            return
+
         # if time difference betweeen 1st and 2cnd zero crossing
         # is too short, get time difference between 1st and 3rd
         # to derive maximum
