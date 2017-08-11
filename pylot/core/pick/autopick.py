@@ -24,7 +24,7 @@ from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopI
 from obspy.taup import TauPyModel
 
 
-def autopickevent(data, param, iplot=0, fig_dict=None, ncores=1, metadata=None, origin=None):
+def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, origin=None):
     stations = []
     all_onsets = {}
     input_tuples = []

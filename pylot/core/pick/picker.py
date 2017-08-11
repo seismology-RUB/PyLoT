@@ -397,8 +397,14 @@ class PragPicker(AutoPicker):
             # prominent trend: decrease aus
             # flat: use given aus
             cfdiff = np.diff(cfipick)
+            if len(cfdiff)<20:
+                print('PragPicker: Very few samples for CF. Check LTA window dimensions!')
             i0diff = np.where(cfdiff > 0)
             cfdiff = cfdiff[i0diff]
+            if len(cfdiff)<1:
+                print('PragPicker: Negative slope for CF. Check LTA window dimensions! STOP')
+                self.Pick = None
+                return
             minaus = min(cfdiff * (1 + self.aus))
             aus1 = max([minaus, self.aus])
 
