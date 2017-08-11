@@ -21,7 +21,7 @@ except:
     pg = None
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase
+from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -2058,6 +2058,9 @@ class TuneAutopicker(QWidget):
     def fill_stationbox(self):
         fnames = self.parent.getWFFnames_from_eventbox(eventbox=self.eventBox)
         self.data.setWFData(fnames)
+        wfdat = self.data.getWFData()  # all available streams
+        # trim station components to same start value
+        trim_station_components(wfdat, trim_start=True, trim_end=False)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():
