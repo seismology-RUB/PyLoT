@@ -68,9 +68,10 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     pool.close()
 
     for pick in result:
-        station = pick['station']
-        pick.pop('station')
-        all_onsets[station] = pick
+        if pick:
+            station = pick['station']
+            pick.pop('station')
+            all_onsets[station] = pick
 
     return all_onsets
 
@@ -85,6 +86,15 @@ def call_autopickstation(input_tuple):
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
     return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+
+
+def get_source_coords(parser, station_id):
+    station_coords = None
+    try:
+        station_coords = parser.get_coordinates(station_id)
+    except Exception as e:
+        print('Could not get source coordinates for station {}: {}'.format(station_id, e))
+    return station_coords
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
@@ -197,13 +207,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
 
-
-    wfstart, wfend = full_range(wfstream)
+    if not zdat:
+        print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
+        return
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
-              'trace ...\n{data}'.format(station=zdat[0].stats.station,
+              'trace ...\n{data}'.format(station=wfstream[0].stats.station,
                                          data=str(zdat))
         if verbose: print(msg)
         z_copy = zdat.copy()
@@ -224,11 +235,11 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
-                if origin:
+                station_id = wfstream[0].get_id()
+                parser = metadata[1]
+                station_coords = get_source_coords(parser, station_id)
+                if station_coords and origin:
                     source_origin = origin[0]
-                    station_id = wfstream[0].get_id()
-                    parser = metadata[1]
-                    station_coords = parser.get_coordinates(station_id)
                     model = TauPyModel(taup_model)
                     arrivals = model.get_travel_times_geo(
                         source_origin.depth,
@@ -254,9 +265,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     Lc = pstop - pstart
                     print('autopick: CF calculation times respectively:'
                           ' pstart: {} s, pstop: {} s'.format(pstart, pstop))
-                else:
+                elif not origin:
                     print('No source origins given!')
-
         else:
             Lc = pstop - pstart
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
@@ -964,14 +974,16 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        try:
+        if edat:
             lpickS = edat[0].stats.starttime + timeerrorsS[3]
             epickS = edat[0].stats.starttime - timeerrorsS[3]
             mpickS = edat[0].stats.starttime
-        except:
+        elif ndat:
             lpickS = ndat[0].stats.starttime + timeerrorsS[3]
             epickS = ndat[0].stats.starttime - timeerrorsS[3]
             mpickS = ndat[0].stats.starttime
+        else:
+            return
 
     # create dictionary
     # for P phase

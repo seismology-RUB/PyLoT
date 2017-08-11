@@ -219,11 +219,13 @@ class AICPicker(AutoPicker):
             # check, if these are counts or m/s, important for slope estimation!
             # this is quick and dirty, better solution?
             if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
-                self.Data[0].data = self.Data[0].data * 1000000
+                self.Data[0].data = self.Data[0].data * 1000000.
             elif max(self.Data[0].data < 1e-6):
                 self.Data[0].data = self.Data[0].data * 1e13
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
+            if len(isignal) == 0:
+                return
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
             isignal = isignal[0:ii]
             try:
@@ -242,7 +244,11 @@ class AICPicker(AutoPicker):
                               & (self.Tcf >= self.Pick))
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
-            imax = np.argmax(self.Data[0].data[islope[0][0]:islope[0][len(islope[0])-1]])
+            dataslope = self.Data[0].data[islope[0][0]:islope[0][len(islope[0]) - 1]]
+            if len(dataslope) < 1:
+                print('No data in slope window found!')
+                return
+            imax = np.argmax(dataslope)
             iislope = islope[0][0:imax+1]
             if len(iislope) <= 2:
                 # calculate slope from initial onset to maximum of AIC function
@@ -395,8 +401,14 @@ class PragPicker(AutoPicker):
             # prominent trend: decrease aus
             # flat: use given aus
             cfdiff = np.diff(cfipick)
+            if len(cfdiff)<20:
+                print('PragPicker: Very few samples for CF. Check LTA window dimensions!')
             i0diff = np.where(cfdiff > 0)
             cfdiff = cfdiff[i0diff]
+            if len(cfdiff)<1:
+                print('PragPicker: Negative slope for CF. Check LTA window dimensions! STOP')
+                self.Pick = None
+                return
             minaus = min(cfdiff * (1 + self.aus))
             aus1 = max([minaus, self.aus])
 
