@@ -192,6 +192,14 @@ class LocalMagnitude(Magnitude):
 
     def peak_to_peak(self, st, t0):
 
+        try:
+            iplot = int(self.plot_flag)
+        except:
+            if self.plot_flag == True or self.plot_flag == 'True':
+                iplot = 2
+            else:
+                iplot = 0
+
         # simulate Wood-Anderson response
         st.simulate(paz_remove=None, paz_simulate=self._paz)
 
@@ -224,7 +232,7 @@ class LocalMagnitude(Magnitude):
 
         # check for plot flag (for debugging only)
         fig = None
-        if self.plot_flag > 1:
+        if iplot > 1:
             st.plot()
             fig = plt.figure()
             ax = fig.add_subplot(111)
@@ -455,6 +463,14 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     if verbosity:
         print("Calculating source spectrum for station %s ...." % wfstream[0].stats.station)
 
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
+
     # get Q value
     Q, A = qp
 
@@ -650,6 +666,14 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     :param:  fc0, initial corner frequency
     :type:   float
     '''
+
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
 
     w0 = []
     stdw0 = []

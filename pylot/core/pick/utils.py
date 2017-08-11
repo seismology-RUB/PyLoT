@@ -1073,6 +1073,31 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
     return returnflag
 
+def getQualityfromUncertainty(uncertainty, Errors):
+    '''Script to transform uncertainty into quality classes 0-4
+       regarding adjusted time errors Errors.
+    '''
+
+    if uncertainty == None or uncertainty == 'None':
+       quality = 4
+    else:
+        if uncertainty <= Errors[0]:
+            quality = 0
+        elif (uncertainty > Errors[0]) and \
+             (uncertainty < Errors[1]):
+            quality = 1
+        elif (uncertainty > Errors[1]) and \
+             (uncertainty < Errors[2]):
+            quality = 2
+        elif (uncertainty > Errors[2]) and \
+             (uncertainty < Errors[3]):
+            quality = 3
+        elif uncertainty > Errors[3]:
+            quality = 4
+        else:
+            pass
+
+    return quality
 
 if __name__ == '__main__':
     import doctest
