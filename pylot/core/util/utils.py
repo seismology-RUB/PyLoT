@@ -470,6 +470,61 @@ def remove_underscores(data):
     return data
 
 
+def trim_station_components(data, trim_start=True, trim_end=True):
+    '''
+    cut a stream so only the part common to all three traces is kept to avoid dealing with offsets
+    :param data: stream of seismic data
+    :type data: `obspy.core.stream.Stream`
+    :param trim_start: trim start of stream
+    :type trim_start: bool
+    :param trim_end: trim end of stream
+    :type trim_end: bool
+    :return: data stream
+    '''
+    starttime = {False: None}
+    endtime = {False: None}
+
+    stations = get_stations(data)
+
+    print('trim_station_components: Will trim stream for trim_start: {} and for '
+          'trim_end: {}.'.format(trim_start, trim_end))
+    for station in stations:
+        wf_station = data.select(station=station)
+        starttime[True] = max([trace.stats.starttime for trace in wf_station])
+        endtime[True] = min([trace.stats.endtime for trace in wf_station])
+        wf_station.trim(starttime=starttime[trim_start], endtime=endtime[trim_end])
+
+    return data
+
+
+def check4gaps(data):
+    '''
+    check for gaps in Stream and remove them
+    :param data: stream of seismic data
+    :return: data stream
+    '''
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        if wf_station.get_gaps():
+            for trace in wf_station:
+                data.remove(trace)
+            print('check4gaps: Found gaps and removed station {} from waveform data.'.format(station))
+
+    return data
+
+
+def get_stations(data):
+    stations = []
+    for tr in data:
+        station = tr.stats.station
+        if not station in stations:
+            stations.append(station)
+
+    return stations
+
+
 def scaleWFData(data, factor=None, components='all'):
     """
     produce scaled waveforms from given waveform data and a scaling factor,

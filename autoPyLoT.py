@@ -22,12 +22,11 @@ from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
-from pylot.core.util.dataprocessing import restitute_data, read_metadata, \
-    remove_underscores
+from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import real_None
+from pylot.core.util.utils import real_None, remove_underscores, trim_station_components, check4gaps
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -239,9 +238,14 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     print('Could not find station {}. STOP!'.format(station))
                     return
             wfdat = remove_underscores(wfdat)
+            # trim components for each station to avoid problems with different trace starttimes for one station
+            wfdat = check4gaps(wfdat)
+            wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
             metadata = read_metadata(parameter.get('invdir'))
-            print("Restitute data ...")
-            corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
+            corr_dat = None
+            if locflag:
+                print("Restitute data ...")
+                corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
             print('Working on event %s. Stations: %s' % (eventpath, station))
