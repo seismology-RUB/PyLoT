@@ -975,6 +975,15 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
              are shown
     : type:  int
     '''
+    
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+           iplot = 2
+        else:
+           iplot = 0
+
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -1052,10 +1061,14 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
             t = np.arange(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate + diff_dict[key],
                           trace.stats.delta)
             if i == 0:
+                if fig == None or fig == 'None':
+                    fig = plt.figure()  # self.iplot) ### WHY? MP MP
                 ax1 = fig.add_subplot(3, 1, i + 1)
                 ax = ax1
                 ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
             else:
+                if fig == None or fig == 'None':
+                    fig = plt.figure()  # self.iplot) ### WHY? MP MP
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
             ax.plot(t, abs(trace.data), color='b', label='abs')
             ax.plot(t, trace.data, color='k')
