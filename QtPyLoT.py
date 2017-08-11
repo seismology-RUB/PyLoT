@@ -1798,18 +1798,18 @@ class MainWindow(QMainWindow):
             fig = Figure()
             self.fig_dict[key] = fig
 
-        if not self.tap:
-            # init TuneAutopicker object
-            self.tap = TuneAutopicker(self)
-            # first call of update to init tabs with empty canvas
-            self.update_autopicker()
-            # connect update signal of TuneAutopicker with update function
-            # creating and filling figure canvas
-            self.tap.update.connect(self.update_autopicker)
-            self.tap.figure_tabs.setCurrentIndex(0)
-        else:
-            self.update_autopicker()
-            self.tap.fill_eventbox()
+        #if not self.tap:
+        # init TuneAutopicker object
+        self.tap = TuneAutopicker(self)
+        # first call of update to init tabs with empty canvas
+        self.update_autopicker()
+        # connect update signal of TuneAutopicker with update function
+        # creating and filling figure canvas
+        self.tap.update.connect(self.update_autopicker)
+        self.tap.figure_tabs.setCurrentIndex(0)
+        #else:
+        #    self.update_autopicker()
+        #    self.tap.fill_eventbox()
         self.tap.show()
 
     def update_autopicker(self):
