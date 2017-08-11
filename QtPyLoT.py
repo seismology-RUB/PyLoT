@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error
+from pylot.core.pick.utils import symmetrize_error, getQualityfromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -1951,13 +1951,19 @@ class MainWindow(QMainWindow):
             }
 
         stat_picks = self.getPicks(type=picktype)[station]
-
         stime = self.getStime()
 
         for phase in stat_picks:
             picks = stat_picks[phase]
             if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
+
+            # get quality classes
+            if phase[0] == 'P':
+                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+            elif phase[0] == 'S':
+                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+
             colors = phase_col[phase[0].upper()]
 
             mpp = picks['mpp'] - stime
@@ -1994,7 +2000,8 @@ class MainWindow(QMainWindow):
                     else:
                         pw.plot([mpp, mpp], ylims, pen=colors[0], name='{}-Pick (NO PICKERROR)'.format(phase))
                 elif picktype == 'auto':
-                    pw.plot([mpp, mpp], ylims, pen=colors[3])
+                    if quality < 4:
+                        pw.plot([mpp, mpp], ylims, pen=colors[3])
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
             else:
@@ -2009,9 +2016,10 @@ class MainWindow(QMainWindow):
                     else:
                         ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
                 elif picktype == 'auto':
-                    ax.plot(mpp, ylims[1], colors[3],
-                            mpp, ylims[0], colors[4])
-                    ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
+                    if quality < 4:
+                        ax.plot(mpp, ylims[1], colors[3],
+                                mpp, ylims[0], colors[4])
+                        ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
 
