@@ -980,6 +980,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     : type:  int
     '''
     
+    plt_flag = 0
     try:
         iplot = int(iplot)
     except:
@@ -1067,12 +1068,14 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
             if i == 0:
                 if fig == None or fig == 'None':
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
+                    plt_flag = 1
                 ax1 = fig.add_subplot(3, 1, i + 1)
                 ax = ax1
                 ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
             else:
                 if fig == None or fig == 'None':
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
+                    plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
             ax.plot(t, abs(trace.data), color='b', label='abs')
             ax.plot(t, trace.data, color='k')
@@ -1084,6 +1087,10 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
                        lw=0)
             ax.legend()
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
+        if plt_flag == 1:
+            fig.show()
+            raw_input()
+            plt.close(fig)
     return returnflag
 
 def getQualityfromUncertainty(uncertainty, Errors):
