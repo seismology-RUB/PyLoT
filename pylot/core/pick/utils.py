@@ -1101,6 +1101,9 @@ def getQualityfromUncertainty(uncertainty, Errors):
     # set initial quality to 4 (worst) and change only if one condition is hit
     quality = 4
 
+    if uncertainty == None or uncertainty == 'None':
+        return quality
+    
     if uncertainty <= Errors[0]:
         quality = 0
     elif (uncertainty > Errors[0]) and \
