@@ -944,7 +944,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ax3.set_title(trH2_filt.stats.channel)
             if plt_flag == 1:
                 fig.show()
-                raw_input()
+                try: input()
+                except SyntaxError: pass
                 plt.close(fig)
     ##########################################################################
     # calculate "real" onset times
