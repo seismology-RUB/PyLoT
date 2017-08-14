@@ -863,7 +863,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if Pweight < 4:
                 ax2.plot(arhcf1.getTimeArray(),
                          arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
-                if aicSflag == 1:
+                if aicSflag == 1 and Sweight < 4:
                     ax2.plot(arhcf2.getTimeArray(),
                              arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
                     ax2.plot(
