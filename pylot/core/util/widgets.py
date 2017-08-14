@@ -44,12 +44,12 @@ from obspy.taup.utils import get_phase_names
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
-    getResolutionWindow
+    getResolutionWindow, getQualityfromUncertainty
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims
+    demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -1716,6 +1716,12 @@ class PickDlg(QDialog):
         else:
             return
 
+        # get quality classes
+        if phase[0] == 'P':
+            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
+        elif phase[0] == 'S':
+            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+
         mpp = picks['mpp'] - self.getStartTime()
         if picks['epp'] and picks['lpp'] and not textOnly:
             epp = picks['epp'] - self.getStartTime()
@@ -1724,23 +1730,32 @@ class PickDlg(QDialog):
 
         if picktype == 'manual':
             if not textOnly:
+                linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+                color = pick_color_plt(picktype, phase, quality)
                 if picks['epp'] and picks['lpp']:
                     ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                    alpha=.25, color=colors[0], label='EPP, LPP')
+                                    alpha=.25, color=color, label='EPP, LPP')
                 if spe:
-                    ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
-                    ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
-                    ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase), picker=5)
+                    linestyle_spe, width_spe = pick_linestyle_plt(picktype, 'spe')
+                    ax.plot([mpp - spe, mpp - spe], ylims, color=color, linestyle=linestyle_spe,
+                            linewidth=width_spe, label='{}-SPE'.format(phase))
+                    ax.plot([mpp + spe, mpp + spe], ylims, color=color, linestyle=linestyle_spe,
+                            linewidth=width_spe)
+                    ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                            label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
                 else:
-                    ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
+                    ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                            label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
                     # append phase text (if textOnly: draw with current ylims)
                     self.phaseText.append(ax.text(mpp, ylims[1], phase))
         elif picktype == 'auto':
+            color = pick_color_plt(picktype, phase, quality)
+            linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
             if not textOnly:
-                ax.plot(mpp, ylims[1], colors[3],
-                        mpp, ylims[0], colors[4])
-                ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted',
-                          picker=5, label='{}-Pick (auto)'.format(phase))
+                ax.plot(mpp, ylims[1], color=color, marker='v')
+                ax.plot(mpp, ylims[0], color=color, marker='^')
+                ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                          picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase))
         else:

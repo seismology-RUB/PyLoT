@@ -73,7 +73,7 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen
+    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, pick_linestyle_plt
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -2013,20 +2013,29 @@ class MainWindow(QMainWindow):
                     raise TypeError('Unknown picktype {0}'.format(picktype))
             else:
                 if picktype == 'manual':
+                    linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+                    color = pick_color_plt(picktype, phase, quality)
                     if picks['epp'] and picks['lpp']:
                         ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                        alpha=.25, color=colors[0], label='EPP, LPP')
+                                        alpha=.25, color=color, label='EPP, LPP')
                     if spe:
-                        ax.plot([mpp - spe, mpp - spe], ylims, colors[1], label='{}-SPE'.format(phase))
-                        ax.plot([mpp + spe, mpp + spe], ylims, colors[1])
-                        ax.plot([mpp, mpp], ylims, colors[2], label='{}-Pick'.format(phase))
+                        linestyle_spe, width_spe = pick_linestyle_plt(picktype, 'spe')
+                        ax.plot([mpp - spe, mpp - spe], ylims, color=color, linestyle=linestyle_spe,
+                                linewidth=width_spe, label='{}-SPE'.format(phase))
+                        ax.plot([mpp + spe, mpp + spe], ylims, color=color, linestyle=linestyle_spe,
+                                linewidth=width_spe)
+                        ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
                     else:
-                        ax.plot([mpp, mpp], ylims, colors[6], label='{}-Pick (NO PICKERROR)'.format(phase))
+                        ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
                 elif picktype == 'auto':
-                    if quality < 4:
-                        ax.plot(mpp, ylims[1], colors[3],
-                                mpp, ylims[0], colors[4])
-                        ax.vlines(mpp, ylims[0], ylims[1], colors[5], linestyles='dotted')
+                    color = pick_color_plt(picktype, phase, quality)
+                    linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+                    ax.plot(mpp, ylims[1], color=color, marker='v')
+                    ax.plot(mpp, ylims[0], color=color, marker='^')
+                    ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                              picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
 

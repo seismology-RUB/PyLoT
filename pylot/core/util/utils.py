@@ -466,7 +466,7 @@ def find_horizontals(data):
 def make_pen(picktype, phase, key, quality):
     if pg:
         rgba = pick_color(picktype, phase, quality)
-        linestyle, width = pick_linestyle(picktype, key)
+        linestyle, width = pick_linestyle_pg(picktype, key)
         pen = pg.mkPen(rgba, width=width, style=linestyle)
         return pen
 
@@ -481,15 +481,36 @@ def pick_color(picktype, phase, quality=0):
     return rgba
 
 
-def pick_linestyle(picktype, key):
-    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 3.),
+def pick_color_plt(picktype, phase, quality=0):
+    rgba = list(pick_color(picktype, phase, quality))
+    for index, val in enumerate(rgba):
+        rgba[index] /= 255.
+    return rgba
+
+
+def pick_linestyle_plt(picktype, key):
+    linestyles_manu = {'mpp': ('solid', 2.),
+                       'epp': ('dashed', 1.),
+                       'lpp': ('dashed', 1.),
+                       'spe': ('dashed', 1.)}
+    linestyles_auto = {'mpp': ('dotted', 2.),
+                       'epp': ('dashdot', 1.),
+                       'lpp': ('dashdot', 1.),
+                       'spe': ('dashdot', 1.)}
+    linestyles = {'manual': linestyles_manu,
+                  'auto': linestyles_auto}
+    return linestyles[picktype][key]
+
+
+def pick_linestyle_pg(picktype, key):
+    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2.),
                        'epp': (QtCore.Qt.DashLine, 1.),
                        'lpp': (QtCore.Qt.DashLine, 1.),
                        'spe': (QtCore.Qt.DashLine, 1.)}
-    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 3.),
-                       'epp': (QtCore.Qt.DashDotDotLine, 1.),
-                       'lpp': (QtCore.Qt.DashDotDotLine, 1.),
-                       'spe': (QtCore.Qt.DashDotDotLine, 1.)}
+    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 2.),
+                       'epp': (QtCore.Qt.DashDotLine, 1.),
+                       'lpp': (QtCore.Qt.DashDotLine, 1.),
+                       'spe': (QtCore.Qt.DashDotLine, 1.)}
     linestyles = {'manual': linestyles_manu,
                   'auto': linestyles_auto}
     return linestyles[picktype][key]
