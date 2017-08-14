@@ -2076,20 +2076,19 @@ class MainWindow(QMainWindow):
 
         outfile = settings.value("{0}/outputFile".format(loctool),
                                  os.path.split(os.tempnam())[-1])
-        obsdir = os.path.join(locroot, 'obs')
-        self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
         eventname = self.get_current_event_name()
+        obsdir = os.path.join(self._inputs['rootpath'], self._inputs['datapath'], self._inputs['database'], eventname)
+        self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
         filename = 'PyLoT_' + eventname
         locpath = os.path.join(locroot, 'loc', filename)
         phasefile = os.path.join(obsdir, filename + '.obs')
-        phasepath = os.path.join(locroot, 'obs', phasefile)
         lt.modify_inputs(infile, locroot, filename, phasefile, ttt)
         try:
             lt.locate(infile)
         except RuntimeError as e:
             print(e.message)
-        finally:
-            os.remove(phasepath)
+        #finally:
+        #    os.remove(phasefile)
 
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
         # self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
