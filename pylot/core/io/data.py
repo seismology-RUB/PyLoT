@@ -227,52 +227,57 @@ class Data(object):
         # try exporting event via ObsPy
         else:
             print(self.get_evt_data())
-            evtdata_copy = self.get_evt_data().copy()
             evtdata_org = self.get_evt_data()
+            eventpath = evtdata_org.path
+            picks = evtdata_org.picks
+            picks_copy = copy.deepcopy(picks)
+            evtdata_copy = Event(eventpath)
+            evtdata_copy.picks = picks_copy
+
             # check for stations picked automatically as well as manually
             # Prefer manual picks!
-            for i in range(len(evtdata_org.picks)):
-                if evtdata_org.picks[i].method_id == 'manual':
-                    mstation = evtdata_org.picks[i].waveform_id.station_code
+            for i in range(len(picks)):
+                if picks[i].method_id == 'manual':
+                    mstation = picks[i].waveform_id.station_code
                     mstation_ext = mstation + '_'
-                    for k in range(len(evtdata_copy.picks)):
-                        if ((evtdata_copy.picks[k].waveform_id.station_code == mstation) or \
-                                    (evtdata_copy.picks[k].waveform_id.station_code == mstation_ext)) and \
-                                (evtdata_copy.picks[k].method_id == 'auto'):
-                            del evtdata_copy.picks[k]
+                    for k in range(len(picks_copy)):
+                        if ((picks_copy[k].waveform_id.station_code == mstation) or \
+                                    (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                                (picks_copy[k].method_id == 'auto'):
+                            del picks_copy[k]
                             break
-            lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
+            lendiff = len(picks) - len(picks_copy)
             if lendiff is not 0:
                 print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
 
             if upperErrors:
                 # check for pick uncertainties exceeding adjusted upper errors
                 # Picks with larger uncertainties will not be saved in output file!
-                for j in range(len(evtdata_org.picks)):
-                    for i in range(len(evtdata_copy.picks)):
-                        if evtdata_copy.picks[i].phase_hint[0] == 'P':
-                            if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                                    (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
+                for j in range(len(picks)):
+                    for i in range(len(picks_copy)):
+                        if picks_copy[i].phase_hint[0] == 'P':
+                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
+                                    (picks_copy[i].time_errors['uncertainty'] == None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[0]))
-                                print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                                print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
                                 print("{1} P-Pick of station {0} will not be saved in outputfile".format(
-                                    evtdata_copy.picks[i].waveform_id.station_code,
-                                    evtdata_copy.picks[i].method_id))
+                                    picks_copy[i].waveform_id.station_code,
+                                    picks_copy[i].method_id))
                                 print("#")
-                                del evtdata_copy.picks[i]
+                                del picks_copy[i]
                                 break
-                        if evtdata_copy.picks[i].phase_hint[0] == 'S':
-                            if (evtdata_copy.picks[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                                    (evtdata_copy.picks[i].time_errors['uncertainty'] == None):
+                        if picks_copy[i].phase_hint[0] == 'S':
+                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
+                                    (picks_copy[i].time_errors['uncertainty'] == None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[1]))
-                                print("Pick uncertainty: {}".format(evtdata_copy.picks[i].time_errors['uncertainty']))
+                                print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
                                 print("{1} S-Pick of station {0} will not be saved in outputfile".format(
-                                    evtdata_copy.picks[i].waveform_id.station_code,
-                                    evtdata_copy.picks[i].method_id))
+                                    picks_copy[i].waveform_id.station_code,
+                                    picks_copy[i].method_id))
                                 print("#")
-                                del evtdata_copy.picks[i]
+                                del picks_copy[i]
                                 break
 
             if fnext == '.obs':
