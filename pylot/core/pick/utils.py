@@ -153,7 +153,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         ax.legend()
         if plt_flag == 1:
             fig.show()
-            raw_input()
+            try: input()
+            except SyntaxError: pass
             plt.close(fig)
 
     return EPick, LPick, PickError
@@ -347,7 +348,8 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         ax2.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            raw_input()
+            try: input()
+            except SyntaxError: pass
             plt.close(fig)
 
     return FM
@@ -785,7 +787,8 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            raw_input()
+            try: input()
+            except SyntaxError: pass
             plt.close(fig)
 
     return returnflag
@@ -1089,7 +1092,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
         if plt_flag == 1:
             fig.show()
-            raw_input()
+            try: input()
+            except SyntaxError: pass
             plt.close(fig)
     return returnflag
 

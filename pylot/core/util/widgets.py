@@ -1910,6 +1910,9 @@ class PickDlg(QDialog):
 
     def scrollZoom(self, gui_event, factor=2.):
 
+        if not gui_event.xdata or not gui_event.ydata:
+            return
+
         self.updateCurrentLimits()
 
         if gui_event.button == 'up':

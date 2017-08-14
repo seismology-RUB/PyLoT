@@ -274,7 +274,8 @@ class AICPicker(AutoPicker):
                         ax.set_title(self.Data[0].stats.station)
                         if plt_flag == 1:
                             fig.show()
-                            raw_input()
+                            try: input()
+                            except SyntaxError: pass
                             plt.close(fig)
                     return
                 iislope = islope[0][0:imax+1]
@@ -334,13 +335,15 @@ class AICPicker(AutoPicker):
                 ax2.legend()
                 if plt_flag == 1:
                     fig.show()
-                    raw_input()
+                    try: input()
+                    except SyntaxError: pass
                     plt.close(fig)
             else:
                 ax1.set_title(self.Data[0].stats.station)
                 if plt_flag == 1:
                     fig.show()
-                    raw_input()
+                    try: input()
+                    except SyntaxError: pass
                     plt.close(fig)
 
         if self.Pick == None:
@@ -476,7 +479,8 @@ class PragPicker(AutoPicker):
                 ax.legend()
                 if plt_flag == 1:
                     fig.show()
-                    raw_input()
+                    try: input()
+                    except SyntaxError: pass
                     plt.close(fig)
                 return
 
