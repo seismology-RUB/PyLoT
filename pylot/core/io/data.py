@@ -100,7 +100,7 @@ class Data(object):
     def getPicksStr(self):
         picks_str = ''
         for pick in self.get_evt_data().picks:
-            picks_str += str(PyLoT) + '\n'
+            picks_str += str(pick) + '\n'
         return picks_str
 
     def getParent(self):
