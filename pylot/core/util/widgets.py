@@ -2342,8 +2342,10 @@ class TuneAutopicker(QWidget):
     def finish_picker(self):
         self.enable(True)
         if not self.ap_thread._executed:
-            self._warn('Could not execute picker:\n{}'.format(
-                self.ap_thread._executedError))
+            msg = 'Could not execute picker:\n{}'.format(
+                self.ap_thread._executedError)
+            info = self.ap_thread._executedErrorInfo
+            self._warn(msg, info)
             return
         self.pylot_picks = self.ap_thread.data
         if not self.pylot_picks:
@@ -2396,9 +2398,10 @@ class TuneAutopicker(QWidget):
         self.figure_tabs.setTabEnabled(2, bool)
         self.figure_tabs.setTabEnabled(3, bool)
 
-    def _warn(self, message):
+    def _warn(self, message, info=None):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
+        self.qmb.setDetailedText(str(info))
         self.qmb.show()
 
 

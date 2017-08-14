@@ -67,9 +67,10 @@ class Thread(QThread):
         except Exception as e:
             self._executed = False
             self._executedError = e
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print('Exception: {}, file: {}, line: {}'.format(exc_type, fname, exc_tb.tb_lineno))
+            traceback.print_exc()
+            exctype, value = sys.exc_info ()[:2]
+            self._executedErrorInfo = '{} {} {}'.\
+                format(exctype, value, traceback.format_exc())
         sys.stdout = sys.__stdout__
 
     def showProgressbar(self):
@@ -107,7 +108,7 @@ class Thread(QThread):
 
 class Worker(QRunnable):
     '''
-
+    Worker class to be run by MultiThread(QThread).
     '''
     def __init__(self, fun, args,
                  progressText=None,
@@ -130,7 +131,7 @@ class Worker(QRunnable):
         try:
             result = self.fun(self.args)
         except:
-            traceback.print_exc()
+            #traceback.print_exc()
             exctype, value = sys.exc_info ()[:2]
             print(exctype, value, traceback.format_exc())
             #self.signals.error.emit ((exctype, value, traceback.format_exc ()))
@@ -148,6 +149,7 @@ class Worker(QRunnable):
 
 class WorkerSignals(QObject):
     '''
+    Class to provide signals for Worker Class
     '''
     finished = Signal(str)
     message = Signal(str)
