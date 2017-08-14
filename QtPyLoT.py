@@ -1921,11 +1921,17 @@ class MainWindow(QMainWindow):
             self.drawPicks(station, 'manual')
             self.drawPicks(station, 'auto')
             return
+
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
                 self.drawPicks(station, picktype=picktype)
             return
+
+        # check for station key in dictionary, else return
+        if not station in self.getPicks(type=picktype):
+            return
+
         # plotting picks
         plotID = self.getStationID(station)
         if plotID is None:
