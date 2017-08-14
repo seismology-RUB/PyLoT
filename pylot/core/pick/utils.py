@@ -1078,24 +1078,22 @@ def getQualityfromUncertainty(uncertainty, Errors):
        regarding adjusted time errors Errors.
     '''
 
-    if uncertainty == None or uncertainty == 'None':
-       quality = 4
-    else:
-        if uncertainty <= Errors[0]:
-            quality = 0
-        elif (uncertainty > Errors[0]) and \
-             (uncertainty < Errors[1]):
-            quality = 1
-        elif (uncertainty > Errors[1]) and \
-             (uncertainty < Errors[2]):
-            quality = 2
-        elif (uncertainty > Errors[2]) and \
-             (uncertainty < Errors[3]):
-            quality = 3
-        elif uncertainty > Errors[3]:
-            quality = 4
-        else:
-            pass
+    # set initial quality to 4 (worst) and change only if one condition is hit
+    quality = 4
+
+    if uncertainty <= Errors[0]:
+        quality = 0
+    elif (uncertainty > Errors[0]) and \
+         (uncertainty < Errors[1]):
+        quality = 1
+    elif (uncertainty > Errors[1]) and \
+         (uncertainty < Errors[2]):
+        quality = 2
+    elif (uncertainty > Errors[2]) and \
+         (uncertainty < Errors[3]):
+        quality = 3
+    elif uncertainty > Errors[3]:
+        quality = 4
 
     return quality
 
