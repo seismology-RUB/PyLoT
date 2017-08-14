@@ -12,6 +12,13 @@ from obspy import UTCDateTime, read
 from pylot.core.io.inputs import PylotParameter
 
 from scipy.interpolate import splrep, splev
+from PySide import QtCore, QtGui
+
+try:
+    import pyqtgraph as pg
+except Exception as e:
+    print('QtPyLoT: Could not import pyqtgraph. {}'.format(e))
+    pg = None
 
 def _pickle_method(m):
     if m.im_self is None:
@@ -454,6 +461,84 @@ def find_horizontals(data):
         else:
             rval.append(tr.stats.channel[-1].upper())
     return rval
+
+
+def make_pen(picktype, phase, key, quality):
+    if pg:
+        rgba = pick_color(picktype, phase, quality)
+        linestyle, width = pick_linestyle(picktype, key)
+        pen = pg.mkPen(rgba, width=width, style=linestyle)
+        return pen
+
+
+def pick_color(picktype, phase, quality=0):
+    min_quality = 3
+    bpc = base_phase_colors(picktype, phase)
+    rgba = bpc['rgba']
+    modifier = bpc['modifier']
+    intensity = 255.*quality/min_quality
+    rgba = modify_rgba(rgba, modifier, intensity)
+    return rgba
+
+
+def pick_linestyle(picktype, key):
+    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 3.),
+                       'epp': (QtCore.Qt.DashLine, 1.),
+                       'lpp': (QtCore.Qt.DashLine, 1.),
+                       'spe': (QtCore.Qt.DashLine, 1.)}
+    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 3.),
+                       'epp': (QtCore.Qt.DashDotDotLine, 1.),
+                       'lpp': (QtCore.Qt.DashDotDotLine, 1.),
+                       'spe': (QtCore.Qt.DashDotDotLine, 1.)}
+    linestyles = {'manual': linestyles_manu,
+                  'auto': linestyles_auto}
+    return linestyles[picktype][key]
+
+
+def modify_rgba(rgba, modifier, intensity):
+    rgba = list(rgba)
+    index = {'r': 0,
+             'g': 1,
+             'b': 2}
+    val = rgba[index[modifier]] + intensity
+    if val > 255.:
+        val = 255.
+    elif val < 0.:
+        val = 0
+    rgba[index[modifier]] = val
+    return tuple(rgba)
+
+
+def base_phase_colors(picktype, phase):
+    phases = {
+        'manual':
+            {
+            'P':
+                {
+                'rgba': (0, 0, 255, 255),
+                'modifier': 'g'
+                },
+            'S':
+                {
+                'rgba': (255, 0, 0, 255),
+                'modifier': 'b'
+                }
+            },
+        'auto':
+            {
+            'P':
+                {
+                'rgba': (140, 0, 255, 255),
+                'modifier': 'g'
+                },
+            'S':
+                {
+                'rgba': (255, 140, 0, 255),
+                'modifier': 'b'
+                }
+            }
+    }
+    return phases[picktype][phase]
 
 
 def remove_underscores(data):

@@ -73,7 +73,7 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps
+    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1941,16 +1941,7 @@ class MainWindow(QMainWindow):
         else:
             ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        if self.pg:
-            dashed = QtCore.Qt.DashLine
-            dotted = QtCore.Qt.DotLine
-            phase_col = {
-                'P': (pg.mkPen('c'), pg.mkPen((0, 255, 255, 100), style=dashed), pg.mkPen('b', style=dashed),
-                      pg.mkPen('b', style=dotted)),
-                'S': (pg.mkPen('m'), pg.mkPen((255, 0, 255, 100), style=dashed), pg.mkPen('r', style=dashed),
-                      pg.mkPen('r', style=dotted))
-            }
-        else:
+        if not self.pg:
             phase_col = {
                 'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
                 'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
@@ -1970,7 +1961,8 @@ class MainWindow(QMainWindow):
             elif phase[0] == 'S':
                 quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
 
-            colors = phase_col[phase[0].upper()]
+            if not self.pg:
+                colors = phase_col[phase[0].upper()]
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:
@@ -1987,27 +1979,36 @@ class MainWindow(QMainWindow):
             if self.pg:
                 if picktype == 'manual':
                     if picks['epp'] and picks['lpp']:
+                        pen = make_pen(picktype, phase[0], 'epp', quality)
                         pw.plot([epp, epp], ylims,
-                                alpha=.25, pen=colors[0], name='EPP')
+                                alpha=.25, pen=pen, name='EPP')
+                        pen = make_pen(picktype, phase[0], 'lpp', quality)
                         pw.plot([lpp, lpp], ylims,
-                                alpha=.25, pen=colors[0], name='LPP')
+                                alpha=.25, pen=pen, name='LPP')
                     if spe:
-                        spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=colors[1],
-                                                name='{}-SPE'.format(phase))
-                        spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=colors[1])
-                        pw.addItem(spe_l)
-                        pw.addItem(spe_r)
-                        try:
-                            fill = pg.FillBetweenItem(spe_l, spe_r, brush=colors[1].brush())
-                            fb = pw.addItem(fill)
-                        except:
-                            print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pw.plot([mpp, mpp], ylims, pen=colors[2], name='{}-Pick'.format(phase))
+                        # pen = make_pen(picktype, phase[0], 'spe', quality)
+                        # spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
+                        #                         name='{}-SPE'.format(phase))
+                        # spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                        # pw.addItem(spe_l)
+                        # pw.addItem(spe_r)
+                        # try:
+                        #     color = pen.color()
+                        #     color.setAlpha(100.)
+                        #     brush = pen.brush()
+                        #     brush.setColor(color)
+                        #     fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
+                        #     fb = pw.addItem(fill)
+                        # except:
+                        #     print('Warning: drawPicks: Could not create fill for symmetric pick error.')
+                        pen = make_pen(picktype, phase[0], 'mpp', quality)
+                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
                     else:
-                        pw.plot([mpp, mpp], ylims, pen=colors[0], name='{}-Pick (NO PICKERROR)'.format(phase))
+                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick (NO PICKERROR)'.format(phase))
                 elif picktype == 'auto':
                     if quality < 4:
-                        pw.plot([mpp, mpp], ylims, pen=colors[3])
+                        pen = make_pen(picktype, phase[0], 'mpp', quality)
+                        pw.plot([mpp, mpp], ylims, pen=pen)
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
             else:
