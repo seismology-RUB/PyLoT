@@ -1103,7 +1103,7 @@ def getQualityfromUncertainty(uncertainty, Errors):
 
     if uncertainty == None or uncertainty == 'None':
         return quality
-    
+
     if uncertainty <= Errors[0]:
         quality = 0
     elif (uncertainty > Errors[0]) and \

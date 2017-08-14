@@ -32,8 +32,8 @@ from pylot.core.util.version import get_git_version as _getVersionString
 __version__ = _getVersionString()
 
 
-def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None, station='all',
-              iplot=0, ncores=0):
+def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None,
+              savexml=True, station='all', iplot=0, ncores=0):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -93,6 +93,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             iplot = input_dict['iplot']
         if 'locflag' in input_dict:
             locflag = input_dict['locflag']
+        if 'savexml' in input_dict:
+            savexml = input_dict['savexml']
 
     if not parameter:
         if inputfile:
@@ -408,8 +410,11 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 event_id = eventpath.split('/')[-1]
                 evt.resource_id = ResourceIdentifier('smi:local/' + event_id)
                 data.applyEVTData(evt, 'event')
-            fnqml = '%s/PyLoT_%s' % (eventpath, evID)
-            data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
+            if savexml:
+                if not savepath:
+                    savepath = eventpath
+                fnqml = '%s/PyLoT_%s' % (savepath, evID)
+                data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
             if locflag == 1:
                 # HYPO71
                 hypo71file = '%s/PyLoT_%s_HYPO71_phases' % (eventpath, evID)

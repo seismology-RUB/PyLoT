@@ -2325,7 +2325,8 @@ class TuneAutopicker(QWidget):
                 'eventid': self.get_current_event_fp(),
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
-                'locflag': 0}
+                'locflag': 0,
+                'savexml': False}
         for key in self.fig_dict.keys():
             self.fig_dict[key].clear()
         self.ap_thread = Thread(self, autoPyLoT, arg=args,
