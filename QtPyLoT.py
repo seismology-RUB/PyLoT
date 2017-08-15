@@ -568,14 +568,14 @@ class MainWindow(QMainWindow):
         locationToolBar.setObjectName("LocationTools")
 
         self.addActions(self.editMenu, editActions)
-        self.addActions(self.autoPickMenu, pickActions)
+        self.addActions(self.autoPickMenu, autoPickActions)
         self.addActions(self.pickMenu, pickMenuActions)
         self.addActions(self.helpMenu, helpActions)
 
         self.addActions(fileToolBar, fileToolActions)
         self.addActions(eventToolBar, eventToolActions)
         self.addActions(componentToolBar, componentActions)
-        self.addActions(autoPickToolBar, autoPickActions)
+        self.addActions(autoPickToolBar, pickActions)
         self.addActions(locationToolBar, locationToolActions)
 
         self.eventLabel = QLabel()
