@@ -837,14 +837,14 @@ class PickDlg(QDialog):
         self._user = settings.value('user/Login', pylot_user)
         self._dirty = False
         if picks:
-            self.picks = picks
-            self._init_picks = copy.deepcopy(picks)
+            self.picks = copy.deepcopy(picks)
+            self._init_picks = picks
         else:
             self.picks = {}
             self._init_picks = {}
         if autopicks:
-            self.autopicks = autopicks
-            self._init_autopicks = copy.deepcopy(autopicks)
+            self.autopicks = copy.deepcopy(autopicks)
+            self._init_autopicks = autopicks
         else:
             self.autopicks = {}
             self._init_autopicks = {}
@@ -1734,11 +1734,11 @@ class PickDlg(QDialog):
                 if spe:
                     ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
-                if epp:
+                if picks['epp']:
                     linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
                     ax.plot([epp, epp], ylims, color=color, linestyle=linestyle_epp,
                             linewidth=width_epp, label='{}-EPP'.format(phase))
-                if lpp:
+                if picks['lpp']:
                     linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
                     ax.plot([lpp, lpp], ylims, color=color, linestyle=linestyle_lpp,
                             linewidth=width_lpp, label='{}-LPP'.format(phase))
