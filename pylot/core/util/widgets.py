@@ -1729,20 +1729,22 @@ class PickDlg(QDialog):
             color = pick_color_plt(picktype, phaseID, quality)
             if not textOnly:
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                if picks['epp'] and picks['lpp']:
-                    ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                    alpha=.25, color=color, label='EPP, LPP')
+                ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                        label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
                 if spe:
-                    linestyle_spe, width_spe = pick_linestyle_plt(picktype, 'spe')
-                    ax.plot([mpp - spe, mpp - spe], ylims, color=color, linestyle=linestyle_spe,
-                            linewidth=width_spe, label='{}-SPE'.format(phase))
-                    ax.plot([mpp + spe, mpp + spe], ylims, color=color, linestyle=linestyle_spe,
-                            linewidth=width_spe)
-                    ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                            label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
-                else:
-                    ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                            label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
+                    ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
+                                    alpha=.25, color=color, label='{}-SPE'.format(phase))
+                if epp:
+                    linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
+                    ax.plot([epp, epp], ylims, color=color, linestyle=linestyle_epp,
+                            linewidth=width_epp, label='{}-EPP'.format(phase))
+                if lpp:
+                    linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
+                    ax.plot([lpp, lpp], ylims, color=color, linestyle=linestyle_lpp,
+                            linewidth=width_lpp, label='{}-LPP'.format(phase))
+                # else:
+                #     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                #             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
         elif picktype == 'auto':
