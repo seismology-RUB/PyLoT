@@ -1743,8 +1743,8 @@ class PickDlg(QDialog):
                 else:
                     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
-                    # append phase text (if textOnly: draw with current ylims)
-                    self.phaseText.append(ax.text(mpp, ylims[1], phase))
+            # append phase text (if textOnly: draw with current ylims)
+            self.phaseText.append(ax.text(mpp, ylims[1], phase))
         elif picktype == 'auto':
             color = pick_color_plt(picktype, phaseID, quality)
             linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
