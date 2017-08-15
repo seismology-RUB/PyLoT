@@ -73,7 +73,8 @@ from pylot.core.util.errors import FormatError, DatastructureError, \
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, pick_linestyle_plt
+    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
+    pick_linestyle_plt, identifyPhase, loopIdentifyPhase
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -837,6 +838,9 @@ class MainWindow(QMainWindow):
         else:
             raise DatastructureError('not specified')
         return fnames
+
+    def getPhaseID(self, phase):
+        return identifyPhase(loopIdentifyPhase(phase))
 
     def get_current_event(self, eventbox=None):
         '''
@@ -1951,10 +1955,12 @@ class MainWindow(QMainWindow):
                 return
 
             # get quality classes
-            if phase[0] == 'P':
+            if self.getPhaseID(phase) == 'P':
                 quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
-            elif phase[0] == 'S':
+                phaseID = 'P'
+            elif self.getPhaseID(phase) == 'S':
                 quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+                phaseID = 'S'
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:
@@ -1971,14 +1977,14 @@ class MainWindow(QMainWindow):
             if self.pg:
                 if picktype == 'manual':
                     if picks['epp'] and picks['lpp']:
-                        pen = make_pen(picktype, phase[0], 'epp', quality)
+                        pen = make_pen(picktype, phaseID, 'epp', quality)
                         pw.plot([epp, epp], ylims,
                                 alpha=.25, pen=pen, name='EPP')
-                        pen = make_pen(picktype, phase[0], 'lpp', quality)
+                        pen = make_pen(picktype, phaseID, 'lpp', quality)
                         pw.plot([lpp, lpp], ylims,
                                 alpha=.25, pen=pen, name='LPP')
                     if spe:
-                        # pen = make_pen(picktype, phase[0], 'spe', quality)
+                        # pen = make_pen(picktype, phaseID, 'spe', quality)
                         # spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
                         #                         name='{}-SPE'.format(phase))
                         # spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
@@ -1993,13 +1999,13 @@ class MainWindow(QMainWindow):
                         #     fb = pw.addItem(fill)
                         # except:
                         #     print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pen = make_pen(picktype, phase[0], 'mpp', quality)
+                        pen = make_pen(picktype, phaseID, 'mpp', quality)
                         pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
                     else:
                         pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick (NO PICKERROR)'.format(phase))
                 elif picktype == 'auto':
                     if quality < 4:
-                        pen = make_pen(picktype, phase[0], 'mpp', quality)
+                        pen = make_pen(picktype, phaseID, 'mpp', quality)
                         pw.plot([mpp, mpp], ylims, pen=pen)
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
