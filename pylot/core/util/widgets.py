@@ -560,8 +560,9 @@ class WaveformWidgetPG(QtGui.QWidget):
         vb.setYRange(float(lims[0]), float(lims[1]), padding=0)
 
     def setYTickLabels(self, pos, labels):
-        ticks = zip(pos, labels)
-        minorTicks = [(0, 0) for item in labels]
+        pos = list(pos)
+        ticks = list(zip(pos, labels))
+        minorTicks = [(0, 0) for _ in labels]
         # leftAx.tickLength = 5
         # leftAx.orientation = 'right'
         self.getAxItem('left').setTicks([ticks, minorTicks])
