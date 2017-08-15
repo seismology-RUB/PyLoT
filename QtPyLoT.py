@@ -1751,10 +1751,10 @@ class MainWindow(QMainWindow):
             if pickDlg._dirty:
                 self.setDirty(True)
                 self.update_status('picks accepted ({0})'.format(station))
-                replot = self.addPicks(station, pickDlg.getPicks())
-                self.get_current_event().setPick(station, pickDlg.getPicks())
+                replot1 = self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                replot2 = self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
                 self.enableSaveEventAction()
-                if replot:
+                if replot1 or replot2:
                     self.plotWaveformDataThread()
                     self.drawPicks()
                     self.draw()
@@ -1877,12 +1877,16 @@ class MainWindow(QMainWindow):
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
-        if not stat_picks and picks:
+        if not stat_picks:
             rval = False
         else:
             rval = True
-        # set picks (ugly syntax?)
-        self.getPicks(type=type)[station] = picks
+        event = self.get_current_event()
+        # create dictionary switch
+        automanu = {'manual': event.setPick,
+                    'auto': event.setAutopick}
+        # dictionary consisting of set station only
+        automanu[type](station=station, pick=picks)
         return rval
         # if not stat_picks:
         #     stat_picks = picks
