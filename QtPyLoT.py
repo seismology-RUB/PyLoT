@@ -503,7 +503,7 @@ class MainWindow(QMainWindow):
                                                ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
-        autoPickActions = (self.auto_tune, self.auto_pick, self.compare_action)
+        pickActions = (self.auto_tune, self.auto_pick, self.compare_action)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -525,20 +525,22 @@ class MainWindow(QMainWindow):
                                 self.openProjectAction, self.saveProjectAction,
                                 self.saveProjectAsAction,
                                 self.openEventAction, self.saveEventAction, None,
-                                prefsEventAction, self.parameterAction, quitAction)
+                                quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
         editActions = (self.filterAction, filterEditAction, None,
                        self.selectPAction, self.selectSAction, None,
-                       printAction)
+                       prefsEventAction)
+                       #printAction) #TODO: print event?
 
+        pickMenuActions = (self.parameterAction,)
         self.pickMenu = self.menuBar().addMenu('&Picking')
         self.autoPickMenu = self.pickMenu.addMenu('Automatic picking')
         self.autoPickMenu.setEnabled(False)
 
-        pickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
+        autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction,)
@@ -567,6 +569,7 @@ class MainWindow(QMainWindow):
 
         self.addActions(self.editMenu, editActions)
         self.addActions(self.autoPickMenu, pickActions)
+        self.addActions(self.pickMenu, pickMenuActions)
         self.addActions(self.helpMenu, helpActions)
 
         self.addActions(fileToolBar, fileToolActions)
