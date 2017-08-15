@@ -476,7 +476,7 @@ def getsignalwin(t, t1, tsignal):
     '''
 
     # get signal window
-    isignal, = np.where((t <= min([t1 + tsignal, len(t)])) \
+    isignal, = np.where((t <= min([t1 + tsignal, t[-1]])) \
                         & (t >= t1))
     if np.size(isignal) < 1:
         print("getsignalwin: Empty array isignal, check signal window!")
