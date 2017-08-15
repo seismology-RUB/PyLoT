@@ -353,7 +353,7 @@ class MainWindow(QMainWindow):
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openEventAction = self.createAction(self, "Load event ...",
+        self.openEventAction = self.createAction(self, "Load event information...",
                                                  self.load_data,
                                                        "Ctrl+M",
                                                  openEventIcon,
@@ -521,9 +521,10 @@ class MainWindow(QMainWindow):
 
         # add top menu
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
+        self.fileMenuActions = (self.newProjectAction,
                                 self.openProjectAction, self.saveProjectAction,
-                                self.saveProjectAsAction,
+                                self.saveProjectAsAction, None,
+                                self.addEventDataAction,
                                 self.openEventAction, self.saveEventAction, None,
                                 quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
@@ -545,12 +546,13 @@ class MainWindow(QMainWindow):
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction,)
 
-        fileToolActions = (self.newProjectAction, self.addEventDataAction,
+        fileToolActions = (self.newProjectAction,
                            self.openProjectAction, self.saveProjectAction,
                            self.saveProjectAsAction)
 
 
-        eventToolActions = (self.openEventAction, self.openEventsAutoAction,
+        eventToolActions = (self.addEventDataAction,
+                            self.openEventAction, self.openEventsAutoAction,
                             self.saveEventAction, self.loadlocationaction,
                             self.loadpilotevent)
 
