@@ -1697,16 +1697,11 @@ class PickDlg(QDialog):
             ylims = self.getGlobalLimits('y')
         else:
             ylims = self.getPlotWidget().getYLims()
-        phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b', 'c:'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
-        }
         if self.getPicks(picktype):
             if phase is not None:
                 if (type(self.getPicks(picktype)[phase]) is dict
                     or type(self.getPicks(picktype)[phase]) is AttribDict):
                     picks = self.getPicks(picktype)[phase]
-                    colors = phase_col[self.getPhaseID(phase)]
             elif phase is None:
                 for phase in self.getPicks(picktype):
                     self.drawPicks(phase, picktype, textOnly)
@@ -1717,10 +1712,12 @@ class PickDlg(QDialog):
             return
 
         # get quality classes
-        if phase[0] == 'P':
+        if self.getPhaseID(phase) == 'P':
             quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
-        elif phase[0] == 'S':
+            phaseID = 'P'
+        elif self.getPhaseID(phase) == 'S':
             quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+            phaseID = 'S'
 
         mpp = picks['mpp'] - self.getStartTime()
         if picks['epp'] and picks['lpp'] and not textOnly:
@@ -1731,7 +1728,7 @@ class PickDlg(QDialog):
         if picktype == 'manual':
             if not textOnly:
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                color = pick_color_plt(picktype, phase, quality)
+                color = pick_color_plt(picktype, phaseID, quality)
                 if picks['epp'] and picks['lpp']:
                     ax.fill_between([epp, lpp], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='EPP, LPP')
@@ -1749,7 +1746,7 @@ class PickDlg(QDialog):
                     # append phase text (if textOnly: draw with current ylims)
                     self.phaseText.append(ax.text(mpp, ylims[1], phase))
         elif picktype == 'auto':
-            color = pick_color_plt(picktype, phase, quality)
+            color = pick_color_plt(picktype, phaseID, quality)
             linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
             if not textOnly:
                 ax.plot(mpp, ylims[1], color=color, marker='v')
