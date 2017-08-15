@@ -50,7 +50,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
             continue
 
     for station in stations:
-        topick = data.select(station=station)
+        topick = data.select(station='AWL')
 
         if iplot == None or iplot == 'None' or iplot == 0:
             input_tuples.append((topick, param, apverbose, metadata, origin))
@@ -1057,17 +1057,21 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
         Precalcwin_old = pickparameter.get('Precalcwin')
         noisefactor_old = pickparameter.get('noisefactor')
         zfac_old = pickparameter.get('zfac')
-        pickparameter.setParam(
-            pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
-                        - pickparameter.get('tlta')]))
-        pickparameter.setParam(pstop=pickparameter.get('pstart') + \
-                                     (pickparameter.get('Precalcwin')))
-        pickparameter.setParam(sstop=pickparameter.get('sstop') / 2)
-        pickparameter.setParam(pickwinP=pickparameter.get('pickwinP') / 2)
-        pickparameter.setParam(
-            Precalcwin=pickparameter.get('Precalcwin') / 2)
-        pickparameter.setParam(noisefactor=1.0)
-        pickparameter.setParam(zfac=1.0)
+        twindows = pickparameter.get('tsnrz')
+        tsafety = twindows[1]
+        pstart = max([0, badpicks[i][1] - wf2pick[0].stats.starttime - pickparameter.get('tlta')])
+        if abs(float(res)) <= tsafety / 2 or pstart == 0:
+            print("iteratepicker: Small residuum, leave parameters unchanged for this phase!")
+        else:
+            pickparameter.setParam(pstart=pstart)
+            pickparameter.setParam(pstop=pickparameter.get('pstart') + \
+                                         (pickparameter.get('Precalcwin')))
+            pickparameter.setParam(sstop=pickparameter.get('sstop') / 2)
+            pickparameter.setParam(pickwinP=pickparameter.get('pickwinP') / 2)
+            pickparameter.setParam(Precalcwin=pickparameter.get('Precalcwin') / 2)
+            pickparameter.setParam(noisefactor=1.0)
+            pickparameter.setParam(zfac=1.0)
+
         print(
             "iteratepicker: The following picking parameters have been modified for iterative picking:")
         print(
