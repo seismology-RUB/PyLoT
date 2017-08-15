@@ -560,8 +560,9 @@ class WaveformWidgetPG(QtGui.QWidget):
         vb.setYRange(float(lims[0]), float(lims[1]), padding=0)
 
     def setYTickLabels(self, pos, labels):
-        ticks = zip(pos, labels)
-        minorTicks = [(0, 0) for item in labels]
+        pos = list(pos)
+        ticks = list(zip(pos, labels))
+        minorTicks = [(0, 0) for _ in labels]
         # leftAx.tickLength = 5
         # leftAx.orientation = 'right'
         self.getAxItem('left').setTicks([ticks, minorTicks])
@@ -2452,7 +2453,7 @@ class PylotParaBox(QtGui.QWidget):
         self.add_special_pick_parameters_tab()
         self.params_to_gui()
         self._toggle_advanced_settings()
-        self.resize(720, 1280)
+        self.resize(720, 860)
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.accepted.connect(self.params_from_gui)
         self.rejected.connect(self.params_to_gui)

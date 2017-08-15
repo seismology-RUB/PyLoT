@@ -353,7 +353,7 @@ class MainWindow(QMainWindow):
         #                                    self.createNewEvent,
         #                                    QKeySequence.New, newIcon,
         #                                    "Create a new event.")
-        self.openEventAction = self.createAction(self, "Load event ...",
+        self.openEventAction = self.createAction(self, "Load event information...",
                                                  self.load_data,
                                                        "Ctrl+M",
                                                  openEventIcon,
@@ -503,7 +503,7 @@ class MainWindow(QMainWindow):
                                                ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
-        autoPickActions = (self.auto_tune, self.auto_pick, self.compare_action)
+        pickActions = (self.auto_tune, self.auto_pick, self.compare_action)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -521,34 +521,38 @@ class MainWindow(QMainWindow):
 
         # add top menu
         self.fileMenu = self.menuBar().addMenu('&File')
-        self.fileMenuActions = (self.newProjectAction, self.addEventDataAction,
+        self.fileMenuActions = (self.newProjectAction,
                                 self.openProjectAction, self.saveProjectAction,
-                                self.saveProjectAsAction,
+                                self.saveProjectAsAction, None,
+                                self.addEventDataAction,
                                 self.openEventAction, self.saveEventAction, None,
-                                prefsEventAction, self.parameterAction, quitAction)
+                                quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
         editActions = (self.filterAction, filterEditAction, None,
                        self.selectPAction, self.selectSAction, None,
-                       printAction)
+                       prefsEventAction)
+                       #printAction) #TODO: print event?
 
+        pickMenuActions = (self.parameterAction,)
         self.pickMenu = self.menuBar().addMenu('&Picking')
         self.autoPickMenu = self.pickMenu.addMenu('Automatic picking')
         self.autoPickMenu.setEnabled(False)
 
-        pickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
+        autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
         helpActions = (helpAction,)
 
-        fileToolActions = (self.newProjectAction, self.addEventDataAction,
+        fileToolActions = (self.newProjectAction,
                            self.openProjectAction, self.saveProjectAction,
                            self.saveProjectAsAction)
 
 
-        eventToolActions = (self.openEventAction, self.openEventsAutoAction,
+        eventToolActions = (self.addEventDataAction,
+                            self.openEventAction, self.openEventsAutoAction,
                             self.saveEventAction, self.loadlocationaction,
                             self.loadpilotevent)
 
@@ -566,13 +570,14 @@ class MainWindow(QMainWindow):
         locationToolBar.setObjectName("LocationTools")
 
         self.addActions(self.editMenu, editActions)
-        self.addActions(self.autoPickMenu, pickActions)
+        self.addActions(self.autoPickMenu, autoPickActions)
+        self.addActions(self.pickMenu, pickMenuActions)
         self.addActions(self.helpMenu, helpActions)
 
         self.addActions(fileToolBar, fileToolActions)
         self.addActions(eventToolBar, eventToolActions)
         self.addActions(componentToolBar, componentActions)
-        self.addActions(autoPickToolBar, autoPickActions)
+        self.addActions(autoPickToolBar, pickActions)
         self.addActions(locationToolBar, locationToolActions)
 
         self.eventLabel = QLabel()
