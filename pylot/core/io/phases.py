@@ -222,7 +222,7 @@ def picksdict_from_picks(evt):
             lpp = mpp + pick.time_errors.upper_uncertainty
             epp = mpp - pick.time_errors.lower_uncertainty
         except TypeError as e:
-            msg = e.message + ',\n falling back to symmetric uncertainties'
+            msg = e + ',\n falling back to symmetric uncertainties'
             warnings.warn(msg)
             lpp = mpp + spe
             epp = mpp - spe

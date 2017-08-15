@@ -411,7 +411,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.applyEVTData(evt, 'event')
             data.applyEVTData(picks)
             if savexml:
-                if savepath == 'None':
+                if savepath == 'None' or savepath == None:
                     savepath = eventpath
                 fnqml = '%s/PyLoT_%s' % (savepath, evID)
                 data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
