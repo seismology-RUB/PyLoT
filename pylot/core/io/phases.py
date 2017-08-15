@@ -582,8 +582,6 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
-        errP = parameter.get('timeerrorsP')
-        errS = parameter.get('timeerrorsS')
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
