@@ -450,16 +450,19 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
 
                 # weight P-onset using symmetric error
-                if Perror <= timeerrorsP[0]:
-                    Pweight = 0
-                elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
-                    Pweight = 1
-                elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
-                    Pweight = 2
-                elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
-                    Pweight = 3
-                elif Perror > timeerrorsP[3]:
+                if Perror == None:
                     Pweight = 4
+                else:
+                    if Perror <= timeerrorsP[0]:
+                        Pweight = 0
+                    elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
+                        Pweight = 1
+                    elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
+                        Pweight = 2
+                    elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
+                        Pweight = 3
+                    elif Perror > timeerrorsP[3]:
+                        Pweight = 4
 
                 ##############################################################
                 # get first motion of P onset

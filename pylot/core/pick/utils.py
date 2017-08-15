@@ -1036,7 +1036,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     rmse = RMS(edat[0].data[isignale])
 
     # calculate threshold
-    minsiglevel = (rmsn + rmse) * zfac
+    minsiglevel = (rmsn + rmse) / 2 * zfac
 
     # vertical P-coda level must exceed horizontal P-coda level
     # zfac times encodalevel

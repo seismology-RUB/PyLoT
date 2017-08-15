@@ -405,13 +405,13 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             # write phase files for various location 
             # and fault mechanism calculation routines
             # ObsPy event object
-            data.applyEVTData(picks)
             if evt is not None:
                 event_id = eventpath.split('/')[-1]
                 evt.resource_id = ResourceIdentifier('smi:local/' + event_id)
                 data.applyEVTData(evt, 'event')
+            data.applyEVTData(picks)
             if savexml:
-                if not savepath:
+                if savepath == 'None':
                     savepath = eventpath
                 fnqml = '%s/PyLoT_%s' % (savepath, evID)
                 data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
