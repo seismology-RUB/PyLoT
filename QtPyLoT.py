@@ -1941,11 +1941,6 @@ class MainWindow(QMainWindow):
         else:
             ax = self.getPlotWidget().axes
         ylims = np.array([-.5, +.5]) + plotID
-        if not self.pg:
-            phase_col = {
-                'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b'),
-                'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r')
-            }
 
         stat_picks = self.getPicks(type=picktype)[station]
         stime = self.getStime()
@@ -1960,9 +1955,6 @@ class MainWindow(QMainWindow):
                 quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
             elif phase[0] == 'S':
                 quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
-
-            if not self.pg:
-                colors = phase_col[phase[0].upper()]
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:

@@ -1697,16 +1697,11 @@ class PickDlg(QDialog):
             ylims = self.getGlobalLimits('y')
         else:
             ylims = self.getPlotWidget().getYLims()
-        phase_col = {
-            'P': ('c', 'c--', 'b-', 'bv', 'b^', 'b', 'c:'),
-            'S': ('m', 'm--', 'r-', 'rv', 'r^', 'r', 'm:')
-        }
         if self.getPicks(picktype):
             if phase is not None:
                 if (type(self.getPicks(picktype)[phase]) is dict
                     or type(self.getPicks(picktype)[phase]) is AttribDict):
                     picks = self.getPicks(picktype)[phase]
-                    colors = phase_col[self.getPhaseID(phase)]
             elif phase is None:
                 for phase in self.getPicks(picktype):
                     self.drawPicks(phase, picktype, textOnly)
