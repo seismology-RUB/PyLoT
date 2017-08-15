@@ -1061,7 +1061,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
             pstart=max([0, badpicks[i][1] - wf2pick[0].stats.starttime \
                         - pickparameter.get('tlta')]))
         pickparameter.setParam(pstop=pickparameter.get('pstart') + \
-                                     (3 * pickparameter.get('tlta')))
+                                     (pickparameter.get('Precalcwin')))
         pickparameter.setParam(sstop=pickparameter.get('sstop') / 2)
         pickparameter.setParam(pickwinP=pickparameter.get('pickwinP') / 2)
         pickparameter.setParam(
