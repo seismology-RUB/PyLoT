@@ -50,7 +50,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
             continue
 
     for station in stations:
-        topick = data.select(station='AWL')
+        topick = data.select(station=station)
 
         if iplot == None or iplot == 'None' or iplot == 0:
             input_tuples.append((topick, param, apverbose, metadata, origin))
