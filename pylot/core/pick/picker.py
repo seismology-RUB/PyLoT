@@ -229,14 +229,14 @@ class AICPicker(AutoPicker):
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
             isignal = isignal[0:ii]
             try:
-                aic[isignal]
+                self.Data[0].data[isignal]
             except IndexError as e:
                 msg = "Time series out of bounds! {}".format(e)
                 print(msg)
                 return
             # calculate SNR from CF
-            self.SNR = max(abs(aic[isignal] - np.mean(aic[isignal]))) / \
-                       max(abs(aic[inoise] - np.mean(aic[inoise])))
+            self.SNR = max(abs(self.Data[0].data[isignal] - np.mean(self.Data[0].data[isignal]))) / \
+                       max(abs(self.Data[0].data[inoise] - np.mean(self.Data[0].data[inoise])))
             # calculate slope from CF after initial pick
             # get slope window
             tslope = self.TSNR[3]  # slope determination window
