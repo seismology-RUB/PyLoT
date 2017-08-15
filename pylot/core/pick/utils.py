@@ -744,7 +744,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     else:
         x1 = X[0].data
         ilen = len(x1)
-        rms = np.sqrt(np.power(2, x1))
+        rms = abs(x1)
 
     t = np.arange(0, ilen / X[0].stats.sampling_rate,
                   X[0].stats.delta)
