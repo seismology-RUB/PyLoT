@@ -630,6 +630,31 @@ def check4gaps(data):
     return data
 
 
+def check4doubled(data):
+    '''
+    check for doubled stations for same channel in Stream and take only the first one
+    :param data: stream of seismic data
+    :return: data stream
+    '''
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        # create list of all possible channels
+        channels = []
+        for trace in wf_station:
+            channel = trace.stats.channel
+            if not channel in channels:
+                channels.append(channel)
+            else:
+                print('check4doubled: removed the following trace for station {}, as there is'
+                      ' already a trace with the same channel given:\n{}'.format(
+                    station, trace
+                ))
+                data.remove(trace)
+    return data
+
+
 def get_stations(data):
     stations = []
     for tr in data:
