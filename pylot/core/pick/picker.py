@@ -240,8 +240,8 @@ class AICPicker(AutoPicker):
             # calculate slope from CF after initial pick
             # get slope window
             tslope = self.TSNR[3]  # slope determination window
-            islope = np.where((self.Tcf <= min([self.Pick + tslope, len(self.Data[0].data)])) \
-                              & (self.Tcf >= self.Pick))
+            islope = np.where((self.Tcf <= min([self.Pick + tslope, self.Tcf[-1]])) \
+                              & (self.Tcf >= self.Pick)) # TODO: put this in a seperate function like getsignalwin
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             dataslope = self.Data[0].data[islope[0][0]:islope[0][len(islope[0]) - 1]]
