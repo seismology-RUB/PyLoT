@@ -13,6 +13,7 @@ from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
 from pylot.core.util.utils import fnConstructor, full_range
+import pylot.core.loc.velest as velest
 
 
 class Data(object):
@@ -223,8 +224,7 @@ class Data(object):
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
             self.get_evt_data().write(fnout + fnext, format=evtformat)
-
-        # try exporting event via ObsPy
+        # try exporting event  
         else:
             evtdata_org = self.get_evt_data()
             picks = evtdata_org.picks
@@ -296,7 +296,7 @@ class Data(object):
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.cnv':
                 try:
-                    evtdata_org.write(fnout + fnext, format=evtformat)
+                    velest.export(picks_copy, fnout + fnext, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))

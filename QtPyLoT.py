@@ -1149,7 +1149,7 @@ class MainWindow(QMainWindow):
                                             upperErrors=[uppererrorP[3], uppererrorS[3]])
                 saved_as += str(outformat) + ' '
             except TypeError:
-                print('WARNING: Format: {} not yet implemented'.format(outformat)) #MP MP TODO: .obs export (event.copy)
+                print('WARNING: Format: {} not yet implemented'.format(outformat)) 
 
         msg = 'Event {} saved as {} in format(s) {}'.format(event.pylot_id, fbasename, saved_as.strip())
         self.update_status(msg)

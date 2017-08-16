@@ -425,7 +425,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 hyposat.export(picks, hyposatfile, parameter)
                 # VELEST
                 velestfile = '%s/PyLoT_%s_VELEST_phases.cnv' % (eventpath, evID)
-                velest.export(picks, velestfile, parameter, evt)
+                velest.export(picks, velestfile, evt, parameter)
                 # hypoDD
                 hypoddfile = '%s/PyLoT_%s_hypoDD_phases.pha' % (eventpath, evID)
                 hypodd.export(picks, hypoddfile, parameter, evt)

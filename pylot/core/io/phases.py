@@ -403,7 +403,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     # evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
-def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
+def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     """
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
@@ -622,7 +622,11 @@ def writephases(arrivals, fformat, filename, parameter, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # get informations needed in cnv-file
         # check, whether latitude is N or S and longitude is E or W
-        eventsource = eventinfo.origins[0]
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no cnv-file creation possible!")
+            return
         if eventsource['latitude'] < 0:
             cns = 'S'
         else:
