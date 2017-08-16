@@ -1865,7 +1865,7 @@ class MainWindow(QMainWindow):
         self.addListItem(str(self._inputs))
 
         self.mp_worker.signals.message.connect(self.addListItem)
-        # self.mp_thread.finished.connect(self.finalizeAutoPick)
+        self.mp_worker.signals.result.connect(self.finalizeAutoPick)
 
     def autoPickProject(self):
         if not self.apd_local:
@@ -1877,10 +1877,12 @@ class MainWindow(QMainWindow):
             self.apd_sge = AutoPickDlg(self, sge=True)
         self.apd_sge.show()
 
-    def finalizeAutoPick(self):
-        self.drawPicks(picktype='auto')
-        self.draw()
-        self.mp_thread.quit()
+    def finalizeAutoPick(self, result):
+        if result:
+            event = self.get_current_event()
+            event.addAutopicks(result)
+            self.drawPicks(picktype='auto')
+            self.draw()
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
