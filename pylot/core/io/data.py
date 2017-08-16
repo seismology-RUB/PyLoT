@@ -226,12 +226,10 @@ class Data(object):
 
         # try exporting event via ObsPy
         else:
-            print(self.get_evt_data())
             evtdata_org = self.get_evt_data()
-            eventpath = evtdata_org.path
             picks = evtdata_org.picks
             picks_copy = copy.deepcopy(picks)
-            evtdata_copy = Event(eventpath)
+            evtdata_copy = Event(fnout)
             evtdata_copy.picks = picks_copy
 
             # check for stations picked automatically as well as manually
