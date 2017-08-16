@@ -754,7 +754,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     # get signal window
     isignal = getsignalwin(t, pick, minsiglength)
     # calculate minimum adjusted signal level
-    minsiglevel = max(rms[inoise]) * nfac
+    minsiglevel = np.mean(rms[inoise]) * nfac
     # minimum adjusted number of samples over minimum signal level
     minnum = len(isignal) * minpercent / 100
     # get number of samples above minimum adjusted signal level
