@@ -252,11 +252,7 @@ class PDFDictionary(object):
 
     @classmethod
     def from_quakeml(self, fn):
-        cat = read_events(fn)
-        if len(cat) > 1:
-            raise NotImplementedError('reading more than one event at the same '
-                                      'time is not implemented yet! Sorry!')
-        return PDFDictionary(picksdict_from_picks(cat[0])) # MP MP TODO: change function argument (auto/manu)
+        return PDFDictionary(fn) # LK TODO: check if stations are available with both automatic and manual picks
 
     def get_all(self, phase):
         rlist = list()
