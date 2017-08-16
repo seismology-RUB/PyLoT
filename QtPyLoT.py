@@ -1476,6 +1476,7 @@ class MainWindow(QMainWindow):
             self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
+        if event.pylot_picks and event.pylot_autopicks:
             self.compare_action.setEnabled(True)
         self.draw()
 
