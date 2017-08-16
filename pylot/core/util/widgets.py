@@ -127,7 +127,7 @@ class ComparisonDialog(QDialog):
                              phasesComboBox=None,
                              histCheckBox=None)
         self._phases = 'PS'
-        self._plotprops = dict(station=self.stations[0], phase=self.phases[0])
+        self._plotprops = dict(station=list(self.stations)[0], phase=list(self.phases)[0])
         super(ComparisonDialog, self).__init__(parent)
         self.setupUI()
         self.plotcomparison()

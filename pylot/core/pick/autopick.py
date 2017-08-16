@@ -19,7 +19,7 @@ from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopIdentifyPhase, \
-    full_range
+    real_Bool
 
 from obspy.taup import TauPyModel
 
@@ -140,7 +140,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     algoS = pickparam.get('algoS')
     sstart = pickparam.get('sstart')
     sstop = pickparam.get('sstop')
-    use_taup = pickparam.get('use_taup')
+    use_taup = real_Bool(pickparam.get('use_taup'))
     taup_model = pickparam.get('taup_model')
     bph1 = pickparam.get('bph1')
     bph2 = pickparam.get('bph2')
@@ -229,7 +229,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
         # if not given: sets Lc to infinity to use full stream
-        if use_taup == True or use_taup == 'True':
+        if use_taup == True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata[1]:
@@ -262,14 +262,23 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
                     pstart += (source_origin.time + estFirstP) - zdat[0].stats.starttime
                     pstop += (source_origin.time + estFirstP) - zdat[0].stats.starttime
-                    Lc = pstop - pstart
                     print('autopick: CF calculation times respectively:'
                           ' pstart: {} s, pstop: {} s'.format(pstart, pstop))
                 elif not origin:
                     print('No source origins given!')
-        else:
+
+        # make sure pstart and pstop are inside zdat[0]
+        pstart = max(pstart, 0)
+        pstop = min(pstop, len(zdat[0])*zdat[0].stats.delta)
+
+        if not use_taup == True or origin:
             Lc = pstop - pstart
+
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
+        if not Lwf > 0:
+            print('autopickstation: empty trace! Return!')
+            return
+
         Ldiff = Lwf - Lc
         if Ldiff < 0:
             msg = 'autopickstation: Cutting times are too large for actual ' \
@@ -517,16 +526,31 @@ def autopickstation(wfstream, pickparam, verbose=False,
         else:
             ndat = edat
 
-    if edat is not None and ndat is not None and len(edat) > 0 and len(
-            ndat) > 0 and Pweight < 4:
+    pickSonset = (edat is not None and ndat is not None and len(edat) > 0 and len(
+                  ndat) > 0 and Pweight < 4)
+
+    if pickSonset:
+        # determine time window for calculating CF after P onset
+        cuttimesh = [
+            round(max([mpickP + sstart, 0])), # MP MP relative time axis
+            round(min([
+                mpickP + sstop,
+                edat[0].stats.endtime-edat[0].stats.starttime,
+                ndat[0].stats.endtime-ndat[0].stats.starttime
+            ]))
+        ]
+
+        if not cuttimesh[1] >= cuttimesh[0]:
+            print('Cut window for horizontal phases too small! Will not pick S onsets.')
+            pickSonset = False
+
+    if pickSonset:
         msg = 'Go on picking S onset ...\n' \
               '##################################################\n' \
               'Working on S onset of station {0}\nFiltering horizontal ' \
               'traces ...'.format(edat[0].stats.station)
         if verbose: print(msg)
-        # determine time window for calculating CF after P onset
-        cuttimesh = [round(max([mpickP + sstart, 0])),
-                     round(min([mpickP + sstop, Lwf]))]
+
 
         if algoS == 'ARH':
             # re-create stream object including both horizontal components

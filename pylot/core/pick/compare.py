@@ -8,6 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy import read_events
+from obspy.core import AttribDict
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.utils import find_in_list
@@ -31,7 +32,7 @@ class Comparison(object):
         for name, fn in kwargs.items():
             if isinstance(fn, PDFDictionary):
                 self._pdfs[name] = fn
-            elif isinstance(fn, dict):
+            elif isinstance(fn, dict) or isinstance(fn, AttribDict):
                 self._pdfs[name] = PDFDictionary(fn)
             else:
                 self._pdfs[name] = PDFDictionary.from_quakeml(fn)
