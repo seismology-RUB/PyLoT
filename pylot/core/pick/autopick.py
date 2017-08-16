@@ -52,28 +52,28 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
     for station in stations:
         topick = data.select(station=station)
 
-        if iplot == None or iplot == 'None' or iplot == 0:
-            input_tuples.append((topick, param, apverbose, metadata, origin))
-        if iplot > 0:
-            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
-                                                  iplot=iplot, fig_dict=fig_dict,
-                                                  metadata=metadata, origin=origin)
+        #if iplot == None or iplot == 'None' or iplot == 0:
+        #    input_tuples.append((topick, param, apverbose, metadata, origin))
+        #if iplot > 0:
+        all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
+                                              iplot=iplot, fig_dict=fig_dict,
+                                              metadata=metadata, origin=origin)
 
-    if iplot > 0:
-        print('iPlot Flag active: NO MULTIPROCESSING possible.')
-        return all_onsets
+    #if iplot > 0:
+    #    print('iPlot Flag active: NO MULTIPROCESSING possible.')
+    #    return all_onsets
 
-    pool = gen_Pool(ncores)
-    result = pool.map(call_autopickstation, input_tuples)
-    pool.close()
+    #pool = gen_Pool(ncores)
+    #result = pool.map(call_autopickstation, input_tuples)
+    #pool.close()
 
-    for pick in result:
-        if pick:
-            station = pick['station']
-            pick.pop('station')
-            all_onsets[station] = pick
+    #for pick in result:
+    #    if pick:
+    #        station = pick['station']
+    #        pick.pop('station')
+    #        all_onsets[station] = pick
 
-    return all_onsets
+    #return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
@@ -279,8 +279,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             print('autopickstation: empty trace! Return!')
             return
 
-        Ldiff = Lwf - Lc
-        if Ldiff < 0:
+        Ldiff = Lwf - abs(Lc)
+        if Ldiff < 0 or pstop <= pstart:
             msg = 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!\nUsing entire waveform instead!'
             if verbose: print(msg)
@@ -291,6 +291,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if algoP == 'HOS':
             # calculate HOS-CF using subclass HOScf of class
             # CharacteristicFunction
+            print(cuttimes)
             cf1 = HOScf(z_copy, cuttimes, thosmw, hosorder)  # instance of HOScf
         elif algoP == 'ARZ':
             # calculate ARZ-CF using subclass ARZcf of class
