@@ -221,6 +221,15 @@ def real_None(value):
         return value
 
 
+def real_Bool(value):
+    if value == 'True':
+        return True
+    elif value == 'False':
+        return False
+    else:
+        return value
+
+
 def four_digits(year):
     """
     takes a two digit year integer and returns the correct four digit equivalent
