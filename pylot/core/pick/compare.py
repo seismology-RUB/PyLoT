@@ -251,7 +251,7 @@ class PDFDictionary(object):
 
     @classmethod
     def from_quakeml(self, fn):
-        return PDFDictionary(fn) # LK TODO: check if stations are available with both automatic and manual picks
+        return PDFDictionary(fn)
 
     def get_all(self, phase):
         rlist = list()

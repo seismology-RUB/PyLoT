@@ -1477,7 +1477,12 @@ class MainWindow(QMainWindow):
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
         if event.pylot_picks and event.pylot_autopicks:
-            self.compare_action.setEnabled(True)
+            for key in event.pylot_picks:
+                for akey in event.pylot_autopicks:
+                    if (akey == key) and (event.pylot_autopicks[akey]['P']['spe'] is not None \
+                       or event.pylot_autopicks[akey]['S']['spe'] is not None):
+                        self.compare_action.setEnabled(True)
+                        break
         self.draw()
 
     def clearWaveformDataPlot(self):
