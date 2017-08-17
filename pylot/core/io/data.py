@@ -223,6 +223,7 @@ class Data(object):
                                                                                        self.get_evt_data().resource_id))
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
+            self.get_evt_data().path = fnout
             self.get_evt_data().write(fnout + fnext, format=evtformat)
         # try exporting event  
         else:
