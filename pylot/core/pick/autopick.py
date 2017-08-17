@@ -291,7 +291,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if algoP == 'HOS':
             # calculate HOS-CF using subclass HOScf of class
             # CharacteristicFunction
-            print(cuttimes)
             cf1 = HOScf(z_copy, cuttimes, thosmw, hosorder)  # instance of HOScf
         elif algoP == 'ARZ':
             # calculate ARZ-CF using subclass ARZcf of class

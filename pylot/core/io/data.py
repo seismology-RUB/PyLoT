@@ -228,8 +228,9 @@ class Data(object):
         else:
             evtdata_org = self.get_evt_data()
             picks = evtdata_org.picks
+            eventpath = evtdata_org.path
             picks_copy = copy.deepcopy(picks)
-            evtdata_copy = Event(fnout)
+            evtdata_copy = Event(eventpath)
             evtdata_copy.picks = picks_copy
 
             # check for stations picked automatically as well as manually

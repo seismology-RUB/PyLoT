@@ -201,6 +201,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
             try:
                 data = Data(evtdata=filename)
+                data.get_evt_data().path = eventpath
                 print('Reading event data from filename {}...'.format(filename))
             except Exception as e:
                 print('Could not read event from file {}: {}'.format(filename, e))
