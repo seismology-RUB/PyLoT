@@ -1163,6 +1163,7 @@ class MainWindow(QMainWindow):
                 saved_as += str(outformat) + ' '
             except TypeError:
                 print('WARNING: Format: {} not yet implemented'.format(outformat)) 
+            self.get_data().setEvtData(event)
 
         msg = 'Event {} saved as {} in format(s) {}'.format(event.pylot_id, fbasename, saved_as.strip())
         self.update_status(msg)
