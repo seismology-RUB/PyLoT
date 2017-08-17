@@ -776,7 +776,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 ################################################################
                 # get Wood-Anderson peak-to-peak amplitude
                 # initialize Data object
-                data = Data()
                 # re-create stream object including both horizontal components
                 hdat = edat.copy()
                 hdat += ndat
@@ -795,7 +794,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ############################################################
             # get Wood-Anderson peak-to-peak amplitude
             # initialize Data object
-            data = Data()
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
