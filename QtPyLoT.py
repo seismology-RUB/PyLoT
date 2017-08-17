@@ -217,56 +217,6 @@ class MainWindow(QMainWindow):
         _widget = QWidget()
         self._main_layout = QVBoxLayout()
 
-        # add event combo box and ref/test buttons
-        self.eventBox = self.createEventBox()
-        self.eventBox.setMaxVisibleItems(30)
-        self.eventBox.setEnabled(False)
-        self.init_ref_test_buttons()
-        self._event_layout = QHBoxLayout()
-        self._event_layout.addWidget(QLabel('Event: '))
-        self._event_layout.addWidget(self.eventBox)
-        self._event_layout.addWidget(self.ref_event_button)
-        self._event_layout.addWidget(self.test_event_button)
-        self._event_layout.setStretch(1, 1)  # set stretch of item 1 to 1
-        self._main_layout.addLayout(self._event_layout)
-        self.eventBox.activated.connect(self.refreshEvents)
-
-        # add main tab widget
-        self.tabs = QTabWidget()
-        self._main_layout.addWidget(self.tabs)
-        self.tabs.currentChanged.connect(self.refreshTabs)
-
-        # add scroll area used in case number of traces gets too high
-        self.wf_scroll_area = QtGui.QScrollArea()
-
-        # create central matplotlib figure canvas widget
-        self.pg = pg
-        self.init_wfWidget()
-
-        # init main widgets for main tabs
-        wf_tab = QtGui.QWidget()
-        array_tab = QtGui.QWidget()
-        events_tab = QtGui.QWidget()
-
-        # init main widgets layouts
-        self.wf_layout = QtGui.QVBoxLayout()
-        self.array_layout = QtGui.QVBoxLayout()
-        self.events_layout = QtGui.QVBoxLayout()
-        wf_tab.setLayout(self.wf_layout)
-        array_tab.setLayout(self.array_layout)
-        events_tab.setLayout(self.events_layout)
-
-        # add tabs to main tab widget
-        self.tabs.addTab(wf_tab, 'Waveform Plot')
-        self.tabs.addTab(array_tab, 'Array Map')
-        self.tabs.addTab(events_tab, 'Eventlist')
-
-        self.wf_layout.addWidget(self.wf_scroll_area)
-        self.wf_scroll_area.setWidgetResizable(True)
-        self.init_array_tab()
-        self.init_event_table()
-        self.tabs.setCurrentIndex(0)
-
         quitIcon = self.style().standardIcon(QStyle.SP_MediaStop)
         helpIcon = self.style().standardIcon(QStyle.SP_DialogHelpButton)
         newFolderIcon = self.style().standardIcon(QStyle.SP_FileDialogNewFolder)
@@ -418,6 +368,17 @@ class MainWindow(QMainWindow):
                                              self.adjustFilterOptions,
                                              "Alt+F", filter_icon,
                                              """Adjust filter parameters.""")
+        self.inventoryAction = self.createAction(self, "Select &Inventory ...",
+                                              self.get_new_metadata,
+                                              "Ctrl+I", None,
+                                              """Select metadata for current project""",
+                                              False)
+        self.initMapAction = self.createAction(self, "Init array map ...",
+                                            self.init_array_map,
+                                            "Ctrl+M", None,
+                                            """Initialize array map with current metadata""",
+                                            False)
+        self.initMapAction.setEnabled(False)
         self.selectPAction = self.createAction(self, "&P", self.alterPhase,
                                                "Alt+P",
                                                p_icon,
@@ -533,6 +494,7 @@ class MainWindow(QMainWindow):
         self.editMenu = self.menuBar().addMenu('&Edit')
         editActions = (self.filterAction, filterEditAction, None,
                        self.selectPAction, self.selectSAction, None,
+                       self.inventoryAction, self.initMapAction, None,
                        prefsEventAction)
                        #printAction) #TODO: print event?
 
@@ -579,6 +541,57 @@ class MainWindow(QMainWindow):
         self.addActions(componentToolBar, componentActions)
         self.addActions(autoPickToolBar, pickActions)
         self.addActions(locationToolBar, locationToolActions)
+
+
+        # add event combo box and ref/test buttons
+        self.eventBox = self.createEventBox()
+        self.eventBox.setMaxVisibleItems(30)
+        self.eventBox.setEnabled(False)
+        self.init_ref_test_buttons()
+        self._event_layout = QHBoxLayout()
+        self._event_layout.addWidget(QLabel('Event: '))
+        self._event_layout.addWidget(self.eventBox)
+        self._event_layout.addWidget(self.ref_event_button)
+        self._event_layout.addWidget(self.test_event_button)
+        self._event_layout.setStretch(1, 1)  # set stretch of item 1 to 1
+        self._main_layout.addLayout(self._event_layout)
+        self.eventBox.activated.connect(self.refreshEvents)
+
+        # add main tab widget
+        self.tabs = QTabWidget()
+        self._main_layout.addWidget(self.tabs)
+        self.tabs.currentChanged.connect(self.refreshTabs)
+
+        # add scroll area used in case number of traces gets too high
+        self.wf_scroll_area = QtGui.QScrollArea()
+
+        # create central matplotlib figure canvas widget
+        self.pg = pg
+        self.init_wfWidget()
+
+        # init main widgets for main tabs
+        wf_tab = QtGui.QWidget()
+        array_tab = QtGui.QWidget()
+        events_tab = QtGui.QWidget()
+
+        # init main widgets layouts
+        self.wf_layout = QtGui.QVBoxLayout()
+        self.array_layout = QtGui.QVBoxLayout()
+        self.events_layout = QtGui.QVBoxLayout()
+        wf_tab.setLayout(self.wf_layout)
+        array_tab.setLayout(self.array_layout)
+        events_tab.setLayout(self.events_layout)
+
+        # add tabs to main tab widget
+        self.tabs.addTab(wf_tab, 'Waveform Plot')
+        self.tabs.addTab(array_tab, 'Array Map')
+        self.tabs.addTab(events_tab, 'Eventlist')
+
+        self.wf_layout.addWidget(self.wf_scroll_area)
+        self.wf_scroll_area.setWidgetResizable(True)
+        self.init_array_tab()
+        self.init_event_table()
+        self.tabs.setCurrentIndex(0)
 
         self.eventLabel = QLabel()
         self.eventLabel.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
@@ -2140,14 +2153,20 @@ class MainWindow(QMainWindow):
         grid_layout.setColumnStretch(0, 1)
         grid_layout.setColumnStretch(2, 1)
         grid_layout.setRowStretch(0, 1)
-        grid_layout.setRowStretch(3, 1)
+        grid_layout.setRowStretch(4, 1)
 
-        label = QLabel('No inventory set...')
-        new_inv_button = QPushButton('Set &inventory file')
-        new_inv_button.clicked.connect(self.get_metadata)
+        self.inventory_label = QLabel('No inventory set...')
+        # init inventory button
+        self.new_inv_button = QPushButton('Set inventory file')
+        self.new_inv_button.clicked.connect(self.inventoryAction.trigger)
 
-        grid_layout.addWidget(label, 1, 1)
-        grid_layout.addWidget(new_inv_button, 2, 1)
+        self.init_map_button = QPushButton('Init array map')
+        self.init_map_button.clicked.connect(self.initMapAction.trigger)
+        self.init_map_button.setEnabled(False)
+
+        grid_layout.addWidget(self.inventory_label, 1, 1)
+        grid_layout.addWidget(self.new_inv_button, 2, 1)
+        grid_layout.addWidget(self.init_map_button, 3, 1)
 
         self.metadata = None
         self.metadata_widget.setLayout(grid_layout)
@@ -2168,7 +2187,7 @@ class MainWindow(QMainWindow):
                 self.array_map.setParent(None)
                 self.array_layout.removeWidget(self.array_map)
             elif not self.array_map:
-                self.get_metadata()
+                self.init_metadata()
                 if not self.metadata:
                     return
         self.am_figure = Figure()
@@ -2211,7 +2230,8 @@ class MainWindow(QMainWindow):
                 lat = event.origins[0].latitude
                 lon = event.origins[0].longitude
                 self.array_map.eventLoc = (lat, lon)
-        self.array_map.refresh_drawings(self.get_current_event().getPicks())
+        if self.get_current_event():
+            self.array_map.refresh_drawings(self.get_current_event().getPicks())
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
@@ -2386,9 +2406,15 @@ class MainWindow(QMainWindow):
         if settings.value('saveMetadata'):
             self.project.metadata = self.rm_thread.data
         self.project.inv_path = settings.value("inventoryFile")
-        self.init_array_map()
+        self.init_map_button.setEnabled(True)
+        self.initMapAction.setEnabled(True)
+        self.inventory_label.setText('Inventory set!')
+        self.new_inv_button.setText('Set another inventory file')
 
-    def get_metadata(self):
+    def get_new_metadata(self):
+        self.init_metadata(new=True)
+
+    def init_metadata(self, new=False):
         def set_inv(settings):
             fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
                 "Select inventory..."), self.tr("Select file"))
@@ -2408,31 +2434,29 @@ class MainWindow(QMainWindow):
 
         settings = QSettings()
 
-        if hasattr(self.project, 'metadata'):
+        if hasattr(self.project, 'metadata') and not new:
             self.metadata = self.project.metadata
             return True
-        if hasattr(self.project, 'inv_path'):
+        if self.metadata and not new:
+            return True
+        if hasattr(self.project, 'inv_path') and not new:
             settings.setValue("inventoryFile", self.project.inv_path)
 
         fninv = settings.value("inventoryFile", None)
-
-        if fninv is None and not self.metadata:
-            if not set_inv(settings):
-                return None
-        elif fninv is not None and not self.metadata:
-            if not hasattr(self.project, 'inv_path'):
-                ans = QMessageBox.question(self, self.tr("Use default metadata..."),
-                                           self.tr(
-                                               "Do you want to use the default value for metadata?"),
-                                           QMessageBox.Yes | QMessageBox.No,
-                                           QMessageBox.Yes)
-                if ans == QMessageBox.No:
-                    if not set_inv(settings):
-                        return None
-            self.read_metadata_thread(fninv)
+        if fninv:
+            ans = QMessageBox.question(self, self.tr("Use default metadata..."),
+                                       self.tr(
+                                           "Do you want to use the default value for metadata?\n({})".format(fninv)),
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.Yes)
+            if ans == QMessageBox.No:
+                if not set_inv(settings):
+                    return None
+            elif ans == QMessageBox.Yes:
+                self.read_metadata_thread(fninv)
 
     def calc_magnitude(self, type='ML'):
-        self.get_metadata()
+        self.init_metadata()
         if not self.metadata:
             return None
 
