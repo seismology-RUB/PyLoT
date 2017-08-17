@@ -69,7 +69,7 @@ class Event(ObsPyEvent):
 
     def clearObsPyPicks(self, picktype):
         for index, pick in reversed(list(enumerate(self.picks))):
-            if pick.method_id == picktype:
+            if picktype in str(pick.method_id):
                 self.picks.pop(index)
 
     def addPicks(self, picks):
