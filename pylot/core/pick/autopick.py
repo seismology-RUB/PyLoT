@@ -63,6 +63,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
         return all_onsets
 
+    print('Autopickstation: Distribute autopicking for {} '
+          'stations on {} cores.'.format(len(input_tuples), ncores))
+
     pool = gen_Pool(ncores)
     result = pool.map(call_autopickstation, input_tuples)
     pool.close()
