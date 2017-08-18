@@ -210,9 +210,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.setEvtData(pylot_event)
             if fnames == 'None':
                 data.setWFData(glob.glob(os.path.join(datapath, eventpath, '*')))
-                station = 'all'
-                if savepath == None or savepath == 'None':
-                    savepath = eventpath
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in
@@ -308,8 +305,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                      parameter.get('rho'), True, \
                                                      iplot)
                         # update pick with moment property values (w0, fc, Mo)
-                        for station, props in moment_mag.moment_props.items():
-                            picks[station]['P'].update(props)
+                        for stats, props in moment_mag.moment_props.items():
+                            picks[stats]['P'].update(props)
                         evt = moment_mag.updated_event()
                         net_mw = moment_mag.net_magnitude()
                         print("Network moment magnitude: %4.1f" % net_mw.mag)
@@ -319,8 +316,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         local_mag = LocalMagnitude(corr_dat, evt,
                                                    parameter.get('sstop'),
                                                    WAscaling, True, iplot)
-                        for station, amplitude in local_mag.amplitudes.items():
-                            picks[station]['S']['Ao'] = amplitude.generic_amplitude
+                        for stats, amplitude in local_mag.amplitudes.items():
+                            picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                         print("Local station magnitudes scaled with:")
                         print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0],
                                                                        WAscaling[1],
@@ -381,8 +378,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                          parameter.get('rho'), True, \
                                                          iplot)
                             # update pick with moment property values (w0, fc, Mo)
-                            for station, props in moment_mag.moment_props.items():
-                                picks[station]['P'].update(props)
+                            for stats, props in moment_mag.moment_props.items():
+                                picks[stats]['P'].update(props)
                             evt = moment_mag.updated_event()
                             net_mw = moment_mag.net_magnitude()
                             print("Network moment magnitude: %4.1f" % net_mw.mag)
@@ -392,8 +389,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             local_mag = LocalMagnitude(corr_dat, evt,
                                                        parameter.get('sstop'),
                                                        WAscaling, True, iplot)
-                            for station, amplitude in local_mag.amplitudes.items():
-                                picks[station]['S']['Ao'] = amplitude.generic_amplitude
+                            for stats, amplitude in local_mag.amplitudes.items():
+                                picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                             print("Local station magnitudes scaled with:")
                             print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0],
                                                                            WAscaling[1],
