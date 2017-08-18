@@ -2949,7 +2949,12 @@ class Submit2Grid(QWidget):
     def genShellScript(self, pp_export):
         outfile = open(self.script_fn, 'w')
         outfile.write('#!/bin/sh\n\n')
-        outfile.write('python autoPyLoT.py -i {} \n'.format(pp_export))
+        try:
+            ncores = int(self.textedit.text().split()[-1])
+            ncores = '--ncores {}'.format(ncores)
+        except:
+            ncores = None
+        outfile.write('python autoPyLoT.py -i {} {}\n'.format(pp_export, ncores))
         outfile.close()
 
     def execute_script(self):
