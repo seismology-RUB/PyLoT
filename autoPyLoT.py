@@ -195,6 +195,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             eventpath = eventpath.replace(SEPARATOR, '/')
             events[index] = eventpath
 
+        glocflag = locflag
         for eventpath in events:
             evID = os.path.split(eventpath)[-1]
             fext = '.xml'
@@ -444,6 +445,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                            ------------------------------------------'''.format \
                             (version=_getVersionString()) % evID
             print(endsplash)
+            locflag = glocflag
             if locflag == 0:
                 print("autoPyLoT was running in non-location mode!")
 
