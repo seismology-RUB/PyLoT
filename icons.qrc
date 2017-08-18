@@ -23,6 +23,8 @@
         <file>icons/savepicks.png</file>
         <file>icons/preferences.png</file>
         <file>icons/parameter.png</file>
+        <file>icons/inventory.png</file>
+        <file>icons/map.png</file>
         <file>icons/openloc.png</file>
         <file>icons/compare_button.png</file>
         <file>icons/locate_button.png</file>

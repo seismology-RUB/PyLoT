@@ -250,6 +250,10 @@ class MainWindow(QMainWindow):
         prefIcon.addPixmap(QPixmap(':/icons/preferences.png'))
         paraIcon = QIcon()
         paraIcon.addPixmap(QPixmap(':/icons/parameter.png'))
+        self.inventoryIcon = QIcon()
+        self.inventoryIcon.addPixmap(QPixmap(':/icons/inventory.png'))
+        self.mapIcon = QIcon()
+        self.mapIcon.addPixmap(QPixmap(':/icons/map.png'))
         self.autopicksicon_small = QIcon()
         self.autopicksicon_small.addPixmap(QPixmap(':/icons/autopicksicon_small.png'))
         self.manupicksicon_small = QIcon()
@@ -370,12 +374,12 @@ class MainWindow(QMainWindow):
                                              """Adjust filter parameters.""")
         self.inventoryAction = self.createAction(self, "Select &Inventory ...",
                                               self.get_new_metadata,
-                                              "Ctrl+I", None,
+                                              "Ctrl+I", self.inventoryIcon,
                                               """Select metadata for current project""",
                                               False)
         self.initMapAction = self.createAction(self, "Init array map ...",
                                             self.init_array_map,
-                                            "Ctrl+M", None,
+                                            "Ctrl+M", self.mapIcon,
                                             """Initialize array map with current metadata""",
                                             False)
         self.initMapAction.setEnabled(False)
@@ -500,7 +504,7 @@ class MainWindow(QMainWindow):
 
         pickMenuActions = (self.parameterAction,)
         self.pickMenu = self.menuBar().addMenu('&Picking')
-        self.autoPickMenu = self.pickMenu.addMenu('Automatic picking')
+        self.autoPickMenu = self.pickMenu.addMenu(self.autopicksicon_small, 'Automatic picking')
         self.autoPickMenu.setEnabled(False)
 
         autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
@@ -2159,9 +2163,11 @@ class MainWindow(QMainWindow):
         self.inventory_label = QLabel('No inventory set...')
         # init inventory button
         self.new_inv_button = QPushButton('Set inventory file')
+        self.new_inv_button.setIcon(self.inventoryIcon)
         self.new_inv_button.clicked.connect(self.inventoryAction.trigger)
 
         self.init_map_button = QPushButton('Init array map')
+        self.init_map_button.setIcon(self.mapIcon)
         self.init_map_button.clicked.connect(self.initMapAction.trigger)
         self.init_map_button.setEnabled(False)
 
