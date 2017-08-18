@@ -132,7 +132,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available
-        if parameter['nllocbin'] and locflag:
+        if real_None(parameter['nllocbin']) and locflag:
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
             # get path to NLLoc executable
