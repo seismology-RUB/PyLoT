@@ -210,6 +210,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.setEvtData(pylot_event)
             if fnames == 'None':
                 data.setWFData(glob.glob(os.path.join(datapath, eventpath, '*')))
+                station = 'all'
+                if savepath == None or savepath == 'None':
+                    savepath = eventpath
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in
