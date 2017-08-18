@@ -523,28 +523,31 @@ class MainWindow(QMainWindow):
                             self.loadpilotevent)
 
 
-        fileToolBar = self.addToolBar("FileTools")
-        eventToolBar = self.addToolBar("EventTools")
-        componentToolBar = self.addToolBar("ComponentSelection")
-        autoPickToolBar = self.addToolBar("autoPyLoT")
-        locationToolBar = self.addToolBar("LocationTools")
+        toolbars_keys = [
+            "FileTools",
+            "EventTools",
+            "ComponentSelection",
+            "autoPyLoT",
+            "LocationTools"
+        ]
 
-        fileToolBar.setObjectName("FileTools")
-        eventToolBar.setObjectName("EventTools")
-        componentToolBar.setObjectName("PhaseTools")
-        autoPickToolBar.setObjectName('autopickTools')
-        locationToolBar.setObjectName("LocationTools")
+        toolbars = {}
+
+        for name in toolbars_keys:
+            toolbars[name] = self.addToolBar(name)
+            toolbars[name].setObjectName(name)
+            toolbars[name].setMovable(False)
 
         self.addActions(self.editMenu, editActions)
         self.addActions(self.autoPickMenu, autoPickActions)
         self.addActions(self.pickMenu, pickMenuActions)
         self.addActions(self.helpMenu, helpActions)
 
-        self.addActions(fileToolBar, fileToolActions)
-        self.addActions(eventToolBar, eventToolActions)
-        self.addActions(componentToolBar, componentActions)
-        self.addActions(autoPickToolBar, pickActions)
-        self.addActions(locationToolBar, locationToolActions)
+        self.addActions(toolbars["FileTools"], fileToolActions)
+        self.addActions(toolbars["EventTools"], eventToolActions)
+        self.addActions(toolbars["ComponentSelection"], componentActions)
+        self.addActions(toolbars["autoPyLoT"], pickActions)
+        self.addActions(toolbars["LocationTools"], locationToolActions)
 
 
         # add event combo box and ref/test buttons
