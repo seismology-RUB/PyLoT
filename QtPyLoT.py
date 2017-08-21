@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityfromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -74,12 +74,12 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, identifyPhase, loopIdentifyPhase, remove_underscores, check4doubled
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox, AutoPickDlg
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -865,7 +865,7 @@ class MainWindow(QMainWindow):
         return fnames
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def get_current_event(self, eventbox=None):
         '''
@@ -1215,9 +1215,13 @@ class MainWindow(QMainWindow):
 
     def comparePicks(self):
         if self.check4Comparison():
-            co = Comparison(auto=self.getPicks('auto'), manu=self.getPicks())
-            compare_dlg = ComparisonDialog(co, self)
-            compare_dlg.exec_()
+            autopicks = excludeQualityClasses(self.getPicks('auto'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            manupicks = excludeQualityClasses(self.getPicks('manual'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            co = Comparison(auto=autopicks, manu=manupicks)
+            compare_dlg = ComparisonWidget(co, self)
+            compare_dlg.show()
 
     def getPlotWidget(self):
         return self.dataPlot
@@ -1998,10 +2002,10 @@ class MainWindow(QMainWindow):
 
             # get quality classes
             if self.getPhaseID(phase) == 'P':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
                 phaseID = 'P'
             elif self.getPhaseID(phase) == 'S':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
                 phaseID = 'S'
 
             mpp = picks['mpp'] - stime

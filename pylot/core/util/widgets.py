@@ -21,7 +21,8 @@ except:
     pg = None
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components
+from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
+    identifyPhaseID
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -44,7 +45,7 @@ from obspy.taup.utils import get_phase_names
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
-    getResolutionWindow, getQualityfromUncertainty
+    getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
@@ -118,7 +119,7 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
-class ComparisonDialog(QDialog):
+class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None):
         self._data = c
         self._stats = c.stations
@@ -128,8 +129,9 @@ class ComparisonDialog(QDialog):
                              histCheckBox=None)
         self._phases = 'PS'
         self._plotprops = dict(station=list(self.stations)[0], phase=list(self.phases)[0])
-        super(ComparisonDialog, self).__init__(parent)
+        super(ComparisonWidget, self).__init__(parent, 1)
         self.setupUI()
+        self.resize(1280, 720)
         self.plotcomparison()
 
     def setupUI(self):
@@ -161,17 +163,12 @@ class ComparisonDialog(QDialog):
         _toolbar.addWidget(_phases_combobox)
         _toolbar.addWidget(_hist_checkbox)
 
-        _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
-
         _innerlayout.addWidget(self.canvas)
-        _innerlayout.addWidget(_buttonbox)
 
         _outerlayout.addWidget(_toolbar)
         _outerlayout.addLayout(_innerlayout)
 
-        _buttonbox.rejected.connect(self.reject)
-
-        # finally layout the entire dialog
+        # finally layout the entire widget
         self.setLayout(_outerlayout)
 
     @property
@@ -270,6 +267,10 @@ class ComparisonDialog(QDialog):
         # _axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
+        if not phase in self.data.comparison[station]:
+            _axes.set_title('No pick found for phase {}.'.format(phase))
+            self.canvas.draw()
+            return
         pdf = self.data.comparison[station][phase]
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
@@ -1285,7 +1286,7 @@ class PickDlg(QDialog):
         self.currentPhase = str(self.s_button.text())
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def set_button_color(self, button, color=None):
         if type(color) == QtGui.QColor:
@@ -1714,10 +1715,10 @@ class PickDlg(QDialog):
 
         # get quality classes
         if self.getPhaseID(phase) == 'P':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
             phaseID = 'P'
         elif self.getPhaseID(phase) == 'S':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
             phaseID = 'S'
 
         mpp = picks['mpp'] - self.getStartTime()
