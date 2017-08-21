@@ -44,7 +44,7 @@ from obspy.taup.utils import get_phase_names
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
-    getResolutionWindow, getQualityfromUncertainty
+    getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
@@ -1714,10 +1714,10 @@ class PickDlg(QDialog):
 
         # get quality classes
         if self.getPhaseID(phase) == 'P':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
             phaseID = 'P'
         elif self.getPhaseID(phase) == 'S':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
             phaseID = 'S'
 
         mpp = picks['mpp'] - self.getStartTime()

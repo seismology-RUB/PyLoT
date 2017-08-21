@@ -1098,7 +1098,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
     return returnflag
 
 
-def getQualityfromUncertainty(uncertainty, Errors):
+def getQualityFromUncertainty(uncertainty, Errors):
     '''Script to transform uncertainty into quality classes 0-4
        regarding adjusted time errors Errors.
     '''

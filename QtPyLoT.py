@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityfromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -1998,10 +1998,10 @@ class MainWindow(QMainWindow):
 
             # get quality classes
             if self.getPhaseID(phase) == 'P':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
                 phaseID = 'P'
             elif self.getPhaseID(phase) == 'S':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
                 phaseID = 'S'
 
             mpp = picks['mpp'] - stime
