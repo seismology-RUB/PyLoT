@@ -154,7 +154,7 @@ class Comparison(object):
     def get_array(self, phase, method_name):
         method = operator.methodcaller(method_name)
         pdf_list = self.get_all(phase)
-        rarray = map(method, pdf_list)
+        rarray = list(map(method, pdf_list))
         return np.array(rarray)
 
     def get_expectation_array(self, phase):
