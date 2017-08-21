@@ -205,8 +205,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         t = np.arange(0, Xraw[0].stats.npts / Xraw[0].stats.sampling_rate,
                       Xraw[0].stats.delta)
         # get pick window
-        ipick = np.where(
-            (t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
+        ipick = np.where((t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
+        if len(ipick[0]) <= 1:
+            print('fmpicker: Zero crossings window to short!')
+            return
         # remove mean
         xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
         xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
