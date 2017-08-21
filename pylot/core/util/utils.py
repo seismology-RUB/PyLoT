@@ -71,6 +71,37 @@ def gen_Pool(ncores=0):
     return pool
 
 
+def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
+    '''
+    takes PyLoT picks dictionary and returns a new dictionary with certain classes excluded.
+    :param picks: PyLoT picks dictionary
+    :param qClasses: list (or int) of quality classes (0-4) to exclude
+    :param timeerrorsP: time errors for classes (0-4) for P
+    :param timeerrorsS: time errors for classes (0-4) for S
+    :return: new picks dictionary
+    '''
+    from pylot.core.pick.utils import getQualityFromUncertainty
+
+    if type(qClasses) in [int, float]:
+        qClasses = [qClasses]
+
+    picksdict_new = {}
+
+    phaseError = {'P': timeerrorsP,
+                  'S': timeerrorsS}
+
+    for station, phases in picks.items():
+        for phase, pick in phases.items():
+            pickerror = phaseError[identifyPhaseID(phase)]
+            quality = getQualityFromUncertainty(pick['spe'], pickerror)
+            if not quality in qClasses:
+                if not station in picksdict_new:
+                    picksdict_new[station] = {}
+                picksdict_new[station][phase] = pick
+
+    return picksdict_new
+
+
 def clims(lim1, lim2):
     """
     takes two pairs of limits and returns one pair of common limts
