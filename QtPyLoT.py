@@ -79,7 +79,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox, AutoPickDlg
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -1220,8 +1220,8 @@ class MainWindow(QMainWindow):
             manupicks = excludeQualityClasses(self.getPicks('manual'), [4],
                                               self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
             co = Comparison(auto=autopicks, manu=manupicks)
-            compare_dlg = ComparisonDialog(co, self)
-            compare_dlg.exec_()
+            compare_dlg = ComparisonWidget(co, self)
+            compare_dlg.show()
 
     def getPlotWidget(self):
         return self.dataPlot

@@ -119,7 +119,7 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
-class ComparisonDialog(QDialog):
+class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None):
         self._data = c
         self._stats = c.stations
@@ -129,8 +129,9 @@ class ComparisonDialog(QDialog):
                              histCheckBox=None)
         self._phases = 'PS'
         self._plotprops = dict(station=list(self.stations)[0], phase=list(self.phases)[0])
-        super(ComparisonDialog, self).__init__(parent)
+        super(ComparisonWidget, self).__init__(parent, 1)
         self.setupUI()
+        self.resize(1280, 720)
         self.plotcomparison()
 
     def setupUI(self):
@@ -162,17 +163,12 @@ class ComparisonDialog(QDialog):
         _toolbar.addWidget(_phases_combobox)
         _toolbar.addWidget(_hist_checkbox)
 
-        _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
-
         _innerlayout.addWidget(self.canvas)
-        _innerlayout.addWidget(_buttonbox)
 
         _outerlayout.addWidget(_toolbar)
         _outerlayout.addLayout(_innerlayout)
 
-        _buttonbox.rejected.connect(self.reject)
-
-        # finally layout the entire dialog
+        # finally layout the entire widget
         self.setLayout(_outerlayout)
 
     @property
