@@ -271,6 +271,10 @@ class ComparisonDialog(QDialog):
         # _axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
+        if not phase in self.data.comparison[station]:
+            _axes.set_title('No pick found for phase {}.'.format(phase))
+            self.canvas.draw()
+            return
         pdf = self.data.comparison[station][phase]
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
