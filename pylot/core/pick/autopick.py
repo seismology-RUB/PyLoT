@@ -978,9 +978,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
-        lpickP += timeerrorsP[0]
+        lpickP += zdat[0].stats.delta
     if epickP is not None and epickP == mpickP:
-        epickP -= timeerrorsP[0]
+        epickP -= zdat[0].stats.delta
     if mpickP is not None and epickP is not None and lpickP is not None:
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
@@ -992,27 +992,27 @@ def autopickstation(wfstream, pickparam, verbose=False,
         epickP = zdat[0].stats.starttime - timeerrorsP[3]
         mpickP = zdat[0].stats.starttime
 
+    if edat:
+        hdat = edat[0]
+    elif ndat:
+        hdat = ndat[0]
+    else:
+        return
+
     if lpickS is not None and lpickS == mpickS:
-        lpickS += timeerrorsS[0]
+        lpickS += hdat.stats.delta
     if epickS is not None and epickS == mpickS:
-        epickS -= timeerrorsS[0]
+        epickS -= hdat.stats.delta
     if mpickS is not None and epickS is not None and lpickS is not None:
-        lpickS = edat[0].stats.starttime + lpickS
-        epickS = edat[0].stats.starttime + epickS
-        mpickS = edat[0].stats.starttime + mpickS
+        lpickS = hdat.stats.starttime + lpickS
+        epickS = hdat.stats.starttime + epickS
+        mpickS = hdat.stats.starttime + mpickS
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        if edat:
-            lpickS = edat[0].stats.starttime + timeerrorsS[3]
-            epickS = edat[0].stats.starttime - timeerrorsS[3]
-            mpickS = edat[0].stats.starttime
-        elif ndat:
-            lpickS = ndat[0].stats.starttime + timeerrorsS[3]
-            epickS = ndat[0].stats.starttime - timeerrorsS[3]
-            mpickS = ndat[0].stats.starttime
-        else:
-            return
+        lpickS = hdat.stats.starttime + timeerrorsS[3]
+        epickS = hdat.stats.starttime - timeerrorsS[3]
+        mpickS = hdat.stats.starttime
 
     # create dictionary
     # for P phase
@@ -1022,12 +1022,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                  snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
                  Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    try:
-        ccode = edat[0].stats.channel
-        ncode = edat[0].stats.network
-    except:
-        ccode = ndat[0].stats.channel
-        ncode = ndat[0].stats.network
+    ccode = hdat.stats.channel
+    ncode = hdat.stats.network
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
