@@ -913,9 +913,9 @@ def jackknife(X, phi, h):
     PHI_sub = None
 
     # determine number of subgroups
-    g = len(X) / h
+    g = int(len(X) / h)
 
-    if type(g) is not int:
+    if (len(X) / h) % 1 != 0:
         print("jackknife: Cannot divide quantity X in equal sized subgroups!")
         print("Choose another size for subgroups!")
         return PHI_jack, PHI_pseudo, PHI_sub
@@ -931,7 +931,7 @@ def jackknife(X, phi, h):
         # estimators of subgroups
         PHI_pseudo = []
         PHI_sub = []
-        for i in range(0, g - 1):
+        for i in range(0, g):
             # subgroup i, remove i-th sample
             xx = X[:]
             del xx[i]

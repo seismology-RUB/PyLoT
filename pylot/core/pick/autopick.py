@@ -76,6 +76,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
             pick.pop('station')
             all_onsets[station] = pick
 
+    all_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
     return all_onsets
 
     # quality control
