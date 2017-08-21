@@ -879,6 +879,9 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
    Ludger Küperkoch, BESTEC GmbH, 07/2017
    """
 
+   from pylot.core.pick.utils import getQualityfromUncertainty
+   from pylot.core.util.utils import loopIdentifyPhase, identifyPhase
+
     # read all onset weights
     Pw0 = []
     Pw1 = []
@@ -902,14 +905,15 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                 mstation = Pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
-                    if mpick.phase_hint[0] == 'P':
+                    phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint)))
+                    if phase == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or \
                                     (mpick.waveform_id.station_code == mstation_ext)) and \
                                 ((mpick.method_id).split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
                             del mpick
                             break
-                    elif mpick.phase_hint[0] == 'S':
+                    elif phase == 'S':
                         if ((mpick.waveform_id.station_code == mstation) or \
                                     (mpick.waveform_id.station_code == mstation_ext)) and \
                                 ((mpick.method_id).split('/')[1] == 'auto') and \
@@ -921,38 +925,31 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
             print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
 
         for Pick in arrivals_copy:
-            if Pick.phase_hint[0] == 'P':
-                if Pick.time_errors.uncertainty <= ErrorsP[0]:
+            phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint)))
+            if phase == 'P':
+                Pqual = getQualitiesfromxml(Pick.time_errors.uncertainty, ErrorsP)
+                if Pqual == 0:
                     Pw0.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsP[0]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsP[1]):
+                elif Pqual == 1:
                     Pw1.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsP[1]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsP[2]):
+                elif Pqual == 2:
                     Pw2.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsP[2]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsP[3]):
+                elif Pqual == 3:
                     Pw3.append(Pick.time_errors.uncertainty)
-                elif Pick.time_errors.uncertainty > ErrorsP[3]:
+                elif Pqual == 4
                     Pw4.append(Pick.time_errors.uncertainty)
-                else:
-                    pass
-            elif Pick.phase_hint[0] == 'S':
-                if Pick.time_errors.uncertainty <= ErrorsS[0]:
+            elif phase == 'S':
+                Squal = getQualitiesfromxml(Pick.time_errors.uncertainty, ErrorsS)
+                if Squal == 0:
                     Sw0.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsS[0]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsS[1]):
+                elif Squal == 1:
                     Sw1.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsS[1]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsS[2]):
+                elif Squal == 2:
                     Sw2.append(Pick.time_errors.uncertainty)
-                elif (Pick.time_errors.uncertainty > ErrorsS[2]) and \
-                        (Pick.time_errors.uncertainty <= ErrorsS[3]):
+                elif Squal == 3:
                     Sw3.append(Pick.time_errors.uncertainty)
-                elif Pick.time_errors.uncertainty > ErrorsS[3]:
+                elif Squal == 4
                     Sw4.append(Pick.time_errors.uncertainty)
-                else:
-                    pass
             else:
                 print("Phase hint not defined for picking!")
                 pass
@@ -965,45 +962,45 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         # get percentage of weights
         numPweights = np.sum([len(Pw0), len(Pw1), len(Pw2), len(Pw3), len(Pw4)])
         numSweights = np.sum([len(Sw0), len(Sw1), len(Sw2), len(Sw3), len(Sw4)])
-        try:
+        if len(Pw0) > 0:
             P0perc = 100 / numPweights * len(Pw0)
-        except:
+        else:
             P0perc = 0
-        try:
+        if len(Pw1) > 0:
             P1perc = 100 / numPweights * len(Pw1)
-        except:
+        else:  
             P1perc = 0
-        try:
+        if len(Pw2) > 0:
             P2perc = 100 / numPweights * len(Pw2)
-        except:
+        else:  
             P2perc = 0
-        try:
+        if len(Pw3) > 0:
             P3perc = 100 / numPweights * len(Pw3)
-        except:
+        else:  
             P3perc = 0
-        try:
+        if len(Pw4) > 0:
             P4perc = 100 / numPweights * len(Pw4)
-        except:
+        else:  
             P4perc = 0
-        try:
+        if len(Sw0) > 0:
             S0perc = 100 / numSweights * len(Sw0)
-        except:
+        else:
             S0perc = 0
-        try:
+        if len(Sw1) > 0:
             S1perc = 100 / numSweights * len(Sw1)
-        except:
+        else:  
             S1perc = 0
-        try:
+        if len(Sw2) > 0:
             S2perc = 100 / numSweights * len(Sw2)
-        except:
+        else:  
             S2perc = 0
-        try:
+        if len(Sw3) > 0:
             S3perc = 100 / numSweights * len(Sw3)
-        except:
+        else:  
             S3perc = 0
-        try:
+        if len(Sw4) > 0:
             S4perc = 100 / numSweights * len(Sw4)
-        except:
+        else:  
             S4perc = 0
 
         weights = ('0', '1', '2', '3', '4')
