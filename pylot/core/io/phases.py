@@ -865,8 +865,8 @@ def merge_picks(event, picks):
             if p.waveform_id.station_code == station\
                     and p.waveform_id.network_code == network\
                     and p.phase_hint == phase\
-                    and str(p.method_id) in str(method)\
-                    or str(method) in str(p.method_id):
+                    and (str(p.method_id) in str(method)\
+                    or str(method) in str(p.method_id)):
                 p.time, p.time_errors, p.waveform_id.network_code, p.method_id = time, err, network, method
         del time, err, phase, station, network, method
     return event
