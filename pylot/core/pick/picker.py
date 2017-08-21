@@ -258,7 +258,7 @@ class AICPicker(AutoPicker):
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
                 print("Calculating slope from initial onset to maximum of AIC function ...")
-                imax = np.argmax(aicsmooth[islope[0][0]:islope[0][len(islope[0])-1]])
+                imax = np.argmax(aicsmooth[islope[0][0:-1]])
                 if imax == 0:
                     print("AICPicker: Maximum for slope determination right at the beginning of the window!")
                     print("Choose longer slope determination window!")
@@ -288,10 +288,10 @@ class AICPicker(AutoPicker):
             xslope = np.arange(0, len(dataslope), 1)
             P = np.polyfit(xslope, dataslope, 1)
             datafit = np.polyval(P, xslope)
-            if datafit[0] >= datafit[len(datafit) - 1]:
+            if datafit[0] >= datafit[-1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
                 return
-            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[len(dataslope) - 1] - datafit[0])
+            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
 
         else:
             self.SNR = None
