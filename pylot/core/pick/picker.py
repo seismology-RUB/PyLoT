@@ -250,7 +250,7 @@ class AICPicker(AutoPicker):
                 return
             imax = np.argmax(dataslope)
             iislope = islope[0][0:imax+1]
-            if len(iislope) <= 2:
+            if len(iislope) < 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
                 print("Calculating slope from initial onset to maximum of AIC function ...")
