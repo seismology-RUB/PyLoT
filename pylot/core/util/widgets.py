@@ -21,7 +21,8 @@ except:
     pg = None
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components
+from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
+    check4rotated
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -2079,6 +2080,8 @@ class TuneAutopicker(QWidget):
         wfdat = self.data.getWFData()  # all available streams
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
+        # rotate misaligned stations to ZNE
+        wfdat = check4rotated(wfdat, self.metadata)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():
