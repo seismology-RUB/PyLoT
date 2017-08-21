@@ -18,8 +18,8 @@ from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopIdentifyPhase, \
-    real_Bool
+from pylot.core.util.utils import getPatternLine, gen_Pool,\
+    real_Bool, identifyPhaseID
 
 from obspy.taup import TauPyModel
 
@@ -254,7 +254,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     phases = {'P': [],
                               'S': []}
                     for arr in arrivals:
-                        phases[identifyPhase(loopIdentifyPhase(arr.phase.name))].append(arr)
+                        phases[identifyPhaseID(arr.phase.name)].append(arr)
 
                     # get first P and S onsets from arrivals list
                     arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key = lambda t: t[1])

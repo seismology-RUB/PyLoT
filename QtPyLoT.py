@@ -74,7 +74,7 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, identifyPhase, loopIdentifyPhase, remove_underscores, check4doubled
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -865,7 +865,7 @@ class MainWindow(QMainWindow):
         return fnames
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def get_current_event(self, eventbox=None):
         '''

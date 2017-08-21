@@ -21,7 +21,8 @@ except:
     pg = None
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components
+from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
+    identifyPhaseID
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -1285,7 +1286,7 @@ class PickDlg(QDialog):
         self.currentPhase = str(self.s_button.text())
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def set_button_color(self, button, color=None):
         if type(color) == QtGui.QColor:

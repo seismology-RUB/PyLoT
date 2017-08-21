@@ -806,6 +806,9 @@ def identifyPhase(phase):
         return False
 
 
+def identifyPhaseID(phase):
+    return identifyPhase(loopIdentifyPhase(phase))
+
 
 
 if __name__ == "__main__":
