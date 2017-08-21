@@ -2011,6 +2011,17 @@ class PhasePlotWidget(FigureCanvas):
         super(PhasePlotWidget, self).__init__(self.fig)
 
 
+class JackknifeWidget(QWidget):
+    '''
+    '''
+
+    def __init__(self, parent, canvas):
+        QtGui.QWidget.__init__(self, parent, 1)
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.main_layout.addWidget(canvas)
+
+
 class TuneAutopicker(QWidget):
     update = QtCore.Signal(str)
     '''

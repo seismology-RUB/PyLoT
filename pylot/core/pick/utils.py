@@ -564,7 +564,7 @@ def select_for_phase(st, phase):
     return sel_st
 
 
-def wadaticheck(pickdic, dttolerance, iplot):
+def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     '''
     Function to calculate Wadati-diagram from given P and S onsets in order
     to detect S pick outliers. If a certain S-P time deviates by dttolerance
@@ -794,7 +794,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     return returnflag
 
 
-def checkPonsets(pickdic, dttolerance, iplot):
+def checkPonsets(pickdic, dttolerance, iplot=0, fig_dict=None):
     '''
     Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
@@ -816,17 +816,19 @@ def checkPonsets(pickdic, dttolerance, iplot):
     # search for good quality P picks
     Ppicks = []
     stations = []
-    for key in pickdic:
-        if pickdic[key]['P']['weight'] < 4:
+    for station in pickdic:
+        if pickdic[station]['P']['weight'] < 4:
             # add P onsets to list
-            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
+            UTCPpick = UTCDateTime(pickdic[station]['P']['mpp'])
             Ppicks.append(UTCPpick.timestamp)
-            stations.append(key)
+            stations.append(station)
 
     # apply jackknife bootstrapping on variance of P onsets
     print("###############################################")
     print("checkPonsets: Apply jackknife bootstrapping on P-onset times ...")
     [xjack, PHI_pseudo, PHI_sub] = jackknife(Ppicks, 'VAR', 1)
+    if not xjack:
+        return
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
     ij = np.where(PHI_pseudo <= 5 * xjack)
@@ -870,21 +872,30 @@ def checkPonsets(pickdic, dttolerance, iplot):
     checkedonsets = pickdic
 
     if iplot > 0:
-        p1, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'ro', markersize=14)
-        if len(badstations) < 1 and len(badjkstations) < 1:
-            p2, = plt.plot(np.arange(0, len(Ppicks)), Ppicks, 'go', markersize=14)
+        if fig_dict:
+            fig = fig_dict['jackknife']
+            plt_flag = 0
         else:
-            p2, = plt.plot(igood, np.array(Ppicks)[igood], 'go', markersize=14)
-        p3, = plt.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g',
-                       linewidth=2)
-        for i in range(0, len(Ppicks)):
-            plt.text(i, Ppicks[i] + 0.01, '{0}'.format(stations[i]))
+            fig = plt.figure()
+            plt_flag = 1
+        ax = fig.add_subplot(111)
 
-        plt.xlabel('Number of P Picks')
-        plt.ylabel('Onset Time [s] from 1.1.1970')
-        plt.legend([p1, p2, p3], ['Skipped P Picks', 'Good P Picks', 'Median'],
-                   loc='best')
-        plt.title('Jackknifing and Median Tests on P Onsets')
+        ax.plot(np.arange(0, len(Ppicks)), Ppicks, 'ro', markersize=14)
+        if len(badstations) < 1 and len(badjkstations) < 1:
+            ax.plot(np.arange(0, len(Ppicks)), Ppicks, 'go', markersize=14, label='Skipped P Picks')
+        else:
+            ax.plot(igood, np.array(Ppicks)[igood], 'go', markersize=14, label='Good P Picks')
+            ax.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g',
+                       linewidth=2, label='Median')
+        for i in range(0, len(Ppicks)):
+            ax.text(i, Ppicks[i] + 0.01, '{0}'.format(stations[i]))
+
+        ax.set_xlabel('Number of P Picks')
+        ax.set_ylabel('Onset Time [s] from 1.1.1970')
+        ax.legend()
+        ax.set_title('Jackknifing and Median Tests on P Onsets')
+        if plt_flag:
+            fig.show()
 
     return checkedonsets
 
@@ -913,13 +924,13 @@ def jackknife(X, phi, h):
     PHI_sub = None
 
     # determine number of subgroups
-    g = len(X) / h
 
-    if type(g) is not int:
+    if len(X) % h:
         print("jackknife: Cannot divide quantity X in equal sized subgroups!")
         print("Choose another size for subgroups!")
         return PHI_jack, PHI_pseudo, PHI_sub
     else:
+        g = int(len(X) / h)
         # estimator of undisturbed spot check
         if phi == 'MEA':
             phi_sc = np.mean(X)

@@ -79,7 +79,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, JackknifeWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -1815,16 +1815,8 @@ class MainWindow(QMainWindow):
         self.listWidget.addItem(text)
         self.listWidget.scrollToBottom()
 
-    def tune_autopicker(self):
-        '''
-        Initiates TuneAutopicker widget use to interactively
-        tune parameters for autopicking algorithm.
-        '''
-        # figures and canvas have to be iniated from the main GUI
-        # thread to prevent handling of QPixmap objects outside of
-        # the main thread
+    def init_fig_dict(self):
         self.fig_dict = {}
-        self.canvas_dict = {}
         self.fig_keys = [
             'mainFig',
             'aicFig',
@@ -1837,11 +1829,27 @@ class MainWindow(QMainWindow):
             'el_S2pick',
             'refSpick',
             'aicARHfig',
+            'jackknife',
+            'wadati'
         ]
         for key in self.fig_keys:
             fig = Figure()
             self.fig_dict[key] = fig
 
+    def init_canvas_dict(self):
+        self.canvas_dict = {}
+        for key in self.fig_keys:
+            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+
+    def tune_autopicker(self):
+        '''
+        Initiates TuneAutopicker widget use to interactively
+        tune parameters for autopicking algorithm.
+        '''
+        # figures and canvas have to be iniated from the main GUI
+        # thread to prevent handling of QPixmap objects outside of
+        # the main thread
+        self.init_fig_dict()
         #if not self.tap:
         # init TuneAutopicker object
         self.tap = TuneAutopicker(self)
@@ -1860,8 +1868,7 @@ class MainWindow(QMainWindow):
         '''
         Create and fill TuneAutopicker tabs with figure canvas.
         '''
-        for key in self.fig_keys:
-            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+        self.init_canvas_dict()
         self.tap.fill_tabs(picked=True)
 
     def autoPick(self):
@@ -1883,12 +1890,14 @@ class MainWindow(QMainWindow):
         # self.addListItem('Loading default values from PyLoT-input file %s'
         #                  % self.infile)
 
+        self.init_fig_dict()
+
         args = {'parameter': self._inputs,
                 'station': 'all',
                 'fnames': 'None',
                 'eventid': self.get_current_event_path(),
                 'iplot': 0,
-                'fig_dict': None,
+                'fig_dict': self.fig_dict,
                 'locflag': 0}
 
         self.mp_thread = QtCore.QThreadPool()
@@ -1916,6 +1925,9 @@ class MainWindow(QMainWindow):
             event.addAutopicks(result)
             self.drawPicks(picktype='auto')
             self.draw()
+            self.init_canvas_dict()
+            jkw = JackknifeWidget(self, self.canvas_dict['jackknife'])
+            jkw.show()
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
