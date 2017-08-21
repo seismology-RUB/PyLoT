@@ -1215,7 +1215,11 @@ class MainWindow(QMainWindow):
 
     def comparePicks(self):
         if self.check4Comparison():
-            co = Comparison(auto=self.getPicks('auto'), manu=self.getPicks())
+            autopicks = excludeQualityClasses(self.getPicks('auto'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            manupicks = excludeQualityClasses(self.getPicks('manual'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            co = Comparison(auto=autopicks, manu=manupicks)
             compare_dlg = ComparisonDialog(co, self)
             compare_dlg.exec_()
 
