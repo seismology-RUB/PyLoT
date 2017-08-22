@@ -2022,6 +2022,76 @@ class JackknifeWidget(QWidget):
         self.main_layout.addWidget(canvas)
 
 
+class AutoPickWidget(QWidget):
+    '''
+    '''
+
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent, 1)
+        self.setupUi()
+        self.connect_buttons()
+        # set initial size
+        self.resize(1280, 720)
+
+    def setupUi(self):
+        # init main layout
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        # init main splitter
+        self.main_splitter = QtGui.QSplitter()
+        self.main_splitter.setChildrenCollapsible(False)
+
+        self.init_checkboxes()
+        self.init_log_layout()
+        self.init_plot_layout()
+
+        self.main_layout.insertWidget(1, self.main_splitter)
+
+        self.main_layout.setStretch(0, 0)
+        self.main_layout.setStretch(1, 1)
+
+    def connect_buttons(self):
+        self.start_button.clicked.connect(self.start_picker)
+
+    def init_checkboxes(self):
+        self.cb_layout = QtGui.QHBoxLayout()
+
+        cb_keys = ['current event',
+                   'reference set',
+                   'test set',
+                   'all']
+        self.cb_dict = {}
+
+        self.start_button = QtGui.QPushButton('Start')
+
+        for index, key in enumerate(cb_keys):
+            cb = QCheckBox(key)
+            self.cb_dict[key] = cb
+            self.cb_layout.insertWidget(index, cb)
+            self.cb_layout.setStretch(index, 0)
+
+        self.cb_layout.addWidget(self.start_button)
+
+        self.cb_layout.addWidget(QtGui.QWidget())
+        self.cb_layout.setStretch(len(cb_keys)+1, 1)
+
+        self.main_layout.insertLayout(0, self.cb_layout)
+
+    def init_plot_layout(self):
+        self.gb_plots = QtGui.QGroupBox('Plots')
+        self.gb_plots.setMinimumSize(100, 100)
+        self.main_splitter.insertWidget(1, self.gb_plots)
+        self.plot_layout = QtGui.QVBoxLayout()
+
+    def init_log_layout(self):
+        self.gb_log = QtGui.QGroupBox('Log')
+        self.gb_log.setMinimumSize(100, 100)
+        self.main_splitter.insertWidget(0, self.gb_log)
+
+    def start_picker(self):
+        pass
+
+
 class TuneAutopicker(QWidget):
     update = QtCore.Signal(str)
     '''
