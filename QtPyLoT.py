@@ -74,7 +74,7 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1048,12 +1048,21 @@ class MainWindow(QMainWindow):
 
         for id, event in enumerate(self.project.eventlist):
             event_path = event.path
-            event_npicks = 0
-            event_nautopicks = 0
-            if event.pylot_picks:
-                event_npicks = len(event.pylot_picks)
-            if event.pylot_autopicks:
-                event_nautopicks = len(event.pylot_autopicks)
+            phaseErrors = {'P': self._inputs['timeerrorsP'],
+                           'S': self._inputs['timeerrorsS']}
+
+            ma_props = {'manual': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            ma_count = {'manual': 0,
+                        'auto': 0}
+
+            for ma in ma_props.keys():
+                if ma_props[ma]:
+                    for picks in ma_props[ma].values():
+                        for phasename, pick in picks.items():
+                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                                ma_count[ma] += 1
+
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
@@ -1064,9 +1073,9 @@ class MainWindow(QMainWindow):
             #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
-            item_nmp = QtGui.QStandardItem(str(event_npicks))
+            item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QStandardItem(str(event_nautopicks))
+            item_nap = QtGui.QStandardItem(str(ma_count['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QStandardItem()  # str(event_ref))
             item_test = QtGui.QStandardItem()  # str(event_test))
@@ -2340,12 +2349,20 @@ class MainWindow(QMainWindow):
         # iterate through eventlist and generate items for table rows
         self.project._table = []
         for index, event in enumerate(eventlist):
-            event_npicks = 0
-            event_nautopicks = 0
-            if event.pylot_picks:
-                event_npicks = len(event.pylot_picks)
-            if event.pylot_autopicks:
-                event_nautopicks = len(event.pylot_autopicks)
+            phaseErrors = {'P': self._inputs['timeerrorsP'],
+                           'S': self._inputs['timeerrorsS']}
+
+            ma_props = {'manual': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            ma_count = {'manual': 0,
+                        'auto': 0}
+
+            for ma in ma_props.keys():
+                if ma_props[ma]:
+                    for picks in ma_props[ma].values():
+                        for phasename, pick in picks.items():
+                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                                ma_count[ma] += 1
 
             # init table items for current row
             item_delete = QtGui.QTableWidgetItem()
@@ -2356,9 +2373,9 @@ class MainWindow(QMainWindow):
             item_lon = QtGui.QTableWidgetItem()
             item_depth = QtGui.QTableWidgetItem()
             item_mag = QtGui.QTableWidgetItem()
-            item_nmp = QtGui.QTableWidgetItem(str(event_npicks))
+            item_nmp = QtGui.QTableWidgetItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QTableWidgetItem(str(event_nautopicks))
+            item_nap = QtGui.QTableWidgetItem(str(ma_count['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()

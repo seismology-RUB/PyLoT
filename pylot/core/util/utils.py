@@ -841,6 +841,12 @@ def identifyPhaseID(phase):
     return identifyPhase(loopIdentifyPhase(phase))
 
 
+def has_spe(pick):
+    if not 'spe' in pick.keys():
+        return None
+    else:
+        return pick['spe']
+
 
 if __name__ == "__main__":
     import doctest
