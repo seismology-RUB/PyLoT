@@ -79,7 +79,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, JackknifeWidget
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, JackknifeWidget, AutoPickWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -1025,6 +1025,11 @@ class MainWindow(QMainWindow):
         :param: select_events, can be 'all', 'ref'
         :type: str
         '''
+
+        # if pick widget is open, refresh tooltips as well
+        if hasattr(self, 'apw'):
+            self.apw.refresh_tooltips()
+
         if not eventBox:
             eventBox = self.eventBox
         index = eventBox.currentIndex()
@@ -1837,9 +1842,7 @@ class MainWindow(QMainWindow):
             'el_S1pick',
             'el_S2pick',
             'refSpick',
-            'aicARHfig',
-            'jackknife',
-            'wadati'
+            'aicARHfig'
         ]
         for key in self.fig_keys:
             fig = Figure()
@@ -1849,6 +1852,25 @@ class MainWindow(QMainWindow):
         self.canvas_dict = {}
         for key in self.fig_keys:
             self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+
+    def init_fig_dict_wadatijack(self, eventIDs):
+        self.fig_dict_wadatijack = {}
+        self.fig_keys_wadatijack = [
+            'jackknife',
+            'wadati'
+        ]
+        for eventID in eventIDs:
+            self.fig_dict_wadatijack[eventID] = {}
+            for key in self.fig_keys_wadatijack:
+                fig = Figure()
+                self.fig_dict_wadatijack[eventID][key] = fig
+
+    def init_canvas_dict_wadatijack(self):
+        self.canvas_dict_wadatijack = {}
+        for eventID in self.fig_dict_wadatijack.keys():
+            self.canvas_dict_wadatijack[eventID] = {}
+            for key in self.fig_keys_wadatijack:
+                self.canvas_dict_wadatijack[eventID][key] = FigureCanvas(self.fig_dict_wadatijack[eventID][key])
 
     def tune_autopicker(self):
         '''
@@ -1886,37 +1908,78 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "PyLoT Warning",
                                 "No autoPyLoT output declared!")
             return
-        event = self.get_current_event()
-        self.saveData(event, event.path, outformats=['.xml'])
+
+        self.pickoptions =[('current event', self.get_current_event),
+                           ('reference set events', self.get_ref_events),
+                           ('test set events', self.get_test_events),
+                           ('all (picked) events', self.get_manu_picked_events),
+                           ('all events', self.get_all_events)]
+
         self.listWidget = QListWidget()
         self.setDirty(True)
-        self.logDockWidget = QDockWidget("AutoPickLog", self)
-        self.logDockWidget.setObjectName("LogDockWidget")
-        self.logDockWidget.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.logDockWidget.setWidget(self.listWidget)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
+        self.apw = AutoPickWidget(self, self.pickoptions)
+        self.apw.insert_log_widget(self.listWidget)
+        self.apw.refresh_tooltips()
+
+        # self.logDockWidget = QDockWidget("AutoPickLog", self)
+        # self.logDockWidget.setObjectName("LogDockWidget")
+        # self.logDockWidget.setAllowedAreas(
+        #     Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        # self.logDockWidget.setWidget(self.listWidget)
+        # self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         # self.addListItem('Loading default values from PyLoT-input file %s'
         #                  % self.infile)
 
-        self.init_fig_dict()
+        self.apw.start.connect(self.start_autopick)
+        self.apw.show()
 
+    def start_autopick(self):
+        for key, func in self.pickoptions:
+            if self.apw.rb_dict[key].isChecked():
+                # if radio button is checked break for loop and use func
+                break
+
+        events = func()
+        if not type(events) == list:
+            events = [events]
+        eventPaths = self.get_event_paths(events)
+        eventIDs = self.get_event_ids(events)
+
+        self.init_fig_dict_wadatijack(eventIDs)
+
+        if not eventPaths:
+            self.addListItem("No events found for '{}'".format(key))
+            return
+        else:
+            self.addListItem("Picking the following events ({}):".format(key))
+            for eventID in eventPaths:
+                self.addListItem(str(eventID))
+
+        self.apw.enable(False)
+
+        # export current picks etc.
+        self.exportAllEvents(['.xml'])
+
+        # define arguments for picker
         args = {'parameter': self._inputs,
                 'station': 'all',
                 'fnames': 'None',
-                'eventid': self.get_current_event_path(),
+                'eventid': eventPaths,
                 'iplot': 0,
-                'fig_dict': self.fig_dict,
+                'fig_dict': None,
+                'fig_dict_wadatijack': self.fig_dict_wadatijack,
                 'locflag': 0}
 
+        # init pick thread
         self.mp_thread = QtCore.QThreadPool()
         self.mp_worker = Worker(autoPyLoT, args, redirect_stdout=True)
-        self.mp_thread.start(self.mp_worker)
 
         self.addListItem(str(self._inputs))
 
         self.mp_worker.signals.message.connect(self.addListItem)
         self.mp_worker.signals.result.connect(self.finalizeAutoPick)
+
+        self.mp_thread.start(self.mp_worker)
 
     def autoPickProject(self):
         if not self.apd_local:
@@ -1929,14 +1992,59 @@ class MainWindow(QMainWindow):
         self.apd_sge.show()
 
     def finalizeAutoPick(self, result):
+        self.apw.enable(True)
         if result:
-            event = self.get_current_event()
-            event.addAutopicks(result)
+            self.init_canvas_dict_wadatijack()
+            for eventID in result.keys():
+                event = self.get_event_from_id(eventID)
+                if not event:
+                    continue
+                event.addAutopicks(result[eventID])
+                jkw = JackknifeWidget(self, self.canvas_dict_wadatijack[eventID]['jackknife'])
+                self.apw.insert_plot_widget(jkw, 'Jackknife', eventID)
             self.drawPicks(picktype='auto')
             self.draw()
-            self.init_canvas_dict()
-            jkw = JackknifeWidget(self, self.canvas_dict['jackknife'])
-            jkw.show()
+
+    def get_event_from_id(self, eventID):
+        for event in self.project.eventlist:
+            if event.pylot_id == eventID:
+                return event
+
+    def get_event_paths(self, eventlist):
+        eventPaths = []
+        for event in eventlist:
+            eventPaths.append(event.path)
+        return eventPaths
+
+    def get_event_ids(self, eventlist):
+        eventIDs = []
+        for event in eventlist:
+            eventIDs.append(event.pylot_id)
+        return eventIDs
+
+    def get_all_events(self):
+        return self.project.eventlist
+
+    def get_ref_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if event.isRefEvent():
+                events.append(event)
+        return events
+
+    def get_test_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if event.isTestEvent():
+                events.append(event)
+        return events
+
+    def get_manu_picked_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if len(event.pylot_picks) > 0:
+                events.append(event)
+        return events
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)

@@ -77,12 +77,17 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     inputfile = real_None(inputfile)
     eventid = real_None(eventid)
 
+    fig_dict = None
+    fig_dict_wadatijack = None
+
     locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
             parameter = input_dict['parameter']
         if 'fig_dict' in input_dict:
             fig_dict = input_dict['fig_dict']
+        if 'fig_dict_wadatijack' in input_dict:
+            fig_dict_wadatijack = input_dict['fig_dict_wadatijack']
         if 'station' in input_dict:
             station = input_dict['station']
         if 'fnames' in input_dict:
@@ -178,13 +183,14 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 evID = os.path.split(eventid)[-1]
                 locflag = 2
         else:
-            # started in tune mode
+            # started in tune or interactive mode
             datapath = os.path.join(parameter['rootpath'],
                                     parameter['datapath'])
             events = []
-            events.append(os.path.join(datapath,
-                                       parameter['database'],
-                                       eventid))
+            for eventID in eventid:
+                events.append(os.path.join(datapath,
+                                           parameter['database'],
+                                           eventID))
 
         if not events:
             print('autoPyLoT: No events given. Return!')
@@ -195,6 +201,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             eventpath = eventpath.replace(SEPARATOR, '/')
             events[index] = eventpath
 
+        allpicks = {}
         glocflag = locflag
         for eventpath in events:
             evID = os.path.split(eventpath)[-1]
@@ -257,14 +264,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
-            if input_dict:
-                if 'fig_dict' in input_dict:
-                    fig_dict = input_dict['fig_dict']
-                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
-                                          ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
-            else:
-                picks = autopickevent(wfdat, parameter, iplot=iplot,
-                                      ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
+            picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
+                                  fig_dict_wadatijack=fig_dict_wadatijack[evID],
+                                  ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
             ##########################################################
             # locating
             if locflag > 0:
@@ -451,13 +453,16 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             if locflag == 0:
                 print("autoPyLoT was running in non-location mode!")
 
+            # save picks for current event ID to dictionary with ALL picks
+            allpicks[evID] = picks
+
     endsp = '''####################################\n
                ************************************\n
                *********autoPyLoT terminates*******\n
                The Python picking and Location Tool\n
                ************************************'''.format(version=_getVersionString())
     print(endsp)
-    return picks
+    return allpicks
 
 
 if __name__ == "__main__":

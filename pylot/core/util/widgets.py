@@ -2016,18 +2016,20 @@ class JackknifeWidget(QWidget):
     '''
 
     def __init__(self, parent, canvas):
-        QtGui.QWidget.__init__(self, parent, 1)
+        QtGui.QWidget.__init__(self, parent)#, 1)
         self.main_layout = QtGui.QVBoxLayout()
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(canvas)
 
 
 class AutoPickWidget(QWidget):
+    start = Signal()
     '''
     '''
 
-    def __init__(self, parent):
+    def __init__(self, parent, pickoptions):
         QtGui.QWidget.__init__(self, parent, 1)
+        self.pickoptions = pickoptions
         self.setupUi()
         self.connect_buttons()
         # set initial size
@@ -2054,42 +2056,69 @@ class AutoPickWidget(QWidget):
         self.start_button.clicked.connect(self.start_picker)
 
     def init_checkboxes(self):
-        self.cb_layout = QtGui.QHBoxLayout()
+        self.rb_layout = QtGui.QHBoxLayout()
 
-        cb_keys = ['current event',
-                   'reference set',
-                   'test set',
-                   'all']
-        self.cb_dict = {}
+        self.rb_dict = {}
 
         self.start_button = QtGui.QPushButton('Start')
 
-        for index, key in enumerate(cb_keys):
-            cb = QCheckBox(key)
-            self.cb_dict[key] = cb
-            self.cb_layout.insertWidget(index, cb)
-            self.cb_layout.setStretch(index, 0)
+        for index, (key, func) in enumerate(self.pickoptions):
+            rb = QtGui.QRadioButton(key)
+            if index == 0:
+                rb.setChecked(True)
+            self.rb_dict[key] = rb
+            self.rb_layout.insertWidget(index, rb)
+            self.rb_layout.setStretch(index, 0)
 
-        self.cb_layout.addWidget(self.start_button)
+        self.rb_layout.addWidget(self.start_button)
 
-        self.cb_layout.addWidget(QtGui.QWidget())
-        self.cb_layout.setStretch(len(cb_keys)+1, 1)
+        self.rb_layout.addWidget(QtGui.QWidget())
+        self.rb_layout.setStretch(len(self.pickoptions)+1, 1)
 
-        self.main_layout.insertLayout(0, self.cb_layout)
+        self.main_layout.insertLayout(0, self.rb_layout)
 
     def init_plot_layout(self):
+        self.tab_plots = QtGui.QTabWidget()
         self.gb_plots = QtGui.QGroupBox('Plots')
         self.gb_plots.setMinimumSize(100, 100)
         self.main_splitter.insertWidget(1, self.gb_plots)
         self.plot_layout = QtGui.QVBoxLayout()
+        self.plot_layout.addWidget(self.tab_plots)
+        self.gb_plots.setLayout(self.plot_layout)
 
     def init_log_layout(self):
         self.gb_log = QtGui.QGroupBox('Log')
         self.gb_log.setMinimumSize(100, 100)
         self.main_splitter.insertWidget(0, self.gb_log)
 
+    def insert_log_widget(self, widget):
+        vl = QtGui.QVBoxLayout()
+        vl.addWidget(widget)
+        self.gb_log.setLayout(vl)
+
+    def insert_plot_widget(self, widget, key, eventID):
+        self.tab_plots.addTab(widget, str(key+eventID))
+
+    def refresh_tooltips(self):
+        for key, func in self.pickoptions:
+            eventlist = func()
+            if not type(eventlist) == list:
+                eventlist = [eventlist]
+            tooltip=''
+            for index, event in enumerate(eventlist):
+                tooltip += '{}'.format(event.pylot_id)
+                if not index + 1 == len(eventlist):
+                    tooltip += '\n'
+            self.rb_dict[key].setToolTip(tooltip)
+
     def start_picker(self):
-        pass
+        self.tab_plots.clear()
+        self.start.emit()
+
+    def enable(self, bool):
+        for rb in self.rb_dict.values():
+            rb.setEnabled(bool)
+        self.start_button.setEnabled(bool)
 
 
 class TuneAutopicker(QWidget):
@@ -2422,7 +2451,7 @@ class TuneAutopicker(QWidget):
         args = {'parameter': self.parameter,
                 'station': station,
                 'fnames': 'None',
-                'eventid': self.get_current_event_fp(),
+                'eventid': [self.get_current_event_fp()],
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
                 'locflag': 0,
@@ -2448,7 +2477,7 @@ class TuneAutopicker(QWidget):
             info = self.ap_thread._executedErrorInfo
             self._warn(msg, info)
             return
-        self.pylot_picks = self.ap_thread.data
+        self.pylot_picks = self.ap_thread.data[self.get_current_event_name()]
         if not self.pylot_picks:
             self._warn('No picks found. See terminal output.')
             return
