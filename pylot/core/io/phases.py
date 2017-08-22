@@ -879,8 +879,8 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
    Ludger Küperkoch, BESTEC GmbH, 07/2017
    """
 
-   from pylot.core.pick.utils import getQualityFromUncertainty
-   from pylot.core.util.utils import loopIdentifyPhase, identifyPhase
+    from pylot.core.pick.utils import getQualityFromUncertainty
+    from pylot.core.util.utils import loopIdentifyPhase, identifyPhase
 
     # read all onset weights
     Pw0 = []
@@ -905,7 +905,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                 mstation = Pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
-                    phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint)))
+                    phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
                     if phase == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or \
                                     (mpick.waveform_id.station_code == mstation_ext)) and \
@@ -925,7 +925,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
             print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
 
         for Pick in arrivals_copy:
-            phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint)))
+            phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
             if phase == 'P':
                 Pqual = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsP)
                 if Pqual == 0:
@@ -936,7 +936,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                     Pw2.append(Pick.time_errors.uncertainty)
                 elif Pqual == 3:
                     Pw3.append(Pick.time_errors.uncertainty)
-                elif Pqual == 4
+                elif Pqual == 4:
                     Pw4.append(Pick.time_errors.uncertainty)
             elif phase == 'S':
                 Squal = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsS)
@@ -948,7 +948,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                     Sw2.append(Pick.time_errors.uncertainty)
                 elif Squal == 3:
                     Sw3.append(Pick.time_errors.uncertainty)
-                elif Squal == 4
+                elif Squal == 4:
                     Sw4.append(Pick.time_errors.uncertainty)
             else:
                 print("Phase hint not defined for picking!")
