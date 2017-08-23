@@ -594,7 +594,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
 
 class PylotCanvas(FigureCanvas):
-    def __init__(self, figure=None, parent=None, connect_events=True):
+    def __init__(self, figure=None, parent=None, connect_events=True, multicursor=False):
 
         self._parent = parent
         if not figure:
@@ -607,10 +607,11 @@ class PylotCanvas(FigureCanvas):
         self.plotdict = dict()
         # initialize super class
         super(PylotCanvas, self).__init__(self.figure)
-        # add a cursor for station selection
-        self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
-                                       horizOn=True, useblit=True,
-                                       color='m', lw=1)
+        if multicursor:
+            # add a cursor for station selection
+            self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
+                                           horizOn=True, useblit=True,
+                                           color='m', lw=1)
         # update labels of the entire widget
         #self.updateWidget(xlabel, ylabel, title)
 
@@ -955,7 +956,7 @@ class PickDlg(QDialog):
         self.stime, self.etime = full_range(self.getWFData())
 
         # initialize plotting widget
-        self.multicompfig = PylotCanvas(parent=self, connect_events=False)
+        self.multicompfig = PylotCanvas(parent=self, connect_events=False, multicursor=True)
         self.phaseplot = PhasePlotWidget(self)
         self.phaseplot.hide()
 

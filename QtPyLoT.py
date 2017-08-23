@@ -619,7 +619,7 @@ class MainWindow(QMainWindow):
         self.disconnectWFplotEvents()
         if str(settings.value('pyqtgraphic')) == 'false' or not pg:
             self.pg = False
-            self.dataPlot = PylotCanvas(parent=self, connect_events=False)
+            self.dataPlot = PylotCanvas(parent=self, connect_events=False, multicursor=True)
             self.dataPlot.updateWidget(xlab, None, plottitle)
         else:
             self.pg = True
