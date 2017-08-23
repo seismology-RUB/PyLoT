@@ -2051,6 +2051,8 @@ class AutoPickWidget(QWidget):
 
         self.main_layout.setStretch(0, 0)
         self.main_layout.setStretch(1, 1)
+        self.main_splitter.setStretchFactor(0, 1)
+        self.main_splitter.setStretchFactor(1, 2)
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.start_picker)
@@ -2109,6 +2111,8 @@ class AutoPickWidget(QWidget):
                 tooltip += '{}'.format(event.pylot_id)
                 if not index + 1 == len(eventlist):
                     tooltip += '\n'
+            if not tooltip:
+                tooltip = 'No events for this selection'
             self.rb_dict[key].setToolTip(tooltip)
 
     def start_picker(self):
