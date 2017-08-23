@@ -611,6 +611,11 @@ class WaveformWidget(FigureCanvas):
                                        color='m', lw=1)
         # update labels of the entire widget
         self.updateWidget(xlabel, ylabel, title)
+
+        self.limits = {'x': None,
+                       'y': None}
+
+        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
         try:
             self.figure.tight_layout()
         except:
@@ -621,6 +626,9 @@ class WaveformWidget(FigureCanvas):
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
+
+    def connectScrollEvent(self, slot):
+        return self.mpl_connect('scroll_event', slot)
 
     def clearPlotDict(self):
         self.plotdict = dict()
@@ -745,6 +753,51 @@ class WaveformWidget(FigureCanvas):
         axann = self.getAxes().annotate(text, xy=(.03, pos),
                                         xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
+
+    def scrollZoom(self, gui_event, factor=2.):
+
+        if not gui_event.xdata or not gui_event.ydata:
+            return
+
+        self.updateCurrentLimits()
+
+        if gui_event.button == 'up':
+            scale_factor = 1 / factor
+        elif gui_event.button == 'down':
+            # deal with zoom out
+            scale_factor = factor
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            print(gui_event.button)
+
+        new_xlim = gui_event.xdata - \
+                   scale_factor * (gui_event.xdata - self.getXLims())
+        new_ylim = gui_event.ydata - \
+                   scale_factor * (gui_event.ydata - self.getYLims())
+
+        new_xlim.sort()
+        global_x = self.getGlobalLimits('x')
+        global_y = self.getGlobalLimits('y')
+        new_xlim[0] = max(new_xlim[0], global_x[0])
+        new_xlim[1] = min(new_xlim[1], global_x[1])
+        new_ylim.sort()
+        new_ylim[0] = max(new_ylim[0], global_y[0])
+        new_ylim[1] = min(new_ylim[1], global_y[1])
+
+        self.setXLims(new_xlim)
+        self.setYLims(new_ylim)
+        self.draw()
+
+    def updateCurrentLimits(self):
+        self.setXLims(self.getXLims())
+        self.setYLims(self.getYLims())
+
+    def getGlobalLimits(self, axis):
+        return self.limits[axis]
+
+    def setGlobalLimits(self, axis, limits):
+        self.limits[axis] = limits
 
 
 class PhaseDefaults(QtGui.QDialog):
@@ -897,6 +950,9 @@ class PickDlg(QDialog):
         self.limits = {'x': xlims,
                        'y': ylims}
 
+        for ax, limit in self.limits.items():
+            self.getPlotWidget().setGlobalLimits(ax, limit)
+
         self.updateCurrentLimits()
 
         # set plot labels
@@ -909,7 +965,9 @@ class PickDlg(QDialog):
         self.cidpress = self.connectPressEvent(self.panPress)
         self.cidmotion = self.connectMotionEvent(self.panMotion)
         self.cidrelease = self.connectReleaseEvent(self.panRelease)
-        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+        self.cidscroll = self.connectScrollEvent(self.multicompfig.scrollZoom)
+        self.cidscroll_arr = self.connectScrollEvent(self.refreshArrivalsText)
+        self.cidscroll_ph = self.connectScrollEvent(self.refreshPhaseText)
 
         # init expected picks using obspy Taup
         try:
@@ -1127,7 +1185,7 @@ class PickDlg(QDialog):
     def drawArrivalsText(self):
         return self.drawArrivals(True)
 
-    def refreshArrivalsText(self):
+    def refreshArrivalsText(self, event=None):
         self.removeArrivalsText()
         self.drawArrivalsText()
 
@@ -1205,7 +1263,11 @@ class PickDlg(QDialog):
     def disconnectScrollEvent(self):
         widget = self.getPlotWidget()
         widget.mpl_disconnect(self.cidscroll)
+        widget.mpl_disconnect(self.cidscroll_arr)
+        widget.mpl_disconnect(self.cidscroll_ph)
         self.cidscroll = None
+        self.cidscroll_arr = None
+        self.cidscroll_ph = None
 
     def connectScrollEvent(self, slot):
         widget = self.getPlotWidget()
@@ -1817,7 +1879,7 @@ class PickDlg(QDialog):
                 pass
         self.phaseText = []
 
-    def refreshPhaseText(self):
+    def refreshPhaseText(self, event=None):
         self.removePhaseText()
         self.drawPhaseText()
 
