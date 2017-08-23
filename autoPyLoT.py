@@ -264,8 +264,11 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
+            fdwj = None
+            if fig_dict_wadatijack:
+                fdwj = fig_dict_wadatijack[evID]
             picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
-                                  fig_dict_wadatijack=fig_dict_wadatijack[evID],
+                                  fig_dict_wadatijack=fdwj,
                                   ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
             ##########################################################
             # locating
