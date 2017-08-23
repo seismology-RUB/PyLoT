@@ -78,7 +78,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
-    WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
+    PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
@@ -619,8 +619,8 @@ class MainWindow(QMainWindow):
         self.disconnectWFplotEvents()
         if str(settings.value('pyqtgraphic')) == 'false' or not pg:
             self.pg = False
-            self.dataPlot = WaveformWidget(parent=self, xlabel=xlab, ylabel=None,
-                                           title=plottitle)
+            self.dataPlot = PylotCanvas(parent=self, connect_events=False)
+            self.dataPlot.updateWidget(xlab, None, plottitle)
         else:
             self.pg = True
             self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
@@ -1853,7 +1853,7 @@ class MainWindow(QMainWindow):
     def init_canvas_dict(self):
         self.canvas_dict = {}
         for key in self.fig_keys:
-            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+            self.canvas_dict[key] = PylotCanvas(self.fig_dict[key])
 
     def init_fig_dict_wadatijack(self, eventIDs):
         self.fig_dict_wadatijack = {}
@@ -1872,7 +1872,7 @@ class MainWindow(QMainWindow):
         for eventID in self.fig_dict_wadatijack.keys():
             self.canvas_dict_wadatijack[eventID] = {}
             for key in self.fig_keys_wadatijack:
-                self.canvas_dict_wadatijack[eventID][key] = FigureCanvas(self.fig_dict_wadatijack[eventID][key])
+                self.canvas_dict_wadatijack[eventID][key] = PylotCanvas(self.fig_dict_wadatijack[eventID][key])
 
     def tune_autopicker(self):
         '''

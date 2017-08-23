@@ -593,33 +593,45 @@ class WaveformWidgetPG(QtGui.QWidget):
         pass
 
 
-class WaveformWidget(FigureCanvas):
-    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
+class PylotCanvas(FigureCanvas):
+    def __init__(self, figure=None, parent=None, connect_events=True):
 
         self._parent = parent
-        self.figure = Figure()
+        if not figure:
+            figure = Figure()
+            # create axes
+        self.axes = figure.add_subplot(111)
+        self.figure = figure
         self.figure.set_facecolor((.92, .92, .92))
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
-        # create axes
-        self.axes = self.figure.add_subplot(111)
         # initialize super class
-        super(WaveformWidget, self).__init__(self.figure)
-        # add an cursor for station selection
+        super(PylotCanvas, self).__init__(self.figure)
+        # add a cursor for station selection
         self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
                                        horizOn=True, useblit=True,
                                        color='m', lw=1)
         # update labels of the entire widget
-        self.updateWidget(xlabel, ylabel, title)
+        #self.updateWidget(xlabel, ylabel, title)
 
-        self.limits = {'x': None,
-                       'y': None}
+        self.limits = {'x': (-np.inf, np.inf),
+                       'y': (-np.inf, np.inf)}
 
-        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+        if connect_events:
+            self.connectEvents()
+
         try:
             self.figure.tight_layout()
         except:
             pass
+
+    def connectEvents(self):
+        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+
+    def disconnectEvents(self):
+        self.mpl_disconnect(self.cidscroll)
+
+        self.cidscroll = None
 
     def getPlotDict(self):
         return self.plotdict
@@ -789,6 +801,16 @@ class WaveformWidget(FigureCanvas):
         self.setYLims(new_ylim)
         self.draw()
 
+    def setZoomBorders2content(self):
+        xlims = self.getXLims()
+        ylims = self.getYLims()
+
+        self.limits = {'x': xlims,
+                       'y': ylims}
+
+        for ax, limit in self.limits.items():
+            self.setGlobalLimits(ax, limit)
+
     def updateCurrentLimits(self):
         self.setXLims(self.getXLims())
         self.setYLims(self.getYLims())
@@ -933,7 +955,7 @@ class PickDlg(QDialog):
         self.stime, self.etime = full_range(self.getWFData())
 
         # initialize plotting widget
-        self.multicompfig = WaveformWidget(self)
+        self.multicompfig = PylotCanvas(parent=self, connect_events=False)
         self.phaseplot = PhasePlotWidget(self)
         self.phaseplot.hide()
 
@@ -944,14 +966,7 @@ class PickDlg(QDialog):
         self.getPlotWidget().plotWFData(wfdata=self.getWFData(),
                                         title=self.getStation())
 
-        xlims = self.getPlotWidget().getXLims()
-        ylims = self.getPlotWidget().getYLims()
-
-        self.limits = {'x': xlims,
-                       'y': ylims}
-
-        for ax, limit in self.limits.items():
-            self.getPlotWidget().setGlobalLimits(ax, limit)
+        self.getPlotWidget().setZoomBorders2content()
 
         self.updateCurrentLimits()
 
@@ -962,10 +977,7 @@ class PickDlg(QDialog):
         self.drawAllPicks()
 
         # connect button press event to an action
-        self.cidpress = self.connectPressEvent(self.panPress)
-        self.cidmotion = self.connectMotionEvent(self.panMotion)
-        self.cidrelease = self.connectReleaseEvent(self.panRelease)
-        self.cidscroll = self.connectScrollEvent(self.multicompfig.scrollZoom)
+        self.connectEvents()
         self.cidscroll_arr = self.connectScrollEvent(self.refreshArrivalsText)
         self.cidscroll_ph = self.connectScrollEvent(self.refreshPhaseText)
 
@@ -1399,10 +1411,7 @@ class PickDlg(QDialog):
 
     def deactivatePicking(self):
         self.disconnectPressEvent()
-        self.cidpress = self.connectPressEvent(self.panPress)
-        self.cidmotion = self.connectMotionEvent(self.panMotion)
-        self.cidrelease = self.connectReleaseEvent(self.panRelease)
-        self.cidscroll = self.connectScrollEvent(self.scrollZoom)
+        self.connectEvents()
         self.connect_pick_delete()
 
     def getParameter(self):
@@ -1461,7 +1470,7 @@ class PickDlg(QDialog):
         self.cur_ylim = limits
 
     def getGlobalLimits(self, axis):
-        return self.limits[axis]
+        return self.getPlotWidget().getGlobalLimits(axis)
 
     def updateCurrentLimits(self):
         self.setXLims(self.getPlotWidget().getXLims())
@@ -1759,7 +1768,7 @@ class PickDlg(QDialog):
         # plotting picks
         ax = self.getPlotWidget().axes
         if not textOnly:
-            ylims = self.getGlobalLimits('y')
+            ylims = self.getPlotWidget().getGlobalLimits('y')
         else:
             ylims = self.getPlotWidget().getYLims()
         if self.getPicks(picktype):
@@ -1971,6 +1980,12 @@ class PickDlg(QDialog):
         self.getPlotWidget().setXLims(self.getXLims())
         self.getPlotWidget().setYLims(self.getYLims())
 
+    def connectEvents(self):
+        self.cidpress = self.connectPressEvent(self.panPress)
+        self.cidmotion = self.connectMotionEvent(self.panMotion)
+        self.cidrelease = self.connectReleaseEvent(self.panRelease)
+        self.cidscroll = self.connectScrollEvent(self.multicompfig.scrollZoom)
+
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
             self.zoomAction.setChecked(False)
@@ -1982,47 +1997,6 @@ class PickDlg(QDialog):
             self.figToolBar.zoom()
         else:
             self.figToolBar.zoom()
-            self.cidpress = self.connectPressEvent(self.panPress)
-            self.cidmotion = self.connectMotionEvent(self.panMotion)
-            self.cidrelease = self.connectReleaseEvent(self.panRelease)
-            self.cidscroll = self.connectScrollEvent(self.scrollZoom)
-
-    def scrollZoom(self, gui_event, factor=2.):
-
-        if not gui_event.xdata or not gui_event.ydata:
-            return
-
-        self.updateCurrentLimits()
-
-        if gui_event.button == 'up':
-            scale_factor = 1 / factor
-        elif gui_event.button == 'down':
-            # deal with zoom out
-            scale_factor = factor
-        else:
-            # deal with something that should never happen
-            scale_factor = 1
-            print(gui_event.button)
-
-        new_xlim = gui_event.xdata - \
-                   scale_factor * (gui_event.xdata - self.getXLims())
-        new_ylim = gui_event.ydata - \
-                   scale_factor * (gui_event.ydata - self.getYLims())
-
-        new_xlim.sort()
-        global_x = self.getGlobalLimits('x')
-        global_y = self.getGlobalLimits('y')
-        new_xlim[0] = max(new_xlim[0], global_x[0])
-        new_xlim[1] = min(new_xlim[1], global_x[1])
-        new_ylim.sort()
-        new_ylim[0] = max(new_ylim[0], global_y[0])
-        new_ylim[1] = min(new_ylim[1], global_y[1])
-
-        self.getPlotWidget().setXLims(new_xlim)
-        self.getPlotWidget().setYLims(new_ylim)
-        self.refreshArrivalsText()
-        self.refreshPhaseText()
-        self.draw()
 
     def resetZoom(self):
         self.getPlotWidget().setXLims(self.getGlobalLimits('x'))
@@ -2080,9 +2054,11 @@ class CanvasWidget(QWidget):
 
     def __init__(self, parent, canvas):
         QtGui.QWidget.__init__(self, parent)#, 1)
+        canvas = canvas
         self.main_layout = QtGui.QVBoxLayout()
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(canvas)
+        canvas.setZoomBorders2content()
 
 
 class AutoPickWidget(QWidget):
