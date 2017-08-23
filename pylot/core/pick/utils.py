@@ -618,7 +618,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         ii = 0
         ibad = 0
         for key in pickdic:
-            if pickdic[key].has_key('SPt'):
+            if 'SPt' in pickdic[key]:
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
@@ -662,21 +662,28 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
 
     # plot results
     if iplot > 0:
-        plt.figure()  # iplot)
-        f1, = plt.plot(Ppicks, SPtimes, 'ro')
-        if wfitflag == 0:
-            f2, = plt.plot(Ppicks, wdfit, 'k')
-            f3, = plt.plot(checkedPpicks, checkedSPtimes, 'ko')
-            f4, = plt.plot(checkedPpicks, wdfit2, 'g')
-            plt.title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
-                      'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
-            plt.legend([f1, f2, f3, f4], ['Skipped S-Picks', 'Wadati 1',
-                                          'Reliable S-Picks', 'Wadati 2'], loc='best')
+        if fig_dict:
+            fig = fig_dict['wadati']
+            plt_flag = 0
         else:
-            plt.title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
+            fig = plt.figure()
+            plt_flag = 1
+        ax = fig.add_subplot(111)
+        ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
+        if wfitflag == 0:
+            ax.plot(Ppicks, wdfit, 'k', label='Wadati 1')
+            ax.plot(checkedPpicks, checkedSPtimes, 'ko', label='Reliable S-Picks')
+            ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
+            ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
+                      'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
+            ax.legend()
+        else:
+            ax.set_title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
 
-        plt.ylabel('S-P Times [s]')
-        plt.xlabel('P Times [s]')
+        ax.set_ylabel('S-P Times [s]')
+        ax.set_xlabel('P Times [s]')
+        if plt_flag:
+            fig.show()
 
     return checkedonsets
 

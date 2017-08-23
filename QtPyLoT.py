@@ -79,7 +79,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, JackknifeWidget, AutoPickWidget
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -1065,6 +1065,8 @@ class MainWindow(QMainWindow):
                 if ma_props[ma]:
                     for picks in ma_props[ma].values():
                         for phasename, pick in picks.items():
+                            if not type(pick) in [dict, AttribDict]:
+                                continue
                             if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
 
@@ -2000,8 +2002,10 @@ class MainWindow(QMainWindow):
                 if not event:
                     continue
                 event.addAutopicks(result[eventID])
-                jkw = JackknifeWidget(self, self.canvas_dict_wadatijack[eventID]['jackknife'])
+                jkw = CanvasWidget(self, self.canvas_dict_wadatijack[eventID]['jackknife'])
+                wdw = CanvasWidget(self, self.canvas_dict_wadatijack[eventID]['wadati'])
                 self.apw.add_plot_widget(jkw, 'Jackknife', eventID)
+                self.apw.add_plot_widget(wdw, 'Wadati', eventID)
             self.apw.update_plots()
             self.drawPicks(picktype='auto')
             self.draw()
@@ -2126,6 +2130,7 @@ class MainWindow(QMainWindow):
         stime = self.getStime()
 
         for phase in stat_picks:
+            if phase == 'SPt': continue # wadati SP time
             picks = stat_picks[phase]
             if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
@@ -2470,6 +2475,8 @@ class MainWindow(QMainWindow):
                 if ma_props[ma]:
                     for picks in ma_props[ma].values():
                         for phasename, pick in picks.items():
+                            if not type(pick) in [dict, AttribDict]:
+                                continue
                             if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
 

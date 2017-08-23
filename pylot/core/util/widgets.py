@@ -1701,7 +1701,7 @@ class PickDlg(QDialog):
         else:
             ylims = self.getPlotWidget().getYLims()
         if self.getPicks(picktype):
-            if phase is not None:
+            if phase is not None and not phase == 'SPt':
                 if (type(self.getPicks(picktype)[phase]) is dict
                     or type(self.getPicks(picktype)[phase]) is AttribDict):
                     picks = self.getPicks(picktype)[phase]
@@ -2012,7 +2012,7 @@ class PhasePlotWidget(FigureCanvas):
         super(PhasePlotWidget, self).__init__(self.fig)
 
 
-class JackknifeWidget(QWidget):
+class CanvasWidget(QWidget):
     '''
     '''
 
@@ -2152,6 +2152,8 @@ class AutoPickWidget(QWidget):
                 eventlist = [eventlist]
             tooltip=''
             for index, event in enumerate(eventlist):
+                if not event:
+                    continue
                 tooltip += '{}'.format(event.pylot_id)
                 if not index + 1 == len(eventlist):
                     tooltip += '\n'
@@ -2167,6 +2169,8 @@ class AutoPickWidget(QWidget):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
         self.start_button.setEnabled(bool)
+        self.eventbox.setEnabled(bool)
+        self.button_clear.setEnabled(bool)
 
 
 class TuneAutopicker(QWidget):
