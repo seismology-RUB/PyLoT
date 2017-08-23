@@ -1910,8 +1910,8 @@ class MainWindow(QMainWindow):
             return
 
         self.pickoptions =[('current event', self.get_current_event),
-                           ('reference set events', self.get_ref_events),
-                           ('test set events', self.get_test_events),
+                           ('tune events', self.get_ref_events),
+                           ('test events', self.get_test_events),
                            ('all (picked) events', self.get_manu_picked_events),
                            ('all events', self.get_all_events)]
 
@@ -2001,7 +2001,8 @@ class MainWindow(QMainWindow):
                     continue
                 event.addAutopicks(result[eventID])
                 jkw = JackknifeWidget(self, self.canvas_dict_wadatijack[eventID]['jackknife'])
-                self.apw.insert_plot_widget(jkw, 'Jackknife', eventID)
+                self.apw.add_plot_widget(jkw, 'Jackknife', eventID)
+            self.apw.update_plots()
             self.drawPicks(picktype='auto')
             self.draw()
 

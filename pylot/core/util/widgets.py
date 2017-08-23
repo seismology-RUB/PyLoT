@@ -12,6 +12,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import time
 
 import numpy as np
 
@@ -2032,6 +2033,8 @@ class AutoPickWidget(QWidget):
         self.pickoptions = pickoptions
         self.setupUi()
         self.connect_buttons()
+        self.reinitEvents2plot()
+        self.setWindowTitle('Autopick events interactively')
         # set initial size
         self.resize(1280, 720)
 
@@ -2047,6 +2050,9 @@ class AutoPickWidget(QWidget):
         self.init_log_layout()
         self.init_plot_layout()
 
+        self.eventbox = QtGui.QComboBox()
+        self.button_clear = QtGui.QPushButton('Clear')
+
         self.main_layout.insertWidget(1, self.main_splitter)
 
         self.main_layout.setStretch(0, 0)
@@ -2056,6 +2062,7 @@ class AutoPickWidget(QWidget):
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.start_picker)
+        self.button_clear.clicked.connect(self.reinitEvents2plot)
 
     def init_checkboxes(self):
         self.rb_layout = QtGui.QHBoxLayout()
@@ -2080,12 +2087,13 @@ class AutoPickWidget(QWidget):
         self.main_layout.insertLayout(0, self.rb_layout)
 
     def init_plot_layout(self):
+        # init tab widget
         self.tab_plots = QtGui.QTabWidget()
         self.gb_plots = QtGui.QGroupBox('Plots')
         self.gb_plots.setMinimumSize(100, 100)
         self.main_splitter.insertWidget(1, self.gb_plots)
         self.plot_layout = QtGui.QVBoxLayout()
-        self.plot_layout.addWidget(self.tab_plots)
+        self.plot_layout.insertWidget(1, self.tab_plots)
         self.gb_plots.setLayout(self.plot_layout)
 
     def init_log_layout(self):
@@ -2098,8 +2106,44 @@ class AutoPickWidget(QWidget):
         vl.addWidget(widget)
         self.gb_log.setLayout(vl)
 
-    def insert_plot_widget(self, widget, key, eventID):
-        self.tab_plots.addTab(widget, str(key+eventID))
+    def add_plot_widget(self, widget, key, eventID):
+        eventID += ' [picked: {}]'.format(time.strftime('%X %x %z'))
+        if not eventID in self.events2plot.keys():
+            self.events2plot[eventID] = {}
+        self.events2plot[eventID][key] = widget
+
+    def generate_combobox(self):
+        self.eventbox.clear()
+        for eventID, widgets in self.events2plot.items():
+            self.eventbox.addItem(str(eventID), widgets)
+        self.eventbox.currentIndexChanged.connect(self.draw_plots)
+        self.draw_plots()
+
+    def draw_plots(self, index=0):
+        self.refresh_plot_tabs()
+        widgets = self.eventbox.itemData(index)
+        if not widgets:
+            return
+        for key, widget in widgets.items():
+            self.tab_plots.addTab(widget, str(key))
+
+    def update_plots(self):
+        self.refresh_plot_tabs()
+        if len(self.events2plot) > 0:
+            self.eventbox_layout = QtGui.QHBoxLayout()
+            self.generate_combobox()
+            self.eventbox_layout.addWidget(self.eventbox)
+            self.eventbox_layout.addWidget(self.button_clear)
+            self.eventbox_layout.setStretch(0, 1)
+            self.plot_layout.insertLayout(0, self.eventbox_layout)
+
+    def reinitEvents2plot(self):
+        self.events2plot = {}
+        self.eventbox.clear()
+        self.refresh_plot_tabs()
+
+    def refresh_plot_tabs(self):
+        self.tab_plots.clear()
 
     def refresh_tooltips(self):
         for key, func in self.pickoptions:
@@ -2116,7 +2160,7 @@ class AutoPickWidget(QWidget):
             self.rb_dict[key].setToolTip(tooltip)
 
     def start_picker(self):
-        self.tab_plots.clear()
+        self.refresh_plot_tabs()
         self.start.emit()
 
     def enable(self, bool):
