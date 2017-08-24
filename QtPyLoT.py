@@ -1903,6 +1903,8 @@ class MainWindow(QMainWindow):
         '''
         self.init_canvas_dict()
         self.tap.fill_tabs(picked=True)
+        for canvas in self.canvas_dict.values():
+            canvas.setZoomBorders2content()
 
     def autoPick(self):
         autosave = self.get_current_event_path()

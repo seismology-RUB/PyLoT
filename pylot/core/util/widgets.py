@@ -600,7 +600,9 @@ class PylotCanvas(FigureCanvas):
         if not figure:
             figure = Figure()
             # create axes
-        self.axes = figure.add_subplot(111)
+            self.ax = figure.add_subplot(111)
+
+        self.axes = figure.axes
         self.figure = figure
         self.figure.set_facecolor((.92, .92, .92))
         # attribute plotdict is a dictionary connecting position and a name
@@ -609,7 +611,7 @@ class PylotCanvas(FigureCanvas):
         super(PylotCanvas, self).__init__(self.figure)
         if multicursor:
             # add a cursor for station selection
-            self.multiCursor = MultiCursor(self.figure.canvas, (self.axes,),
+            self.multiCursor = MultiCursor(self.figure.canvas, self.axes,
                                            horizOn=True, useblit=True,
                                            color='m', lw=1)
         # update labels of the entire widget
@@ -725,7 +727,7 @@ class PylotCanvas(FigureCanvas):
         self.draw()
 
     def getAxes(self):
-        return self.axes
+        return self.axes[0]
 
     def getXLims(self):
         return self.getAxes().get_xlim()
@@ -803,6 +805,8 @@ class PylotCanvas(FigureCanvas):
         self.draw()
 
     def setZoomBorders2content(self):
+        if not self.axes:
+            return
         xlims = self.getXLims()
         ylims = self.getYLims()
 
@@ -1894,7 +1898,7 @@ class PickDlg(QDialog):
         self.drawPhaseText()
 
     def panPress(self, gui_event):
-        ax = self.getPlotWidget().axes
+        ax = self.getPlotWidget().axes[0]
         if gui_event.inaxes != ax: return
         self.cur_xlim = ax.get_xlim()
         self.cur_ylim = ax.get_ylim()
@@ -1902,15 +1906,15 @@ class PickDlg(QDialog):
         self.xpress, self.ypress = self.press
 
     def panRelease(self, gui_event):
-        ax = self.getPlotWidget().axes
+        figure = self.getPlotWidget().figure
         self.press = None
         self.refreshPhaseText()
         self.refreshArrivalsText()
-        ax.figure.canvas.draw()
+        figure.canvas.draw()
 
     def panMotion(self, gui_event):
         if self.press is None: return
-        ax = self.getPlotWidget().axes
+        ax = self.getPlotWidget().axes[0]
         if gui_event.inaxes != ax: return
         dx = gui_event.xdata - self.xpress
         dy = gui_event.ydata - self.ypress
