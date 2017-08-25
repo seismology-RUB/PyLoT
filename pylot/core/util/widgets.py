@@ -23,7 +23,7 @@ except:
 
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID
+    identifyPhaseID, check4rotated
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
