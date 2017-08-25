@@ -1146,6 +1146,30 @@ def getQualityFromUncertainty(uncertainty, Errors):
 
     return quality
 
+def removePicksAbove(pickDic, minWeight):
+    '''remove picks from pick dicitonary with a weight > minweight'''
+    newdic = {}
+    for event in pickDic.keys():
+        newdic[event] = {}
+
+    for eventKey, eventDic in pickDic.items():
+        for station, phases in eventDic.items():
+            if phases['P']['weight'] < minWeight or phases['S']['weight'] < minWeight:
+                # dont append stations that will be empty to output dict
+                newdic[eventKey][station] = {}
+                if len(phases) > 2:
+                    # copy over other values beside P/S information
+                    additional_info = phases.copy()
+                    if 'P' in phases.keys():
+                        additional_info.pop('P')
+                    if 'S' in phases.keys():
+                        additional_info.pop('S')
+                    newdic[eventKey][station].update(additional_info)
+            for phasename, phaseinfo in phases.items():
+                if phasename in ('P', 'S') and phaseinfo['weight'] < minWeight:
+                    newdic[eventKey][station].update({phasename: phaseinfo})
+    return newdic
+
 if __name__ == '__main__':
     import doctest
 

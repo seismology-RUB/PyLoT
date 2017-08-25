@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, removePicksAbove
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -1999,6 +1999,7 @@ class MainWindow(QMainWindow):
     def finalizeAutoPick(self, result):
         self.apw.enable(True)
         if result:
+            result = removePicksAbove(result, 3)
             self.init_canvas_dict_wadatijack()
             for eventID in result.keys():
                 event = self.get_event_from_id(eventID)
