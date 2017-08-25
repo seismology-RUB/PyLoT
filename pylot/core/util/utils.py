@@ -760,7 +760,7 @@ def check4rotated(data, metadata=None):
                 z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
                                           wfstream[1], azimuts[1], dips[1],
                                           wfstream[2], azimuts[2], dips[2])
-                print('checkrotated: rotated station {} to ZNE'.format(trace_id))
+                print('check4rotated: rotated station {} to ZNE'.format(trace_id))
                 z_index = dips.index(min(dips)) # get z-trace index (dip is measured from 0 to -90
                 wfstream[z_index].data = z
                 wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
