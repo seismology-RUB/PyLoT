@@ -12,6 +12,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import time
 
 import numpy as np
 
@@ -22,7 +23,7 @@ except:
 
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    check4rotated
+    identifyPhaseID
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -45,7 +46,7 @@ from obspy.taup.utils import get_phase_names
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
-    getResolutionWindow, getQualityfromUncertainty
+    getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
@@ -119,7 +120,7 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
-class ComparisonDialog(QDialog):
+class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None):
         self._data = c
         self._stats = c.stations
@@ -129,8 +130,9 @@ class ComparisonDialog(QDialog):
                              histCheckBox=None)
         self._phases = 'PS'
         self._plotprops = dict(station=list(self.stations)[0], phase=list(self.phases)[0])
-        super(ComparisonDialog, self).__init__(parent)
+        super(ComparisonWidget, self).__init__(parent, 1)
         self.setupUI()
+        self.resize(1280, 720)
         self.plotcomparison()
 
     def setupUI(self):
@@ -162,17 +164,12 @@ class ComparisonDialog(QDialog):
         _toolbar.addWidget(_phases_combobox)
         _toolbar.addWidget(_hist_checkbox)
 
-        _buttonbox = QDialogButtonBox(QDialogButtonBox.Close)
-
         _innerlayout.addWidget(self.canvas)
-        _innerlayout.addWidget(_buttonbox)
 
         _outerlayout.addWidget(_toolbar)
         _outerlayout.addLayout(_innerlayout)
 
-        _buttonbox.rejected.connect(self.reject)
-
-        # finally layout the entire dialog
+        # finally layout the entire widget
         self.setLayout(_outerlayout)
 
     @property
@@ -271,6 +268,10 @@ class ComparisonDialog(QDialog):
         # _axes.cla()
         station = self.plotprops['station']
         phase = self.plotprops['phase']
+        if not phase in self.data.comparison[station]:
+            _axes.set_title('No pick found for phase {}.'.format(phase))
+            self.canvas.draw()
+            return
         pdf = self.data.comparison[station][phase]
         x, y, std, exp = pdf.axis, pdf.data, pdf.standard_deviation(), \
                          pdf.expectation()
@@ -1286,7 +1287,7 @@ class PickDlg(QDialog):
         self.currentPhase = str(self.s_button.text())
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def set_button_color(self, button, color=None):
         if type(color) == QtGui.QColor:
@@ -1700,7 +1701,7 @@ class PickDlg(QDialog):
         else:
             ylims = self.getPlotWidget().getYLims()
         if self.getPicks(picktype):
-            if phase is not None:
+            if phase is not None and not phase == 'SPt':
                 if (type(self.getPicks(picktype)[phase]) is dict
                     or type(self.getPicks(picktype)[phase]) is AttribDict):
                     picks = self.getPicks(picktype)[phase]
@@ -1715,10 +1716,10 @@ class PickDlg(QDialog):
 
         # get quality classes
         if self.getPhaseID(phase) == 'P':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
             phaseID = 'P'
         elif self.getPhaseID(phase) == 'S':
-            quality = getQualityfromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
             phaseID = 'S'
 
         mpp = picks['mpp'] - self.getStartTime()
@@ -2009,6 +2010,167 @@ class PhasePlotWidget(FigureCanvas):
         self.ax = self.fig.add_subplot(111, projection='polar')
         self.new = True
         super(PhasePlotWidget, self).__init__(self.fig)
+
+
+class CanvasWidget(QWidget):
+    '''
+    '''
+
+    def __init__(self, parent, canvas):
+        QtGui.QWidget.__init__(self, parent)#, 1)
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.main_layout.addWidget(canvas)
+
+
+class AutoPickWidget(QWidget):
+    start = Signal()
+    '''
+    '''
+
+    def __init__(self, parent, pickoptions):
+        QtGui.QWidget.__init__(self, parent, 1)
+        self.pickoptions = pickoptions
+        self.setupUi()
+        self.connect_buttons()
+        self.reinitEvents2plot()
+        self.setWindowTitle('Autopick events interactively')
+        # set initial size
+        self.resize(1280, 720)
+
+    def setupUi(self):
+        # init main layout
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        # init main splitter
+        self.main_splitter = QtGui.QSplitter()
+        self.main_splitter.setChildrenCollapsible(False)
+
+        self.init_checkboxes()
+        self.init_log_layout()
+        self.init_plot_layout()
+
+        self.eventbox = QtGui.QComboBox()
+        self.button_clear = QtGui.QPushButton('Clear')
+
+        self.main_layout.insertWidget(1, self.main_splitter)
+
+        self.main_layout.setStretch(0, 0)
+        self.main_layout.setStretch(1, 1)
+        self.main_splitter.setStretchFactor(0, 1)
+        self.main_splitter.setStretchFactor(1, 2)
+
+    def connect_buttons(self):
+        self.start_button.clicked.connect(self.start_picker)
+        self.button_clear.clicked.connect(self.reinitEvents2plot)
+
+    def init_checkboxes(self):
+        self.rb_layout = QtGui.QHBoxLayout()
+
+        self.rb_dict = {}
+
+        self.start_button = QtGui.QPushButton('Start')
+
+        for index, (key, func) in enumerate(self.pickoptions):
+            rb = QtGui.QRadioButton(key)
+            if index == 0:
+                rb.setChecked(True)
+            self.rb_dict[key] = rb
+            self.rb_layout.insertWidget(index, rb)
+            self.rb_layout.setStretch(index, 0)
+
+        self.rb_layout.addWidget(self.start_button)
+
+        self.rb_layout.addWidget(QtGui.QWidget())
+        self.rb_layout.setStretch(len(self.pickoptions)+1, 1)
+
+        self.main_layout.insertLayout(0, self.rb_layout)
+
+    def init_plot_layout(self):
+        # init tab widget
+        self.tab_plots = QtGui.QTabWidget()
+        self.gb_plots = QtGui.QGroupBox('Plots')
+        self.gb_plots.setMinimumSize(100, 100)
+        self.main_splitter.insertWidget(1, self.gb_plots)
+        self.plot_layout = QtGui.QVBoxLayout()
+        self.plot_layout.insertWidget(1, self.tab_plots)
+        self.gb_plots.setLayout(self.plot_layout)
+
+    def init_log_layout(self):
+        self.gb_log = QtGui.QGroupBox('Log')
+        self.gb_log.setMinimumSize(100, 100)
+        self.main_splitter.insertWidget(0, self.gb_log)
+
+    def insert_log_widget(self, widget):
+        vl = QtGui.QVBoxLayout()
+        vl.addWidget(widget)
+        self.gb_log.setLayout(vl)
+
+    def add_plot_widget(self, widget, key, eventID):
+        eventID += ' [picked: {}]'.format(time.strftime('%X %x %z'))
+        if not eventID in self.events2plot.keys():
+            self.events2plot[eventID] = {}
+        self.events2plot[eventID][key] = widget
+
+    def generate_combobox(self):
+        self.eventbox.clear()
+        for eventID, widgets in self.events2plot.items():
+            self.eventbox.addItem(str(eventID), widgets)
+        self.eventbox.currentIndexChanged.connect(self.draw_plots)
+        self.draw_plots()
+
+    def draw_plots(self, index=0):
+        self.refresh_plot_tabs()
+        widgets = self.eventbox.itemData(index)
+        if not widgets:
+            return
+        for key, widget in widgets.items():
+            self.tab_plots.addTab(widget, str(key))
+
+    def update_plots(self):
+        self.refresh_plot_tabs()
+        if len(self.events2plot) > 0:
+            self.eventbox_layout = QtGui.QHBoxLayout()
+            self.generate_combobox()
+            self.eventbox_layout.addWidget(self.eventbox)
+            self.eventbox_layout.addWidget(self.button_clear)
+            self.eventbox_layout.setStretch(0, 1)
+            self.plot_layout.insertLayout(0, self.eventbox_layout)
+
+    def reinitEvents2plot(self):
+        self.events2plot = {}
+        self.eventbox.clear()
+        self.refresh_plot_tabs()
+
+    def refresh_plot_tabs(self):
+        self.tab_plots.clear()
+
+    def refresh_tooltips(self):
+        for key, func in self.pickoptions:
+            eventlist = func()
+            if not type(eventlist) == list:
+                eventlist = [eventlist]
+            tooltip=''
+            for index, event in enumerate(eventlist):
+                if not event:
+                    continue
+                tooltip += '{}'.format(event.pylot_id)
+                if not index + 1 == len(eventlist):
+                    tooltip += '\n'
+            if not tooltip:
+                tooltip = 'No events for this selection'
+            self.rb_dict[key].setToolTip(tooltip)
+
+    def start_picker(self):
+        self.refresh_plot_tabs()
+        self.start.emit()
+
+    def enable(self, bool):
+        for rb in self.rb_dict.values():
+            rb.setEnabled(bool)
+        self.start_button.setEnabled(bool)
+        self.eventbox.setEnabled(bool)
+        self.button_clear.setEnabled(bool)
 
 
 class TuneAutopicker(QWidget):
@@ -2343,7 +2505,7 @@ class TuneAutopicker(QWidget):
         args = {'parameter': self.parameter,
                 'station': station,
                 'fnames': 'None',
-                'eventid': self.get_current_event_fp(),
+                'eventid': [self.get_current_event_fp()],
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
                 'locflag': 0,
@@ -2369,7 +2531,7 @@ class TuneAutopicker(QWidget):
             info = self.ap_thread._executedErrorInfo
             self._warn(msg, info)
             return
-        self.pylot_picks = self.ap_thread.data
+        self.pylot_picks = self.ap_thread.data[self.get_current_event_name()]
         if not self.pylot_picks:
             self._warn('No picks found. See terminal output.')
             return

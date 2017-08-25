@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityfromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -74,12 +74,12 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, identifyPhase, loopIdentifyPhase, remove_underscores, check4doubled, check4rotated
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonDialog, TuneAutopicker, PylotParaBox, AutoPickDlg
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -865,7 +865,7 @@ class MainWindow(QMainWindow):
         return fnames
 
     def getPhaseID(self, phase):
-        return identifyPhase(loopIdentifyPhase(phase))
+        return identifyPhaseID(phase)
 
     def get_current_event(self, eventbox=None):
         '''
@@ -1025,6 +1025,11 @@ class MainWindow(QMainWindow):
         :param: select_events, can be 'all', 'ref'
         :type: str
         '''
+
+        # if pick widget is open, refresh tooltips as well
+        if hasattr(self, 'apw'):
+            self.apw.refresh_tooltips()
+
         if not eventBox:
             eventBox = self.eventBox
         index = eventBox.currentIndex()
@@ -1048,12 +1053,23 @@ class MainWindow(QMainWindow):
 
         for id, event in enumerate(self.project.eventlist):
             event_path = event.path
-            event_npicks = 0
-            event_nautopicks = 0
-            if event.pylot_picks:
-                event_npicks = len(event.pylot_picks)
-            if event.pylot_autopicks:
-                event_nautopicks = len(event.pylot_autopicks)
+            phaseErrors = {'P': self._inputs['timeerrorsP'],
+                           'S': self._inputs['timeerrorsS']}
+
+            ma_props = {'manual': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            ma_count = {'manual': 0,
+                        'auto': 0}
+
+            for ma in ma_props.keys():
+                if ma_props[ma]:
+                    for picks in ma_props[ma].values():
+                        for phasename, pick in picks.items():
+                            if not type(pick) in [dict, AttribDict]:
+                                continue
+                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                                ma_count[ma] += 1
+
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
@@ -1064,9 +1080,9 @@ class MainWindow(QMainWindow):
             #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
-            item_nmp = QtGui.QStandardItem(str(event_npicks))
+            item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QStandardItem(str(event_nautopicks))
+            item_nap = QtGui.QStandardItem(str(ma_count['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QStandardItem()  # str(event_ref))
             item_test = QtGui.QStandardItem()  # str(event_test))
@@ -1215,9 +1231,13 @@ class MainWindow(QMainWindow):
 
     def comparePicks(self):
         if self.check4Comparison():
-            co = Comparison(auto=self.getPicks('auto'), manu=self.getPicks())
-            compare_dlg = ComparisonDialog(co, self)
-            compare_dlg.exec_()
+            autopicks = excludeQualityClasses(self.getPicks('auto'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            manupicks = excludeQualityClasses(self.getPicks('manual'), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            co = Comparison(auto=autopicks, manu=manupicks)
+            compare_dlg = ComparisonWidget(co, self)
+            compare_dlg.show()
 
     def getPlotWidget(self):
         return self.dataPlot
@@ -1813,16 +1833,8 @@ class MainWindow(QMainWindow):
         self.listWidget.addItem(text)
         self.listWidget.scrollToBottom()
 
-    def tune_autopicker(self):
-        '''
-        Initiates TuneAutopicker widget use to interactively
-        tune parameters for autopicking algorithm.
-        '''
-        # figures and canvas have to be iniated from the main GUI
-        # thread to prevent handling of QPixmap objects outside of
-        # the main thread
+    def init_fig_dict(self):
         self.fig_dict = {}
-        self.canvas_dict = {}
         self.fig_keys = [
             'mainFig',
             'aicFig',
@@ -1834,12 +1846,45 @@ class MainWindow(QMainWindow):
             'el_S1pick',
             'el_S2pick',
             'refSpick',
-            'aicARHfig',
+            'aicARHfig'
         ]
         for key in self.fig_keys:
             fig = Figure()
             self.fig_dict[key] = fig
 
+    def init_canvas_dict(self):
+        self.canvas_dict = {}
+        for key in self.fig_keys:
+            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+
+    def init_fig_dict_wadatijack(self, eventIDs):
+        self.fig_dict_wadatijack = {}
+        self.fig_keys_wadatijack = [
+            'jackknife',
+            'wadati'
+        ]
+        for eventID in eventIDs:
+            self.fig_dict_wadatijack[eventID] = {}
+            for key in self.fig_keys_wadatijack:
+                fig = Figure()
+                self.fig_dict_wadatijack[eventID][key] = fig
+
+    def init_canvas_dict_wadatijack(self):
+        self.canvas_dict_wadatijack = {}
+        for eventID in self.fig_dict_wadatijack.keys():
+            self.canvas_dict_wadatijack[eventID] = {}
+            for key in self.fig_keys_wadatijack:
+                self.canvas_dict_wadatijack[eventID][key] = FigureCanvas(self.fig_dict_wadatijack[eventID][key])
+
+    def tune_autopicker(self):
+        '''
+        Initiates TuneAutopicker widget use to interactively
+        tune parameters for autopicking algorithm.
+        '''
+        # figures and canvas have to be iniated from the main GUI
+        # thread to prevent handling of QPixmap objects outside of
+        # the main thread
+        self.init_fig_dict()
         #if not self.tap:
         # init TuneAutopicker object
         self.tap = TuneAutopicker(self)
@@ -1858,8 +1903,7 @@ class MainWindow(QMainWindow):
         '''
         Create and fill TuneAutopicker tabs with figure canvas.
         '''
-        for key in self.fig_keys:
-            self.canvas_dict[key] = FigureCanvas(self.fig_dict[key])
+        self.init_canvas_dict()
         self.tap.fill_tabs(picked=True)
 
     def autoPick(self):
@@ -1868,35 +1912,78 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "PyLoT Warning",
                                 "No autoPyLoT output declared!")
             return
-        event = self.get_current_event()
-        self.saveData(event, event.path, outformats=['.xml'])
+
+        self.pickoptions =[('current event', self.get_current_event),
+                           ('tune events', self.get_ref_events),
+                           ('test events', self.get_test_events),
+                           ('all (picked) events', self.get_manu_picked_events),
+                           ('all events', self.get_all_events)]
+
         self.listWidget = QListWidget()
         self.setDirty(True)
-        self.logDockWidget = QDockWidget("AutoPickLog", self)
-        self.logDockWidget.setObjectName("LogDockWidget")
-        self.logDockWidget.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.logDockWidget.setWidget(self.listWidget)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
+        self.apw = AutoPickWidget(self, self.pickoptions)
+        self.apw.insert_log_widget(self.listWidget)
+        self.apw.refresh_tooltips()
+
+        # self.logDockWidget = QDockWidget("AutoPickLog", self)
+        # self.logDockWidget.setObjectName("LogDockWidget")
+        # self.logDockWidget.setAllowedAreas(
+        #     Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        # self.logDockWidget.setWidget(self.listWidget)
+        # self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
         # self.addListItem('Loading default values from PyLoT-input file %s'
         #                  % self.infile)
 
+        self.apw.start.connect(self.start_autopick)
+        self.apw.show()
+
+    def start_autopick(self):
+        for key, func in self.pickoptions:
+            if self.apw.rb_dict[key].isChecked():
+                # if radio button is checked break for loop and use func
+                break
+
+        events = func()
+        if not type(events) == list:
+            events = [events]
+        eventPaths = self.get_event_paths(events)
+        eventIDs = self.get_event_ids(events)
+
+        self.init_fig_dict_wadatijack(eventIDs)
+
+        if not eventPaths:
+            self.addListItem("No events found for '{}'".format(key))
+            return
+        else:
+            self.addListItem("Picking the following events ({}):".format(key))
+            for eventID in eventPaths:
+                self.addListItem(str(eventID))
+
+        self.apw.enable(False)
+
+        # export current picks etc.
+        self.exportAllEvents(['.xml'])
+
+        # define arguments for picker
         args = {'parameter': self._inputs,
                 'station': 'all',
                 'fnames': 'None',
-                'eventid': self.get_current_event_path(),
+                'eventid': eventPaths,
                 'iplot': 0,
                 'fig_dict': None,
+                'fig_dict_wadatijack': self.fig_dict_wadatijack,
                 'locflag': 0}
 
+        # init pick thread
         self.mp_thread = QtCore.QThreadPool()
         self.mp_worker = Worker(autoPyLoT, args, redirect_stdout=True)
-        self.mp_thread.start(self.mp_worker)
 
         self.addListItem(str(self._inputs))
 
         self.mp_worker.signals.message.connect(self.addListItem)
         self.mp_worker.signals.result.connect(self.finalizeAutoPick)
+
+        self.mp_thread.start(self.mp_worker)
 
     def autoPickProject(self):
         if not self.apd_local:
@@ -1909,11 +1996,62 @@ class MainWindow(QMainWindow):
         self.apd_sge.show()
 
     def finalizeAutoPick(self, result):
+        self.apw.enable(True)
         if result:
-            event = self.get_current_event()
-            event.addAutopicks(result)
+            self.init_canvas_dict_wadatijack()
+            for eventID in result.keys():
+                event = self.get_event_from_id(eventID)
+                if not event:
+                    continue
+                event.addAutopicks(result[eventID])
+                jkw = CanvasWidget(self, self.canvas_dict_wadatijack[eventID]['jackknife'])
+                wdw = CanvasWidget(self, self.canvas_dict_wadatijack[eventID]['wadati'])
+                self.apw.add_plot_widget(jkw, 'Jackknife', eventID)
+                self.apw.add_plot_widget(wdw, 'Wadati', eventID)
+            self.apw.update_plots()
             self.drawPicks(picktype='auto')
             self.draw()
+
+    def get_event_from_id(self, eventID):
+        for event in self.project.eventlist:
+            if event.pylot_id == eventID:
+                return event
+
+    def get_event_paths(self, eventlist):
+        eventPaths = []
+        for event in eventlist:
+            eventPaths.append(event.path)
+        return eventPaths
+
+    def get_event_ids(self, eventlist):
+        eventIDs = []
+        for event in eventlist:
+            eventIDs.append(event.pylot_id)
+        return eventIDs
+
+    def get_all_events(self):
+        return self.project.eventlist
+
+    def get_ref_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if event.isRefEvent():
+                events.append(event)
+        return events
+
+    def get_test_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if event.isTestEvent():
+                events.append(event)
+        return events
+
+    def get_manu_picked_events(self):
+        events = []
+        for event in self.project.eventlist:
+            if len(event.pylot_picks) > 0:
+                events.append(event)
+        return events
 
     def addPicks(self, station, picks, type='manual'):
         stat_picks = self.getPicksOnStation(station, type)
@@ -1994,16 +2132,17 @@ class MainWindow(QMainWindow):
         stime = self.getStime()
 
         for phase in stat_picks:
+            if phase == 'SPt': continue # wadati SP time
             picks = stat_picks[phase]
             if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
 
             # get quality classes
             if self.getPhaseID(phase) == 'P':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
                 phaseID = 'P'
             elif self.getPhaseID(phase) == 'S':
-                quality = getQualityfromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
                 phaseID = 'S'
 
             mpp = picks['mpp'] - stime
@@ -2326,12 +2465,22 @@ class MainWindow(QMainWindow):
         # iterate through eventlist and generate items for table rows
         self.project._table = []
         for index, event in enumerate(eventlist):
-            event_npicks = 0
-            event_nautopicks = 0
-            if event.pylot_picks:
-                event_npicks = len(event.pylot_picks)
-            if event.pylot_autopicks:
-                event_nautopicks = len(event.pylot_autopicks)
+            phaseErrors = {'P': self._inputs['timeerrorsP'],
+                           'S': self._inputs['timeerrorsS']}
+
+            ma_props = {'manual': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            ma_count = {'manual': 0,
+                        'auto': 0}
+
+            for ma in ma_props.keys():
+                if ma_props[ma]:
+                    for picks in ma_props[ma].values():
+                        for phasename, pick in picks.items():
+                            if not type(pick) in [dict, AttribDict]:
+                                continue
+                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                                ma_count[ma] += 1
 
             # init table items for current row
             item_delete = QtGui.QTableWidgetItem()
@@ -2342,9 +2491,9 @@ class MainWindow(QMainWindow):
             item_lon = QtGui.QTableWidgetItem()
             item_depth = QtGui.QTableWidgetItem()
             item_mag = QtGui.QTableWidgetItem()
-            item_nmp = QtGui.QTableWidgetItem(str(event_npicks))
+            item_nmp = QtGui.QTableWidgetItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QTableWidgetItem(str(event_nautopicks))
+            item_nap = QtGui.QTableWidgetItem(str(ma_count['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()

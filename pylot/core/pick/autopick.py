@@ -18,13 +18,13 @@ from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine, gen_Pool, identifyPhase, loopIdentifyPhase, \
-    real_Bool
+from pylot.core.util.utils import getPatternLine, gen_Pool,\
+    real_Bool, identifyPhaseID
 
 from obspy.taup import TauPyModel
 
 
-def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, origin=None):
+def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
     stations = []
     all_onsets = {}
     input_tuples = []
@@ -76,14 +76,15 @@ def autopickevent(data, param, iplot=0, fig_dict=None, ncores=0, metadata=None, 
             pick.pop('station')
             all_onsets[station] = pick
 
-    all_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
-    return all_onsets
+    #return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, iplot)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, 1, fig_dict_wadatijack)
+    #return jk_checked_onsets
     # check S-P times (Wadati)
-    return wadaticheck(jk_checked_onsets, wdttolerance, iplot)
+    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
+    return wadationsets
 
 
 def call_autopickstation(input_tuple):
@@ -255,7 +256,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     phases = {'P': [],
                               'S': []}
                     for arr in arrivals:
-                        phases[identifyPhase(loopIdentifyPhase(arr.phase.name))].append(arr)
+                        phases[identifyPhaseID(arr.phase.name)].append(arr)
 
                     # get first P and S onsets from arrivals list
                     arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key = lambda t: t[1])
@@ -984,9 +985,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
-        lpickP += timeerrorsP[0]
+        lpickP += zdat[0].stats.delta
     if epickP is not None and epickP == mpickP:
-        epickP -= timeerrorsP[0]
+        epickP -= zdat[0].stats.delta
     if mpickP is not None and epickP is not None and lpickP is not None:
         lpickP = zdat[0].stats.starttime + lpickP
         epickP = zdat[0].stats.starttime + epickP
@@ -998,27 +999,27 @@ def autopickstation(wfstream, pickparam, verbose=False,
         epickP = zdat[0].stats.starttime - timeerrorsP[3]
         mpickP = zdat[0].stats.starttime
 
+    if edat:
+        hdat = edat[0]
+    elif ndat:
+        hdat = ndat[0]
+    else:
+        return
+
     if lpickS is not None and lpickS == mpickS:
-        lpickS += timeerrorsS[0]
+        lpickS += hdat.stats.delta
     if epickS is not None and epickS == mpickS:
-        epickS -= timeerrorsS[0]
+        epickS -= hdat.stats.delta
     if mpickS is not None and epickS is not None and lpickS is not None:
-        lpickS = edat[0].stats.starttime + lpickS
-        epickS = edat[0].stats.starttime + epickS
-        mpickS = edat[0].stats.starttime + mpickS
+        lpickS = hdat.stats.starttime + lpickS
+        epickS = hdat.stats.starttime + epickS
+        mpickS = hdat.stats.starttime + mpickS
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        if edat:
-            lpickS = edat[0].stats.starttime + timeerrorsS[3]
-            epickS = edat[0].stats.starttime - timeerrorsS[3]
-            mpickS = edat[0].stats.starttime
-        elif ndat:
-            lpickS = ndat[0].stats.starttime + timeerrorsS[3]
-            epickS = ndat[0].stats.starttime - timeerrorsS[3]
-            mpickS = ndat[0].stats.starttime
-        else:
-            return
+        lpickS = hdat.stats.starttime + timeerrorsS[3]
+        epickS = hdat.stats.starttime - timeerrorsS[3]
+        mpickS = hdat.stats.starttime
 
     # create dictionary
     # for P phase
@@ -1028,12 +1029,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                  snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
                  Mw=None, picker=picker, marked=Pmarker)
     # add S phase
-    try:
-        ccode = edat[0].stats.channel
-        ncode = edat[0].stats.network
-    except:
-        ccode = ndat[0].stats.channel
-        ncode = ndat[0].stats.network
+    ccode = hdat.stats.channel
+    ncode = hdat.stats.network
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary

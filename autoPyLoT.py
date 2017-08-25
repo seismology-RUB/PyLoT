@@ -78,12 +78,17 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     inputfile = real_None(inputfile)
     eventid = real_None(eventid)
 
+    fig_dict = None
+    fig_dict_wadatijack = None
+
     locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
             parameter = input_dict['parameter']
         if 'fig_dict' in input_dict:
             fig_dict = input_dict['fig_dict']
+        if 'fig_dict_wadatijack' in input_dict:
+            fig_dict_wadatijack = input_dict['fig_dict_wadatijack']
         if 'station' in input_dict:
             station = input_dict['station']
         if 'fnames' in input_dict:
@@ -179,13 +184,14 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 evID = os.path.split(eventid)[-1]
                 locflag = 2
         else:
-            # started in tune mode
+            # started in tune or interactive mode
             datapath = os.path.join(parameter['rootpath'],
                                     parameter['datapath'])
             events = []
-            events.append(os.path.join(datapath,
-                                       parameter['database'],
-                                       eventid))
+            for eventID in eventid:
+                events.append(os.path.join(datapath,
+                                           parameter['database'],
+                                           eventID))
 
         if not events:
             print('autoPyLoT: No events given. Return!')
@@ -196,6 +202,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             eventpath = eventpath.replace(SEPARATOR, '/')
             events[index] = eventpath
 
+        allpicks = {}
         glocflag = locflag
         for eventpath in events:
             evID = os.path.split(eventpath)[-1]
@@ -260,14 +267,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
-            if input_dict:
-                if 'fig_dict' in input_dict:
-                    fig_dict = input_dict['fig_dict']
-                    picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
-                                          ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
-            else:
-                picks = autopickevent(wfdat, parameter, iplot=iplot,
-                                      ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
+            fdwj = None
+            if fig_dict_wadatijack:
+                fdwj = fig_dict_wadatijack[evID]
+            picks = autopickevent(wfdat, parameter, iplot=iplot, fig_dict=fig_dict,
+                                  fig_dict_wadatijack=fdwj,
+                                  ncores=ncores, metadata=metadata, origin=data.get_evt_data().origins)
             ##########################################################
             # locating
             if locflag > 0:
@@ -383,7 +388,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                          iplot)
                             # update pick with moment property values (w0, fc, Mo)
                             for stats, props in moment_mag.moment_props.items():
-                                picks[stats]['P'].update(props)
+                                if picks.has_key(stats):
+                                    picks[stats]['P'].update(props)
                             evt = moment_mag.updated_event()
                             net_mw = moment_mag.net_magnitude()
                             print("Network moment magnitude: %4.1f" % net_mw.mag)
@@ -394,7 +400,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                        parameter.get('sstop'),
                                                        WAscaling, True, iplot)
                             for stats, amplitude in local_mag.amplitudes.items():
-                                picks[stats]['S']['Ao'] = amplitude.generic_amplitude
+                                if picks.has_key(stats):
+                                    picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                             print("Local station magnitudes scaled with:")
                             print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0],
                                                                            WAscaling[1],
@@ -452,13 +459,16 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             if locflag == 0:
                 print("autoPyLoT was running in non-location mode!")
 
+            # save picks for current event ID to dictionary with ALL picks
+            allpicks[evID] = picks
+
     endsp = '''####################################\n
                ************************************\n
                *********autoPyLoT terminates*******\n
                The Python picking and Location Tool\n
                ************************************'''.format(version=_getVersionString())
     print(endsp)
-    return picks
+    return allpicks
 
 
 if __name__ == "__main__":
