@@ -366,7 +366,7 @@ class ComparisonWidget(QWidget):
                 axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
 
             for ax in axes_dict['P'].values():
-                ax.set_ylabel('frequency [-]')
+                ax.set_ylabel('number of picks [-]')
 
             self.canvas.draw()
         else:
