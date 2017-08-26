@@ -194,7 +194,8 @@ class AICPicker(AutoPicker):
         aicsmooth = aicsmooth - offset
         # get maximum of HOS/AR-CF as startimg point for searching
         # minimum in AIC function
-        icfmax = get_maximum_index(self.Data[0].data, self.checkwindow, self.minfactor)
+        icfmax = get_maximum_index(self.Data[0].data, self.checkwindow, self.minfactor,
+                                   int(self.TSNR[1]/self.Data[0].stats.delta))
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))

@@ -1173,20 +1173,22 @@ def removePicksAbove(pickDic, minWeight):
     return newdic
 
 
-def get_maximum_index(data, checkwindow, minfactor):
+def get_maximum_index(data, checkwindow, minfactor, safetygap):
     '''get maximum of CF as starting point, then check for highest local maximum
     in front of it.
     return second maximum if its larger than first maximum * minfactor, else
-    return first maximum'''
+    return first maximum.
+    checkwindow and safetygap are given in samples'''
     icfmax1 = np.argmax(data)
-    imax_local = argrelextrema(data[icfmax1 - checkwindow:icfmax1], np.greater)  # indices of local maxima
-    if (len(imax_local[0]) > 0):
-        imax_local = imax_local[0] + icfmax1 - checkwindow
+    imax_local = argrelextrema(data[icfmax1 - checkwindow:icfmax1 - safetygap], np.greater)[0] # indices of local maxima
+    if imax_local.size > 0:
+        imax_local = imax_local + icfmax1 - checkwindow
         local_maxima = (imax_local, data[imax_local])
-        icfmax2 = local_maxima[0][np.where(local_maxima[1] == max(local_maxima[1]))][0]
+        largest_local_max = np.where(local_maxima[1] == max(local_maxima[1]))
+        icfmax2 = local_maxima[0][largest_local_max]
         if data[icfmax2] > data[icfmax1] * minfactor:
             print("Found valid local maximum in front of first maximum")
-            return icfmax2
+            return icfmax2[0]
         else:
             print("First maximum is the largest: {}>{}".format(data[icfmax1],
                                                                data[icfmax2]))
