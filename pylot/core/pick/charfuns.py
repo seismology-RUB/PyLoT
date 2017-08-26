@@ -299,8 +299,9 @@ class HOScf(CharacteristicFunction):
         # remove NaN's with first not-NaN-value,
         # so autopicker doesnt pick discontinuity at start of the trace
         ind = np.where(~np.isnan(LTA))[0]
-        first = ind[0]
-        LTA[:first] = LTA[first]
+        if ind.size:
+            first = ind[0]
+            LTA[:first] = LTA[first]
         self.cf = LTA
         self.xcf = x
 
