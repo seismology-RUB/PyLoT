@@ -528,7 +528,7 @@ class ComparisonWidget(QWidget):
             legend.draggable()
 
             for ax in axes_dict['P'].values():
-                ax.set_ylabel('Frequency [-]')
+                ax.set_ylabel('number of picks [-]')
 
             self.canvas.draw()
         else:
