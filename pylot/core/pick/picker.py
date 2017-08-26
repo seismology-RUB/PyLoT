@@ -24,7 +24,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from pylot.core.pick.charfuns import CharacteristicFunction
-from pylot.core.pick.utils import getnoisewin, getsignalwin
+from pylot.core.pick.utils import getnoisewin, getsignalwin, get_maximum_index
 
 
 class AutoPicker(object):
@@ -35,7 +35,7 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None):
+    def __init__(self, cf, TSNR, PickWindow, checkwindow=None, minfactor=None, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
@@ -74,6 +74,8 @@ class AutoPicker(object):
         self.setTsmooth(Tsmooth)
         self.setpick1(Pick1)
         self.fig = fig
+        self.setCheckWindow(checkwindow)
+        self.minfactor = minfactor
         self.calcPick()
 
     def __str__(self):
@@ -89,6 +91,10 @@ class AutoPicker(object):
                    aus=self.getaus(),
                    Tsmooth=self.getTsmooth(),
                    Pick1=self.getpick1())
+    def setCheckWindow(self, checkwindow):
+        '''convert checkwindow to samples'''
+        if checkwindow:
+            self.checkwindow = int(checkwindow / self.Data[0].stats.delta)
 
     def getTSNR(self):
         return self.TSNR
@@ -187,8 +193,8 @@ class AICPicker(AutoPicker):
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
         # get maximum of HOS/AR-CF as startimg point for searching
-        # minimum in AIC function 
-        icfmax = np.argmax(self.Data[0].data)
+        # minimum in AIC function
+        icfmax = get_maximum_index(self.Data[0].data, self.checkwindow, self.minfactor)
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))

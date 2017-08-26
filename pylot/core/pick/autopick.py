@@ -175,6 +175,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
     # parameter to check for spuriously picked S onset
     zfac = pickparam.get('zfac')
     # path to inventory-, dataless- or resp-files
+    checkwindowP = pickparam.get('checkwindowP')
+    minfactorP = pickparam.get('minfactorP')
+    checkwindowS = pickparam.get('checkwindowS')
+    minfactorS = pickparam.get('minfactorS')
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -322,7 +326,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = fig_dict[key]
         else:
             fig = None
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig)
+        aicpick = AICPicker(aiccf, tsnrz, pickwinP, checkwindow=checkwindowP, minfactor=minfactorP,
+                            iplot=iplot, Tsmooth=tsmoothP, fig=fig)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -442,8 +447,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 fig = fig_dict['refPpick']
             else:
                 fig = None
-            refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
-                                  aicpick.getpick(), fig)
+            refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot=iplot, aus=ausP, Tsmooth=tsmoothP,
+                                  Pick1 = aicpick.getpick(), fig=fig)
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
@@ -624,8 +629,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = fig_dict['aicARHfig']
         else:
             fig = None
-        aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, iplot, None,
-                               aictsmoothS, fig=fig)
+        aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, checkwindow=checkwindowS,
+                               minfactor=minfactorS, iplot=iplot, Tsmooth=aictsmoothS,
+                               fig=fig)
         ###############################################################
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
@@ -686,8 +692,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 fig = fig_dict['refSpick']
             else:
                 fig = None
-            refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
-                                  tsmoothS, aicarhpick.getpick(), fig)
+            refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot=iplot, aus=ausS,
+                                  Tsmooth=tsmoothS, Pick1=aicarhpick.getpick(), fig=fig)
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:

@@ -13,6 +13,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
+from scipy.signal import argrelextrema
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
@@ -1170,6 +1171,29 @@ def removePicksAbove(pickDic, minWeight):
                 if phasename in ('P', 'S') and phaseinfo['weight'] < minWeight:
                     newdic[eventKey][station].update({phasename: phaseinfo})
     return newdic
+
+
+def get_maximum_index(data, checkwindow, minfactor):
+    '''get maximum of CF as starting point, then check for highest local maximum
+    in front of it.
+    return second maximum if its larger than first maximum * minfactor, else
+    return first maximum'''
+    icfmax1 = np.argmax(data)
+    imax_local = argrelextrema(data[icfmax1 - checkwindow:icfmax1], np.greater)  # indices of local maxima
+    if (len(imax_local[0]) > 0):
+        imax_local = imax_local[0] + icfmax1 - checkwindow
+        local_maxima = (imax_local, data[imax_local])
+        icfmax2 = local_maxima[0][np.where(local_maxima[1] == max(local_maxima[1]))][0]
+        if data[icfmax2] > data[icfmax1] * minfactor:
+            print("Found valid local maximum in front of first maximum")
+            return icfmax2
+        else:
+            print("First maximum is the largest: {}>{}".format(data[icfmax1],
+                                                               data[icfmax2]))
+            return icfmax1
+    else:
+        print("No local maxima found in check window")
+        return icfmax1
 
 if __name__ == '__main__':
     import doctest

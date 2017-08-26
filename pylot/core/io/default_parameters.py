@@ -273,6 +273,26 @@ defaults = {'rootpath': {'type': str,
                       'value': 1.5,
                       'namestring': 'Noise factor S'},
 
+            'checkwindowP': {'type': float,
+                      'tooltip': 'time window before HOS/AR-maximum to check for smaller maxima [s]',
+                      'value': 10.0,
+                      'namestring': 'Check Window P'},
+
+            'minfactorP': {'type': float,
+                      'tooltip': 'Second maximum must be at least minfactor * first maximum [-]',
+                      'value': 0.7,
+                      'namestring': 'Minimum Factor P'},
+
+            'checkwindowS': {'type': float,
+                             'tooltip': 'time window before AR-maximum to check for smaller maxima [s]',
+                             'value': 10.0,
+                             'namestring': 'Check Window S'},
+
+            'minfactorS': {'type': float,
+                           'tooltip': 'Second maximum must be at least minfactor * first maximum [-]',
+                           'value': 0.7,
+                           'namestring': 'Minimum Factor S'},
+
             'minfmweight': {'type': int,
                             'tooltip': 'minimum required P weight for first-motion determination',
                             'value': 1,
@@ -450,7 +470,9 @@ settings_special_pick = {
         'aictsmooth',
         'tsmoothP',
         'ausP',
-        'nfacP'],
+        'nfacP',
+        'checkwindowP',
+        'minfactorP'],
     'h': [
         'algoS',
         'tdet1h',
@@ -464,7 +486,9 @@ settings_special_pick = {
         'aictsmoothS',
         'tsmoothS',
         'ausS',
-        'nfacS'],
+        'nfacS',
+        'checkwindowS',
+        'minfactorS'],
     'fm': [
         'minfmweight',
         'minFMSNR',
