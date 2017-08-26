@@ -803,7 +803,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     return returnflag
 
 
-def checkPonsets(pickdic, dttolerance, iplot=0, fig_dict=None):
+def checkPonsets(pickdic, dttolerance, jackfactor, iplot=0, fig_dict=None):
     '''
     Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
@@ -840,9 +840,9 @@ def checkPonsets(pickdic, dttolerance, iplot=0, fig_dict=None):
         return
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
-    ij = np.where(PHI_pseudo <= 5 * xjack)
+    ij = np.where(PHI_pseudo <= jackfactor * xjack)
     # these picks did not pass jackknife test
-    badjk = np.where(PHI_pseudo > 5 * xjack)
+    badjk = np.where(PHI_pseudo > jackfactor * xjack)
     badjkstations = np.array(stations)[badjk]
     print("checkPonsets: %d pick(s) did not pass jackknife test!" % len(badjkstations))
     print(badjkstations)
