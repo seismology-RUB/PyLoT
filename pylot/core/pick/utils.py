@@ -617,6 +617,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
+        badstations = []
         # calculate deviations from Wadati regression
         ii = 0
         ibad = 0
@@ -630,6 +631,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     # (not used anymore)
                     marker = 'badWadatiCheck'
                     pickdic[key]['S']['weight'] = 9
+                    badstations.append(key)
                     ibad += 1
                 else:
                     marker = 'goodWadatiCheck'
@@ -641,6 +643,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     checkedSPtimes.append(checkedSPtime)
 
                 pickdic[key]['S']['marked'] = marker
+        print("wadaticheck: the following stations failed the check:")
+        print(badstations)
 
         if len(checkedPpicks) >= 3:
             # calculate new slope
@@ -862,6 +866,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor, iplot=0, fig_dict=None):
     print("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
     print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
                                                             + len(badjkstations), len(stations)))
+    print(badstations)
 
     goodmarker = 'goodPonsetcheck'
     badmarker = 'badPonsetcheck'
