@@ -135,7 +135,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
-        ax.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
+        ax.plot(t[pis[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
         ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k')
         ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
