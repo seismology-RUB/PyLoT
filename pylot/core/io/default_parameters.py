@@ -368,6 +368,11 @@ defaults = {'rootpath': {'type': str,
                              'value': 1.0,
                              'namestring': 'Wadati tolerance'},
 
+            'jackfactor': {'type': float,
+                             'tooltip': 'pick is removed if the variance of the subgroup with the pick removed is larger than the mean variance of all subgroups times safety factor',
+                             'value': 5.0,
+                             'namestring': 'Jackknife safety factor'},
+
             'WAscaling': {'type': (float, float, float),
                           'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm] \
                           If zeros are set, original Richter magnitude is calculated!',
@@ -505,5 +510,6 @@ settings_special_pick = {
         'minpercent',
         'zfac',
         'mdttolerance',
-        'wdttolerance']
+        'wdttolerance',
+        'jackfactor'],
 }
