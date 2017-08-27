@@ -2188,7 +2188,7 @@ class TuneAutopicker(QWidget):
         self.setParent(parent)
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = parent._inputs
-        self.fig_dict = parent.fig_dict
+        self.set_fig_dict(parent.fig_dict)
         self.data = Data()
         self.init_main_layouts()
         self.init_eventlist()
@@ -2207,6 +2207,11 @@ class TuneAutopicker(QWidget):
             self.metadata = None
             # self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
             # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+
+    def set_fig_dict(self, fig_dict):
+        for key, value in fig_dict.items():
+            value._tight = True
+        self.fig_dict = fig_dict
 
     def init_main_layouts(self):
         self.main_layout = QtGui.QVBoxLayout()
