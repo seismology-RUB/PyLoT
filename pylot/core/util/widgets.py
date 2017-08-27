@@ -2226,6 +2226,7 @@ class TuneAutopicker(QWidget):
 
     def init_stationlist(self):
         self.stationBox = QtGui.QComboBox()
+        self.stationBox.setMaxVisibleItems(42)
         self.trace_layout.addWidget(self.stationBox)
         self.fill_stationbox()
         self.figure_tabs.setCurrentIndex(0)
