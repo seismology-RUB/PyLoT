@@ -664,6 +664,7 @@ class PylotCanvas(FigureCanvas):
         self.cur_ylim -= dy
         ax.set_xlim(self.cur_xlim)
         ax.set_ylim(self.cur_ylim)
+        self.refreshPickDlgText()
         ax.figure.canvas.draw()
 
     def panRelease(self, gui_event):
@@ -708,7 +709,18 @@ class PylotCanvas(FigureCanvas):
 
         self.setXLims(ax, new_xlim)
         self.setYLims(ax, new_ylim)
+
+        self.refreshPickDlgText()
         self.draw()
+
+    def refreshPickDlgText(self):
+        # TODO: Maybe decreasing performance if activated too often on move event
+        # refresh text for pickdlg if given
+        parent = self.parent()
+        if hasattr(parent, 'refreshArrivalsText'):
+            parent.refreshArrivalsText()
+        if hasattr(parent, 'refreshPhaseText'):
+            parent.refreshPhaseText()
 
     def connectEvents(self):
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
@@ -1054,8 +1066,6 @@ class PickDlg(QDialog):
 
         self.multicompfig.updateCurrentLimits()
 
-        self.connectScrollEvent()
-
         # setup ui
         self.setupUi()
 
@@ -1347,17 +1357,6 @@ class PickDlg(QDialog):
             if phaseIndex == 0:
                 picksMenu.addSeparator()
 
-    def disconnectScrollEvent(self):
-        widget = self.multicompfig
-        widget.mpl_disconnect(self.cidscroll_arr)
-        widget.mpl_disconnect(self.cidscroll_ph)
-        self.cidscroll_arr = None
-        self.cidscroll_ph = None
-
-    def connectScrollEvent(self):
-        self.cidscroll_arr = self.multicompfig.connectScrollEvent(self.refreshArrivalsText)
-        self.cidscroll_ph = self.multicompfig.connectScrollEvent(self.refreshPhaseText)
-
     def disable_ar_buttons(self):
         self.enable_ar_buttons(False)
 
@@ -1455,7 +1454,6 @@ class PickDlg(QDialog):
         if self.zoomAction.isChecked():
             self.zoomAction.trigger()
         self.multicompfig.disconnectEvents()
-        self.disconnectScrollEvent()
         self.cidpress = self.multicompfig.connectPressEvent(self.setIniPick)
         self.filterWFData()
         #self.pick_block = self.togglePickBlocker()
@@ -1463,7 +1461,6 @@ class PickDlg(QDialog):
 
     def deactivatePicking(self):
         self.disconnectPressEvent()
-        self.connectScrollEvent()
         self.multicompfig.connectEvents()
         self.connect_pick_delete()
 
