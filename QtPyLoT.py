@@ -1925,15 +1925,6 @@ class MainWindow(QMainWindow):
         self.apw.insert_log_widget(self.listWidget)
         self.apw.refresh_tooltips()
 
-        # self.logDockWidget = QDockWidget("AutoPickLog", self)
-        # self.logDockWidget.setObjectName("LogDockWidget")
-        # self.logDockWidget.setAllowedAreas(
-        #     Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        # self.logDockWidget.setWidget(self.listWidget)
-        # self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        # self.addListItem('Loading default values from PyLoT-input file %s'
-        #                  % self.infile)
-
         self.apw.start.connect(self.start_autopick)
         self.apw.show()
 

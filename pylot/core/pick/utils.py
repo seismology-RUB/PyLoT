@@ -803,7 +803,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     return returnflag
 
 
-def checkPonsets(pickdic, dttolerance, jackfactor, iplot=0, fig_dict=None):
+def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     '''
     Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
