@@ -9,6 +9,9 @@ import subprocess
 
 import numpy as np
 from obspy import UTCDateTime, read
+from obspy.signal.rotate import rotate2zne
+from obspy.io.xseed.utils import SEEDParserException
+
 from pylot.core.io.inputs import PylotParameter
 
 from scipy.interpolate import splrep, splev
@@ -694,6 +697,94 @@ def get_stations(data):
             stations.append(station)
 
     return stations
+
+
+def check4rotated(data, metadata=None):
+
+    def rotate_components(wfstream, metadata=None):
+        """rotates components if orientation code is numeric.
+        azimut and dip are fetched from metadata"""
+        try:
+            # indexing fails if metadata is None
+            metadata[0]
+        except:
+            msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+            print(msg)
+            return wfstream
+        if metadata[0] is None:
+            # sometimes metadata is (None, (None,))
+            msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
+            print(msg)
+            return wfstream
+        else:
+            parser = metadata[1]
+
+        def get_dip_azimut(parser, trace_id):
+            """gets azimut and dip for a trace out of the metadata parser"""
+            dip = None
+            azimut = None
+            try:
+                blockettes = parser._select(trace_id)
+            except SEEDParserException as e:
+                print(e)
+                raise ValueError
+            for blockette_ in blockettes:
+                if blockette_.id != 52:
+                    continue
+                dip = blockette_.dip
+                azimut = blockette_.azimuth
+                break
+            if dip is None or azimut is None:
+                error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
+                raise ValueError(error_msg)
+            return dip, azimut
+
+        trace_ids = [trace.id for trace in wfstream]
+        for trace_id in trace_ids:
+            orientation = trace_id[-1]
+            if orientation.isnumeric():
+                # misaligned channels have a number as orientation
+                azimuts = []
+                dips = []
+                for trace_id in trace_ids:
+                    try:
+                        dip, azimut = get_dip_azimut(parser, trace_id)
+                    except ValueError as e:
+                        print(e)
+                        print('Failed to rotate station {}, no azimuth or dip available in metadata'.format(trace_id))
+                        return wfstream
+                    azimuts.append(azimut)
+                    dips.append(dip)
+                # to rotate all traces must have same length
+                wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
+                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
+                                          wfstream[1], azimuts[1], dips[1],
+                                          wfstream[2], azimuts[2], dips[2])
+                print('check4rotated: rotated station {} to ZNE'.format(trace_id))
+                z_index = dips.index(min(dips)) # get z-trace index (dip is measured from 0 to -90
+                wfstream[z_index].data = z
+                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
+                del trace_ids[z_index]
+                for trace_id in trace_ids:
+                    dip, az = get_dip_azimut(parser, trace_id)
+                    trace = wfstream.select(id=trace_id)[0]
+                    if az > 315 and az <= 45 or az > 135 and az <= 225:
+                        trace.data = n
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
+                        trace.data = e
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
+                break
+            else:
+                continue
+        return wfstream
+
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        wf_station = rotate_components(wf_station, metadata)
+    return data
 
 
 def scaleWFData(data, factor=None, components='all'):

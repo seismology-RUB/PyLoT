@@ -41,6 +41,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     # parameter input file (usually autoPyLoT.in).
     wdttolerance = param.get('wdttolerance')
     mdttolerance = param.get('mdttolerance')
+    jackfactor = param.get('jackfactor')
     apverbose = param.get('apverbose')
     for n in range(len(data)):
         station = data[n].stats.station
@@ -80,7 +81,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, 1, fig_dict_wadatijack)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, 1, fig_dict_wadatijack)
     #return jk_checked_onsets
     # check S-P times (Wadati)
     wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
@@ -499,6 +500,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      SNRPdB,
                                                                      FM)
                 print(msg)
+                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
+                print(msg)
                 Sflag = 1
 
         else:
@@ -758,6 +761,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     epickS = epick[ipick]
                     lpickS = lpick[ipick]
                     Serror = pickerr[ipick]
+
+                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(mpickS, Serror)
+                    print(msg)
 
                     # get SNR
                     [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)

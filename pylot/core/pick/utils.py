@@ -135,7 +135,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
-        ax.plot(t[isignal[zc]], np.zeros(len(zc)), '*g',
+        ax.plot(t[pis[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
         ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k')
         ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
@@ -205,8 +205,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
         t = np.arange(0, Xraw[0].stats.npts / Xraw[0].stats.sampling_rate,
                       Xraw[0].stats.delta)
         # get pick window
-        ipick = np.where(
-            (t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
+        ipick = np.where((t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
+        if len(ipick[0]) <= 1:
+            print('fmpicker: Zero crossings window to short!')
+            return
         # remove mean
         xraw[ipick] = xraw[ipick] - np.mean(xraw[ipick])
         xfilt[ipick] = xfilt[ipick] - np.mean(xfilt[ipick])
@@ -801,7 +803,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     return returnflag
 
 
-def checkPonsets(pickdic, dttolerance, iplot=0, fig_dict=None):
+def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     '''
     Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
@@ -838,9 +840,9 @@ def checkPonsets(pickdic, dttolerance, iplot=0, fig_dict=None):
         return
     # get pseudo variances smaller than average variances
     # (times safety factor), these picks passed jackknife test
-    ij = np.where(PHI_pseudo <= 5 * xjack)
+    ij = np.where(PHI_pseudo <= jackfactor * xjack)
     # these picks did not pass jackknife test
-    badjk = np.where(PHI_pseudo > 5 * xjack)
+    badjk = np.where(PHI_pseudo > jackfactor * xjack)
     badjkstations = np.array(stations)[badjk]
     print("checkPonsets: %d pick(s) did not pass jackknife test!" % len(badjkstations))
     print(badjkstations)

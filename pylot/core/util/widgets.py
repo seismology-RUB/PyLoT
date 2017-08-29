@@ -23,7 +23,7 @@ except:
 
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID
+    identifyPhaseID, check4rotated
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -440,6 +440,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
+        self.wfstart, self.wfend = 0, 0
         self.reinitMoveProxy()
         self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
@@ -457,8 +458,9 @@ class WaveformWidgetPG(QtGui.QWidget):
             # if x > 0:# and index < len(data1):
             wfID = self._parent.getWFID(y)
             station = self._parent.getStationName(wfID)
+            abstime = self.wfstart + x
             if self._parent.get_current_event():
-                self.label.setText("station = {}, t = {} [s]".format(station, x))
+                self.label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
@@ -482,7 +484,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
         self.title = title
         self.clearPlotDict()
-        wfstart, wfend = full_range(wfdata)
+        self.wfstart, self.wfend = full_range(wfdata)
         nmax = 0
 
         settings = QSettings()
@@ -510,7 +512,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
         try:
             self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
-                                                       xMax=float(wfend - wfstart),
+                                                       xMax=float(self.wfend - self.wfstart),
                                                        yMin=-0.5,
                                                        yMax=len(nsc) + 0.5)
         except:
@@ -528,7 +530,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             if verbosity:
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
-            stime = trace.stats.starttime - wfstart
+            stime = trace.stats.starttime - self.wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
                 if not scaleddata:
@@ -538,9 +540,9 @@ class WaveformWidgetPG(QtGui.QWidget):
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
                 plots.append((times, data))
                 self.setPlotDict(n, (station, channel, network))
-        self.xlabel = 'seconds since {0}'.format(wfstart)
+        self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
-        self.setXLims([0, wfend - wfstart])
+        self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([-0.5, nmax + 0.5])
         return plots
 
@@ -2291,6 +2293,8 @@ class TuneAutopicker(QWidget):
         wfdat = self.data.getWFData()  # all available streams
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
+        # rotate misaligned stations to ZNE
+        wfdat = check4rotated(wfdat, self.parent.metadata)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():

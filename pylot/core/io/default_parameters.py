@@ -348,6 +348,11 @@ defaults = {'rootpath': {'type': str,
                              'value': 1.0,
                              'namestring': 'Wadati tolerance'},
 
+            'jackfactor': {'type': float,
+                             'tooltip': 'pick is removed if the variance of the subgroup with the pick removed is larger than the mean variance of all subgroups times safety factor',
+                             'value': 5.0,
+                             'namestring': 'Jackknife safety factor'},
+
             'WAscaling': {'type': (float, float, float),
                           'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm] \
                           If zeros are set, original Richter magnitude is calculated!',
@@ -386,7 +391,7 @@ defaults = {'rootpath': {'type': str,
                          'namestring': 'Use TauPy'},
 
             'taup_model': {'type': str,
-                           'tooltip': 'define TauPy model for traveltime estimation',
+                           'tooltip': 'define TauPy model for traveltime estimation. Possible values: 1066a, 1066b, ak135, ak135f, herrin, iasp91, jb, prem, pwdk, sp6',
                            'value': 'iasp91',
                            'namestring': 'TauPy model'}
             }
@@ -481,5 +486,6 @@ settings_special_pick = {
         'minpercent',
         'zfac',
         'mdttolerance',
-        'wdttolerance']
+        'wdttolerance',
+        'jackfactor'],
 }

@@ -296,9 +296,12 @@ class HOScf(CharacteristicFunction):
             elif self.getOrder() == 4:
                 LTA[j] = lta / np.power(lta1, 2)
 
-        nn = np.isnan(LTA)
-        if len(nn) > 1:
-            LTA[nn] = 0
+        # remove NaN's with first not-NaN-value,
+        # so autopicker doesnt pick discontinuity at start of the trace
+        ind = np.where(~np.isnan(LTA))[0]
+        if ind.size:
+            first = ind[0]
+            LTA[:first] = LTA[first]
         self.cf = LTA
         self.xcf = x
 
