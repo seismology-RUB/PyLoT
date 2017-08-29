@@ -26,7 +26,8 @@ from pylot.core.util.dataprocessing import restitute_data, read_metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import real_None, remove_underscores, trim_station_components, check4gaps, check4doubled
+from pylot.core.util.utils import real_None, remove_underscores, trim_station_components, check4gaps, check4doubled, \
+    check4rotated
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -254,6 +255,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
             metadata = read_metadata(parameter.get('invdir'))
+            # rotate stations to ZNE
+            wfdat = check4rotated(wfdat, metadata)
             corr_dat = None
             if locflag:
                 print("Restitute data ...")

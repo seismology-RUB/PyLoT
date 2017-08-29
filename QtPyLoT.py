@@ -74,7 +74,7 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, check4rotated
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1421,6 +1421,8 @@ class MainWindow(QMainWindow):
         # check for gaps and doubled channels
         check4gaps(wfdat)
         check4doubled(wfdat)
+        # check for stations with rotated components
+        wfdat = check4rotated(wfdat, self.metadata)
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
         self._stime = full_range(self.get_data().getWFData())[0]
