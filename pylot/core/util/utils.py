@@ -9,6 +9,7 @@ import subprocess
 
 import numpy as np
 from obspy import UTCDateTime, read
+from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
@@ -95,6 +96,8 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
 
     for station, phases in picks.items():
         for phase, pick in phases.items():
+            if not type(pick) in [AttribDict, dict]:
+                continue
             pickerror = phaseError[identifyPhaseID(phase)]
             quality = getQualityFromUncertainty(pick['spe'], pickerror)
             if not quality in qClasses:
