@@ -131,6 +131,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     bpz1 = pickparam.get('bpz1')
     bpz2 = pickparam.get('bpz2')
     pickwinP = pickparam.get('pickwinP')
+    aictsmoothP = pickparam.get('aictsmooth')
     tsmoothP = pickparam.get('tsmoothP')
     ausP = pickparam.get('ausP')
     nfacP = pickparam.get('nfacP')
@@ -323,7 +324,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = fig_dict[key]
         else:
             fig = None
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, tsmoothP, fig=fig)
+        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, aictsmoothP, fig=fig)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
