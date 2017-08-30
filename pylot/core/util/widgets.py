@@ -2031,20 +2031,77 @@ class CanvasWidget(QWidget):
         self.main_layout.addWidget(canvas)
 
 
-class AutoPickWidget(QWidget):
+class MultiEventWidget(QWidget):
     start = Signal()
+    '''
+
+    '''
+    def __init__(self, pickoptions=None, parent=None, windowflag=1):
+        QtGui.QWidget.__init__(self, parent, windowflag)
+
+        self.pickoptions = pickoptions
+        # self.pickoptions =[('current event', None),
+        #                    ('tune events', None),
+        #                    ('test events', None),
+        #                    ('all (picked)', None),
+        #                    ('all events', None)]
+
+        self.setupUi()
+        # set initial size
+        self.resize(1280, 720)
+
+    def setupUi(self):
+        # init main layout
+        self.main_layout = QtGui.QVBoxLayout()
+        self.setLayout(self.main_layout)
+        # init main splitter
+        self.main_splitter = QtGui.QSplitter()
+        self.main_splitter.setChildrenCollapsible(False)
+
+        self.init_checkboxes()
+
+        self.eventbox = QtGui.QComboBox()
+        self.button_clear = QtGui.QPushButton('Clear')
+
+        self.main_layout.insertWidget(1, self.main_splitter)
+
+        self.main_layout.setStretch(0, 0)
+        self.main_layout.setStretch(1, 1)
+        self.main_splitter.setStretchFactor(0, 1)
+        self.main_splitter.setStretchFactor(1, 2)
+
+    def init_checkboxes(self):
+        self.rb_layout = QtGui.QHBoxLayout()
+
+        self.rb_dict = {}
+
+        self.start_button = QtGui.QPushButton('Start')
+
+        for index, (key, func) in enumerate(self.pickoptions):
+            rb = QtGui.QRadioButton(key)
+            if index == 0:
+                rb.setChecked(True)
+            self.rb_dict[key] = rb
+            self.rb_layout.insertWidget(index, rb)
+            self.rb_layout.setStretch(index, 0)
+
+        self.rb_layout.addWidget(self.start_button)
+
+        self.rb_layout.addWidget(QtGui.QWidget())
+        self.rb_layout.setStretch(len(self.pickoptions)+1, 1)
+
+        self.main_layout.insertLayout(0, self.rb_layout)
+
+
+class AutoPickWidget(MultiEventWidget):
     '''
     '''
 
     def __init__(self, parent, pickoptions):
-        QtGui.QWidget.__init__(self, parent, 1)
-        self.pickoptions = pickoptions
-        self.setupUi()
+        MultiEventWidget.__init__(self, pickoptions, parent, 1)
         self.connect_buttons()
         self.reinitEvents2plot()
         self.setWindowTitle('Autopick events interactively')
-        # set initial size
-        self.resize(1280, 720)
 
     def setupUi(self):
         # init main layout
@@ -2069,7 +2126,7 @@ class AutoPickWidget(QWidget):
         self.main_splitter.setStretchFactor(1, 2)
 
     def connect_buttons(self):
-        self.start_button.clicked.connect(self.start_picker)
+        self.start_button.clicked.connect(self.run)
         self.button_clear.clicked.connect(self.reinitEvents2plot)
 
     def init_checkboxes(self):
@@ -2169,7 +2226,7 @@ class AutoPickWidget(QWidget):
                 tooltip = 'No events for this selection'
             self.rb_dict[key].setToolTip(tooltip)
 
-    def start_picker(self):
+    def run(self):
         self.refresh_plot_tabs()
         self.start.emit()
 
