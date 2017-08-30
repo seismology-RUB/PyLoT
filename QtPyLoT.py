@@ -1799,11 +1799,14 @@ class MainWindow(QMainWindow):
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
+        event = self.get_current_event()
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
                           station=station, network=network,
                           picks=self.getPicksOnStation(station, 'manual'),
-                          autopicks=self.getPicksOnStation(station, 'auto'))
+                          autopicks=self.getPicksOnStation(station, 'auto'),
+                          metadata=self.metadata, event=event,
+                          filteroptions=self.filteroptions)
         pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
             if pickDlg._dirty:

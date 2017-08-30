@@ -822,7 +822,8 @@ class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)
 
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
-                 autopicks=None, rotate=False, parameter=None, embedded=False, model='iasp91'):
+                 autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
+                 event=None, filteroptions=None, model='iasp91'):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
@@ -831,6 +832,8 @@ class PickDlg(QDialog):
         self.station = station
         self.network = network
         self.rotate = rotate
+        self.metadata = metadata
+        self.pylot_event = event
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
@@ -853,8 +856,8 @@ class PickDlg(QDialog):
         else:
             self.autopicks = {}
             self._init_autopicks = {}
-        if hasattr(self.parent(), 'filteroptions'):
-            self.filteroptions = self.parent().filteroptions
+        if filteroptions:
+            self.filteroptions = filteroptions
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
@@ -915,7 +918,7 @@ class PickDlg(QDialog):
 
         # init expected picks using obspy Taup
         try:
-            if self.parent().metadata:
+            if self.metadata:
                 self.model = TauPyModel(model)
                 self.get_arrivals()
                 self.drawArrivals()
@@ -1080,13 +1083,16 @@ class PickDlg(QDialog):
         self._dirty = bool
 
     def get_arrivals(self, plot=False):
+        if not self.metadata:
+            print('get_arrivals: No metadata given. Return!')
+            return
         func = {True: self.model.get_ray_paths_geo,
                 False: self.model.get_travel_times_geo}
         phases = self.prepare_phases()
         station_id = self.data.traces[0].get_id()
-        parser = self.parent().metadata[1]
+        parser = self.metadata[1]
         station_coords = parser.get_coordinates(station_id)
-        origins = self.parent().get_current_event().origins
+        origins = self.pylot_event.origins
         if origins:
             source_origin = origins[0]
         else:
@@ -1117,7 +1123,7 @@ class PickDlg(QDialog):
         else:
             ylims = self.getPlotWidget().getYLims()
         stime = self.getStartTime()
-        source_origin = self.parent().get_current_event().origins[0]
+        source_origin = self.pylot_event.origins[0]
         source_time = source_origin.time
         for arrival in self.arrivals:
             arrival_time_abs = source_time + arrival.time
@@ -2335,10 +2341,14 @@ class TuneAutopicker(QWidget):
             return
         station = self.get_current_station()
         data = self.data.getWFData()
+        metadata = self.parent.metadata
+        event = self.get_current_event()
+        filteroptions = self.parent.filteroptions
         pickDlg = PickDlg(self, data=data.select(station=station),
                           station=station, parameter=self.parameter,
                           picks=self.get_current_event_picks(station),
                           autopicks=self.get_current_event_autopicks(station),
+                          metadata=metadata, event=event, filteroptions=filteroptions,
                           embedded=True)
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
