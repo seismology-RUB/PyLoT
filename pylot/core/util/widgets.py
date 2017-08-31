@@ -121,7 +121,7 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
 
 
 class ComparisonWidget(QWidget):
-    def __init__(self, c, parent=None):
+    def __init__(self, c, parent=None, windowflag=1):
         self._data = c
         self._stats = c.stations
         self._canvas = PlotWidget(self)
@@ -130,7 +130,7 @@ class ComparisonWidget(QWidget):
                              histCheckBox=None)
         self._phases = 'PS'
         self._plotprops = dict(station=list(self.stations)[0], phase=list(self.phases)[0])
-        super(ComparisonWidget, self).__init__(parent, 1)
+        super(ComparisonWidget, self).__init__(parent, windowflag)
         self.setupUI()
         self.resize(1280, 720)
         self.plotcomparison()
@@ -2092,6 +2092,22 @@ class MultiEventWidget(QWidget):
 
         self.main_layout.insertLayout(0, self.rb_layout)
 
+    def refresh_tooltips(self):
+        for key, func in self.pickoptions:
+            eventlist = func()
+            if not type(eventlist) == list:
+                eventlist = [eventlist]
+            tooltip=''
+            for index, event in enumerate(eventlist):
+                if not event:
+                    continue
+                tooltip += '{}'.format(event.pylot_id)
+                if not index + 1 == len(eventlist):
+                    tooltip += '\n'
+            if not tooltip:
+                tooltip = 'No events for this selection'
+            self.rb_dict[key].setToolTip(tooltip)
+
     def enable(self, bool):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
@@ -2111,6 +2127,7 @@ class AutoPickWidget(MultiEventWidget):
         self.init_log_layout()
         self.reinitEvents2plot()
         self.setWindowTitle('Autopick events interactively')
+        self.set_main_stretch()
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.run)
@@ -2167,6 +2184,10 @@ class AutoPickWidget(MultiEventWidget):
             self.eventbox_layout.setStretch(0, 1)
             self.plot_layout.insertLayout(0, self.eventbox_layout)
 
+    def set_main_stretch(self):
+        self.main_layout.setStretch(0, 0)
+        self.main_layout.setStretch(1, 1)
+
     def reinitEvents2plot(self):
         self.events2plot = {}
         self.eventbox.clear()
@@ -2174,120 +2195,60 @@ class AutoPickWidget(MultiEventWidget):
 
     def refresh_plot_tabs(self):
         self.tab_plots.clear()
-
-    def refresh_tooltips(self):
-        for key, func in self.pickoptions:
-            eventlist = func()
-            if not type(eventlist) == list:
-                eventlist = [eventlist]
-            tooltip=''
-            for index, event in enumerate(eventlist):
-                if not event:
-                    continue
-                tooltip += '{}'.format(event.pylot_id)
-                if not index + 1 == len(eventlist):
-                    tooltip += '\n'
-            if not tooltip:
-                tooltip = 'No events for this selection'
-            self.rb_dict[key].setToolTip(tooltip)
 
     def run(self):
         self.refresh_plot_tabs()
         self.start.emit()
 
+
 class CompareEventsWidget(MultiEventWidget):
     '''
     '''
 
-    def __init__(self, parent, pickoptions):
+    def __init__(self, parent, pickoptions, eventdict, comparisons):
         MultiEventWidget.__init__(self, pickoptions, parent, 1)
+        self.eventdict = eventdict
+        self.comparisons = comparisons
+        self.init_eventbox()
         self.connect_buttons()
-        self.init_plot_layout()
-        self.init_log_layout()
-        self.reinitEvents2plot()
-        self.setWindowTitle('Autopick events interactively')
+        self.setWindowTitle('Compare events')
+        self.set_main_stretch()
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.run)
-        self.button_clear.clicked.connect(self.reinitEvents2plot)
 
-    def init_plot_layout(self):
-        # init tab widget
-        self.tab_plots = QtGui.QTabWidget()
-        self.gb_plots = QtGui.QGroupBox('Plots')
-        self.gb_plots.setMinimumSize(100, 100)
-        self.main_splitter.insertWidget(1, self.gb_plots)
-        self.plot_layout = QtGui.QVBoxLayout()
-        self.plot_layout.insertWidget(1, self.tab_plots)
-        self.gb_plots.setLayout(self.plot_layout)
+    def init_eventbox(self):
+        self.eventbox_layout = QtGui.QHBoxLayout()
+        self.eventbox_layout.addWidget(self.eventbox)
+        self.main_layout.insertLayout(1, self.eventbox_layout)
+        self.fill_eventbox()
+        self.eventbox.currentIndexChanged.connect(self.update_comparison)
 
-    def init_log_layout(self):
-        self.gb_log = QtGui.QGroupBox('Log')
-        self.gb_log.setMinimumSize(100, 100)
-        self.main_splitter.insertWidget(0, self.gb_log)
+    def fill_eventbox(self):
+        event_ids = list(self.eventdict.keys())
+        for event_id in sorted(event_ids):
+            self.eventbox.addItem(str(event_id))
+        self.update_comparison()
 
-    def insert_log_widget(self, widget):
-        vl = QtGui.QVBoxLayout()
-        vl.addWidget(widget)
-        self.gb_log.setLayout(vl)
-
-    def add_plot_widget(self, widget, key, eventID):
-        eventID += ' [picked: {}]'.format(time.strftime('%X %x %z'))
-        if not eventID in self.events2plot.keys():
-            self.events2plot[eventID] = {}
-        self.events2plot[eventID][key] = widget
-
-    def generate_combobox(self):
+    def update_eventbox(self):
         self.eventbox.clear()
-        for eventID, widgets in self.events2plot.items():
-            self.eventbox.addItem(str(eventID), widgets)
-        self.eventbox.currentIndexChanged.connect(self.draw_plots)
-        self.draw_plots()
+        self.fill_eventbox()
 
-    def draw_plots(self, index=0):
-        self.refresh_plot_tabs()
-        widgets = self.eventbox.itemData(index)
-        if not widgets:
-            return
-        for key, widget in widgets.items():
-            self.tab_plots.addTab(widget, str(key))
+    def update_comparison(self, index=0):
+        if hasattr(self, 'compare_widget'):
+            self.compare_widget.setParent(None)
+        self.compare_widget = ComparisonWidget(
+            self.comparisons[self.eventbox.currentText()], self, 0)
+        self.main_layout.insertWidget(2, self.compare_widget)
+        self.set_main_stretch()
 
-    def update_plots(self):
-        self.refresh_plot_tabs()
-        if len(self.events2plot) > 0:
-            self.eventbox_layout = QtGui.QHBoxLayout()
-            self.generate_combobox()
-            self.eventbox_layout.addWidget(self.eventbox)
-            self.eventbox_layout.addWidget(self.button_clear)
-            self.eventbox_layout.setStretch(0, 1)
-            self.plot_layout.insertLayout(0, self.eventbox_layout)
-
-    def reinitEvents2plot(self):
-        self.events2plot = {}
-        self.eventbox.clear()
-        self.refresh_plot_tabs()
-
-    def refresh_plot_tabs(self):
-        self.tab_plots.clear()
-
-    def refresh_tooltips(self):
-        for key, func in self.pickoptions:
-            eventlist = func()
-            if not type(eventlist) == list:
-                eventlist = [eventlist]
-            tooltip=''
-            for index, event in enumerate(eventlist):
-                if not event:
-                    continue
-                tooltip += '{}'.format(event.pylot_id)
-                if not index + 1 == len(eventlist):
-                    tooltip += '\n'
-            if not tooltip:
-                tooltip = 'No events for this selection'
-            self.rb_dict[key].setToolTip(tooltip)
+    def set_main_stretch(self):
+        self.main_layout.setStretch(0, 0)
+        self.main_layout.setStretch(1, 0)
+        self.main_layout.setStretch(2, 1)
+        self.main_layout.setStretch(3, 0)
 
     def run(self):
-        self.refresh_plot_tabs()
         self.start.emit()
 
 

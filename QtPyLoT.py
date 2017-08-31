@@ -79,7 +79,8 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     WaveformWidget, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget
+    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
+    CompareEventsWidget
 from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -200,6 +201,14 @@ class MainWindow(QMainWindow):
                                                  s_filter['freq'],
                                                  s_filter['order'])}
         self.loc = False
+
+        # init event selection options for compare/autopick
+        self.pickoptions =[('current event', self.get_current_event),
+                           ('tune events', self.get_ref_events),
+                           ('test events', self.get_test_events),
+                           ('all (picked) events', self.get_manu_picked_events),
+                           ('all events', self.get_all_events)]
+
 
     def setupUi(self):
         try:
@@ -1230,17 +1239,27 @@ class MainWindow(QMainWindow):
             return None
 
     def comparePicks(self):
-        if self.check4Comparison():
-            comparisons = {}
-            for event in self.project.eventlist:
-                autopicks = excludeQualityClasses(event.getAutopicks(), [4],
-                                                  self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
-                manupicks = excludeQualityClasses(event.getPicks(), [4],
-                                                  self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
-                co = Comparison(auto=autopicks, manu=manupicks)
-                comparisons[event.pylot_id] = co
-            compare_dlg = ComparisonWidget(comparisons[self.get_current_event_name()], self)
-            compare_dlg.show()
+        comparisons = {}
+        eventdict = {}
+        for event in self.project.eventlist:
+            if not self.comparable[event.pylot_id]:
+                continue
+            autopicks = excludeQualityClasses(event.getAutopicks(), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            manupicks = excludeQualityClasses(event.getPicks(), [4],
+                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+            co = Comparison(auto=autopicks, manu=manupicks)
+            comparisons[event.pylot_id] = co
+            eventdict[event.pylot_id] = event
+        if len(eventdict) < 1:
+            return
+        pickoptions = self.pickoptions.copy()
+        pickoptions.pop(-1)
+        pickoptions.pop(0)
+        compare_multi = CompareEventsWidget(self, pickoptions, eventdict, comparisons)
+        compare_multi.show()
+        #compare_dlg = ComparisonWidget(comparisons[self.get_current_event_name()], self)
+        #compare_dlg.show()
 
     def getPlotWidget(self):
         return self.dataPlot
@@ -1491,6 +1510,7 @@ class MainWindow(QMainWindow):
         self.dataPlot.plotWidget.showAxis('bottom')
 
     def finishWaveformDataPlot(self):
+        self.comparable = self.checkEvents4comparison()
         if self.pg:
             self.finish_pg_plot()
         else:
@@ -1524,14 +1544,30 @@ class MainWindow(QMainWindow):
             self.locateEvent.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
-        if event.pylot_picks and event.pylot_autopicks:
-            for key in event.pylot_picks:
-                for akey in event.pylot_autopicks:
-                    if (akey == key) and (event.pylot_autopicks[akey]['P']['spe'] is not None \
-                       or event.pylot_autopicks[akey]['S']['spe'] is not None):
-                        self.compare_action.setEnabled(True)
-                        break
+        if True in self.comparable.values():
+            self.compare_action.setEnabled(True)
         self.draw()
+
+    def checkEvent4comparison(self, event):
+        if event.pylot_picks and event.pylot_autopicks:
+            for station in event.pylot_picks:
+                if station in event.pylot_autopicks:
+                    autopick_p = event.pylot_autopicks[station]['P']['spe']
+                    manupick_p = event.pylot_picks[station]['P']['spe']
+                    autopick_s = event.pylot_autopicks[station]['S']['spe']
+                    manupick_s = event.pylot_picks[station]['S']['spe']
+                    if autopick_p and manupick_p:
+                        return True
+                    elif autopick_s and manupick_s:
+                        return True
+        return False
+
+    def checkEvents4comparison(self):
+        # init dict to keep track whether event can be compared
+        comparable = {}
+        for event in self.project.eventlist:
+            comparable[event.pylot_id] = self.checkEvent4comparison(event)
+        return comparable
 
     def clearWaveformDataPlot(self):
         self.disconnectWFplotEvents()
@@ -1919,12 +1955,6 @@ class MainWindow(QMainWindow):
                                 "No autoPyLoT output declared!")
             return
 
-        self.pickoptions =[('current event', self.get_current_event),
-                           ('tune events', self.get_ref_events),
-                           ('test events', self.get_test_events),
-                           ('all (picked) events', self.get_manu_picked_events),
-                           ('all events', self.get_all_events)]
-
         self.listWidget = QListWidget()
         self.setDirty(True)
         self.apw = AutoPickWidget(self, self.pickoptions)
@@ -2096,7 +2126,6 @@ class MainWindow(QMainWindow):
             #event.picks.update(picks) MP MP idea
         elif type == 'auto':
             event.addAutopicks(picksdict['auto'])
-        self.check4Comparison()
 
     def drawPicks(self, station=None, picktype=None):
         # if picktype not specified, draw both
@@ -2636,18 +2665,18 @@ class MainWindow(QMainWindow):
     def check4Loc(self):
         return self.picksNum() >= 4
 
-    def check4Comparison(self):
-        mpicks = self.getPicks()
-        apicks = self.getPicks('auto')
-        for station, phases in mpicks.items():
-            try:
-                aphases = apicks[station]
-                for phase in phases.keys():
-                    if phase in aphases.keys():
-                        return True
-            except KeyError:
-                continue
-        return False
+    # def check4Comparison(self):
+    #     mpicks = self.getPicks()
+    #     apicks = self.getPicks('auto')
+    #     for station, phases in mpicks.items():
+    #         try:
+    #             aphases = apicks[station]
+    #             for phase in phases.keys():
+    #                 if phase in aphases.keys():
+    #                     return True
+    #         except KeyError:
+    #             continue
+    #     return False
 
     def picksNum(self, type='manual'):
         num = 0
