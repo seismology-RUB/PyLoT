@@ -131,6 +131,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     bpz1 = pickparam.get('bpz1')
     bpz2 = pickparam.get('bpz2')
     pickwinP = pickparam.get('pickwinP')
+    aictsmoothP = pickparam.get('aictsmooth')
     tsmoothP = pickparam.get('tsmoothP')
     ausP = pickparam.get('ausP')
     nfacP = pickparam.get('nfacP')

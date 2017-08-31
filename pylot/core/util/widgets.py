@@ -440,6 +440,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
+        self.wfstart, self.wfend = 0, 0
         self.reinitMoveProxy()
         self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
@@ -457,8 +458,9 @@ class WaveformWidgetPG(QtGui.QWidget):
             # if x > 0:# and index < len(data1):
             wfID = self._parent.getWFID(y)
             station = self._parent.getStationName(wfID)
+            abstime = self.wfstart + x
             if self._parent.get_current_event():
-                self.label.setText("station = {}, t = {} [s]".format(station, x))
+                self.label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
@@ -482,7 +484,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
         self.title = title
         self.clearPlotDict()
-        wfstart, wfend = full_range(wfdata)
+        self.wfstart, self.wfend = full_range(wfdata)
         nmax = 0
 
         settings = QSettings()
@@ -510,7 +512,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
         try:
             self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
-                                                       xMax=float(wfend - wfstart),
+                                                       xMax=float(self.wfend - self.wfstart),
                                                        yMin=-0.5,
                                                        yMax=len(nsc) + 0.5)
         except:
@@ -528,7 +530,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             if verbosity:
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
-            stime = trace.stats.starttime - wfstart
+            stime = trace.stats.starttime - self.wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
                 if not scaleddata:
@@ -538,9 +540,9 @@ class WaveformWidgetPG(QtGui.QWidget):
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
                 plots.append((times, data))
                 self.setPlotDict(n, (station, channel, network))
-        self.xlabel = 'seconds since {0}'.format(wfstart)
+        self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
-        self.setXLims([0, wfend - wfstart])
+        self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([-0.5, nmax + 0.5])
         return plots
 
@@ -820,7 +822,8 @@ class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)
 
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
-                 autopicks=None, rotate=False, parameter=None, embedded=False, model='iasp91'):
+                 autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
+                 event=None, filteroptions=None, model='iasp91'):
         super(PickDlg, self).__init__(parent)
 
         # initialize attributes
@@ -829,6 +832,8 @@ class PickDlg(QDialog):
         self.station = station
         self.network = network
         self.rotate = rotate
+        self.metadata = metadata
+        self.pylot_event = event
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
@@ -851,8 +856,8 @@ class PickDlg(QDialog):
         else:
             self.autopicks = {}
             self._init_autopicks = {}
-        if hasattr(self.parent(), 'filteroptions'):
-            self.filteroptions = self.parent().filteroptions
+        if filteroptions:
+            self.filteroptions = filteroptions
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
@@ -913,7 +918,7 @@ class PickDlg(QDialog):
 
         # init expected picks using obspy Taup
         try:
-            if self.parent().metadata:
+            if self.metadata:
                 self.model = TauPyModel(model)
                 self.get_arrivals()
                 self.drawArrivals()
@@ -1078,13 +1083,16 @@ class PickDlg(QDialog):
         self._dirty = bool
 
     def get_arrivals(self, plot=False):
+        if not self.metadata:
+            print('get_arrivals: No metadata given. Return!')
+            return
         func = {True: self.model.get_ray_paths_geo,
                 False: self.model.get_travel_times_geo}
         phases = self.prepare_phases()
         station_id = self.data.traces[0].get_id()
-        parser = self.parent().metadata[1]
+        parser = self.metadata[1]
         station_coords = parser.get_coordinates(station_id)
-        origins = self.parent().get_current_event().origins
+        origins = self.pylot_event.origins
         if origins:
             source_origin = origins[0]
         else:
@@ -1115,7 +1123,7 @@ class PickDlg(QDialog):
         else:
             ylims = self.getPlotWidget().getYLims()
         stime = self.getStartTime()
-        source_origin = self.parent().get_current_event().origins[0]
+        source_origin = self.pylot_event.origins[0]
         source_time = source_origin.time
         for arrival in self.arrivals:
             arrival_time_abs = source_time + arrival.time
@@ -2342,10 +2350,14 @@ class TuneAutopicker(QWidget):
             return
         station = self.get_current_station()
         data = self.data.getWFData()
+        metadata = self.parent.metadata
+        event = self.get_current_event()
+        filteroptions = self.parent.filteroptions
         pickDlg = PickDlg(self, data=data.select(station=station),
                           station=station, parameter=self.parameter,
                           picks=self.get_current_event_picks(station),
                           autopicks=self.get_current_event_autopicks(station),
+                          metadata=metadata, event=event, filteroptions=filteroptions,
                           embedded=True)
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)

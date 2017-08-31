@@ -1800,11 +1800,14 @@ class MainWindow(QMainWindow):
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getWFData()
+        event = self.get_current_event()
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
                           station=station, network=network,
                           picks=self.getPicksOnStation(station, 'manual'),
-                          autopicks=self.getPicksOnStation(station, 'auto'))
+                          autopicks=self.getPicksOnStation(station, 'auto'),
+                          metadata=self.metadata, event=event,
+                          filteroptions=self.filteroptions)
         pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
             if pickDlg._dirty:
@@ -1925,15 +1928,6 @@ class MainWindow(QMainWindow):
         self.apw = AutoPickWidget(self, self.pickoptions)
         self.apw.insert_log_widget(self.listWidget)
         self.apw.refresh_tooltips()
-
-        # self.logDockWidget = QDockWidget("AutoPickLog", self)
-        # self.logDockWidget.setObjectName("LogDockWidget")
-        # self.logDockWidget.setAllowedAreas(
-        #     Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        # self.logDockWidget.setWidget(self.listWidget)
-        # self.addDockWidget(Qt.LeftDockWidgetArea, self.logDockWidget)
-        # self.addListItem('Loading default values from PyLoT-input file %s'
-        #                  % self.infile)
 
         self.apw.start.connect(self.start_autopick)
         self.apw.show()
