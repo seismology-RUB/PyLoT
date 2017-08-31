@@ -27,16 +27,8 @@ class Comparison(object):
     """
 
     def __init__(self, **kwargs):
-        names = list()
         self._pdfs = dict()
-        for name, fn in kwargs.items():
-            if isinstance(fn, PDFDictionary):
-                self._pdfs[name] = fn
-            elif isinstance(fn, dict) or isinstance(fn, AttribDict):
-                self._pdfs[name] = PDFDictionary(fn)
-            else:
-                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
-            names.append(name)
+        names = self.iter_kwargs(kwargs)
         if len(names) > 2:
             raise ValueError('Comparison is only defined for two '
                              'arguments!')
@@ -47,6 +39,40 @@ class Comparison(object):
         if not len(self.names) == 2 or not self._pdfs:
             return False
         return True
+
+    def iter_kwargs(self, kwargs):
+        names = list()
+        for name, fn in kwargs.items():
+            if name == 'eventlist':
+                names = self.init_by_eventlist(fn)
+                break
+            if isinstance(fn, PDFDictionary):
+                self._pdfs[name] = fn
+            elif isinstance(fn, dict) or isinstance(fn, AttribDict):
+                self._pdfs[name] = PDFDictionary(fn)
+            else:
+                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
+            names.append(name)
+        return names
+
+    def init_by_eventlist(self, eventlist):
+        # create one dictionary containing all picks for all events (therefore modify station key)
+        global_picksdict = {}
+        for event in eventlist:
+            automanu = {'manu': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            for method, picksdict in automanu.items():
+                if not method in global_picksdict.keys():
+                    global_picksdict[method] = {}
+                for station, picks in picksdict.items():
+                    new_picksdict = global_picksdict[method]
+                    # new id combining event and station in one dictionary for all events
+                    id = '{}_{}'.format(event.pylot_id, station)
+                    new_picksdict[id] = picks
+        for method, picksdict in global_picksdict.items():
+            self._pdfs[method] = PDFDictionary(picksdict)
+        names = list(global_picksdict.keys())
+        return names
 
     def get(self, name):
         return self._pdfs[name]
