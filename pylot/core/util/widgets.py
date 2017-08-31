@@ -2049,12 +2049,6 @@ class MultiEventWidget(QWidget):
         QtGui.QWidget.__init__(self, parent, windowflag)
 
         self.options = options
-        # self.pickoptions =[('current event', None),
-        #                    ('tune events', None),
-        #                    ('test events', None),
-        #                    ('all (picked)', None),
-        #                    ('all events', None)]
-
         self.setupUi()
         # set initial size
         self.resize(1280, 720)
@@ -2226,7 +2220,10 @@ class CompareEventsWidget(MultiEventWidget):
         MultiEventWidget.__init__(self, options, parent, 1)
         self.eventdict = eventdict
         self.comparisons = comparisons
+        self.compare_widget = QtGui.QWidget()
         self.init_eventbox()
+        self.init_event_area()
+        self.fill_eventbox()
         self.connect_buttons()
         self.setWindowTitle('Compare events')
         self.set_main_stretch()
@@ -2235,11 +2232,16 @@ class CompareEventsWidget(MultiEventWidget):
         self.start_button.clicked.connect(self.run)
         self.start_button.setText('Show Histograms')
 
+    def init_event_area(self):
+        self.event_layout = QVBoxLayout()
+        self.event_layout.insertWidget(0, self.eventbox)
+        self.event_area = QGroupBox('Single Event')
+        self.event_area.setLayout(self.event_layout)
+        self.main_layout.insertWidget(1, self.event_area)
+
     def init_eventbox(self):
         self.eventbox_layout = QtGui.QHBoxLayout()
         self.eventbox_layout.addWidget(self.eventbox)
-        self.main_layout.insertLayout(1, self.eventbox_layout)
-        self.fill_eventbox()
         self.eventbox.currentIndexChanged.connect(self.update_comparison)
 
     def fill_eventbox(self):
@@ -2253,18 +2255,18 @@ class CompareEventsWidget(MultiEventWidget):
         self.fill_eventbox()
 
     def update_comparison(self, index=0):
-        if hasattr(self, 'compare_widget'):
-            self.compare_widget.setParent(None)
+        self.compare_widget.setParent(None)
         self.compare_widget = ComparisonWidget(
             self.comparisons[self.eventbox.currentText()], self, 0)
-        self.main_layout.insertWidget(2, self.compare_widget)
+        self.event_layout.insertWidget(1, self.compare_widget)
         self.set_main_stretch()
 
     def set_main_stretch(self):
         self.main_layout.setStretch(0, 0)
-        self.main_layout.setStretch(1, 0)
-        self.main_layout.setStretch(2, 1)
-        self.main_layout.setStretch(3, 0)
+        self.main_layout.setStretch(1, 1)
+        self.main_layout.setStretch(2, 0)
+        self.event_layout.setStretch(0, 0)
+        self.event_layout.setStretch(1, 1)
 
     def run(self):
         self.start.emit()
