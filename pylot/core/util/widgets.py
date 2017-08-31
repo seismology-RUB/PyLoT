@@ -154,19 +154,19 @@ class ComparisonWidget(QWidget):
         _phases_combobox.currentIndexChanged.connect(self.prepareplot)
         self.widgets = _phases_combobox
 
-        _hist_checkbox = QCheckBox('Show histograms', self)
-        _hist_checkbox.setObjectName('histCheckBox')
-        _hist_checkbox.stateChanged.connect(self.plothist)
-        self.widgets = _hist_checkbox
+        self._hist_checkbox = QCheckBox('Show histograms', self)
+        self._hist_checkbox.setObjectName('histCheckBox')
+        self._hist_checkbox.stateChanged.connect(self.plothist)
+        self.widgets = self._hist_checkbox
 
-        _toolbar = QToolBar(self)
-        _toolbar.addWidget(_stats_combobox)
-        _toolbar.addWidget(_phases_combobox)
-        _toolbar.addWidget(_hist_checkbox)
+        self._toolbar = QToolBar(self)
+        self._toolbar.addWidget(_stats_combobox)
+        self._toolbar.addWidget(_phases_combobox)
+        self._toolbar.addWidget(self._hist_checkbox)
 
         _innerlayout.addWidget(self.canvas)
 
-        _outerlayout.addWidget(_toolbar)
+        _outerlayout.addWidget(self._toolbar)
         _outerlayout.addLayout(_innerlayout)
 
         # finally layout the entire widget
@@ -231,6 +231,15 @@ class ComparisonWidget(QWidget):
         name = widget.objectName()
         if name in self.widgets.keys():
             self._widgets[name] = widget
+
+    def showToolbar(self):
+        self._toolbar.show()
+
+    def hideToolbar(self):
+        self._toolbar.hide()
+
+    def setHistboxChecked(self, bool):
+        self._hist_checkbox.setChecked(bool)
 
     def clf(self):
         self.canvas.figure.clf()
@@ -2036,10 +2045,10 @@ class MultiEventWidget(QWidget):
     '''
 
     '''
-    def __init__(self, pickoptions=None, parent=None, windowflag=1):
+    def __init__(self, options=None, parent=None, windowflag=1):
         QtGui.QWidget.__init__(self, parent, windowflag)
 
-        self.pickoptions = pickoptions
+        self.options = options
         # self.pickoptions =[('current event', None),
         #                    ('tune events', None),
         #                    ('test events', None),
@@ -2077,8 +2086,9 @@ class MultiEventWidget(QWidget):
 
         self.start_button = QtGui.QPushButton('Start')
 
-        for index, (key, func) in enumerate(self.pickoptions):
+        for index, (key, func) in enumerate(self.options):
             rb = QtGui.QRadioButton(key)
+            rb.toggled.connect(self.check_rb_selection)
             if index == 0:
                 rb.setChecked(True)
             self.rb_dict[key] = rb
@@ -2088,12 +2098,12 @@ class MultiEventWidget(QWidget):
         self.rb_layout.addWidget(self.start_button)
 
         self.rb_layout.addWidget(QtGui.QWidget())
-        self.rb_layout.setStretch(len(self.pickoptions)+1, 1)
+        self.rb_layout.setStretch(len(self.options) + 1, 1)
 
         self.main_layout.insertLayout(0, self.rb_layout)
 
     def refresh_tooltips(self):
-        for key, func in self.pickoptions:
+        for key, func in self.options:
             eventlist = func()
             if not type(eventlist) == list:
                 eventlist = [eventlist]
@@ -2107,6 +2117,13 @@ class MultiEventWidget(QWidget):
             if not tooltip:
                 tooltip = 'No events for this selection'
             self.rb_dict[key].setToolTip(tooltip)
+        self.check_rb_selection()
+
+    def check_rb_selection(self):
+        for rb in self.rb_dict.values():
+            if rb.isChecked():
+                check_events = (rb.toolTip() == 'No events for this selection')
+                self.start_button.setEnabled(not(check_events))
 
     def enable(self, bool):
         for rb in self.rb_dict.values():
@@ -2120,8 +2137,8 @@ class AutoPickWidget(MultiEventWidget):
     '''
     '''
 
-    def __init__(self, parent, pickoptions):
-        MultiEventWidget.__init__(self, pickoptions, parent, 1)
+    def __init__(self, parent, options):
+        MultiEventWidget.__init__(self, options, parent, 1)
         self.connect_buttons()
         self.init_plot_layout()
         self.init_log_layout()
@@ -2205,8 +2222,8 @@ class CompareEventsWidget(MultiEventWidget):
     '''
     '''
 
-    def __init__(self, parent, pickoptions, eventdict, comparisons):
-        MultiEventWidget.__init__(self, pickoptions, parent, 1)
+    def __init__(self, parent, options, eventdict, comparisons):
+        MultiEventWidget.__init__(self, options, parent, 1)
         self.eventdict = eventdict
         self.comparisons = comparisons
         self.init_eventbox()
@@ -2216,6 +2233,7 @@ class CompareEventsWidget(MultiEventWidget):
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.run)
+        self.start_button.setText('Show Histograms')
 
     def init_eventbox(self):
         self.eventbox_layout = QtGui.QHBoxLayout()

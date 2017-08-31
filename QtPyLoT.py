@@ -202,14 +202,6 @@ class MainWindow(QMainWindow):
                                                  s_filter['order'])}
         self.loc = False
 
-        # init event selection options for compare/autopick
-        self.pickoptions =[('current event', self.get_current_event),
-                           ('tune events', self.get_ref_events),
-                           ('test events', self.get_test_events),
-                           ('all (picked) events', self.get_manu_picked_events),
-                           ('all events', self.get_all_events)]
-
-
     def setupUi(self):
         try:
             self.startTime = min(
@@ -1038,6 +1030,8 @@ class MainWindow(QMainWindow):
         # if pick widget is open, refresh tooltips as well
         if hasattr(self, 'apw'):
             self.apw.refresh_tooltips()
+        if hasattr(self, 'cmpw'):
+            self.cmpw.refresh_tooltips()
 
         if not eventBox:
             eventBox = self.eventBox
@@ -1253,13 +1247,36 @@ class MainWindow(QMainWindow):
             eventdict[event.pylot_id] = event
         if len(eventdict) < 1:
             return
-        pickoptions = self.pickoptions.copy()
-        pickoptions.pop(-1)
-        pickoptions.pop(0)
-        compare_multi = CompareEventsWidget(self, pickoptions, eventdict, comparisons)
-        compare_multi.show()
-        #compare_dlg = ComparisonWidget(comparisons[self.get_current_event_name()], self)
-        #compare_dlg.show()
+
+        # init event selection options for autopick
+        self.compareoptions =[('tune events', self.get_ref_events),
+                              ('test events', self.get_test_events),
+                              ('all (picked) events', self.get_manu_picked_events)]
+
+        self.cmpw = CompareEventsWidget(self, self.compareoptions, eventdict, comparisons)
+        self.cmpw.start.connect(self.compareMulti)
+        self.cmpw.refresh_tooltips()
+        self.cmpw.show()
+
+    def compareMulti(self):
+        for key, func in self.compareoptions:
+            if self.cmpw.rb_dict[key].isChecked():
+                # if radio button is checked break for loop and use func
+                break
+        eventlist = func()
+        # use only events comparable
+        eventlist_overlap = [event for event in eventlist if self.comparable[event.pylot_id]]
+        compare_widget = self.buildMultiCompareWidget(eventlist_overlap)
+        compare_widget.show()
+
+
+    def buildMultiCompareWidget(self, eventlist):
+        global_comparison = Comparison(eventlist=eventlist)
+        compare_widget = ComparisonWidget(global_comparison, self)
+        compare_widget.setWindowTitle('Histograms for all selected events')
+        compare_widget.hideToolbar()
+        compare_widget.setHistboxChecked(True)
+        return compare_widget
 
     def getPlotWidget(self):
         return self.dataPlot
@@ -1954,6 +1971,13 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "PyLoT Warning",
                                 "No autoPyLoT output declared!")
             return
+
+        # init event selection options for autopick
+        self.pickoptions =[('current event', self.get_current_event),
+                           ('tune events', self.get_ref_events),
+                           ('test events', self.get_test_events),
+                           ('all (picked) events', self.get_manu_picked_events),
+                           ('all events', self.get_all_events)]
 
         self.listWidget = QListWidget()
         self.setDirty(True)
