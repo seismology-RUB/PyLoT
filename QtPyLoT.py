@@ -1231,12 +1231,15 @@ class MainWindow(QMainWindow):
 
     def comparePicks(self):
         if self.check4Comparison():
-            autopicks = excludeQualityClasses(self.getPicks('auto'), [4],
-                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
-            manupicks = excludeQualityClasses(self.getPicks('manual'), [4],
-                                              self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
-            co = Comparison(auto=autopicks, manu=manupicks)
-            compare_dlg = ComparisonWidget(co, self)
+            comparisons = {}
+            for event in self.project.eventlist:
+                autopicks = excludeQualityClasses(event.getAutopicks(), [4],
+                                                  self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+                manupicks = excludeQualityClasses(event.getPicks(), [4],
+                                                  self._inputs['timeerrorsP'], self._inputs['timeerrorsS'])
+                co = Comparison(auto=autopicks, manu=manupicks)
+                comparisons[event.pylot_id] = co
+            compare_dlg = ComparisonWidget(comparisons[self.get_current_event_name()], self)
             compare_dlg.show()
 
     def getPlotWidget(self):
