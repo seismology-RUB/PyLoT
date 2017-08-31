@@ -1245,7 +1245,7 @@ class PickDlg(QDialog):
             self.get_arrivals(True)
             ax = self.phaseplot.ax
             self.arrivals.plot(ax=ax, show=False)
-            ax.legend()
+            ax.legend(loc=1)
             self.phaseplot.new = False
             self.phaseplot.draw()
         self.phaseplot.show()
@@ -2553,7 +2553,7 @@ class TuneAutopicker(QWidget):
                 [y_bot, y_bot], linewidth=2, color='teal')
         ax.plot([pick - 0.5, pick + 0.5],
                 [y_top, y_top], linewidth=2, color='teal')
-        ax.legend()
+        ax.legend(loc=1)
 
     def plot_manual_Spick_to_ax(self, ax, pick):
         y_top = 0.9 * ax.get_ylim()[1]
@@ -2564,7 +2564,7 @@ class TuneAutopicker(QWidget):
                 [y_bot, y_bot], linewidth=2, color='magenta')
         ax.plot([pick - 0.5, pick + 0.5],
                 [y_top, y_top], linewidth=2, color='magenta')
-        ax.legend()
+        ax.legend(loc=1)
 
     def fill_tabs(self, event=None, picked=False):
         self.clear_all()
