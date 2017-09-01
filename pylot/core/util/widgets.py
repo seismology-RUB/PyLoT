@@ -605,7 +605,8 @@ class WaveformWidgetPG(QtGui.QWidget):
 
 
 class PylotCanvas(FigureCanvas):
-    def __init__(self, figure=None, parent=None, connect_events=True, multicursor=False):
+    def __init__(self, figure=None, parent=None, connect_events=True, multicursor=False,
+                 panZoomX=True, panZoomY=True):
 
         self._parent = parent
         if not figure:
@@ -633,6 +634,10 @@ class PylotCanvas(FigureCanvas):
         self.cur_xlim = None
         self.cur_ylim = None
 
+        # panZoom activated selection
+        self.panZoomX = panZoomX
+        self.panZoomY = panZoomY
+
         self.limits = {}
 
         for ax in self.axes:
@@ -657,10 +662,19 @@ class PylotCanvas(FigureCanvas):
         self.cur_xlim = ax.get_xlim()
         self.cur_ylim = ax.get_ylim()
         self.press = gui_event.xdata, gui_event.ydata
+        self.press_rel = gui_event.x, gui_event.y
         self.xpress, self.ypress = self.press
 
+    def pan(self, gui_event):
+        if self.press is None:
+            return
+        if gui_event.button == 1:
+            self.panMotion(gui_event)
+        elif gui_event.button == 3:
+            if self.panZoomX or self.panZoomY:
+                self.panZoom(gui_event)
+
     def panMotion(self, gui_event):
-        if self.press is None: return
         ax_check = False
         for ax in self.axes:
             if gui_event.inaxes == ax:
@@ -678,7 +692,68 @@ class PylotCanvas(FigureCanvas):
 
     def panRelease(self, gui_event):
         self.press = None
+        self.press_rel = None
         self.figure.canvas.draw()
+
+    def panZoom(self, gui_event, threshold=2., factor=1.1):
+        if not gui_event.x and not gui_event.y:
+            return
+        if not gui_event.button == 3:
+            return
+        ax_check = False
+        for ax in self.axes:
+            if gui_event.inaxes == ax:
+                ax_check = True
+                break
+        if not ax_check: return
+
+        #self.updateCurrentLimits() #maybe put this down to else:
+
+        # calculate delta (relative values in axis)
+        old_x, old_y = self.press_rel
+        xdiff = gui_event.x - old_x
+        ydiff = gui_event.y - old_y
+
+        # threshold check
+        if abs(xdiff) < threshold and abs(ydiff) < threshold:
+            return
+
+        # refresh press positions to new position
+        self.press = gui_event.xdata, gui_event.ydata
+        self.press_rel = gui_event.x, gui_event.y
+        self.xpress, self.ypress = self.press
+
+        if abs(xdiff) >= threshold and self.panZoomX:
+            x_left, x_right = self.getXLims(ax)
+            new_xlim = self.calcPanZoom(self.xpress, x_left, x_right, factor, (xdiff > 0))
+            self.setXLims(ax, new_xlim)
+        if abs(ydiff) >= threshold and self.panZoomY:
+            y_bot, y_top = self.getYLims(ax)
+            new_ylim = self.calcPanZoom(self.ypress, y_bot, y_top, factor, (ydiff > 0))
+            self.setYLims(ax, new_ylim)
+
+        self.draw()
+
+
+    def calcPanZoom(self, origin, lower_b, upper_b, factor, positive):
+        d_lower = abs(origin - lower_b)
+        d_upper = abs(origin - upper_b)
+
+        if positive:
+            d_lower *= 1 - 1/factor
+            d_upper *= 1 - 1/factor
+            lower_b += d_lower
+            upper_b -= d_upper
+        else:
+            d_lower /= 1 + 1/factor
+            d_upper /= 1 + 1/factor
+            lower_b -= d_lower
+            upper_b += d_upper
+
+        new_lim = [lower_b, upper_b]
+        new_lim.sort()
+
+        return new_lim
 
     def scrollZoom(self, gui_event, factor=2.):
         if not gui_event.xdata or not gui_event.ydata:
@@ -734,7 +809,7 @@ class PylotCanvas(FigureCanvas):
     def connectEvents(self):
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
         self.cidpress = self.connectPressEvent(self.panPress)
-        self.cidmotion = self.connectMotionEvent(self.panMotion)
+        self.cidmotion = self.connectMotionEvent(self.pan)
         self.cidrelease = self.connectReleaseEvent(self.panRelease)
 
     def disconnectEvents(self):
@@ -1922,6 +1997,8 @@ class PickDlg(QDialog):
         for picktype in allpicks.keys():
             picks = allpicks[picktype]
             for phase in picks:
+                if not type(phase) in [dict, AttribDict]:
+                    continue
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index
                 X.append((pick_rel, phase, picktype))
