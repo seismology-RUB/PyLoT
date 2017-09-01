@@ -272,7 +272,7 @@ class AICPicker(AutoPicker):
                         x = self.Data[0].data
                         ax.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
                         ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
-                        ax.legend()
+                        ax.legend(loc=1)
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                         ax.set_yticks([])
                         ax.set_title(self.Data[0].stats.station)
@@ -313,7 +313,7 @@ class AICPicker(AutoPicker):
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
             ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
             ax1.set_yticks([])
-            ax1.legend()
+            ax1.legend(loc=1)
 
             if self.Pick is not None:
                 ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
@@ -336,7 +336,7 @@ class AICPicker(AutoPicker):
                 ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
-                ax2.legend()
+                ax2.legend(loc=1)
                 if plt_flag == 1:
                     fig.show()
                     try: input()
@@ -480,7 +480,7 @@ class PragPicker(AutoPicker):
                 ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax.set_yticks([])
                 ax.set_title(self.Data[0].stats.station)
-                ax.legend()
+                ax.legend(loc=1)
                 if plt_flag == 1:
                     fig.show()
                     try: input()
