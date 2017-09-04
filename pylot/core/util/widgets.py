@@ -31,6 +31,8 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
+from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
+
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
@@ -607,7 +609,6 @@ class WaveformWidgetPG(QtGui.QWidget):
 class PylotCanvas(FigureCanvas):
     def __init__(self, figure=None, parent=None, connect_events=True, multicursor=False,
                  panZoomX=True, panZoomY=True):
-
         self._parent = parent
         if not figure:
             figure = Figure()
@@ -616,11 +617,12 @@ class PylotCanvas(FigureCanvas):
 
         self.axes = figure.axes
         self.figure = figure
-        self.figure.set_facecolor((.92, .92, .92))
+        self.figure.set_facecolor((1., 1., 1.))
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
         # initialize super class
         super(PylotCanvas, self).__init__(self.figure)
+
         if multicursor:
             # add a cursor for station selection
             self.multiCursor = MultiCursor(self.figure.canvas, self.axes,
@@ -651,6 +653,9 @@ class PylotCanvas(FigureCanvas):
             self.figure.tight_layout()
         except:
             pass
+
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setFocus()
 
     def panPress(self, gui_event):
         ax_check = False
@@ -734,6 +739,15 @@ class PylotCanvas(FigureCanvas):
 
         self.draw()
 
+    def saveFigure(self):
+        if self.figure:
+            fd = QtGui.QFileDialog()
+            fname, filter = fd.getSaveFileName(self._parent, filter='Images (*.png)')
+            if not fname:
+                return
+            if not fname.endswith('.png'):
+                fname += '.png'
+            self.figure.savefig(fname)
 
     def calcPanZoom(self, origin, lower_b, upper_b, factor, positive):
         d_lower = abs(origin - lower_b)
@@ -806,45 +820,59 @@ class PylotCanvas(FigureCanvas):
         if hasattr(parent, 'refreshPhaseText'):
             parent.refreshPhaseText()
 
+    def keyPressHandler(self, gui_event):
+        if gui_event.key == 'ctrl+s':
+            self.saveFigure()
+
     def connectEvents(self):
         self.cidscroll = self.connectScrollEvent(self.scrollZoom)
         self.cidpress = self.connectPressEvent(self.panPress)
         self.cidmotion = self.connectMotionEvent(self.pan)
         self.cidrelease = self.connectReleaseEvent(self.panRelease)
+        self.cidkpress = self.connectKeyPressEvent(self.keyPressHandler)
 
     def disconnectEvents(self):
-        self.disconnectScrollEvent()
-        self.disconnectMotionEvent()
-        self.disconnectPressEvent()
-        self.disconnectReleaseEvent()
+        self.disconnectScrollEvent(self.cidscroll)
+        self.disconnectMotionEvent(self.cidmotion)
+        self.disconnectPressEvent(self.cidpress)
+        self.disconnectReleaseEvent(self.cidrelease)
+        self.disconnectKeyPressEvent(self.cidkpress)
 
-    def disconnectPressEvent(self):
-        self.mpl_disconnect(self.cidpress)
+        self.cidscroll = None
+        self.cidrelease = None
         self.cidpress = None
+        self.cidmotion = None
+        self.cidkpress = None
+
+    def disconnectPressEvent(self, cid):
+        self.mpl_disconnect(cid)
 
     def connectPressEvent(self, slot):
         return self.mpl_connect('button_press_event', slot)
 
-    def disconnectMotionEvent(self):
-        self.mpl_disconnect(self.cidmotion)
-        self.cidmotion = None
+    def disconnectMotionEvent(self, cid):
+        self.mpl_disconnect(cid)
 
     def connectMotionEvent(self, slot):
         return self.mpl_connect('motion_notify_event', slot)
 
-    def disconnectReleaseEvent(self):
-        self.mpl_disconnect(self.cidrelease)
-        self.cidrelease = None
+    def disconnectReleaseEvent(self, cid):
+        self.mpl_disconnect(cid)
 
     def connectReleaseEvent(self, slot):
         return self.mpl_connect('button_release_event', slot)
 
-    def disconnectScrollEvent(self):
-        self.mpl_disconnect(self.cidscroll)
-        self.cidscroll = None
+    def disconnectScrollEvent(self, cid):
+        self.mpl_disconnect(cid)
 
     def connectScrollEvent(self, slot):
         return self.mpl_connect('scroll_event', slot)
+
+    def disconnectKeyPressEvent(self, cid):
+        self.mpl_disconnect(cid)
+
+    def connectKeyPressEvent(self, slot):
+        return self.mpl_connect('key_press_event', slot)
 
     def getPlotDict(self):
         return self.plotdict
@@ -1152,6 +1180,8 @@ class PickDlg(QDialog):
         self.multicompfig.setZoomBorders2content()
 
         self.multicompfig.updateCurrentLimits()
+        self.multicompfig.draw()
+        self.multicompfig.setFocus()
 
         # setup ui
         self.setupUi()
