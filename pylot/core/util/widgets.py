@@ -2027,7 +2027,7 @@ class PickDlg(QDialog):
         for picktype in allpicks.keys():
             picks = allpicks[picktype]
             for phase in picks:
-                if not type(phase) in [dict, AttribDict]:
+                if not type(picks[phase]) in [dict, AttribDict]:
                     continue
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index
@@ -2039,8 +2039,8 @@ class PickDlg(QDialog):
         # delete the value from corresponding dictionary
         allpicks[picktype].pop(phase)
         # information output
-        msg = 'Deleted {} pick for phase {}, {}[s] from starttime {}'
-        print(msg.format(picktype, phase, pick_rel, starttime))
+        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, starttime+pick_rel, pick_rel))
         self.setDirty(True)
 
     def drawPhaseText(self):

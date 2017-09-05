@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -13,6 +16,7 @@ plt.interactive(False)
 class map_projection(QtGui.QWidget):
     def __init__(self, parent, figure=None):
         '''
+
         :param: picked, can be False, auto, manual
         :value: str
         '''
