@@ -524,12 +524,13 @@ class WaveformWidgetPG(QtGui.QWidget):
         try:
             self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
                                                        xMax=float(self.wfend - self.wfstart),
-                                                       yMin=-0.5,
-                                                       yMax=len(nsc) + 0.5)
+                                                       yMin=.5,
+                                                       yMax=len(nsc) + .5)
         except:
             print('Warning: Could not set zoom limits')
 
         for n, (network, station, channel) in enumerate(nsc):
+            n+=1
             st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0]
             if mapping:
@@ -554,7 +555,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
-        self.setYLims([-0.5, nmax + 0.5])
+        self.setYLims([0.5, nmax + 0.5])
         return plots
 
     # def getAxes(self):
