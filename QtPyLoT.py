@@ -109,6 +109,7 @@ class MainWindow(QMainWindow):
             print('Using default input file {}'.format(infile))
         if os.path.isfile(infile) == False:
             infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+
             if not os.path.exists(infile[0]):
                 QMessageBox.warning(self, "PyLoT Warning",
                                     "No PyLoT-input file declared!")
@@ -208,6 +209,8 @@ class MainWindow(QMainWindow):
                 [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
+
+        self.init_styles()
 
         pylot_icon = QIcon()
         pylot_icon.addPixmap(QPixmap(':/icons/pylot.png'))
@@ -566,21 +569,22 @@ class MainWindow(QMainWindow):
         self.eventBox.activated.connect(self.refreshEvents)
 
         # add main tab widget
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget(self)
         self._main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self.refreshTabs)
 
         # add scroll area used in case number of traces gets too high
-        self.wf_scroll_area = QtGui.QScrollArea()
+        self.wf_scroll_area = QtGui.QScrollArea(self)
 
         # create central matplotlib figure canvas widget
         self.pg = pg
+        #self.set_style('custom')
         self.init_wfWidget()
 
         # init main widgets for main tabs
-        wf_tab = QtGui.QWidget()
-        array_tab = QtGui.QWidget()
-        events_tab = QtGui.QWidget()
+        wf_tab = QtGui.QWidget(self)
+        array_tab = QtGui.QWidget(self)
+        events_tab = QtGui.QWidget(self)
 
         # init main widgets layouts
         self.wf_layout = QtGui.QVBoxLayout()
@@ -623,8 +627,8 @@ class MainWindow(QMainWindow):
             self.dataPlot = PylotCanvas(parent=self, connect_events=False, multicursor=True)
             self.dataPlot.updateWidget(xlab, None, plottitle)
         else:
-            self.pg = True
-            self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
+            self.pg = pg
+            self.dataPlot = WaveformWidgetPG(parent=self,
                                              title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
         self.wf_scroll_area.setWidget(self.dataPlot)
@@ -661,6 +665,53 @@ class MainWindow(QMainWindow):
             self._ctrl = False
         if event.key() == QtCore.Qt.Key.Key_Shift:
             self._shift = False
+
+    def init_styles(self):
+        self._styles = {}
+        styles = ['default', 'dark', 'custom']
+        for style in styles:
+            self._styles[style] = {}
+
+        self._styles['default']['stylesheet'] = ("QMainWindow {background-color: rgba(200, 200, 200, 255)}")
+            # ;"
+            #                                      "alternate-background-color: rgba(255, 0, 255, 255);"
+            #                                      "color: rgba(0, 0, 0, 255);"
+            #                                      "gridline-color: rgba(0, 0, 0, 255);"
+            #                                      "selection-background-color: rgba(50, 50, 150, 255)};"
+            #                                      "QMainWindow {background-color: red}")
+        self._styles['default']['background'] = 'w'
+        self._styles['default']['foreground'] = 'k'
+
+        self._styles['dark']['stylesheet'] = ("QWidget {background-color: rgba(50, 50, 60, 255);"
+                                              "alternate-background-color: rgba(100, 100, 150, 255);"
+                                              "border-color: rgba(200, 200, 200, 255);"
+                                              "color: rgba(255, 255, 255, 255);"
+                                              "gridline-color: rgba(255, 255, 255, 255);"
+                                              "selection-background-color: rgba(50, 50, 150, 255)}")
+        self._styles['dark']['background'] = QtGui.QColor(50, 50, 65, 255)
+        self._styles['dark']['foreground'] = 'w'
+
+        infile = open('./pylot/core/util/stylesheet.qss', 'r')
+        stylesheet = infile.read()
+        infile.close()
+        self._styles['custom']['stylesheet'] = stylesheet
+        self._styles['custom']['background'] = QtGui.QColor(50, 50, 65, 255)
+        self._styles['custom']['foreground'] = 'w'
+
+
+    def set_style(self, stylename):
+        if not stylename in self._styles:
+            qmb = QMessageBox.warning(self, 'Could not find style',
+                                      'Could not find style with name {}.'.format(stylename))
+            return
+        self._style = stylename
+        style = self._styles[stylename]
+        self.setStyleSheet(style['stylesheet'])
+
+        if self.pg:
+            pg.setConfigOption('background', style['background'])
+            pg.setConfigOption('foreground', style['foreground'])
+            pg.setConfigOptions(antialias=True)
 
     @property
     def metadata(self):
@@ -1521,7 +1572,7 @@ class MainWindow(QMainWindow):
         self.getPlotWidget().updateWidget()
         plots = self.wfp_thread.data
         for times, data in plots:
-            self.dataPlot.plotWidget.getPlotItem().plot(times, data, pen='k')
+            self.dataPlot.plotWidget.getPlotItem().plot(times, data)#, pen='k')
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
@@ -2498,7 +2549,7 @@ class MainWindow(QMainWindow):
             self.events_layout.removeWidget(self.event_table)
 
         # init new qtable
-        self.event_table = QtGui.QTableWidget()
+        self.event_table = QtGui.QTableWidget(self)
         self.event_table.setColumnCount(12)
         self.event_table.setRowCount(len(eventlist))
         self.event_table.setHorizontalHeaderLabels(['',
@@ -2775,7 +2826,7 @@ class MainWindow(QMainWindow):
         if not self.okToContinue():
             return
         if not fnm:
-            dlg = QFileDialog()
+            dlg = QFileDialog(parent=self)
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
             if not fnm:
                 return
@@ -2802,7 +2853,7 @@ class MainWindow(QMainWindow):
         '''
         Save back project to new pickle file.
         '''
-        dlg = QFileDialog()
+        dlg = QFileDialog(self)
         fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
         filename = fnm[0]
         if not len(fnm[0]):
@@ -3083,7 +3134,6 @@ def create_window():
     # app.references.add(window)
     # window.show()
     return app, app_created
-
 
 def main(args=None):
     project_filename = None

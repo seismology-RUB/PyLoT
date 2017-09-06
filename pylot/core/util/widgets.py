@@ -16,11 +16,6 @@ import time
 
 import numpy as np
 
-try:
-    import pyqtgraph as pg
-except:
-    pg = None
-
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
     identifyPhaseID, check4rotated
@@ -63,12 +58,6 @@ elif sys.version_info.major == 2:
     pass
 else:
     raise ImportError('Could not determine python version.')
-
-if pg:
-    pg.setConfigOption('background', 'w')
-    pg.setConfigOption('foreground', 'k')
-    pg.setConfigOptions(antialias=True)
-    # pg.setConfigOption('leftButtonPan', False)
 
 
 def getDataType(parent):
@@ -435,29 +424,30 @@ class PlotWidget(FigureCanvas):
 
 
 class WaveformWidgetPG(QtGui.QWidget):
-    def __init__(self, parent=None, xlabel='x', ylabel='y', title='Title'):
-        QtGui.QWidget.__init__(self, parent)  # , 1)
-        self.setParent(parent)
-        self._parent = parent
+    def __init__(self, parent, title='Title'):
+        QtGui.QWidget.__init__(self, parent=parent)
+        self.pg = self.parent().pg
+        # added because adding widget to scrollArea will set scrollArea to parent
+        self.orig_parent = parent
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
         self.label = QtGui.QLabel()
         self.setLayout(self.main_layout)
-        self.plotWidget = pg.PlotWidget(title=title, autoDownsample=True)
+        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title, autoDownsample=True)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addWidget(self.label)
-        self.plotWidget.showGrid(x=False, y=True, alpha=0.2)
+        self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
         self.reinitMoveProxy()
-        self._proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def reinitMoveProxy(self):
-        self.vLine = pg.InfiniteLine(angle=90, movable=False)
-        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.vLine = self.pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = self.pg.InfiniteLine(angle=0, movable=False)
         self.plotWidget.addItem(self.vLine, ignoreBounds=True)
         self.plotWidget.addItem(self.hLine, ignoreBounds=True)
 
@@ -467,10 +457,10 @@ class WaveformWidgetPG(QtGui.QWidget):
             mousePoint = self.plotWidget.getPlotItem().vb.mapSceneToView(pos)
             x, y, = (mousePoint.x(), mousePoint.y())
             # if x > 0:# and index < len(data1):
-            wfID = self._parent.getWFID(y)
-            station = self._parent.getStationName(wfID)
+            wfID = self.orig_parent.getWFID(y)
+            station = self.orig_parent.getStationName(wfID)
             abstime = self.wfstart + x
-            if self._parent.get_current_event():
+            if self.orig_parent.get_current_event():
                 self.label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
@@ -483,12 +473,6 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def clearPlotDict(self):
         self.plotdict = dict()
-
-    def getParent(self):
-        return self._parent
-
-    def setParent(self, parent):
-        self._parent = parent
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
@@ -3747,6 +3731,12 @@ class GraphicsTab(PropTab):
         self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
     def add_pg_cb(self):
+        try:
+            import pyqtgraph as pg
+            pg = True
+        except:
+            pg = False
+
         text = {True: 'Use pyqtgraphic library for plotting',
                 False: 'Cannot use library: pyqtgraphic not found on system'}
         label = QLabel('PyQt graphic')
