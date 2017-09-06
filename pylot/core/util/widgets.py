@@ -926,7 +926,7 @@ class PylotCanvas(FigureCanvas):
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                ax.plot(times, data, 'k', linewidth=0.7)
+                ax.plot(times, data, linewidth=0.7)
                 if noiselevel is not None:
                     for level in noiselevel:
                         ax.plot([time_ax[0], time_ax[-1]],

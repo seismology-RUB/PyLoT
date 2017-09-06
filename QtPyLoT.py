@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
 
         # create central matplotlib figure canvas widget
         self.pg = pg
-        #self.set_style('custom')
+        #self.set_style('dark')
         self.init_wfWidget()
 
         # init main widgets for main tabs
@@ -668,36 +668,21 @@ class MainWindow(QMainWindow):
 
     def init_styles(self):
         self._styles = {}
-        styles = ['default', 'dark', 'custom']
+        styles = ['default', 'dark']
         for style in styles:
             self._styles[style] = {}
 
-        self._styles['default']['stylesheet'] = ("QMainWindow {background-color: rgba(200, 200, 200, 255)}")
-            # ;"
-            #                                      "alternate-background-color: rgba(255, 0, 255, 255);"
-            #                                      "color: rgba(0, 0, 0, 255);"
-            #                                      "gridline-color: rgba(0, 0, 0, 255);"
-            #                                      "selection-background-color: rgba(50, 50, 150, 255)};"
-            #                                      "QMainWindow {background-color: red}")
         self._styles['default']['background'] = 'w'
         self._styles['default']['foreground'] = 'k'
+        self._styles['default']['stylesheet'] = self.styleSheet()
 
-        self._styles['dark']['stylesheet'] = ("QWidget {background-color: rgba(50, 50, 60, 255);"
-                                              "alternate-background-color: rgba(100, 100, 150, 255);"
-                                              "border-color: rgba(200, 200, 200, 255);"
-                                              "color: rgba(255, 255, 255, 255);"
-                                              "gridline-color: rgba(255, 255, 255, 255);"
-                                              "selection-background-color: rgba(50, 50, 150, 255)}")
         self._styles['dark']['background'] = QtGui.QColor(50, 50, 65, 255)
         self._styles['dark']['foreground'] = 'w'
-
-        infile = open('./pylot/core/util/stylesheet.qss', 'r')
+        # TODO: improve this
+        infile = open('./styles/dark.qss', 'r')
         stylesheet = infile.read()
         infile.close()
-        self._styles['custom']['stylesheet'] = stylesheet
-        self._styles['custom']['background'] = QtGui.QColor(50, 50, 65, 255)
-        self._styles['custom']['foreground'] = 'w'
-
+        self._styles['dark']['stylesheet'] = stylesheet
 
     def set_style(self, stylename):
         if not stylename in self._styles:
@@ -707,6 +692,15 @@ class MainWindow(QMainWindow):
         self._style = stylename
         style = self._styles[stylename]
         self.setStyleSheet(style['stylesheet'])
+
+        bg_colors = [60, 60, 70]
+        bg_colors = [color/255. for color in bg_colors]
+
+        cycler = matplotlib.cycler(color='wbgrcmy')
+        matplotlib.rcParams['axes.prop_cycle'] = cycler
+        matplotlib.rcParams['axes.facecolor'] = '({}, {}, {})'.format(*bg_colors)
+        matplotlib.rcParams['figure.facecolor'] = '({}, {}, {})'.format(*bg_colors)
+
 
         if self.pg:
             pg.setConfigOption('background', style['background'])

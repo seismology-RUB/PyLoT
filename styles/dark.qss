@@ -1,0 +1,188 @@
+QMainWindow{
+background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(60, 60, 70, 255), stop:1 rgba(70, 70, 80, 255));
+color: rgba(255, 255, 255, 255);
+}
+
+QWidget{
+background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
+color: rgba(255, 255, 255, 255);
+}
+
+QComboBox{
+background-color: rgba(80, 80, 90, 255);
+color: rgba(255, 255, 255, 255);
+}
+
+QComboBox *{
+background-color: rgba(80, 80, 90, 255);
+color: rgba(255, 255, 255, 255);
+}
+
+QMenuBar{
+background-color: rgba(60, 60, 70, 255);
+padding:1px;
+}
+
+QMenuBar::item{
+background-color: rgba(60, 60, 70, 255);
+color: rgba(255, 255, 255, 255);
+padding:3px;
+}
+
+QMenu{
+background-color: rgba(60, 60, 70, 255);
+color: rgba(255, 255, 255, 255);
+padding:0;
+}
+
+QMenu::item:selected{
+color: rgba(255, 255, 255, 255);
+background-color: rgba(200, 210, 230, 255);
+}
+
+QToolBar{
+border-style:solid;
+border-color:rgba(70, 70, 80, 255);
+border-width:1px;
+}
+
+QFileDialog QLabel{
+color: rgba(0, 0, 0, 255);
+}
+
+QFileDialog QPushButton{
+background-color: rgba(210, 210, 210, 255);
+color: rgba(0, 0, 0, 255);
+}
+
+QMessageBox{
+background-color: rgba(60, 60, 70, 255);
+color: rgba(255, 255, 255, 255);
+}
+
+QTableWidget{
+background-color: rgba(70, 70, 80, 255);
+color:rgba(255, 255, 255, 255);
+border-color:rgba(255, 255, 255, 255);
+selection-background-color: rgba(200, 210, 230, 255);
+}
+
+QHeaderView::section{
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(60, 60, 70, 255), stop:1 rgba(70, 70, 80, 255));
+border:none;
+border-top-style:solid;
+border-width:1px;
+border-top-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(60, 60, 70, 255), stop:1 rgba(70, 70, 80, 255));
+color:rgba(255, 255, 255, 255);
+padding:5px;
+}
+
+QHeaderView{
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(60, 60, 70, 255), stop:1 rgba(70, 70, 80, 255));
+
+border:none;
+border-top-style:solid;
+border-width:1px;
+border-top-color:rgba(70, 70, 80, 255);
+color:rgba(255, 255, 255, 255);
+}
+
+QListWidget{
+background-color:rgba(200, 200, 200, 255);
+color:rgba(255, 255, 255, 255);
+}
+
+QStatusBar{
+background-color:rgba(60, 60, 70, 255);
+color:rgba(255, 255, 255, 255);
+}
+
+QPushButton{
+background-color:rgba(70, 70, 80, 255);
+color:rgba(255, 255, 255, 255);
+}
+
+QPushButton:pressed{
+background-color: rgba(70, 70, 80, 255);
+}
+
+QTabBar{
+background-color:transparent
+}
+
+QTabBar::tab{
+background-color:rgba(60, 60, 70, 255);
+color: rgba(255, 255, 255, 255);
+border-style:solid;
+border-color:rgba(80, 80, 90, 255);
+border-bottom-color: transparent;
+border-width:1px;
+padding:5px;
+}
+
+QTabBar::tab:selected{
+background-color:rgba(80, 80, 90, 255);
+color: rgba(255, 255, 255, 255);
+border-style:solid;
+border-color:rgba(80, 80, 90, 255);
+border-bottom-color: transparent;
+border-width:1px;
+padding:5px;
+}
+
+QTabWidget{
+background-color:transparent;
+}
+
+QTabWidget::pane{
+background-color:rgba(255, 255, 255, 255);
+border-style:solid;
+border-color:rgba(80, 80, 90, 255);
+border-width:1px;
+}
+
+QTabWidget::tab{
+background-color:rgba(60, 60, 70, 255);
+}
+
+QTabWidget > QWidget{
+background-color: rgba(60, 60, 70, 255);
+color: rgba(255, 255, 255, 255);
+}
+
+QScrollArea{
+background: transparent;
+}
+
+QScrollArea>QWidget>QWidget{
+background: transparent;
+}
+
+QLabel{
+color: rgba(255, 255, 255, 255);
+background-color: transparent;
+}
+
+QLineEdit{
+border-radius:0;
+}
+
+QListWidget{
+background-color:rgba(60, 60, 70, 255)
+}
+
+QProgressBar{
+border-radius:0;
+text-align:center;
+color:rgba(255, 255, 255, 255);
+background-color:rgba(60,60,80,255);
+border: 2px solid #e3a21a;
+border-radius:7px;
+	font: 75 12pt "Open Sans";
+
+}
+
+QProgressBar::chunk{
+background-color:rgba(60, 60, 70, 255);
+width:10px;
+}
