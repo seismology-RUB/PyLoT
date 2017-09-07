@@ -652,8 +652,10 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             print("wadatacheck: Skipped %d S pick(s)" % ibad)
         else:
             print("###############################################")
-            print("wadatacheck: Not enough checked S-P times available!")
+            print("wadaticheck: Not enough checked S-P times available!")
             print("Skip Wadati check!")
+            wfitflag = 1
+            wdfit2 = None
 
         checkedonsets = pickdic
 
