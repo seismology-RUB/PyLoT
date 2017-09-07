@@ -442,13 +442,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
-        self.pen = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
+        self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
+        self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def reinitMoveProxy(self):
-        self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen)
-        self.hLine = self.pg.InfiniteLine(angle=0, movable=False, pen=self.pen)
+        self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
+        self.hLine = self.pg.InfiniteLine(angle=0, movable=False, pen=self.pen_multicursor)
         self.plotWidget.addItem(self.vLine, ignoreBounds=True)
         self.plotWidget.addItem(self.hLine, ignoreBounds=True)
 

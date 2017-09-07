@@ -40,7 +40,7 @@ stylecolors = {
     },
     'dark': {
         'linecolor': {
-            'rgba': (255, 255, 255, 255)},
+            'rgba': (230, 230, 230, 255)},
         'background': {
             'rgba': (50, 50, 60, 255)},
         'multicursor': {

@@ -555,6 +555,8 @@ class MainWindow(QMainWindow):
 
         # init style
         self.set_style('dark')
+        #self.set_style('bright')
+        #self.set_style('default')
 
         # add event combo box and ref/test buttons
         self.eventBox = self.createEventBox()
@@ -668,7 +670,7 @@ class MainWindow(QMainWindow):
 
     def init_styles(self):
         self._styles = {}
-        styles = ['default', 'dark']
+        styles = ['default', 'dark', 'bright']
         stylecolors = style_settings.stylecolors
         for style in styles:
             if style in stylecolors.keys():
@@ -1604,7 +1606,8 @@ class MainWindow(QMainWindow):
         self.getPlotWidget().updateWidget()
         plots = self.wfp_thread.data
         for times, data in plots:
-            self.dataPlot.plotWidget.getPlotItem().plot(times, data)#, pen='k')
+            self.dataPlot.plotWidget.getPlotItem().plot(times, data,
+                                                        pen=self.dataPlot.pen_linecolor)
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')

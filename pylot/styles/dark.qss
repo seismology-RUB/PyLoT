@@ -15,11 +15,6 @@ border-width: 2px;
 border-style:inset;
 }
 
-FigureCanvasQtAgg{
-background-color: rgba(50, 50, 60, 255);
-color: rgba(255, 255, 255, 255);
-}
-
 QComboBox{
 background-color: rgba(80, 80, 90, 255);
 color: rgba(255, 255, 255, 255);
