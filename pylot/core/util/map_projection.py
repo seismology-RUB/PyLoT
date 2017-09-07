@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -13,6 +16,7 @@ plt.interactive(False)
 class map_projection(QtGui.QWidget):
     def __init__(self, parent, figure=None):
         '''
+
         :param: picked, can be False, auto, manual
         :value: str
         '''
@@ -272,7 +276,7 @@ class map_projection(QtGui.QWidget):
         for index, name in enumerate(self.station_names):
             self.annotations.append(self.main_ax.annotate(' %s' % name, xy=(self.x[index], self.y[index]),
                                                           fontsize='x-small', color='white', zorder=12))
-        self.legend = self.main_ax.legend()
+        self.legend = self.main_ax.legend(loc=1)
 
     def add_cbar(self, label):
         cbar = self.main_ax.figure.colorbar(self.sc_picked, fraction=0.025)
