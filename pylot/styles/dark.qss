@@ -8,9 +8,22 @@ background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop
 color: rgba(255, 255, 255, 255);
 }
 
+QWidget:checked{
+background-color: transparent;
+border-color: rgba(100, 100, 120, 255);
+border-width: 2px;
+border-style:inset;
+}
+
+FigureCanvasQtAgg{
+background-color: rgba(50, 50, 60, 255);
+color: rgba(255, 255, 255, 255);
+}
+
 QComboBox{
 background-color: rgba(80, 80, 90, 255);
 color: rgba(255, 255, 255, 255);
+min-height: 1.5em;
 }
 
 QComboBox *{
@@ -35,9 +48,9 @@ color: rgba(255, 255, 255, 255);
 padding:0;
 }
 
-QMenu::item:selected{
+*::item:selected{
 color: rgba(255, 255, 255, 255);
-background-color: rgba(200, 210, 230, 255);
+background-color: rgba(0, 150, 190, 255);
 }
 
 QToolBar{
@@ -49,15 +62,6 @@ border-width:1px;
 
 QToolBar *{
 background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
-}
-
-QFileDialog QLabel{
-color: rgba(0, 0, 0, 255);
-}
-
-QFileDialog QPushButton{
-background-color: rgba(210, 210, 210, 255);
-color: rgba(0, 0, 0, 255);
 }
 
 QMessageBox{
@@ -103,16 +107,26 @@ color:rgba(255, 255, 255, 255);
 }
 
 QPushButton{
-background-color:rgba(70, 70, 80, 255);
+background-color:qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
 color:rgba(255, 255, 255, 255);
+border-color: (60, 60, 70, 255);
+border-style: outset;
+border-width: 2px;
+border-color: rgba(50, 50, 60, 255);
+min-width: 6em;
+padding: 5px;
 }
 
 QPushButton:pressed{
 background-color: rgba(70, 70, 80, 255);
 }
 
+*:disabled{
+color:rgba(100, 100, 120, 255);
+}
+
 QTabBar{
-background-color:transparent
+background-color:transparent;
 }
 
 QTabBar::tab{
@@ -197,13 +211,12 @@ border-radius:0;
 text-align:center;
 color:rgba(255, 255, 255, 255);
 background-color:rgba(60,60,80,255);
-border: 2px solid #e3a21a;
-border-radius:7px;
-	font: 75 12pt "Open Sans";
-
+border: 2px solid;
+border-color:rgba(0, 150, 190, 255);
+border-radius:5px;
 }
 
 QProgressBar::chunk{
-background-color:rgba(60, 60, 70, 255);
+background-color:rgba(0, 150, 190, 255);
 width:10px;
 }

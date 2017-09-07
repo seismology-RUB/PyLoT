@@ -14,6 +14,7 @@ from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
 from pylot.core.io.inputs import PylotParameter
+from pylot.styles import style_settings
 
 from scipy.interpolate import splrep, splev
 from PySide import QtCore, QtGui
@@ -577,36 +578,22 @@ def modify_rgba(rgba, modifier, intensity):
 
 
 def base_phase_colors(picktype, phase):
-    phases = {
-        'manual':
-            {
-            'P':
-                {
-                'rgba': (0, 0, 255, 255),
-                'modifier': 'g'
-                },
-            'S':
-                {
-                'rgba': (255, 0, 0, 255),
-                'modifier': 'b'
-                }
-            },
-        'auto':
-            {
-            'P':
-                {
-                'rgba': (140, 0, 255, 255),
-                'modifier': 'g'
-                },
-            'S':
-                {
-                'rgba': (255, 140, 0, 255),
-                'modifier': 'b'
-                }
-            }
-    }
-    return phases[picktype][phase]
+    phasecolors = style_settings.phasecolors
+    return phasecolors[picktype][phase]
 
+def transform_colors_mpl_str(colors, no_alpha=False):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    if no_alpha:
+        colors_mpl = '({}, {}, {})'.format(*colors_mpl)
+    else:
+        colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
+    return colors_mpl
+
+def transform_colors_mpl(colors):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    return colors_mpl
 
 def remove_underscores(data):
     """

@@ -442,12 +442,13 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
+        self.pen = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def reinitMoveProxy(self):
-        self.vLine = self.pg.InfiniteLine(angle=90, movable=False)
-        self.hLine = self.pg.InfiniteLine(angle=0, movable=False)
+        self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen)
+        self.hLine = self.pg.InfiniteLine(angle=0, movable=False, pen=self.pen)
         self.plotWidget.addItem(self.vLine, ignoreBounds=True)
         self.plotWidget.addItem(self.hLine, ignoreBounds=True)
 
@@ -594,7 +595,6 @@ class WaveformWidgetPG(QtGui.QWidget):
 class PylotCanvas(FigureCanvas):
     def __init__(self, figure=None, parent=None, connect_events=True, multicursor=False,
                  panZoomX=True, panZoomY=True):
-        self._parent = parent
         if not figure:
             figure = Figure()
             # create axes
@@ -602,17 +602,18 @@ class PylotCanvas(FigureCanvas):
 
         self.axes = figure.axes
         self.figure = figure
-        self.figure.set_facecolor((1., 1., 1.))
+        self.figure.set_facecolor(parent._style['background']['rgba_mpl'])
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
         # initialize super class
         super(PylotCanvas, self).__init__(self.figure)
+        self.setParent(parent)
 
         if multicursor:
             # add a cursor for station selection
             self.multiCursor = MultiCursor(self.figure.canvas, self.axes,
                                            horizOn=True, useblit=True,
-                                           color='m', lw=1)
+                                           color=parent._style['multicursor']['rgba_mpl'], lw=1)
 
         # initialize panning attributes
         self.press = None
@@ -868,12 +869,6 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def getParent(self):
-        return self._parent
-
-    def setParent(self, parent):
-        self._parent = parent
-
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
@@ -906,6 +901,9 @@ class PylotCanvas(FigureCanvas):
         nsc.sort()
         nsc.reverse()
 
+        style = self.parent()._style
+        linecolor = style['linecolor']['rgba_mpl']
+
         for n, (network, station, channel) in enumerate(nsc):
             st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0]
@@ -926,11 +924,13 @@ class PylotCanvas(FigureCanvas):
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                ax.plot(times, data, linewidth=0.7)
+                ax.plot(times, data, color=linecolor, linewidth=0.7)
                 if noiselevel is not None:
                     for level in noiselevel:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                            [level, level], '--k')
+                                            [level, level],
+                                color = linecolor,
+                                linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
         if iniPick:
             ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
@@ -1093,7 +1093,8 @@ class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
                  event=None, filteroptions=None, model='iasp91'):
-        super(PickDlg, self).__init__(parent)
+        super(PickDlg, self).__init__(parent, 1)
+        self.orig_parent = parent
 
         # initialize attributes
         self.parameter = parameter
@@ -1113,6 +1114,7 @@ class PickDlg(QDialog):
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
         self._dirty = False
+        self._style = parent._style
         if picks:
             self.picks = copy.deepcopy(picks)
             self._init_picks = picks
@@ -1508,36 +1510,46 @@ class PickDlg(QDialog):
             self.leave_picking_mode()
 
     def init_p_pick(self):
-        self.set_button_color(self.p_button, 'yellow')
+        self.set_button_border_color(self.p_button, 'yellow')
         self.activatePicking()
         self.currentPhase = str(self.p_button.text())
 
     def init_s_pick(self):
-        self.set_button_color(self.s_button, 'yellow')
+        self.set_button_border_color(self.s_button, 'yellow')
         self.activatePicking()
         self.currentPhase = str(self.s_button.text())
 
     def getPhaseID(self, phase):
         return identifyPhaseID(phase)
 
-    def set_button_color(self, button, color=None):
+    def set_button_border_color(self, button, color=None):
+        '''
+        Set background color of a button.
+        button: type = QtGui.QAbstractButton
+        color: type = QtGui.QColor or type = str (RGBA)
+        '''
         if type(color) == QtGui.QColor:
+            button.setStyleSheet({'QPushButton{background-color:transparent}'})
             palette = button.palette()
             role = button.backgroundRole()
             palette.setColor(role, color)
             button.setPalette(palette)
             button.setAutoFillBackground(True)
-        elif type(color) == str or not color:
-            button.setStyleSheet("background-color: {}".format(color))
+        elif type(color) == str:
+            button.setStyleSheet('QPushButton{border-color: %s}' % color)
+        elif type(color) == tuple:
+            button.setStyleSheet('QPushButton{border-color: rgba%s}' % str(color))
+        elif not color:
+            button.setStyleSheet(self.orig_parent._style['stylesheet'])
 
     def reset_p_button(self):
-        self.set_button_color(self.p_button)
+        self.set_button_border_color(self.p_button)
         self.p_button.setEnabled(True)
         self.p_button.setChecked(False)
         self.p_button.setText('P')
 
     def reset_s_button(self):
-        self.set_button_color(self.s_button)
+        self.set_button_border_color(self.s_button)
         self.s_button.setEnabled(True)
         self.s_button.setChecked(False)
         self.s_button.setText('S')
@@ -1676,10 +1688,10 @@ class PickDlg(QDialog):
         self.cidpress = self.multicompfig.connectPressEvent(self.setPick)
 
         if self.getPhaseID(self.currentPhase) == 'P':
-            self.set_button_color(self.p_button, 'green')
+            self.set_button_border_color(self.p_button, 'green')
             self.setIniPickP(gui_event, wfdata, trace_number)
         elif self.getPhaseID(self.currentPhase) == 'S':
-            self.set_button_color(self.s_button, 'green')
+            self.set_button_border_color(self.s_button, 'green')
             self.setIniPickS(gui_event, wfdata)
 
         self.zoomAction.setEnabled(False)
@@ -2421,7 +2433,6 @@ class TuneAutopicker(QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent, 1)
-        self.parent = parent
         self.setParent(parent)
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = parent._inputs
@@ -2439,7 +2450,7 @@ class TuneAutopicker(QWidget):
         self.set_stretch()
         self.resize(1280, 720)
         if hasattr(parent, 'metadata'):
-            self.metadata = self.parent.metadata
+            self.metadata = self.parent().metadata
         else:
             self.metadata = None
             # self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
@@ -2456,7 +2467,7 @@ class TuneAutopicker(QWidget):
         self.setLayout(self.main_layout)
 
     def init_eventlist(self):
-        self.eventBox = self.parent.createEventBox()
+        self.eventBox = self.parent().createEventBox()
         self.eventBox.setMaxVisibleItems(20)
         self.fill_eventbox()
         self.trace_layout.addWidget(self.eventBox)
@@ -2474,13 +2485,13 @@ class TuneAutopicker(QWidget):
         self.stationBox.activated.connect(self.fill_tabs)
 
     def fill_stationbox(self):
-        fnames = self.parent.getWFFnames_from_eventbox(eventbox=self.eventBox)
+        fnames = self.parent().getWFFnames_from_eventbox(eventbox=self.eventBox)
         self.data.setWFData(fnames)
         wfdat = self.data.getWFData()  # all available streams
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
         # rotate misaligned stations to ZNE
-        wfdat = check4rotated(wfdat, self.parent.metadata)
+        wfdat = check4rotated(wfdat, self.parent().metadata)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():
@@ -2494,7 +2505,7 @@ class TuneAutopicker(QWidget):
         for network, station in stations:
             item = QtGui.QStandardItem(network + '.' + station)
             if station in self.get_current_event().pylot_picks:
-                item.setBackground(self.parent._colors['ref'])
+                item.setBackground(self.parent()._colors['ref'])
             model.appendRow(item)
 
     def init_figure_tabs(self):
@@ -2509,7 +2520,7 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.paraBox = PylotParaBox(self.parameter)
+        self.paraBox = PylotParaBox(self.parameter, parent=self, windowflag=0)
         self.paraBox.set_tune_mode(True)
         self.update_eventID()
         self.parameter_layout.addWidget(self.paraBox)
@@ -2535,7 +2546,7 @@ class TuneAutopicker(QWidget):
 
     def get_current_event(self):
         path = self.eventBox.currentText()
-        return self.parent.project.getEventFromPath(path)
+        return self.parent().project.getEventFromPath(path)
 
     def get_current_event_name(self):
         return self.eventBox.currentText().split('/')[-1]
@@ -2570,10 +2581,10 @@ class TuneAutopicker(QWidget):
             return
         station = self.get_current_station()
         data = self.data.getWFData()
-        metadata = self.parent.metadata
+        metadata = self.parent().metadata
         event = self.get_current_event()
-        filteroptions = self.parent.filteroptions
-        pickDlg = PickDlg(self, data=data.select(station=station),
+        filteroptions = self.parent().filteroptions
+        pickDlg = PickDlg(self.parent(), data=data.select(station=station),
                           station=station, parameter=self.parameter,
                           picks=self.get_current_event_picks(station),
                           autopicks=self.get_current_event_autopicks(station),
@@ -2582,8 +2593,8 @@ class TuneAutopicker(QWidget):
         pickDlg.update_picks.connect(self.picks_from_pickdlg)
         pickDlg.update_picks.connect(self.fill_eventbox)
         pickDlg.update_picks.connect(self.fill_stationbox)
-        pickDlg.update_picks.connect(lambda: self.parent.setDirty(True))
-        pickDlg.update_picks.connect(self.parent.enableSaveEventAction)
+        pickDlg.update_picks.connect(lambda: self.parent().setDirty(True))
+        pickDlg.update_picks.connect(self.parent().enableSaveEventAction)
         self.pickDlg = QtGui.QWidget()
         hl = QtGui.QHBoxLayout()
         self.pickDlg.setLayout(hl)
@@ -2591,15 +2602,15 @@ class TuneAutopicker(QWidget):
 
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
-        replot = self.parent.addPicks(station, picks)
+        replot = self.parent().addPicks(station, picks)
         self.get_current_event().setPick(station, picks)
-        if self.get_current_event() == self.parent.get_current_event():
+        if self.get_current_event() == self.parent().get_current_event():
             if replot:
-                self.parent.plotWaveformDataThread()
-                self.parent.drawPicks()
+                self.parent().plotWaveformDataThread()
+                self.parent().drawPicks()
             else:
-                self.parent.drawPicks(station)
-            self.parent.draw()
+                self.parent().drawPicks(station)
+            self.parent().draw()
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
@@ -2624,13 +2635,13 @@ class TuneAutopicker(QWidget):
             ('el_S1pick', 0),
             ('el_S2pick', 0)]
         for p_ax in p_axes:
-            axes = self.parent.fig_dict[p_ax[0]].axes
+            axes = self.parent().fig_dict[p_ax[0]].axes
             if not axes:
                 continue
             ax = axes[p_ax[1]]
             self.plot_manual_Ppick_to_ax(ax, (picks['P']['mpp'] - starttime))
         for s_ax in s_axes:
-            axes = self.parent.fig_dict[s_ax[0]].axes
+            axes = self.parent().fig_dict[s_ax[0]].axes
             if not axes:
                 continue
             ax = axes[s_ax[1]]
@@ -2660,7 +2671,7 @@ class TuneAutopicker(QWidget):
 
     def fill_tabs(self, event=None, picked=False):
         self.clear_all()
-        canvas_dict = self.parent.canvas_dict
+        canvas_dict = self.parent().canvas_dict
         self.gen_pick_dlg()
         self.overview = self.gen_tab_widget('Overview', canvas_dict['mainFig'])
         id0 = self.figure_tabs.insertTab(0, self.pickDlg, 'Traces Plot')
@@ -2706,12 +2717,12 @@ class TuneAutopicker(QWidget):
         self.init_tab_names()
 
     def fill_eventbox(self):
-        project = self.parent.project
+        project = self.parent().project
         if not project:
             return
         # update own list
-        self.parent.fill_eventbox(eventBox=self.eventBox, select_events='ref')
-        index_start = self.parent.eventBox.currentIndex()
+        self.parent().fill_eventbox(eventBox=self.eventBox, select_events='ref')
+        index_start = self.parent().eventBox.currentIndex()
         index = index_start
         if index == -1:
             index += 1
@@ -2730,7 +2741,7 @@ class TuneAutopicker(QWidget):
         if not index == index_start:
             self.eventBox.activated.emit(index)
         # update parent
-        self.parent.fill_eventbox()
+        self.parent().fill_eventbox()
 
     def update_eventID(self):
         self.paraBox.boxes['eventID'].setText(
@@ -2793,8 +2804,8 @@ class TuneAutopicker(QWidget):
 
     def params_from_gui(self):
         parameters = self.paraBox.params_from_gui()
-        if self.parent:
-            self.parent._inputs = parameters
+        if self.parent():
+            self.parent()._inputs = parameters
         return parameters
 
     def set_stretch(self):
@@ -2834,7 +2845,7 @@ class PylotParaBox(QtGui.QWidget):
     accepted = QtCore.Signal(str)
     rejected = QtCore.Signal(str)
 
-    def __init__(self, parameter, parent=None):
+    def __init__(self, parameter, parent=None, windowflag=1):
         '''
         Generate Widget containing parameters for PyLoT.
 
@@ -2842,7 +2853,7 @@ class PylotParaBox(QtGui.QWidget):
         :type: PylotParameter (object)
 
         '''
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QWidget.__init__(self, parent, windowflag)
         self.parameter = parameter
         self.tabs = QtGui.QTabWidget()
         self.layout = QtGui.QVBoxLayout()
