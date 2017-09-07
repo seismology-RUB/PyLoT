@@ -330,7 +330,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             for ax in fig.axes:
                 ax.vlines(pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
                 ax.vlines(pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
-                ax.legend()
+                ax.legend(loc=1)
         ##############################################################
         if aicpick.getpick() is not None:
             # check signal length to detect spuriously picked noise peaks
@@ -872,7 +872,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ax1.set_title('%s, %s, P Weight=%d' % (tr_filt.stats.station,
                                                    tr_filt.stats.channel,
                                                    Pweight))
-        ax1.legend()
+        ax1.legend(loc=1)
         ax1.set_yticks([])
         ax1.set_ylim([-1.5, 1.5])
         ax1.set_ylabel('Normalized Counts')
@@ -930,7 +930,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 else:
                     ax2.set_title('%s, S Weight=%d, SNR=None, SNRdB=None' % (
                         trH1_filt.stats.channel, Sweight))
-            ax2.legend()
+            ax2.legend(loc=1)
             ax2.set_yticks([])
             ax2.set_ylim([-1.5, 1.5])
             ax2.set_ylabel('Normalized Counts')
@@ -973,7 +973,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                         [-1.3, -1.3], 'g', linewidth=2)
                     ax3.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
                     ax3.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
-            ax3.legend()
+            ax3.legend(loc=1)
             ax3.set_yticks([])
             ax3.set_ylim([-1.5, 1.5])
             ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)

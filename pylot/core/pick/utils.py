@@ -150,7 +150,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
         ax.set_title(
             'Earliest-/Latest Possible/Most Likely Pick & Symmetric Pick Error, %s' %
             X[0].stats.station)
-        ax.legend()
+        ax.legend(loc=1)
         if plt_flag == 1:
             fig.show()
             try: input()
@@ -330,7 +330,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             ax1.plot(t[islope1], xraw[islope1], label='Slope Window')
             ax1.plot(zc1, np.zeros(len(zc1)), '*g', markersize=14, label='Zero Crossings')
             ax1.plot(t[islope1], datafit1, '--g', linewidth=2)
-            ax1.legend()
+            ax1.legend(loc=1)
             ax1.text(Pick + 0.02, max(xraw) / 2, '%s' % FM, fontsize=14)
         ax1.set_yticks([])
         ax1.set_title('First-Motion Determination, %s, Unfiltered Data' % Xraw[
@@ -680,7 +680,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
                       'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
-            ax.legend()
+            ax.legend(loc=1)
         else:
             ax.set_title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
 
@@ -791,7 +791,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
                 [minsiglevel, minsiglevel], 'g', linewidth=2, label='Minimum Signal Level')
         ax.plot([pick, pick], [min(rms), max(rms)], 'b', linewidth=2, label='Onset')
-        ax.legend()
+        ax.legend(loc=1)
         ax.set_xlabel('Time [s] since %s' % X[0].stats.starttime)
         ax.set_ylabel('Counts')
         ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
@@ -903,7 +903,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
 
         ax.set_xlabel('Number of P Picks')
         ax.set_ylabel('Onset Time [s] from 1.1.1970')
-        ax.legend()
+        ax.legend(loc=1)
         ax.set_title('Jackknifing and Median Tests on P Onsets')
         if plt_flag:
             fig.show()
@@ -1110,7 +1110,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
             ax.set_ylabel('Normalized Counts')
             ax.axvspan(pick, pick + checkwin, color='c', alpha=0.2,
                        lw=0)
-            ax.legend()
+            ax.legend(loc=1)
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
         if plt_flag == 1:
             fig.show()
