@@ -23,6 +23,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import argrelmax
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.utils import getnoisewin, getsignalwin
 
@@ -252,8 +253,12 @@ class AICPicker(AutoPicker):
             if len(dataslope) < 1:
                 print('No data in slope window found!')
                 return
-            imax = np.argmax(dataslope)
-            iislope = islope[0][0:imax+1]
+            imaxs, = argrelmax(dataslope)
+            if imaxs.size:
+                imax = imaxs[0]
+            else:
+                imax = np.argmax(dataslope)
+            iislope = islope[0][0:imax + 1]
             if len(iislope) < 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
