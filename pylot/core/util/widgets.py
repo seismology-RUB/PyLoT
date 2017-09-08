@@ -2507,7 +2507,7 @@ class TuneAutopicker(QWidget):
         for network, station in stations:
             item = QtGui.QStandardItem(network + '.' + station)
             if station in self.get_current_event().pylot_picks:
-                item.setBackground(self.parent()._colors['ref'])
+                item.setBackground(self.parent()._ref_test_colors['ref'])
             model.appendRow(item)
 
     def init_figure_tabs(self):
