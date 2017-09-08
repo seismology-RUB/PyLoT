@@ -3172,8 +3172,8 @@ def create_window():
     return app, app_created
 
 def main(args=None):
-    #project_filename = None
-    args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
+    project_filename = None
+    #args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
     pylot_infile = None
     if args:
         if args.project_filename:

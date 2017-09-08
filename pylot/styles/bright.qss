@@ -8,7 +8,7 @@ background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgb
 color: rgba(0, 0, 0, 255);
 }
 
-QWidget:checked{
+QToolBar QWidget:checked{
 background-color: transparent;
 border-color: rgba(230, 230, 230, 255);
 border-width: 2px;
@@ -152,7 +152,7 @@ QTabBar::tab:selected{
 background-color:rgba(255, 255, 255, 255);
 color: rgba(0, 0, 0, 255);
 border-style:solid;
-border-color:rgba(200, 200, 200, 255);
+border-color:rgba(255, 255, 255, 255);
 border-bottom-color: transparent;
 border-width:1px;
 padding:5px;
@@ -165,7 +165,7 @@ background-color:transparent;
 QTabWidget::pane{
 background-color:rgba(0, 0, 0, 255);
 border-style:solid;
-border-color:rgba(200, 200, 200, 255);
+border-color:rgba(255, 255, 255, 255);
 border-width:1px;
 }
 
@@ -209,6 +209,11 @@ background-color: rgba(255, 255, 255, 255);
 QLineEdit{
 background-color: rgba(255, 255, 255, 255);
 border-radius:0;
+}
+
+QCheckBox{
+background-color:transparent;
+border:none;
 }
 
 QListWidget{

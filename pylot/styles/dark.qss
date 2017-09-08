@@ -8,7 +8,7 @@ background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop
 color: rgba(255, 255, 255, 255);
 }
 
-QWidget:checked{
+QToolBar QWidget:checked{
 background-color: transparent;
 border-color: rgba(100, 100, 120, 255);
 border-width: 2px;
@@ -56,7 +56,7 @@ background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgb
 QToolBar{
 background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
 border-style:solid;
-border-color:rgba(70, 70, 80, 255);
+border-color:rgba(80, 80, 90, 255);
 border-width:1px;
 }
 
@@ -70,7 +70,7 @@ color: rgba(255, 255, 255, 255);
 }
 
 QTableWidget{
-background-color: rgba(70, 70, 80, 255);
+background-color: rgba(80, 80, 90, 255);
 color:rgba(255, 255, 255, 255);
 border-color:rgba(255, 255, 255, 255);
 selection-background-color: rgba(200, 210, 230, 255);
@@ -127,7 +127,7 @@ padding: 5px;
 }
 
 QPushButton:pressed{
-background-color: rgba(70, 70, 80, 255);
+background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(80, 80, 90, 255), stop:1 rgba(70, 70, 80, 255));
 }
 
 *:disabled{
@@ -142,17 +142,17 @@ QTabBar::tab{
 background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
 color: rgba(255, 255, 255, 255);
 border-style:solid;
-border-color:rgba(60, 60, 70, 255);
+border-color:rgba(70, 70, 80, 255);
 border-bottom-color: transparent;
 border-width:1px;
 padding:5px;
 }
 
 QTabBar::tab:selected{
-background-color:rgba(80, 80, 90, 255);
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(80, 80, 90, 255), stop:1 rgba(70, 70, 80, 255));
 color: rgba(255, 255, 255, 255);
 border-style:solid;
-border-color:rgba(80, 80, 90, 255);
+border-color:rgba(70, 70, 80, 255);
 border-bottom-color: transparent;
 border-width:1px;
 padding:5px;
@@ -163,18 +163,18 @@ background-color:transparent;
 }
 
 QTabWidget::pane{
-background-color:rgba(255, 255, 255, 255);
+background-color:rgba(70, 70, 80, 255);
 border-style:solid;
-border-color:rgba(80, 80, 90, 255);
+border-color:rgba(70, 70, 80, 255);
 border-width:1px;
 }
 
 QTabWidget::tab{
-background-color:rgba(60, 60, 70, 255);
+background-color:rgba(70, 70, 80, 255);
 }
 
 QTabWidget > QWidget{
-background-color: rgba(60, 60, 70, 255);
+background-color: rgba(70, 70, 80, 255);
 color: rgba(255, 255, 255, 255);
 }
 
@@ -204,6 +204,11 @@ background-color: rgba(80, 80, 90, 255);
 QDoubleSpinBox{
 color: rgba(255, 255, 255, 255);
 background-color: rgba(80, 80, 90, 255);
+}
+
+QCheckBox{
+background-color:transparent;
+border:none;
 }
 
 QLineEdit{
