@@ -139,7 +139,7 @@ background-color:transparent;
 }
 
 QTabBar::tab{
-background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(255, 255, 255, 255));
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(210, 210, 210, 255));
 color: rgba(0, 0, 0, 255);
 border-style:solid;
 border-color:rgba(230, 230, 230 255);
@@ -149,7 +149,7 @@ padding:5px;
 }
 
 QTabBar::tab:selected{
-background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(210, 210, 210, 255), stop:1 rgba(230, 230, 230, 255));
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(255, 255, 255, 255), stop:1 rgba(230, 230, 230, 255));
 color: rgba(0, 0, 0, 255);
 border-style:solid;
 border-color:rgba(230, 230, 230, 255);
@@ -159,7 +159,7 @@ padding:5px;
 }
 
 QTabBar::tab:disabled{
-background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(255, 255, 255, 255));
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(210, 210, 210, 255));
 color: rgba(100, 100, 120, 255);
 }
 
