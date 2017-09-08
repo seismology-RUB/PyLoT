@@ -554,8 +554,8 @@ class MainWindow(QMainWindow):
         self.pg = pg
 
         # init style
-        self.set_style('dark')
-        #self.set_style('bright')
+        #self.set_style('dark')
+        self.set_style('bright')
         #self.set_style('default')
 
         # add event combo box and ref/test buttons

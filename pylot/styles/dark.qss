@@ -158,6 +158,11 @@ border-width:1px;
 padding:5px;
 }
 
+QTabBar::tab:disabled{
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
+color: rgba(100, 100, 120, 255);
+}
+
 QTabWidget{
 background-color:transparent;
 }

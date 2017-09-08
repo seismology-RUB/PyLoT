@@ -729,7 +729,7 @@ class PylotCanvas(FigureCanvas):
     def saveFigure(self):
         if self.figure:
             fd = QtGui.QFileDialog()
-            fname, filter = fd.getSaveFileName(self._parent, filter='Images (*.png)')
+            fname, filter = fd.getSaveFileName(self.parent(), filter='Images (*.png)')
             if not fname:
                 return
             if not fname.endswith('.png'):
