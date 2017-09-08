@@ -554,8 +554,8 @@ class MainWindow(QMainWindow):
         self.pg = pg
 
         # init style
-        self.set_style('dark')
-        #self.set_style('bright')
+        #self.set_style('dark')
+        self.set_style('bright')
         #self.set_style('default')
 
         # add event combo box and ref/test buttons
@@ -3172,7 +3172,8 @@ def create_window():
     return app, app_created
 
 def main(args=None):
-    project_filename = None
+    #project_filename = None
+    args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
     pylot_infile = None
     if args:
         if args.project_filename:
