@@ -2766,7 +2766,8 @@ class TuneAutopicker(QWidget):
                 'locflag': 0,
                 'savexml': False}
         for key in self.fig_dict.keys():
-            self.fig_dict[key].clear()
+            if not key == 'plot_style':
+                self.fig_dict[key].clear()
         self.ap_thread = Thread(self, autoPyLoT, arg=args,
                                 progressText='Picking trace...',
                                 pb_widget=self.pb_widget,

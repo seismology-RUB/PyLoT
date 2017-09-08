@@ -1991,27 +1991,36 @@ class MainWindow(QMainWindow):
             'el_S1pick',
             'el_S2pick',
             'refSpick',
-            'aicARHfig'
+            'aicARHfig',
+            'plot_style'
         ]
         for key in self.fig_keys:
-            fig = Figure()
+            if key == 'plot_style':
+                fig = self._style
+            else:
+                fig = Figure()
             self.fig_dict[key] = fig
 
     def init_canvas_dict(self):
         self.canvas_dict = {}
         for key in self.fig_keys:
-            self.canvas_dict[key] = PylotCanvas(self.fig_dict[key], parent=self)
+            if not key == 'plot_style':
+                self.canvas_dict[key] = PylotCanvas(self.fig_dict[key], parent=self)
 
     def init_fig_dict_wadatijack(self, eventIDs):
         self.fig_dict_wadatijack = {}
         self.fig_keys_wadatijack = [
             'jackknife',
-            'wadati'
+            'wadati',
+            'plot_style'
         ]
         for eventID in eventIDs:
             self.fig_dict_wadatijack[eventID] = {}
             for key in self.fig_keys_wadatijack:
-                fig = Figure()
+                if key == 'plot_style':
+                    fig = self._style
+                else:
+                    fig = Figure()
                 self.fig_dict_wadatijack[eventID][key] = fig
 
     def init_canvas_dict_wadatijack(self):
@@ -2019,8 +2028,9 @@ class MainWindow(QMainWindow):
         for eventID in self.fig_dict_wadatijack.keys():
             self.canvas_dict_wadatijack[eventID] = {}
             for key in self.fig_keys_wadatijack:
-                self.canvas_dict_wadatijack[eventID][key] = PylotCanvas(self.fig_dict_wadatijack[eventID][key],
-                                                                        parent=self)
+                if not key == 'plot_style':
+                    self.canvas_dict_wadatijack[eventID][key] = PylotCanvas(self.fig_dict_wadatijack[eventID][key],
+                                                                            parent=self)
 
     def tune_autopicker(self):
         '''

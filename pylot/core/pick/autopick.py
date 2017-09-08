@@ -322,9 +322,11 @@ def autopickstation(wfstream, pickparam, verbose=False,
         key = 'aicFig'
         if fig_dict:
             fig = fig_dict[key]
+            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
         else:
             fig = None
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, aictsmoothP, fig=fig)
+            linecolor = 'k'
+        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, aictsmoothP, fig=fig, linecolor=linecolor)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -347,12 +349,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 key = 'slength'
                 if fig_dict:
                     fig = fig_dict[key]
+                    linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                 else:
                     fig = None
+                    linecolor = 'k'
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
                                           minsiglength / 2,
                                           nfacsl, minpercent, iplot,
-                                          fig)
+                                          fig, linecolor)
             else:
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
@@ -369,12 +373,14 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 zne += trH2_filt
                 if fig_dict:
                     fig = fig_dict['slength']
+                    linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                 else:
                     fig = None
+                    linecolor = 'k'
                 Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
                                           minsiglength,
                                           nfacsl, minpercent, iplot,
-                                          fig)
+                                          fig, linecolor)
 
             if Pflag == 1:
                 # check for spuriously picked S onset
@@ -387,10 +393,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     if iplot > 1:
                         if fig_dict:
                             fig = fig_dict['checkZ4s']
+                            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                         else:
                             fig = None
+                            linecolor = 'k'
                     Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
-                                     tsnrz[2], iplot, fig)
+                                     tsnrz[2], iplot, fig, linecolor)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
                         Pweight = 9
@@ -442,10 +450,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 algoP=algoP)
             if fig_dict:
                 fig = fig_dict['refPpick']
+                linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
             else:
                 fig = None
+                linecolor = 'k'
             refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
-                                  aicpick.getpick(), fig)
+                                  aicpick.getpick(), fig, linecolor)
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
@@ -454,10 +464,13 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 if iplot:
                     if fig_dict:
                         fig = fig_dict['el_Ppick']
+                        linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                     else:
                         fig = None
+                        linecolor = 'k'
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
-                                                            mpickP, iplot, fig=fig)
+                                                            mpickP, iplot, fig=fig,
+                                                            linecolor=linecolor)
                 else:
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
                                                             mpickP, iplot)
@@ -487,9 +500,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     if iplot:
                         if fig_dict:
                             fig = fig_dict['fm_picker']
+                            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                         else:
                             fig = None
-                        FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot, fig)
+                        FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot, fig, linecolor)
                     else:
                         FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
                 else:
@@ -624,10 +638,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
         # of class AutoPicking
         if fig_dict:
             fig = fig_dict['aicARHfig']
+            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
         else:
             fig = None
+            linecolor = 'k'
         aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, iplot, None,
-                               aictsmoothS, fig=fig)
+                               aictsmoothS, fig=fig, linecolor=linecolor)
         ###############################################################
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
@@ -686,10 +702,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # get refined onset time from CF2 using class Picker
             if fig_dict:
                 fig = fig_dict['refSpick']
+                linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
             else:
                 fig = None
+                linecolor = 'k'
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
-                                  tsmoothS, aicarhpick.getpick(), fig)
+                                  tsmoothS, aicarhpick.getpick(), fig, linecolor)
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:
@@ -699,12 +717,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 if iplot:
                     if fig_dict:
                         fig = fig_dict['el_S1pick']
+                        linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                     else:
                         fig = None
+                        linecolor = 'k'
                     epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
                                                                mpickS, iplot,
-                                                               fig=fig)
+                                                               fig=fig,
+                                                               linecolor=linecolor)
                 else:
                     epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
@@ -714,12 +735,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 if iplot:
                     if fig_dict:
                         fig = fig_dict['el_S2pick']
+                        linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                     else:
                         fig = None
+                        linecolor = ''
                     epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
                                                                mpickS, iplot,
-                                                               fig=fig)
+                                                               fig=fig,
+                                                               linecolor=linecolor)
                 else:
                     epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
@@ -828,8 +852,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if fig_dict == None or fig_dict == 'None':
             fig = plt.figure()
             plt_flag = 1
+            linecolor = 'k'
         else:
             fig = fig_dict['mainFig']
+            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
         ax1 = fig.add_subplot(311)
         tdata = np.arange(0, zdat[0].stats.npts / tr_filt.stats.sampling_rate,
                           tr_filt.stats.delta)
@@ -837,7 +863,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         wfldiff = len(tr_filt.data) - len(tdata)
         if wfldiff < 0:
             tdata = tdata[0:len(tdata) - abs(wfldiff)]
-        ax1.plot(tdata, tr_filt.data / max(tr_filt.data), 'k', label='Data')
+        ax1.plot(tdata, tr_filt.data / max(tr_filt.data), color=linecolor, linewidth=0.7, label='Data')
         if Pweight < 4:
             ax1.plot(cf1.getTimeArray(), cf1.getCF() / max(cf1.getCF()),
                      'b', label='CF1')
@@ -896,7 +922,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             wfldiff = len(trH1_filt.data) - len(th1data)
             if wfldiff < 0:
                 th1data = th1data[0:len(th1data) - abs(wfldiff)]
-            ax2.plot(th1data, trH1_filt.data / max(trH1_filt.data), 'k', label='Data')
+            ax2.plot(th1data, trH1_filt.data / max(trH1_filt.data), color=linecolor, linewidth=0.7, label='Data')
             if Pweight < 4:
                 ax2.plot(arhcf1.getTimeArray(),
                          arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
@@ -945,7 +971,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             wfldiff = len(trH2_filt.data) - len(th2data)
             if wfldiff < 0:
                 th2data = th2data[0:len(th2data) - abs(wfldiff)]
-            ax3.plot(th2data, trH2_filt.data / max(trH2_filt.data), 'k', label='Data')
+            ax3.plot(th2data, trH2_filt.data / max(trH2_filt.data), color=linecolor, linewidth=0.7, label='Data')
             if Pweight < 4:
                 p22, = ax3.plot(arhcf1.getTimeArray(),
                                 arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')

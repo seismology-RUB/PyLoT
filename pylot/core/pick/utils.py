@@ -15,7 +15,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 
 
-def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
+def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
     '''
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
@@ -131,16 +131,16 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
-        ax.plot(t, x, 'k', label='Data')
+        ax.plot(t, x, color=linecolor, linewidth=0.7, label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], '--k', label='Noise Level')
+        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], color=linecolor, linewidth=0.7, linestyle='dashed', label='Noise Level')
         ax.plot(t[pis[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
-        ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], '--k')
+        ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], color=linecolor, linewidth=0.7, linestyle='dashed')
         ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
-        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], '--k', label='lpp')
-        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], '--k', label='epp')
+        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='lpp')
+        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='epp')
         ax.plot([Pick1 + PickError, Pick1 + PickError],
                 [max(x) / 2, -max(x) / 2], 'r--', label='spe')
         ax.plot([Pick1 - PickError, Pick1 - PickError],
@@ -160,7 +160,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None):
     return EPick, LPick, PickError
 
 
-def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
+def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
     '''
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
@@ -324,7 +324,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax1 = fig.add_subplot(211)
-        ax1.plot(t, xraw, 'k')
+        ax1.plot(t, xraw, color=linecolor, linewidth=0.7)
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
         if P1 is not None:
             ax1.plot(t[islope1], xraw[islope1], label='Slope Window')
@@ -338,7 +338,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None):
 
         ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
         ax2.set_title('First-Motion Determination, Filtered Data')
-        ax2.plot(t, xfilt, 'k')
+        ax2.plot(t, xfilt, color=linecolor, linewidth=0.7)
         ax2.plot([Pick, Pick], [max(xfilt), -max(xfilt)], 'b',
                  linewidth=2)
         if P2 is not None:
@@ -668,15 +668,18 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     if iplot > 0:
         if fig_dict:
             fig = fig_dict['wadati']
+            linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
             plt_flag = 0
         else:
             fig = plt.figure()
+            linecolor = 'k'
             plt_flag = 1
         ax = fig.add_subplot(111)
         ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
         if wfitflag == 0:
-            ax.plot(Ppicks, wdfit, 'k', label='Wadati 1')
-            ax.plot(checkedPpicks, checkedSPtimes, 'ko', label='Reliable S-Picks')
+            ax.plot(Ppicks, wdfit, color=linecolor, linewidth=0.7, label='Wadati 1')
+            ax.plot(checkedPpicks, checkedSPtimes, color=linecolor,
+                    linewidth=0, marker='o', label='Reliable S-Picks')
             ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
                       'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
@@ -699,7 +702,7 @@ def RMS(X):
     return np.sqrt(np.sum(np.power(X, 2)) / len(X))
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None):
+def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None, linecolor='k'):
     '''
     Function to detect spuriously picked noise peaks.
     Uses RMS trace of all 3 components (if available) to determine,
@@ -785,7 +788,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
-        ax.plot(t, rms, 'k', label='RMS Data')
+        ax.plot(t, rms, color=linecolor, linewidth=0.7, label='RMS Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
@@ -975,7 +978,7 @@ def jackknife(X, phi, h):
     return PHI_jack, PHI_pseudo, PHI_sub
 
 
-def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
+def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     '''
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
@@ -1103,7 +1106,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None):
                     plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
             ax.plot(t, abs(trace.data), color='b', label='abs')
-            ax.plot(t, trace.data, color='k')
+            ax.plot(t, trace.data, color=linecolor, linewidth=0.7)
             name = str(trace.stats.channel) + ': {}'.format(rms)
             ax.plot([pick, pick + checkwin], [rms, rms], 'r', label='RMS {}'.format(name))
             ax.plot([pick, pick], ax.get_ylim(), 'm', label='Pick')
