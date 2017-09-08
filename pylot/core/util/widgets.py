@@ -2497,7 +2497,7 @@ class TuneAutopicker(QWidget):
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
         # rotate misaligned stations to ZNE
-        wfdat = check4rotated(wfdat, self.parent.metadata)
+        wfdat = check4rotated(wfdat, self.parent.metadata, verbosity=0)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():

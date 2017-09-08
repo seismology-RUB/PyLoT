@@ -1461,7 +1461,7 @@ class MainWindow(QMainWindow):
         check4gaps(wfdat)
         check4doubled(wfdat)
         # check for stations with rotated components
-        wfdat = check4rotated(wfdat, self.metadata)
+        wfdat = check4rotated(wfdat, self.metadata, verbosity=0)
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
         self._stime = full_range(self.get_data().getWFData())[0]

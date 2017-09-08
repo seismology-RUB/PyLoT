@@ -702,7 +702,7 @@ def get_stations(data):
     return stations
 
 
-def check4rotated(data, metadata=None):
+def check4rotated(data, metadata=None, verbosity=1):
 
     def rotate_components(wfstream, metadata=None):
         """rotates components if orientation code is numeric.
@@ -711,13 +711,15 @@ def check4rotated(data, metadata=None):
             # indexing fails if metadata is None
             metadata[0]
         except:
-            msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
-            print(msg)
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+                print(msg)
             return wfstream
         if metadata[0] is None:
             # sometimes metadata is (None, (None,))
-            msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
-            print(msg)
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
+                print(msg)
             return wfstream
         else:
             parser = metadata[1]
