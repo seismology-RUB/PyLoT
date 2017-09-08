@@ -2531,6 +2531,7 @@ class TuneAutopicker(QWidget):
 
     def add_buttons(self):
         self.pick_button = QtGui.QPushButton('Pick Trace')
+        self.pick_button.setStyleSheet('QPushButton{border-color: rgba(110, 200, 0, 255)}')
         self.pick_button.clicked.connect(self.call_picker)
         self.close_button = QtGui.QPushButton('Close')
         self.close_button.clicked.connect(self.hide)
