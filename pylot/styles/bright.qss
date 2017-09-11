@@ -117,13 +117,14 @@ color:rgba(0, 0, 0, 255);
 }
 
 QPushButton{
-background-color:qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(255, 255, 255, 255));
+background-color:qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(245, 245, 245, 255));
 color:rgba(0, 0, 0, 255);
 border-style: outset;
-border-width: 2px;
-border-color: rgba(230, 230, 230, 255);
+border-width: 1px;
+border-color: rgba(100, 100, 120, 255);
 min-width: 6em;
 padding: 5px;
+border-radius: 2px;
 }
 
 QPushButton:pressed{
@@ -142,7 +143,7 @@ QTabBar::tab{
 background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(230, 230, 230, 255), stop:1 rgba(210, 210, 210, 255));
 color: rgba(0, 0, 0, 255);
 border-style:solid;
-border-color:rgba(230, 230, 230 255);
+border-color:rgba(210, 210, 210 255);
 border-bottom-color: transparent;
 border-width:1px;
 padding:5px;
@@ -213,7 +214,16 @@ background-color: rgba(255, 255, 255, 255);
 
 QLineEdit{
 background-color: rgba(255, 255, 255, 255);
+border: 1px inset;
 border-radius:0;
+border-color: rgba(100, 100, 120, 255);
+}
+
+QLineEdit:disabled{
+background-color: rgba(255, 255, 255, 255);
+border: 1px inset;
+border-radius:0;
+border-color: rgba(200, 200, 200, 255);
 }
 
 QCheckBox{

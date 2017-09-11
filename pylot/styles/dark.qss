@@ -124,6 +124,7 @@ border-width: 2px;
 border-color: rgba(50, 50, 60, 255);
 min-width: 6em;
 padding: 5px;
+border-radius: 2px;
 }
 
 QPushButton:pressed{
@@ -218,7 +219,16 @@ border:none;
 
 QLineEdit{
 background-color: rgba(80, 80, 90, 255);
+border: 1px inset;
 border-radius:0;
+border-color: rgba(100, 100, 120, 255);
+}
+
+QLineEdit:disabled{
+background-color: rgba(80, 80, 90, 255);
+border: 1px inset;
+border-radius:0;
+border-color: rgba(200, 200, 200, 255);
 }
 
 QListWidget{
