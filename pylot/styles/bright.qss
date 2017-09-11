@@ -133,6 +133,12 @@ border-radius: 2px;
 
 QPushButton:pressed{
 background-color: rgba(230, 230, 230, 255);
+border-style: inset;
+}
+
+QPushButton:checked{
+background-color: rgba(230, 230, 230, 255);
+border-style: inset;
 }
 
 *:disabled{

@@ -132,6 +132,12 @@ border-radius: 2px;
 
 QPushButton:pressed{
 background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(80, 80, 90, 255), stop:1 rgba(70, 70, 80, 255));
+border-style: inset;
+}
+
+QPushButton:checked{
+background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(80, 80, 90, 255), stop:1 rgba(70, 70, 80, 255));
+border-style: inset;
 }
 
 *:disabled{
