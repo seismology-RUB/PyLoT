@@ -3738,10 +3738,13 @@ class GraphicsTab(PropTab):
 
     def add_style_settings(self):
         styles = self.pylot_mainwindow._styles
+        active_stylename = self.pylot_mainwindow._stylename
         label = QtGui.QLabel('Application style (might require Application restart):')
         self.style_cb = QComboBox()
         for stylename, style in styles.items():
             self.style_cb.addItem(stylename, style)
+        index_current_style = self.style_cb.findText(active_stylename)
+        self.style_cb.setCurrentIndex(index_current_style)
         self.main_layout.addWidget(label, 2, 0)
         self.main_layout.addWidget(self.style_cb, 2, 1)
         self.style_cb.activated.connect(self.set_current_style)

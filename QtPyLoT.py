@@ -711,6 +711,7 @@ class MainWindow(QMainWindow):
 
         style = self._styles[stylename]
         self._style = style
+        self._stylename = stylename
         self.setStyleSheet(style['stylesheet'])
 
         # colors for ref/test event
