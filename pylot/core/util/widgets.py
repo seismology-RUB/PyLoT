@@ -2435,6 +2435,7 @@ class TuneAutopicker(QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent, 1)
+        self._style = parent._style
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = self.parent()._inputs
         self.fig_dict = self.parent().fig_dict
@@ -2579,28 +2580,30 @@ class TuneAutopicker(QWidget):
 
     def gen_pick_dlg(self):
         if not self.get_current_event():
-            self.pickDlg = None
+            if self.pdlg_widget:
+                self.pdlg_widget.setParent(None)
+            self.pdlg_widget = None
             return
         station = self.get_current_station()
         data = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        pickDlg = PickDlg(self.parent(), data=data.select(station=station),
-                          station=station, parameter=self.parameter,
-                          picks=self.get_current_event_picks(station),
-                          autopicks=self.get_current_event_autopicks(station),
-                          metadata=metadata, event=event, filteroptions=filteroptions,
-                          embedded=True)
-        pickDlg.update_picks.connect(self.picks_from_pickdlg)
-        pickDlg.update_picks.connect(self.fill_eventbox)
-        pickDlg.update_picks.connect(self.fill_stationbox)
-        pickDlg.update_picks.connect(lambda: self.parent().setDirty(True))
-        pickDlg.update_picks.connect(self.parent().enableSaveEventAction)
-        self.pickDlg = QtGui.QWidget()
+        self.pickDlg = PickDlg(self, data=data.select(station=station),
+                               station=station, parameter=self.parameter,
+                               picks=self.get_current_event_picks(station),
+                               autopicks=self.get_current_event_autopicks(station),
+                               metadata=metadata, event=event, filteroptions=filteroptions,
+                               embedded=True)
+        self.pickDlg.update_picks.connect(self.picks_from_pickdlg)
+        self.pickDlg.update_picks.connect(self.fill_eventbox)
+        self.pickDlg.update_picks.connect(self.fill_stationbox)
+        self.pickDlg.update_picks.connect(lambda: self.parent().setDirty(True))
+        self.pickDlg.update_picks.connect(self.parent().enableSaveEventAction)
+        self.pdlg_widget = QtGui.QWidget(self)
         hl = QtGui.QHBoxLayout()
-        self.pickDlg.setLayout(hl)
-        hl.addWidget(pickDlg)
+        self.pdlg_widget.setLayout(hl)
+        hl.addWidget(self.pickDlg)
 
     def picks_from_pickdlg(self, picks=None):
         station = self.get_current_station()
@@ -2673,10 +2676,10 @@ class TuneAutopicker(QWidget):
 
     def fill_tabs(self, event=None, picked=False):
         self.clear_all()
-        canvas_dict = self.parent().canvas_dict
         self.gen_pick_dlg()
+        canvas_dict = self.parent().canvas_dict
         self.overview = self.gen_tab_widget('Overview', canvas_dict['mainFig'])
-        id0 = self.figure_tabs.insertTab(0, self.pickDlg, 'Traces Plot')
+        id0 = self.figure_tabs.insertTab(0, self.pdlg_widget, 'Traces Plot')
         id1 = self.figure_tabs.insertTab(1, self.overview, 'Overview')
         id2 = self.figure_tabs.insertTab(2, self.p_tabs, 'P')
         id3 = self.figure_tabs.insertTab(3, self.s_tabs, 'S')
@@ -2816,10 +2819,11 @@ class TuneAutopicker(QWidget):
         self.tune_layout.setStretch(1, 1)
 
     def clear_all(self):
-        if hasattr(self, 'pickDlg'):
-            if self.pickDlg:
-                self.pickDlg.setParent(None)
-            del (self.pickDlg)
+        if hasattr(self, 'pdlg_widget'):
+            if self.pdlg_widget:
+                self.pdlg_widget.setParent(None)
+                # TODO: removing widget by parent deletion raises exception when activating stationbox:
+                # RuntimeError: Internal C++ object (PylotCanvas) already deleted.
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):
