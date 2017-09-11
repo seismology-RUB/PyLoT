@@ -3422,6 +3422,7 @@ class SubmitLocal(QWidget):
 class PropertiesDlg(QDialog):
     def __init__(self, parent=None, infile=None, inputs=None):
         super(PropertiesDlg, self).__init__(parent)
+        self._pylot_mainwindow = self.parent()
 
         self.infile = infile
         self.inputs = inputs
@@ -3722,13 +3723,25 @@ class PhasesTab(PropTab):
 class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
+        self.pylot_mainwindow = parent._pylot_mainwindow
         self.init_layout()
         self.add_pg_cb()
         self.add_nth_sample()
+        self.add_style_settings()
         self.setLayout(self.main_layout)
 
     def init_layout(self):
         self.main_layout = QGridLayout()
+
+    def add_style_settings(self):
+        styles = self.pylot_mainwindow._styles
+        label = QtGui.QLabel('Application style (might require Application restart):')
+        self.style_cb = QComboBox()
+        for stylename, style in styles.items():
+            self.style_cb.addItem(stylename, style)
+        self.main_layout.addWidget(label, 2, 0)
+        self.main_layout.addWidget(self.style_cb, 2, 1)
+        self.style_cb.activated.connect(self.set_current_style)
 
     def add_nth_sample(self):
         settings = QSettings()
@@ -3762,6 +3775,10 @@ class GraphicsTab(PropTab):
         self.checkbox_pg.setChecked(bool(pg))
         self.main_layout.addWidget(label, 0, 0)
         self.main_layout.addWidget(self.checkbox_pg, 0, 1)
+
+    def set_current_style(self):
+        selected_style = self.style_cb.currentText()
+        self.pylot_mainwindow.set_style(selected_style)
 
     def getValues(self):
         values = {'nth_sample': self.spinbox_nth_sample.value(),

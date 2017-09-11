@@ -554,9 +554,9 @@ class MainWindow(QMainWindow):
         self.pg = pg
 
         # init style
-        self.set_style('dark')
-        #self.set_style('bright')
-        #self.set_style('default')
+        settings = QSettings()
+        style = settings.value('style')
+        self.set_style(style)
 
         # add event combo box and ref/test buttons
         self.eventBox = self.createEventBox()
@@ -698,11 +698,13 @@ class MainWindow(QMainWindow):
 
             stylecolors['stylesheet'] = stylesheet
 
-    def set_style(self, stylename='default'):
+    def set_style(self, stylename=None):
+        if not stylename:
+            stylename = 'default'
         if not stylename in self._styles:
             qmb = QMessageBox.warning(self, 'Could not find style',
                                       'Could not find style with name {}. Using default.'.format(stylename))
-            self.set_style()
+            self.set_style('default')
             return
 
         style = self._styles[stylename]
@@ -739,6 +741,10 @@ class MainWindow(QMainWindow):
         if self.pg:
             pg.setConfigOption('background', bg_color)
             pg.setConfigOption('foreground', line_color)
+
+        settings = QSettings()
+        settings.setValue('style', stylename)
+        settings.sync()
 
     @property
     def metadata(self):
@@ -3181,6 +3187,7 @@ def create_window():
     # app.references.add(window)
     # window.show()
     return app, app_created
+
 
 def main(args=None):
     project_filename = None
