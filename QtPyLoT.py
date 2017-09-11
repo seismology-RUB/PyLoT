@@ -3173,9 +3173,10 @@ def create_window():
     if app is None:
         app = QApplication(sys.argv)
         app_created = True
-    app.setOrganizationName("QtPyLoT");
+    # set aplication/organization name, domain (important to do this BEFORE setupUI is called for correct QSettings)
+    app.setOrganizationName("Ruhr-University Bochum / BESTEC")
     app.setOrganizationDomain("rub.de");
-    app.setApplicationName("RUB");
+    app.setApplicationName("PyLoT");
     app.references = set()
     # app.references.add(window)
     # window.show()
@@ -3207,16 +3208,12 @@ def main(args=None):
     pylot_form.setWindowIcon(icon)
     pylot_form.setIconSize(QSize(60, 60))
 
-    splash.showMessage('Loading. Please wait ...')
-    pylot_app.processEvents()
-
-    # set Application Information
-    pylot_app.setOrganizationName("Ruhr-University Bochum / BESTEC")
-    pylot_app.setOrganizationDomain("rub.de")
-    pylot_app.processEvents()
-    pylot_app.setApplicationName("PyLoT")
+    # set other App information
     pylot_app.setApplicationVersion(pylot_form.__version__)
     pylot_app.setWindowIcon(app_icon)
+    pylot_app.processEvents()
+
+    splash.showMessage('Loading. Please wait ...')
     pylot_app.processEvents()
 
     # Show main window and run the app
