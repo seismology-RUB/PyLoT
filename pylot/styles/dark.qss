@@ -16,15 +16,15 @@ border-style:inset;
 }
 
 QComboBox{
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 color: rgba(255, 255, 255, 255);
-min-height: 1.8em;
+min-height: 1.5em;
 
 selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 144, 180, 255), stop:1 rgba(0, 150, 190, 255));
 }
 
 QComboBox *{
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 color: rgba(255, 255, 255, 255);
 
 selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 144, 180, 255), stop:1 rgba(0, 150, 190, 255));
@@ -40,8 +40,9 @@ QMenuBar::item{
 background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
 color: rgba(255, 255, 255, 255);
 padding:3px;
+padding-left:5px;
+padding-right:5px;
 }
-
 QMenu{
 background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
 color: rgba(255, 255, 255, 255);
@@ -123,7 +124,9 @@ border-style: outset;
 border-width: 2px;
 border-color: rgba(50, 50, 60, 255);
 min-width: 6em;
-padding: 5px;
+padding: 4px;
+padding-left:5px;
+padding-right:5px;
 border-radius: 2px;
 }
 
@@ -199,17 +202,17 @@ background-color: transparent;
 
 QTextEdit{
 color: rgba(255, 255, 255, 255);
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 }
 
 QSpinBox{
 color: rgba(255, 255, 255, 255);
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 }
 
 QDoubleSpinBox{
 color: rgba(255, 255, 255, 255);
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 }
 
 QCheckBox{
@@ -218,14 +221,14 @@ border:none;
 }
 
 QLineEdit{
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 border: 1px inset;
 border-radius:0;
 border-color: rgba(100, 100, 120, 255);
 }
 
 QLineEdit:disabled{
-background-color: rgba(80, 80, 90, 255);
+background-color: rgba(90, 90, 100, 255);
 border: 1px inset;
 border-radius:0;
 border-color: rgba(200, 200, 200, 255);
@@ -236,16 +239,9 @@ background-color:rgba(60, 60, 70, 255)
 }
 
 QProgressBar{
-border-radius:0;
-text-align:center;
-color:rgba(255, 255, 255, 255);
-background-color:rgba(60,60,80,255);
-border: 2px solid;
-border-color:rgba(0, 150, 190, 255);
-border-radius:5px;
+background-color:rgba(60, 60, 70, 255);
 }
 
 QProgressBar::chunk{
-background-color:rgba(0, 150, 190, 255);
-width:10px;
+background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 150, 190, 255), stop:1 transparent);
 }
