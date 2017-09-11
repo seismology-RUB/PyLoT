@@ -2435,10 +2435,9 @@ class TuneAutopicker(QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent, 1)
-        self.setParent(parent)
         self.setWindowTitle('PyLoT - Tune Autopicker')
-        self.parameter = parent._inputs
-        self.fig_dict = parent.fig_dict
+        self.parameter = self.parent()._inputs
+        self.fig_dict = self.parent().fig_dict
         self.data = Data()
         self.init_main_layouts()
         self.init_eventlist()
@@ -2451,7 +2450,7 @@ class TuneAutopicker(QWidget):
         self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
-        if hasattr(parent, 'metadata'):
+        if hasattr(self.parent(), 'metadata'):
             self.metadata = self.parent().metadata
         else:
             self.metadata = None
