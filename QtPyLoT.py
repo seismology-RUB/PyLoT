@@ -171,6 +171,8 @@ class MainWindow(QMainWindow):
         self.fnames = None
         self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
+        if not structure_setting:
+            structure_setting = 'PILOT'
         self.dataStructure = DATASTRUCTURE[structure_setting]()
         self.seismicPhase = str(settings.value("phase", "P"))
         if settings.value("data/dataRoot", None) is None:
