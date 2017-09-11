@@ -74,7 +74,8 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, check4rotated
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
+    check4rotated, transform_colors_mpl, transform_colors_mpl_str
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -85,6 +86,8 @@ from pylot.core.util.map_projection import map_projection
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
+
+from pylot.styles import style_settings
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
@@ -109,6 +112,7 @@ class MainWindow(QMainWindow):
             print('Using default input file {}'.format(infile))
         if os.path.isfile(infile) == False:
             infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+
             if not os.path.exists(infile[0]):
                 QMessageBox.warning(self, "PyLoT Warning",
                                     "No PyLoT-input file declared!")
@@ -138,12 +142,6 @@ class MainWindow(QMainWindow):
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
-
-        # default colors for ref/test event
-        self._colors = {
-            'ref': QtGui.QColor(200, 210, 230, 255),
-            'test': QtGui.QColor(200, 230, 200, 255)
-        }
 
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
@@ -210,6 +208,8 @@ class MainWindow(QMainWindow):
                 [tr.stats.starttime for tr in self.data.wfdata])
         except:
             self.startTime = UTCDateTime()
+
+        self.init_styles()
 
         pylot_icon = QIcon()
         pylot_icon.addPixmap(QPixmap(':/icons/pylot.png'))
@@ -552,6 +552,13 @@ class MainWindow(QMainWindow):
         self.addActions(toolbars["autoPyLoT"], pickActions)
         self.addActions(toolbars["LocationTools"], locationToolActions)
 
+        # init pyqtgraph
+        self.pg = pg
+
+        # init style
+        settings = QSettings()
+        style = settings.value('style')
+        self.set_style(style)
 
         # add event combo box and ref/test buttons
         self.eventBox = self.createEventBox()
@@ -568,21 +575,20 @@ class MainWindow(QMainWindow):
         self.eventBox.activated.connect(self.refreshEvents)
 
         # add main tab widget
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget(self)
         self._main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self.refreshTabs)
 
         # add scroll area used in case number of traces gets too high
-        self.wf_scroll_area = QtGui.QScrollArea()
+        self.wf_scroll_area = QtGui.QScrollArea(self)
 
         # create central matplotlib figure canvas widget
-        self.pg = pg
         self.init_wfWidget()
 
         # init main widgets for main tabs
-        wf_tab = QtGui.QWidget()
-        array_tab = QtGui.QWidget()
-        events_tab = QtGui.QWidget()
+        wf_tab = QtGui.QWidget(self)
+        array_tab = QtGui.QWidget(self)
+        events_tab = QtGui.QWidget(self)
 
         # init main widgets layouts
         self.wf_layout = QtGui.QVBoxLayout()
@@ -625,8 +631,8 @@ class MainWindow(QMainWindow):
             self.dataPlot = PylotCanvas(parent=self, connect_events=False, multicursor=True)
             self.dataPlot.updateWidget(xlab, None, plottitle)
         else:
-            self.pg = True
-            self.dataPlot = WaveformWidgetPG(parent=self, xlabel=xlab, ylabel=None,
+            self.pg = pg
+            self.dataPlot = WaveformWidgetPG(parent=self,
                                              title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
         self.wf_scroll_area.setWidget(self.dataPlot)
@@ -645,8 +651,8 @@ class MainWindow(QMainWindow):
                                           'event as test picks for autopicker testing.')
         self.ref_event_button.setCheckable(True)
         self.test_event_button.setCheckable(True)
-        self.set_button_color(self.ref_event_button, self._colors['ref'])
-        self.set_button_color(self.test_event_button, self._colors['test'])
+        self.set_button_border_color(self.ref_event_button, self._style['ref']['rgba'])
+        self.set_button_border_color(self.test_event_button, self._style['test']['rgba'])
         self.ref_event_button.clicked.connect(self.toggleRef)
         self.test_event_button.clicked.connect(self.toggleTest)
         self.ref_event_button.setEnabled(False)
@@ -663,6 +669,84 @@ class MainWindow(QMainWindow):
             self._ctrl = False
         if event.key() == QtCore.Qt.Key.Key_Shift:
             self._shift = False
+
+    def init_styles(self):
+        self._styles = {}
+        styles = ['default', 'dark', 'bright']
+        stylecolors = style_settings.stylecolors
+        for style in styles:
+            if style in stylecolors.keys():
+                self._styles[style] = stylecolors[style]
+
+        self._phasecolors = style_settings.phasecolors
+
+        for style, stylecolors in self._styles.items():
+            stylesheet = stylecolors['stylesheet']['filename']
+            if stylesheet:
+                stylesheet_file = open(stylesheet, 'r')
+                stylesheet = stylesheet_file.read()
+                stylesheet_file.close()
+            else:
+                stylesheet = self.styleSheet()
+
+            bg_color = stylecolors['background']['rgba']
+            line_color = stylecolors['linecolor']['rgba']
+            multcursor_color = stylecolors['multicursor']['rgba']
+
+            # transform to 0-1 values for mpl and update dict
+            stylecolors['background']['rgba_mpl'] = transform_colors_mpl(bg_color)
+            stylecolors['linecolor']['rgba_mpl'] = transform_colors_mpl(line_color)
+            multcursor_color = stylecolors['multicursor']['rgba_mpl'] = transform_colors_mpl(multcursor_color)
+
+            stylecolors['stylesheet'] = stylesheet
+
+    def set_style(self, stylename=None):
+        if not stylename:
+            stylename = 'default'
+        if not stylename in self._styles:
+            qmb = QMessageBox.warning(self, 'Could not find style',
+                                      'Could not find style with name {}. Using default.'.format(stylename))
+            self.set_style('default')
+            return
+
+        style = self._styles[stylename]
+        self._style = style
+        self.setStyleSheet(style['stylesheet'])
+
+        # colors for ref/test event
+        self._ref_test_colors = {
+            'ref': QtGui.QColor(*style['ref']['rgba']),
+            'test': QtGui.QColor(*style['test']['rgba']),
+        }
+
+        # plot colors
+        bg_color = style['background']['rgba']
+        bg_color_mpl_na = transform_colors_mpl_str(bg_color, no_alpha=True)
+        line_color = style['linecolor']['rgba']
+        line_color_mpl_na = transform_colors_mpl_str(line_color, no_alpha=True)
+
+        for param in matplotlib.rcParams:
+            if 'color' in param and matplotlib.rcParams[param] in ['k', 'black']:
+                matplotlib.rcParams[param] = line_color_mpl_na
+
+        matplotlib.rc('axes',
+                      edgecolor=line_color_mpl_na,
+                      facecolor=bg_color_mpl_na,
+                      labelcolor=line_color_mpl_na)
+        matplotlib.rc('xtick',
+                      color=line_color_mpl_na)
+        matplotlib.rc('ytick',
+                      color=line_color_mpl_na)
+        matplotlib.rc('figure',
+                      facecolor=bg_color_mpl_na)
+
+        if self.pg:
+            pg.setConfigOption('background', bg_color)
+            pg.setConfigOption('foreground', line_color)
+
+        settings = QSettings()
+        settings.setValue('style', stylename)
+        settings.sync()
 
     @property
     def metadata(self):
@@ -803,20 +887,27 @@ class MainWindow(QMainWindow):
     def add_recentfile(self, event):
         self.recentfiles.insert(0, event)
 
-    def set_button_color(self, button, color=None):
+    def set_button_border_color(self, button, color=None):
         '''
         Set background color of a button.
         button: type = QtGui.QAbstractButton
         color: type = QtGui.QColor or type = str (RGBA)
         '''
         if type(color) == QtGui.QColor:
+            button.setStyleSheet({'QPushButton{background-color:transparent}'})
             palette = button.palette()
             role = button.backgroundRole()
             palette.setColor(role, color)
             button.setPalette(palette)
             button.setAutoFillBackground(True)
-        elif type(color) == str or not color:
-            button.setStyleSheet("background-color: {}".format(color))
+        elif type(color) == str:
+            button.setStyleSheet('QPushButton{border-color: %s}'
+                                 'QPushButton:checked{background-color: rgba%s}'% (color, color))
+        elif type(color) == tuple:
+            button.setStyleSheet('QPushButton{border-color: rgba%s}'
+                                 'QPushButton:checked{background-color: rgba%s}' % (str(color), str(color)))
+        elif not color:
+            button.setStyleSheet(self.orig_parent._style['stylesheet'])
 
     def getWFFnames(self):
         try:
@@ -1092,9 +1183,9 @@ class MainWindow(QMainWindow):
             item_ref = QtGui.QStandardItem()  # str(event_ref))
             item_test = QtGui.QStandardItem()  # str(event_test))
             if event_ref:
-                item_ref.setBackground(self._colors['ref'])
+                item_ref.setBackground(self._ref_test_colors['ref'])
             if event_test:
-                item_test.setBackground(self._colors['test'])
+                item_test.setBackground(self._ref_test_colors['test'])
             item_notes = QtGui.QStandardItem(event.notes)
 
             openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
@@ -1523,7 +1614,8 @@ class MainWindow(QMainWindow):
         self.getPlotWidget().updateWidget()
         plots = self.wfp_thread.data
         for times, data in plots:
-            self.dataPlot.plotWidget.getPlotItem().plot(times, data, pen='k')
+            self.dataPlot.plotWidget.getPlotItem().plot(times, data,
+                                                        pen=self.dataPlot.pen_linecolor)
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
@@ -1907,27 +1999,36 @@ class MainWindow(QMainWindow):
             'el_S1pick',
             'el_S2pick',
             'refSpick',
-            'aicARHfig'
+            'aicARHfig',
+            'plot_style'
         ]
         for key in self.fig_keys:
-            fig = Figure()
+            if key == 'plot_style':
+                fig = self._style
+            else:
+                fig = Figure()
             self.fig_dict[key] = fig
 
     def init_canvas_dict(self):
         self.canvas_dict = {}
         for key in self.fig_keys:
-            self.canvas_dict[key] = PylotCanvas(self.fig_dict[key])
+            if not key == 'plot_style':
+                self.canvas_dict[key] = PylotCanvas(self.fig_dict[key], parent=self)
 
     def init_fig_dict_wadatijack(self, eventIDs):
         self.fig_dict_wadatijack = {}
         self.fig_keys_wadatijack = [
             'jackknife',
-            'wadati'
+            'wadati',
+            'plot_style'
         ]
         for eventID in eventIDs:
             self.fig_dict_wadatijack[eventID] = {}
             for key in self.fig_keys_wadatijack:
-                fig = Figure()
+                if key == 'plot_style':
+                    fig = self._style
+                else:
+                    fig = Figure()
                 self.fig_dict_wadatijack[eventID][key] = fig
 
     def init_canvas_dict_wadatijack(self):
@@ -1935,7 +2036,9 @@ class MainWindow(QMainWindow):
         for eventID in self.fig_dict_wadatijack.keys():
             self.canvas_dict_wadatijack[eventID] = {}
             for key in self.fig_keys_wadatijack:
-                self.canvas_dict_wadatijack[eventID][key] = PylotCanvas(self.fig_dict_wadatijack[eventID][key])
+                if not key == 'plot_style':
+                    self.canvas_dict_wadatijack[eventID][key] = PylotCanvas(self.fig_dict_wadatijack[eventID][key],
+                                                                            parent=self)
 
     def tune_autopicker(self):
         '''
@@ -2500,7 +2603,7 @@ class MainWindow(QMainWindow):
             self.events_layout.removeWidget(self.event_table)
 
         # init new qtable
-        self.event_table = QtGui.QTableWidget()
+        self.event_table = QtGui.QTableWidget(self)
         self.event_table.setColumnCount(12)
         self.event_table.setRowCount(len(eventlist))
         self.event_table.setHorizontalHeaderLabels(['',
@@ -2554,8 +2657,8 @@ class MainWindow(QMainWindow):
             item_notes = QtGui.QTableWidgetItem()
 
             # manipulate items
-            item_ref.setBackground(self._colors['ref'])
-            item_test.setBackground(self._colors['test'])
+            item_ref.setBackground(self._ref_test_colors['ref'])
+            item_test.setBackground(self._ref_test_colors['test'])
             item_path.setText(event.path)
             if hasattr(event, 'origins'):
                 if event.origins:
@@ -2777,7 +2880,7 @@ class MainWindow(QMainWindow):
         if not self.okToContinue():
             return
         if not fnm:
-            dlg = QFileDialog()
+            dlg = QFileDialog(parent=self)
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
             if not fnm:
                 return
@@ -2804,7 +2907,7 @@ class MainWindow(QMainWindow):
         '''
         Save back project to new pickle file.
         '''
-        dlg = QFileDialog()
+        dlg = QFileDialog(self)
         fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
         filename = fnm[0]
         if not len(fnm[0]):
@@ -2866,7 +2969,7 @@ class MainWindow(QMainWindow):
 
     def setParameter(self, show=True):
         if not self.paraBox:
-            self.paraBox = PylotParaBox(self._inputs)
+            self.paraBox = PylotParaBox(self._inputs, parent=self, windowflag=1)
             self.paraBox.accepted.connect(self._setDirty)
             self.paraBox.accepted.connect(self.filterOptionsFromParameter)
         if show:
@@ -3090,6 +3193,7 @@ def create_window():
 
 def main(args=None):
     project_filename = None
+    #args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
     pylot_infile = None
     if args:
         if args.project_filename:
