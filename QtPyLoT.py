@@ -1368,7 +1368,10 @@ class MainWindow(QMainWindow):
     def buildMultiCompareWidget(self, eventlist):
         global_comparison = Comparison(eventlist=eventlist)
         compare_widget = ComparisonWidget(global_comparison, self)
-        compare_widget.setWindowTitle('Histograms for all selected events')
+        for events_name, rb in self.cmpw.rb_dict.items():
+            if rb.isChecked():
+                break
+        compare_widget.setWindowTitle('Histograms for {}'.format(events_name))
         compare_widget.hideToolbar()
         compare_widget.setHistboxChecked(True)
         return compare_widget
