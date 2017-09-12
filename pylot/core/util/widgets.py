@@ -2236,7 +2236,16 @@ class MultiEventWidget(QWidget):
             rb = QtGui.QRadioButton(key)
             rb.toggled.connect(self.check_rb_selection)
             if color:
-                rb.setStyleSheet('QRadioButton{color: rgba%s}'%str(color))
+                color = 'rgba{}'.format(color)
+            else:
+                color = 'transparent'
+            rb.setStyleSheet('QRadioButton{'
+                             'background-color: %s;'
+                             'border-style:outset;'
+                             'border-width:1px;'
+                             'border-radius:5px;'
+                             'padding:5px;'
+                             '}' % str(color))
             if index == 0:
                 rb.setChecked(True)
             self.rb_dict[key] = rb
