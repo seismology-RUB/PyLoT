@@ -2101,7 +2101,7 @@ class MainWindow(QMainWindow):
         self.apw.show()
 
     def start_autopick(self):
-        for key, func in self.pickoptions:
+        for key, func, _ in self.pickoptions:
             if self.apw.rb_dict[key].isChecked():
                 # if radio button is checked break for loop and use func
                 break
