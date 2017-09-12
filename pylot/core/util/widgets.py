@@ -1384,7 +1384,7 @@ class PickDlg(QDialog):
             return
         ax = self.multicompfig.axes[0]
         if not textOnly:
-            ylims = self.getGlobalLimits('y')
+            ylims = self.getGlobalLimits(ax, 'y')
         else:
             ylims = self.multicompfig.getYLims(ax)
         stime = self.getStartTime()
@@ -1635,8 +1635,8 @@ class PickDlg(QDialog):
     def setYLims(self, limits):
         self.cur_ylim = limits
 
-    def getGlobalLimits(self, axis):
-        return self.multicompfig.getGlobalLimits(axis)
+    def getGlobalLimits(self, ax, axis):
+        return self.multicompfig.getGlobalLimits(ax, axis)
 
     def getWFData(self):
         return self.data
