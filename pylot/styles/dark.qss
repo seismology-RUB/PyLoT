@@ -141,7 +141,7 @@ border-style: inset;
 }
 
 *:disabled{
-color:rgba(100, 100, 120, 255);
+color: rgba(130, 130, 130, 255);
 }
 
 QTabBar{
