@@ -2232,9 +2232,11 @@ class MultiEventWidget(QWidget):
 
         self.start_button = QtGui.QPushButton('Start')
 
-        for index, (key, func) in enumerate(self.options):
+        for index, (key, func, color) in enumerate(self.options):
             rb = QtGui.QRadioButton(key)
             rb.toggled.connect(self.check_rb_selection)
+            if color:
+                rb.setStyleSheet('QRadioButton{color: rgba%s}'%str(color))
             if index == 0:
                 rb.setChecked(True)
             self.rb_dict[key] = rb
@@ -2249,7 +2251,7 @@ class MultiEventWidget(QWidget):
         self.main_layout.insertLayout(0, self.rb_layout)
 
     def refresh_tooltips(self):
-        for key, func in self.options:
+        for key, func, color in self.options:
             eventlist = func()
             if not type(eventlist) == list:
                 eventlist = [eventlist]

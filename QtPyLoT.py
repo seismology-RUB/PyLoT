@@ -1342,10 +1342,11 @@ class MainWindow(QMainWindow):
         if len(eventdict) < 1:
             return
 
+
         # init event selection options for autopick
-        self.compareoptions =[('tune events', self.get_ref_events),
-                              ('test events', self.get_test_events),
-                              ('all (picked) events', self.get_manu_picked_events)]
+        self.compareoptions =[('tune events', self.get_ref_events, self._style['ref']['rgba']),
+                              ('test events', self.get_test_events, self._style['test']['rgba']),
+                              ('all (picked) events', self.get_manu_picked_events, None)]
 
         self.cmpw = CompareEventsWidget(self, self.compareoptions, eventdict, comparisons)
         self.cmpw.start.connect(self.compareMulti)
@@ -1353,7 +1354,7 @@ class MainWindow(QMainWindow):
         self.cmpw.show()
 
     def compareMulti(self):
-        for key, func in self.compareoptions:
+        for key, func, color in self.compareoptions:
             if self.cmpw.rb_dict[key].isChecked():
                 # if radio button is checked break for loop and use func
                 break
@@ -2081,11 +2082,11 @@ class MainWindow(QMainWindow):
             return
 
         # init event selection options for autopick
-        self.pickoptions =[('current event', self.get_current_event),
-                           ('tune events', self.get_ref_events),
-                           ('test events', self.get_test_events),
-                           ('all (picked) events', self.get_manu_picked_events),
-                           ('all events', self.get_all_events)]
+        self.pickoptions =[('current event', self.get_current_event, None),
+                           ('tune events', self.get_ref_events, self._style['ref']['rgba']),
+                           ('test events', self.get_test_events, self._style['test']['rgba']),
+                           ('all (picked) events', self.get_manu_picked_events, None),
+                           ('all events', self.get_all_events, None)]
 
         self.listWidget = QListWidget()
         self.setDirty(True)
