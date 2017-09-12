@@ -72,6 +72,8 @@ def gen_Pool(ncores=0):
     if ncores == 0:
         ncores = multiprocessing.cpu_count()
 
+    print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
+
     pool = multiprocessing.Pool(ncores)
     return pool
 
