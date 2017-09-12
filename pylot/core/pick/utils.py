@@ -589,7 +589,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     Ppicks = []
     Spicks = []
     SPtimes = []
-    for key in pickdic:
+    for key in list(pickdic.keys()):
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
             # calculate S-P time
             spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
@@ -619,16 +619,18 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         # calculate deviations from Wadati regression
         ii = 0
         ibad = 0
-        for key in pickdic:
+        for key in list(pickdic.keys()):
             if 'SPt' in pickdic[key]:
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
                 if wddiff > dttolerance:
-                    # mark onset and downgrade S-weight to 9
-                    # (not used anymore)
-                    marker = 'badWadatiCheck'
-                    pickdic[key]['S']['weight'] = 9
+                    # remove pick from dictionary
+                    pickdic.pop(key)
+                    # # mark onset and downgrade S-weight to 9
+                    # # (not used anymore)
+                    # marker = 'badWadatiCheck'
+                    # pickdic[key]['S']['weight'] = 9
                     ibad += 1
                 else:
                     marker = 'goodWadatiCheck'
@@ -639,7 +641,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
 
-                pickdic[key]['S']['marked'] = marker
+                    pickdic[key]['S']['marked'] = marker
+                #pickdic[key]['S']['marked'] = marker
 
         if len(checkedPpicks) >= 3:
             # calculate new slope
@@ -873,15 +876,21 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
         # mark P onset as checked and keep P weight
         pickdic[goodstations[i]]['P']['marked'] = goodmarker
     for i in range(0, len(badstations)):
-        # mark P onset and downgrade P weight to 9
-        # (not used anymore)
-        pickdic[badstations[i]]['P']['marked'] = badmarker
-        pickdic[badstations[i]]['P']['weight'] = 9
+        # remove pick from dictionary
+        pickdic.pop(badstations[i])
     for i in range(0, len(badjkstations)):
-        # mark P onset and downgrade P weight to 9
-        # (not used anymore)
-        pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
-        pickdic[badjkstations[i]]['P']['weight'] = 9
+        # remove pick from dictionary
+        pickdic.pop(badjkstations[i])
+    # for i in range(0, len(badstations)):
+    #     # mark P onset and downgrade P weight to 9
+    #     # (not used anymore)
+    #     pickdic[badstations[i]]['P']['marked'] = badmarker
+    #     pickdic[badstations[i]]['P']['weight'] = 9
+    # for i in range(0, len(badjkstations)):
+    #     # mark P onset and downgrade P weight to 9
+    #     # (not used anymore)
+    #     pickdic[badjkstations[i]]['P']['marked'] = badjkmarker
+    #     pickdic[badjkstations[i]]['P']['weight'] = 9
 
     checkedonsets = pickdic
 
