@@ -3218,8 +3218,7 @@ def main(args=None):
 
     # create the main window
     pylot_form = MainWindow(infile=pylot_infile)
-    icon = QIcon()
-    pylot_form.setWindowIcon(icon)
+    pylot_form.setWindowIcon(app_icon)
     pylot_form.setIconSize(QSize(60, 60))
 
     # set other App information
