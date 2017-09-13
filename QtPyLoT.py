@@ -643,7 +643,7 @@ class MainWindow(QMainWindow):
         '''
         Initiate/create buttons for assigning events containing manual picks to reference or test set.
         '''
-        self.ref_event_button = QtGui.QPushButton('Ref')
+        self.ref_event_button = QtGui.QPushButton('Tune')
         self.test_event_button = QtGui.QPushButton('Test')
         self.ref_event_button.setToolTip('Set manual picks of current ' +
                                          'event as reference picks for autopicker tuning.')
