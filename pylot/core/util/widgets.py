@@ -2469,6 +2469,12 @@ class TuneAutopicker(QWidget):
             # self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
             # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
+    def set_fig_dict(self, fig_dict):
+        for key, value in fig_dict.items():
+            if key is not 'mainFig':
+                value._tight = True
+        self.fig_dict = fig_dict
+
     def init_main_layouts(self):
         self.main_layout = QtGui.QVBoxLayout()
         self.tune_layout = QtGui.QHBoxLayout()
