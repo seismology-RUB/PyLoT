@@ -228,8 +228,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                          data=str(zdat))
         if verbose: print(msg)
         z_copy = zdat.copy()
-        # filter and taper data
         tr_filt = zdat[0].copy()
+        #remove constant offset from data to avoid unwanted filter response
+        tr_filt.detrend(type='demean')
+        # filter and taper data
         tr_filt.filter('bandpass', freqmin=bpz1[0], freqmax=bpz1[1],
                        zerophase=False)
         tr_filt.taper(max_percentage=0.05, type='hann')
@@ -364,6 +366,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 # filter and taper horizontal traces
                 trH1_filt = edat.copy()
                 trH2_filt = ndat.copy()
+                # remove constant offset from data to avoid unwanted filter response
+                trH1_filt.detrend(type='demean')
+                trH2_filt.detrend(type='demean')
                 trH1_filt.filter('bandpass', freqmin=bph1[0],
                                  freqmax=bph1[1],
                                  zerophase=False)
@@ -424,6 +429,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-filter waveform with larger bandpass
             z_copy = zdat.copy()
             tr_filt = zdat[0].copy()
+            tr_filt.detrend(type='demean')
             tr_filt.filter('bandpass', freqmin=bpz2[0], freqmax=bpz2[1],
                            zerophase=False)
             tr_filt.taper(max_percentage=0.05, type='hann')
@@ -586,6 +592,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # filter and taper data
             trH1_filt = hdat[0].copy()
             trH2_filt = hdat[1].copy()
+            trH1_filt.detrend(type='demean')
+            trH2_filt.detrend(type='demean')
             trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
                              zerophase=False)
             trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
@@ -604,6 +612,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
             trH1_filt = hdat[0].copy()
             trH2_filt = hdat[1].copy()
             trH3_filt = hdat[2].copy()
+            trH1_filt.detrend(type='demean')
+            trH2_filt.detrend(type='demean')
+            trH3_filt.detrend(type='demean')
             trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
                              zerophase=False)
             trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
@@ -671,6 +682,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if algoS == 'ARH':
                 trH1_filt = hdat[0].copy()
                 trH2_filt = hdat[1].copy()
+                trH1_filt.detrend(type='demean')
+                trH2_filt.detrend(type='demean')
                 trH1_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
                                  zerophase=False)
                 trH2_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
@@ -686,6 +699,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 trH1_filt = hdat[0].copy()
                 trH2_filt = hdat[1].copy()
                 trH3_filt = hdat[2].copy()
+                trH1_filt.detrend(type='demean')
+                trH2_filt.detrend(type='demean')
+                trH3_filt.detrend(type='demean')
                 trH1_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
                                  zerophase=False)
                 trH2_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
