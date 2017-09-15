@@ -14,6 +14,7 @@ from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
 from pylot.core.io.inputs import PylotParameter
+from pylot.styles import style_settings
 
 from scipy.interpolate import splrep, splev
 from PySide import QtCore, QtGui
@@ -70,6 +71,8 @@ def gen_Pool(ncores=0):
 
     if ncores == 0:
         ncores = multiprocessing.cpu_count()
+
+    print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
 
     pool = multiprocessing.Pool(ncores)
     return pool
@@ -577,36 +580,22 @@ def modify_rgba(rgba, modifier, intensity):
 
 
 def base_phase_colors(picktype, phase):
-    phases = {
-        'manual':
-            {
-            'P':
-                {
-                'rgba': (0, 0, 255, 255),
-                'modifier': 'g'
-                },
-            'S':
-                {
-                'rgba': (255, 0, 0, 255),
-                'modifier': 'b'
-                }
-            },
-        'auto':
-            {
-            'P':
-                {
-                'rgba': (140, 0, 255, 255),
-                'modifier': 'g'
-                },
-            'S':
-                {
-                'rgba': (255, 140, 0, 255),
-                'modifier': 'b'
-                }
-            }
-    }
-    return phases[picktype][phase]
+    phasecolors = style_settings.phasecolors
+    return phasecolors[picktype][phase]
 
+def transform_colors_mpl_str(colors, no_alpha=False):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    if no_alpha:
+        colors_mpl = '({}, {}, {})'.format(*colors_mpl)
+    else:
+        colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
+    return colors_mpl
+
+def transform_colors_mpl(colors):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    return colors_mpl
 
 def remove_underscores(data):
     """
@@ -702,7 +691,7 @@ def get_stations(data):
     return stations
 
 
-def check4rotated(data, metadata=None):
+def check4rotated(data, metadata=None, verbosity=1):
 
     def rotate_components(wfstream, metadata=None):
         """rotates components if orientation code is numeric.
@@ -711,13 +700,15 @@ def check4rotated(data, metadata=None):
             # indexing fails if metadata is None
             metadata[0]
         except:
-            msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
-            print(msg)
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+                print(msg)
             return wfstream
         if metadata[0] is None:
             # sometimes metadata is (None, (None,))
-            msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
-            print(msg)
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
+                print(msg)
             return wfstream
         else:
             parser = metadata[1]

@@ -36,7 +36,7 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None):
+    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None, linecolor='k'):
         '''
         :param: cf, characteristic function, on which the picking algorithm is applied
         :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
@@ -63,7 +63,8 @@ class AutoPicker(object):
         '''
 
         assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
-
+        self._linecolor = linecolor
+        self._pickcolor_p = 'b'
         self.cf = cf.getCF()
         self.Tcf = cf.getTimeArray()
         self.Data = cf.getXCF()
@@ -269,13 +270,13 @@ class AICPicker(AutoPicker):
                     print("Choose longer slope determination window!")
                     if self.iplot > 1:
                         if self.fig == None or self.fig == 'None':
-                            fig = plt.figure()  # self.iplot) ### WHY? MP MP
+                            fig = plt.figure()
                             plt_flag = 1
                         else:
                             fig = self.fig
                         ax = fig.add_subplot(111)
                         x = self.Data[0].data
-                        ax.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
+                        ax.plot(self.Tcf, x / max(x), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
                         ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
                         ax.legend(loc=1)
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
@@ -312,7 +313,7 @@ class AICPicker(AutoPicker):
             x = self.Data[0].data
             if len(self.Tcf) > len(self.Data[0].data): # why? LK
                 self.Tcf = self.Tcf[0:len(self.Tcf)-1]
-            ax1.plot(self.Tcf, x / max(x), 'k', label='(HOS-/AR-) Data')
+            ax1.plot(self.Tcf, x / max(x), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
@@ -322,7 +323,7 @@ class AICPicker(AutoPicker):
 
             if self.Pick is not None:
                 ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-                ax2.plot(self.Tcf, x, 'k', label='Data')
+                ax2.plot(self.Tcf, x, color=self._linecolor, linewidth=0.7, label='Data')
                 ax1.axvspan(self.Tcf[inoise[0]], self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
                 ax1.axvspan(self.Tcf[isignal[0]], self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0,
                             label='Signal Window')
@@ -478,10 +479,10 @@ class PragPicker(AutoPicker):
                 else:
                     fig = self.fig
                 ax = fig.add_subplot(111)
-                ax.plot(Tcfpick, cfipick, 'k', label='CF')
+                ax.plot(Tcfpick, cfipick, color=self._linecolor, linewidth=0.7, label='CF')
                 ax.plot(Tcfpick, cfsmoothipick, 'r', label='Smoothed CF')
                 if pickflag > 0:
-                    ax.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], 'b', linewidth=2, label='Pick')
+                    ax.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], self._pickcolor_p, linewidth=2, label='Pick')
                 ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax.set_yticks([])
                 ax.set_title(self.Data[0].stats.station)
