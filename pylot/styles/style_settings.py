@@ -50,7 +50,7 @@ stylecolors = {
         'test': {
             'rgba': (130, 190, 100, 255)},
         'stylesheet': {
-            'filename': 'pylot/styles/dark.qss'}
+            'filename': 'dark.qss'}
     },
     'bright': {
         'linecolor': {
@@ -64,7 +64,7 @@ stylecolors = {
         'test': {
             'rgba': (200, 230, 200, 255)},
         'stylesheet': {
-            'filename': 'pylot/styles/bright.qss'}
+            'filename': 'bright.qss'}
     }
 }
 

@@ -679,11 +679,12 @@ class MainWindow(QMainWindow):
                 self._styles[style] = stylecolors[style]
 
         self._phasecolors = style_settings.phasecolors
+        styles_dir = os.path.dirname(style_settings.__file__)
 
         for style, stylecolors in self._styles.items():
             stylesheet = stylecolors['stylesheet']['filename']
             if stylesheet:
-                stylesheet_file = open(stylesheet, 'r')
+                stylesheet_file = open(os.path.join(styles_dir, stylesheet), 'r')
                 stylesheet = stylesheet_file.read()
                 stylesheet_file.close()
             else:
