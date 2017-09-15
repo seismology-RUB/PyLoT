@@ -23,6 +23,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import argrelmax
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.utils import getnoisewin, getsignalwin
 
@@ -253,8 +254,12 @@ class AICPicker(AutoPicker):
             if len(dataslope) < 1:
                 print('No data in slope window found!')
                 return
-            imax = np.argmax(dataslope)
-            iislope = islope[0][0:imax+1]
+            imaxs, = argrelmax(dataslope)
+            if imaxs.size:
+                imax = imaxs[0]
+            else:
+                imax = np.argmax(dataslope)
+            iislope = islope[0][0:imax + 1]
             if len(iislope) < 2:
                 # calculate slope from initial onset to maximum of AIC function
                 print("AICPicker: Not enough data samples left for slope calculation!")
@@ -304,6 +309,7 @@ class AICPicker(AutoPicker):
                 plt_flag = 1
             else:
                 fig = self.fig
+            fig._tight = True
             ax1 = fig.add_subplot(211)
             x = self.Data[0].data
             if len(self.Tcf) > len(self.Data[0].data): # why? LK
@@ -473,6 +479,7 @@ class PragPicker(AutoPicker):
                     plt_flag = 1
                 else:
                     fig = self.fig
+                fig._tight = True
                 ax = fig.add_subplot(111)
                 ax.plot(Tcfpick, cfipick, color=self._linecolor, linewidth=0.7, label='CF')
                 ax.plot(Tcfpick, cfsmoothipick, 'r', label='Smoothed CF')

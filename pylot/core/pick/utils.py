@@ -616,6 +616,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         checkedPpicks = []
         checkedSpicks = []
         checkedSPtimes = []
+        badstations = []
         # calculate deviations from Wadati regression
         ii = 0
         ibad = 0
@@ -631,6 +632,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     # # (not used anymore)
                     # marker = 'badWadatiCheck'
                     # pickdic[key]['S']['weight'] = 9
+                    badstations.append(key)
                     ibad += 1
                 else:
                     marker = 'goodWadatiCheck'
@@ -643,6 +645,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
 
                     pickdic[key]['S']['marked'] = marker
                 #pickdic[key]['S']['marked'] = marker
+        print("wadaticheck: the following stations failed the check:")
+        print(badstations)
 
         if len(checkedPpicks) >= 3:
             # calculate new slope
@@ -791,6 +795,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
+        fig._tight = True
         ax.plot(t, rms, color=linecolor, linewidth=0.7, label='RMS Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
@@ -868,6 +873,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     print("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
     print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
                                                             + len(badjkstations), len(stations)))
+    print(badstations)
 
     goodmarker = 'goodPonsetcheck'
     badmarker = 'badPonsetcheck'
@@ -1114,6 +1120,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
+            fig._tight = True
             ax.plot(t, abs(trace.data), color='b', label='abs')
             ax.plot(t, trace.data, color=linecolor, linewidth=0.7)
             name = str(trace.stats.channel) + ': {}'.format(rms)
