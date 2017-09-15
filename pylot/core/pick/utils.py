@@ -589,6 +589,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     Ppicks = []
     Spicks = []
     SPtimes = []
+    stations = []
     for key in list(pickdic.keys()):
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
             # calculate S-P time
@@ -622,6 +623,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         ibad = 0
         for key in list(pickdic.keys()):
             if 'SPt' in pickdic[key]:
+                stations.append(key)
                 wddiff = abs(pickdic[key]['SPt'] - wdfit[ii])
                 ii += 1
                 # check, if deviation is larger than adjusted
@@ -682,12 +684,18 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             linecolor = 'k'
             plt_flag = 1
         ax = fig.add_subplot(111)
-        ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
+        if ibad > 0:
+            ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
         if wfitflag == 0:
             ax.plot(Ppicks, wdfit, color=linecolor, linewidth=0.7, label='Wadati 1')
+            ax.plot(Ppicks, wdfit+dttolerance, color='0.9', linewidth=0.5, label='Wadati 1 Tolerance')
+            ax.plot(Ppicks, wdfit-dttolerance, color='0.9', linewidth=0.5)
+            ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.plot(checkedPpicks, checkedSPtimes, color=linecolor,
                     linewidth=0, marker='o', label='Reliable S-Picks')
-            ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
+            for Ppick, SPtime, station in zip(Ppicks, SPtimes, stations):
+                ax.text(Ppick, SPtime + 0.01, '{0}'.format(station))
+
             ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
                       'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
             ax.legend(loc=1, numpoints=1)
