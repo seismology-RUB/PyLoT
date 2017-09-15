@@ -917,16 +917,19 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
             plt_flag = 1
         ax = fig.add_subplot(111)
 
-        ax.plot(np.arange(0, len(Ppicks)), Ppicks, 'ro', markersize=14)
-        if len(badstations) < 1 and len(badjkstations) < 1:
-            ax.plot(np.arange(0, len(Ppicks)), Ppicks, 'go', markersize=14, label='Skipped P Picks')
-        else:
-            ax.plot(igood, np.array(Ppicks)[igood], 'go', markersize=14, label='Good P Picks')
-            ax.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g',
-                       linewidth=2, label='Median')
-        for i in range(0, len(Ppicks)):
-            ax.text(i, Ppicks[i] + 0.01, '{0}'.format(stations[i]))
-
+        if len(badstations) > 0:
+            ax.plot(ibad, np.array(Ppicks)[ibad], marker ='o', markerfacecolor='orange', markersize=14,
+                    linestyle='None', label='Median Skipped P Picks')
+        if len(badjkstations) > 0:
+            ax.plot(badjk[0], np.array(Ppicks)[badjk], 'ro', markersize=14, label='Jackknife Skipped P Picks')
+        ax.plot(igood, np.array(Ppicks)[igood], 'go', markersize=14, label='Good P Picks')
+        ax.plot([0, len(Ppicks) - 1], [pmedian, pmedian], 'g', linewidth=2, label='Median')
+        ax.plot([0, len(Ppicks) - 1], [pmedian + dttolerance, pmedian + dttolerance], 'g--', linewidth=1.2,
+                dashes=[25, 25], label='Median Tolerance')
+        ax.plot([0, len(Ppicks) - 1], [pmedian - dttolerance, pmedian - dttolerance], 'g--', linewidth=1.2,
+                dashes=[25, 25])
+        for index, pick in enumerate(Ppicks):
+            ax.text(index, pick + 0.01, '{0}'.format(stations[i]))
         ax.set_xlabel('Number of P Picks')
         ax.set_ylabel('Onset Time [s] from 1.1.1970')
         ax.legend(loc=1, numpoints=1)
