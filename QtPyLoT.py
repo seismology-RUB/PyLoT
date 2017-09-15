@@ -1668,10 +1668,22 @@ class MainWindow(QMainWindow):
         if event.pylot_picks and event.pylot_autopicks:
             for station in event.pylot_picks:
                 if station in event.pylot_autopicks:
-                    autopick_p = event.pylot_autopicks[station]['P']['spe']
-                    manupick_p = event.pylot_picks[station]['P']['spe']
-                    autopick_s = event.pylot_autopicks[station]['S']['spe']
-                    manupick_s = event.pylot_picks[station]['S']['spe']
+                    try:
+                        autopick_p = event.pylot_autopicks[station]['P']['spe']
+                    except KeyError:
+                        autopick_p = None
+                    try:
+                        manupick_p = event.pylot_picks[station]['P']['spe']
+                    except KeyError:
+                        manupick_p = None
+                    try:
+                        autopick_s = event.pylot_autopicks[station]['S']['spe']
+                    except KeyError:
+                        autopick_s = None
+                    try:
+                        manupick_s = event.pylot_picks[station]['S']['spe']
+                    except KeyError:
+                        manupick_s = None
                     if autopick_p and manupick_p:
                         return True
                     elif autopick_s and manupick_s:
