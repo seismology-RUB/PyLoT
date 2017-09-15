@@ -477,6 +477,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = 'k'
+                    fig._tight = True
                     epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
                                                             mpickP, iplot, fig=fig,
                                                             linecolor=linecolor)
@@ -512,6 +513,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                             linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                         else:
                             fig = None
+                        fig._tight = True
                         FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot, fig, linecolor)
                     else:
                         FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
@@ -725,6 +727,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             else:
                 fig = None
                 linecolor = 'k'
+            fig._tight = True
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
                                   tsmoothS, aicarhpick.getpick(), fig, linecolor)
             mpickS = refSpick.getpick()
@@ -740,6 +743,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = 'k'
+                    fig._tight = True
                     epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
                                                                mpickS, iplot,
@@ -758,6 +762,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = ''
+                    fig._tight = True
                     epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
                                                                tsnrh,
                                                                mpickS, iplot,
@@ -875,6 +880,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         else:
             fig = fig_dict['mainFig']
             linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
+        fig._tight = True
         ax1 = fig.add_subplot(311)
         tdata = np.arange(0, zdat[0].stats.npts / tr_filt.stats.sampling_rate,
                           tr_filt.stats.delta)

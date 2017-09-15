@@ -791,6 +791,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
             fig = plt.figure()  # iplot)
             plt_flag = 1
         ax = fig.add_subplot(111)
+        fig._tight = True
         ax.plot(t, rms, color=linecolor, linewidth=0.7, label='RMS Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
@@ -1114,6 +1115,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
+            fig._tight = True
             ax.plot(t, abs(trace.data), color='b', label='abs')
             ax.plot(t, trace.data, color=linecolor, linewidth=0.7)
             name = str(trace.stats.channel) + ': {}'.format(rms)
