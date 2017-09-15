@@ -727,7 +727,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
             else:
                 fig = None
                 linecolor = 'k'
-            fig._tight = True
             refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
                                   tsmoothS, aicarhpick.getpick(), fig, linecolor)
             mpickS = refSpick.getpick()
