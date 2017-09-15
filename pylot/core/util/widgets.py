@@ -1601,6 +1601,7 @@ class PickDlg(QDialog):
         return self.station
 
     def getChannelID(self, key):
+        if key < 0: key = 0
         return self.multicompfig.getPlotDict()[int(key)][1]
 
     def getTraceID(self, channels):
