@@ -690,7 +690,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
                       'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
-            ax.legend(loc=1)
+            ax.legend(loc=1, numpoints=1)
         else:
             ax.set_title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
 
@@ -921,7 +921,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
 
         ax.set_xlabel('Number of P Picks')
         ax.set_ylabel('Onset Time [s] from 1.1.1970')
-        ax.legend(loc=1)
+        ax.legend(loc=1, numpoints=1)
         ax.set_title('Jackknifing and Median Tests on P Onsets')
         if plt_flag:
             fig.show()
