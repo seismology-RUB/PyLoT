@@ -228,9 +228,9 @@ class AICcf(CharacteristicFunction):
         #    print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
-        nn = np.isnan(xnp)
-        if len(nn) > 1:
-            xnp[nn] = 0
+        ind = np.where(~np.isnan(xnp))[0]
+        if ind.size:
+            xnp[:ind[0]] = xnp[ind[0]]
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
@@ -345,7 +345,8 @@ class ARZcf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = x
@@ -477,7 +478,8 @@ class ARHcf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = xnp
@@ -619,7 +621,8 @@ class AR3Ccf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = xnp
