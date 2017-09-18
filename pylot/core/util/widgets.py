@@ -3420,9 +3420,6 @@ class SubmitLocal(QWidget):
 
         self.main_layout.addWidget(self.button)
 
-    def start(self):
-        print('subprocess Popen')
-
     def start(self, pp_export, ncores):
         self.execute_command(pp_export, ncores)
 
