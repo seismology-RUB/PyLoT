@@ -617,9 +617,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             p3, = plt.loglog(F, YYcor, 'r')
             p4, = plt.loglog(F, fit, 'g')
             plt.loglog([fc, fc], [w0 / 100, w0], 'g')
-            plt.legend([p1, p2, p3, p4], ['Raw Spectrum', \
-                                          'Used Raw Spectrum', \
-                                          'Q-Corrected Spectrum', \
+            plt.legend([p1, p2, p3, p4], ['Raw Spectrum',
+                                          'Used Raw Spectrum',
+                                          'Q-Corrected Spectrum',
                                           'Fit to Spectrum'])
             plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
                       % (w0, fc))

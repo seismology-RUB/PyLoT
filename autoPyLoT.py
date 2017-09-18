@@ -311,7 +311,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         # calculate seismic moment Mo and moment magnitude Mw
                         moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                      parameter.get('Qp'),
-                                                     parameter.get('rho'), True, \
+                                                     parameter.get('rho'), True,
                                                      iplot)
                         # update pick with moment property values (w0, fc, Mo)
                         for stats, props in moment_mag.moment_props.items():
@@ -374,7 +374,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             for key in picks:
                                 if picks[key]['P']['weight'] >= 4 or picks[key]['S']['weight'] >= 4:
                                     badpicks.append([key, picks[key]['P']['mpp']])
-                            print("autoPyLoT: After iteration No. %d: %d bad onsets found ..." % (nlloccounter, \
+                            print("autoPyLoT: After iteration No. %d: %d bad onsets found ..." % (nlloccounter,
                                                                                                   len(badpicks)))
                             if len(badpicks) == 0:
                                 print("autoPyLoT: No more bad onsets found, stop iterative picking!")
@@ -384,7 +384,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             # calculate seismic moment Mo and moment magnitude Mw
                             moment_mag = MomentMagnitude(corr_dat, evt, parameter.get('vp'),
                                                          parameter.get('Qp'),
-                                                         parameter.get('rho'), True, \
+                                                         parameter.get('rho'), True,
                                                          iplot)
                             # update pick with moment property values (w0, fc, Mo)
                             for stats, props in moment_mag.moment_props.items():
@@ -502,4 +502,4 @@ if __name__ == "__main__":
 
     picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
                       eventid=str(cla.eventid), savepath=str(cla.spath),
-                      ncores=cla.ncores, iplot=str(cla.iplot))
+                      ncores=cla.ncores, iplot=int(cla.iplot))

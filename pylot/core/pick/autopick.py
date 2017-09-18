@@ -859,7 +859,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             hdat += ndat
  
     else:
-        print('autopickstation: No horizontal component data available or ' \
+        print('autopickstation: No horizontal component data available or '
               'bad P onset, skipping S picking!')
 
     ##############################################################

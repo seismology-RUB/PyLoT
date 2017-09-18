@@ -39,7 +39,7 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QDockWidget, QLineEdit, QListView, QAbstractItemView, \
+    QActionGroup, QListWidget, QLineEdit, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime
@@ -68,7 +68,7 @@ from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
-from pylot.core.util.errors import FormatError, DatastructureError, \
+from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
@@ -801,12 +801,8 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         return settings.value("data/dataRoot")
 
-    def load_autopicks(self, fname=None):
-        self.load_data(fname, type='auto')
-
     def load_loc(self, fname=None):
-        type = getDataType(self)
-        self.load_data(fname, type=type, loc=True)
+        self.load_data(fname, loc=True)
 
     def load_pilotevent(self):
         filt = "PILOT location files (*LOC*.mat)"
@@ -821,10 +817,8 @@ class MainWindow(QMainWindow):
                                                   filter=filt, dir=loc_dir)
         fn_phases = fn_phases[0]
 
-        type = getDataType(self)
-
         fname_dict = dict(phasfn=fn_phases, locfn=fn_loc)
-        self.load_data(fname_dict, type=type)
+        self.load_data(fname_dict)
 
     def load_multiple_data(self):
         if not self.okToContinue():
@@ -1355,6 +1349,8 @@ class MainWindow(QMainWindow):
         self.cmpw.show()
 
     def compareMulti(self):
+        if not self.compareoptions:
+            return
         for key, func, color in self.compareoptions:
             if self.cmpw.rb_dict[key].isChecked():
                 # if radio button is checked break for loop and use func
@@ -1863,27 +1859,27 @@ class MainWindow(QMainWindow):
 
         self.checkFilterOptions()
 
-    def updateFilterOptions(self):
-        try:
-            settings = QSettings()
-            if settings.value("filterdefaults",
-                              None) is None and not self.getFilters():
-                for key, value in FILTERDEFAULTS.items():
-                    self.setFilterOptions(FilterOptions(**value), key)
-            elif settings.value("filterdefaults", None) is not None:
-                for key, value in settings.value("filterdefaults"):
-                    self.setFilterOptions(FilterOptions(**value), key)
-        except Exception as e:
-            self.update_status('Error ...')
-            emsg = QErrorMessage(self)
-            emsg.showMessage('Error: {0}'.format(e))
-        else:
-            self.update_status('Filter loaded ... '
-                               '[{0}: {1} Hz]'.format(
-                self.getFilterOptions().getFilterType(),
-                self.getFilterOptions().getFreq()))
-        if self.filterAction.isChecked():
-            self.filterWaveformData()
+    # def updateFilterOptions(self):
+    #     try:
+    #         settings = QSettings()
+    #         if settings.value("filterdefaults",
+    #                           None) is None and not self.getFilters():
+    #             for key, value in FILTERDEFAULTS.items():
+    #                 self.setFilterOptions(FilterOptions(**value), key)
+    #         elif settings.value("filterdefaults", None) is not None:
+    #             for key, value in settings.value("filterdefaults"):
+    #                 self.setFilterOptions(FilterOptions(**value), key)
+    #     except Exception as e:
+    #         self.update_status('Error ...')
+    #         emsg = QErrorMessage(self)
+    #         emsg.showMessage('Error: {0}'.format(e))
+    #     else:
+    #         self.update_status('Filter loaded ... '
+    #                            '[{0}: {1} Hz]'.format(
+    #             self.getFilterOptions().getFilterType(),
+    #             self.getFilterOptions().getFreq()))
+    #     if self.filterAction.isChecked():
+    #         self.filterWaveformData()
 
     def getSeismicPhase(self):
         return self.seismicPhase
@@ -2114,6 +2110,8 @@ class MainWindow(QMainWindow):
         self.apw.show()
 
     def start_autopick(self):
+        if not self.pickoptions:
+            return
         for key, func, _ in self.pickoptions:
             if self.apw.rb_dict[key].isChecked():
                 # if radio button is checked break for loop and use func
@@ -2341,6 +2339,7 @@ class MainWindow(QMainWindow):
                         pen = make_pen(picktype, phaseID, 'lpp', quality)
                         pw.plot([lpp, lpp], ylims,
                                 alpha=.25, pen=pen, name='LPP')
+                    pen = make_pen(picktype, phaseID, 'mpp', quality)
                     if spe:
                         # pen = make_pen(picktype, phaseID, 'spe', quality)
                         # spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
@@ -2357,7 +2356,6 @@ class MainWindow(QMainWindow):
                         #     fb = pw.addItem(fill)
                         # except:
                         #     print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pen = make_pen(picktype, phaseID, 'mpp', quality)
                         pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
                     else:
                         pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick (NO PICKERROR)'.format(phase))
@@ -2802,7 +2800,7 @@ class MainWindow(QMainWindow):
         #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
             local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                       verbosity=True)
+                                       verbosity=True) ## MP MP missing parameter wascaling in function call!
             return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
@@ -3201,8 +3199,8 @@ def create_window():
         app_created = True
     # set aplication/organization name, domain (important to do this BEFORE setupUI is called for correct QSettings)
     app.setOrganizationName("Ruhr-University Bochum / BESTEC")
-    app.setOrganizationDomain("rub.de");
-    app.setApplicationName("PyLoT");
+    app.setOrganizationDomain("rub.de")
+    app.setApplicationName("PyLoT")
     app.references = set()
     # app.references.add(window)
     # window.show()

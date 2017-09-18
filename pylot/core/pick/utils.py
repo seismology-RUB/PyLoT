@@ -94,7 +94,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
 
     # get earliest possible pick
 
-    EPick = np.nan;
+    EPick = np.nan
     count = 0
     pis = isignal
 

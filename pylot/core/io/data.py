@@ -240,8 +240,8 @@ class Data(object):
                     mstation = picks[i].waveform_id.station_code
                     mstation_ext = mstation + '_'
                     for k in range(len(picks_copy)):
-                        if ((picks_copy[k].waveform_id.station_code == mstation) or \
-                                    (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                        if ((picks_copy[k].waveform_id.station_code == mstation) or
+                                (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
                                 (picks_copy[k].method_id == 'auto'):
                             del picks_copy[k]
                             break
@@ -442,7 +442,6 @@ class Data(object):
                 else:
                     if self.get_evt_data().picks:
                         raise OverwriteError('Existing picks would be overwritten!')
-                        break
                     else:
                         picks = picks_from_picksdict(picks)
                         break
