@@ -138,6 +138,7 @@ class Worker(QRunnable):
             self.signals.result.emit(result)
         finally:
             self.signals.finished.emit('Done')
+        sys.stdout = sys.__stdout__
 
     def write(self, text):
         self.signals.message.emit(text)
