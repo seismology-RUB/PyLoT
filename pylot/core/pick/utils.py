@@ -130,6 +130,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
         if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
+        fig._tight = True
         ax = fig.add_subplot(111)
         ax.plot(t, x, color=linecolor, linewidth=0.7, label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
@@ -323,6 +324,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
+        fig._tight = True
         ax1 = fig.add_subplot(211)
         ax1.plot(t, xraw, color=linecolor, linewidth=0.7)
         ax1.plot([Pick, Pick], [max(xraw), -max(xraw)], 'b', linewidth=2, label='Pick')
@@ -794,8 +796,8 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         if fig == None or fig == 'None':
             fig = plt.figure()  # iplot)
             plt_flag = 1
-        ax = fig.add_subplot(111)
         fig._tight = True
+        ax = fig.add_subplot(111)
         ax.plot(t, rms, color=linecolor, linewidth=0.7, label='RMS Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
