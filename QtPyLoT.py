@@ -2758,7 +2758,7 @@ class MainWindow(QMainWindow):
     def get_new_metadata(self):
         self.init_metadata(new=True)
 
-    def init_metadata(self, new=False):
+    def init_metadata(self, new=False, ask_default=True):
         def set_inv(settings):
             fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
                 "Select inventory..."), self.tr("Select file"))
@@ -2787,7 +2787,7 @@ class MainWindow(QMainWindow):
             settings.setValue("inventoryFile", self.project.inv_path)
 
         fninv = settings.value("inventoryFile", None)
-        if fninv:
+        if fninv and ask_default:
             ans = QMessageBox.question(self, self.tr("Use default metadata..."),
                                        self.tr(
                                            "Do you want to use the default value for metadata?\n({})".format(fninv)),
@@ -2798,6 +2798,8 @@ class MainWindow(QMainWindow):
                     return None
             elif ans == QMessageBox.Yes:
                 self.read_metadata_thread(fninv)
+        if fninv and not ask_default:
+            self.read_metadata_thread(fninv)
 
     def calc_magnitude(self, type='ML'):
         self.init_metadata()
@@ -2921,10 +2923,12 @@ class MainWindow(QMainWindow):
             self.setDirty(False)
             if hasattr(self.project, 'metadata'):
                 if self.project.metadata:
-                    self.init_array_map(index=0)
+                    self.init_metadata(ask_default=False)
+                    #self.init_array_map(index=0)
                     return
             if hasattr(self.project, 'inv_path'):
-                self.init_array_map(index=0)
+                self.init_metadata(ask_default=False)
+                #self.init_array_map(index=0)
                 return
 
             self.init_array_tab()
