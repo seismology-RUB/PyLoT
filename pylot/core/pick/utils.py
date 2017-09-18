@@ -696,7 +696,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             ax.plot(checkedPpicks, checkedSPtimes, color=linecolor,
                     linewidth=0, marker='o', label='Reliable S-Picks')
             for Ppick, SPtime, station in zip(Ppicks, SPtimes, stations):
-                ax.text(Ppick, SPtime + 0.01, '{0}'.format(station))
+                ax.text(Ppick, SPtime + 0.01, '{0}'.format(station), color='0.25')
 
             ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
                       'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
@@ -881,9 +881,9 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     badstations = np.array(stations)[ibad]
 
     print("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
+    print(badstations)
     print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
                                                             + len(badjkstations), len(stations)))
-    print(badstations)
 
     goodmarker = 'goodPonsetcheck'
     badmarker = 'badPonsetcheck'
@@ -931,9 +931,9 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
         ax.plot([0, len(Ppicks) - 1], [pmedian - dttolerance, pmedian - dttolerance], 'g--', linewidth=1.2,
                 dashes=[25, 25])
         for index, pick in enumerate(Ppicks):
-            ax.text(index, pick + 0.01, '{0}'.format(stations[index]))
+            ax.text(index, pick + 0.01, '{0}'.format(stations[index]), color='0.25')
         ax.set_xlabel('Number of P Picks')
-        ax.set_ylabel('Onset Time [s] from 1.1.1970')
+        ax.set_ylabel('Onset Time [s] from 1.1.1970') # MP MP Improve this?
         ax.legend(loc=1, numpoints=1)
         ax.set_title('Jackknifing and Median Tests on P Onsets')
         if plt_flag:
