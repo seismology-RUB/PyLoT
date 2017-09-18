@@ -2457,6 +2457,7 @@ class TuneAutopicker(QWidget):
         self.parameter = self.parent()._inputs
         self.fig_dict = self.parent().fig_dict
         self.data = Data()
+        self.pdlg_widget = None
         self.init_main_layouts()
         self.init_eventlist()
         self.init_figure_tabs()
