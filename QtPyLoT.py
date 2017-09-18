@@ -580,6 +580,10 @@ class MainWindow(QMainWindow):
         self._main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self.refreshTabs)
 
+        # add progressbar
+        self.mainProgressBarWidget = QtGui.QWidget()
+        self._main_layout.addWidget(self.mainProgressBarWidget)
+
         # add scroll area used in case number of traces gets too high
         self.wf_scroll_area = QtGui.QScrollArea(self)
 
@@ -1527,7 +1531,8 @@ class MainWindow(QMainWindow):
         '''
         if load:
             self.wfd_thread = Thread(self, self.loadWaveformData,
-                                     progressText='Reading data input...')
+                                     progressText='Reading data input...',
+                                     pb_widget=self.mainProgressBarWidget)
         if load and plot:
             self.wfd_thread.finished.connect(self.plotWaveformDataThread)
 
@@ -1724,7 +1729,8 @@ class MainWindow(QMainWindow):
         '''
         self.clearWaveformDataPlot()
         self.wfp_thread = Thread(self, self.plotWaveformData,
-                                 progressText='Plotting waveform data...')
+                                 progressText='Plotting waveform data...',
+                                 pb_widget=self.mainProgressBarWidget)
         self.wfp_thread.finished.connect(self.finishWaveformDataPlot)
         self.wfp_thread.start()
 
@@ -2530,7 +2536,8 @@ class MainWindow(QMainWindow):
         Start modal thread to init the array_map object.
         '''
         # Note: basemap generation freezes GUI but cannot be threaded as it generates a Pixmap.
-        self.amt = Thread(self, self.array_map.init_map, arg=None, progressText='Generating map...')
+        self.amt = Thread(self, self.array_map.init_map, arg=None, progressText='Generating map...',
+                          pb_widget=self.mainProgressBarWidget)
         self.amt.finished.connect(self.finish_array_map)
         self.amt.start()
 
@@ -2732,7 +2739,8 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentIndex(tabindex)
 
     def read_metadata_thread(self, fninv):
-        self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...')
+        self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...',
+                                pb_widget=self.mainProgressBarWidget)
         self.rm_thread.finished.connect(self.set_metadata)
         self.rm_thread.start()
 
