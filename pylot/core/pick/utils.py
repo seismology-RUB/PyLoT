@@ -592,6 +592,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     Spicks = []
     SPtimes = []
     stations = []
+    ibad = 0
+
     for key in list(pickdic.keys()):
         if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
             # calculate S-P time
@@ -622,7 +624,6 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         badstations = []
         # calculate deviations from Wadati regression
         ii = 0
-        ibad = 0
         for key in list(pickdic.keys()):
             if 'SPt' in pickdic[key]:
                 stations.append(key)
