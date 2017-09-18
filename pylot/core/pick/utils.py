@@ -931,7 +931,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
         ax.plot([0, len(Ppicks) - 1], [pmedian - dttolerance, pmedian - dttolerance], 'g--', linewidth=1.2,
                 dashes=[25, 25])
         for index, pick in enumerate(Ppicks):
-            ax.text(index, pick + 0.01, '{0}'.format(stations[i]))
+            ax.text(index, pick + 0.01, '{0}'.format(stations[index]))
         ax.set_xlabel('Number of P Picks')
         ax.set_ylabel('Onset Time [s] from 1.1.1970')
         ax.legend(loc=1, numpoints=1)
