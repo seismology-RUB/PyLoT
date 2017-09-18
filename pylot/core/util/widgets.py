@@ -2298,6 +2298,7 @@ class AutoPickWidget(MultiEventWidget):
 
     def __init__(self, parent, options):
         MultiEventWidget.__init__(self, options, parent, 1)
+        self.events2plot = {}
         self.connect_buttons()
         self.init_plot_layout()
         self.init_log_layout()
@@ -2365,6 +2366,9 @@ class AutoPickWidget(MultiEventWidget):
         self.main_layout.setStretch(1, 1)
 
     def reinitEvents2plot(self):
+        for eventID, eventDict in self.events2plot.items():
+            for widget_key, widget in eventDict.items():
+                widget.setParent(None)
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()

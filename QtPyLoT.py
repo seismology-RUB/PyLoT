@@ -127,6 +127,7 @@ class MainWindow(QMainWindow):
         self.project = Project()
         self.project.parameter = self._inputs
         self.tap = None
+        self.apw = None
         self.paraBox = None
         self.array_map = None
         self._metadata = None
@@ -1117,7 +1118,7 @@ class MainWindow(QMainWindow):
         '''
 
         # if pick widget is open, refresh tooltips as well
-        if hasattr(self, 'apw'):
+        if self.apw:
             self.apw.refresh_tooltips()
         if hasattr(self, 'cmpw'):
             self.cmpw.refresh_tooltips()
@@ -2093,20 +2094,21 @@ class MainWindow(QMainWindow):
                                 "No autoPyLoT output declared!")
             return
 
-        # init event selection options for autopick
-        self.pickoptions =[('current event', self.get_current_event, None),
-                           ('tune events', self.get_ref_events, self._style['ref']['rgba']),
-                           ('test events', self.get_test_events, self._style['test']['rgba']),
-                           ('all (picked) events', self.get_manu_picked_events, None),
-                           ('all events', self.get_all_events, None)]
+        if not self.apw:
+            # init event selection options for autopick
+            self.pickoptions =[('current event', self.get_current_event, None),
+                               ('tune events', self.get_ref_events, self._style['ref']['rgba']),
+                               ('test events', self.get_test_events, self._style['test']['rgba']),
+                               ('all (picked) events', self.get_manu_picked_events, None),
+                               ('all events', self.get_all_events, None)]
 
-        self.listWidget = QListWidget()
-        self.setDirty(True)
-        self.apw = AutoPickWidget(self, self.pickoptions)
-        self.apw.insert_log_widget(self.listWidget)
-        self.apw.refresh_tooltips()
+            self.listWidget = QListWidget()
+            self.setDirty(True)
+            self.apw = AutoPickWidget(self, self.pickoptions)
+            self.apw.insert_log_widget(self.listWidget)
+            self.apw.refresh_tooltips()
 
-        self.apw.start.connect(self.start_autopick)
+            self.apw.start.connect(self.start_autopick)
         self.apw.show()
 
     def start_autopick(self):

@@ -131,7 +131,6 @@ class Worker(QRunnable):
         try:
             result = self.fun(self.args)
         except:
-            #traceback.print_exc()
             exctype, value = sys.exc_info ()[:2]
             print(exctype, value, traceback.format_exc())
             self.signals.error.emit ((exctype, value, traceback.format_exc ()))
