@@ -48,7 +48,8 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt
+    demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
+    check4rotated, check4doubled, check4gaps, remove_underscores
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -1601,6 +1602,7 @@ class PickDlg(QDialog):
         return self.station
 
     def getChannelID(self, key):
+        if key < 0: key = 0
         return self.multicompfig.getPlotDict()[int(key)][1]
 
     def getTraceID(self, channels):
@@ -2493,6 +2495,7 @@ class TuneAutopicker(QWidget):
 
     def init_stationlist(self):
         self.stationBox = QtGui.QComboBox()
+        self.stationBox.setMaxVisibleItems(42)
         self.trace_layout.addWidget(self.stationBox)
         self.fill_stationbox()
         self.figure_tabs.setCurrentIndex(0)
@@ -2507,10 +2510,15 @@ class TuneAutopicker(QWidget):
         fnames = self.parent().getWFFnames_from_eventbox(eventbox=self.eventBox)
         self.data.setWFData(fnames)
         wfdat = self.data.getWFData()  # all available streams
+        # remove possible underscores in station names
+        wfdat = remove_underscores(wfdat)
+        # rotate misaligned stations to ZNE
+        # check for gaps and doubled channels
+        check4gaps(wfdat)
+        check4doubled(wfdat)
+        wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
-        # rotate misaligned stations to ZNE
-        wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():
