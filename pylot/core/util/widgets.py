@@ -337,6 +337,7 @@ class ComparisonWidget(QWidget):
                 if wname != name:
                     self.widgets[wname].setEnabled(False)
             self.canvas.figure.clf()
+            self.canvas.figure._tight = True
             _axPstd, _axPexp = self.canvas.figure.add_subplot(221), self.canvas.figure.add_subplot(223)
             _axSstd, _axSexp = self.canvas.figure.add_subplot(222), self.canvas.figure.add_subplot(224)
             axes_dict = dict(P=dict(std=_axPstd, exp=_axPexp),
@@ -363,11 +364,10 @@ class ComparisonWidget(QWidget):
                                  "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
                 _anno_exp = axes_dict[phase]['exp'].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
                 _anno_exp.set_bbox(bbox_props)
-                axes_dict[phase]['exp'].set_xlabel('expectation [s]')
-                axes_dict[phase]['std'].set_xlabel('standard deviation [s]')
+                axes_dict[phase]['exp'].set_xlabel('Time [s]')
 
             for ax in axes_dict['P'].values():
-                ax.set_ylabel('frequency [-]')
+                ax.set_ylabel('Frequency [-]')
 
             self.canvas.draw()
         else:
