@@ -1255,8 +1255,8 @@ class PickDlg(QDialog):
         self.plot_arrivals_button.setCheckable(True)
 
         # create accept/reject button
-        self.accept_button = QPushButton('&Accept Picks')
-        self.reject_button = QPushButton('&Reject Picks')
+        self.accept_button = QPushButton('&Accept')
+        self.reject_button = QPushButton('&Reject')
         self.disable_ar_buttons()
 
         # add hotkeys
@@ -1280,10 +1280,20 @@ class PickDlg(QDialog):
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
         if self._embedded:
+            manu_label = QLabel('Manual Onsets:')
+            manu_label.setStyleSheet('QLabel {'
+                                     'padding:2px;'
+                                     'padding-left:5px}')
+            _dialtoolbar.addWidget(manu_label)
             _dialtoolbar.addWidget(self.accept_button)
             _dialtoolbar.addWidget(self.reject_button)
         else:
             _dialtoolbar.addWidget(self.nextStation)
+        est_label = QLabel('Estimated onsets:')
+        est_label.setStyleSheet('QLabel {'
+                                   'padding:2px;'
+                                   'padding-left:5px}')
+        _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
 
         # layout the innermost widget
@@ -1930,26 +1940,27 @@ class PickDlg(QDialog):
         self.drawPicks(picktype='manual')
         self.drawPicks(picktype='auto')
 
-    def drawPicks(self, phase=None, picktype='manual', textOnly=False):
+    def drawPicks(self, phase=None, picktype='manual', textOnly=False, picks=None):
         # plotting picks
         ax = self.multicompfig.axes[0]
         if not textOnly:
             ylims = self.multicompfig.getGlobalLimits(ax, 'y')
         else:
             ylims = ax.get_ylim()
-        if self.getPicks(picktype):
-            if phase is not None and not phase == 'SPt':
-                if (type(self.getPicks(picktype)[phase]) is dict
-                    or type(self.getPicks(picktype)[phase]) is AttribDict):
-                    picks = self.getPicks(picktype)[phase]
-            elif phase is None:
-                for phase in self.getPicks(picktype):
-                    self.drawPicks(phase, picktype, textOnly)
-                return
+        if not picks:
+            if self.getPicks(picktype):
+                if phase is not None and not phase == 'SPt':
+                    if (type(self.getPicks(picktype)[phase]) is dict
+                        or type(self.getPicks(picktype)[phase]) is AttribDict):
+                        picks = self.getPicks(picktype)[phase]
+                elif phase is None:
+                    for phase in self.getPicks(picktype):
+                        self.drawPicks(phase, picktype, textOnly)
+                    return
+                else:
+                    return
             else:
                 return
-        else:
-            return
 
         # get quality classes
         if self.getPhaseID(phase) == 'P':
@@ -2458,6 +2469,7 @@ class TuneAutopicker(QWidget):
         self.fig_dict = self.parent().fig_dict
         self.data = Data()
         self.pdlg_widget = None
+        self.pylot_picks = None
         self.init_main_layouts()
         self.init_eventlist()
         self.init_figure_tabs()
@@ -2469,6 +2481,7 @@ class TuneAutopicker(QWidget):
         self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
+        self._manual_pick_plots = []
         if hasattr(self.parent(), 'metadata'):
             self.metadata = self.parent().metadata
         else:
@@ -2630,6 +2643,7 @@ class TuneAutopicker(QWidget):
         self.pickDlg.update_picks.connect(self.fill_stationbox)
         self.pickDlg.update_picks.connect(lambda: self.parent().setDirty(True))
         self.pickDlg.update_picks.connect(self.parent().enableSaveEventAction)
+        self.pickDlg.update_picks.connect(self.plot_manual_picks_to_figs)
         self.pdlg_widget = QtGui.QWidget(self)
         hl = QtGui.QHBoxLayout()
         self.pdlg_widget.setLayout(hl)
@@ -2647,10 +2661,23 @@ class TuneAutopicker(QWidget):
                 self.parent().drawPicks(station)
             self.parent().draw()
 
+    def clear_plotitem(self, plotitem):
+        if type(plotitem) == list:
+            for item in plotitem:
+                self.clear_plotitem(item)
+            return
+        try:
+            plotitem.remove()
+        except Exception as e:
+            print('Warning could not remove item {}: {}'.format(plotitem, e))
+
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
         if not picks:
             return
+        for plotitem in self._manual_pick_plots:
+            self.clear_plotitem(plotitem)
+        self._manual_pick_plots = []
         st = self.data.getWFData()
         tr = st.select(station=self.get_current_station())[0]
         starttime = tr.stats.starttime
@@ -2669,39 +2696,40 @@ class TuneAutopicker(QWidget):
             ('refSpick', 0),
             ('el_S1pick', 0),
             ('el_S2pick', 0)]
+        qualityPpick = getQualityFromUncertainty(picks['P']['spe'], self.parameter['timeerrorsP'])
+        qualitySpick = getQualityFromUncertainty(picks['S']['spe'], self.parameter['timeerrorsS'])
         for p_ax in p_axes:
             axes = self.parent().fig_dict[p_ax[0]].axes
             if not axes:
                 continue
             ax = axes[p_ax[1]]
-            self.plot_manual_Ppick_to_ax(ax, (picks['P']['mpp'] - starttime))
+            self.plot_manual_pick_to_ax(ax=ax, picks=picks, phase='P',
+                                        starttime=starttime, quality=qualityPpick)
         for s_ax in s_axes:
             axes = self.parent().fig_dict[s_ax[0]].axes
             if not axes:
                 continue
             ax = axes[s_ax[1]]
-            self.plot_manual_Spick_to_ax(ax, (picks['S']['mpp'] - starttime))
+            self.plot_manual_pick_to_ax(ax=ax, picks=picks, phase='S',
+                                        starttime=starttime, quality=qualitySpick)
+        for canvas in self.parent().canvas_dict.values():
+            canvas.draw()
 
-    def plot_manual_Ppick_to_ax(self, ax, pick):
+    def plot_manual_pick_to_ax(self, ax, picks, phase, starttime, quality):
+        mpp = picks[phase]['mpp'] - starttime
+        color = pick_color_plt('manual', phase, quality)
+
         y_top = 0.9 * ax.get_ylim()[1]
         y_bot = 0.9 * ax.get_ylim()[0]
-        ax.vlines(pick, y_bot, y_top,
-                  color='teal', linewidth=2, label='manual P Onset')
-        ax.plot([pick - 0.5, pick + 0.5],
-                [y_bot, y_bot], linewidth=2, color='teal')
-        ax.plot([pick - 0.5, pick + 0.5],
-                [y_top, y_top], linewidth=2, color='teal')
-        ax.legend(loc=1)
-
-    def plot_manual_Spick_to_ax(self, ax, pick):
-        y_top = 0.9 * ax.get_ylim()[1]
-        y_bot = 0.9 * ax.get_ylim()[0]
-        ax.vlines(pick, y_bot, y_top,
-                  color='magenta', linewidth=2, label='manual S Onset')
-        ax.plot([pick - 0.5, pick + 0.5],
-                [y_bot, y_bot], linewidth=2, color='magenta')
-        ax.plot([pick - 0.5, pick + 0.5],
-                [y_top, y_top], linewidth=2, color='magenta')
+        self._manual_pick_plots.append(ax.vlines(mpp, y_bot, y_top,
+                                                 color=color, linewidth=2,
+                                                 label='manual {} Onset (quality: {})'.format(phase, quality)))
+        self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
+                                               [y_bot, y_bot], linewidth=2,
+                                               color=color))
+        self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
+                                               [y_top, y_top], linewidth=2,
+                                               color=color))
         ax.legend(loc=1)
 
     def fill_tabs(self, event=None, picked=False):
