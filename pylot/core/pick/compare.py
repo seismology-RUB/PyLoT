@@ -118,8 +118,8 @@ class Comparison(object):
         """
         compare_pdfs = dict()
 
-        pdf_a = self.get(self.names[0]).generate_pdf_data(type)
-        pdf_b = self.get(self.names[1]).generate_pdf_data(type)
+        pdf_a = self.get('auto').generate_pdf_data(type)
+        pdf_b = self.get('manu').generate_pdf_data(type)
 
         for station, phases in pdf_a.items():
             if station in pdf_b.keys():
