@@ -38,7 +38,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
 
     # get some parameters for quality control from
-    # parameter input file (usually autoPyLoT.in).
+    # parameter input file (usually pylot.in).
     wdttolerance = param.get('wdttolerance')
     mdttolerance = param.get('mdttolerance')
     jackfactor = param.get('jackfactor')
@@ -113,7 +113,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     :type wfstream: obspy.core.stream.Stream
 
     :param pickparam: container of picking parameters from input file,
-           usually autoPyLoT.in
+           usually pylot.in
     :type pickparam: PylotParameter
     :param verbose:
     :type verbose: bool
@@ -121,7 +121,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     """
 
     # declaring pickparam variables (only for convenience)
-    # read your autoPyLoT.in for details!
+    # read your pylot.in for details!
     plt_flag = 0
 
     # special parameters for P picking

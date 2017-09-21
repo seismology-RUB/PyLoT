@@ -158,8 +158,8 @@ def buildPyLoT(verbosity=None):
 
 
 def installPyLoT(verbosity=None):
-    files_to_copy = {'autoPyLoT_local.in': ['~', '.pylot'],
-                     'autoPyLoT_regional.in': ['~', '.pylot']}
+    files_to_copy = {'pylot.in': ['~', '.pylot'],
+                     'pylot_global.in': ['~', '.pylot']}
     if verbosity > 0:
         print('starting installation of PyLoT ...')
     if verbosity > 1:
@@ -174,7 +174,7 @@ def installPyLoT(verbosity=None):
         link_file = ans in file
         if link_file:
             link_dest = copy.deepcopy(destination)
-            link_dest.append('autoPyLoT.in')
+            link_dest.append('pylot.in')
             link_dest = os.path.join(*link_dest)
         destination.append(file)
         destination = os.path.join(*destination)
