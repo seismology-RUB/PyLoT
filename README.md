@@ -25,7 +25,7 @@ Best way to install is to clone the repository and add the path to your Python p
 
 In order to run PyLoT you need to install:
 
-- python
+- python 2 or 3
 - scipy
 - numpy
 - matplotlib
@@ -34,23 +34,22 @@ In order to run PyLoT you need to install:
 
 #### Some handwork:
 
-PyLoT needs a properties folder on your system to work. It should be situated in your home directory:
+PyLoT needs a properties folder on your system to work. It should be situated in your home directory 
+(on Windows usually C:/Users/*username*):
 
     mkdir ~/.pylot
 
 In the next step you have to copy some files to this directory:
 
-    cp path-to-pylot/inputs/pylot.in ~/.pylot/
-
-for local distance seismicity
+*for local distance seismicity*
 
     cp path-to-pylot/inputs/pylot_local.in ~/.pylot/pylot.in
 
-for regional distance seismicity
+*for regional distance seismicity*
 
     cp path-to-pylot/inputs/pylot_regional.in ~/.pylot/pylot.in
 
-for global distance seismicity
+*for global distance seismicity*
 
     cp path-to-pylot/inputs/pylot_global.in ~/.pylot/pylot.in
 
@@ -70,6 +69,7 @@ PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 - event organisation in project files and waveform visualisation
 - consistent manual phase picking through predefined SNR dependant zoom level
 - consistent automatic phase picking routines using Higher Order Statistics, AIC and Autoregression
+- interactive tuning of auto-pick parameters
 - uniform uncertainty estimation from waveform's properties for automatic and manual picks
 - pdf representation and comparison of picks taking the uncertainty intrinsically into account 
 - Richter and moment magnitude estimation
