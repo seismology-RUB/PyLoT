@@ -89,6 +89,7 @@ def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
         _axes.set_ylabel(ylabel)
     _anno = _axes.annotate(annotation, xy=(.05, .5), xycoords='axes fraction')
     _anno.set_bbox(bbox_props)
+    _anno.draggable()
 
     return _axes
 
@@ -262,9 +263,11 @@ class ComparisonWidget(QWidget):
 
         _gs = gridspec.GridSpec(3, 2)
         self.clf()
+        self.canvas.figure._tight = True
         _axes = self.canvas.figure.add_subplot(_gs[0:2, :])
         _ax1 = self.canvas.figure.add_subplot(_gs[2, 0])
         _ax2 = self.canvas.figure.add_subplot(_gs[2, 1])
+        self.canvas.figure.tight_layout()
 
         # _axes.cla()
         station = self.plotprops['station']
@@ -359,11 +362,13 @@ class ComparisonWidget(QWidget):
                                  "number of samples: {nsamples}".format(phase=phase, nsamples=len(std))
                 _anno_std = axes_dict[phase]['std'].annotate(std_annotation, xy=(.05, .8), xycoords='axes fraction')
                 _anno_std.set_bbox(bbox_props)
+                _anno_std.draggable()
                 exp_annotation = "Distribution curve for {phase} differences'\n" \
                                  "expectations (all stations)\n" \
                                  "number of samples: {nsamples}".format(phase=phase, nsamples=len(exp))
                 _anno_exp = axes_dict[phase]['exp'].annotate(exp_annotation, xy=(.05, .8), xycoords='axes fraction')
                 _anno_exp.set_bbox(bbox_props)
+                _anno_exp.draggable()
                 axes_dict[phase]['exp'].set_xlabel('Time [s]')
 
             for ax in axes_dict['P'].values():
