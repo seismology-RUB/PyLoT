@@ -5,41 +5,6 @@ from PySide.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
 from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
 
 
-class AutoPickThread(QThread):
-    message = Signal(str)
-    finished = Signal()
-
-    def __init__(self, parent, func, infile, fnames, eventid, savepath):
-        super(AutoPickThread, self).__init__()
-        self.setParent(parent)
-        self.func = func
-        self.infile = infile
-        self.fnames = fnames
-        self.eventid = eventid
-        self.savepath = savepath
-
-    def run(self):
-        sys.stdout = self
-
-        picks = self.func(None, None, self.infile, self.fnames, self.eventid, self.savepath)
-
-        print("Autopicking finished!\n")
-
-        try:
-            for station in picks:
-                self.parent().addPicks(station, picks[station], type='auto')
-        except AttributeError:
-            print(picks)
-        sys.stdout = sys.__stdout__
-        self.finished.emit()
-
-    def write(self, text):
-        self.message.emit(text)
-
-    def flush(self):
-        pass
-
-
 class Thread(QThread):
     message = Signal(str)
 
