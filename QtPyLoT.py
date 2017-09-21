@@ -3025,10 +3025,10 @@ class MainWindow(QMainWindow):
 
     def helpHelp(self):
         if checkurl():
-            form = HelpForm(
+            form = HelpForm(self,
                 'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
-            form = HelpForm(':/help.html')
+            form = HelpForm(self, ':/help.html')
         form.show()
 
 

@@ -54,9 +54,9 @@ from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
 if sys.version_info.major == 3:
-    pass
+    import icons_rc_3 as icons_rc
 elif sys.version_info.major == 2:
-    pass
+    import icons_rc_2 as icons_rc
 else:
     raise ImportError('Could not determine python version.')
 
@@ -4302,15 +4302,23 @@ class LoadDataDlg(QDialog):
 
 
 class HelpForm(QDialog):
-    def __init__(self, page=QUrl('https://ariadne.geophysik.rub.de/trac/PyLoT'),
-                 parent=None):
-        super(HelpForm, self).__init__(parent)
+    def __init__(self, parent=None,
+                 page=QUrl('https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/')):
+        super(HelpForm, self).__init__(parent, 1)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)
 
-        backAction = QAction(QIcon(":/back.png"), "&Back", self)
+        self.home_page = page
+
+        back_icon = QIcon()
+        back_icon.addPixmap(QPixmap(':/icons/back.png'))
+
+        home_icon = QIcon()
+        home_icon.addPixmap(QPixmap(':/icons/home.png'))
+
+        backAction = QAction(back_icon, "&Back", self)
         backAction.setShortcut(QKeySequence.Back)
-        homeAction = QAction(QIcon(":/home.png"), "&Home", self)
+        homeAction = QAction(home_icon, "&Home", self)
         homeAction.setShortcut("Home")
         self.pageLabel = QLabel()
 
@@ -4323,21 +4331,21 @@ class HelpForm(QDialog):
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)
-        layout.addWidget(self.webBrowser, 1)
+        layout.addWidget(self.webBrowser)
         self.setLayout(layout)
 
-        self.connect(backAction, Signal("triggered()"),
-                     self.webBrowser, Slot("backward()"))
-        self.connect(homeAction, Signal("triggered()"),
-                     self.webBrowser, Slot("home()"))
-        self.connect(self.webBrowser, Signal("sourceChanged(QUrl)"),
-                     self.updatePageTitle)
+        backAction.triggered.connect(self.webBrowser.back)
+        homeAction.triggered.connect(self.home)
+        self.webBrowser.urlChanged.connect(self.updatePageTitle)
 
-        self.resize(400, 600)
+        self.resize(1280, 720)
         self.setWindowTitle("{0} Help".format(QApplication.applicationName()))
 
+    def home(self):
+        self.webBrowser.load(self.home_page)
+
     def updatePageTitle(self):
-        self.pageLabel.setText(self.webBrowser.documentTitle())
+        self.pageLabel.setText(self.webBrowser.title())
 
 
 if __name__ == '__main__':
