@@ -1,8 +1,0 @@
-git pull
-Entferne qrc_resources.py
-KONFLIKT (ändern/löschen): pylot/core/pick/getSNR.py gelöscht in HEAD und geändert in 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324. Stand 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324 von pylot/core/pick/getSNR.py wurde im Arbeitsbereich gelassen.
-KONFLIKT (ändern/löschen): pylot/core/pick/fmpicker.py gelöscht in HEAD und geändert in 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324. Stand 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324 von pylot/core/pick/fmpicker.py wurde im Arbeitsbereich gelassen.
-KONFLIKT (ändern/löschen): pylot/core/pick/earllatepicker.py gelöscht in HEAD und geändert in 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324. Stand 67dd66535a213ba5c7cfe2be52aa6d5a7e8b7324 von pylot/core/pick/earllatepicker.py wurde im Arbeitsbereich gelassen.
-Automatisches Zusammenfügen von icons.qrc
-Automatischer Merge fehlgeschlagen; beheben Sie die Konflikte und committen Sie dann das Ergebnis.
-
