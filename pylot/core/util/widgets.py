@@ -371,6 +371,15 @@ class ComparisonWidget(QWidget):
                 _anno_exp.draggable()
                 axes_dict[phase]['exp'].set_xlabel('Time [s]')
 
+                # add colors (early, late) for expectation
+                ax = axes_dict[phase]['exp']
+                xlims = ax.get_xlim()
+                ylims = ax.get_ylim()
+                ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+            legend = ax.legend()
+            legend.draggable()
+
             for ax in axes_dict['P'].values():
                 ax.set_ylabel('Frequency [-]')
 
