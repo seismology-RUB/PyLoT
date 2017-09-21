@@ -22,7 +22,7 @@ from PySide import QtCore, QtGui
 try:
     import pyqtgraph as pg
 except Exception as e:
-    print('QtPyLoT: Could not import pyqtgraph. {}'.format(e))
+    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
     pg = None
 
 def _pickle_method(m):

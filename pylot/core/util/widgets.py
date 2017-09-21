@@ -2472,7 +2472,7 @@ class TuneAutopicker(QWidget):
     QWidget used to modifiy and test picking parameters for autopicking algorithm.
 
     :param: parent
-    :type: QtPyLoT Mainwindow
+    :type: PyLoT Mainwindow
     '''
 
     def __init__(self, parent):

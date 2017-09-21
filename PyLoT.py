@@ -49,7 +49,7 @@ from obspy.core.util import AttribDict
 try:
     import pyqtgraph as pg
 except Exception as e:
-    print('QtPyLoT: Could not import pyqtgraph. {}'.format(e))
+    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
     pg = None
 
 try:
@@ -964,7 +964,7 @@ class MainWindow(QMainWindow):
 
     def get_current_event(self, eventbox=None):
         '''
-        Return event (type QtPylot.Event) currently selected in eventbox.
+        Return event (type PyLoT.Event) currently selected in eventbox.
         '''
         if not eventbox:
             eventbox = self.eventBox
@@ -973,7 +973,7 @@ class MainWindow(QMainWindow):
 
     def get_current_event_path(self, eventbox=None):
         '''
-        Return event path of event (type QtPylot.Event) currently selected in eventbox.
+        Return event path of event (type PyLoT.Event) currently selected in eventbox.
         '''
         event = self.get_current_event(eventbox)
         if event:
@@ -981,7 +981,7 @@ class MainWindow(QMainWindow):
 
     def get_current_event_name(self, eventbox=None):
         '''
-        Return event path of event (type QtPylot.Event) currently selected in eventbox.
+        Return event path of event (type PyLoT.Event) currently selected in eventbox.
         '''
         path = self.get_current_event_path(eventbox)
         if path:
@@ -3034,7 +3034,7 @@ class MainWindow(QMainWindow):
 
 class Project(object):
     '''
-    Pickable class containing information of a QtPyLoT project, like event lists and file locations.
+    Pickable class containing information of a PyLoT project, like event lists and file locations.
     '''
 
     def __init__(self):
