@@ -2631,7 +2631,6 @@ class TuneAutopicker(QWidget):
         widget = QtGui.QWidget()
         v_layout = QtGui.QVBoxLayout()
         v_layout.addWidget(canvas)
-        v_layout.addWidget(NavigationToolbar2QT(canvas, self))
         widget.setLayout(v_layout)
         return widget
 
