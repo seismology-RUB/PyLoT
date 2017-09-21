@@ -2,25 +2,56 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import numpy as np
-from scipy.interpolate import splrep, splev
 import os
-import pwd
+import platform
 import re
-import warnings
 import subprocess
-from obspy import UTCDateTime, read
-from pylot.core.io.inputs import PylotParameter
 
-    
+import numpy as np
+from obspy import UTCDateTime, read
+from obspy.core import AttribDict
+from obspy.signal.rotate import rotate2zne
+from obspy.io.xseed.utils import SEEDParserException
+
+from pylot.core.io.inputs import PylotParameter
+from pylot.styles import style_settings
+
+from scipy.interpolate import splrep, splev
+from PySide import QtCore, QtGui
+
+try:
+    import pyqtgraph as pg
+except Exception as e:
+    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
+    pg = None
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+
+def readDefaultFilterInformation(fname):
+    pparam = PylotParameter(fname)
+    return readFilterInformation(pparam)
+
+
+def readFilterInformation(pylot_parameter):
+    p_filter = {'filtertype': pylot_parameter['filter_type'][0],
+                'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
+                'order': int(pylot_parameter['filter_order'][0])}
+    s_filter = {'filtertype': pylot_parameter['filter_type'][1],
+                'freq': [pylot_parameter['minfreq'][1], pylot_parameter['maxfreq'][1]],
+                'order': int(pylot_parameter['filter_order'][1])}
+    filter_information = {'P': p_filter,
+                          'S': s_filter}
+    return filter_information
+
+
 def fit_curve(x, y):
     return splev, splrep(x, y)
+
 
 def getindexbounds(f, eta):
     mi = f.argmax()
@@ -31,14 +62,53 @@ def getindexbounds(f, eta):
     return mi, l, u
 
 
-def gen_Pool(ncores='max'):
+def gen_Pool(ncores=0):
+    '''
+    :param ncores: number of CPU cores for multiprocessing.Pool, if ncores == 0 use all available
+    :return: multiprocessing.Pool object
+    '''
     import multiprocessing
 
-    if ncores=='max':
-        ncores=multiprocessing.cpu_count()
-        
+    if ncores == 0:
+        ncores = multiprocessing.cpu_count()
+
+    print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
+
     pool = multiprocessing.Pool(ncores)
     return pool
+
+
+def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
+    '''
+    takes PyLoT picks dictionary and returns a new dictionary with certain classes excluded.
+    :param picks: PyLoT picks dictionary
+    :param qClasses: list (or int) of quality classes (0-4) to exclude
+    :param timeerrorsP: time errors for classes (0-4) for P
+    :param timeerrorsS: time errors for classes (0-4) for S
+    :return: new picks dictionary
+    '''
+    from pylot.core.pick.utils import getQualityFromUncertainty
+
+    if type(qClasses) in [int, float]:
+        qClasses = [qClasses]
+
+    picksdict_new = {}
+
+    phaseError = {'P': timeerrorsP,
+                  'S': timeerrorsS}
+
+    for station, phases in picks.items():
+        for phase, pick in phases.items():
+            if not type(pick) in [AttribDict, dict]:
+                continue
+            pickerror = phaseError[identifyPhaseID(phase)]
+            quality = getQualityFromUncertainty(pick['spe'], pickerror)
+            if not quality in qClasses:
+                if not station in picksdict_new:
+                    picksdict_new[station] = {}
+                picksdict_new[station][phase] = pick
+
+    return picksdict_new
 
 
 def clims(lim1, lim2):
@@ -106,6 +176,7 @@ def findComboBoxIndex(combo_box, val):
     """
     return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
 
+
 def find_in_list(list, str):
     """
     takes a list of strings and a string and returns the first list item
@@ -134,6 +205,7 @@ def find_in_list(list, str):
     if rlist:
         return rlist[0]
     return None
+
 
 def find_nearest(array, value):
     '''
@@ -180,6 +252,22 @@ def fnConstructor(s):
     if badsuffix.match(fn):
         fn = '_' + fn
     return fn
+
+
+def real_None(value):
+    if value == 'None':
+        return None
+    else:
+        return value
+
+
+def real_Bool(value):
+    if value == 'True':
+        return True
+    elif value == 'False':
+        return False
+    else:
+        return value
 
 
 def four_digits(year):
@@ -258,7 +346,7 @@ def getLogin():
     returns the actual user's login ID
     :return: login ID
     '''
-    return pwd.getpwuid(os.getuid())[0]
+    return os.getlogin()
 
 
 def getOwner(fn):
@@ -268,7 +356,15 @@ def getOwner(fn):
     :type fn: str
     :return: login ID of the file's owner
     '''
-    return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    system_name = platform.system()
+    if system_name in ["Linux", "Darwin"]:
+        import pwd
+        return pwd.getpwuid(os.stat(fn).st_uid).pw_name
+    elif system_name == "Windows":
+        import win32security
+        f = win32security.GetFileSecurity(fn, win32security.OWNER_SECURITY_INFORMATION)
+        (username, domain, sid_name_use) = win32security.LookupAccountSid(None, f.GetSecurityDescriptorOwner())
+        return username
 
 
 def getPatternLine(fn, pattern):
@@ -293,6 +389,7 @@ def getPatternLine(fn, pattern):
             return line
 
     return None
+
 
 def is_executable(fn):
     """
@@ -362,7 +459,7 @@ def key_for_set_value(d):
     return r
 
 
-def prepTimeAxis(stime, trace):
+def prepTimeAxis(stime, trace, verbosity=0):
     '''
     takes a starttime and a trace object and returns a valid time axis for
     plotting
@@ -376,16 +473,18 @@ def prepTimeAxis(stime, trace):
     etime = stime + nsamp / srate
     time_ax = np.arange(stime, etime, tincr)
     if len(time_ax) < nsamp:
-        print('elongate time axes by one datum')
+        if verbosity:
+            print('elongate time axes by one datum')
         time_ax = np.arange(stime, etime + tincr, tincr)
     elif len(time_ax) > nsamp:
-        print('shorten time axes by one datum')
+        if verbosity:
+            print('shorten time axes by one datum')
         time_ax = np.arange(stime, etime - tincr, tincr)
     if len(time_ax) != nsamp:
         print('Station {0}, {1} samples of data \n '
-                      '{2} length of time vector \n'
-                      'delta: {3}'.format(trace.stats.station,
-                                   nsamp, len(time_ax), tincr))
+              '{2} length of time vector \n'
+              'delta: {3}'.format(trace.stats.station,
+                                  nsamp, len(time_ax), tincr))
         time_ax = None
     return time_ax
 
@@ -413,6 +512,91 @@ def find_horizontals(data):
     return rval
 
 
+def make_pen(picktype, phase, key, quality):
+    if pg:
+        rgba = pick_color(picktype, phase, quality)
+        linestyle, width = pick_linestyle_pg(picktype, key)
+        pen = pg.mkPen(rgba, width=width, style=linestyle)
+        return pen
+
+
+def pick_color(picktype, phase, quality=0):
+    min_quality = 3
+    bpc = base_phase_colors(picktype, phase)
+    rgba = bpc['rgba']
+    modifier = bpc['modifier']
+    intensity = 255.*quality/min_quality
+    rgba = modify_rgba(rgba, modifier, intensity)
+    return rgba
+
+
+def pick_color_plt(picktype, phase, quality=0):
+    rgba = list(pick_color(picktype, phase, quality))
+    for index, val in enumerate(rgba):
+        rgba[index] /= 255.
+    return rgba
+
+
+def pick_linestyle_plt(picktype, key):
+    linestyles_manu = {'mpp': ('solid', 2.),
+                       'epp': ('dashed', 1.),
+                       'lpp': ('dashed', 1.),
+                       'spe': ('dashed', 1.)}
+    linestyles_auto = {'mpp': ('dotted', 2.),
+                       'epp': ('dashdot', 1.),
+                       'lpp': ('dashdot', 1.),
+                       'spe': ('dashdot', 1.)}
+    linestyles = {'manual': linestyles_manu,
+                  'auto': linestyles_auto}
+    return linestyles[picktype][key]
+
+
+def pick_linestyle_pg(picktype, key):
+    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2.),
+                       'epp': (QtCore.Qt.DashLine, 1.),
+                       'lpp': (QtCore.Qt.DashLine, 1.),
+                       'spe': (QtCore.Qt.DashLine, 1.)}
+    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 2.),
+                       'epp': (QtCore.Qt.DashDotLine, 1.),
+                       'lpp': (QtCore.Qt.DashDotLine, 1.),
+                       'spe': (QtCore.Qt.DashDotLine, 1.)}
+    linestyles = {'manual': linestyles_manu,
+                  'auto': linestyles_auto}
+    return linestyles[picktype][key]
+
+
+def modify_rgba(rgba, modifier, intensity):
+    rgba = list(rgba)
+    index = {'r': 0,
+             'g': 1,
+             'b': 2}
+    val = rgba[index[modifier]] + intensity
+    if val > 255.:
+        val = 255.
+    elif val < 0.:
+        val = 0
+    rgba[index[modifier]] = val
+    return tuple(rgba)
+
+
+def base_phase_colors(picktype, phase):
+    phasecolors = style_settings.phasecolors
+    return phasecolors[picktype][phase]
+
+def transform_colors_mpl_str(colors, no_alpha=False):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    if no_alpha:
+        colors_mpl = '({}, {}, {})'.format(*colors_mpl)
+    else:
+        colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
+    return colors_mpl
+
+def transform_colors_mpl(colors):
+    colors = list(colors)
+    colors_mpl = tuple([color / 255. for color in colors])
+    return colors_mpl
+
 def remove_underscores(data):
     """
     takes a `obspy.core.stream.Stream` object and removes all underscores
@@ -424,6 +608,176 @@ def remove_underscores(data):
     for tr in data:
         # remove underscores
         tr.stats.station = tr.stats.station.strip('_')
+    return data
+
+
+def trim_station_components(data, trim_start=True, trim_end=True):
+    '''
+    cut a stream so only the part common to all three traces is kept to avoid dealing with offsets
+    :param data: stream of seismic data
+    :type data: `obspy.core.stream.Stream`
+    :param trim_start: trim start of stream
+    :type trim_start: bool
+    :param trim_end: trim end of stream
+    :type trim_end: bool
+    :return: data stream
+    '''
+    starttime = {False: None}
+    endtime = {False: None}
+
+    stations = get_stations(data)
+
+    print('trim_station_components: Will trim stream for trim_start: {} and for '
+          'trim_end: {}.'.format(trim_start, trim_end))
+    for station in stations:
+        wf_station = data.select(station=station)
+        starttime[True] = max([trace.stats.starttime for trace in wf_station])
+        endtime[True] = min([trace.stats.endtime for trace in wf_station])
+        wf_station.trim(starttime=starttime[trim_start], endtime=endtime[trim_end])
+
+    return data
+
+
+def check4gaps(data):
+    '''
+    check for gaps in Stream and remove them
+    :param data: stream of seismic data
+    :return: data stream
+    '''
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        if wf_station.get_gaps():
+            for trace in wf_station:
+                data.remove(trace)
+            print('check4gaps: Found gaps and removed station {} from waveform data.'.format(station))
+
+    return data
+
+
+def check4doubled(data):
+    '''
+    check for doubled stations for same channel in Stream and take only the first one
+    :param data: stream of seismic data
+    :return: data stream
+    '''
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        # create list of all possible channels
+        channels = []
+        for trace in wf_station:
+            channel = trace.stats.channel
+            if not channel in channels:
+                channels.append(channel)
+            else:
+                print('check4doubled: removed the following trace for station {}, as there is'
+                      ' already a trace with the same channel given:\n{}'.format(
+                    station, trace
+                ))
+                data.remove(trace)
+    return data
+
+
+def get_stations(data):
+    stations = []
+    for tr in data:
+        station = tr.stats.station
+        if not station in stations:
+            stations.append(station)
+
+    return stations
+
+
+def check4rotated(data, metadata=None, verbosity=1):
+
+    def rotate_components(wfstream, metadata=None):
+        """rotates components if orientation code is numeric.
+        azimut and dip are fetched from metadata"""
+        try:
+            # indexing fails if metadata is None
+            metadata[0]
+        except:
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+                print(msg)
+            return wfstream
+        if metadata[0] is None:
+            # sometimes metadata is (None, (None,))
+            if verbosity:
+                msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
+                print(msg)
+            return wfstream
+        else:
+            parser = metadata[1]
+
+        def get_dip_azimut(parser, trace_id):
+            """gets azimut and dip for a trace out of the metadata parser"""
+            dip = None
+            azimut = None
+            try:
+                blockettes = parser._select(trace_id)
+            except SEEDParserException as e:
+                print(e)
+                raise ValueError
+            for blockette_ in blockettes:
+                if blockette_.id != 52:
+                    continue
+                dip = blockette_.dip
+                azimut = blockette_.azimuth
+                break
+            if dip is None or azimut is None:
+                error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
+                raise ValueError(error_msg)
+            return dip, azimut
+
+        trace_ids = [trace.id for trace in wfstream]
+        for trace_id in trace_ids:
+            orientation = trace_id[-1]
+            if orientation.isnumeric():
+                # misaligned channels have a number as orientation
+                azimuts = []
+                dips = []
+                for trace_id in trace_ids:
+                    try:
+                        dip, azimut = get_dip_azimut(parser, trace_id)
+                    except ValueError as e:
+                        print(e)
+                        print('Failed to rotate station {}, no azimuth or dip available in metadata'.format(trace_id))
+                        return wfstream
+                    azimuts.append(azimut)
+                    dips.append(dip)
+                # to rotate all traces must have same length
+                wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
+                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
+                                          wfstream[1], azimuts[1], dips[1],
+                                          wfstream[2], azimuts[2], dips[2])
+                print('check4rotated: rotated station {} to ZNE'.format(trace_id))
+                z_index = dips.index(min(dips)) # get z-trace index (dip is measured from 0 to -90
+                wfstream[z_index].data = z
+                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
+                del trace_ids[z_index]
+                for trace_id in trace_ids:
+                    dip, az = get_dip_azimut(parser, trace_id)
+                    trace = wfstream.select(id=trace_id)[0]
+                    if az > 315 and az <= 45 or az > 135 and az <= 225:
+                        trace.data = n
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
+                        trace.data = e
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
+                break
+            else:
+                continue
+        return wfstream
+
+    stations = get_stations(data)
+
+    for station in stations:
+        wf_station = data.select(station=station)
+        wf_station = rotate_components(wf_station, metadata)
     return data
 
 
@@ -477,6 +831,7 @@ def runProgram(cmd, parameter=None):
 
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
+
 def which(program, infile=None):
     """
     takes a program name and returns the full path to the executable or None
@@ -495,7 +850,7 @@ def which(program, infile=None):
             bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
         else:
             bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
-            
+
         if os.path.exists(bpath):
             nllocpath = ":" + PylotParameter(bpath).get('nllocbin')
             os.environ['PATH'] += nllocpath
@@ -522,6 +877,61 @@ def which(program, infile=None):
                     return candidate
 
     return None
+
+
+def loopIdentifyPhase(phase):
+    '''
+    Loop through phase string and try to recognize its type (P or S wave).
+    Global variable ALTSUFFIX gives alternative suffix for phases if they do not end with P, p or S, s.
+    If ALTSUFFIX is not given, the function will cut the last letter of the phase string until string ends
+    with P or S.
+    :param phase: phase name (str)
+    :return:
+    '''
+    from pylot.core.util.defaults import ALTSUFFIX
+
+    phase_copy = phase
+    while not identifyPhase(phase_copy):
+        identified = False
+        for alt_suf in ALTSUFFIX:
+            if phase_copy.endswith(alt_suf):
+                phase_copy = phase_copy.split(alt_suf)[0]
+                identified = True
+        if not identified:
+            phase_copy = phase_copy[:-1]
+        if len(phase_copy) < 1:
+            print('Warning: Could not identify phase {}!'.format(phase))
+            return
+    return phase_copy
+
+
+def identifyPhase(phase):
+    '''
+    Returns capital P or S if phase string is identified by last letter. Else returns False.
+    :param phase: phase name (str)
+    :return: 'P', 'S' or False
+    '''
+    # common phase suffix for P and S
+    common_P = ['P', 'p']
+    common_S = ['S', 's']
+    if phase[-1] in common_P:
+        return 'P'
+    if phase[-1] in common_S:
+        return 'S'
+    else:
+        return False
+
+
+def identifyPhaseID(phase):
+    return identifyPhase(loopIdentifyPhase(phase))
+
+
+def has_spe(pick):
+    if not 'spe' in pick.keys():
+        return None
+    else:
+        return pick['spe']
+
 
 if __name__ == "__main__":
     import doctest

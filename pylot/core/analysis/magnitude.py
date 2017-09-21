@@ -6,27 +6,27 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
-import os
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
-from scipy import integrate, signal
-from scipy.optimize import curve_fit
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
+from scipy import integrate, signal
+from scipy.optimize import curve_fit
+
 
 def richter_magnitude_scaling(delta):
-    distance = np.array([0, 10, 20, 25, 30, 35,40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
+    distance = np.array([0, 10, 20, 25, 30, 35, 40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
                          120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 230, 240, 250,
                          260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380,
                          390, 400, 430, 470, 510, 560, 600, 700, 800, 900, 1000])
-    richter_scaling = np.array([1.4, 1.5, 1.7, 1.9, 2.1, 2.3, 2.4, 2.5, 2.6, 2.8, 2.8, 2.9, 
-                     2.9, 3.0, 3.1, 3.1, 3.2, 3.2, 3.3, 3.3, 3.4, 3.4, 3.5, 3.5, 
-                     3.6, 3.7, 3.7, 3.8, 3.8, 3.9, 3.9, 4.0, 4.0, 4.1, 4.2, 4.2,
-                     4.2, 4.2, 4.3, 4.3, 4.3, 4.4, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 
-                     5.1, 5.2, 5.4, 5.5, 5.7])
+    richter_scaling = np.array([1.4, 1.5, 1.7, 1.9, 2.1, 2.3, 2.4, 2.5, 2.6, 2.8, 2.8, 2.9,
+                                2.9, 3.0, 3.1, 3.1, 3.2, 3.2, 3.3, 3.3, 3.4, 3.4, 3.5, 3.5,
+                                3.6, 3.7, 3.7, 3.8, 3.8, 3.9, 3.9, 4.0, 4.0, 4.1, 4.2, 4.2,
+                                4.2, 4.2, 4.3, 4.3, 4.3, 4.4, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9,
+                                5.1, 5.2, 5.4, 5.5, 5.7])
     # prepare spline interpolation to calculate return value
     func, params = fit_curve(distance, richter_scaling)
     return func(delta, params)
@@ -47,7 +47,7 @@ class Magnitude(object):
 
     def __str__(self):
         print(
-        'number of stations used: {0}\n'.format(len(self.magnitudes.values())))
+            'number of stations used: {0}\n'.format(len(self.magnitudes.values())))
         print('\tstation\tmagnitude')
         for s, m in self.magnitudes.items(): print('\t{0}\t{1}'.format(s, m))
 
@@ -126,8 +126,8 @@ class Magnitude(object):
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(
-                    mag=np.median([M.mag for M in self.magnitudes.values()]) *\
-                                   magscaling[0] + magscaling[1],
+                    mag=np.median([M.mag for M in self.magnitudes.values()]) * \
+                        magscaling[0] + magscaling[1],
                     magnitude_type=self.type,
                     origin_id=self.origin_id,
                     station_count=len(self.magnitudes),
@@ -192,6 +192,14 @@ class LocalMagnitude(Magnitude):
 
     def peak_to_peak(self, st, t0):
 
+        try:
+            iplot = int(self.plot_flag)
+        except:
+            if self.plot_flag == True or self.plot_flag == 'True':
+                iplot = 2
+            else:
+                iplot = 0
+
         # simulate Wood-Anderson response
         st.simulate(paz_remove=None, paz_simulate=self._paz)
 
@@ -215,7 +223,7 @@ class LocalMagnitude(Magnitude):
         th = np.arange(0, len(sqH) * dt, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
-        ii = min([iwin[len(iwin)-1], len(th)])
+        ii = min([iwin[len(iwin) - 1], len(th)])
         iwin = iwin[0:ii]
         wapp = np.max(sqH[iwin])
         if self.verbose:
@@ -224,7 +232,7 @@ class LocalMagnitude(Magnitude):
 
         # check for plot flag (for debugging only)
         fig = None
-        if self.plot_flag > 1:
+        if iplot > 1:
             st.plot()
             fig = plt.figure()
             ax = fig.add_subplot(111)
@@ -250,8 +258,8 @@ class LocalMagnitude(Magnitude):
             if not wf:
                 if self.verbose:
                     print(
-                    'WARNING: no waveform data found for station {0}'.format(
-                        station))
+                        'WARNING: no waveform data found for station {0}'.format(
+                            station))
                 continue
             delta = degrees2kilometers(a.distance)
             onset = pick.time
@@ -270,13 +278,14 @@ class LocalMagnitude(Magnitude):
             if str(self.wascaling) == '[0.0, 0.0, 0.0]':
                 print("Calculating original Richter magnitude ...")
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
-                            + richter_magnitude_scaling(delta))
+                                                     + richter_magnitude_scaling(delta))
             else:
                 print("Calculating scaled local magnitude ...")
-                a0 = a0 * 1e03 # mm to nm (see Havskov & Ottemöller, 2010)
+                a0 = a0 * 1e03  # mm to nm (see Havskov & Ottemöller, 2010)
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
-                            + self.wascaling[0] * np.log10(delta) + self.wascaling[1] 
-                            * delta + self.wascaling[2])
+                                                     + self.wascaling[0] * np.log10(delta) + self.wascaling[1]
+                                                                                             * delta + self.wascaling[
+                                                         2])
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
@@ -397,8 +406,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
 
     if verbosity:
         print(
-        "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(
-            tr.stats.station))
+            "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(
+                tr.stats.station))
 
     # additional common parameters for calculating Mo
     rP = 2 / np.sqrt(
@@ -412,8 +421,8 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
 
     if verbosity:
         print(
-        "calcMoMw: Calculated seismic moment Mo = {0} Nm => Mw = {1:3.1f} ".format(
-            Mo, Mw))
+            "calcMoMw: Calculated seismic moment Mo = {0} Nm => Mw = {1:3.1f} ".format(
+                Mo, Mw))
 
     return Mo, Mw
 
@@ -452,7 +461,15 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     :type:  integer
     '''
     if verbosity:
-        print ("Calculating source spectrum for station %s ...." % wfstream[0].stats.station)
+        print("Calculating source spectrum for station %s ...." % wfstream[0].stats.station)
+
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
 
     # get Q value
     Q, A = qp
@@ -509,9 +526,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     zc = crossings_nonzero_all(wfzc)
     if np.size(zc) == 0 or len(zc) <= 3:
         if verbosity:
-            print ("calcsourcespec: Something is wrong with the waveform, "
-                   "no zero crossings derived!\n")
-            print ("No calculation of source spectrum possible!")
+            print("calcsourcespec: Something is wrong with the waveform, "
+                  "no zero crossings derived!\n")
+            print("No calculation of source spectrum possible!")
         plotflag = 0
     else:
         plotflag = 1
@@ -558,22 +575,22 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
         w0 = optspecfit[0]
         fc = optspecfit[1]
-        #w01 = optspecfit[0]
-        #fc1 = optspecfit[1]
+        # w01 = optspecfit[0]
+        # fc1 = optspecfit[1]
         if verbosity:
-            print ("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                   "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
+            print("calcsourcespec: Determined w0-value: %e m/Hz, \n"
+                  "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
 
-        # use of conventional fitting
-        # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+            # use of conventional fitting
+            # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
-        # get w0 and fc as median of both
-        # source spectrum fits
-        #w0 = np.median([w01, w02])
-        #fc = np.median([fc1, fc2])
-        #if verbosity:
-        #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-        #    w0, fc))
+            # get w0 and fc as median of both
+            # source spectrum fits
+            # w0 = np.median([w01, w02])
+            # fc = np.median([fc1, fc2])
+            # if verbosity:
+            #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+            #    w0, fc))
 
     if iplot > 1:
         f1 = plt.figure()
@@ -600,9 +617,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             p3, = plt.loglog(F, YYcor, 'r')
             p4, = plt.loglog(F, fit, 'g')
             plt.loglog([fc, fc], [w0 / 100, w0], 'g')
-            plt.legend([p1, p2, p3, p4], ['Raw Spectrum', \
-                                          'Used Raw Spectrum', \
-                                          'Q-Corrected Spectrum', \
+            plt.legend([p1, p2, p3, p4], ['Raw Spectrum',
+                                          'Used Raw Spectrum',
+                                          'Q-Corrected Spectrum',
                                           'Fit to Spectrum'])
             plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
                       % (w0, fc))
@@ -650,6 +667,14 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     :type:   float
     '''
 
+    try:
+        iplot = int(iplot)
+    except:
+        if iplot == True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
+
     w0 = []
     stdw0 = []
     fc = []
@@ -659,9 +684,9 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # left side of initial corner frequency
     fcstopl = max(f[0], fc0 - max(1, fc0 / 2))
     il = np.where(f <= fcstopl)
-    il = il[0][np.size(il) - 1] 
+    il = il[0][np.size(il) - 1]
     # right side of initial corner frequency
-    fcstopr = min(fc0 + (fc0 / 2), f[len(f) - 1]) 
+    fcstopr = min(fc0 + (fc0 / 2), f[len(f) - 1])
     ir = np.where(f >= fcstopr)
     # check, if fcstopr is available
     if np.size(ir) == 0:
@@ -672,16 +697,16 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
 
     # vary corner frequency around initial point
     print("fitSourceModel: Varying corner frequency "
-           "around initial corner frequency ...")
+          "around initial corner frequency ...")
     # check difference of il and ir in order to
     # keep calculation time acceptable
     idiff = ir - il
     if idiff > 10000:
-       increment = 100
+        increment = 100
     elif idiff <= 20:
-       increment = 1
+        increment = 1
     else:
-       increment = 10 
+        increment = 10
 
     for i in range(il, ir, increment):
         FC = f[i]
@@ -707,10 +732,10 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         w0 = max(S)
     if verbosity:
         print(
-        "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
+            "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
 
     if iplot > 1:
-        plt.figure()#iplot)
+        plt.figure()  # iplot)
         plt.loglog(f, S, 'k')
         plt.loglog([f[0], fc], [w0, w0], 'g')
         plt.loglog([fc, fc], [w0 / 100, w0], 'g')
@@ -719,7 +744,7 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/Hz]')
         plt.grid()
-        plt.figure()#iplot + 1)
+        plt.figure()  # iplot + 1)
         plt.subplot(311)
         plt.plot(f[il:ir], STD, '*')
         plt.title('Common Standard Deviations')

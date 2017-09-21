@@ -158,24 +158,29 @@ def buildPyLoT(verbosity=None):
 
 
 def installPyLoT(verbosity=None):
-    files_to_copy = {'autoPyLoT_local.in':['~', '.pylot'],
-                     'autoPyLoT_regional.in':['~', '.pylot'],
-                     'filter.in':['~', '.pylot']}
+    files_to_copy = {'pylot_local.in': ['~', '.pylot'],
+                     'pylot_regional.in': ['~', '.pylot'],
+                     'pylot_global.in': ['~', '.pylot']}
     if verbosity > 0:
-        print ('starting installation of PyLoT ...')
+        print('starting installation of PyLoT ...')
     if verbosity > 1:
-        print ('copying input files into destination folder ...')
+        print('copying input files into destination folder ...')
     ans = input('please specify scope of interest '
-                '([0]=local, 1=regional) :') or 0
+                '([0]=local, 1=regional, 2=global) :') or 0
     if not isinstance(ans, int):
         ans = int(ans)
-    ans = 'local' if ans is 0 else 'regional'
+    if ans == 0:
+        ans = 'local'
+    elif ans == 1:
+        ans = 'regional'
+    elif ans == 2:
+        ans = 'global'
     link_dest = []
     for file, destination in files_to_copy.items():
         link_file = ans in file
         if link_file:
             link_dest = copy.deepcopy(destination)
-            link_dest.append('autoPyLoT.in')
+            link_dest.append('pylot.in')
             link_dest = os.path.join(*link_dest)
         destination.append(file)
         destination = os.path.join(*destination)
@@ -183,14 +188,12 @@ def installPyLoT(verbosity=None):
         assert not os.path.isabs(srcfile), 'source files seem to be ' \
                                            'corrupted ...'
         if verbosity > 1:
-            print ('copying file {file} to folder {dest}'.format(file=file, dest=destination))
+            print('copying file {file} to folder {dest}'.format(file=file, dest=destination))
         shutil.copyfile(srcfile, destination)
         if link_file:
             if verbosity:
                 print('linking input file for autoPyLoT ...')
             os.symlink(destination, link_dest)
-
-
 
 
 def cleanUp(verbosity=None):

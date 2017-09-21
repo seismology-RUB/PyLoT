@@ -5,8 +5,7 @@ import os
 
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
-from obspy.core.event import Origin, Magnitude, ResourceIdentifier
-
+from obspy.core.event import Origin, ResourceIdentifier
 from pylot.core.io.phases import picks_from_picksdict
 
 
@@ -14,10 +13,11 @@ class Event(ObsPyEvent):
     '''
     Pickable class derived from ~obspy.core.event.Event containing information on a single event.
     '''
+
     def __init__(self, path):
         self.pylot_id = path.split('/')[-1]
         # initialize super class
-        super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/'+self.pylot_id))
+        super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/' + self.pylot_id))
         self.path = path
         self.database = path.split('/')[-2]
         self.datapath = path.split('/')[-3]
@@ -32,13 +32,13 @@ class Event(ObsPyEvent):
     def get_notes_path(self):
         notesfile = os.path.join(self.path, 'notes.txt')
         return notesfile
-    
+
     def get_notes(self):
         notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
                 path = str(infile.readlines()[0].split('\n')[0])
-                text = '[eventInfo: '+path+']'
+                text = '[eventInfo: ' + path + ']'
                 self.addNotes(text)
                 try:
                     datetime = UTCDateTime(path.split('/')[-1])
@@ -67,31 +67,47 @@ class Event(ObsPyEvent):
         self._testEvent = bool
         if bool: self._refEvent = False
 
+    def clearObsPyPicks(self, picktype):
+        for index, pick in reversed(list(enumerate(self.picks))):
+            if picktype in str(pick.method_id):
+                self.picks.pop(index)
+
     def addPicks(self, picks):
         '''
-        add pylot picks and overwrite existing
+        add pylot picks and overwrite existing ones
         '''
         for station in picks:
             self.pylot_picks[station] = picks[station]
-        #add ObsPy picks
-        self.picks = picks_from_picksdict(self.pylot_picks)
-        
+        # add ObsPy picks (clear old manual and copy all new manual from pylot)
+        self.clearObsPyPicks('manual')
+        self.picks += picks_from_picksdict(self.pylot_picks)
+
     def addAutopicks(self, autopicks):
         for station in autopicks:
             self.pylot_autopicks[station] = autopicks[station]
-        
+        # add ObsPy picks (clear old auto and copy all new auto from pylot)
+        self.clearObsPyPicks('auto')
+        self.picks += picks_from_picksdict(self.pylot_autopicks)
+
     def setPick(self, station, pick):
         if pick:
             self.pylot_picks[station] = pick
-        self.picks = picks_from_picksdict(self.pylot_picks)
-        
+        else:
+            try:
+                self.pylot_picks.pop(station)
+            except Exception as e:
+                print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
+        self.clearObsPyPicks('manual')
+        self.picks += picks_from_picksdict(self.pylot_picks)
+
     def setPicks(self, picks):
         '''
         set pylot picks and delete and overwrite all existing
         '''
         self.pylot_picks = picks
-        self.picks = picks_from_picksdict(self.pylot_picks)
-                
+        self.clearObsPyPicks('manual')
+        self.picks += picks_from_picksdict(self.pylot_picks)
+
     def getPick(self, station):
         if station in self.pylot_picks.keys():
             return self.pylot_picks[station]
@@ -99,13 +115,25 @@ class Event(ObsPyEvent):
     def getPicks(self):
         return self.pylot_picks
 
-    def setAutopick(self, station, autopick):
-        if autopick:
-            self.pylot_autopicks[station] = autopick
+    def setAutopick(self, station, pick):
+        if pick:
+            self.pylot_autopicks[station] = pick
+        else:
+            try:
+                self.pylot_autopicks.pop(station)
+            except Exception as e:
+                print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
+        self.clearObsPyPicks('auto')
+        self.picks += picks_from_picksdict(self.pylot_autopicks)
 
-    def setAutopicks(self, autopicks):
-        self.pylot_autopicks = autopicks
-        
+    def setAutopicks(self, picks):
+        '''
+        set pylot picks and delete and overwrite all existing
+        '''
+        self.pylot_autopicks = picks
+        self.clearObsPyPicks('auto')
+        self.picks += picks_from_picksdict(self.pylot_autopicks)
+
     def getAutopick(self, station):
         if station in self.pylot_autopicks.keys():
             return self.pylot_autopicks[station]

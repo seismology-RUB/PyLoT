@@ -3,15 +3,18 @@
 
 import copy
 import os
+
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
-from obspy.io.sac import SacIOError
 from obspy.core.event import Event as ObsPyEvent
+from obspy.io.sac import SacIOError
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
-from pylot.core.util.utils import fnConstructor, full_range
 from pylot.core.util.event import Event
+from pylot.core.util.utils import fnConstructor, full_range
+import pylot.core.loc.velest as velest
+
 
 class Data(object):
     """
@@ -39,7 +42,7 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif isinstance(evtdata, basestring):
+        elif isinstance(evtdata, str):
             try:
                 cat = read_events(evtdata)
                 if len(cat) is not 1:
@@ -75,7 +78,7 @@ class Data(object):
     def __add__(self, other):
         assert isinstance(other, Data), "operands must be of same type 'Data'"
         rs_id = self.get_evt_data().get('resource_id')
-        rs_id_other = other.get_evt_data().get('resource_id')        
+        rs_id_other = other.get_evt_data().get('resource_id')
         if other.isNew() and not self.isNew():
             picks_to_add = other.get_evt_data().picks
             old_picks = self.get_evt_data().picks
@@ -98,7 +101,7 @@ class Data(object):
     def getPicksStr(self):
         picks_str = ''
         for pick in self.get_evt_data().picks:
-            picks_str += str(PyLoT) + '\n'
+            picks_str += str(pick) + '\n'
         return picks_str
 
     def getParent(self):
@@ -147,16 +150,56 @@ class Data(object):
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
-    def exportEvent(self, fnout, fnext='.xml', fcheck='auto'):
+    def checkEvent(self, event, fcheck, forceOverwrite=False):
+        if 'origin' in fcheck:
+            self.replaceOrigin(event, forceOverwrite)
+        if 'magnitude' in fcheck:
+            self.replaceMagnitude(event, forceOverwrite)
+        if 'auto' in fcheck:
+            self.replacePicks(event, 'auto')
+        if 'manual' in fcheck:
+            self.replacePicks(event, 'manual')
+
+    def replaceOrigin(self, event, forceOverwrite=False):
+        if self.get_evt_data().origins or forceOverwrite:
+            if event.origins:
+                print("Found origin, replace it by new origin.")
+            event.origins = self.get_evt_data().origins
+
+    def replaceMagnitude(self, event, forceOverwrite=False):
+        if self.get_evt_data().magnitudes or forceOverwrite:
+            if event.magnitudes:
+                print("Found magnitude, replace it by new magnitude")
+            event.magnitudes = self.get_evt_data().magnitudes
+
+    def replacePicks(self, event, picktype):
+        checkflag = 0
+        picks = event.picks
+        # remove existing picks
+        for j, pick in reversed(list(enumerate(picks))):
+            if picktype in str(pick.method_id.id):
+                picks.pop(j)
+                checkflag = 1
+        if checkflag:
+            print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
+
+        # append new picks
+        for pick in self.get_evt_data().picks:
+            if picktype in str(pick.method_id.id):
+                picks.append(pick)
+
+    def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
 
         """
-
-        :param fnout:
-        :param fnext:
-        :param fcheck:
-        :raise KeyError:
+        :param fnout: basename of file
+        :param fnext: file extension
+        :param fcheck: check and delete existing information
+        can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
+
+        if not type(fcheck) == list:
+            fcheck = [fcheck]
 
         try:
             evtformat = OUTPUTFORMATS[fnext]
@@ -164,71 +207,100 @@ class Data(object):
             errmsg = '{0}; selected file extension {1} not ' \
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
-   
+
         # check for already existing xml-file
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
                 print("xml-file already exists! Check content ...")
-                cat_old = read_events(fnout + fnext)
-                checkflag = 0
-                for j in range(len(cat_old.events[0].picks)):
-                   if cat_old.events[0].picks[j].method_id.id.split('/')[1] == fcheck:
-                      print("Found %s pick(s), append to new catalog." % fcheck)
-                      checkflag = 1
-                      break
-                if checkflag == 1:
-                    self.get_evt_data().write(fnout + fnext, format=evtformat)
-                    cat_new = read_events(fnout + fnext)
-                    cat_new.append(cat_old.events[0])
-                    cat_new.write(fnout + fnext, format=evtformat)
-                else:
-                    self.get_evt_data().write(fnout + fnext, format=evtformat)
-            else:
-                self.get_evt_data().write(fnout + fnext, format=evtformat)
-
-        # try exporting event via ObsPy
+                cat = read_events(fnout + fnext)
+                if len(cat) > 1:
+                    raise IOError('Ambigious event information in file {}'.format(fnout + fnext))
+                if len(cat) < 1:
+                    raise IOError('No event information in file {}'.format(fnout + fnext))
+                event = cat[0]
+                if not event.resource_id == self.get_evt_data().resource_id:
+                    raise IOError("Missmatching event resource id's: {} and {}".format(event.resource_id,
+                                                                                       self.get_evt_data().resource_id))
+                self.checkEvent(event, fcheck)
+                self.setEvtData(event)
+            self.get_evt_data().write(fnout + fnext, format=evtformat)
+        # try exporting event  
         else:
+            evtdata_org = self.get_evt_data()
+            picks = evtdata_org.picks
+            eventpath = evtdata_org.path
+            picks_copy = copy.deepcopy(picks)
+            evtdata_copy = Event(eventpath)
+            evtdata_copy.picks = picks_copy
+
             # check for stations picked automatically as well as manually
             # Prefer manual picks!
-            evtdata_copy = self.get_evt_data().copy()
-            evtdata_org = self.get_evt_data()
-            for i in range(len(evtdata_org.picks)):
-                if evtdata_org.picks[i].method_id == 'manual':
-                   mstation = evtdata_org.picks[i].waveform_id.station_code
-                   mstation_ext = mstation + '_'
-                   for k in range(len(evtdata_copy.picks)):
-                       if evtdata_copy.picks[k].waveform_id.station_code == mstation  or \
-                          evtdata_copy.picks[k].waveform_id.station_code == mstation_ext and \
-                          evtdata_copy.picks[k].method_id == 'auto':
-                          del evtdata_copy.picks[k]
-                          break
-            lendiff = len(evtdata_org.picks) - len(evtdata_copy.picks)
+            for i in range(len(picks)):
+                if picks[i].method_id == 'manual':
+                    mstation = picks[i].waveform_id.station_code
+                    mstation_ext = mstation + '_'
+                    for k in range(len(picks_copy)):
+                        if ((picks_copy[k].waveform_id.station_code == mstation) or
+                                (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                                (picks_copy[k].method_id == 'auto'):
+                            del picks_copy[k]
+                            break
+            lendiff = len(picks) - len(picks_copy)
             if lendiff is not 0:
-               print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+                print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
+
+            if upperErrors:
+                # check for pick uncertainties exceeding adjusted upper errors
+                # Picks with larger uncertainties will not be saved in output file!
+                for j in range(len(picks)):
+                    for i in range(len(picks_copy)):
+                        if picks_copy[i].phase_hint[0] == 'P':
+                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
+                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                print("Uncertainty exceeds or equal adjusted upper time error!")
+                                print("Adjusted uncertainty: {}".format(upperErrors[0]))
+                                print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
+                                print("{1} P-Pick of station {0} will not be saved in outputfile".format(
+                                    picks_copy[i].waveform_id.station_code,
+                                    picks_copy[i].method_id))
+                                print("#")
+                                del picks_copy[i]
+                                break
+                        if picks_copy[i].phase_hint[0] == 'S':
+                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
+                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                print("Uncertainty exceeds or equal adjusted upper time error!")
+                                print("Adjusted uncertainty: {}".format(upperErrors[1]))
+                                print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
+                                print("{1} S-Pick of station {0} will not be saved in outputfile".format(
+                                    picks_copy[i].waveform_id.station_code,
+                                    picks_copy[i].method_id))
+                                print("#")
+                                del picks_copy[i]
+                                break
 
             if fnext == '.obs':
-               try:
-                   evtdata_copy.write(fnout + fnext, format=evtformat)
-                   # write header afterwards
-                   evid = str(evtdata_org.resource_id).split('/')[1]
-                   header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
-                   nllocfile = open(fnout + fnext)
-                   l = nllocfile.readlines()
-                   nllocfile.close()
-                   l.insert(0, header)
-                   nllocfile = open(fnout + fnext, 'w')
-                   nllocfile.write("".join(l))
-                   nllocfile.close()
-               except KeyError as e:
-                   raise KeyError('''{0} export format
+                try:
+                    evtdata_copy.write(fnout + fnext, format=evtformat)
+                    # write header afterwards
+                    evid = str(evtdata_org.resource_id).split('/')[1]
+                    header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
+                    nllocfile = open(fnout + fnext)
+                    l = nllocfile.readlines()
+                    nllocfile.close()
+                    l.insert(0, header)
+                    nllocfile = open(fnout + fnext, 'w')
+                    nllocfile.write("".join(l))
+                    nllocfile.close()
+                except KeyError as e:
+                    raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.cnv':
-               try:
-                   evtdata_org.write(fnout + fnext, format=evtformat)
-               except KeyError as e:
-                   raise KeyError('''{0} export format
+                try:
+                    velest.export(picks_copy, fnout + fnext, eventinfo=self.get_evt_data())
+                except KeyError as e:
+                    raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
-
 
     def getComp(self):
         """
@@ -294,7 +366,7 @@ class Data(object):
                 except Exception as e:
                     warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
-                    warnmsg += '{0}\n{1}\n'.format(fname, se)
+                warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:
             warnmsg = 'WARNING: unable to read\n' + warnmsg
             print(warnmsg)
@@ -359,28 +431,26 @@ class Data(object):
             :raise OverwriteError: raises an OverwriteError if the picks list is
              not empty. The GUI will then ask for a decision.
             """
-            #firstonset = find_firstonset(picks)
+            # firstonset = find_firstonset(picks)
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
                 if picks[key]['P']['picker'] == 'auto':
-                   print("Existing picks will be overwritten!")
-                   picks = picks_from_picksdict(picks)
-                   break
+                    print("Existing picks will be overwritten!")
+                    picks = picks_from_picksdict(picks)
+                    break
                 else:
-                   if self.get_evt_data().picks:
-                       raise OverwriteError('Existing picks would be overwritten!')
-                       break
-                   else:
-                       picks = picks_from_picksdict(picks)
-                       break
+                    if self.get_evt_data().picks:
+                        raise OverwriteError('Existing picks would be overwritten!')
+                    else:
+                        picks = picks_from_picksdict(picks)
+                        break
             self.get_evt_data().picks = picks
             # if 'smi:local' in self.getID() and firstonset:
             #     fonset_str = firstonset.strftime('%Y_%m_%d_%H_%M_%S')
             #     ID = ResourceIdentifier('event/' + fonset_str)
             #     ID.convertIDToQuakeMLURI(authority_id=authority_id)
             #     self.get_evt_data().resource_id = ID
-
 
         def applyEvent(event):
             """
@@ -393,13 +463,13 @@ class Data(object):
             else:
                 # prevent overwriting original pick information
                 event_old = self.get_evt_data()
-                print(event_old.resource_id, event.resource_id)
                 if not event_old.resource_id == event.resource_id:
                     print("WARNING: Missmatch in event resource id's: {} and {}".format(
                         event_old.resource_id,
                         event.resource_id))
-                picks = copy.deepcopy(event_old.picks)
-                event = merge_picks(event, picks)
+                else:
+                    picks = copy.deepcopy(event_old.picks)
+                    event = merge_picks(event, picks)
                 # apply event information from location
                 event_old.update(event)
 
@@ -408,7 +478,6 @@ class Data(object):
 
         applydata[typ](data)
         self._new = False
-        
 
 
 class GenericDataStructure(object):

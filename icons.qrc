@@ -2,6 +2,8 @@
     <qresource>
         <file>icons/pylot.ico</file>
         <file>icons/pylot.png</file>
+        <file>icons/back.png</file>
+        <file>icons/home.png</file>
         <file>icons/newfile.png</file>
         <file>icons/open.png</file>
         <file>icons/openproject.png</file>
@@ -23,6 +25,8 @@
         <file>icons/savepicks.png</file>
         <file>icons/preferences.png</file>
         <file>icons/parameter.png</file>
+        <file>icons/inventory.png</file>
+        <file>icons/map.png</file>
         <file>icons/openloc.png</file>
         <file>icons/compare_button.png</file>
         <file>icons/locate_button.png</file>

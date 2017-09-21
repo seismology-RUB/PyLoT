@@ -1,24 +1,28 @@
-from mpl_toolkits.basemap import Basemap
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
-from matplotlib import cm
-from scipy.interpolate import griddata
+from PySide import QtGui
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-from PySide import QtCore, QtGui
-
+from mpl_toolkits.basemap import Basemap
 from pylot.core.util.widgets import PickDlg
+from scipy.interpolate import griddata
 
 plt.interactive(False)
+
 
 class map_projection(QtGui.QWidget):
     def __init__(self, parent, figure=None):
         '''
+
         :param: picked, can be False, auto, manual
         :value: str
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
+        self.metadata = parent.metadata
         self.parser = parent.metadata[1]
         self.picks = None
         self.picks_dict = None
@@ -28,7 +32,7 @@ class map_projection(QtGui.QWidget):
         self.init_stations()
         self.init_basemap(resolution='l')
         self.init_map()
-        #self.show()
+        # self.show()
 
     def init_map(self):
         self.init_lat_lon_dimensions()
@@ -36,7 +40,7 @@ class map_projection(QtGui.QWidget):
         self.init_x_y_dimensions()
         self.connectSignals()
         self.draw_everything()
-        
+
     def onpick(self, event):
         ind = event.ind
         button = event.mouseevent.button
@@ -44,7 +48,7 @@ class map_projection(QtGui.QWidget):
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
-            station=str(self.station_names[index].split('.')[-1])
+            station = str(self.station_names[index].split('.')[-1])
             try:
                 pickDlg = PickDlg(self, parameter=self._parent._inputs,
                                   data=data.select(station=station),
@@ -89,7 +93,7 @@ class map_projection(QtGui.QWidget):
             else:
                 self.figure = self._parent.am_figure
                 self.toolbar = self._parent.am_toolbar
-                
+
         self.main_ax = self.figure.add_subplot(111)
         self.canvas = self.figure.canvas
 
@@ -105,29 +109,29 @@ class map_projection(QtGui.QWidget):
 
         self.comboBox_am = QtGui.QComboBox()
         self.comboBox_am.insertItem(0, 'auto')
-        self.comboBox_am.insertItem(1, 'manual')        
-        
+        self.comboBox_am.insertItem(1, 'manual')
+
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
-        self.top_row.setStretch(1,1) #set stretch of item 1 to 1        
+        self.top_row.setStretch(1, 1)  # set stretch of item 1 to 1
 
         self.main_box.addWidget(self.canvas)
         self.main_box.addWidget(self.toolbar)
-        
+
     def init_stations(self):
         def get_station_names_lat_lon(parser):
-            station_names=[]
-            lat=[]
-            lon=[]
+            station_names = []
+            lat = []
+            lon = []
             for station in parser.stations:
-                station_name=station[0].station_call_letters
-                network=station[0].network_code
+                station_name = station[0].station_call_letters
+                network = station[0].network_code
                 if not station_name in station_names:
-                    station_names.append(network+'.'+station_name)
+                    station_names.append(network + '.' + station_name)
                     lat.append(station[0].latitude)
                     lon.append(station[0].longitude)
             return station_names, lat, lon
-        
+
         station_names, lat, lon = get_station_names_lat_lon(self.parser)
         self.station_names = station_names
         self.lat = lat
@@ -135,52 +139,53 @@ class map_projection(QtGui.QWidget):
 
     def init_picks(self):
         phase = self.comboBox_phase.currentText()
+
         def get_picks(station_names):
-            picks=[]
+            picks = []
             for station in station_names:
                 try:
-                    station=station.split('.')[-1]
+                    station = station.split('.')[-1]
                     picks.append(self.picks_dict[station][phase]['mpp'])
                 except:
                     picks.append(np.nan)
             return picks
 
         def get_picks_rel(picks):
-            picks_rel=[]
+            picks_rel = []
             picks_utc = []
             for pick in picks:
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     picks_utc.append(pick)
             minp = min(picks_utc)
             for pick in picks:
-                if type(pick) is obspy.core.utcdatetime.UTCDateTime:                
+                if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     pick -= minp
                 picks_rel.append(pick)
             return picks_rel
-        
+
         self.picks = get_picks(self.station_names)
         self.picks_rel = get_picks_rel(self.picks)
 
     def init_picks_active(self):
         def remove_nan_picks(picks):
-            picks_no_nan=[]
+            picks_no_nan = []
             for pick in picks:
                 if not np.isnan(pick):
                     picks_no_nan.append(pick)
             return picks_no_nan
-        
+
         self.picks_no_nan = remove_nan_picks(self.picks_rel)
 
     def init_stations_active(self):
         def remove_nan_lat_lon(picks, lat, lon):
-            lat_no_nan=[]
-            lon_no_nan=[]
+            lat_no_nan = []
+            lon_no_nan = []
             for index, pick in enumerate(picks):
                 if not np.isnan(pick):
                     lat_no_nan.append(lat[index])
                     lon_no_nan.append(lon[index])
             return lat_no_nan, lon_no_nan
-        
+
         self.lat_no_nan, self.lon_no_nan = remove_nan_lat_lon(self.picks_rel, self.lat, self.lon)
 
     def init_lat_lon_dimensions(self):
@@ -188,7 +193,7 @@ class map_projection(QtGui.QWidget):
             londim = max(lon) - min(lon)
             latdim = max(lat) - min(lat)
             return londim, latdim
-        
+
         self.londim, self.latdim = get_lon_lat_dim(self.lon, self.lat)
 
     def init_x_y_dimensions(self):
@@ -196,30 +201,30 @@ class map_projection(QtGui.QWidget):
             xdim = max(x) - min(x)
             ydim = max(y) - min(y)
             return xdim, ydim
-        
+
         self.x, self.y = self.basemap(self.lon, self.lat)
         self.xdim, self.ydim = get_x_y_dim(self.x, self.y)
 
     def init_basemap(self, resolution='l'):
-        #basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
-        basemap = Basemap(projection='lcc', resolution = resolution, ax=self.main_ax,
+        # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
+        basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax,
                           width=5e6, height=2e6,
-                          lat_0=(min(self.lat)+max(self.lat))/2.,
-                          lon_0=(min(self.lon)+max(self.lon))/2.)
-            
-        #basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
-        basemap.drawmapboundary(zorder=2)#fill_color='darkblue')
+                          lat_0=(min(self.lat) + max(self.lat)) / 2.,
+                          lon_0=(min(self.lon) + max(self.lon)) / 2.)
+
+        # basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
+        basemap.drawmapboundary(zorder=2)  # fill_color='darkblue')
         basemap.shadedrelief(zorder=3)
         basemap.drawcountries(zorder=4)
         basemap.drawstates(zorder=5)
         basemap.drawcoastlines(zorder=6)
         self.basemap = basemap
         self.figure.tight_layout()
-        
+
     def init_lat_lon_grid(self):
         def get_lat_lon_axis(lat, lon):
-            steplat = (max(lat)-min(lat))/250
-            steplon = (max(lon)-min(lon))/250
+            steplat = (max(lat) - min(lat)) / 250
+            steplon = (max(lon) - min(lon)) / 250
 
             lataxis = np.arange(min(lat), max(lat), steplat)
             lonaxis = np.arange(min(lon), max(lon), steplon)
@@ -234,7 +239,8 @@ class map_projection(QtGui.QWidget):
 
     def init_picksgrid(self):
         self.picksgrid_no_nan = griddata((self.lat_no_nan, self.lon_no_nan),
-                                         self.picks_no_nan, (self.latgrid, self.longrid), method='linear') ##################
+                                         self.picks_no_nan, (self.latgrid, self.longrid),
+                                         method='linear')  ##################
 
     def draw_contour_filled(self, nlevel='50'):
         levels = np.linspace(min(self.picks_no_nan), max(self.picks_no_nan), nlevel)
@@ -243,7 +249,7 @@ class map_projection(QtGui.QWidget):
 
     def scatter_all_stations(self):
         self.sc = self.basemap.scatter(self.lon, self.lat, s=50, facecolor='none', latlon=True,
-                                  zorder=10, picker=True, edgecolor='m', label='Not Picked')
+                                       zorder=10, picker=True, edgecolor='m', label='Not Picked')
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         if self.eventLoc:
             lat, lon = self.eventLoc
@@ -254,11 +260,11 @@ class map_projection(QtGui.QWidget):
         lon = self.lon_no_nan
         lat = self.lat_no_nan
 
-        #workaround because of an issue with latlon transformation of arrays with len <3
+        # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lon) <= 2 and len(lat) <= 2:
             self.sc_picked = self.basemap.scatter(lon[0], lat[0], s=50, facecolor='white',
                                                   c=self.picks_no_nan[0], latlon=True, zorder=11, label='Picked')
-        if len(lon) == 2 and len(lat) == 2:            
+        if len(lon) == 2 and len(lat) == 2:
             self.sc_picked = self.basemap.scatter(lon[1], lat[1], s=50, facecolor='white',
                                                   c=self.picks_no_nan[1], latlon=True, zorder=11)
         else:
@@ -266,11 +272,11 @@ class map_projection(QtGui.QWidget):
                                                   c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
-        self.annotations=[]
+        self.annotations = []
         for index, name in enumerate(self.station_names):
             self.annotations.append(self.main_ax.annotate(' %s' % name, xy=(self.x[index], self.y[index]),
                                                           fontsize='x-small', color='white', zorder=12))
-        self.legend=self.main_ax.legend()
+        self.legend = self.main_ax.legend(loc=1)
 
     def add_cbar(self, label):
         cbar = self.main_ax.figure.colorbar(self.sc_picked, fraction=0.025)
@@ -306,19 +312,19 @@ class map_projection(QtGui.QWidget):
     def remove_drawings(self):
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
-            del(self.sc_picked)
+            del (self.sc_picked)
         if hasattr(self, 'sc_event'):
             self.sc_event.remove()
-            del(self.sc_event)
+            del (self.sc_event)
         if hasattr(self, 'cbar'):
             self.cbar.remove()
-            del(self.cbar)
+            del (self.cbar)
         if hasattr(self, 'contourf'):
             self.remove_contourf()
-            del(self.contourf)
+            del (self.contourf)
         if hasattr(self, 'cid'):
             self.canvas.mpl_disconnect(self.cid)
-            del(self.cid)
+            del (self.cid)
         try:
             self.sc.remove()
         except Exception as e:
@@ -342,18 +348,18 @@ class map_projection(QtGui.QWidget):
         xlim = map.ax.get_xlim()
         ylim = map.ax.get_ylim()
         x, y = event.xdata, event.ydata
-        zoom = {'up': 1./2.,
+        zoom = {'up': 1. / 2.,
                 'down': 2.}
-        
+
         if not event.xdata or not event.ydata:
             return
-        
+
         if event.button in zoom:
             factor = zoom[event.button]
-            xdiff = (xlim[1]-xlim[0])*factor
+            xdiff = (xlim[1] - xlim[0]) * factor
             xl = x - 0.5 * xdiff
             xr = x + 0.5 * xdiff
-            ydiff = (ylim[1]-ylim[0])*factor
+            ydiff = (ylim[1] - ylim[0]) * factor
             yb = y - 0.5 * ydiff
             yt = y + 0.5 * ydiff
 
@@ -363,10 +369,8 @@ class map_projection(QtGui.QWidget):
             map.ax.set_xlim(xl, xr)
             map.ax.set_ylim(yb, yt)
             map.ax.figure.canvas.draw()
-            
+
     def _warn(self, message):
         self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
                                      'Warning', message)
-        self.qmb.show()        
-            
-    
+        self.qmb.show()

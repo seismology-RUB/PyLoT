@@ -4,11 +4,11 @@ from distutils.core import setup
 
 setup(
     name='PyLoT',
-    version='0.1a1',
+    version='0.2',
     packages=['pylot', 'pylot.core', 'pylot.core.loc', 'pylot.core.pick',
               'pylot.core.io', 'pylot.core.util', 'pylot.core.active',
               'pylot.core.analysis', 'pylot.testing'],
-    requires=['obspy', 'PySide'],
+    requires=['obspy', 'PySide', 'matplotlib', 'numpy'],
     url='dummy',
     license='LGPLv3',
     author='Sebastian Wehling-Benatelli',
