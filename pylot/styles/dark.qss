@@ -251,3 +251,8 @@ background-color:rgba(60, 60, 70, 255);
 QProgressBar::chunk{
 background-color:qlineargradient(spread:reflect, x1:0, y1:0, x2:0.5, y2:0, stop:0 transparent, stop:1 rgba(0, 150, 190, 255));
 }
+
+QStatusBar{
+background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:0, y2:0.5, stop:0 rgba(70, 70, 80, 255), stop:1 rgba(60, 60, 70, 255));
+color: rgba(255, 255, 255, 255);
+}
