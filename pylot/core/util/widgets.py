@@ -624,6 +624,7 @@ class PylotCanvas(FigureCanvas):
         # initialize super class
         super(PylotCanvas, self).__init__(self.figure)
         self.setParent(parent)
+        self.orig_parent = parent
 
         if multicursor:
             # add a cursor for station selection
@@ -917,7 +918,7 @@ class PylotCanvas(FigureCanvas):
         nsc.sort()
         nsc.reverse()
 
-        style = self.parent()._style
+        style = self.orig_parent._style
         linecolor = style['linecolor']['rgba_mpl']
 
         for n, (network, station, channel) in enumerate(nsc):

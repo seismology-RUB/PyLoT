@@ -1633,7 +1633,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             self.finish_pg_plot()
         else:
-            self._max_xlims = self.dataPlot.getXLims()
+            self._max_xlims = self.dataPlot.getXLims(self.dataPlot.axes[0])
         plotWidget = self.getPlotWidget()
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
@@ -1707,7 +1707,7 @@ class MainWindow(QMainWindow):
             self.dataPlot.plotWidget.hideAxis('bottom')
             self.dataPlot.plotWidget.hideAxis('left')
         else:
-            self.dataPlot.getAxes().cla()
+            self.dataPlot.axes[0].cla()
         self.loadlocationaction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
@@ -2314,7 +2314,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             pw = self.getPlotWidget().plotWidget
         else:
-            ax = self.getPlotWidget().axes
+            ax = self.getPlotWidget().axes[0]
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
@@ -2572,7 +2572,7 @@ class MainWindow(QMainWindow):
                 lon = event.origins[0].longitude
                 self.array_map.eventLoc = (lat, lon)
         if self.get_current_event():
-            self.array_map.refresh_drawings(self.get_current_event().getPicks())
+            self.array_map.refresh_drawings(self.get_current_event().getAutopicks())
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):

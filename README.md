@@ -66,20 +66,34 @@ PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 
 #### Features:
 
-- event organisation in project files and waveform visualisation
-- consistent manual phase picking through predefined SNR dependant zoom level
-- consistent automatic phase picking routines using Higher Order Statistics, AIC and Autoregression
-- interactive tuning of auto-pick parameters
-- uniform uncertainty estimation from waveform's properties for automatic and manual picks
-- pdf representation and comparison of picks taking the uncertainty intrinsically into account 
-- Richter and moment magnitude estimation
-- location determination with external installation of [NonLinLoc](http://alomax.free.fr/nlloc/index.html)
+- centralize all functionalities of PyLoT and control them from within the main GUI
+- handling multiple events inside GUI with project files (save and load work progress)
+- GUI based adjustments of pick parameters and I/O
+- interactive tuning of parameters from within the GUI
+- call automatic picking algorithm from within the GUI
+- comparison of automatic with manual picks for multiple events using clear differentiation of manual picks into 'tune' and 'test-set' (beta)
+- manual picking of different (user defined) phase types
+- phase onset estimation with ObsPy TauPy
+- interactive zoom/scale functionalities in all plots (mousewheel, pan, pan-zoom)
+- array map to visualize stations and control onsets (beta feature, switch to manual picks not implemented)
 
-#### Known issues:
+##### Platform support:
+- Python 3 support
+- Windows support
 
-- Sometimes an error might occur when using Qt
+##### Performance:
+- multiprocessing for automatic picking and restitution of multiple stations
+- use pyqtgraph library for better performance on main waveform plot
 
-We hope to solve these with the next release.
+##### Visualization:
+- pick uncertainty (quality classes) visualization with gradients
+- pick color unification for all plots
+- new icons and stylesheets
+
+#### Known Issues:
+- some Qt related errors might occur at runtime
+- filter toggle not working in pickDlg
+- PyLoT data structure requires at least three parent directories for waveform data directory
 
 ## Staff
 
