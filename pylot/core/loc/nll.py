@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import subprocess
-import os
 import glob
+import os
+import subprocess
+
 from obspy import read_events
 from pylot.core.io.phases import writephases
 from pylot.core.util.utils import getPatternLine, runProgram, which
@@ -11,10 +12,12 @@ from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
 
+
 class NLLocError(EnvironmentError):
     pass
 
-def export(picks, fnout):
+
+def export(picks, fnout, parameter):
     '''
     Take <picks> dictionary and exports picking data to a NLLOC-obs
     <phasefile> without creating an ObsPy event object.
@@ -24,9 +27,12 @@ def export(picks, fnout):
 
     :param fnout: complete path to the exporting obs file
     :type fnout: str
+ 
+    :param: parameter, all input information
+    :type:  object
     '''
     # write phases to NLLoc-phase file
-    writephases(picks, 'NLLoc', fnout)
+    writephases(picks, 'NLLoc', fnout, parameter)
 
 
 def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
@@ -55,7 +61,7 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     locfiles = 'LOCFILES %s NLLOC_OBS %s %s 0\n' % (phasefile, tttable, nllocout)
 
     # modification of NLLoc-control file
-    print ("Modifying  NLLoc-control file %s ..." % ctrfile)
+    print("Modifying  NLLoc-control file %s ..." % ctrfile)
     curlocfiles = getPatternLine(ctrfile, 'LOCFILES')
     nllfile = open(ctrfile, 'r')
     filedata = nllfile.read()
@@ -67,14 +73,17 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     nllfile.close()
 
 
-def locate(fnin):
+def locate(fnin, infile=None):
     """
     takes an external program name
     :param fnin:
     :return:
     """
 
-    exe_path = which('NLLoc')
+    if infile is None:
+        exe_path = which('NLLoc')
+    else:
+        exe_path = which('NLLoc', infile)
     if exe_path is None:
         raise NLLocError('NonLinLoc executable not found; check your '
                          'environment variables')
@@ -88,7 +97,7 @@ def locate(fnin):
 
 def read_location(fn):
     path, file = os.path.split(fn)
-    file = glob.glob1(path, file +  '.[0-9]*.grid0.loc.hyp')
+    file = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
     if len(file) > 1:
         raise IOError('ambiguous location name {0}'.format(file))
     fn = os.path.join(path, file[0])

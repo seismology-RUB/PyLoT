@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import glob
+import os
 import sys
-from obspy.io.xseed import Parser
 
 import numpy as np
-
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
 from pylot.core.util.utils import key_for_set_value, find_in_list, \
-    remove_underscores
+    remove_underscores, gen_Pool
 
 
 def time_from_header(header):
@@ -117,7 +115,7 @@ def make_time_line(line, datetime):
     return newline
 
 
-def evt_head_check(root_dir, out_dir = None):
+def evt_head_check(root_dir, out_dir=None):
     """
     A function to make sure that an arbitrary number of .gse files have correct values in their header.
     :param root_dir: a directory leading to the .gse files.
@@ -169,7 +167,8 @@ def read_metadata(path_to_inventory):
     dlfile = list()
     invfile = list()
     respfile = list()
-    inv = dict(dless=dlfile, xml=invfile, resp=respfile)
+    # possible file extensions specified here:
+    inv = dict(dless=dlfile, xml=invfile, resp=respfile, dseed=dlfile[:])
     if os.path.isfile(path_to_inventory):
         ext = os.path.splitext(path_to_inventory)[1].split('.')[1]
         inv[ext] += [path_to_inventory]
@@ -180,8 +179,10 @@ def read_metadata(path_to_inventory):
     invtype = key_for_set_value(inv)
 
     if invtype is None:
-        raise IOError("Neither dataless-SEED file, inventory-xml file nor "
-                      "RESP-file found!")
+        print("Neither dataless-SEED file, inventory-xml file nor "
+              "RESP-file found!")
+        print("!!WRONG CALCULATION OF SOURCE PARAMETERS!!")
+        robj = None,
     elif invtype == 'dless':  # prevent multiple read of large dlsv
         print("Reading metadata information from dataless-SEED file ...")
         if len(inv[invtype]) == 1:
@@ -195,7 +196,80 @@ def read_metadata(path_to_inventory):
     return invtype, robj
 
 
-def restitute_data(data, invtype, inobj, unit='VEL', force=False):
+def restitute_trace(input_tuple):
+    tr, invtype, inobj, unit, force = input_tuple
+
+    remove_trace = False
+
+    seed_id = tr.get_id()
+    # check, whether this trace has already been corrected
+    if 'processing' in tr.stats.keys() \
+            and np.any(['remove' in p for p in tr.stats.processing]) \
+            and not force:
+        print("Trace {0} has already been corrected!".format(seed_id))
+        return tr, False
+    stime = tr.stats.starttime
+    prefilt = get_prefilt(tr)
+    if invtype == 'resp':
+        fresp = find_in_list(inobj, seed_id)
+        if not fresp:
+            raise IOError('no response file found '
+                          'for trace {0}'.format(seed_id))
+        fname = fresp
+        seedresp = dict(filename=fname,
+                        date=stime,
+                        units=unit)
+        kwargs = dict(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
+    elif invtype == 'dless':
+        if type(inobj) is list:
+            fname = Parser(find_in_list(inobj, seed_id))
+        else:
+            fname = inobj
+        seedresp = dict(filename=fname,
+                        date=stime,
+                        units=unit)
+        kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
+    elif invtype == 'xml':
+        invlist = inobj
+        if len(invlist) > 1:
+            finv = find_in_list(invlist, seed_id)
+        else:
+            finv = invlist[0]
+        inventory = read_inventory(finv, format='STATIONXML')
+    elif invtype == None:
+        print("No restitution possible, as there are no station-meta data available!")
+        return tr, True
+    else:
+        remove_trace = True
+    # apply restitution to data
+    print("Correcting instrument at station %s, channel %s" \
+          % (tr.stats.station, tr.stats.channel))
+    try:
+        if invtype in ['resp', 'dless']:
+            try:
+                tr.simulate(**kwargs)
+            except ValueError as e:
+                vmsg = '{0}'.format(e)
+                print(vmsg)
+
+        else:
+            tr.attach_response(inventory)
+            tr.remove_response(output=unit,
+                               pre_filt=prefilt)
+    except ValueError as e:
+        msg0 = 'Response for {0} not found in Parser'.format(seed_id)
+        msg1 = 'evalresp failed to calculate response'
+        if msg0 not in e.message or msg1 not in e.message:
+            raise
+        else:
+            # restitution done to copies of data thus deleting traces
+            # that failed should not be a problem
+            remove_trace = True
+
+    return tr, remove_trace
+
+
+def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -214,72 +288,28 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False):
     data = remove_underscores(data)
 
     # loop over traces
+    input_tuples = []
     for tr in data:
-        seed_id = tr.get_id()
-        # check, whether this trace has already been corrected
-        if 'processing' in tr.stats.keys() \
-                and np.any(['remove' in p for p in tr.stats.processing]) \
-                and not force:
-            print("Trace {0} has already been corrected!".format(seed_id))
-            continue
-        stime = tr.stats.starttime
-        prefilt = get_prefilt(tr)
-        if invtype == 'resp':
-            fresp = find_in_list(inobj, seed_id)
-            if not fresp:
-                raise IOError('no response file found '
-                              'for trace {0}'.format(seed_id))
-            fname = fresp
-            seedresp = dict(filename=fname,
-                            date=stime,
-                            units=unit)
-            kwargs = dict(paz_remove=None, pre_filt=prefilt, seedresp=seedresp)
-        elif invtype == 'dless':
-            if type(inobj) is list:
-                fname = Parser(find_in_list(inobj, seed_id))
-            else:
-                fname = inobj
-            seedresp = dict(filename=fname,
-                            date=stime,
-                            units=unit)
-            kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
-        elif invtype == 'xml':
-            invlist = inobj
-            if len(invlist) > 1:
-                finv = find_in_list(invlist, seed_id)
-            else:
-                finv = invlist[0]
-            inventory = read_inventory(finv, format='STATIONXML')
-        else:
-            data.remove(tr)
-            continue
-        # apply restitution to data
-        try:
-            if invtype in ['resp', 'dless']:
-                tr.simulate(**kwargs)
-            else:
-                tr.attach_response(inventory)
-                tr.remove_response(output=unit,
-                                   pre_filt=prefilt)
-        except ValueError as e:
-            msg0 = 'Response for {0} not found in Parser'.format(seed_id)
-            msg1 = 'evalresp failed to calculate response'
-            if msg0 not in e.message or msg1 not in e.message:
-                raise
-            else:
-                # restitution done to copies of data thus deleting traces
-                # that failed should not be a problem
-                data.remove(tr)
-                continue
-        restflag.append(True)
+        input_tuples.append((tr, invtype, inobj, unit, force))
+        data.remove(tr)
+
+    pool = gen_Pool(ncores)
+    result = pool.map(restitute_trace, input_tuples)
+    pool.close()
+
+    for tr, remove_trace in result:
+        if not remove_trace:
+            data.traces.append(tr)
+
     # check if ALL traces could be restituted, take care of large datasets
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
-    if len(restflag) > 0:
-        restflag = bool(np.all(restflag))
-    else:
-        restflag = False
-    return data, restflag
+
+    # if len(restflag) > 0:
+    #     restflag = bool(np.all(restflag))
+    # else:
+    #     restflag = False
+    return data
 
 
 def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
@@ -312,8 +342,8 @@ def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
             trace.stats.station, trace.stats.channel))
     # get corner frequencies for pre-filtering
     fny = trace.stats.sampling_rate / 2
-    fc21 = fny - (fny * thi[0]/100.)
-    fc22 = fny - (fny * thi[1]/100.)
+    fc21 = fny - (fny * thi[0] / 100.)
+    fc22 = fny - (fny * thi[1] / 100.)
     return (tlow[0], tlow[1], fc21, fc22)
 
 

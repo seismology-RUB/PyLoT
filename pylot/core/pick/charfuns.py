@@ -17,7 +17,6 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 :author: MAGS2 EP3 working group
 """
 
-import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream
 
@@ -27,7 +26,7 @@ class CharacteristicFunction(object):
     SuperClass for different types of characteristic functions.
     '''
 
-    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None, stealthMode=False):
+    def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None):
         '''
         Initialize data type object with information from the original
         Seismogram.
@@ -64,7 +63,6 @@ class CharacteristicFunction(object):
         self.calcCF(self.getDataArray())
         self.arpara = np.array([])
         self.xpred = np.array([])
-        self._stealthMode = stealthMode
 
     def __str__(self):
         return '''\n\t{name} object:\n
@@ -137,9 +135,6 @@ class CharacteristicFunction(object):
 
     def getXCF(self):
         return self.xcf
-
-    def _getStealthMode(self):
-        return self._stealthMode()
 
     def getDataArray(self, cut=None):
         '''
@@ -225,13 +220,11 @@ class AICcf(CharacteristicFunction):
 
     def calcCF(self, data):
 
-        # if self._getStealthMode() is False:
-        #    print 'Calculating AIC ...'
         x = self.getDataArray()
         xnp = x[0].data
-        nn = np.isnan(xnp)
-        if len(nn) > 1:
-            xnp[nn] = 0
+        ind = np.where(~np.isnan(xnp))[0]
+        if ind.size:
+            xnp[:ind[0]] = xnp[ind[0]]
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
@@ -265,13 +258,9 @@ class HOScf(CharacteristicFunction):
         if len(nn) > 1:
             xnp[nn] = 0
         if self.getOrder() == 3:  # this is skewness
-            # if self._getStealthMode() is False:
-            #    print 'Calculating skewness ...'
             y = np.power(xnp, 3)
             y1 = np.power(xnp, 2)
         elif self.getOrder() == 4:  # this is kurtosis
-            # if self._getStealthMode() is False:
-            #    print 'Calculating kurtosis ...'
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
 
@@ -297,9 +286,12 @@ class HOScf(CharacteristicFunction):
             elif self.getOrder() == 4:
                 LTA[j] = lta / np.power(lta1, 2)
 
-        nn = np.isnan(LTA)
-        if len(nn) > 1:
-            LTA[nn] = 0
+        # remove NaN's with first not-NaN-value,
+        # so autopicker doesnt pick discontinuity at start of the trace
+        ind = np.where(~np.isnan(LTA))[0]
+        if ind.size:
+            first = ind[0]
+            LTA[:first] = LTA[first]
         self.cf = LTA
         self.xcf = x
 
@@ -307,7 +299,7 @@ class HOScf(CharacteristicFunction):
 class ARZcf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from single trace ...'
+        print('Calculating AR-prediction error from single trace ...')
         x = self.getDataArray(self.getCut())
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -343,7 +335,8 @@ class ARZcf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = x
@@ -430,7 +423,7 @@ class ARZcf(CharacteristicFunction):
 class ARHcf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from both horizontal traces ...'
+        print('Calculating AR-prediction error from both horizontal traces ...')
 
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
@@ -466,7 +459,7 @@ class ARHcf(CharacteristicFunction):
             # prediction error = CF
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
                                            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (
-                                    2 * lpred))
+                                        2 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0
@@ -475,7 +468,8 @@ class ARHcf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = xnp
@@ -567,7 +561,7 @@ class ARHcf(CharacteristicFunction):
 class AR3Ccf(CharacteristicFunction):
     def calcCF(self, data):
 
-        print 'Calculating AR-prediction error from all 3 components ...'
+        print('Calculating AR-prediction error from all 3 components ...')
 
         xnp = self.getDataArray(self.getCut())
         n0 = np.isnan(xnp[0].data)
@@ -608,7 +602,7 @@ class AR3Ccf(CharacteristicFunction):
             cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
                                            + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
                                            + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (
-                                    3 * lpred))
+                                        3 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0
@@ -617,7 +611,8 @@ class AR3Ccf(CharacteristicFunction):
         cf = tap * cf
         io = np.where(cf == 0)
         ino = np.where(cf > 0)
-        cf[io] = cf[ino[0][0]]
+        if np.size(ino):
+            cf[io] = cf[ino[0][0]]
 
         self.cf = cf
         self.xcf = xnp

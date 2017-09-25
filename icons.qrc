@@ -2,10 +2,37 @@
     <qresource>
         <file>icons/pylot.ico</file>
         <file>icons/pylot.png</file>
-        <file>icons/locate.png</file>
+        <file>icons/back.png</file>
+        <file>icons/home.png</file>
+        <file>icons/newfile.png</file>
+        <file>icons/open.png</file>
+        <file>icons/openproject.png</file>
+        <file>icons/add.png</file>
+        <file>icons/save.png</file>
+        <file>icons/saveas.png</file>
+        <file>icons/saveproject.png</file>
+        <file>icons/saveprojectas.png</file>
+        <file>icons/manupicksicon_small.png</file>
+        <file>icons/autopicksicon_small.png</file>
+        <file>icons/tune.png</file>
+        <file>icons/autopylot_button.png</file>
+        <file>icons/pick.png</file>
+        <file>icons/waveform.png</file>
+        <file>icons/openpick.png</file>
+        <file>icons/openpicks.png</file>
+        <file>icons/openpick.png</file>
+        <file>icons/openpicks.png</file>
+        <file>icons/savepicks.png</file>
+        <file>icons/preferences.png</file>
+        <file>icons/parameter.png</file>
+        <file>icons/inventory.png</file>
+        <file>icons/map.png</file>
+        <file>icons/openloc.png</file>
+        <file>icons/compare_button.png</file>
+        <file>icons/locate_button.png</file>
+        <file>icons/Matlab_PILOT_icon.png</file>
         <file>icons/printer.png</file>
         <file>icons/delete.png</file>
-        <file>icons/compare.png</file>
         <file>icons/key_E.png</file>
         <file>icons/key_N.png</file>
         <file>icons/key_P.png</file>

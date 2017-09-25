@@ -4,12 +4,11 @@
 import copy
 import operator
 import os
-import numpy as np
-import glob
+
 import matplotlib.pyplot as plt
-
+import numpy as np
 from obspy import read_events
-
+from obspy.core import AttribDict
 from pylot.core.io.phases import picksdict_from_picks
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.utils import find_in_list
@@ -28,16 +27,8 @@ class Comparison(object):
     """
 
     def __init__(self, **kwargs):
-        names = list()
         self._pdfs = dict()
-        for name, fn in kwargs.items():
-            if isinstance(fn, PDFDictionary):
-                self._pdfs[name] = fn
-            elif isinstance(fn, dict):
-                self._pdfs[name] = PDFDictionary(fn)
-            else:
-                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
-            names.append(name)
+        names = self.iter_kwargs(kwargs)
         if len(names) > 2:
             raise ValueError('Comparison is only defined for two '
                              'arguments!')
@@ -48,6 +39,40 @@ class Comparison(object):
         if not len(self.names) == 2 or not self._pdfs:
             return False
         return True
+
+    def iter_kwargs(self, kwargs):
+        names = list()
+        for name, fn in kwargs.items():
+            if name == 'eventlist':
+                names = self.init_by_eventlist(fn)
+                break
+            if isinstance(fn, PDFDictionary):
+                self._pdfs[name] = fn
+            elif isinstance(fn, dict) or isinstance(fn, AttribDict):
+                self._pdfs[name] = PDFDictionary(fn)
+            else:
+                self._pdfs[name] = PDFDictionary.from_quakeml(fn)
+            names.append(name)
+        return names
+
+    def init_by_eventlist(self, eventlist):
+        # create one dictionary containing all picks for all events (therefore modify station key)
+        global_picksdict = {}
+        for event in eventlist:
+            automanu = {'manu': event.pylot_picks,
+                        'auto': event.pylot_autopicks}
+            for method, picksdict in automanu.items():
+                if not method in global_picksdict.keys():
+                    global_picksdict[method] = {}
+                for station, picks in picksdict.items():
+                    new_picksdict = global_picksdict[method]
+                    # new id combining event and station in one dictionary for all events
+                    id = '{}_{}'.format(event.pylot_id, station)
+                    new_picksdict[id] = picks
+        for method, picksdict in global_picksdict.items():
+            self._pdfs[method] = PDFDictionary(picksdict)
+        names = list(global_picksdict.keys())
+        return names
 
     def get(self, name):
         return self._pdfs[name]
@@ -93,8 +118,8 @@ class Comparison(object):
         """
         compare_pdfs = dict()
 
-        pdf_a = self.get(self.names[0]).generate_pdf_data(type)
-        pdf_b = self.get(self.names[1]).generate_pdf_data(type)
+        pdf_a = self.get('auto').generate_pdf_data(type)
+        pdf_b = self.get('manu').generate_pdf_data(type)
 
         for station, phases in pdf_a.items():
             if station in pdf_b.keys():
@@ -155,7 +180,7 @@ class Comparison(object):
     def get_array(self, phase, method_name):
         method = operator.methodcaller(method_name)
         pdf_list = self.get_all(phase)
-        rarray = map(method, pdf_list)
+        rarray = list(map(method, pdf_list))
         return np.array(rarray)
 
     def get_expectation_array(self, phase):
@@ -253,11 +278,7 @@ class PDFDictionary(object):
 
     @classmethod
     def from_quakeml(self, fn):
-        cat = read_events(fn)
-        if len(cat) > 1:
-            raise NotImplementedError('reading more than one event at the same '
-                                      'time is not implemented yet! Sorry!')
-        return PDFDictionary(picksdict_from_picks(cat[0]))
+        return PDFDictionary(fn)
 
     def get_all(self, phase):
         rlist = list()
@@ -289,7 +310,6 @@ class PDFDictionary(object):
                     values['mpp'],
                     values['lpp'],
                     type=type)
-
         return pdf_picks
 
     def plot(self, stations=None):
@@ -336,7 +356,7 @@ class PDFDictionary(object):
                     axarr[l].set_title(phase)
                     if l is 0:
                         axann = axarr[l].annotate(station, xy=(.05, .5),
-                                                     xycoords='axes fraction')
+                                                  xycoords='axes fraction')
                         bbox_props = dict(boxstyle='round', facecolor='lightgrey',
                                           alpha=.7)
                         axann.set_bbox(bbox_props)
@@ -353,7 +373,6 @@ class PDFstatistics(object):
     This object can be used to get various statistic values from probabillity density functions.
     Takes a path as argument.
     """
-
 
     def __init__(self, directory):
         """Initiates some values needed when dealing with pdfs later"""
@@ -451,7 +470,7 @@ class PDFstatistics(object):
         else:
             raise ValueError("for call to method {0} value has to be "
                              "defined but is 'None' ".format(method_options[
-                                                             property.upper()]))
+                                                                 property.upper()]))
 
         for pdf_dict in self:
             # create worklist
@@ -461,7 +480,7 @@ class PDFstatistics(object):
 
         return rlist
 
-    def writeThetaToFile(self,array,out_dir):
+    def writeThetaToFile(self, array, out_dir):
         """
         Method to write array like data to file. Useful since acquiring can take
         serious amount of time when dealing with large databases.
@@ -473,16 +492,16 @@ class PDFstatistics(object):
         """
         fid = open(os.path.join(out_dir), 'w')
         for val in array:
-            fid.write(str(val)+'\n')
+            fid.write(str(val) + '\n')
         fid.close()
 
 
 def main():
-    root_dir ='/home/sebastianp/Codetesting/xmls/'
+    root_dir = '/home/sebastianp/Codetesting/xmls/'
     Insheim = PDFstatistics(root_dir)
     Insheim.curphase = 'p'
     qdlist = Insheim.get('qdf', 0.2)
-    print qdlist
+    print(qdlist)
 
 
 if __name__ == "__main__":
