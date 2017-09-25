@@ -85,8 +85,8 @@ We hope to solve these with the next release.
 
 Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
 
-Developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff,
-              C. Wollin, M. Rische, M. Paffrath
+Developer(s): S. Wehling-Benatelli, L. Kueperkoch, M. Paffrath, K. Olbert,
+M. Bischoff, C. Wollin, M. Rische
 
 Others: A. Bruestle, T. Meier, W. Friederich
 
