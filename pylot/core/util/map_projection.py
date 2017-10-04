@@ -32,6 +32,7 @@ class map_projection(QtGui.QWidget):
         self.init_stations()
         self.init_basemap(resolution='l')
         self.init_map()
+        self._style = parent._style
         # self.show()
 
     def init_map(self):
