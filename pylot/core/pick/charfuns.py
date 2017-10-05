@@ -72,7 +72,7 @@ class CharacteristicFunction(object):
                    t2=self.getTime2(),
                    order=self.getOrder(),
                    fnoise=self.getFnoise(),
-                   ardetstep=self.getARdetStep[0]())
+                   ardetstep=self.getARdetStep()[0]())
 
     def getCut(self):
         return self.cut
@@ -233,7 +233,7 @@ class AICcf(CharacteristicFunction):
                  np.log((cumsumcf[datlen - 1] - cumsumcf[k - 1]) / (datlen - k + 1)))
         cf[0] = cf[1]
         inf = np.isinf(cf)
-        ff = np.where(inf == True)
+        ff = np.where(inf is True)
         if len(ff) >= 1:
             cf[ff] = 0
 
@@ -477,9 +477,9 @@ class ARHcf(CharacteristicFunction):
             # AR prediction of waveform using calculated AR coefficients
             self.arPredH(xnp, self.arpara, i + 1, lpred)
             # prediction error = CF
-            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
-                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)) / (
-                                        2 * lpred))
+            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2)
+                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)
+                                           ) / (2 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0
@@ -529,8 +529,8 @@ class ARHcf(CharacteristicFunction):
                 for i in range(rind, ldet):
                     ki = k - 1
                     ji = j - 1
-                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] + data[1, i - ji] * data[1, i - ki]
-
+                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] \
+                                + data[1, i - ji] * data[1, i - ki]
                 A[ji, ki] = A[ki, ji]
 
         # apply Moore-Penrose inverse for SVD yielding the AR-parameters
@@ -629,10 +629,10 @@ class AR3Ccf(CharacteristicFunction):
             # AR prediction of waveform using calculated AR coefficients
             self.arPred3C(xnp, self.arpara, i + 1, lpred)
             # prediction error = CF
-            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2) \
-                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2) \
-                                           + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)) / (
-                                        3 * lpred))
+            cf[i + lpred] = np.sqrt(np.sum(np.power(self.xpred[0][i:i + lpred] - xnp[0][i:i + lpred], 2)
+                                           + np.power(self.xpred[1][i:i + lpred] - xnp[1][i:i + lpred], 2)
+                                           + np.power(self.xpred[2][i:i + lpred] - xnp[2][i:i + lpred], 2)
+                                           ) / (3 * lpred))
         nn = np.isnan(cf)
         if len(nn) > 1:
             cf[nn] = 0
@@ -683,7 +683,8 @@ class AR3Ccf(CharacteristicFunction):
                 for i in range(rind, ldet):
                     ki = k - 1
                     ji = j - 1
-                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] + data[1, i - ji] * data[1, i - ki] \
+                    A[ki, ji] = A[ki, ji] + data[0, i - ji] * data[0, i - ki] \
+                                + data[1, i - ji] * data[1, i - ki] \
                                 + data[2, i - ji] * data[2, i - ki]
 
                 A[ji, ki] = A[ki, ji]
