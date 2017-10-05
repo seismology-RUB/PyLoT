@@ -38,15 +38,29 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
-
-    :param inputfile: path to the input file containing all parameter
-    information for automatic picking (for formatting details, see.
-    `~pylot.core.io.inputs.PylotParameter`
+    :param input_dict:
+    :type input_dict:
+    :param parameter: PylotParameter object containing parameters used for automatic picking
+    :type parameter: pylot.core.io.inputs.PylotParameter
+    :param inputfile: path to the input file containing all parameter information for automatic picking
+    (for formatting details, see. `~pylot.core.io.inputs.PylotParameter`
     :type inputfile: str
-    :return:
-
-    .. rubric:: Example
-
+    :param fnames: list of data file names or None when called from GUI
+    :type fnames: str
+    :param eventid: event path incl. event ID (path to waveform files)
+    :type eventid: str
+    :param savepath: save path for autoPyLoT output, if None/"None" output will be saved in event folder
+    :type savepath: str
+    :param savexml: export results in XML file if True
+    :type savexml: bool
+    :param station: list of station names or 'all' to pick all stations
+    :type station: str
+    :param iplot: logical variable for plotting: 0=none, 1=partial, 2=all
+    :type iplot: int
+    :param ncores: number of cores used for parallel processing. Default (0) uses all available cores
+    :type ncores: int
+    :return: dictionary containing picks
+    :rtype: dict
     """
 
     if ncores == 1:
