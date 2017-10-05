@@ -22,33 +22,27 @@ from obspy.core import Stream
 
 
 class CharacteristicFunction(object):
-    '''
+    """
     SuperClass for different types of characteristic functions.
-    '''
+    """
 
     def __init__(self, data, cut, t2=None, order=None, t1=None, fnoise=None):
-        '''
+        """
         Initialize data type object with information from the original
         Seismogram.
-
-        :param: data
-        :type: `~obspy.core.stream.Stream`
-
-        :param: cut
-        :type: tuple
-
-        :param: t2
-        :type: float
-
-        :param: order
-        :type: int
-
-        :param: t1
-        :type: float (optional, only for AR)
-
-        :param: fnoise
-        :type: float (optional, only for AR)
-        '''
+        :param data: stream object containing traces for which the cf should
+        be calculated
+        :type data: ~obspy.core.stream.Stream
+        :param cut: (starttime, endtime) in seconds relative to beginning of trace
+        :type cut: tuple
+        :param t2:
+        :type t2: float
+        :param order:
+        :type order: int
+        :param t1: float (optional, only for AR)
+        :param fnoise: (optional, only for AR)
+        :type fnoise: float
+        """
 
         assert isinstance(data, Stream), "%s is not a stream object" % str(data)
 
@@ -120,6 +114,10 @@ class CharacteristicFunction(object):
         return self.dt
 
     def getTimeArray(self):
+        """
+        :return: array if time indices
+        :rtype: np.array
+        """
         incr = self.getIncrement()
         self.TimeArray = np.arange(0, len(self.getCF()) * incr, incr) + self.getCut()[0]
         return self.TimeArray
@@ -137,13 +135,15 @@ class CharacteristicFunction(object):
         return self.xcf
 
     def getDataArray(self, cut=None):
-        '''
+        """
         If cut times are given, time series is cut from cut[0] (start time)
         till cut[1] (stop time) in order to calculate CF for certain part
         only where you expect the signal!
-        input: cut (tuple) ()
-        cutting window
-        '''
+        :param cut: contains (start time, stop time) for cutting the time series
+        :type cut: tuple
+        :return: cut data/time series
+        :rtype:
+        """
         if cut is not None:
             if len(self.orig_data) == 1:
                 if self.cut[0] == 0 and self.cut[1] == 0:
@@ -209,17 +209,15 @@ class CharacteristicFunction(object):
 
 
 class AICcf(CharacteristicFunction):
-    '''
-    Function to calculate the Akaike Information Criterion (AIC) after
-    Maeda (1985).
-    :param: data, time series (whether seismogram or CF)
-    :type: tuple
-
-    Output: AIC function
-    '''
 
     def calcCF(self, data):
-
+        """
+        Function to calculate the Akaike Information Criterion (AIC) after Maeda (1985).
+        :param data: data, time series (whether seismogram or CF)
+        :type data: tuple
+        :return: AIC function
+        :rtype:
+        """
         x = self.getDataArray()
         xnp = x[0].data
         ind = np.where(~np.isnan(xnp))[0]
@@ -244,14 +242,17 @@ class AICcf(CharacteristicFunction):
 
 
 class HOScf(CharacteristicFunction):
-    '''
-    Function to calculate skewness (statistics of order 3) or kurtosis
-    (statistics of order 4), using one long moving window, as published
-    in Kueperkoch et al. (2010).
-    '''
 
     def calcCF(self, data):
-
+        """
+        Function to calculate skewness (statistics of order 3) or kurtosis
+        (statistics of order 4), using one long moving window, as published
+        in Kueperkoch et al. (2010).
+        :param data: data, time series (whether seismogram or CF)
+        :type data: tuple
+        :return: HOS cf
+        :rtype:
+        """
         x = self.getDataArray(self.getCut())
         xnp = x[0].data
         nn = np.isnan(xnp)
@@ -297,8 +298,16 @@ class HOScf(CharacteristicFunction):
 
 
 class ARZcf(CharacteristicFunction):
-    def calcCF(self, data):
 
+    def calcCF(self, data):
+        """
+        function used to calculate the AR prediction error from a single vertical trace. Can be used to pick
+        P onsets.
+        :param data:
+        :type data: ~obspy.core.stream.Stream
+        :return: ARZ cf
+        :rtype:
+        """
         print('Calculating AR-prediction error from single trace ...')
         x = self.getDataArray(self.getCut())
         xnp = x[0].data
@@ -342,7 +351,7 @@ class ARZcf(CharacteristicFunction):
         self.xcf = x
 
     def arDetZ(self, data, order, rind, ldet):
-        '''
+        """
         Function to calculate AR parameters arpara after Thomas Meier (CAU), published
         in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
         Penrose inverse, i.e. the least-squares approach.
@@ -359,7 +368,7 @@ class ARZcf(CharacteristicFunction):
         :type: int
 
         Output: AR parameters arpara
-        '''
+        """
 
         # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
@@ -383,7 +392,7 @@ class ARZcf(CharacteristicFunction):
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPredZ(self, data, arpara, rind, lpred):
-        '''
+        """
         Function to predict waveform, assuming an autoregressive process of order
         p (=size(arpara)), with AR parameters arpara calculated in arDet. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
@@ -400,8 +409,8 @@ class ARZcf(CharacteristicFunction):
         :type: int
 
         Output: predicted waveform z
-        '''
-        # be sure of the summation indeces
+        """
+        # be sure of the summation indices
         if rind < len(arpara):
             rind = len(arpara)
         if rind > len(data) - lpred:
@@ -421,7 +430,18 @@ class ARZcf(CharacteristicFunction):
 
 
 class ARHcf(CharacteristicFunction):
+
     def calcCF(self, data):
+        """
+        Function to calculate a characteristic function using autoregressive modelling of the waveform of
+        both horizontal traces.
+        The waveform is predicted in a moving time window using the calculated AR parameters. The difference
+        between the predicted and the actual waveform servers as a characteristic function.
+        :param data: wavefor stream
+        :type data: ~obspy.core.stream.Stream
+        :return: ARH cf
+        :rtype:
+        """
 
         print('Calculating AR-prediction error from both horizontal traces ...')
 
@@ -475,7 +495,7 @@ class ARHcf(CharacteristicFunction):
         self.xcf = xnp
 
     def arDetH(self, data, order, rind, ldet):
-        '''
+        """
         Function to calculate AR parameters arpara after Thomas Meier (CAU), published
         in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
         Penrose inverse, i.e. the least-squares approach. "data" is a structured array.
@@ -494,7 +514,7 @@ class ARHcf(CharacteristicFunction):
         :type: int
 
         Output: AR parameters arpara
-        '''
+        """
 
         # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
@@ -517,7 +537,7 @@ class ARHcf(CharacteristicFunction):
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPredH(self, data, arpara, rind, lpred):
-        '''
+        """
         Function to predict waveform, assuming an autoregressive process of order
         p (=size(arpara)), with AR parameters arpara calculated in arDet. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
@@ -535,7 +555,7 @@ class ARHcf(CharacteristicFunction):
 
         Output: predicted waveform z
         :type: structured array
-        '''
+        """
         # be sure of the summation indeces
         if rind < len(arpara) + 1:
             rind = len(arpara) + 1
@@ -559,8 +579,18 @@ class ARHcf(CharacteristicFunction):
 
 
 class AR3Ccf(CharacteristicFunction):
-    def calcCF(self, data):
 
+    def calcCF(self, data):
+        """
+        Function to calculate a characteristic function using autoregressive modelling of the waveform of
+        all three traces.
+        The waveform is predicted in a moving time window using the calculated AR parameters. The difference
+        between the predicted and the actual waveform servers as a characteristic function
+        :param data: stream holding all three traces
+        :type data: ~obspy.core.stream.Stream
+        :return: AR3C cf
+        :rtype:
+        """
         print('Calculating AR-prediction error from all 3 components ...')
 
         xnp = self.getDataArray(self.getCut())
@@ -618,7 +648,7 @@ class AR3Ccf(CharacteristicFunction):
         self.xcf = xnp
 
     def arDet3C(self, data, order, rind, ldet):
-        '''
+        """
         Function to calculate AR parameters arpara after Thomas Meier (CAU), published
         in  Kueperkoch et al. (2012). This function solves SLE using the Moore-
         Penrose inverse, i.e. the least-squares approach. "data" is a structured array.
@@ -637,7 +667,7 @@ class AR3Ccf(CharacteristicFunction):
         :type: int
 
         Output: AR parameters arpara
-        '''
+        """
 
         # recursive calculation of data vector (right part of eq. 6.5 in Kueperkoch et al. (2012)
         rhs = np.zeros(self.getOrder())
@@ -662,7 +692,7 @@ class AR3Ccf(CharacteristicFunction):
         self.arpara = np.dot(np.linalg.pinv(A), rhs)
 
     def arPred3C(self, data, arpara, rind, lpred):
-        '''
+        """
         Function to predict waveform, assuming an autoregressive process of order
         p (=size(arpara)), with AR parameters arpara calculated in arDet3C. After
         Thomas Meier (CAU), published in Kueperkoch et al. (2012).
@@ -680,7 +710,7 @@ class AR3Ccf(CharacteristicFunction):
 
         Output: predicted waveform z
         :type: structured array
-        '''
+        """
         # be sure of the summation indeces
         if rind < len(arpara) + 1:
             rind = len(arpara) + 1
