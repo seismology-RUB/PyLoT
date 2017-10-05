@@ -25,6 +25,27 @@ from obspy.taup import TauPyModel
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
+    """
+    :param data: ObsPy stream object containing waveform data of all stations in the event
+    :type data: ~obspy.core.stream.Stream
+    :param param: PylotParameter object containing parameters used for picking
+    :type param: pylot.core.io.inputs.PylotParameter
+    :param iplot: logical variable for plotting: 0=none, 1=partial, 2=all
+    :type iplot: int, Boolean or String
+    :param fig_dict: dictionary containing Matplotlib figures used for plotting picking results during tuning
+    :type fig_dict: dict
+    :param fig_dict_wadatijack: dictionary containing Matplotlib figures used for plotting jackknife-, wadati- and
+    mediantest results
+    :type fig_dict_wadatijack: dict
+    :param ncores: number of cores used for parallel processing. Default (0) uses all available cores
+    :type ncores: int
+    :param metadata: tuple containing metadata type string and Parser object read from inventory file
+    :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
+    :param origin: list containing origin objects representing origins for all events
+    :type origin: list(~obspy.core.event.origin)
+    :return: dictionary containing picked stations and pick information
+    :rtype: dictionary
+    """
     stations = []
     all_onsets = {}
     input_tuples = []
@@ -92,12 +113,28 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
 
 def call_autopickstation(input_tuple):
+    """
+    helper function used for multiprocessing
+    :param input_tuple: contains all parameters used for autopicking
+    :type input_tuple: tuple
+    :return: dictionary containing P pick, S pick and station name
+    :rtype: dict
+    """
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
     return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
 
 
 def get_source_coords(parser, station_id):
+    """
+    retrieves station coordinates from metadata
+    :param parser: Parser object containing metadata read from inventory file
+    :type parser: ~obspy.io.xseed.parser.Parser
+    :param station_id: station id of which the coordinates should be retrieved
+    :type station_id: str
+    :return: dictionary containing 'latitude', 'longitude', 'elevation' and 'local_depth' of station
+    :rtype: dict
+    """
     station_coords = None
     try:
         station_coords = parser.get_coordinates(station_id)
@@ -109,15 +146,23 @@ def get_source_coords(parser, station_id):
 def autopickstation(wfstream, pickparam, verbose=False,
                     iplot=0, fig_dict=None, metadata=None, origin=None):
     """
-    :param wfstream: `~obspy.core.stream.Stream`  containing waveform
-    :type wfstream: obspy.core.stream.Stream
-
-    :param pickparam: container of picking parameters from input file,
-           usually pylot.in
-    :type pickparam: PylotParameter
-    :param verbose:
+    picks a single station
+    :param wfstream: stream object containing waveform of all traces
+    :type wfstream: ~obspy.core.stream.Stream
+    :param pickparam: container of picking parameters from input file, usually pylot.in
+    :type pickparam:  pylot.core.io.inputs.PylotParameter
+    :param verbose: used to control output to log during picking. True = more information printed
     :type verbose: bool
-
+    :param iplot: logical variable for plotting: 0=none, 1=partial, 2=all
+    :type iplot: int, (Boolean or String)
+    :param fig_dict: dictionary containing Matplotlib figures used for plotting picking results during tuning
+    :type fig_dict: dict
+    :param metadata: tuple containing metadata type string and Parser object read from inventory file
+    :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
+    :param origin: list containing origin objects representing origins for all events
+    :type origin: list(~obspy.core.event.origin)
+    :return:     :dictionary containing P pick, S pick and station name
+    :rtype: dict
     """
 
     # declaring pickparam variables (only for convenience)
@@ -1087,19 +1132,23 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
 
 def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
-    '''
+    """
     Repicking of bad onsets. Uses theoretical onset times from NLLoc-location file.
-
     :param wf: waveform, obspy stream object
-
+    :type wf: ~obspy.core.stream.Stream
     :param NLLocfile: path/name of NLLoc-location file
-
+    :type NLLocfile: str
     :param picks: dictionary of available onset times
-
+    :type picks: dict
     :param badpicks: picks to be repicked
-
+    :type badpicks:
     :param pickparameter: picking parameters from autoPyLoT-input file
-    '''
+    :type pickparameter: pylot.core.io.inputs.PylotParameter
+    :param fig_dict: dictionary containing Matplotlib figures used for plotting results
+    :type fig_dict: dict
+    :return: dictionary containing iterative picks
+    :rtype: dict
+    """
 
     msg = '##################################################\n' \
           'autoPyLoT: Found {0} bad onsets at station(s) {1}, ' \
