@@ -194,7 +194,7 @@ defaults = {'rootpath': {'type': str,
                            'namestring': 'AIC smooth P'},
 
             'tsmoothP': {'type': float,
-                         'tooltip': 'for HOS/AR, take average of samples for smoothing CF [s]',
+                         'tooltip': 'for HOS/AR, take average of samples in this time window for smoothing CF [s]',
                          'value': 0.1,
                          'namestring': 'CF smooth P'},
 
@@ -254,7 +254,7 @@ defaults = {'rootpath': {'type': str,
                       'namestring': ('SNR windows S', 'Noise', 'Safety', 'Signal', 'Slope')},
 
             'aictsmoothS': {'type': float,
-                            'tooltip': 'for AIC-picker, take average of samples for smoothing of AIC-function [s]',
+                            'tooltip': 'for AIC-picker, take average of samples in this time window for smoothing of AIC-function [s]',
                             'value': 0.5,
                             'namestring': 'AIC smooth S'},
 
@@ -284,7 +284,7 @@ defaults = {'rootpath': {'type': str,
                          'namestring': 'Min SNR'},
 
             'fmpickwin': {'type': float,
-                          'tooltip': 'pick window around P onset for calculating zero crossings',
+                          'tooltip': 'pick window [s] around P onset for calculating zero crossings',
                           'value': 0.2,
                           'namestring': 'Zero crossings window'},
 
