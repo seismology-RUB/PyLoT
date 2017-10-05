@@ -87,7 +87,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                               sp=sp_info)
     print(splash)
 
-
     parameter = real_None(parameter)
     inputfile = real_None(inputfile)
     eventid = real_None(eventid)
@@ -238,7 +237,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 # in autopylot.in
                 try:
                     parameter.get('eventID')
-                except:
+                except Exception:
                     now = datetime.datetime.now()
                     eventID = '%d%02d%02d%02d%02d' % (now.year,
                                                       now.month,
@@ -402,7 +401,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                          iplot)
                             # update pick with moment property values (w0, fc, Mo)
                             for stats, props in moment_mag.moment_props.items():
-                                if picks.has_key(stats):
+                                if stats in picks:
                                     picks[stats]['P'].update(props)
                             evt = moment_mag.updated_event()
                             net_mw = moment_mag.net_magnitude()
@@ -414,7 +413,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                        parameter.get('sstop'),
                                                        WAscaling, True, iplot)
                             for stats, amplitude in local_mag.amplitudes.items():
-                                if picks.has_key(stats):
+                                if stats in picks:
                                     picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                             print("Local station magnitudes scaled with:")
                             print("log(Ao) + %f * log(r) + %f * r + %f" % (WAscaling[0],
@@ -438,7 +437,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.applyEVTData(evt, 'event')
             data.applyEVTData(picks)
             if savexml:
-                if savepath == 'None' or savepath == None:
+                if savepath == 'None' or savepath is None:
                     saveEvtPath = eventpath
                 else:
                     saveEvtPath = savepath
@@ -467,7 +466,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'
                            ------------------------------------------'''.format \
-                            (version=_getVersionString()) % evID
+                           (version=_getVersionString()) % evID
             print(endsplash)
             locflag = glocflag
             if locflag == 0:
