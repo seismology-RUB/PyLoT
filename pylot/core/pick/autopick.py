@@ -11,8 +11,6 @@ function conglomerate utils.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pylot.core.io.data import Data
-from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
@@ -51,12 +49,11 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     input_tuples = []
     try:
         iplot = int(iplot)
-    except:
-        if iplot == True or iplot == 'True':
-           iplot = 2
+    except ValueError:
+        if iplot is True or iplot == 'True':
+            iplot = 2
         else:
-           iplot = 0
-
+            iplot = 0
 
     # get some parameters for quality control from
     # parameter input file (usually pylot.in).
@@ -74,7 +71,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     for station in stations:
         topick = data.select(station=station)
 
-        if iplot == None or iplot == 'None' or iplot == 0:
+        if iplot is None or iplot == 'None' or iplot == 0:
             input_tuples.append((topick, param, apverbose, metadata, origin))
         if iplot > 0:
             all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
@@ -101,12 +98,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
             pick.pop('station')
             all_onsets[station] = pick
 
-    #return all_onsets
-
     # quality control
     # median check and jackknife on P-onset times
     jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, 1, fig_dict_wadatijack)
-    #return jk_checked_onsets
     # check S-P times (Wadati)
     wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
     return wadationsets
@@ -274,7 +268,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if verbose: print(msg)
         z_copy = zdat.copy()
         tr_filt = zdat[0].copy()
-        #remove constant offset from data to avoid unwanted filter response
+        # remove constant offset from data to avoid unwanted filter response
         tr_filt.detrend(type='demean')
         # filter and taper data
         tr_filt.filter('bandpass', freqmin=bpz1[0], freqmax=bpz1[1],
@@ -286,7 +280,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
         # if not given: sets Lc to infinity to use full stream
-        if use_taup == True:
+        if use_taup is True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata[1]:
@@ -311,8 +305,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                         phases[identifyPhaseID(arr.phase.name)].append(arr)
 
                     # get first P and S onsets from arrivals list
-                    arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key = lambda t: t[1])
-                    arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key = lambda t: t[1])
+                    arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
+                    arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
                     print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
                           ' origin time using TauPy'.format(estFirstP, estFirstS))
 
@@ -328,7 +322,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         pstart = max(pstart, 0)
         pstop = min(pstop, len(zdat[0])*zdat[0].stats.delta)
 
-        if not use_taup == True or origin:
+        if not use_taup is True or origin:
             Lc = pstop - pstart
 
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
@@ -463,8 +457,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         slope = aicpick.getSlope()
         if not slope:
             slope = 0
-        if (slope >= minAICPslope and
-            aicpick.getSNR() >= minAICPSNR and Pflag == 1):
+        if slope >= minAICPslope and aicpick.getSNR() >= minAICPSNR and Pflag == 1:
             aicPflag = 1
             msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -533,7 +526,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
 
                 # weight P-onset using symmetric error
-                if Perror == None:
+                if Perror is None:
                     Pweight = 4
                 else:
                     if Perror <= timeerrorsP[0]:
@@ -588,8 +581,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         print('autopickstation: No vertical component data available!, '
               'Skipping station!')
 
-    if ((len(edat) > 0 and len(ndat) == 0) or (
-        len(ndat) > 0 and len(edat) == 0)) and Pweight < 4:
+    if ((len(edat) > 0 and len(ndat) == 0) or (len(ndat) > 0 and len(edat) == 0)) and Pweight < 4:
         msg = 'Go on picking S onset ...\n' \
               '##################################################\n' \
               'Only one horizontal component available!\n' \
@@ -609,7 +601,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if pickSonset:
         # determine time window for calculating CF after P onset
         cuttimesh = [
-            round(max([mpickP + sstart, 0])), # MP MP relative time axis
+            round(max([mpickP + sstart, 0])),  # MP MP relative time axis
             round(min([
                 mpickP + sstop,
                 edat[0].stats.endtime-edat[0].stats.starttime,
@@ -627,7 +619,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
               'Working on S onset of station {0}\nFiltering horizontal ' \
               'traces ...'.format(edat[0].stats.station)
         if verbose: print(msg)
-
 
         if algoS == 'ARH':
             # re-create stream object including both horizontal components
@@ -709,8 +700,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if not slope:
             slope = 0
         if (slope >= minAICSslope and
-            aicarhpick.getSNR() >= minAICSSNR and
-            aicarhpick.getpick() is not None):
+            aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
             aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -904,16 +894,16 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
     ##############################################################
     try:
-       iplot = int(iplot)
-    except:
-       if iplot == True or iplot == 'True':
-           iplot = 2
-       else:
-           iplot = 0
+        iplot = int(iplot)
+    except ValueError:
+        if iplot is True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
 
     if iplot > 0:
         # plot vertical trace
-        if fig_dict == None or fig_dict == 'None':
+        if fig_dict is None or fig_dict == 'None':
             fig = plt.figure()
             plt_flag = 1
             linecolor = 'k'
@@ -1072,8 +1062,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ax3.set_title(trH2_filt.stats.channel)
             if plt_flag == 1:
                 fig.show()
-                try: input()
-                except SyntaxError: pass
+                try:
+                    input()
+                except SyntaxError:
+                    pass
                 plt.close(fig)
     ##########################################################################
     # calculate "real" onset times
@@ -1189,8 +1181,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
             print("iteratepicker: Small residuum, leave parameters unchanged for this phase!")
         else:
             pickparameter.setParam(pstart=pstart)
-            pickparameter.setParam(pstop=pickparameter.get('pstart') + \
-                                         (pickparameter.get('Precalcwin')))
+            pickparameter.setParam(pstop=pickparameter.get('pstart') + (pickparameter.get('Precalcwin')))
             pickparameter.setParam(sstop=pickparameter.get('sstop') / 2)
             pickparameter.setParam(pickwinP=pickparameter.get('pickwinP') / 2)
             pickparameter.setParam(Precalcwin=pickparameter.get('Precalcwin') / 2)
