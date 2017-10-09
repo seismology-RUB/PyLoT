@@ -251,8 +251,8 @@ class AICPicker(AutoPicker):
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
-            if len(dataslope) < 1:
-                print('No data in slope window found!')
+            if len(dataslope) <= 1:
+                print('No or not enough data in slope window found!')
                 return
             imaxs, = argrelmax(dataslope)
             if imaxs.size:
