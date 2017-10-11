@@ -318,13 +318,9 @@ def full_range(stream):
     :type stream: `~obspy.core.stream.Stream`
     :return: minimum start time and maximum end time
     '''
-    min_start = UTCDateTime()
-    max_end = None
-    for trace in stream:
-        if trace.stats.starttime < min_start:
-            min_start = trace.stats.starttime
-        if max_end is None or trace.stats.endtime > max_end:
-            max_end = trace.stats.endtime
+    min_start = min([trace.stats.starttime for trace in stream])
+    max_end = max([trace.stats.endtime for trace in stream])
+
     return min_start, max_end
 
 
