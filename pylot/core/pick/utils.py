@@ -13,6 +13,8 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
+from pylot.core.util.utils import real_Bool, real_None
+
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -60,10 +62,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
     try:
         iplot = int(iplot)
     except:
-        if iplot == True or iplot == 'True':
-           iplot = 2
+        if real_Bool(iplot):
+            iplot = 2
         else:
-           iplot = 0
+            iplot = 0
 
     if verbosity:
         print('earllatepicker: Get earliest and latest possible pick'
@@ -133,7 +135,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        if fig == None or fig == 'None':
+        if real_None(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -275,7 +277,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         index2 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
-            i = i + 1
+            i += 1
             if xfilt[j - 1] <= 0 <= xfilt[j]:
                 zc2.append(t[ipick][i])
                 index2.append(i)
@@ -328,7 +330,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         print("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        if fig == None or fig == 'None':
+        if real_None(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -468,7 +470,7 @@ def getnoisewin(t, t1, tnoise, tgap):
     """
 
     # get noise window
-    inoise, = np.where((t <= max([t1 - tgap, 0])) \
+    inoise, = np.where((t <= max([t1 - tgap, 0]))
                        & (t >= max([t1 - tnoise - tgap, 0])))
     if np.size(inoise) < 1:
         inoise, = np.where((t >= t[0]) & (t <= t1))
@@ -493,7 +495,7 @@ def getsignalwin(t, t1, tsignal):
     """
 
     # get signal window
-    isignal, = np.where((t <= min([t1 + tsignal, t[-1]])) \
+    isignal, = np.where((t <= min([t1 + tsignal, t[-1]]))
                         & (t >= t1))
     if np.size(isignal) < 1:
         print("getsignalwin: Empty array isignal, check signal window!")
@@ -704,8 +706,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             for Ppick, SPtime, station in zip(Ppicks, SPtimes, stations):
                 ax.text(Ppick, SPtime + 0.01, '{0}'.format(station), color='0.25')
 
-            ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,' \
-                      'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
+            ax.set_title('Wadati-Diagram, %d S-P Times, Vp/Vs(raw)=%5.2f,'
+                         'Vp/Vs(checked)=%5.2f' % (len(SPtimes), vpvsr, cvpvsr))
             ax.legend(loc=1, numpoints=1)
         else:
             ax.set_title('Wadati-Diagram, %d S-P Times' % len(SPtimes))
@@ -810,7 +812,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         returnflag = 0
 
     if iplot > 1:
-        if fig == None or fig == 'None':
+        if real_None(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -896,7 +898,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
 
     print("checkPonsets: %d pick(s) deviate too much from median!" % len(ibad))
     print(badstations)
-    print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations) \
+    print("checkPonsets: Skipped %d P pick(s) out of %d" % (len(badstations)
                                                             + len(badjkstations), len(stations)))
 
     goodmarker = 'goodPonsetcheck'
@@ -934,7 +936,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
         ax = fig.add_subplot(111)
 
         if len(badstations) > 0:
-            ax.plot(ibad, np.array(Ppicks)[ibad], marker ='o', markerfacecolor='orange', markersize=14,
+            ax.plot(ibad, np.array(Ppicks)[ibad], marker='o', markerfacecolor='orange', markersize=14,
                     linestyle='None', label='Median Skipped P Picks')
         if len(badjkstations) > 0:
             ax.plot(badjk[0], np.array(Ppicks)[badjk], 'ro', markersize=14, label='Jackknife Skipped P Picks')
@@ -947,7 +949,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
         for index, pick in enumerate(Ppicks):
             ax.text(index, pick + 0.01, '{0}'.format(stations[index]), color='0.25')
         ax.set_xlabel('Number of P Picks')
-        ax.set_ylabel('Onset Time [s] from 1.1.1970') # MP MP Improve this?
+        ax.set_ylabel('Onset Time [s] from 1.1.1970')  # MP MP Improve this?
         ax.legend(loc=1, numpoints=1)
         ax.set_title('Jackknifing and Median Tests on P Onsets')
         if plt_flag:
@@ -1141,14 +1143,14 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
             t = np.arange(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate + diff_dict[key],
                           trace.stats.delta)
             if i == 0:
-                if fig == None or fig == 'None':
+                if real_None(fig) is None:
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax1 = fig.add_subplot(3, 1, i + 1)
                 ax = ax1
                 ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
             else:
-                if fig == None or fig == 'None':
+                if real_None(fig) is None:
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
@@ -1185,7 +1187,7 @@ def getQualityFromUncertainty(uncertainty, Errors):
     # set initial quality to 4 (worst) and change only if one condition is hit
     quality = 4
 
-    if uncertainty == None or uncertainty == 'None':
+    if real_None(uncertainty) is None:
         return quality
 
     if uncertainty <= Errors[0]:
