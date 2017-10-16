@@ -16,28 +16,34 @@ from obspy.core import Stream, UTCDateTime
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
-    '''
+    """
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
     as reasonable uncertainties. Latest possible pick is based on noise level,
     earliest possible pick is half a signal wavelength in front of most likely
     pick given by PragPicker or manually set by analyst. Most likely pick
     (initial pick Pick1) must be given.
-
-    :param: X, time series (seismogram)
-    :type:  `~obspy.core.stream.Stream`
-
-    :param: nfac (noise factor), nfac times noise level to calculate latest possible pick
-    :type: int
-
-    :param: TSNR, length of time windows around pick used to determine SNR [s]
-    :type: tuple (T_noise, T_gap, T_signal)
-
-    :param: Pick1, initial (most likely) onset time, starting point for earllatepicker
-    :type: float
-
-    :param: iplot, if given, results are plotted in figure(iplot)
-    :type: int
-    '''
+    :param X: time series (seismogram)
+    :type X: `~obspy.core.stream.Stream`
+    :param nfac: (noise factor), nfac times noise level to calculate latest possible pick
+    :type nfac: int
+    :param TSNR: length of time windows around pick used to determine SNR [s]
+    :type TSNR: tuple (T_noise, T_gap, T_signal)
+    :param Pick1: initial (most likely) onset time, starting point for earllatepicker
+    :type Pick1: float
+    :param iplot: if given, results are plotted in figure(iplot)
+    :type iplot: int
+    :param verbosity: amount of displayed information about the process:
+    2 = all
+    1 = default
+    0 = none
+    :type verbosity: int
+    :param fig: Matplotlib figure ised for plotting
+    :type fig: `~matplotlib.figure.Figure`
+    :param linecolor: color for plotting results
+    :type linecolor: str
+    :return: tuple containing earliest possible pick, latest possible pick and pick error
+    :rtype: (float, float, float)
+    """
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -162,26 +168,27 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
 
 
 def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
-    '''
+    """
     Function to derive first motion (polarity) of given phase onset Pick.
     Calculation is based on zero crossings determined within time window pickwin
     after given onset time.
-
-    :param: Xraw, unfiltered time series (seismogram)
-    :type:  `~obspy.core.stream.Stream`
-
-    :param: Xfilt, filtered time series (seismogram)
-    :type:  `~obspy.core.stream.Stream`
-
-    :param: pickwin, time window after onset Pick within zero crossings are calculated
-    :type: float
-
-    :param: Pick, initial (most likely) onset time, starting point for fmpicker
-    :type: float
-
-    :param: iplot, if given, results are plotted in figure(iplot)
-    :type: int
-    '''
+    :param Xraw: unfiltered time series (seismogram)
+    :type Xraw: `~obspy.core.stream.Stream`
+    :param Xfilt: filtered time series (seismogram)
+    :type Xfilt: `~obspy.core.stream.Stream`
+    :param pickwin: time window after onset Pick within zero crossings are calculated
+    :type pickwin: float
+    :param Pick: initial (most likely) onset time, starting point for fmpicker
+    :type Pick: float
+    :param iplot: if given, results are plotted in figure(iplot)
+    :type iplot: int
+    :param fig: Matplotlib figure ised for plotting
+    :type fig: `~matplotlib.figure.Figure`
+    :param linecolor: color for plotting results
+    :type linecolor: str
+    :return: None if first motion detection was skipped, otherwise string indicating the polarity
+    :rtype: None, str
+    """
 
     plt_flag = 0
     try:
@@ -360,8 +367,15 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
 
 
 def crossings_nonzero_all(data):
+    """
+    Returns the indices of zero crossings the data array
+    :param data: data array (seismic trace)
+    :type data: `~numpy.ndarray`
+    :return: array containing indices of zero crossings in the data array.
+    :rtype: `~numpy.ndarray`
+    """
     pos = data > 0
-    npos = ~pos
+    npos = ~pos  # get positions of negative values
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
 
@@ -372,26 +386,28 @@ def symmetrize_error(dte, dtl):
     :param dte: relative lower uncertainty
     :param dtl: relative upper uncertainty
     :return: symmetrized error
+    :rtype: float
     """
     return (dte + 2 * dtl) / 3
 
 
 def getSNR(X, TSNR, t1, tracenum=0):
-    '''
+    """
     Function to calculate SNR of certain part of seismogram relative to
     given time (onset) out of given noise and signal windows. A safety gap
     between noise and signal part can be set. Returns SNR and SNR [dB] and
     noiselevel.
-
-    :param: X, time series (seismogram)
-    :type:  `~obspy.core.stream.Stream`
-
-    :param: TSNR, length of time windows [s] around t1 (onset) used to determine SNR
-    :type: tuple (T_noise, T_gap, T_signal)
-
-    :param: t1, initial time (onset) from which noise and signal windows are calculated
-    :type: float
-    '''
+    :param X: time series (seismogram)
+    :type X: `~obspy.core.stream.Stream`
+    :param TSNR: length of time windows [s] around t1 (onset) used to determine SNR
+    :type TSNR: (T_noise, T_gap, T_signal)
+    :param t1: initial time (onset) from which noise and signal windows are calculated
+    :type t1: float
+    :param tracenum: used to select the trace in stream X
+    :type tracenum: int
+    :return: tuple containing SNR, SNRdB and noise level
+    :rtype: (float, float, float)
+    """
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -435,23 +451,21 @@ def getSNR(X, TSNR, t1, tracenum=0):
 
 
 def getnoisewin(t, t1, tnoise, tgap):
-    '''
-    Function to extract indeces of data out of time series for noise calculation.
-    Returns an array of indeces.
-
-    :param: t, array of time stamps
-    :type:  numpy array
-
-    :param: t1, time from which relativ to it noise window is extracted
-    :type: float
-
-    :param: tnoise, length of time window [s] for noise part extraction
-    :type: float
-
-    :param: tgap, safety gap between t1 (onset) and noise window to
-            ensure, that noise window contains no signal
-    :type: float
-    '''
+    """
+    Function to extract indices of data out of time series for noise calculation.
+    Returns an array of indices.
+    :param t: array of time stamps
+    :type t: `numpy.ndarray`
+    :param t1: time from which relative to it noise window is extracted
+    :type t1: float
+    :param tnoise: length of time window [s] for noise part extraction
+    :type tnoise: float
+    :param tgap:  safety gap between t1 (onset) and noise window to ensure, that
+    the noise window contains no signal
+    :type tgap: float
+    :return: indices of noise window in t
+    :rtype: `~numpy.ndarray`
+    """
 
     # get noise window
     inoise, = np.where((t <= max([t1 - tgap, 0])) \
@@ -465,19 +479,18 @@ def getnoisewin(t, t1, tnoise, tgap):
 
 
 def getsignalwin(t, t1, tsignal):
-    '''
+    """
     Function to extract data out of time series for signal level calculation.
-    Returns an array of indeces.
-
-    :param: t, array of time stamps
-    :type:  numpy array
-
-    :param: t1, time from which relativ to it signal window is extracted
-    :type: float
-
-    :param: tsignal, length of time window [s] for signal level calculation
-    :type: float
-    '''
+    Returns an array of indices.
+    :param t: array of time stamps
+    :type t: `numpy.ndarray`
+    :param t1: time from which relative to it signal window is extracted
+    :type t1: float
+    :param tsignal: length of time window [s] for signal level calculation
+    :type tsignal: float
+    :return: indices of signal window i t
+    :rtype: `numpy.ndarray`
+    """
 
     # get signal window
     isignal, = np.where((t <= min([t1 + tsignal, t[-1]])) \
@@ -490,27 +503,18 @@ def getsignalwin(t, t1, tsignal):
 
 def getResolutionWindow(snr, extent):
     """
-    Number -> Float
-    produce the half of the time resolution window width from given SNR
-    value
+    Produce the half of the time resolution window width from given SNR value
           SNR >= 3    ->  2 sec    HRW
       3 > SNR >= 2    ->  5 sec    MRW
       2 > SNR >= 1.5  -> 10 sec    LRW
     1.5 > SNR         -> 15 sec   VLRW
     see also Diehl et al. 2009
-
-    :parameter: extent, can be 'local', 'regional', 'global'
-
-    >>> getResolutionWindow(0.5)
-    7.5
-    >>> getResolutionWindow(1.8)
-    5.0
-    >>> getResolutionWindow(2.3)
-    2.5
-    >>> getResolutionWindow(4)
-    1.0
-    >>> getResolutionWindow(2)
-    2.5
+    :param snr: Signal to noise ration which decides the witdth of the resolution window
+    :type snr: float
+    :param extent: can be 'local', 'regional', 'global'
+    :type extent: str
+    :return: half width of the resolution window
+    :rtype: float
     """
 
     res_wins = {
@@ -535,17 +539,17 @@ def getResolutionWindow(snr, extent):
 
 
 def select_for_phase(st, phase):
-    '''
-    takes a STream object and a phase name and returns that particular component
+    """
+    Takes a Stream object and a phase name and returns that particular component
     which presumably shows the chosen PHASE best
-
     :param st: stream object containing one or more component[s]
     :type st: `~obspy.core.stream.Stream`
-    :param phase: label of the phase for which the stream selection is carried
-        out; 'P' or 'S'
+    :param phase: label of the phase for which the stream selection is carried out; 'P' or 'S'
     :type phase: str
-    :return:
-    '''
+    :return: stream object containing the selected phase
+    :rtype: `~obspy.core.stream.Stream`
+    """
+
     from pylot.core.util.defaults import SetChannelComponents
 
     sel_st = Stream()
@@ -569,21 +573,22 @@ def select_for_phase(st, phase):
 
 
 def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
-    '''
+    """
     Function to calculate Wadati-diagram from given P and S onsets in order
     to detect S pick outliers. If a certain S-P time deviates by dttolerance
     from regression of S-P time the S pick is marked and down graded.
-
-    : param: pickdic, dictionary containing picks and quality parameters
-    : type:  dictionary
-
-    : param: dttolerance, maximum adjusted deviation of S-P time from
-             S-P time regression
-    : type:  float
-
-    : param: iplot, if iplot > 1, Wadati diagram is shown
-    : type:  int
-    '''
+    :param pickdic: dictionary containing picks and quality parameters
+    :type pickdic: dict
+    :param dttolerance: dttolerance, maximum adjusted deviation of S-P time from
+    S-P time regression
+    :type dttolerance: float
+    :param iplot: iplot, if iplot > 1, Wadati diagram is shown
+    :type iplot: int
+    :param fig_dict: Matplotlib figure used for plotting
+    :type fig_dict: `~matplotlib.figure.Figure`
+    :return: dictionary containing all onsets that passed the wadati check
+    :rtype: dict
+    """
 
     checkedonsets = pickdic
 
@@ -714,48 +719,51 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
 
 
 def RMS(X):
-    '''
-    Function returns root mean square of a given array X
-    '''
+    """
+    Returns root mean square of a given array X
+    :param X: Array
+    :type X: `~numpy.ndarray`
+    :return: root mean square value of given array
+    :rtype: float
+    """
     return np.sqrt(np.sum(np.power(X, 2)) / len(X))
 
 
 def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None, linecolor='k'):
-    '''
+    """
     Function to detect spuriously picked noise peaks.
+
     Uses RMS trace of all 3 components (if available) to determine,
     how many samples [per cent] after P onset are below certain
     threshold, calculated from noise level times noise factor.
-
-    : param: X, time series (seismogram)
-    : type:  `~obspy.core.stream.Stream`
-
-    : param: pick, initial (AIC) P onset time
-    : type:  float
-
-    : param: TSNR, length of time windows around initial pick [s]
-    : type:  tuple (T_noise, T_gap, T_signal)
-
-    : param: minsiglength, minium required signal length [s] to
-             declare pick as P onset
-    : type:  float
-
-    : param: nfac, noise factor (nfac * noise level = threshold)
-    : type:  float
-
-    : param: minpercent, minimum required percentage of samples
-             above calculated threshold
-    : type:  float
-
-    : param: iplot, if iplot > 1, results are shown in figure
-    : type:  int
-    '''
+    :param X: time series (seismogram)
+    :type X: `~obspy.core.stream.Stream`
+    :param pick: initial (AIC) P onset time
+    :type pick: float
+    :param TSNR: length of time windows around initial pick [s]
+    :type TSNR: (T_noise, T_gap, T_signal)
+    :param minsiglength: minium required signal length [s] to declare pick as P onset
+    :type minsiglength: float
+    :param nfac: noise factor (nfac * noise level = threshold)
+    :type nfac: float
+    :param minpercent: minimum required percentage of samples above calculated threshold
+    :type minpercent: float
+    :param iplot: iplot, if iplot > 1, results are shown in figure
+    :type iplot: int
+    :param fig: Matplotlib figure to plot results in
+    :type fig: `~matplotlib.figure.Figure`
+    :param linecolor: color of seismic traces
+    :type linecolor: str
+    :return: flag, value of 1 if signal reached required length, 0 if signal is shorter than
+    required length
+    :rtype: int
+    """
 
     plt_flag = 0
     try:
         iplot = int(iplot)
     except:
-        if iplot == True or iplot == 'True':
+        if real_Bool(iplot):
            iplot = 2
         else:
            iplot = 0
@@ -828,21 +836,26 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
 
 
 def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
-    '''
+    """
     Function to check statistics of P-onset times: Control deviation from
     median (maximum adjusted deviation = dttolerance) and apply pseudo-
     bootstrapping jackknife.
-
-    : param: pickdic, dictionary containing picks and quality parameters
-    : type:  dictionary
-
-    : param: dttolerance, maximum adjusted deviation of P-onset time from
-             median of all P onsets
-    : type:  float
-
-    : param: iplot, if iplot > 1, Wadati diagram is shown
-    : type:  int
-    '''
+    :param pickdic: dictionary containing picks and quality parameters
+    :type pickdic: dict
+    :param dttolerance: maximum adjusted deviation of P onset time from the
+    median of all P onsets
+    :type dttolerance: float
+    :param jackfactor: if pseudo value is larger than jackfactor * Jackknife estimator,
+    the distorts the estimator too much and will be removed
+    :type jackfactor: int
+    :param iplot: if iplot > 1, Wadati diagram is shown
+    :type iplot: int
+    :param fig_dict: Matplotlib figure used for plotting
+    :type fig_dict: `~matplotlib.figure.Figure`
+    :return: dictionary containing all onsets that passed the jackknife and the
+    median test
+    :rtype: dict
+    """
 
     checkedonsets = pickdic
 
@@ -943,24 +956,27 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     return checkedonsets
 
 
-def jackknife(X, phi, h):
-    '''
+def jackknife(X, phi, h=1):
+    """
     Function to calculate the Jackknife Estimator for a given quantity,
-    special type of boot strapping. Returns the jackknife estimator PHI_jack
-    the pseudo values PHI_pseudo and the subgroup parameters PHI_sub.
+    special type of boot strapping.
 
-    : param: X, given quantity
-    : type:  list
-
-    : param: phi, chosen estimator, choose between:
+    Returns the jackknife estimator PHI_jack the pseudo values PHI_pseudo
+    and the subgroup parameters PHI_sub.
+    :param X: list containing UTCDateTime objcects representing P onsets
+    :type X: list (`~obspy.core.utcdatetime.UTCDateTime`)
+    :param phi:phi, chosen estimator, choose between:
              "MED" for median
              "MEA" for arithmetic mean
              "VAR" for variance
-    : type:  string
-
-    : param: h, size of subgroups, optinal, default = 1
-    : type:  integer
-    '''
+    :type phi: str
+    :param h: size of subgroups, optional (default = 1)
+    :type h: int
+    :return: Tuple containing the Jackknife estimator PHI_jack, a list of jackknife pseudo
+    values (PHI_pseudo) and the Jackknife estimators (PHI_sub) of the subgroups.
+    Will return (None, None, None) if X cannot be divided in h subgroups of equals size
+    :rtype: (float, list, list)
+    """
 
     PHI_jack = None
     PHI_pseudo = None
@@ -1008,40 +1024,42 @@ def jackknife(X, phi, h):
 
 
 def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
-    '''
+    """
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
-    picked S onsets instead of P onsets. Usually, P coda shows
-    larger longitudal energy on vertical trace than on horizontal
-    traces, where the transversal energy is larger within S coda.
-    Be careful: there are special circumstances, where this is not
-    the case!
+    picked S onsets instead of P onsets.
 
-    : param: X, fitered(!) time series, three traces
-    : type:  `~obspy.core.stream.Stream`
+    Usually, P coda shows larger longitudal energy on vertical trace
+    than on horizontal traces, where the transversal energy is larger
+    within S coda. Be careful: there are special circumstances, where
+    this is not the case!
+    To pass the test, vertical P-coda level must exceed horizontal P-coda level
+    zfac times EN-coda level
 
-    : param: pick, initial (AIC) P onset time
-    : type:  float
-
-    : param: zfac, factor for threshold determination,
-             vertical energy must exceed coda level times zfac
-             to declare a pick as P onset
-    : type:  float
-
-    : param: checkwin, window length [s] for calculating P-coda
-             energy content
-    : type:  float
-
-    : param: iplot, if iplot > 1, energy content and threshold
-             are shown
-    : type:  int
-    '''
+    :param X: fitered(!) time series, three traces
+    :type X: `~obspy.core.stream.Stream`
+    :param pick: initial (AIC) P onset time
+    :type pick: float
+    :param zfac:  factor for threshold determination, vertical energy must
+     exceed coda level times zfac to declare a pick as P onset
+    :type zfac: float
+    :param checkwin: window length [s] for calculating P-coda engergy content
+    :type checkwin: float
+    :param iplot: if iplot > 1, energy content and threshold are shown
+    :type iplot: int
+    :param fig: Matplotlib figure to plot results in
+    :type fig: `~matplotlib.figure.Figure`
+    :param linecolor: color of seismic traces
+    :type linecolor: str
+    :return: returnflag; 0 if onset failed test, 1 if onset passed test
+    :rtype: int
+    """
     
     plt_flag = 0
     try:
         iplot = int(iplot)
     except:
-        if iplot == True or iplot == 'True':
+        if real_Bool(iplot):
            iplot = 2
         else:
            iplot = 0
@@ -1154,9 +1172,15 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
 
 
 def getQualityFromUncertainty(uncertainty, Errors):
-    '''Script to transform uncertainty into quality classes 0-4
-       regarding adjusted time errors Errors.
-    '''
+    """
+    Script to transform uncertainty into quality classes 0-4 regarding adjusted time errors
+    :param uncertainty: symmetric picking error of picks
+    :type uncertainty: float
+    :param Errors: Width of uncertainty classes 0-4 in seconds
+    :type Errors: list
+    :return: quality of pick (0-4)
+    :rtype: int
+    """
 
     # set initial quality to 4 (worst) and change only if one condition is hit
     quality = 4
