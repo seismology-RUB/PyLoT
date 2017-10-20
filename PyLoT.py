@@ -1633,7 +1633,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             self.finish_pg_plot()
         else:
-            self._max_xlims = self.dataPlot.getXLims()
+            self._max_xlims = self.dataPlot.getXLims(self.dataPlot.axes[0])
         plotWidget = self.getPlotWidget()
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
