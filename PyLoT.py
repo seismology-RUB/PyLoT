@@ -1707,7 +1707,8 @@ class MainWindow(QMainWindow):
             self.dataPlot.plotWidget.hideAxis('bottom')
             self.dataPlot.plotWidget.hideAxis('left')
         else:
-            self.dataPlot.getAxes().cla()
+            for ax in self.dataPlot.axes:
+                ax.cla()
         self.loadlocationaction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
