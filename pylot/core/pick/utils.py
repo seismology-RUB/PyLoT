@@ -12,6 +12,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import argrelmax
 from obspy.core import Stream, UTCDateTime
 from pylot.core.util.utils import real_Bool, real_None
 
@@ -413,9 +414,9 @@ def getSNR(X, TSNR, t1, tracenum=0):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    SNR = None
-    SNRdB = None
-    noiselevel = None
+    SNR = -1
+    SNRdB = -1
+    noiselevel = -1
 
     x = X[tracenum].data
     npts = X[tracenum].stats.npts
@@ -485,13 +486,13 @@ def getsignalwin(t, t1, tsignal):
     Function to extract data out of time series for signal level calculation.
     Returns an array of indices.
     :param t: array of time stamps
-    :type t: `numpy.ndarray`
+    :type t: `~numpy.ndarray`
     :param t1: time from which relative to it signal window is extracted
     :type t1: float
     :param tsignal: length of time window [s] for signal level calculation
     :type tsignal: float
-    :return: indices of signal window i t
-    :rtype: `numpy.ndarray`
+    :return: indices of signal window in t
+    :rtype: `~numpy.ndarray`
     """
 
     # get signal window
@@ -502,6 +503,26 @@ def getsignalwin(t, t1, tsignal):
 
     return isignal
 
+
+def getslopewin(Tcf, Pick, tslope):
+    """
+    Function to extract slope window out of time series
+
+    >>> (np.arange(15., 85.), 30.0, 10.0)
+    array([15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
+
+    :param Tcf:
+    :type Tcf:
+    :param Pick:
+    :type Pick:
+    :param tslope:a
+    :type tslope:
+    :return:
+    :rtype: `numpy.ndarray`
+    """
+    # TODO: fill out docstring
+    slope = np.where( (Tcf <= min(Pick + tslope, Tcf[-1])) & (Tcf >= Pick) )
+    return slope[0]
 
 def getResolutionWindow(snr, extent):
     """
@@ -1205,6 +1226,145 @@ def getQualityFromUncertainty(uncertainty, Errors):
         quality = 4
 
     return quality
+
+def set_NaNs_to(data, nan_value):
+    """
+    Replace all NaNs in data with nan_value
+    :param data: array holding data
+    :type data: `~numpy.ndarray`
+    :param nan_value: value which all NaNs are set to
+    :type nan_value: float, int
+    :return: data array with all NaNs replaced with nan_value
+    :rtype: `~numpy.ndarray`
+    """
+    nn = np.isnan(data)
+    if np.any(nn):
+        data[nn] = nan_value
+    return data
+
+def taper_cf(cf):
+    """
+    Taper cf data to get rid off of side maximas
+    :param cf: characteristic function data
+    :type cf: `~numpy.ndarray`
+    :return: tapered cf
+    :rtype: `~numpy.ndarray`
+    """
+    tap = np.hanning(len(cf))
+    return tap * cf
+
+def cf_positive(cf):
+    """
+    Shifts cf so that all values are positive
+    :param cf:
+    :type cf: `~numpy.ndarray`
+    :return:
+    :rtype: `~numpy.ndarray`
+    """
+    return cf + max(abs(cf))
+
+def smooth_cf(cf, t_smooth, delta):
+    """
+    Smooth cf by taking samples over t_smooth length
+    :param cf: characteristic function data
+    :type cf: `~numpy.ndarray`
+    :param t_smooth: Time from which samples for smoothing will be taken (s)
+    :type t_smooth: float
+    :param delta: Sample rate of cf
+    :type delta: float
+    :return: smoothed cf data
+    :rtype: `~numpy.ndarray`
+    """
+
+    ismooth = int(round(t_smooth / delta))  # smooth values this many indexes apart
+    cf_smooth = np.zeros(len(cf))
+
+    if len(cf) < ismooth:
+        raise ValueError
+
+    for i, val in enumerate(cf):
+        if i <= ismooth:
+            cf_smooth[i] = np.mean(cf[0:i+1])
+        elif i > ismooth:
+            ii1 = i - ismooth
+            cf_smooth[i] = cf_smooth[i - 1] + (cf[i] - cf[ii1]) / ismooth
+    offset = abs(min(cf) - min(cf_smooth))
+    cf_smooth -= offset  # remove offset from smoothed function
+    return cf_smooth
+
+def check_counts_ms(data):
+    """
+    check if data is in counts or m/s
+    :param data: data array
+    :type data: `~numpy.ndarray`
+    :return:
+    :rtype: `~numpy.ndarray`
+    """
+    # this is quick and dirty, better solution?
+    if max(data < 1e-3) and max(data >= 1e-6):
+        data = data * 1000000.
+    elif max(data < 1e-6):
+        data = data * 1e13
+    return data
+
+
+def calcSlope(Data, datasmooth, Tcf, Pick, TSNR):
+    """
+    Calculate Slope for Data around a given time Pick.
+
+    :param Data: trace containing data for which a slope will be calculated
+    :type Data: `~obspy.core.trace.Trace`
+    :param datasmooth: smoothed data array
+    :type datasmooth: ~numpy.ndarray`
+    :param Tcf: array of time indices for Data array
+    :type Tcf: ~numpy.ndarray`
+    :param Pick: onset time around which the slope should be calculated
+    :type Pick: float
+    :param TSNR: tuple containing (tnoise, tsafety, tsignal, tslope). Slope will be calculated in time
+    window tslope around the onset
+    :type TSNR: (float, float, float, float)
+    :return: tuple containing (slope of onset, slope index array, data fit information)
+    :rtype: (float, `~numpy.ndarray`, `~numpy.ndarray`
+    """
+    islope = getslopewin(Tcf, Pick, TSNR[3])
+    try:
+        dataslope = Data[0].data[islope]
+    except IndexError as e:
+        print("Slope Calculation: empty array islope, check signal window")
+        raise e
+    if len(dataslope) <= 1:
+        print('Slope window outside data. No or not enough data in slope window found!')
+        raise ValueError
+    # find maximum within slope determination window
+    # 'cause slope should be calculated up to first local minimum only!
+    imaxs, = argrelmax(dataslope)
+    if imaxs.size:
+        imax = imaxs[0]
+    else:
+        imax = np.argmax(dataslope)
+    iislope = islope[0:imax + 1]  # cut index so it contains only the first maximum
+    if len(iislope) < 2:
+        # calculate slope from initial onset to maximum of AIC function
+        print("AICPicker: Not enough data samples left for slope calculation!")
+        print("Calculating slope from initial onset to maximum of AIC function ...")
+        imax = np.argmax(datasmooth[islope])
+        if imax == 0:
+            print("AICPicker: Maximum for slope determination right at the beginning of the window!")
+            print("Choose longer slope determination window!")
+            raise  IndexError
+        iislope = islope[0][0:imax + 1]  # cut index so it contains only the first maximum
+    dataslope = Data[0].data[iislope] # slope will only be calculated to the first maximum
+    # calculate slope as polynomal fit of order 1
+    xslope = np.arange(0, len(dataslope))
+    P = np.polyfit(xslope, dataslope, 1)
+    datafit = np.polyval(P, xslope)
+    if datafit[0] >= datafit[-1]:
+        print('AICPicker: Negative slope, bad onset skipped!')
+        raise ValueError
+
+    slope = 1 / (len(dataslope) * Data[0].stats.delta) * (datafit[-1] - datafit[0])
+    return slope, iislope, datafit
+
 
 if __name__ == '__main__':
     import doctest
