@@ -233,17 +233,33 @@ class LocalMagnitude(Magnitude):
         # check for plot flag (for debugging only)
         fig = None
         if iplot > 1:
-            st.plot()
             fig = plt.figure()
-            ax = fig.add_subplot(111)
+            ax = fig.add_subplot(211)
+            ax.plot(th, st[0].data, 'k')
             ax.plot(th, sqH)
             ax.plot(th[iwin], sqH[iwin], 'g')
-            ax.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
-            ax.title(
-                'Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
-                % (st[0].stats.station, wapp))
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Station %s, Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[0].stats.station, 
+                                                       st[0].stats.channel,
+                                                                        wapp))
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Displacement [mm]')
+            ax = fig.add_subplot(212)
+            ax.plot(th, st[1].data, 'k')
+            ax.plot(th, sqH)
+            ax.plot(th[iwin], sqH[iwin], 'g')
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[1].stats.channel,
+                                                                       wapp))
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Displacement [mm]')
+            fig.show()
+            try: input()
+            except SyntaxError: pass
+            plt.close(fig)
+
 
         return wapp, fig
 
