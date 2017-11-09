@@ -346,9 +346,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                        WAscaling[2]))
                         evt = local_mag.updated_event(magscaling)
                         net_ml = local_mag.net_magnitude(magscaling)
-                        print("Network local magnitude: %4.1f" % net_ml.mag)
-                        print("Network local magnitude scaled with:")
-                        print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                        if net_ml:
+                            print("Network local magnitude: %4.1f" % net_ml.mag)
+                            print("Network local magnitude scaled with:")
+                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -421,9 +422,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                            WAscaling[2]))
                             evt = local_mag.updated_event(magscaling)
                             net_ml = local_mag.net_magnitude(magscaling)
-                            print("Network local magnitude: %4.1f" % net_ml.mag)
-                            print("Network local magnitude scaled with:")
-                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                            if net_ml:
+                                print("Network local magnitude: %4.1f" % net_ml.mag)
+                                print("Network local magnitude scaled with:")
+                                print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
