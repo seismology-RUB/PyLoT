@@ -15,8 +15,7 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
 from pylot.core.util.utils import common_range, fit_curve
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
-
-
+import pdb
 def richter_magnitude_scaling(delta):
     distance = np.array([0, 10, 20, 25, 30, 35, 40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
                          120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 230, 240, 250,
@@ -363,7 +362,11 @@ class MomentMagnitude(Magnitude):
 
     def calc(self):
         for a in self.arrivals:
-            if a.phase not in 'pP':
+            if a.phase not in 'pP': 
+                continue
+            # make sure calculating Mo only from reliable onsets
+            # NLLOc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
