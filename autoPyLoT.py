@@ -338,6 +338,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         local_mag = LocalMagnitude(corr_dat, evt,
                                                    parameter.get('sstop'),
                                                    WAscaling, True, iplot)
+                        # update pick with local magnitude property values
                         for stats, amplitude in local_mag.amplitudes.items():
                             picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                         print("Local station magnitudes scaled with:")
@@ -346,10 +347,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                        WAscaling[2]))
                         evt = local_mag.updated_event(magscaling)
                         net_ml = local_mag.net_magnitude(magscaling)
-                        if net_ml:
-                            print("Network local magnitude: %4.1f" % net_ml.mag)
-                            print("Network local magnitude scaled with:")
-                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                        print("Network local magnitude: %4.1f" % net_ml.mag)
+                        print("Network local magnitude scaled with:")
+                        print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -413,6 +413,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             local_mag = LocalMagnitude(corr_dat, evt,
                                                        parameter.get('sstop'),
                                                        WAscaling, True, iplot)
+                            # update pick with local magnitude property values
                             for stats, amplitude in local_mag.amplitudes.items():
                                 if stats in picks:
                                     picks[stats]['S']['Ao'] = amplitude.generic_amplitude
@@ -422,10 +423,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                            WAscaling[2]))
                             evt = local_mag.updated_event(magscaling)
                             net_ml = local_mag.net_magnitude(magscaling)
-                            if net_ml:
-                                print("Network local magnitude: %4.1f" % net_ml.mag)
-                                print("Network local magnitude scaled with:")
-                                print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                            print("Network local magnitude: %4.1f" % net_ml.mag)
+                            print("Network local magnitude scaled with:")
+                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9

@@ -132,7 +132,7 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             else:
-                # no saling necessary
+                # no scaling necessary
                 mag = ope.Magnitude(
                     mag=np.median([M.mag for M in self.magnitudes.values()]),
                     magnitude_type=self.type,
