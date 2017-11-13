@@ -201,6 +201,9 @@ class AICPicker(AutoPicker):
                 if diffcf[i - 1] >= diffcf[i]:
                     self.Pick = self.Tcf[i]
                     break
+        if self.Pick is None:
+            raise ValueError
+
 
     def calcPick(self):
         """
@@ -221,8 +224,12 @@ class AICPicker(AutoPicker):
             self.prepareCF()
         except ValueError:
             return
+        try:
+            self.findMinimum()
+        except ValueError:
+            print('Could not determine pick on AIC CF')
+            return
 
-        self.findMinimum()
 
         # quality assessment using SNR and slope from CF
         if self.Pick is not None:

@@ -1281,13 +1281,12 @@ def smooth_cf(cf, t_smooth, delta):
 
     if len(cf) < ismooth:
         raise ValueError
-
-    for i, val in enumerate(cf):
-        if i <= ismooth:
-            cf_smooth[i] = np.mean(cf[0:i+1])
-        elif i > ismooth:
+    for i in range(1, len(cf)):
+        if i > ismooth:
             ii1 = i - ismooth
             cf_smooth[i] = cf_smooth[i - 1] + (cf[i] - cf[ii1]) / ismooth
+        else:
+            cf_smooth[i] = np.mean(cf[1: i])
     offset = abs(min(cf) - min(cf_smooth))
     cf_smooth -= offset  # remove offset from smoothed function
     return cf_smooth
