@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Default parameters used for picking
+"""
+
 defaults = {'rootpath': {'type': str,
                          'tooltip': 'project path',
                          'value': '',
