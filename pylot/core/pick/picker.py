@@ -235,7 +235,9 @@ class AICPicker(AutoPicker):
         if self.Pick is not None:
             self.Data[0].data = check_counts_ms(self.Data[0].data)
             # calculate SNR from CF
-            self.SNR = getSNR(self.Data, self.TSNR, self.Pick)[0]  # TODO Check wether this yields similar results
+            # subtract beginning of Tcf to get sample index in self.Data, which
+            # is cut out off trace
+            self.SNR = getSNR(self.Data, self.TSNR, self.Pick-self.Tcf[0])[0]  # TODO Check wether this yields similar results
             # calculate slope from CF after initial pick
             try:
                 self.slope, iislope, datafit = calcSlope(self.Data, self.aicsmooth, self.Tcf, self.Pick, self.TSNR)
