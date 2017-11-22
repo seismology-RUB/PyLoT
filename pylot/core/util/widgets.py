@@ -742,6 +742,16 @@ class PylotCanvas(FigureCanvas):
 
         self.draw()
 
+    def set_frame_color(self, color='k'):
+        for ax in self.axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor(color)
+
+    def set_frame_linewidth(self, linewidth=1.):
+        for ax in self.axes:
+            for spine in ax.spines.values():
+                spine.set_linewidth(linewidth)
+
     def saveFigure(self):
         if self.figure:
             fd = QtGui.QFileDialog()
@@ -1595,6 +1605,8 @@ class PickDlg(QDialog):
         self.deactivatePicking()
 
     def activatePicking(self):
+        self.multicompfig.set_frame_color('yellow')
+        self.multicompfig.set_frame_linewidth(1.5)
         self.resetZoom()
         if self.zoomAction.isChecked():
             self.zoomAction.trigger()
@@ -1605,9 +1617,14 @@ class PickDlg(QDialog):
         self.disconnect_pick_delete()
 
     def deactivatePicking(self):
+        defaultcolor = self.orig_parent._style['linecolor']['rgba_mpl']
+        self.multicompfig.set_frame_color(defaultcolor)
+        self.multicompfig.set_frame_linewidth(1)
+
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
         self.connect_pick_delete()
+        self.draw()
 
     def getParameter(self):
         return self.parameter
@@ -1706,7 +1723,7 @@ class PickDlg(QDialog):
         self.resetPlot()
 
     def setIniPick(self, gui_event):
-
+        self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
 
         channel = self.getChannelID(trace_number)
