@@ -1004,7 +1004,8 @@ class MainWindow(QMainWindow):
                          and len(item.split('/')[-1].split('.')) == 3
                          and len(item.split('/')[-1]) == 12]
             if not eventlist:
-                print('No events found! Expected structure for event folders: [evID.DOY.YR]')
+                print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
+                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16')
                 return
         else:
             return
