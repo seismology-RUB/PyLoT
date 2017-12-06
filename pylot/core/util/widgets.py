@@ -1607,7 +1607,6 @@ class PickDlg(QDialog):
     def activatePicking(self):
         self.multicompfig.set_frame_color('yellow')
         self.multicompfig.set_frame_linewidth(1.5)
-        self.resetZoom()
         if self.zoomAction.isChecked():
             self.zoomAction.trigger()
         self.multicompfig.disconnectEvents()
@@ -2109,7 +2108,9 @@ class PickDlg(QDialog):
     def filterWFData(self):
         if self.pick_block:
             return
-        self.multicompfig.updateCurrentLimits()
+        self.cur_xlim = self.multicompfig.axes[0].get_xlim()
+        self.cur_ylim = self.multicompfig.axes[0].get_ylim()
+        #self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
         old_title = self.multicompfig.axes[0].get_title()
         title = None
