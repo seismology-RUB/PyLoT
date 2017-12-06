@@ -18,11 +18,11 @@ def export(picks, fnout, parameter, eventinfo):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
     
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
 
-    :param: eventinfo, source information needed for focmec format
-    :type:  list object
+    :param eventinfo: source information needed for focmec format
+    :type eventinfo:  list object
     '''
     # write phases to FOCMEC-phase file
     writephases(picks, 'FOCMEC', fnout, parameter, eventinfo)

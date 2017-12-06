@@ -99,6 +99,11 @@ class Data(object):
         return self
 
     def getPicksStr(self):
+        """
+        Return picks in event data
+        :return: picks seperated by newlines
+        :rtype: str
+        """
         picks_str = ''
         for pick in self.get_evt_data().picks:
             picks_str += str(pick) + '\n'
@@ -106,18 +111,11 @@ class Data(object):
 
     def getParent(self):
         """
-
-
-        :return:
+        Get PySide.QtGui.QWidget parent object
         """
         return self._parent
 
     def isNew(self):
-        """
-
-
-        :return:
-        """
         return self._new
 
     def setNew(self):
@@ -125,9 +123,9 @@ class Data(object):
 
     def getCutTimes(self):
         """
-
-
-        :return:
+        Returns earliest start and latest end of all waveform data
+        :return: minimum start time and maximum end time as a tuple
+        :rtype: (UTCDateTime, UTCDateTime)
         """
         if self.cuttimes is None:
             self.updateCutTimes()
@@ -135,22 +133,34 @@ class Data(object):
 
     def updateCutTimes(self):
         """
-
-
+        Update cuttimes to contain earliest start and latest end time
+        of all waveform data
+        :rtype: None
         """
         self.cuttimes = full_range(self.getWFData())
 
     def getEventFileName(self):
-        """
-
-
-        :return:
-        """
         ID = self.getID()
         # handle forbidden filenames especially on windows systems
         return fnConstructor(str(ID))
 
     def checkEvent(self, event, fcheck, forceOverwrite=False):
+        """
+        Check information in supplied event and own event and replace own
+        information with supplied information if own information not exiisting
+        or forced by forceOverwrite
+        :param event: Event that supplies information for comparison
+        :type event: pylot.core.util.event.Event
+        :param fcheck: check and delete existing information
+        can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
+        :type fcheck: str, [str]
+        :param forceOverwrite: Set to true to force overwrite own information. If false,
+        supplied information from event is only used if there is no own information in that
+        category (given in fcheck: manual, auto, origin, magnitude)
+        :type forceOverwrite: bool
+        :return:
+        :rtype: None
+        """
         if 'origin' in fcheck:
             self.replaceOrigin(event, forceOverwrite)
         if 'magnitude' in fcheck:
@@ -161,18 +171,47 @@ class Data(object):
             self.replacePicks(event, 'manual')
 
     def replaceOrigin(self, event, forceOverwrite=False):
+        """
+        Replace own origin with the one supplied in event if own origin is not
+        existing or forced by forceOverwrite = True
+        :param event: Event that supplies information for comparison
+        :type event: pylot.core.util.event.Event
+        :param forceOverwrite: always replace own information with supplied one if true
+        :type forceOverwrite: bool
+        :return:
+        :rtype: None
+        """
         if self.get_evt_data().origins or forceOverwrite:
             if event.origins:
                 print("Found origin, replace it by new origin.")
             event.origins = self.get_evt_data().origins
 
     def replaceMagnitude(self, event, forceOverwrite=False):
+        """
+        Replace own magnitude with the one supplied in event if own magnitude is not
+        existing or forced by forceOverwrite = True
+        :param event: Event that supplies information for comparison
+        :type event: pylot.core.util.event.Event
+        :param forceOverwrite: always replace own information with supplied one if true
+        :type forceOverwrite: bool
+        :return:
+        :rtype: None
+        """
         if self.get_evt_data().magnitudes or forceOverwrite:
             if event.magnitudes:
                 print("Found magnitude, replace it by new magnitude")
             event.magnitudes = self.get_evt_data().magnitudes
 
     def replacePicks(self, event, picktype):
+        """
+        Replace own picks with the one in event
+        :param event: Event that supplies information for comparison
+        :type event: pylot.core.util.event.Event
+        :param picktype: 'auto' or 'manual' picks
+        :type picktype: str
+        :return:
+        :rtype: None
+        """
         checkflag = 0
         picks = event.picks
         # remove existing picks
@@ -189,10 +228,10 @@ class Data(object):
                 picks.append(pick)
 
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
-
         """
+        Export event to file
         :param fnout: basename of file
-        :param fnext: file extension
+        :param fnext: file extension, xml, cnv, obs
         :param fcheck: check and delete existing information
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
@@ -304,17 +343,13 @@ class Data(object):
 
     def getComp(self):
         """
-
-
-        :return:
+        Get component (ZNE)
         """
         return self.comp
 
     def getID(self):
         """
-
-
-        :return:
+        Get unique resource id
         """
         try:
             return self.evtdata.get('resource_id').id
@@ -323,16 +358,17 @@ class Data(object):
 
     def filterWFData(self, kwargs):
         """
-
-        :param kwargs:
+        Filter waveform data
+        :param kwargs: arguments to pass through to filter function
         """
         self.getWFData().filter(**kwargs)
         self.dirty = True
 
     def setWFData(self, fnames):
         """
-
-        :param fnames:
+        Clear current waveform data and set given waveform data
+        :param fnames: waveform data names to append
+        :type fnames: list
         """
         self.wfdata = Stream()
         self.wforiginal = None
@@ -346,8 +382,9 @@ class Data(object):
 
     def appendWFData(self, fnames):
         """
-
-        :param fnames:
+        Read waveform data from fnames and append it to current wf data
+        :param fnames: waveform data to append
+        :type fnames: list
         """
         assert isinstance(fnames, list), "input parameter 'fnames' is " \
                                          "supposed to be of type 'list' " \
@@ -372,54 +409,42 @@ class Data(object):
             print(warnmsg)
 
     def getWFData(self):
-        """
-
-
-        :return:
-        """
         return self.wfdata
 
     def getOriginalWFData(self):
-        """
-
-
-        :return:
-        """
         return self.wforiginal
 
     def resetWFData(self):
         """
-
-
+        Set waveform data to original waveform data
         """
         self.wfdata = self.getOriginalWFData().copy()
         self.dirty = False
 
     def resetPicks(self):
         """
-
-
+        Clear all picks from event
         """
         self.get_evt_data().picks = []
 
     def get_evt_data(self):
-        """
-
-
-        :return:
-        """
         return self.evtdata
 
     def setEvtData(self, event):
         self.evtdata = event
 
     def applyEVTData(self, data, typ='pick', authority_id='rub'):
-
         """
-
-        :param data:
-        :param typ:
-        :param authority_id:
+        Either takes an `obspy.core.event.Event` object and applies all new
+        information on the event to the actual data if typ is 'event or
+        creates ObsPy pick objects and append it to the picks list from the
+        PyLoT dictionary contain all picks if type is pick
+        :param data: data to apply, either picks or complete event
+        :type data:
+        :param typ: which event data to apply, 'pick' or 'event'
+        :type typ: str
+        :param authority_id: (currently unused)
+        :type: str
         :raise OverwriteError:
         """
 

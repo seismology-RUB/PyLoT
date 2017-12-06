@@ -18,11 +18,11 @@ def export(picks, fnout, eventinfo, parameter=None):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
     
-    :param: eventinfo, source time needed for VELEST-cnv format
-    :type:  list object
+    :param eventinfo: source time needed for VELEST-cnv format
+    :type eventinfo:  list object
 
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
     '''
     # write phases to VELEST-phase file
     writephases(picks, 'VELEST', fnout, parameter, eventinfo)

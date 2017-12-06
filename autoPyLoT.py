@@ -338,6 +338,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         local_mag = LocalMagnitude(corr_dat, evt,
                                                    parameter.get('sstop'),
                                                    WAscaling, True, iplot)
+                        # update pick with local magnitude property values
                         for stats, amplitude in local_mag.amplitudes.items():
                             picks[stats]['S']['Ao'] = amplitude.generic_amplitude
                         print("Local station magnitudes scaled with:")
@@ -412,6 +413,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             local_mag = LocalMagnitude(corr_dat, evt,
                                                        parameter.get('sstop'),
                                                        WAscaling, True, iplot)
+                            # update pick with local magnitude property values
                             for stats, amplitude in local_mag.amplitudes.items():
                                 if stats in picks:
                                     picks[stats]['S']['Ao'] = amplitude.generic_amplitude
