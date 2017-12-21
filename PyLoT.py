@@ -270,8 +270,8 @@ class MainWindow(QMainWindow):
         s_icon.addPixmap(QPixmap(':/icons/key_S.png'))
         print_icon = QIcon()
         print_icon.addPixmap(QPixmap(':/icons/printer.png'))
-        filter_icon = QIcon()
-        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        self.filter_icon = QIcon()
+        self.filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
         z_icon = QIcon()
         z_icon.addPixmap(QPixmap(':/icons/key_Z.png'))
         n_icon = QIcon()
@@ -367,14 +367,14 @@ class MainWindow(QMainWindow):
                                                  None, paraIcon,
                                                  "Modify Parameter")
         self.filterAction = self.createAction(self, "&Filter ...",
-                                              self.filterWaveformData,
-                                              "Ctrl+F", filter_icon,
+                                              self.plotWaveformDataThread,
+                                              "Ctrl+F", self.filter_icon,
                                               """Toggle un-/filtered waveforms
                                               to be displayed, according to the
                                               desired seismic phase.""", True)
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
-                                             "Alt+F", filter_icon,
+                                             "Alt+F", self.filter_icon,
                                              """Adjust filter parameters.""")
         self.inventoryAction = self.createAction(self, "Select &Inventory ...",
                                               self.get_new_metadata,
@@ -1631,6 +1631,7 @@ class MainWindow(QMainWindow):
 
     def finishWaveformDataPlot(self):
         self.comparable = self.checkEvents4comparison()
+        self.filterWaveformData()
         if self.pg:
             self.finish_pg_plot()
         else:
@@ -1796,7 +1797,6 @@ class MainWindow(QMainWindow):
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 

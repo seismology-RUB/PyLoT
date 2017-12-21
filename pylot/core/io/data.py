@@ -361,7 +361,10 @@ class Data(object):
         Filter waveform data
         :param kwargs: arguments to pass through to filter function
         """
-        self.getWFData().filter(**kwargs)
+        data = self.getWFData()
+        data.detrend('linear')
+        data.taper(0.02, type='cosine')
+        data.filter(**kwargs)
         self.dirty = True
 
     def setWFData(self, fnames):
@@ -418,7 +421,10 @@ class Data(object):
         """
         Set waveform data to original waveform data
         """
-        self.wfdata = self.getOriginalWFData().copy()
+        if self.getOriginalWFData():
+            self.wfdata = self.getOriginalWFData().copy()
+        else:
+            self.wfdata = Stream()
         self.dirty = False
 
     def resetPicks(self):

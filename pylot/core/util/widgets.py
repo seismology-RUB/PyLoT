@@ -494,6 +494,9 @@ class WaveformWidgetPG(QtGui.QWidget):
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
+        if not wfdata:
+            print('Nothing to plot.')
+            return
         self.title = title
         self.clearPlotDict()
         self.wfstart, self.wfend = full_range(wfdata)
@@ -924,6 +927,9 @@ class PylotCanvas(FigureCanvas):
         # list containing tuples of network, station, channel (for sorting)
         nsc = []
         for trace in st_select:
+            if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
+                print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
+                continue
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
@@ -1479,6 +1485,7 @@ class PickDlg(QDialog):
         nHotkey = 4  # max hotkeys per phase
         hotkey = 1  # start hotkey
 
+
         # loop over P and S (use explicit list instead of iter over dict.keys to keep order)
         for phaseIndex, phaseID in enumerate(['P', 'S']):
             # loop through phases in list
@@ -1501,6 +1508,16 @@ class PickDlg(QDialog):
                 self.picksActions[str(phase)] = picksAction  # save action in dictionary
             if phaseIndex == 0:
                 picksMenu.addSeparator()
+
+        filterAction = createAction(parent=self, text="&Filter parameter ...",
+                                   slot=self.filterOptions,
+                                   shortcut='Alt+F',
+                                   icon=self.orig_parent.filter_icon)
+        filterMenu = menuBar.addMenu('Filter')
+        filterMenu.addAction(filterAction)
+
+    def filterOptions(self):
+        self.orig_parent.adjustFilterOptions()
 
     def disable_ar_buttons(self):
         self.enable_ar_buttons(False)
@@ -4159,8 +4176,24 @@ class FilterOptionsDialog(QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
     def accept(self):
+        if not self.checkMinMax():
+            QMessageBox.warning(self, "Value error",
+                                "Maximum frequency must be at least the "
+                                "same value as minimum frequency (notch)! "
+                                "Adjusted maximum frequency automatically!")
+            return
         self.updateUi()
         QDialog.accept(self)
+
+    def checkMinMax(self):
+        returnvals = []
+        for foWidget in self.filterOptionWidgets.values():
+            returnvals.append(foWidget.checkMin())
+            returnvals.append(foWidget.checkMax())
+        if all(returnvals):
+            return True
+        else:
+            return False
 
     def updateUi(self):
         returnvals = []
@@ -4186,7 +4219,7 @@ class FilterOptionsWidget(QWidget):
         self.freqminLabel.setText("minimum:")
         self.freqminSpinBox = QDoubleSpinBox()
         self.freqminSpinBox.setRange(5e-7, 1e6)
-        self.freqminSpinBox.setDecimals(2)
+        self.freqminSpinBox.setDecimals(5)
         self.freqminSpinBox.setSingleStep(0.01)
         self.freqminSpinBox.setSuffix(' Hz')
         self.freqminSpinBox.setEnabled(_enable)
@@ -4195,7 +4228,7 @@ class FilterOptionsWidget(QWidget):
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
-        self.freqmaxSpinBox.setDecimals(2)
+        self.freqmaxSpinBox.setDecimals(5)
         self.freqmaxSpinBox.setSingleStep(0.01)
         self.freqmaxSpinBox.setSuffix(' Hz')
 
@@ -4253,18 +4286,20 @@ class FilterOptionsWidget(QWidget):
 
         self.setLayout(grid)
 
-        self.freqminSpinBox.valueChanged.connect(self.checkMin)
-        self.freqmaxSpinBox.valueChanged.connect(self.checkMax)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
 
     def checkMin(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
             self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+            return False
+        return True
 
     def checkMax(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
             self.freqminSpinBox.setValue(self.freqmaxSpinBox.value())
+            return False
+        return True
 
     def updateUi(self):
         type = self.selectTypeCombo.currentText()
