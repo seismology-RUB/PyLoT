@@ -367,7 +367,7 @@ class MainWindow(QMainWindow):
                                                  None, paraIcon,
                                                  "Modify Parameter")
         self.filterAction = self.createAction(self, "&Filter ...",
-                                              self.plotWaveformDataThread,
+                                              self.filterWaveformData,
                                               "Ctrl+F", self.filter_icon,
                                               """Toggle un-/filtered waveforms
                                               to be displayed, according to the
@@ -1631,7 +1631,6 @@ class MainWindow(QMainWindow):
 
     def finishWaveformDataPlot(self):
         self.comparable = self.checkEvents4comparison()
-        self.filterWaveformData()
         if self.pg:
             self.finish_pg_plot()
         else:
@@ -1797,6 +1796,7 @@ class MainWindow(QMainWindow):
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
+        self.plotWaveformDataThread()
         self.drawPicks()
         self.draw()
 

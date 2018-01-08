@@ -1251,15 +1251,15 @@ class PickDlg(QDialog):
             exitAction.triggered.connect(self.close)
             exitMenu.addAction(exitAction)
 
-        self.addPickPhases(menuBar)
-
         # create matplotlib toolbar to inherit functionality
         self.figToolBar = NavigationToolbar2QT(self.multicompfig, self)
         self.figToolBar.hide()
 
         # create icons
-        filter_icon = QIcon()
-        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        filter_icon_p = QIcon()
+        filter_icon_p.addPixmap(QPixmap(':/icons/filter_p.png'))
+        filter_icon_s = QIcon()
+        filter_icon_s.addPixmap(QPixmap(':/icons/filter_s.png'))
         zoom_icon = QIcon()
         zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
         home_icon = QIcon()
@@ -1268,11 +1268,20 @@ class PickDlg(QDialog):
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
 
         # create actions
-        self.filterAction = createAction(parent=self, text='Filter',
-                                         slot=self.filterWFData,
-                                         icon=filter_icon,
-                                         tip='Toggle filtered/original'
-                                             ' waveforms')
+        self.filterActionP = createAction(parent=self, text='Apply P Filter',
+                                          slot=self.filterP,
+                                          icon=filter_icon_p,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='Ctrl+F')
+        self.filterActionS = createAction(parent=self, text='Apply S Filter',
+                                          slot=self.filterS,
+                                          icon=filter_icon_s,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='Shift+S')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
@@ -1283,6 +1292,8 @@ class PickDlg(QDialog):
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
+
+        self.addPickPhases(menuBar)
 
         # create other widget elements
         phaseitems = [None] + list(FILTERDEFAULTS.keys())
@@ -1316,7 +1327,8 @@ class PickDlg(QDialog):
         _dialtoolbar = QToolBar()
 
         # fill toolbar with content
-        _dialtoolbar.addAction(self.filterAction)
+        _dialtoolbar.addAction(self.filterActionP)
+        _dialtoolbar.addAction(self.filterActionS)
         _dialtoolbar.addWidget(self.p_button)
         _dialtoolbar.addWidget(self.s_button)
         _dialtoolbar.addAction(self.zoomAction)
@@ -1524,12 +1536,14 @@ class PickDlg(QDialog):
             if phaseIndex == 0:
                 picksMenu.addSeparator()
 
-        filterAction = createAction(parent=self, text="&Filter parameter ...",
+        filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
                                    slot=self.filterOptions,
                                    shortcut='Alt+F',
                                    icon=self.orig_parent.filter_icon)
         filterMenu = menuBar.addMenu('Filter')
-        filterMenu.addAction(filterAction)
+        filterMenu.addAction(self.filterActionP)
+        filterMenu.addAction(self.filterActionS)
+        filterMenu.addAction(filterOptionsAction)
 
     def filterOptions(self):
         self.orig_parent.adjustFilterOptions()
@@ -2140,36 +2154,35 @@ class PickDlg(QDialog):
     def togglePickBlocker(self):
         return not self.pick_block
 
-    def filterWFData(self):
+    def filterWFData(self, phase=None):
         if self.pick_block:
             return
+        if not phase:
+            phase = self.currentPhase
         self.cur_xlim = self.multicompfig.axes[0].get_xlim()
         self.cur_ylim = self.multicompfig.axes[0].get_ylim()
         #self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
         old_title = self.multicompfig.axes[0].get_title()
         title = None
-        phase = self.currentPhase
         filtoptions = None
         if phase:
             filtoptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if self.filterAction.isChecked():
-            if not phase:
-                filtoptions = FilterOptionsDialog.getFilterObject()
-                filtoptions = filtoptions.parseFilterOptions()
+
+        # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
+        #     if not phase:
+        #         filtoptions = FilterOptionsDialog.getFilterObject()
+        #         filtoptions = filtoptions.parseFilterOptions()
+
+        title = self.getStation()
         if filtoptions is not None:
             data.filter(**filtoptions)
-            if not old_title.endswith(')'):
-                title = old_title + ' (filtered)'
-            elif not old_title.endswith(' (filtered)') and not old_title.endswith(', filtered)'):
-                title = old_title[:-1] + ', filtered)'
-        else:
-            if old_title.endswith(' (filtered)'):
-                title = old_title.replace(' (filtered)', '')
-            elif old_title.endswith(', filtered)'):
-                title = old_title.replace(', filtered)', ')')
-        if title is None:
-            title = old_title
+            title += '({} filtered'.format(filtoptions['type'])
+            for key, value in filtoptions.items():
+                if key == 'type':
+                    continue
+                title += ' {}: {},'.format(key, value)
+            title += ')'
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
@@ -2178,10 +2191,25 @@ class PickDlg(QDialog):
         self.drawAllPicks()
         self.draw()
 
+    def filterP(self):
+        self.filterActionS.setChecked(False)
+        if self.filterActionP.isChecked():
+            self.filterWFData('P')
+        else:
+            self.resetPlot()
+
+    def filterS(self):
+        self.filterActionP.setChecked(False)
+        if self.filterActionS.isChecked():
+            self.filterWFData('S')
+        else:
+            self.resetPlot()
+
     def resetPlot(self):
         self.resetZoom()
         data = self.getWFData().copy()
-        title = self.multicompfig.axes[0].get_title()
+        #title = self.multicompfig.axes[0].get_title()
+        title = self.getStation()
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
