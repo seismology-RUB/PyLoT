@@ -901,7 +901,8 @@ class PylotCanvas(FigureCanvas):
 
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0,
+                   plot_additional=False):
         ax = self.axes[0]
         ax.cla()
 
@@ -965,6 +966,17 @@ class PylotCanvas(FigureCanvas):
                                 color = linecolor,
                                 linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
+        if plot_additional:
+            pressure = wfdata.select(channel='MDO')
+            if pressure:
+                p_data = pressure[0].data
+                #normalize
+                p_max = max(abs(p_data))
+                p_data /= p_max
+                for index in range(3):
+                    ax.plot(times, p_data, color='red', alpha=0.5, linewidth=0.7)
+                    p_data += 1
+
         if iniPick:
             ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
                       colors='m', linestyles='dashed',
@@ -1166,6 +1178,8 @@ class PickDlg(QDialog):
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
         self.nextStation = QtGui.QCheckBox('Continue with next station.')
+        self.additionalChannel = QtGui.QCheckBox('Additional Channel')
+        self.additionalChannel.stateChanged.connect(self.resetPlot)
 
         # initialize panning attributes
         self.press = None
@@ -1326,6 +1340,7 @@ class PickDlg(QDialog):
                                    'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
+        _dialtoolbar.addWidget(self.additionalChannel)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -1614,7 +1629,8 @@ class PickDlg(QDialog):
         self.reset_p_button()
         self.reset_s_button()
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
+                                     title=self.getStation(),
+                                     plot_additional=self.additionalChannel.isChecked())
         self.drawAllPicks()
         self.drawArrivals()
         self.setPlotLabels()
@@ -1822,7 +1838,8 @@ class PickDlg(QDialog):
                                         zoomy=self.getYLims(),
                                         noiselevel=(trace_number + noiselevel,
                                                     trace_number - noiselevel),
-                                        iniPick=ini_pick)
+                                        iniPick=ini_pick,
+                                        plot_additional=self.additionalChannel.isChecked())
 
     def setIniPickS(self, gui_event, wfdata):
 
@@ -1890,7 +1907,8 @@ class PickDlg(QDialog):
                                         zoomy=self.getYLims(),
                                         noiselevel=noiselevels,
                                         scaleddata=True,
-                                        iniPick=ini_pick)
+                                        iniPick=ini_pick,
+                                        plot_additional=self.additionalChannel.isChecked())
 
     def setPick(self, gui_event):
 
@@ -2154,7 +2172,8 @@ class PickDlg(QDialog):
             title = old_title
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
-                                        zoomy=self.getYLims())
+                                        zoomy=self.getYLims(),
+                                        plot_additional=self.additionalChannel.isChecked())
         self.setPlotLabels()
         self.drawAllPicks()
         self.draw()
@@ -2165,7 +2184,8 @@ class PickDlg(QDialog):
         title = self.multicompfig.axes[0].get_title()
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
-                                        zoomy=self.getYLims())
+                                        zoomy=self.getYLims(),
+                                        plot_additional=self.additionalChannel.isChecked())
         self.setPlotLabels()
         self.drawAllPicks()
         self.draw()
