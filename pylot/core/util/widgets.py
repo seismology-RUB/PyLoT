@@ -1229,6 +1229,7 @@ class PickDlg(QDialog):
         # init pick delete (with right click)
         self.connect_pick_delete()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
+        self.setWindowState(QtCore.Qt.WindowMaximized)
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
