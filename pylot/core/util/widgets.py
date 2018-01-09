@@ -1270,7 +1270,7 @@ class PickDlg(QDialog):
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Shift+S')
+                                          shortcut='Shift+F')
         self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
                                           slot=self.toggleAutoFilter,
                                           icon=key_a_icon,
