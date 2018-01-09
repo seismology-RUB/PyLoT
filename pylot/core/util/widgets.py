@@ -1507,9 +1507,8 @@ class PickDlg(QDialog):
         phaseSelect = {'P': self.p_phase_select,
                        'S': self.s_phase_select}
 
-        nHotkey = 4  # max hotkeys per phase
-        hotkey = 1  # start hotkey
-
+        hotkeys = {'P': [1, 2, 3, 4, 'q', 'w', 'e', 'r'],
+                   'S': [5, 6, 7, 8, 't', 'z', 'u', 'i']}
 
         # loop over P and S (use explicit list instead of iter over dict.keys to keep order)
         for phaseIndex, phaseID in enumerate(['P', 'S']):
@@ -1518,11 +1517,11 @@ class PickDlg(QDialog):
                 # remove zeros
                 phase = phase.strip()
                 # add hotkeys
-                if not index >= nHotkey:
-                    shortcut = str(hotkey)
-                    hotkey += 1
-                else:
+                try:
+                    shortcut = str(hotkeys[phaseID][index])
+                except IndexError:
                     shortcut = None
+
                 # create action and add to menu
                 # phase name transferred using lambda function
                 slot = lambda phase=phase, phaseID=phaseID: phaseSelect[phaseID](phase)
