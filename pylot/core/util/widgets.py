@@ -1555,6 +1555,7 @@ class PickDlg(QDialog):
 
     def p_phase_select(self, phase):
         if not self.p_button.isChecked():
+            self.p_button.setEnabled(True)
             self.p_button.setChecked(True)
             self.p_button.setText(phase)
         else:
@@ -1566,6 +1567,7 @@ class PickDlg(QDialog):
 
     def s_phase_select(self, phase):
         if not self.s_button.isChecked():
+            self.s_button.setEnabled(True)
             self.s_button.setChecked(True)
             self.s_button.setText(phase)
         else:
