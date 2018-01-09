@@ -1165,7 +1165,7 @@ class PickDlg(QDialog):
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
-        self.nextStation = QtGui.QCheckBox('Continue with next station.')
+        self.nextStation = QtGui.QCheckBox('Continue with next station ')
 
         # initialize panning attributes
         self.press = None
@@ -1336,6 +1336,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetZoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
+        _dialtoolbar.addSeparator()
         if self._embedded:
             manu_label = QLabel('Manual Onsets:')
             manu_label.setStyleSheet('QLabel {'
@@ -1346,6 +1347,7 @@ class PickDlg(QDialog):
             _dialtoolbar.addWidget(self.reject_button)
         else:
             _dialtoolbar.addWidget(self.nextStation)
+            _dialtoolbar.addSeparator()
         est_label = QLabel('Estimated onsets:')
         est_label.setStyleSheet('QLabel {'
                                    'padding:2px;'
