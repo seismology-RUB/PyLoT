@@ -18,7 +18,7 @@ import numpy as np
 
 from matplotlib.figure import Figure
 from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID, check4rotated, real_Bool
+    identifyPhaseID, check4rotated, real_Bool, pick_color
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -1593,12 +1593,14 @@ class PickDlg(QDialog):
             self.leave_picking_mode()
 
     def init_p_pick(self):
-        self.set_button_border_color(self.p_button, 'yellow')
+        color = pick_color('manual', 'P')
+        self.set_button_border_color(self.p_button, color)
         self.currentPhase = str(self.p_button.text())
         self.activatePicking()
 
     def init_s_pick(self):
-        self.set_button_border_color(self.s_button, 'yellow')
+        color = pick_color('manual', 'S')
+        self.set_button_border_color(self.s_button, color)
         self.currentPhase = str(self.s_button.text())
         self.activatePicking()
 
@@ -1645,7 +1647,9 @@ class PickDlg(QDialog):
         self.deactivatePicking()
 
     def activatePicking(self):
-        self.multicompfig.set_frame_color('yellow')
+        phase = self.currentPhase
+        color = pick_color_plt('manual', self.getPhaseID(phase))
+        self.multicompfig.set_frame_color(color)
         self.multicompfig.set_frame_linewidth(1.5)
         if self.zoomAction.isChecked():
             self.zoomAction.trigger()
@@ -2154,10 +2158,10 @@ class PickDlg(QDialog):
     def filterWFData(self, phase=None):
         if not phase:
             phase = self.currentPhase
-            if phase == 'P':
+            if self.getPhaseID(phase) == 'P':
                 self.filterActionP.setChecked(True)
                 self.filterP()
-            elif phase == 'S':
+            elif self.getPhaseID(phase) == 'S':
                 self.filterActionS.setChecked(True)
                 self.filterS()
             return
