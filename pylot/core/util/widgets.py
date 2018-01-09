@@ -1283,7 +1283,7 @@ class PickDlg(QDialog):
                                        tip='Zoom into waveform',
                                        checkable=True)
         self.resetZoomAction = createAction(parent=self, text='Home',
-                                            slot=self.resetZoom, icon=home_icon,
+                                            slot=self.resetPlot, icon=home_icon,
                                             tip='Reset zoom to original limits')
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
@@ -2223,8 +2223,9 @@ class PickDlg(QDialog):
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
 
     def resetPlot(self):
-        self.filterActionP.setChecked(False)
-        self.filterActionS.setChecked(False)
+        if self.autoFilterAction.isChecked():
+            self.filterActionP.setChecked(False)
+            self.filterActionS.setChecked(False)
         self.resetZoom()
         data = self.getWFData().copy()
         #title = self.multicompfig.axes[0].get_title()
@@ -2240,7 +2241,8 @@ class PickDlg(QDialog):
         ax = self.multicompfig.axes[0]
         self.setXLims(self.multicompfig.getGlobalLimits(ax, 'x'))
         self.setYLims(self.multicompfig.getGlobalLimits(ax, 'y'))
-        self.multicompfig.connectEvents()
+        if not self.zoomAction.isChecked():
+            self.multicompfig.connectEvents()
 
     def setPlotLabels(self):
 
