@@ -1217,6 +1217,7 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
+
         # setup ui
         self.setupUi()
 
@@ -2155,6 +2156,9 @@ class PickDlg(QDialog):
         return not self.pick_block
 
     def filterWFData(self, phase=None):
+        self.plotWFData(phase=phase, filter=True)
+
+    def plotWFData(self, phase=None, filter=False):
         if self.pick_block:
             return
         if not phase:
@@ -2163,26 +2167,25 @@ class PickDlg(QDialog):
         self.cur_ylim = self.multicompfig.axes[0].get_ylim()
         #self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
-        old_title = self.multicompfig.axes[0].get_title()
-        title = None
-        filtoptions = None
-        if phase:
-            filtoptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-
-        # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
-        #     if not phase:
-        #         filtoptions = FilterOptionsDialog.getFilterObject()
-        #         filtoptions = filtoptions.parseFilterOptions()
-
         title = self.getStation()
-        if filtoptions is not None:
-            data.filter(**filtoptions)
-            title += '({} filtered'.format(filtoptions['type'])
-            for key, value in filtoptions.items():
-                if key == 'type':
-                    continue
-                title += ' {}: {},'.format(key, value)
-            title += ')'
+        if filter:
+            filtoptions = None
+            if phase:
+                filtoptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+
+            # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
+            #     if not phase:
+            #         filtoptions = FilterOptionsDialog.getFilterObject()
+            #         filtoptions = filtoptions.parseFilterOptions()
+
+            if filtoptions is not None:
+                data.filter(**filtoptions)
+                title += '({} filtered'.format(filtoptions['type'])
+                for key, value in filtoptions.items():
+                    if key == 'type':
+                        continue
+                    title += ' {}: {},'.format(key, value)
+                title += ')'
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
