@@ -187,6 +187,8 @@ class MainWindow(QMainWindow):
                                              "Enter output format (*.xml, *.cnv, *.obs):",
                                              "Format")
             settings.setValue("output/Format", outformat)
+        if settings.value('autoFilter', None) is None:
+            settings.setValue('autoFilter', True)
         settings.sync()
 
         # setup UI
@@ -1971,7 +1973,7 @@ class MainWindow(QMainWindow):
         if not station:
             return
         self.update_status('picking on station {0}'.format(station))
-        data = self.get_data().getWFData()
+        data = self.get_data().getOriginalWFData().copy()
         event = self.get_current_event()
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
@@ -1980,6 +1982,9 @@ class MainWindow(QMainWindow):
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
                           filteroptions=self.filteroptions)
+        if self.filterAction.isChecked():
+            pickDlg.currentPhase = self.getSeismicPhase()
+            pickDlg.filterWFData()
         pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
             if pickDlg._dirty:

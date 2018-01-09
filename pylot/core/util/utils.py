@@ -327,9 +327,9 @@ def real_Bool(value):
     :return: true boolean value
     :rtype: bool
     """
-    if value == 'True':
+    if value in ['True', 'true']:
         return True
-    elif value == 'False':
+    elif value in ['False', 'false']:
         return False
     else:
         return value
