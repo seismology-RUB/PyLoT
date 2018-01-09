@@ -1750,6 +1750,8 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
+        if self.filterAction.isChecked():
+            self.filterWaveformData(plot=False)
         # wfst = self.get_data().getWFData().select(component=comp)
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
@@ -1789,7 +1791,7 @@ class MainWindow(QMainWindow):
     def pushFilterWF(self, param_args):
         self.get_data().filterWFData(param_args)
 
-    def filterWaveformData(self):
+    def filterWaveformData(self, plot=True):
         if self.get_data():
             if self.getFilterOptions() and self.filterAction.isChecked():
                 kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
@@ -1798,9 +1800,10 @@ class MainWindow(QMainWindow):
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        self.plotWaveformDataThread()
-        self.drawPicks()
-        self.draw()
+        if plot:
+            self.plotWaveformDataThread()
+            self.drawPicks()
+            self.draw()
 
     def adjustFilterOptions(self):
         fstring = "Filter Options"
