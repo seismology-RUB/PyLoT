@@ -2207,6 +2207,8 @@ class PickDlg(QDialog):
             #         filtoptions = filtoptions.parseFilterOptions()
 
             if filtoptions is not None:
+                data.detrend('linear')
+                data.taper(0.02, type='cosine')
                 data.filter(**filtoptions)
                 title += '({} filtered - '.format(filtoptions['type'])
                 for key, value in filtoptions.items():
