@@ -2759,7 +2759,7 @@ class TuneAutopicker(QWidget):
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        self.pickDlg = PickDlg(self, data=data.select(station=station),
+        self.pickDlg = PickDlg(self.parent(), data=data.select(station=station),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
