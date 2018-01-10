@@ -1816,6 +1816,7 @@ class MainWindow(QMainWindow):
                 kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
+            return True
 
     def checkFilterOptions(self):
         fstring = "Filter Options"

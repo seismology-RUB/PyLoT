@@ -1547,7 +1547,14 @@ class PickDlg(QDialog):
         filterMenu.addAction(filterOptionsAction)
 
     def filterOptions(self):
-        self.orig_parent.adjustFilterOptions()
+        if self.orig_parent.adjustFilterOptions():
+            phase = None
+            if self.filterActionP.isChecked():
+                phase = 'P'
+            elif self.filterActionS.isChecked():
+                phase = 'S'
+            if phase:
+                self.plotWFData(phase=phase, filter=True)
 
     def disable_ar_buttons(self):
         self.enable_ar_buttons(False)
