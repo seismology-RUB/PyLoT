@@ -1300,6 +1300,8 @@ class PickDlg(QDialog):
         # create buttons for P and S filter and picking
         self.p_button = QPushButton('P', self)
         self.s_button = QPushButton('S', self)
+        self.p_button.setMinimumWidth(100)
+        self.s_button.setMinimumWidth(100)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
         # set button tooltips
