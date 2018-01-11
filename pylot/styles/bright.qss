@@ -124,7 +124,6 @@ color:rgba(0, 0, 0, 255);
 border-style: outset;
 border-width: 1px;
 border-color: rgba(100, 100, 120, 255);
-min-width: 6em;
 padding: 4px;
 padding-left:5px;
 padding-right:5px;

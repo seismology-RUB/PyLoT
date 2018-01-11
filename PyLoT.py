@@ -563,19 +563,28 @@ class MainWindow(QMainWindow):
         style = settings.value('style')
         self.set_style(style)
 
-        # add event combo box and ref/test buttons
+        # add event combo box, forward, backward and ref/test buttons
         self.eventBox = self.createEventBox()
         self.eventBox.setMaxVisibleItems(30)
         self.eventBox.setEnabled(False)
+        self.previous_button = QPushButton('<')
+        self.next_button = QPushButton('>')
         self.init_ref_test_buttons()
         self._event_layout = QHBoxLayout()
         self._event_layout.addWidget(QLabel('Event: '))
         self._event_layout.addWidget(self.eventBox)
+        self._event_layout.addWidget(self.previous_button)
+        self._event_layout.addWidget(self.next_button)
         self._event_layout.addWidget(self.ref_event_button)
         self._event_layout.addWidget(self.test_event_button)
         self._event_layout.setStretch(1, 1)  # set stretch of item 1 to 1
         self._main_layout.addLayout(self._event_layout)
         self.eventBox.activated.connect(self.refreshEvents)
+
+        self.previous_button.clicked.connect(self.previous_event)
+        self.next_button.clicked.connect(self.next_event)
+        self.previous_button.setEnabled(False)
+        self.next_button.setEnabled(False)
 
         # add main tab widget
         self.tabs = QTabWidget(self)
@@ -652,6 +661,8 @@ class MainWindow(QMainWindow):
         '''
         self.ref_event_button = QtGui.QPushButton('Tune')
         self.test_event_button = QtGui.QPushButton('Test')
+        self.ref_event_button.setMinimumWidth(100)
+        self.test_event_button.setMinimumWidth(100)
         self.ref_event_button.setToolTip('Set manual picks of current ' +
                                          'event as reference picks for autopicker tuning.')
         self.test_event_button.setToolTip('Set manual picks of current ' +
@@ -1473,6 +1484,26 @@ class MainWindow(QMainWindow):
         if self.tap:
             self.tap.fill_eventbox()
 
+    def checkEventButtons(self):
+        if self.eventBox.currentIndex() == 0:
+            prev_state = False
+        else:
+            prev_state = True
+        if self.eventBox.currentIndex() == len(self.project.eventlist) - 1:
+            next_state = False
+        else:
+            next_state = True
+        self.previous_button.setEnabled(prev_state)
+        self.next_button.setEnabled(next_state)
+
+    def previous_event(self):
+        self.eventBox.setCurrentIndex(self.eventBox.currentIndex() - 1)
+        self.eventBox.activated.emit(-1)
+
+    def next_event(self):
+        self.eventBox.setCurrentIndex(self.eventBox.currentIndex() + 1)
+        self.eventBox.activated.emit(+1)
+
     def refreshEvents(self):
         '''
         Refresh GUI when events get changed.
@@ -1483,6 +1514,7 @@ class MainWindow(QMainWindow):
         # array_map refresh is not necessary when changing event in waveform plot tab,
         # but gets necessary when switching from one to another after changing an event.
         self._eventChanged = [True, True]
+        self.checkEventButtons()
         self.refreshTabs()
 
     def refreshTabs(self):
@@ -1816,6 +1848,7 @@ class MainWindow(QMainWindow):
                 kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
+            return True
 
     def checkFilterOptions(self):
         fstring = "Filter Options"

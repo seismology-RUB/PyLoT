@@ -1314,6 +1314,8 @@ class PickDlg(QDialog):
         # create buttons for P and S filter and picking
         self.p_button = QPushButton('P', self)
         self.s_button = QPushButton('S', self)
+        self.p_button.setMinimumWidth(100)
+        self.s_button.setMinimumWidth(100)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
         # set button tooltips
@@ -1562,7 +1564,14 @@ class PickDlg(QDialog):
         filterMenu.addAction(filterOptionsAction)
 
     def filterOptions(self):
-        self.orig_parent.adjustFilterOptions()
+        if self.orig_parent.adjustFilterOptions():
+            phase = None
+            if self.filterActionP.isChecked():
+                phase = 'P'
+            elif self.filterActionS.isChecked():
+                phase = 'S'
+            if phase:
+                self.plotWFData(phase=phase, filter=True)
 
     def disable_ar_buttons(self):
         self.enable_ar_buttons(False)
@@ -1662,7 +1671,7 @@ class PickDlg(QDialog):
         self.currentPhase = None
         self.reset_p_button()
         self.reset_s_button()
-        self.resetPlot()
+        self.refreshPlot()
         self.deactivatePicking()
 
     def activatePicking(self):
@@ -1788,7 +1797,7 @@ class PickDlg(QDialog):
 
     def delPicks(self):
         self.resetPicks()
-        self.resetPlot()
+        self.refreshPlot()
 
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
@@ -1900,7 +1909,7 @@ class PickDlg(QDialog):
         if filteroptions:
             try:
                 data.filter(**filteroptions)
-                wfdata.filter(**filteroptions)
+                #wfdata.filter(**filteroptions) MP MP as above
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
                                              'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
@@ -2127,7 +2136,7 @@ class PickDlg(QDialog):
             return
         x = event.mouseevent.xdata
         self.remove_pick_by_x(x)
-        self.resetPlot()
+        self.refreshPlot()
 
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
@@ -2210,12 +2219,11 @@ class PickDlg(QDialog):
                 data.detrend('linear')
                 data.taper(0.02, type='cosine')
                 data.filter(**filtoptions)
-                title += '({} filtered - '.format(filtoptions['type'])
+                title += ' | {} filtered |'.format(filtoptions['type'])
                 for key, value in filtoptions.items():
                     if key == 'type':
                         continue
-                    title += ' {}: {},'.format(key, value)
-                title += ')'
+                    title += ' {}: {} |'.format(key, value)
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
@@ -2229,34 +2237,31 @@ class PickDlg(QDialog):
         if self.filterActionP.isChecked():
             self.filterWFData('P')
         else:
-            self.resetPlot()
+            self.refreshPlot()
 
     def filterS(self):
         self.filterActionP.setChecked(False)
         if self.filterActionS.isChecked():
             self.filterWFData('S')
         else:
-            self.resetPlot()
+            self.refreshPlot()
 
     def toggleAutoFilter(self):
         settings = QSettings()
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
 
     def resetPlot(self):
+        self.resetZoom()
+        self.refreshPlot()
+
+    def refreshPlot(self):
         if self.autoFilterAction.isChecked():
             self.filterActionP.setChecked(False)
             self.filterActionS.setChecked(False)
-        self.resetZoom()
         data = self.getWFData().copy()
-        #title = self.multicompfig.axes[0].get_title()
         title = self.getStation()
-        self.multicompfig.plotWFData(wfdata=data, title=title,
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        plot_additional=self.additionalChannel.isChecked())
-        self.setPlotLabels()
-        self.drawAllPicks()
-        self.draw()
+        filter = self.filterActionP.isChecked or self.filterActionS.isChecked()
+        self.plotWFData(filter=filter)
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
@@ -2309,7 +2314,7 @@ class PickDlg(QDialog):
         if not self._embedded:
             QDialog.reject(self)
         else:
-            self.resetPlot()
+            self.refreshPlot()
             self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
                                          'Denied', 'New picks rejected!')
             self.qmb.show()
@@ -2772,7 +2777,7 @@ class TuneAutopicker(QWidget):
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        self.pickDlg = PickDlg(self, data=data.select(station=station),
+        self.pickDlg = PickDlg(self.parent(), data=data.select(station=station),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
