@@ -24,7 +24,7 @@ class Thread(QThread):
         if self.redirect_stdout:
             sys.stdout = self
         try:
-            if self.arg:
+            if self.arg is not None:
                 self.data = self.func(self.arg)
             else:
                 self.data = self.func()

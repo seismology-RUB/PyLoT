@@ -274,6 +274,10 @@ class MainWindow(QMainWindow):
         print_icon.addPixmap(QPixmap(':/icons/printer.png'))
         self.filter_icon = QIcon()
         self.filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        self.filter_icon_p = QIcon()
+        self.filter_icon_p.addPixmap(QPixmap(':/icons/filter_p.png'))
+        self.filter_icon_s = QIcon()
+        self.filter_icon_s.addPixmap(QPixmap(':/icons/filter_s.png'))
         z_icon = QIcon()
         z_icon.addPixmap(QPixmap(':/icons/key_Z.png'))
         n_icon = QIcon()
@@ -368,12 +372,20 @@ class MainWindow(QMainWindow):
                                                  self.setParameter,
                                                  None, paraIcon,
                                                  "Modify Parameter")
-        self.filterAction = self.createAction(self, "&Filter ...",
-                                              self.filterWaveformData,
-                                              "Ctrl+F", self.filter_icon,
-                                              """Toggle un-/filtered waveforms
-                                              to be displayed, according to the
-                                              desired seismic phase.""", True)
+        self.filterActionP = createAction(parent=self, text='Apply P Filter',
+                                          slot=self.filterP,
+                                          icon=self.filter_icon_p,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='Ctrl+F')
+        self.filterActionS = createAction(parent=self, text='Apply S Filter',
+                                          slot=self.filterS,
+                                          icon=self.filter_icon_s,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='Shift+F')
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
                                              "Alt+F", self.filter_icon,
@@ -502,8 +514,8 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (self.filterAction, filterEditAction, None,
-                       self.selectPAction, self.selectSAction, None,
+        editActions = (self.filterActionP, self.filterActionS, filterEditAction, None,
+                       #self.selectPAction, self.selectSAction, None,
                        self.inventoryAction, self.initMapAction, None,
                        prefsEventAction)
                        #printAction) #TODO: print event?
@@ -1415,7 +1427,8 @@ class MainWindow(QMainWindow):
         return None
 
     def getStime(self):
-        return self._stime
+        if self.get_data():
+            return full_range(self.get_data().getWFData())[0]
 
     def addActions(self, target, actions):
         for action in actions:
@@ -1589,18 +1602,9 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
-        self.data.setWFData(self.fnames)
-        wfdat = self.data.getWFData()  # all available streams
-        # remove possible underscores in station names
-        wfdat = remove_underscores(wfdat)
-        # check for gaps and doubled channels
-        check4gaps(wfdat)
-        check4doubled(wfdat)
-        # check for stations with rotated components
-        wfdat = check4rotated(wfdat, self.metadata, verbosity=0)
-        # trim station components to same start value
-        trim_station_components(wfdat, trim_start=True, trim_end=False)
-        self._stime = full_range(self.get_data().getWFData())[0]
+        self.data.setWFData(self.fnames,
+                            checkRotated=True,
+                            metadata=self.metadata)
 
     def connectWFplotEvents(self):
         '''
@@ -1759,18 +1763,19 @@ class MainWindow(QMainWindow):
         self.disableSaveEventAction()
         self.draw()
 
-    def plotWaveformDataThread(self):
+    def plotWaveformDataThread(self, filter=True):
         '''
         Open a modal thread to plot current waveform data.
         '''
         self.clearWaveformDataPlot()
         self.wfp_thread = Thread(self, self.plotWaveformData,
+                                 arg=filter,
                                  progressText='Plotting waveform data...',
                                  pb_widget=self.mainProgressBarWidget)
         self.wfp_thread.finished.connect(self.finishWaveformDataPlot)
         self.wfp_thread.start()
 
-    def plotWaveformData(self):
+    def plotWaveformData(self, filter=True):
         '''
         Plot waveform data to current plotWidget.
         '''
@@ -1782,8 +1787,10 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
-        if self.filterAction.isChecked():
-            self.filterWaveformData(plot=False)
+        if self.filterActionP.isChecked() and filter:
+            self.filterWaveformData(plot=False, phase='P')
+        elif self.filterActionS.isChecked() and filter:
+            self.filterWaveformData(plot=False, phase='S')
         # wfst = self.get_data().getWFData().select(component=comp)
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
@@ -1823,19 +1830,45 @@ class MainWindow(QMainWindow):
     def pushFilterWF(self, param_args):
         self.get_data().filterWFData(param_args)
 
-    def filterWaveformData(self, plot=True):
+    def filterP(self):
+        self.filterActionS.setChecked(False)
+        if self.filterActionP.isChecked():
+            self.filterWaveformData(phase='P')
+        else:
+            self.resetWFData()
+
+    def filterS(self):
+        self.filterActionP.setChecked(False)
+        if self.filterActionS.isChecked():
+            self.filterWaveformData(phase='S')
+        else:
+            self.resetWFData()
+
+    def resetWFData(self):
+        self.get_data().resetWFData()
+        self.plotWaveformDataThread()
+
+    def filterWaveformData(self, plot=True, phase=None):
         if self.get_data():
-            if self.getFilterOptions() and self.filterAction.isChecked():
-                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
-                self.pushFilterWF(kwargs)
-            elif self.filterAction.isChecked():
+            if not phase:
+                if self.filterActionP.isChecked():
+                    phase = 'P'
+                elif self.filterActionS.isChecked():
+                    phase = 'S'
+            if self.getFilterOptions():
+                if (phase == 'P' and self.filterActionP.isChecked()) or (phase == 'S' and self.filterActionS.isChecked()):
+                    kwargs = self.getFilterOptions()[phase].parseFilterOptions()
+                    self.pushFilterWF(kwargs)
+                else:
+                    self.get_data().resetWFData()
+            elif self.filterActionP.isChecked() or self.filterActionS.isChecked():
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        if plot:
-            self.plotWaveformDataThread()
-            self.drawPicks()
-            self.draw()
+            if plot:
+                self.plotWaveformDataThread(filter=False)
+                #self.drawPicks()
+                #self.draw()
 
     def adjustFilterOptions(self):
         fstring = "Filter Options"
@@ -1844,7 +1877,7 @@ class MainWindow(QMainWindow):
         if self.filterDlg.exec_():
             filteroptions = self.filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
-            if self.filterAction.isChecked():
+            if self.filterActionP.isChecked() or self.filterActionS.isChecked():
                 kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
@@ -1925,7 +1958,7 @@ class MainWindow(QMainWindow):
     #                            '[{0}: {1} Hz]'.format(
     #             self.getFilterOptions().getFilterType(),
     #             self.getFilterOptions().getFreq()))
-    #     if self.filterAction.isChecked():
+    #     if self.filterActionP.isChecked() or self.filterActionS.isChecked():
     #         self.filterWaveformData()
 
     def getSeismicPhase(self):
@@ -2018,7 +2051,7 @@ class MainWindow(QMainWindow):
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
                           filteroptions=self.filteroptions)
-        if self.filterAction.isChecked():
+        if self.filterActionP.isChecked() or self.filterActionS.isChecked():
             pickDlg.currentPhase = self.getSeismicPhase()
             pickDlg.filterWFData()
         pickDlg.nextStation.setChecked(nextStation)
