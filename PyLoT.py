@@ -1849,6 +1849,9 @@ class MainWindow(QMainWindow):
         self.plotWaveformDataThread()
 
     def filterWaveformData(self, plot=True, phase=None):
+        if not self.get_current_event():
+            return
+
         if self.get_data():
             if not phase:
                 if self.filterActionP.isChecked():
