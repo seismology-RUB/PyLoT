@@ -1264,14 +1264,14 @@ class PickDlg(QDialog):
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Ctrl+F')
+                                          shortcut='P')
         self.filterActionS = createAction(parent=self, text='Apply S Filter',
                                           slot=self.filterS,
                                           icon=filter_icon_s,
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Shift+F')
+                                          shortcut='S')
         self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
                                           slot=self.toggleAutoFilter,
                                           icon=key_a_icon,
@@ -1540,7 +1540,7 @@ class PickDlg(QDialog):
 
         filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
                                    slot=self.filterOptions,
-                                   shortcut='Alt+F',
+                                   shortcut='Ctrl+F',
                                    icon=self.orig_parent.filter_icon)
         filterMenu = menuBar.addMenu('Filter')
         filterMenu.addAction(self.filterActionP)

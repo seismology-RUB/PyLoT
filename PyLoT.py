@@ -378,17 +378,17 @@ class MainWindow(QMainWindow):
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Ctrl+F')
+                                          shortcut='P')
         self.filterActionS = createAction(parent=self, text='Apply S Filter',
                                           slot=self.filterS,
                                           icon=self.filter_icon_s,
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Shift+F')
+                                          shortcut='S')
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
-                                             "Alt+F", self.filter_icon,
+                                             "Ctrl+F", self.filter_icon,
                                              """Adjust filter parameters.""")
         self.inventoryAction = self.createAction(self, "Select &Inventory ...",
                                               self.get_new_metadata,
