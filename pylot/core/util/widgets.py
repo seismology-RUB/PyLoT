@@ -2109,11 +2109,32 @@ class PickDlg(QDialog):
         ax.legend(loc=1)
 
     def connect_pick_delete(self):
-        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick_delete)
+        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick)
 
     def disconnect_pick_delete(self):
         if hasattr(self, 'cidpick'):
             self.multicompfig.mpl_disconnect(self.cidpick)
+
+    def onpick(self, event):
+        if event.mouseevent.button == 1:
+            self.onpick_info(event)
+        elif event.mouseevent.button == 3:
+            self.onpick_delete(event)
+
+    def onpick_info(self, event):
+        if not event.mouseevent.button == 1:
+            return
+        x = event.mouseevent.xdata
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', mpp: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', spe: {}'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', filter: {}'.format(pick['filteroptions'])
+        print(message)
 
     def onpick_delete(self, event):
         if not event.mouseevent.button == 3:
@@ -2125,7 +2146,16 @@ class PickDlg(QDialog):
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
             return
-        # init empty list and get station starttime
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        # delete the value from corresponding dictionary
+        allpicks[picktype].pop(phase)
+        # information output
+        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
+        self.setDirty(True)
+
+    def identify_selected_picks(self, x):
+        # init empty list and get stat5ion starttime
         X = []
         starttime = self.getStartTime()
         # init dictionaries to iterate through and iterate over them
@@ -2143,12 +2173,9 @@ class PickDlg(QDialog):
         index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
         # unpack the found value
         pick_rel, phase, picktype = X[index]
-        # delete the value from corresponding dictionary
-        allpicks[picktype].pop(phase)
-        # information output
-        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, starttime+pick_rel, pick_rel))
-        self.setDirty(True)
+        return allpicks, pick_rel, phase, picktype
+
+
 
     def drawPhaseText(self):
         self.drawPicks(picktype='manual', textOnly=True)
