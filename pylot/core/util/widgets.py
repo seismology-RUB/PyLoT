@@ -1228,6 +1228,7 @@ class PickDlg(QDialog):
 
         # init pick delete (with right click)
         self.connect_pick_delete()
+        self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
@@ -1316,6 +1317,8 @@ class PickDlg(QDialog):
         self.reject_button = QPushButton('&Reject')
         self.disable_ar_buttons()
 
+        self.statusbar = QtGui.QStatusBar(self)
+
         # add hotkeys
         self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
@@ -1360,9 +1363,12 @@ class PickDlg(QDialog):
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
         _innerinnerlayout = QtGui.QHBoxLayout()
+        _lowerlayout = QHBoxLayout()
         _innerinnerlayout.addWidget(self.multicompfig)
         _innerinnerlayout.addWidget(self.phaseplot)
         _innerlayout.addLayout(_innerinnerlayout)
+        _innerlayout.addLayout(_lowerlayout)
+        _lowerlayout.addWidget(self.statusbar)
 
         # add button box to the dialog
         _buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
@@ -1370,13 +1376,17 @@ class PickDlg(QDialog):
 
         # merge widgets and layouts to establish the dialog
         if not self._embedded:
-            _innerlayout.addWidget(_buttonbox)
+            _lowerlayout.addWidget(_buttonbox)
         _outerlayout.addWidget(menuBar)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
         _outerlayout.setStretch(0, 0)
         _outerlayout.setStretch(1, 0)
         _outerlayout.setStretch(2, 1)
+        _lowerlayout.setStretch(0, 5)
+        _lowerlayout.setStretch(1, 1)
+        _innerlayout.setStretch(0, 1)
+        _innerlayout.setStretch(1, 0)
 
         # connect widget element signals with slots (methods to the dialog
         # object
@@ -2108,12 +2118,21 @@ class PickDlg(QDialog):
 
         ax.legend(loc=1)
 
+    def connect_mouse_motion(self):
+        self.cidmotion = self.multicompfig.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
     def connect_pick_delete(self):
         self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick)
 
     def disconnect_pick_delete(self):
         if hasattr(self, 'cidpick'):
             self.multicompfig.mpl_disconnect(self.cidpick)
+
+    def on_motion(self, event):
+        x = event.xdata
+        if x is not None:
+            self.statusbar.showMessage('T = {}, t = {} [s]'.format(self.stime+x, x))
 
     def onpick(self, event):
         if event.mouseevent.button == 1:
@@ -2129,12 +2148,12 @@ class PickDlg(QDialog):
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
         if 'mpp' in pick:
-            message += ', mpp: {}'.format(pick['mpp'])
+            message += ', MPP: {}'.format(pick['mpp'])
         if 'spe' in pick:
-            message += ', spe: {}'.format(pick['spe'])
+            message += ', SPE: {}'.format(pick['spe'])
         if 'filteroptions' in pick:
-            message += ', filter: {}'.format(pick['filteroptions'])
-        print(message)
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+        self.statusbar.showMessage(message, 10e3)
 
     def onpick_delete(self, event):
         if not event.mouseevent.button == 3:
