@@ -17,8 +17,6 @@ import time
 import numpy as np
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID, check4rotated, real_Bool, pick_color
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -49,7 +47,9 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, check4gaps, remove_underscores
+    check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
+    loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
+    identifyPhaseID, real_Bool, pick_color
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -1989,7 +1989,8 @@ class PickDlg(QDialog):
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
                           picker='manual', channel=channel,
-                          network=wfdata[0].stats.network)
+                          network=wfdata[0].stats.network,
+                          filteroptions=transformFilteroptions2String(filteroptions))
 
         try:
             oldphasepick = self.picks[phase]
@@ -2202,11 +2203,8 @@ class PickDlg(QDialog):
                 data.detrend('linear')
                 data.taper(0.02, type='cosine')
                 data.filter(**filtoptions)
-                title += ' | {} filtered |'.format(filtoptions['type'])
-                for key, value in filtoptions.items():
-                    if key == 'type':
-                        continue
-                    title += ' {}: {} |'.format(key, value)
+                filtops_str = transformFilteroptions2String(filtoptions)
+                title += ' | Filteroptions: {}'.format(filtops_str)
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                      zoomx=self.getXLims(),
                                      zoomy=self.getYLims())

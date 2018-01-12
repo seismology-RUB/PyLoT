@@ -16,7 +16,8 @@ from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, full_range, four_digits
+from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilteroptions2String, \
+    transformFilterString4Export, backtransformFilterString
 
 
 def add_amplitudes(event, amplitudes):
@@ -235,6 +236,7 @@ def picksdict_from_picks(evt):
         network = pick.waveform_id.network_code
         mpp = pick.time
         spe = pick.time_errors.uncertainty
+        filter_id = backtransformFilterString(str(pick.filter_id.id))
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
@@ -261,6 +263,7 @@ def picksdict_from_picks(evt):
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
+        phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
         picksdict[picker][station] = onsets.copy()
@@ -313,6 +316,13 @@ def picks_from_picksdict(picks, creation_info=None):
                                                     channel_code=ccode,
                                                     network_code=ncode)
             try:
+                filter_id = phase['filteroptions']
+                filter_id = transformFilterString4Export(filter_id)
+            except KeyError as e:
+                warnings.warn(e.message, RuntimeWarning)
+                filter_id = ''
+            pick.filter_id = filter_id
+            try:
                 polarity = phase['fm']
                 if polarity == 'U' or '+':
                     pick.polarity = 'positive'
@@ -327,7 +337,6 @@ def picks_from_picksdict(picks, creation_info=None):
                     raise e
             picks_list.append(pick)
     return picks_list
-
 
 def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob

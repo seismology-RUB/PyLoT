@@ -391,6 +391,38 @@ def full_range(stream):
     return min_start, max_end
 
 
+def transformFilteroptions2String(filtopts):
+    st = ''
+    if not filtopts:
+        return st
+    if 'type' in filtopts.keys():
+        st += '{}'.format(filtopts['type'])
+        if 'freq' in filtopts.keys():
+            st += ' | freq: {}'.format(filtopts['freq'])
+        elif 'freqmin' in filtopts.keys() and 'freqmax' in filtopts.keys():
+            st += ' | freqmin: {} | freqmax: {}'.format(filtopts['freqmin'], filtopts['freqmax'])
+    for key, value in filtopts.items():
+        if key in ['type', 'freq', 'freqmin', 'freqmax']:
+            continue
+        st += ' | {}: {}'.format(key, value)
+    return st
+
+
+def transformFilterString4Export(st):
+    st = st.replace('|', '//')
+    st = st.replace(':', '/')
+    st = st.replace(' ', '')
+    return st
+
+
+def backtransformFilterString(st):
+    st = st.split('smi:local/')
+    st = st[1] if len(st) > 1 else st[0]
+    st = st.replace('//', ' | ')
+    st = st.replace('/', ': ')
+    return st
+
+
 def getHash(time):
     """
     takes a time object and returns the corresponding SHA1 hash of the formatted date string
