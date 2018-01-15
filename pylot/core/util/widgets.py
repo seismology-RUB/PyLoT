@@ -17,8 +17,6 @@ import time
 import numpy as np
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID, check4rotated, real_Bool, pick_color
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -49,7 +47,9 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, check4gaps, remove_underscores
+    check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
+    loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
+    identifyPhaseID, real_Bool, pick_color
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -375,8 +375,8 @@ class ComparisonWidget(QWidget):
                 ax = axes_dict[phase]['exp']
                 xlims = ax.get_xlim()
                 ylims = ax.get_ylim()
-                ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
-                ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+                #ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                #ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
             legend = ax.legend()
             legend.draggable()
 
@@ -1152,9 +1152,11 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
+        self.phaseLines = []
         self.arrivals = []
         self.arrivalsText = []
         self.cidpick = []
+        self.cidpress = None
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -1242,6 +1244,7 @@ class PickDlg(QDialog):
 
         # init pick delete (with right click)
         self.connect_pick_delete()
+        self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
@@ -1270,6 +1273,8 @@ class PickDlg(QDialog):
         home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
         del_icon = QIcon()
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
+        sync_icon = QIcon()
+        sync_icon.addPixmap(QPixmap(':/icons/sync.png'))
 
         # create actions
         self.filterActionP = createAction(parent=self, text='Apply P Filter',
@@ -1278,14 +1283,14 @@ class PickDlg(QDialog):
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Ctrl+F')
+                                          shortcut='P')
         self.filterActionS = createAction(parent=self, text='Apply S Filter',
                                           slot=self.filterS,
                                           icon=filter_icon_s,
                                           tip='Toggle filtered/original'
                                               ' waveforms',
                                           checkable=True,
-                                          shortcut='Shift+F')
+                                          shortcut='S')
         self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
                                           slot=self.toggleAutoFilter,
                                           icon=key_a_icon,
@@ -1302,6 +1307,10 @@ class PickDlg(QDialog):
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
+        self.renamePhaseAction = createAction(parent=self, text='Rename Phase',
+                                              slot=self.initRenamePhase, icon=sync_icon,
+                                              tip='Rename a Phase.', checkable=True,
+                                              shortcut='R')
 
         self.addPickPhases(menuBar)
 
@@ -1330,6 +1339,8 @@ class PickDlg(QDialog):
         self.reject_button = QPushButton('&Reject')
         self.disable_ar_buttons()
 
+        self.statusbar = QtGui.QStatusBar(self)
+
         # add hotkeys
         self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
@@ -1352,6 +1363,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetZoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
+        _dialtoolbar.addAction(self.renamePhaseAction)
         _dialtoolbar.addSeparator()
         if self._embedded:
             manu_label = QLabel('Manual Onsets:')
@@ -1375,9 +1387,12 @@ class PickDlg(QDialog):
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
         _innerinnerlayout = QtGui.QHBoxLayout()
+        _lowerlayout = QHBoxLayout()
         _innerinnerlayout.addWidget(self.multicompfig)
         _innerinnerlayout.addWidget(self.phaseplot)
         _innerlayout.addLayout(_innerinnerlayout)
+        _innerlayout.addLayout(_lowerlayout)
+        _lowerlayout.addWidget(self.statusbar)
 
         # add button box to the dialog
         _buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
@@ -1385,13 +1400,17 @@ class PickDlg(QDialog):
 
         # merge widgets and layouts to establish the dialog
         if not self._embedded:
-            _innerlayout.addWidget(_buttonbox)
+            _lowerlayout.addWidget(_buttonbox)
         _outerlayout.addWidget(menuBar)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
         _outerlayout.setStretch(0, 0)
         _outerlayout.setStretch(1, 0)
         _outerlayout.setStretch(2, 1)
+        _lowerlayout.setStretch(0, 5)
+        _lowerlayout.setStretch(1, 1)
+        _innerlayout.setStretch(0, 1)
+        _innerlayout.setStretch(1, 0)
 
         # connect widget element signals with slots (methods to the dialog
         # object
@@ -1555,7 +1574,7 @@ class PickDlg(QDialog):
 
         filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
                                    slot=self.filterOptions,
-                                   shortcut='Alt+F',
+                                   shortcut='Ctrl+F',
                                    icon=self.orig_parent.filter_icon)
         filterMenu = menuBar.addMenu('Filter')
         filterMenu.addAction(self.filterActionP)
@@ -1675,8 +1694,15 @@ class PickDlg(QDialog):
         self.deactivatePicking()
 
     def activatePicking(self):
+        self.leave_rename_phase()
+        self.renamePhaseAction.setEnabled(False)
         phase = self.currentPhase
-        color = pick_color_plt('manual', self.getPhaseID(phase))
+        phaseID = self.getPhaseID(phase)
+        if not phaseID:
+            self.warn_unknown_phase(phase)
+            self.leave_picking_mode()
+            return
+        color = pick_color_plt('manual', phaseID)
         self.multicompfig.set_frame_color(color)
         self.multicompfig.set_frame_linewidth(1.5)
         if self.zoomAction.isChecked():
@@ -1700,6 +1726,7 @@ class PickDlg(QDialog):
 
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
+        self.renamePhaseAction.setEnabled(True)
         self.connect_pick_delete()
         self.draw()
 
@@ -1798,6 +1825,17 @@ class PickDlg(QDialog):
     def delPicks(self):
         self.resetPicks()
         self.refreshPlot()
+
+    def initRenamePhase(self):
+        if self.renamePhaseAction.isChecked():
+            self.multicompfig.disconnectEvents()
+            self.multicompfig.set_frame_color('orange')
+            self.draw()
+            self.statusbar.showMessage('Click on a phase you want to rename.')
+        else:
+            self.multicompfig.set_frame_color()
+            self.multicompfig.connectEvents()
+            self.draw()
 
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
@@ -2006,41 +2044,30 @@ class PickDlg(QDialog):
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
                           picker='manual', channel=channel,
-                          network=wfdata[0].stats.network)
+                          network=wfdata[0].stats.network,
+                          filteroptions=transformFilteroptions2String(filteroptions))
 
-        try:
-            oldphasepick = self.picks[phase]
-        except KeyError:
-            self.picks[phase] = phasepicks
-        else:
-            self.picks[phase] = phasepicks
-            oepp = oldphasepick['epp']
-            ompp = oldphasepick['mpp']
-            olpp = oldphasepick['lpp']
-            msg = """Warning old phase information for phase {phase} has been
-                     altered.\n
-                     New phase times:\n
-                     earliest possible pick: {epp}\n
-                     most probable pick: {mpp}\n
-                     latest possible pick: {lpp}\n
-                     \n
-                     Old phase times (overwritten):\n
-                     earliest possible pick: {oepp}\n
-                     most probable pick: {ompp}\n
-                     latest possible pick: {olpp}\n""".format(phase=phase,
-                                                              epp=epp,
-                                                              mpp=pick,
-                                                              lpp=lpp,
-                                                              oepp=oepp,
-                                                              ompp=ompp,
-                                                              olpp=olpp)
+        saved = self.savePick(phase, phasepicks)
+        if saved:
+            self.setDirty(True)
 
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        #self.pick_block = self.togglePickBlocker()
+        #self.pick_block = self.togglPickBlocker()
         self.leave_picking_mode()
-        self.setDirty(True)
+
+    def savePick(self, phase, phasepicks):
+        if not self.getPhaseID(phase):
+            self.warn_unknown_phase(phase)
+            return
+
+        self.picks[phase] = phasepicks
+        return True
+
+    def warn_unknown_phase(self, phase=None):
+        QtGui.QMessageBox.warning(self, 'Unknown phase ID',
+                                  'Could not identify phase ID: {}.'.format(phase))
 
     def disconnectPressEvent(self):
         self.multicompfig.mpl_disconnect(self.cidpress)
@@ -2050,6 +2077,7 @@ class PickDlg(QDialog):
         self.removePhaseText()
         self.drawPicks(picktype='manual')
         self.drawPicks(picktype='auto')
+        self.draw()
 
     def drawPicks(self, phase=None, picktype='manual', textOnly=False, picks=None):
         # plotting picks
@@ -2091,19 +2119,20 @@ class PickDlg(QDialog):
             color = pick_color_plt(picktype, phaseID, quality)
             if not textOnly:
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                        label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                self.phaseLines.append(vl)
                 if spe:
                     ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
                 if picks['epp']:
                     linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
-                    ax.plot([epp, epp], ylims, color=color, linestyle=linestyle_epp,
-                            linewidth=width_epp, label='{}-EPP'.format(phase))
+                    ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
+                               linewidth=width_epp, label='{}-EPP'.format(phase))
                 if picks['lpp']:
                     linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
-                    ax.plot([lpp, lpp], ylims, color=color, linestyle=linestyle_lpp,
-                            linewidth=width_lpp, label='{}-LPP'.format(phase))
+                    ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
+                               linewidth=width_lpp, label='{}-LPP'.format(phase))
                 # else:
                 #     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                 #             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
@@ -2115,8 +2144,9 @@ class PickDlg(QDialog):
             if not textOnly:
                 ax.plot(mpp, ylims[1], color=color, marker='v')
                 ax.plot(mpp, ylims[0], color=color, marker='^')
-                ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                          picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                self.phaseLines.append(vl)
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
         else:
@@ -2124,24 +2154,121 @@ class PickDlg(QDialog):
 
         ax.legend(loc=1)
 
+    def connect_mouse_motion(self):
+        self.cidmotion = self.multicompfig.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
     def connect_pick_delete(self):
-        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick_delete)
+        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick)
+        self.cidpick = self.multicompfig.mpl_connect('motion_notify_event', self.on_hover_info)
 
     def disconnect_pick_delete(self):
         if hasattr(self, 'cidpick'):
             self.multicompfig.mpl_disconnect(self.cidpick)
 
+    def on_motion(self, event):
+        x = event.xdata
+        if x is not None:
+            time_code = 'T = {}, t = {} [s]'.format(self.stime+x, x)
+            user_help = ' - Left-Click to Drag | Right-Click to Pan-Zoom |' \
+                        ' Mousewheel to Zoom | Middle-Click to Delete Pick'
+            self.statusbar.showMessage(time_code + user_help)
+
+    def onpick(self, event):
+        if event.mouseevent.button == 1:
+            self.onpick_info(event)
+        elif event.mouseevent.button == 2:
+            self.onpick_delete(event)
+
+    def on_hover_info(self, event):
+        if not any([phase.contains(event)[0] for phase in self.phaseLines]):
+            return
+        x = event.xdata
+        if not x:
+            return
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', MPP: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', SPE: {} [s]'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+        x = event.x
+        y = event.y
+        y = self.size().height() - y
+        pt = self.mapToGlobal(QtCore.QPoint(x, y))
+        QtGui.QToolTip.showText(pt, message)
+
+    def onpick_info(self, event):
+        if not event.mouseevent.button == 1:
+            return
+        x = event.mouseevent.xdata
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', MPP: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', SPE: {}'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+
+        if self.renamePhaseAction.isChecked():
+            self.renamePhase(picktype, phase)
+
+        self.statusbar.showMessage(message, 10e3)
+
     def onpick_delete(self, event):
-        if not event.mouseevent.button == 3:
+        if not event.mouseevent.button == 2:
             return
         x = event.mouseevent.xdata
         self.remove_pick_by_x(x)
         self.refreshPlot()
 
+    def renamePhase(self, picktype, phase):
+        allpicks = {'manual': self.picks,
+                    'auto': self.autopicks}
+        picks = allpicks[picktype]
+        dialog = QtGui.QInputDialog(parent=self)
+        new_phase, executed = dialog.getText(self, 'Rename phase', 'Rename phase {} to:'.format(phase))
+        if executed:
+            try:
+                self.renamePhaseInDict(picks, phase, new_phase)
+            except KeyError as e:
+                QtGui.QMessageBox.warning(self, 'Could not rename phase',
+                                          'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
+        self.leave_rename_phase()
+        self.refreshPlot()
+
+    def renamePhaseInDict(self, picks, phase_old, phase_new):
+        if phase_new in picks:
+            raise KeyError('New phase ID already assigned.')
+        picks_new = picks[phase_old].copy()
+        saved = self.savePick(phase_new, picks_new)
+        if saved:
+            picks.pop(phase_old)
+            self.setDirty(True)
+
+    def leave_rename_phase(self):
+        self.renamePhaseAction.setChecked(False)
+        self.multicompfig.set_frame_color()
+        self.multicompfig.connectEvents()
+
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
             return
-        # init empty list and get station starttime
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        # delete the value from corresponding dictionary
+        allpicks[picktype].pop(phase)
+        # information output
+        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
+        self.setDirty(True)
+
+    def identify_selected_picks(self, x):
+        # init empty list and get stat5ion starttime
         X = []
         starttime = self.getStartTime()
         # init dictionaries to iterate through and iterate over them
@@ -2159,12 +2286,9 @@ class PickDlg(QDialog):
         index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
         # unpack the found value
         pick_rel, phase, picktype = X[index]
-        # delete the value from corresponding dictionary
-        allpicks[picktype].pop(phase)
-        # information output
-        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, starttime+pick_rel, pick_rel))
-        self.setDirty(True)
+        return allpicks, pick_rel, phase, picktype
+
+
 
     def drawPhaseText(self):
         self.drawPicks(picktype='manual', textOnly=True)
@@ -2219,11 +2343,8 @@ class PickDlg(QDialog):
                 data.detrend('linear')
                 data.taper(0.02, type='cosine')
                 data.filter(**filtoptions)
-                title += ' | {} filtered |'.format(filtoptions['type'])
-                for key, value in filtoptions.items():
-                    if key == 'type':
-                        continue
-                    title += ' {}: {} |'.format(key, value)
+                filtops_str = transformFilteroptions2String(filtoptions)
+                title += ' | Filteroptions: {}'.format(filtops_str)
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                         zoomx=self.getXLims(),
                                         zoomy=self.getYLims(),
@@ -2258,10 +2379,17 @@ class PickDlg(QDialog):
         if self.autoFilterAction.isChecked():
             self.filterActionP.setChecked(False)
             self.filterActionS.setChecked(False)
-        data = self.getWFData().copy()
-        title = self.getStation()
-        filter = self.filterActionP.isChecked or self.filterActionS.isChecked()
-        self.plotWFData(filter=filter)
+        # data = self.getWFData().copy()
+        # title = self.getStation()
+        filter = False
+        phase = None
+        if self.filterActionP.isChecked():
+            phase = 'P'
+            filter = True
+        if self.filterActionS.isChecked():
+            phase = 'S'
+            filter = True
+        self.plotWFData(phase=phase, filter=filter)
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
@@ -2866,9 +2994,9 @@ class TuneAutopicker(QWidget):
 
         y_top = 0.9 * ax.get_ylim()[1]
         y_bot = 0.9 * ax.get_ylim()[0]
-        self._manual_pick_plots.append(ax.vlines(mpp, y_bot, y_top,
-                                                 color=color, linewidth=2,
-                                                 label='manual {} Onset (quality: {})'.format(phase, quality)))
+        self._manual_pick_plots.append(ax.axvline(mpp, y_bot, y_top,
+                                                  color=color, linewidth=2,
+                                                  label='manual {} Onset (quality: {})'.format(phase, quality)))
         self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
                                                [y_bot, y_bot], linewidth=2,
                                                color=color))

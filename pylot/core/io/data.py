@@ -12,7 +12,8 @@ from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
-from pylot.core.util.utils import fnConstructor, full_range
+from pylot.core.util.utils import fnConstructor, full_range, remove_underscores, check4gaps, check4doubled, \
+    check4rotated, trim_station_components
 import pylot.core.loc.velest as velest
 
 
@@ -367,7 +368,7 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames):
+    def setWFData(self, fnames, checkRotated=False, metadata=None):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
@@ -379,9 +380,25 @@ class Data(object):
             self.appendWFData(fnames)
         else:
             return False
+
+        # various pre-processing steps:
+        # remove possible underscores in station names
+        self.wfdata = remove_underscores(self.wfdata)
+        # check for gaps and doubled channels
+        check4gaps(self.wfdata)
+        check4doubled(self.wfdata)
+        # check for stations with rotated components
+        if checkRotated and metadata is not None:
+            self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)
+        # trim station components to same start value
+        trim_station_components(self.wfdata, trim_start=True, trim_end=False)
+
+        # make a copy of original data
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
         return True
+
+
 
     def appendWFData(self, fnames):
         """
