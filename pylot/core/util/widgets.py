@@ -1295,7 +1295,8 @@ class PickDlg(QDialog):
                                              tip='Delete current picks.')
         self.renamePhaseAction = createAction(parent=self, text='Rename Phase',
                                               slot=self.initRenamePhase, icon=sync_icon,
-                                              tip='Rename a Phase.', checkable=True)
+                                              tip='Rename a Phase.', checkable=True,
+                                              shortcut='R')
 
         self.addPickPhases(menuBar)
 
