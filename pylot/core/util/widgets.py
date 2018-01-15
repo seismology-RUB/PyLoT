@@ -375,8 +375,8 @@ class ComparisonWidget(QWidget):
                 ax = axes_dict[phase]['exp']
                 xlims = ax.get_xlim()
                 ylims = ax.get_ylim()
-                ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
-                ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+                #ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                #ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
             legend = ax.legend()
             legend.draggable()
 
@@ -1140,6 +1140,7 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
+        self.phaseLines = []
         self.arrivals = []
         self.arrivalsText = []
         self.cidpick = []
@@ -2085,8 +2086,9 @@ class PickDlg(QDialog):
             color = pick_color_plt(picktype, phaseID, quality)
             if not textOnly:
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                        label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                self.phaseLines.append(vl)
                 if spe:
                     ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
@@ -2109,8 +2111,9 @@ class PickDlg(QDialog):
             if not textOnly:
                 ax.plot(mpp, ylims[1], color=color, marker='v')
                 ax.plot(mpp, ylims[0], color=color, marker='^')
-                ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                          picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                vl = ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                               picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                self.phaseLines.append(vl)
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
         else:
@@ -2124,6 +2127,7 @@ class PickDlg(QDialog):
 
     def connect_pick_delete(self):
         self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick)
+        self.cidpick = self.multicompfig.mpl_connect('motion_notify_event', self.on_hover_info)
 
     def disconnect_pick_delete(self):
         if hasattr(self, 'cidpick'):
@@ -2139,6 +2143,27 @@ class PickDlg(QDialog):
             self.onpick_info(event)
         elif event.mouseevent.button == 3:
             self.onpick_delete(event)
+
+    def on_hover_info(self, event):
+        if not any([phase.contains(event)[0] for phase in self.phaseLines]):
+            return
+        x = event.xdata
+        if not x:
+            return
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', MPP: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', SPE: {} [s]'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+        x = event.x
+        y = event.y
+        y = self.size().height() - y
+        pt = self.mapToGlobal(QtCore.QPoint(x, y))
+        QtGui.QToolTip.showText(pt, message)
 
     def onpick_info(self, event):
         if not event.mouseevent.button == 1:
