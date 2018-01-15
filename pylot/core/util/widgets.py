@@ -1679,6 +1679,8 @@ class PickDlg(QDialog):
         self.deactivatePicking()
 
     def activatePicking(self):
+        self.leave_rename_phase()
+        self.renamePhaseAction.setEnabled(False)
         phase = self.currentPhase
         phaseID = self.getPhaseID(phase)
         if not phaseID:
@@ -1709,6 +1711,7 @@ class PickDlg(QDialog):
 
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
+        self.renamePhaseAction.setEnabled(True)
         self.connect_pick_delete()
         self.draw()
 
@@ -2034,7 +2037,7 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        #self.pick_block = self.togglePickBlocker()
+        #self.pick_block = self.togglPickBlocker()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2219,9 +2222,7 @@ class PickDlg(QDialog):
             except KeyError as e:
                 QtGui.QMessageBox.warning(self, 'Could not rename phase',
                                           'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
-        self.renamePhaseAction.setChecked(False)
-        self.multicompfig.set_frame_color()
-        self.multicompfig.connectEvents()
+        self.leave_rename_phase()
         self.refreshPlot()
 
     def renamePhaseInDict(self, picks, phase_old, phase_new):
@@ -2232,6 +2233,11 @@ class PickDlg(QDialog):
         if saved:
             picks.pop(phase_old)
             self.setDirty(True)
+
+    def leave_rename_phase(self):
+        self.renamePhaseAction.setChecked(False)
+        self.multicompfig.set_frame_color()
+        self.multicompfig.connectEvents()
 
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
