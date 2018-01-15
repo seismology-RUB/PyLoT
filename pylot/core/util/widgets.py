@@ -2141,7 +2141,7 @@ class PickDlg(QDialog):
     def onpick(self, event):
         if event.mouseevent.button == 1:
             self.onpick_info(event)
-        elif event.mouseevent.button == 3:
+        elif event.mouseevent.button == 2:
             self.onpick_delete(event)
 
     def on_hover_info(self, event):
