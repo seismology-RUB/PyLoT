@@ -2355,10 +2355,17 @@ class PickDlg(QDialog):
         if self.autoFilterAction.isChecked():
             self.filterActionP.setChecked(False)
             self.filterActionS.setChecked(False)
-        data = self.getWFData().copy()
-        title = self.getStation()
-        filter = self.filterActionP.isChecked() or self.filterActionS.isChecked()
-        self.plotWFData(filter=filter)
+        # data = self.getWFData().copy()
+        # title = self.getStation()
+        filter = False
+        phase = None
+        if self.filterActionP.isChecked():
+            phase = 'P'
+            filter = True
+        if self.filterActionS.isChecked():
+            phase = 'S'
+            filter = True
+        self.plotWFData(phase=phase, filter=filter)
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
