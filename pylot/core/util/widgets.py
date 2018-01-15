@@ -2027,7 +2027,7 @@ class PickDlg(QDialog):
                           network=wfdata[0].stats.network,
                           filteroptions=transformFilteroptions2String(filteroptions))
 
-        saved = self.savePick(phase, phasepicks, pick, epp, lpp)
+        saved = self.savePick(phase, phasepicks)
         if saved:
             self.setDirty(True)
 
