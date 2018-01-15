@@ -1258,6 +1258,8 @@ class PickDlg(QDialog):
         home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
         del_icon = QIcon()
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
+        sync_icon = QIcon()
+        sync_icon.addPixmap(QPixmap(':/icons/sync.png'))
 
         # create actions
         self.filterActionP = createAction(parent=self, text='Apply P Filter',
@@ -1290,6 +1292,9 @@ class PickDlg(QDialog):
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
+        self.renamePhaseAction = createAction(parent=self, text='Rename Phase',
+                                              slot=self.initRenamePhase, icon=sync_icon,
+                                              tip='Rename a Phase.', checkable=True)
 
         self.addPickPhases(menuBar)
 
@@ -1342,6 +1347,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetZoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
+        _dialtoolbar.addAction(self.renamePhaseAction)
         _dialtoolbar.addSeparator()
         if self._embedded:
             manu_label = QLabel('Manual Onsets:')
@@ -1795,6 +1801,17 @@ class PickDlg(QDialog):
         self.resetPicks()
         self.refreshPlot()
 
+    def initRenamePhase(self):
+        if self.renamePhaseAction.isChecked():
+            self.multicompfig.disconnectEvents()
+            self.multicompfig.set_frame_color('orange')
+            self.draw()
+            self.statusbar.showMessage('Click on a phase you want to rename.')
+        else:
+            self.multicompfig.set_frame_color()
+            self.multicompfig.connectEvents()
+            self.draw()
+
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
@@ -2045,6 +2062,7 @@ class PickDlg(QDialog):
         self.removePhaseText()
         self.drawPicks(picktype='manual')
         self.drawPicks(picktype='auto')
+        self.draw()
 
     def drawPicks(self, phase=None, picktype='manual', textOnly=False, picks=None):
         # plotting picks
@@ -2181,6 +2199,10 @@ class PickDlg(QDialog):
             message += ', SPE: {}'.format(pick['spe'])
         if 'filteroptions' in pick:
             message += ', FILTER: {}'.format(pick['filteroptions'])
+
+        if self.renamePhaseAction.isChecked():
+            self.renamePhase(picktype, phase)
+
         self.statusbar.showMessage(message, 10e3)
 
     def onpick_delete(self, event):
@@ -2189,6 +2211,30 @@ class PickDlg(QDialog):
         x = event.mouseevent.xdata
         self.remove_pick_by_x(x)
         self.refreshPlot()
+
+    def renamePhase(self, picktype, phase):
+        allpicks = {'manual': self.picks,
+                    'auto': self.autopicks}
+        picks = allpicks[picktype]
+        dialog = QtGui.QInputDialog(parent=self)
+        new_phase, executed = dialog.getText(self, 'Rename phase', 'Rename phase {} to:'.format(phase))
+        if executed:
+            try:
+                self.renamePhaseInDict(picks, phase, new_phase)
+            except KeyError as e:
+                QtGui.QMessageBox.warning(self, 'Could not rename phase',
+                                          'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
+        self.renamePhaseAction.setChecked(False)
+        self.multicompfig.set_frame_color()
+        self.multicompfig.connectEvents()
+        self.refreshPlot()
+
+    def renamePhaseInDict(self, picks, phase_old, phase_new):
+        if phase_new in picks:
+            raise KeyError('New phase ID already assigned.')
+        picks[phase_new] = picks[phase_old].copy()
+        picks.pop(phase_old)
+        self.setDirty(True)
 
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
