@@ -902,7 +902,7 @@ class PylotCanvas(FigureCanvas):
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0,
-                   plot_additional=False):
+                   plot_additional=False, additional_channel=None):
         ax = self.axes[0]
         ax.cla()
 
@@ -966,13 +966,19 @@ class PylotCanvas(FigureCanvas):
                                 color = linecolor,
                                 linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
-        if plot_additional:
-            pressure = wfdata.select(channel='MDO')
-            if pressure:
-                p_data = pressure[0].data
-                #normalize
-                p_max = max(abs(p_data))
-                p_data /= p_max
+        if plot_additional and additional_channel:
+            compare_stream = wfdata.select(channel=additional_channel)
+            if compare_stream:
+                trace = compare_stream[0]
+                if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                time_ax = prepTimeAxis(stime, trace)
+                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
+                p_data = compare_stream[0].data
+                # #normalize
+                # p_max = max(abs(p_data))
+                # p_data /= p_max
                 for index in range(3):
                     ax.plot(times, p_data, color='red', alpha=0.5, linewidth=0.7)
                     p_data += 1
@@ -1180,8 +1186,10 @@ class PickDlg(QDialog):
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
         self.nextStation = QtGui.QCheckBox('Continue with next station ')
-        self.additionalChannel = QtGui.QCheckBox('Additional Channel')
-        self.additionalChannel.stateChanged.connect(self.resetPlot)
+
+        # comparison channel
+        self.compareChannel = QtGui.QComboBox()
+        self.compareChannel.activated.connect(self.resetPlot)
 
         # initialize panning attributes
         self.press = None
@@ -1204,6 +1212,11 @@ class PickDlg(QDialog):
 
         self.stime, self.etime = full_range(self.getWFData())
 
+        # fill compare channels
+        self.compareChannel.addItem('', None)
+        for trace in self.getWFData():
+            self.compareChannel.addItem(trace.stats.channel, trace)
+
         # initialize plotting widget
         self.multicompfig = PylotCanvas(parent=self, multicursor=True)
         self.phaseplot = PhasePlotWidget(self)
@@ -1211,7 +1224,7 @@ class PickDlg(QDialog):
 
         # plot data
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
+                                     title=self.getStation())
 
         self.multicompfig.setZoomBorders2content()
 
@@ -1351,6 +1364,7 @@ class PickDlg(QDialog):
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
         _dialtoolbar = QToolBar()
+        _dialtoolbar.setStyleSheet('QToolBar{spacing:5px;}')
 
         # fill toolbar with content
         _dialtoolbar.addAction(self.filterActionP)
@@ -1382,7 +1396,9 @@ class PickDlg(QDialog):
                                    'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
-        _dialtoolbar.addWidget(self.additionalChannel)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
+        _dialtoolbar.addWidget(self.compareChannel)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -1915,14 +1931,15 @@ class PickDlg(QDialog):
         self.setYLims(np.array([-noiselevel * 3.5, noiselevel * 3.5]) +
                       trace_number)
         self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
+                                     title=self.getStation() +
                                               ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=(trace_number + noiselevel,
-                                                    trace_number - noiselevel),
-                                        iniPick=ini_pick,
-                                        plot_additional=self.additionalChannel.isChecked())
+                                     zoomx=self.getXLims(),
+                                     zoomy=self.getYLims(),
+                                     noiselevel=(trace_number + noiselevel,
+                                                 trace_number - noiselevel),
+                                     iniPick=ini_pick,
+                                     plot_additional=bool(self.compareChannel.currentText()),
+                                     additional_channel=self.compareChannel.currentText())
 
     def setIniPickS(self, gui_event, wfdata):
 
@@ -1984,14 +2001,15 @@ class PickDlg(QDialog):
                       [trace - 1 / (2.5 * 2) for trace in traces]
 
         self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
+                                     title=self.getStation() +
                                               ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=noiselevels,
-                                        scaleddata=True,
-                                        iniPick=ini_pick,
-                                        plot_additional=self.additionalChannel.isChecked())
+                                     zoomx=self.getXLims(),
+                                     zoomy=self.getYLims(),
+                                     noiselevel=noiselevels,
+                                     scaleddata=True,
+                                     iniPick=ini_pick,
+                                     plot_additional=bool(self.compareChannel.currentText()),
+                                     additional_channel=self.compareChannel.currentText())
 
     def setPick(self, gui_event):
 
@@ -2346,9 +2364,10 @@ class PickDlg(QDialog):
                 filtops_str = transformFilteroptions2String(filtoptions)
                 title += ' | Filteroptions: {}'.format(filtops_str)
         self.multicompfig.plotWFData(wfdata=data, title=title,
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        plot_additional=self.additionalChannel.isChecked())
+                                     zoomx=self.getXLims(),
+                                     zoomy=self.getYLims(),
+                                     plot_additional=bool(self.compareChannel.currentText()),
+                                     additional_channel=self.compareChannel.currentText())
         self.setPlotLabels()
         self.drawAllPicks()
         self.draw()
