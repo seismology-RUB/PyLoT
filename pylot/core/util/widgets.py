@@ -2094,12 +2094,12 @@ class PickDlg(QDialog):
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
                 if picks['epp']:
                     linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
-                    ax.plot([epp, epp], ylims, color=color, linestyle=linestyle_epp,
-                            linewidth=width_epp, label='{}-EPP'.format(phase))
+                    ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
+                               linewidth=width_epp, label='{}-EPP'.format(phase))
                 if picks['lpp']:
                     linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
-                    ax.plot([lpp, lpp], ylims, color=color, linestyle=linestyle_lpp,
-                            linewidth=width_lpp, label='{}-LPP'.format(phase))
+                    ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
+                               linewidth=width_lpp, label='{}-LPP'.format(phase))
                 # else:
                 #     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                 #             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
@@ -2111,8 +2111,8 @@ class PickDlg(QDialog):
             if not textOnly:
                 ax.plot(mpp, ylims[1], color=color, marker='v')
                 ax.plot(mpp, ylims[0], color=color, marker='^')
-                vl = ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                               picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
                 self.phaseLines.append(vl)
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
@@ -2920,9 +2920,9 @@ class TuneAutopicker(QWidget):
 
         y_top = 0.9 * ax.get_ylim()[1]
         y_bot = 0.9 * ax.get_ylim()[0]
-        self._manual_pick_plots.append(ax.vlines(mpp, y_bot, y_top,
-                                                 color=color, linewidth=2,
-                                                 label='manual {} Onset (quality: {})'.format(phase, quality)))
+        self._manual_pick_plots.append(ax.axvline(mpp, y_bot, y_top,
+                                                  color=color, linewidth=2,
+                                                  label='manual {} Onset (quality: {})'.format(phase, quality)))
         self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
                                                [y_bot, y_bot], linewidth=2,
                                                color=color))
