@@ -2136,7 +2136,10 @@ class PickDlg(QDialog):
     def on_motion(self, event):
         x = event.xdata
         if x is not None:
-            self.statusbar.showMessage('T = {}, t = {} [s]'.format(self.stime+x, x))
+            time_code = 'T = {}, t = {} [s]'.format(self.stime+x, x)
+            user_help = ' - Left-Click to Drag | Right-Click to Pan-Zoom |' \
+                        ' Mousewheel to Zoom | Middle-Click to Delete Pick'
+            self.statusbar.showMessage(time_code + user_help)
 
     def onpick(self, event):
         if event.mouseevent.button == 1:
@@ -2181,7 +2184,7 @@ class PickDlg(QDialog):
         self.statusbar.showMessage(message, 10e3)
 
     def onpick_delete(self, event):
-        if not event.mouseevent.button == 3:
+        if not event.mouseevent.button == 2:
             return
         x = event.mouseevent.xdata
         self.remove_pick_by_x(x)
