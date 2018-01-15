@@ -1144,6 +1144,7 @@ class PickDlg(QDialog):
         self.arrivals = []
         self.arrivalsText = []
         self.cidpick = []
+        self.cidpress = None
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -1678,7 +1679,12 @@ class PickDlg(QDialog):
 
     def activatePicking(self):
         phase = self.currentPhase
-        color = pick_color_plt('manual', self.getPhaseID(phase))
+        phaseID = self.getPhaseID(phase)
+        if not phaseID:
+            self.warn_unknown_phase(phase)
+            self.leave_picking_mode()
+            return
+        color = pick_color_plt('manual', phaseID)
         self.multicompfig.set_frame_color(color)
         self.multicompfig.set_frame_linewidth(1.5)
         if self.zoomAction.isChecked():
@@ -2020,39 +2026,27 @@ class PickDlg(QDialog):
                           network=wfdata[0].stats.network,
                           filteroptions=transformFilteroptions2String(filteroptions))
 
-        try:
-            oldphasepick = self.picks[phase]
-        except KeyError:
-            self.picks[phase] = phasepicks
-        else:
-            self.picks[phase] = phasepicks
-            oepp = oldphasepick['epp']
-            ompp = oldphasepick['mpp']
-            olpp = oldphasepick['lpp']
-            msg = """Warning old phase information for phase {phase} has been
-                     altered.\n
-                     New phase times:\n
-                     earliest possible pick: {epp}\n
-                     most probable pick: {mpp}\n
-                     latest possible pick: {lpp}\n
-                     \n
-                     Old phase times (overwritten):\n
-                     earliest possible pick: {oepp}\n
-                     most probable pick: {ompp}\n
-                     latest possible pick: {olpp}\n""".format(phase=phase,
-                                                              epp=epp,
-                                                              mpp=pick,
-                                                              lpp=lpp,
-                                                              oepp=oepp,
-                                                              ompp=ompp,
-                                                              olpp=olpp)
+        saved = self.savePick(phase, phasepicks, pick, epp, lpp)
+        if saved:
+            self.setDirty(True)
 
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
         #self.pick_block = self.togglePickBlocker()
         self.leave_picking_mode()
-        self.setDirty(True)
+
+    def savePick(self, phase, phasepicks):
+        if not self.getPhaseID(phase):
+            self.warn_unknown_phase(phase)
+            return
+
+        self.picks[phase] = phasepicks
+        return True
+
+    def warn_unknown_phase(self, phase=None):
+        QtGui.QMessageBox.warning(self, 'Unknown phase ID',
+                                  'Could not identify phase ID: {}.'.format(phase))
 
     def disconnectPressEvent(self):
         self.multicompfig.mpl_disconnect(self.cidpress)
@@ -2232,9 +2226,11 @@ class PickDlg(QDialog):
     def renamePhaseInDict(self, picks, phase_old, phase_new):
         if phase_new in picks:
             raise KeyError('New phase ID already assigned.')
-        picks[phase_new] = picks[phase_old].copy()
-        picks.pop(phase_old)
-        self.setDirty(True)
+        picks_new = picks[phase_old].copy()
+        saved = self.savePick(phase_new, picks_new)
+        if saved:
+            picks.pop(phase_old)
+            self.setDirty(True)
 
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:

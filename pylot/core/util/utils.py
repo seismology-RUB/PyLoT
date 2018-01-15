@@ -1169,6 +1169,8 @@ def identifyPhase(phase):
     # common phase suffix for P and S
     common_P = ['P', 'p', 'R']
     common_S = ['S', 's']
+    if phase is None:
+        return False
     if phase[-1] in common_P:
         return 'P'
     if phase[-1] in common_S:
