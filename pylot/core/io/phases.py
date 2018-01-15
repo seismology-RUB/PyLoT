@@ -236,7 +236,10 @@ def picksdict_from_picks(evt):
         network = pick.waveform_id.network_code
         mpp = pick.time
         spe = pick.time_errors.uncertainty
-        filter_id = backtransformFilterString(str(pick.filter_id.id))
+        if pick.filter_id:
+            filter_id = backtransformFilterString(str(pick.filter_id.id))
+        else:
+            filter_id = None
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
