@@ -1449,7 +1449,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
         _dialtoolbar.addWidget(self.compareChannel)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtGui.QLabel('Scale: '))
+        _dialtoolbar.addWidget(QtGui.QLabel('Scale by: '))
         _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
@@ -2166,6 +2166,7 @@ class PickDlg(QDialog):
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
         #self.pick_block = self.togglPickBlocker()
+        self.resetZoom()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2547,8 +2548,8 @@ class PickDlg(QDialog):
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
-        self.setXLims(self.multicompfig.getGlobalLimits(ax, 'x'))
-        self.setYLims(self.multicompfig.getGlobalLimits(ax, 'y'))
+        self.multicompfig.setXLims(ax, self.multicompfig.getGlobalLimits(ax, 'x'))
+        self.multicompfig.setYLims(ax, self.multicompfig.getGlobalLimits(ax, 'y'))
         if not self.zoomAction.isChecked():
             self.multicompfig.connectEvents()
 
