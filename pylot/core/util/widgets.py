@@ -1231,17 +1231,26 @@ class PickDlg(QDialog):
 
         self.stime, self.etime = full_range(self.getWFData())
 
+        # initialize plotting widget
+        self.multicompfig = PylotCanvas(parent=self, multicursor=True)
+        self.phaseplot = PhasePlotWidget(self)
+        self.phaseplot.hide()
+
+        # setup ui
+        self.setupUi()
+
         # fill compare and scale channels
         self.compareChannel.addItem('-', None)
         self.scaleChannel.addItem('normalized', None)
         for trace in self.getWFData():
             self.compareChannel.addItem(trace.stats.channel, trace)
             self.scaleChannel.addItem(trace.stats.channel, trace)
-
-        # initialize plotting widget
-        self.multicompfig = PylotCanvas(parent=self, multicursor=True)
-        self.phaseplot = PhasePlotWidget(self)
-        self.phaseplot.hide()
+            actionP = self.pChannels.addAction(str(trace.stats.channel))
+            actionS = self.sChannels.addAction(str(trace.stats.channel))
+            actionP.setCheckable(True)
+            actionS.setCheckable(True)
+            actionP.setChecked(self.getChannelSettingsP(trace.stats.channel))
+            actionS.setChecked(self.getChannelSettingsS(trace.stats.channel))
 
         # plot data
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
@@ -1253,9 +1262,6 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
-
-        # setup ui
-        self.setupUi()
 
         # set plot labels
         self.setPlotLabels()
@@ -1347,6 +1353,11 @@ class PickDlg(QDialog):
                                               shortcut='R')
 
         self.addPickPhases(menuBar)
+
+        self.pChannels = menuBar.addMenu('P-Channels')
+        self.sChannels = menuBar.addMenu('S-Channels')
+        self.pChannels.triggered.connect(self.updateChannelSettingsP)
+        self.sChannels.triggered.connect(self.updateChannelSettingsS)
 
         settings = QSettings()
         self.autoFilterAction.setChecked(real_Bool(settings.value('autoFilter')))
@@ -1622,6 +1633,7 @@ class PickDlg(QDialog):
         filterMenu.addAction(self.autoFilterAction)
         filterMenu.addAction(filterOptionsAction)
 
+
     def filterOptions(self):
         if self.orig_parent.adjustFilterOptions():
             phase = None
@@ -1877,6 +1889,17 @@ class PickDlg(QDialog):
             self.multicompfig.connectEvents()
             self.draw()
 
+    def getPickPhases(self, data, phase):
+        st = Stream()
+        phases = {'P': self.pChannels,
+                  'S': self.sChannels}
+        if not phase in phases.keys():
+            raise ValueError('Unknown phase ID {}'.format(phase))
+        for action in phases[phase].actions():
+            if action.isChecked():
+                st += data.select(channel=action.text())
+        return st
+
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
@@ -1921,6 +1944,12 @@ class PickDlg(QDialog):
 
         # copy data for plotting
         data = self.getWFData().copy()
+        data = self.getPickPhases(data, 'P')
+        if not data:
+            QtGui.QMessageBox.warning(self, 'No channel to plot',
+                                      'No channel to plot for phase: {}.'.format('P'))
+            self.leave_picking_mode()
+            return
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
@@ -1964,6 +1993,7 @@ class PickDlg(QDialog):
                                      zoomy=self.getYLims(),
                                      noiselevel=(trace_number + noiselevel,
                                                  trace_number - noiselevel),
+                                     scaleddata=True,
                                      iniPick=ini_pick,
                                      plot_additional=plot_additional,
                                      additional_channel=additional_channel,
@@ -1985,6 +2015,12 @@ class PickDlg(QDialog):
 
         # copy data for plotting
         data = self.getWFData().copy()
+        data = self.getPickPhases(data, 'S')
+        if not data:
+            QtGui.QMessageBox.warning(self, 'No channel to plot',
+                                      'No channel to plot for phase: {}.'.format('S'))
+            self.leave_picking_mode()
+            return
 
         # filter data and trace on which is picked prior to determination of SNR
         phase = self.currentPhase
@@ -2424,6 +2460,43 @@ class PickDlg(QDialog):
     def toggleAutoFilter(self):
         settings = QSettings()
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
+
+    def updateChannelSettingsP(self, action):
+        settings = QSettings()
+        settings.setValue('p_channel_{}'.format(action.text()), action.isChecked())
+
+    def updateChannelSettingsS(self, action):
+        settings = QSettings()
+        settings.setValue('s_channel_{}'.format(action.text()), action.isChecked())
+
+    def getChannelSettingsP(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('p_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['Z']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
+    def getChannelSettingsS(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('s_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['N', 'E']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
 
     def resetPlot(self):
         self.resetZoom()
