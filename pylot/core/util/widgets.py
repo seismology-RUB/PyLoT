@@ -899,6 +899,22 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
+    def calcPlotPositions(self, wfdata, compclass):
+        possible_plot_pos = list(range(len(wfdata)))
+        plot_positions = {}
+        for trace in wfdata:
+            comp = trace.stats.channel[-1]
+            plot_positions[trace.stats.channel] = compclass.getPlotPosition(str(comp))
+        for channel, plot_pos in plot_positions.items():
+            while not plot_pos in possible_plot_pos or not plot_pos - 1 in plot_positions.values():
+                if plot_pos == 0:
+                    break
+                plot_pos -= 1
+                if plot_pos < 0:
+                    raise Exception('Plot position lower zero. This should not happen.')
+            plot_positions[channel] = plot_pos
+        return plot_positions
+
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0,
@@ -925,9 +941,12 @@ class PylotCanvas(FigureCanvas):
         else:
             st_select = wfdata
 
-        # list containing tuples of network, station, channel (for sorting)
+        if mapping:
+            plot_positions = self.calcPlotPositions(st_select, compclass)
+
+        # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []
-        for trace in st_select:
+        for plot_pos, trace in enumerate(st_select):
             if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
                 print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
                 continue
@@ -942,9 +961,7 @@ class PylotCanvas(FigureCanvas):
             st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0].copy()
             if mapping:
-                comp = channel[-1]
-                n = compclass.getPlotPosition(str(comp))
-                # n = n[0]
+                n = plot_positions[trace.stats.channel]
             if n > nmax:
                 nmax = n
             if verbosity:
@@ -968,9 +985,9 @@ class PylotCanvas(FigureCanvas):
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
                 ax.plot(times, data, color=linecolor, linewidth=0.7)
                 if noiselevel is not None:
-                    for level in noiselevel:
+                    for level in [-noiselevel[channel], noiselevel[channel]]:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                            [level, level],
+                                [n+level, n+level],
                                 color = linecolor,
                                 linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
@@ -1945,6 +1962,7 @@ class PickDlg(QDialog):
         # copy data for plotting
         data = self.getWFData().copy()
         data = self.getPickPhases(data, 'P')
+        data.normalize(global_max=True)
         if not data:
             QtGui.QMessageBox.warning(self, 'No channel to plot',
                                       'No channel to plot for phase: {}.'.format('P'))
@@ -1963,36 +1981,41 @@ class PickDlg(QDialog):
                                              'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
-        result = getSNR(data, (noise_win, gap_win, signal_win), ini_pick - stime_diff, itrace)
 
-        snr = result[0]
-        noiselevel = result[2]
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
+        snr = []
+        noiselevels = {}
+        # determine SNR and noiselevel
+        for trace in data.traces:
+            st = data.select(channel=trace.stats.channel)
+            result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
+            snr.append(result[0])
+            noiselevel = result[2]
+            if noiselevel:
+                noiselevel *= nfac
+            else:
+                noiselevel = nfac
+            noiselevels[trace.stats.channel] = noiselevel
 
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
-
-        # remove mean noise level from waveforms
+        # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace=trace, window=inoise)
+            trace = demeanTrace(trace, inoise)
 
-        self.setXLims([ini_pick - x_res, ini_pick + x_res])
-        self.setYLims(np.array([-noiselevel * 3.5, noiselevel * 3.5]) +
-                      trace_number)
+        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
+
+        xlims = [ini_pick - x_res, ini_pick + x_res]
+        ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
+
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
         scale_channel = self.scaleChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
                                      title=self.getStation() +
                                               ' picking mode',
-                                     zoomx=self.getXLims(),
-                                     zoomy=self.getYLims(),
-                                     noiselevel=(trace_number + noiselevel,
-                                                 trace_number - noiselevel),
+                                     zoomx=xlims,
+                                     zoomy=ylims,
+                                     noiselevel=noiselevels,
                                      scaleddata=True,
                                      iniPick=ini_pick,
                                      plot_additional=plot_additional,
@@ -2016,6 +2039,7 @@ class PickDlg(QDialog):
         # copy data for plotting
         data = self.getWFData().copy()
         data = self.getPickPhases(data, 'S')
+        data.normalize(global_max=True)
         if not data:
             QtGui.QMessageBox.warning(self, 'No channel to plot',
                                       'No channel to plot for phase: {}.'.format('S'))
@@ -2034,43 +2058,42 @@ class PickDlg(QDialog):
                                              'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
-        # determine SNR and noiselevel
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
-        snr = result[0]
-        noiselevel = result[2]
+            snr = []
+            noiselevels = {}
+            # determine SNR and noiselevel
+            for trace in data.traces:
+                st = data.select(channel=trace.stats.channel)
+                result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
+                snr.append(result[0])
+                noiselevel = result[2]
+                if noiselevel:
+                    noiselevel *= nfac
+                else:
+                    noiselevel = nfac
+                noiselevels[trace.stats.channel] = noiselevel
 
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
-
-        # prepare plotting of data
-        for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace, inoise)
+            # prepare plotting of data
+            for trace in data:
+                t = prepTimeAxis(trace.stats.starttime - stime, trace)
+                inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+                trace = demeanTrace(trace, inoise)
 
         # scale waveform for plotting
-        horiz_comp = find_horizontals(data)
-        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        #horiz_comp = find_horizontals(data)
+        #data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
 
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
+        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
-        self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
-        traces = self.getTraceID(horiz_comp)
-        traces.sort()
-        self.setYLims(tuple(np.array([-1.0, +1.0]) +
-                            np.array(traces)))
-        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
-                      [trace - 1 / (2.5 * 2) for trace in traces]
+        xlims = [ini_pick - x_res, ini_pick + x_res]
+        ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
 
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
                                      title=self.getStation() +
                                               ' picking mode',
-                                     zoomx=self.getXLims(),
-                                     zoomy=self.getYLims(),
+                                     zoomx=xlims,
+                                     zoomy=ylims,
                                      noiselevel=noiselevels,
                                      scaleddata=True,
                                      iniPick=ini_pick,
@@ -2535,8 +2558,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        self.multicompfig.setXLims(ax, self.getXLims())
-        self.multicompfig.setYLims(ax, self.getYLims())
+        #self.multicompfig.setXLims(ax, self.getXLims())
+        #self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
