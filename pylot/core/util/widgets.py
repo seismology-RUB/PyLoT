@@ -1765,6 +1765,8 @@ class PickDlg(QDialog):
     def activatePicking(self):
         self.leave_rename_phase()
         self.renamePhaseAction.setEnabled(False)
+        self.compareChannel.setEnabled(False)
+        self.scaleChannel.setEnabled(False)
         phase = self.currentPhase
         phaseID = self.getPhaseID(phase)
         if not phaseID:
@@ -1796,6 +1798,8 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
         self.renamePhaseAction.setEnabled(True)
+        self.compareChannel.setEnabled(True)
+        self.scaleChannel.setEnabled(True)
         self.connect_pick_delete()
         self.draw()
 
