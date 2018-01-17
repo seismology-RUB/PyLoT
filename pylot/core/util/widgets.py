@@ -904,7 +904,11 @@ class PylotCanvas(FigureCanvas):
         plot_positions = {}
         for trace in wfdata:
             comp = trace.stats.channel[-1]
-            plot_positions[trace.stats.channel] = compclass.getPlotPosition(str(comp))
+            try:
+                position = compclass.getPlotPosition(str(comp))
+            except ValueError as e:
+                continue
+            plot_positions[trace.stats.channel] = position
         for channel, plot_pos in plot_positions.items():
             while not plot_pos in possible_plot_pos or not plot_pos - 1 in plot_positions.values():
                 if plot_pos == 0:
@@ -1259,15 +1263,20 @@ class PickDlg(QDialog):
         # fill compare and scale channels
         self.compareChannel.addItem('-', None)
         self.scaleChannel.addItem('normalized', None)
+
         for trace in self.getWFData():
-            self.compareChannel.addItem(trace.stats.channel, trace)
-            self.scaleChannel.addItem(trace.stats.channel, trace)
-            actionP = self.pChannels.addAction(str(trace.stats.channel))
-            actionS = self.sChannels.addAction(str(trace.stats.channel))
+            channel = trace.stats.channel
+            self.compareChannel.addItem(channel, trace)
+            if not channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
+                print('Skipping unknown channel for scaling: {}'.format(channel))
+                continue
+            self.scaleChannel.addItem(channel, trace)
+            actionP = self.pChannels.addAction(str(channel))
+            actionS = self.sChannels.addAction(str(channel))
             actionP.setCheckable(True)
             actionS.setCheckable(True)
-            actionP.setChecked(self.getChannelSettingsP(trace.stats.channel))
-            actionS.setChecked(self.getChannelSettingsS(trace.stats.channel))
+            actionP.setChecked(self.getChannelSettingsP(channel))
+            actionS.setChecked(self.getChannelSettingsS(channel))
 
         # plot data
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
