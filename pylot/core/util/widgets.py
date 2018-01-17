@@ -1921,6 +1921,12 @@ class PickDlg(QDialog):
                 st += data.select(channel=action.text())
         return st
 
+    def calcNoiseScaleFactor(self, noiselevel, zoomfactor=5., norm=1):
+        # calculate factor to upscale a trace normed to 'norm' in a way that all values
+        # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
+        scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
+        return scaleFactor
+
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
@@ -1955,18 +1961,13 @@ class PickDlg(QDialog):
         noise_win = twins[0]
         gap_win = twins[1]
         signal_win = twins[2]
-        itrace = int(trace_number)
-
-        while itrace > len(wfdata) - 1:
-            itrace -= 1
 
         stime = self.getStartTime()
-        stime_diff = wfdata[itrace].stats.starttime - stime
 
         # copy data for plotting
         data = self.getWFData().copy()
         data = self.getPickPhases(data, 'P')
-        data.normalize(global_max=True)
+        data.normalize()
         if not data:
             QtGui.QMessageBox.warning(self, 'No channel to plot',
                                       'No channel to plot for phase: {}.'.format('P'))
@@ -1985,12 +1986,12 @@ class PickDlg(QDialog):
                                              'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
-
         snr = []
         noiselevels = {}
         # determine SNR and noiselevel
         for trace in data.traces:
             st = data.select(channel=trace.stats.channel)
+            stime_diff = trace.stats.starttime - stime
             result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
             snr.append(result[0])
             noiselevel = result[2]
@@ -2005,6 +2006,12 @@ class PickDlg(QDialog):
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
+            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
+            channel = trace.stats.channel
+            noiselevel = noiselevels[channel]
+            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
+            trace.data *= noiseScaleFactor
+            noiselevels[channel] *= noiseScaleFactor
 
         x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
@@ -2013,7 +2020,6 @@ class PickDlg(QDialog):
 
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
-        scale_channel = self.scaleChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
                                      title=self.getStation() +
                                               ' picking mode',
@@ -2023,8 +2029,7 @@ class PickDlg(QDialog):
                                      scaleddata=True,
                                      iniPick=ini_pick,
                                      plot_additional=plot_additional,
-                                     additional_channel=additional_channel,
-                                     scaleToChannel=scale_channel)
+                                     additional_channel=additional_channel)
 
     def setIniPickS(self, gui_event, wfdata):
 
@@ -2038,12 +2043,11 @@ class PickDlg(QDialog):
         signal_win = twins[2]
 
         stime = self.getStartTime()
-        stime_diff = wfdata[0].stats.starttime - stime
 
         # copy data for plotting
         data = self.getWFData().copy()
         data = self.getPickPhases(data, 'S')
-        data.normalize(global_max=True)
+        data.normalize()
         if not data:
             QtGui.QMessageBox.warning(self, 'No channel to plot',
                                       'No channel to plot for phase: {}.'.format('S'))
@@ -2062,29 +2066,32 @@ class PickDlg(QDialog):
                                              'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
-            snr = []
-            noiselevels = {}
-            # determine SNR and noiselevel
-            for trace in data.traces:
-                st = data.select(channel=trace.stats.channel)
-                result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
-                snr.append(result[0])
-                noiselevel = result[2]
-                if noiselevel:
-                    noiselevel *= nfac
-                else:
-                    noiselevel = nfac
-                noiselevels[trace.stats.channel] = noiselevel
+        snr = []
+        noiselevels = {}
+        # determine SNR and noiselevel
+        for trace in data.traces:
+            st = data.select(channel=trace.stats.channel)
+            stime_diff = trace.stats.starttime - stime
+            result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
+            snr.append(result[0])
+            noiselevel = result[2]
+            if noiselevel:
+                noiselevel *= nfac
+            else:
+                noiselevel = nfac
+            noiselevels[trace.stats.channel] = noiselevel
 
-            # prepare plotting of data
-            for trace in data:
-                t = prepTimeAxis(trace.stats.starttime - stime, trace)
-                inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-                trace = demeanTrace(trace, inoise)
-
-        # scale waveform for plotting
-        #horiz_comp = find_horizontals(data)
-        #data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        # prepare plotting of data
+        for trace in data:
+            t = prepTimeAxis(trace.stats.starttime - stime, trace)
+            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+            trace = demeanTrace(trace, inoise)
+            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
+            channel = trace.stats.channel
+            noiselevel = noiselevels[channel]
+            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
+            trace.data *= noiseScaleFactor
+            noiselevels[channel] *= noiseScaleFactor
 
         x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
