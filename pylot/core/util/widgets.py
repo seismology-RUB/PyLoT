@@ -1948,6 +1948,14 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
+    def currentFilterPhase(self):
+        filterphase = None
+        if self.filterActionP.isChecked():
+            filterphase = 'P'
+        elif self.filterActionS.isChecked():
+            filterphase = 'S'
+        return filterphase
+
     def setIniPickP(self, gui_event):
         self.setIniPickPS(gui_event, phase='P')
 
@@ -1984,8 +1992,9 @@ class PickDlg(QDialog):
             return
 
         # filter data and trace on which is picked prior to determination of SNR
-        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
-        if filteroptions:
+        filterphase = self.currentFilterPhase()
+        if filterphase:
+            filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
             try:
                 data.filter(**filteroptions)
                 #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
@@ -2049,12 +2058,14 @@ class PickDlg(QDialog):
         # setting pick
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
+        # TODO: channel ID not correct when calcPlotPositions altered positions?
 
         # get name of phase actually picked
         phase = self.currentPhase
 
         # get filter parameter for the phase to be picked
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+        filterphase = self.currentFilterPhase()
+        filteroptions = self.getFilterOptions(self.getPhaseID(filterphase)).parseFilterOptions()
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
@@ -2067,6 +2078,7 @@ class PickDlg(QDialog):
                 self.qmb.show()
 
         # get earliest and latest possible pick and symmetric pick error
+        # TODO: Hardcoded channel 3 for Z!
         if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
             nfac = parameter.get('nfacP')
             TSNR = parameter.get('tsnrz')
