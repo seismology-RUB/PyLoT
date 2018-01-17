@@ -1960,7 +1960,7 @@ class PickDlg(QDialog):
         self.setIniPickPS(gui_event, phase='P')
 
     def setIniPickS(self, gui_event):
-        self.setIniPickPS(gui_event, phase='P')
+        self.setIniPickPS(gui_event, phase='S')
 
     def setIniPickPS(self, gui_event, phase):
         phase = self.getPhaseID(phase)
