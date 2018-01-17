@@ -2009,7 +2009,7 @@ class MainWindow(QMainWindow):
         if self._shift:
             factor = {'up': 1. / 2.,
                       'down': 2.}
-            xlims = self.dataPlot.getXLims()
+            xlims = self.dataPlot.getXLims(self.dataPlot.axes[0])
             xdiff = xlims[1] - xlims[0]
             xdiff *= factor[button]
             xl = x - 0.5 * xdiff
@@ -2018,7 +2018,7 @@ class MainWindow(QMainWindow):
                 xl = self._max_xlims[0]
             if xr > self._max_xlims[1]:
                 xr = self._max_xlims[1]
-            self.dataPlot.setXLims((xl, xr))
+            self.dataPlot.setXLims(self.dataPlot.axes[0], (xl, xr))
             self.dataPlot.draw()
 
     def pickOnStation(self, gui_event):
@@ -2393,7 +2393,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             pw = self.getPlotWidget().plotWidget
         else:
-            ax = self.getPlotWidget().axes
+            ax = self.getPlotWidget().axes[0]
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
@@ -2463,7 +2463,7 @@ class MainWindow(QMainWindow):
             else:
                 if picktype == 'manual':
                     linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                    color = pick_color_plt(picktype, phase, quality)
+                    color = pick_color_plt(picktype, self.getPhaseID(phase), quality)
                     if picks['epp'] and picks['lpp']:
                         ax.fill_between([epp, lpp], ylims[0], ylims[1],
                                         alpha=.25, color=color, label='EPP, LPP')
