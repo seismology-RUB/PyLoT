@@ -1931,19 +1931,16 @@ class PickDlg(QDialog):
         self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
 
-        channel = self.getChannelID(trace_number)
-        wfdata = self.selectWFData(channel)
-
         self.multicompfig.disconnectEvents()
         self.disconnectPressEvent()
         self.cidpress = self.multicompfig.connectPressEvent(self.setPick)
 
         if self.getPhaseID(self.currentPhase) == 'P':
             self.set_button_border_color(self.p_button, 'green')
-            self.setIniPickP(gui_event, wfdata, trace_number)
+            self.setIniPickP(gui_event)
         elif self.getPhaseID(self.currentPhase) == 'S':
             self.set_button_border_color(self.s_button, 'green')
-            self.setIniPickS(gui_event, wfdata)
+            self.setIniPickS(gui_event)
 
         self.zoomAction.setEnabled(False)
 
@@ -1951,13 +1948,25 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
-    def setIniPickP(self, gui_event, wfdata, trace_number):
+    def setIniPickP(self, gui_event):
+        self.setIniPickPS(gui_event, phase='P')
+
+    def setIniPickS(self, gui_event):
+        self.setIniPickPS(gui_event, phase='P')
+
+    def setIniPickPS(self, gui_event, phase):
+        phase = self.getPhaseID(phase)
+
+        nfac_phase = {'P': 'nfacP',
+                      'S': 'nfacS'}
+        twins_phase = {'P': 'tsnrz',
+                       'S': 'tsnrh'}
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
 
-        nfac = parameter.get('nfacP')
-        twins = parameter.get('tsnrz')
+        nfac = parameter.get(nfac_phase[phase])
+        twins = parameter.get(twins_phase[phase])
         noise_win = twins[0]
         gap_win = twins[1]
         signal_win = twins[2]
@@ -1966,24 +1975,23 @@ class PickDlg(QDialog):
 
         # copy data for plotting
         data = self.getWFData().copy()
-        data = self.getPickPhases(data, 'P')
+        data = self.getPickPhases(data, phase)
         data.normalize()
         if not data:
             QtGui.QMessageBox.warning(self, 'No channel to plot',
-                                      'No channel to plot for phase: {}.'.format('P'))
+                                      'No channel to plot for phase: {}.'.format(phase))
             self.leave_picking_mode()
             return
 
         # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+        filteroptions = self.getFilterOptions(phase).parseFilterOptions()
         if filteroptions:
             try:
                 data.filter(**filteroptions)
                 #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
+                                             'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
                 self.qmb.show()
 
         snr = []
@@ -2017,86 +2025,6 @@ class PickDlg(QDialog):
 
         xlims = [ini_pick - x_res, ini_pick + x_res]
         ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
-
-        plot_additional = bool(self.compareChannel.currentText())
-        additional_channel = self.compareChannel.currentText()
-        self.multicompfig.plotWFData(wfdata=data,
-                                     title=self.getStation() +
-                                              ' picking mode',
-                                     zoomx=xlims,
-                                     zoomy=ylims,
-                                     noiselevel=noiselevels,
-                                     scaleddata=True,
-                                     iniPick=ini_pick,
-                                     plot_additional=plot_additional,
-                                     additional_channel=additional_channel)
-
-    def setIniPickS(self, gui_event, wfdata):
-
-        parameter = self.parameter
-        ini_pick = gui_event.xdata
-
-        nfac = parameter.get('nfacS')
-        twins = parameter.get('tsnrh')
-        noise_win = twins[0]
-        gap_win = twins[1]
-        signal_win = twins[2]
-
-        stime = self.getStartTime()
-
-        # copy data for plotting
-        data = self.getWFData().copy()
-        data = self.getPickPhases(data, 'S')
-        data.normalize()
-        if not data:
-            QtGui.QMessageBox.warning(self, 'No channel to plot',
-                                      'No channel to plot for phase: {}.'.format('S'))
-            self.leave_picking_mode()
-            return
-
-        # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if filteroptions:
-            try:
-                data.filter(**filteroptions)
-                #wfdata.filter(**filteroptions) MP MP as above
-            except ValueError as e:
-                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
-                self.qmb.show()
-
-        snr = []
-        noiselevels = {}
-        # determine SNR and noiselevel
-        for trace in data.traces:
-            st = data.select(channel=trace.stats.channel)
-            stime_diff = trace.stats.starttime - stime
-            result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
-            snr.append(result[0])
-            noiselevel = result[2]
-            if noiselevel:
-                noiselevel *= nfac
-            else:
-                noiselevel = nfac
-            noiselevels[trace.stats.channel] = noiselevel
-
-        # prepare plotting of data
-        for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace, inoise)
-            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
-            channel = trace.stats.channel
-            noiselevel = noiselevels[channel]
-            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
-            trace.data *= noiseScaleFactor
-            noiselevels[channel] *= noiseScaleFactor
-
-        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
-
-        xlims = [ini_pick - x_res, ini_pick + x_res]
-        ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
 
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
