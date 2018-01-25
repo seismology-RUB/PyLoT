@@ -977,7 +977,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 dip = blockette_.dip
                 azimut = blockette_.azimuth
                 break
-            if dip is None or azimut is None:
+            if (dip is None or azimut is None) or (dip == 0 and azimut == 0):
                 error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
                 raise ValueError(error_msg)
             return dip, azimut
