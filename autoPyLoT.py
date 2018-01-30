@@ -498,7 +498,7 @@ if __name__ == "__main__":
                         help='''full path to the file containing the input
                         parameters for autoPyLoT''')
     parser.add_argument('-p', '-P', '--iplot', type=int, 
-                        action='store',
+                        action='store', default=0,
                         help='''optional, logical variable for plotting: 0=none, 1=partial, 2=all''') 
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
