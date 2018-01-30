@@ -292,6 +292,8 @@ class MainWindow(QMainWindow):
         locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
         compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
+        qualities_icon = QIcon()
+        qualities_icon.addPixmap(QPixmap(':/icons/pick_qualities_button.png'))
         self.newProjectAction = self.createAction(self, "&New project ...",
                                                   self.createNewProject,
                                                   QKeySequence.New, newIcon,
@@ -416,6 +418,10 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
+        self.qualities_action = self.createAction(parent=self, text='&Qualities of picks...',
+                                                slot=self.pickQualities, shortcut='Alt+Q',
+                                                icon=qualities_icon, tip='Histogram of pick qualities')
+        self.qualities_action.setEnabled(False)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
@@ -486,7 +492,7 @@ class MainWindow(QMainWindow):
                                                ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
-        pickActions = (self.auto_tune, self.auto_pick, self.compare_action)
+        pickActions = (self.auto_tune, self.auto_pick, self.compare_action, self.qualities_action)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -1379,6 +1385,9 @@ class MainWindow(QMainWindow):
         self.cmpw.refresh_tooltips()
         self.cmpw.show()
 
+    def pickQualities(self):
+        return
+
     def compareMulti(self):
         if not self.compareoptions:
             return
@@ -1700,8 +1709,10 @@ class MainWindow(QMainWindow):
         if event.pylot_picks:
             self.drawPicks(picktype='manual')
             self.locateEvent.setEnabled(True)
+            self.qualities_action.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
+            self.qualities_action.setEnabled(True)
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
