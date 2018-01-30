@@ -217,13 +217,6 @@ class AICPicker(AutoPicker):
                     self.Pick = self.Tcf[i]
                     break
 
-    def calcPick(self):
-        """
-        Calculate pick using cf derived from AIC
-        :return:
-        :rtype: None
-        """
-        # quality assessment using SNR and slope from CF
         if self.Pick is not None:
             # get noise window
             inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
