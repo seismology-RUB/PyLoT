@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
-        self.qualities_action = self.createAction(parent=self, text='&Qualities of picks...',
+        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...', 
                                                 slot=self.pickQualities, shortcut='Alt+Q',
                                                 icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
