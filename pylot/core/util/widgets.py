@@ -899,9 +899,30 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
+    def calcPlotPositions(self, wfdata, compclass):
+        possible_plot_pos = list(range(len(wfdata)))
+        plot_positions = {}
+        for trace in wfdata:
+            comp = trace.stats.channel[-1]
+            try:
+                position = compclass.getPlotPosition(str(comp))
+            except ValueError as e:
+                continue
+            plot_positions[trace.stats.channel] = position
+        for channel, plot_pos in plot_positions.items():
+            while not plot_pos in possible_plot_pos or not plot_pos - 1 in plot_positions.values():
+                if plot_pos == 0:
+                    break
+                plot_pos -= 1
+                if plot_pos < 0:
+                    raise Exception('Plot position lower zero. This should not happen.')
+            plot_positions[channel] = plot_pos
+        return plot_positions
+
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0,
+                   plot_additional=False, additional_channel=None, scaleToChannel=None):
         ax = self.axes[0]
         ax.cla()
 
@@ -924,9 +945,12 @@ class PylotCanvas(FigureCanvas):
         else:
             st_select = wfdata
 
-        # list containing tuples of network, station, channel (for sorting)
+        if mapping:
+            plot_positions = self.calcPlotPositions(st_select, compclass)
+
+        # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []
-        for trace in st_select:
+        for plot_pos, trace in enumerate(st_select):
             if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
                 print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
                 continue
@@ -939,11 +963,9 @@ class PylotCanvas(FigureCanvas):
 
         for n, (network, station, channel) in enumerate(nsc):
             st = st_select.select(network=network, station=station, channel=channel)
-            trace = st[0]
+            trace = st[0].copy()
             if mapping:
-                comp = channel[-1]
-                n = compclass.getPlotPosition(str(comp))
-                # n = n[0]
+                n = plot_positions[trace.stats.channel]
             if n > nmax:
                 nmax = n
             if verbosity:
@@ -952,19 +974,52 @@ class PylotCanvas(FigureCanvas):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
+                if scaleToChannel:
+                    st_scale = wfdata.select(channel=scaleToChannel)
+                    if st_scale:
+                        tr = st_scale[0]
+                        trace.detrend('constant')
+                        trace.normalize(np.max(np.abs(tr.data)) * 2)
+                        scaleddata = True
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
+
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
+                ax.axhline(n, color="0.5", lw=0.5)
                 ax.plot(times, data, color=linecolor, linewidth=0.7)
                 if noiselevel is not None:
-                    for level in noiselevel:
+                    for level in [-noiselevel[channel], noiselevel[channel]]:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                            [level, level],
+                                [n+level, n+level],
                                 color = linecolor,
                                 linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
+        if plot_additional and additional_channel:
+            compare_stream = wfdata.select(channel=additional_channel)
+            if compare_stream:
+                trace = compare_stream[0]
+                if scaleToChannel:
+                    st_scale = wfdata.select(channel=scaleToChannel)
+                    if st_scale:
+                        tr = st_scale[0]
+                        trace.detrend('constant')
+                        trace.normalize(np.max(np.abs(tr.data)) * 2)
+                        scaleddata = True
+                if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                time_ax = prepTimeAxis(stime, trace)
+                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
+                p_data = compare_stream[0].data
+                # #normalize
+                # p_max = max(abs(p_data))
+                # p_data /= p_max
+                for index in range(3):
+                    ax.plot(times, p_data, color='red', alpha=0.5, linewidth=0.7)
+                    p_data += 1
+
         if iniPick:
             ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
                       colors='m', linestyles='dashed',
@@ -1169,6 +1224,14 @@ class PickDlg(QDialog):
         self.pick_block = False
         self.nextStation = QtGui.QCheckBox('Continue with next station ')
 
+        # comparison channel
+        self.compareChannel = QtGui.QComboBox()
+        self.compareChannel.activated.connect(self.resetPlot)
+
+        # scale channel
+        self.scaleChannel = QtGui.QComboBox()
+        self.scaleChannel.activated.connect(self.resetPlot)
+
         # initialize panning attributes
         self.press = None
         self.xpress = None
@@ -1195,9 +1258,30 @@ class PickDlg(QDialog):
         self.phaseplot = PhasePlotWidget(self)
         self.phaseplot.hide()
 
+        # setup ui
+        self.setupUi()
+
+        # fill compare and scale channels
+        self.compareChannel.addItem('-', None)
+        self.scaleChannel.addItem('normalized', None)
+
+        for trace in self.getWFData():
+            channel = trace.stats.channel
+            self.compareChannel.addItem(channel, trace)
+            if not channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
+                print('Skipping unknown channel for scaling: {}'.format(channel))
+                continue
+            self.scaleChannel.addItem(channel, trace)
+            actionP = self.pChannels.addAction(str(channel))
+            actionS = self.sChannels.addAction(str(channel))
+            actionP.setCheckable(True)
+            actionS.setCheckable(True)
+            actionP.setChecked(self.getChannelSettingsP(channel))
+            actionS.setChecked(self.getChannelSettingsS(channel))
+
         # plot data
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
+                                     title=self.getStation())
 
         self.multicompfig.setZoomBorders2content()
 
@@ -1205,9 +1289,6 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
-
-        # setup ui
-        self.setupUi()
 
         # set plot labels
         self.setPlotLabels()
@@ -1300,6 +1381,11 @@ class PickDlg(QDialog):
 
         self.addPickPhases(menuBar)
 
+        self.pChannels = menuBar.addMenu('P-Channels')
+        self.sChannels = menuBar.addMenu('S-Channels')
+        self.pChannels.triggered.connect(self.updateChannelSettingsP)
+        self.sChannels.triggered.connect(self.updateChannelSettingsS)
+
         settings = QSettings()
         self.autoFilterAction.setChecked(real_Bool(settings.value('autoFilter')))
 
@@ -1337,6 +1423,7 @@ class PickDlg(QDialog):
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
         _dialtoolbar = QToolBar()
+        _dialtoolbar.setStyleSheet('QToolBar{spacing:5px;}')
 
         # fill toolbar with content
         _dialtoolbar.addAction(self.filterActionP)
@@ -1368,6 +1455,12 @@ class PickDlg(QDialog):
                                    'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
+        _dialtoolbar.addWidget(self.compareChannel)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtGui.QLabel('Scale by: '))
+        _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
@@ -1567,6 +1660,7 @@ class PickDlg(QDialog):
         filterMenu.addAction(self.autoFilterAction)
         filterMenu.addAction(filterOptionsAction)
 
+
     def filterOptions(self):
         if self.orig_parent.adjustFilterOptions():
             phase = None
@@ -1681,6 +1775,8 @@ class PickDlg(QDialog):
     def activatePicking(self):
         self.leave_rename_phase()
         self.renamePhaseAction.setEnabled(False)
+        self.compareChannel.setEnabled(False)
+        self.scaleChannel.setEnabled(False)
         phase = self.currentPhase
         phaseID = self.getPhaseID(phase)
         if not phaseID:
@@ -1712,6 +1808,8 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
         self.renamePhaseAction.setEnabled(True)
+        self.compareChannel.setEnabled(True)
+        self.scaleChannel.setEnabled(True)
         self.connect_pick_delete()
         self.draw()
 
@@ -1822,12 +1920,26 @@ class PickDlg(QDialog):
             self.multicompfig.connectEvents()
             self.draw()
 
+    def getPickPhases(self, data, phase):
+        st = Stream()
+        phases = {'P': self.pChannels,
+                  'S': self.sChannels}
+        if not phase in phases.keys():
+            raise ValueError('Unknown phase ID {}'.format(phase))
+        for action in phases[phase].actions():
+            if action.isChecked():
+                st += data.select(channel=action.text())
+        return st
+
+    def calcNoiseScaleFactor(self, noiselevel, zoomfactor=5., norm=1):
+        # calculate factor to upscale a trace normed to 'norm' in a way that all values
+        # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
+        scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
+        return scaleFactor
+
     def setIniPick(self, gui_event):
         self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
-
-        channel = self.getChannelID(trace_number)
-        wfdata = self.selectWFData(channel)
 
         self.multicompfig.disconnectEvents()
         self.disconnectPressEvent()
@@ -1835,10 +1947,10 @@ class PickDlg(QDialog):
 
         if self.getPhaseID(self.currentPhase) == 'P':
             self.set_button_border_color(self.p_button, 'green')
-            self.setIniPickP(gui_event, wfdata, trace_number)
+            self.setIniPickP(gui_event)
         elif self.getPhaseID(self.currentPhase) == 'S':
             self.set_button_border_color(self.s_button, 'green')
-            self.setIniPickS(gui_event, wfdata)
+            self.setIniPickS(gui_event)
 
         self.zoomAction.setEnabled(False)
 
@@ -1846,135 +1958,105 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
-    def setIniPickP(self, gui_event, wfdata, trace_number):
+    def currentFilterPhase(self):
+        filterphase = None
+        if self.filterActionP.isChecked():
+            filterphase = 'P'
+        elif self.filterActionS.isChecked():
+            filterphase = 'S'
+        return filterphase
+
+    def setIniPickP(self, gui_event):
+        self.setIniPickPS(gui_event, phase='P')
+
+    def setIniPickS(self, gui_event):
+        self.setIniPickPS(gui_event, phase='S')
+
+    def setIniPickPS(self, gui_event, phase):
+        phase = self.getPhaseID(phase)
+
+        nfac_phase = {'P': 'nfacP',
+                      'S': 'nfacS'}
+        twins_phase = {'P': 'tsnrz',
+                       'S': 'tsnrh'}
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
 
-        nfac = parameter.get('nfacP')
-        twins = parameter.get('tsnrz')
+        nfac = parameter.get(nfac_phase[phase])
+        twins = parameter.get(twins_phase[phase])
         noise_win = twins[0]
         gap_win = twins[1]
         signal_win = twins[2]
-        itrace = int(trace_number)
-
-        while itrace > len(wfdata) - 1:
-            itrace -= 1
 
         stime = self.getStartTime()
-        stime_diff = wfdata[itrace].stats.starttime - stime
 
         # copy data for plotting
         data = self.getWFData().copy()
+        data = self.getPickPhases(data, phase)
+        data.normalize()
+        if not data:
+            QtGui.QMessageBox.warning(self, 'No channel to plot',
+                                      'No channel to plot for phase: {}.'.format(phase))
+            self.leave_picking_mode()
+            return
 
         # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if filteroptions:
+        filterphase = self.currentFilterPhase()
+        if filterphase:
+            filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
             try:
                 data.filter(**filteroptions)
                 #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
+                                             'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
                 self.qmb.show()
 
-        result = getSNR(data, (noise_win, gap_win, signal_win), ini_pick - stime_diff, itrace)
-
-        snr = result[0]
-        noiselevel = result[2]
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
-
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
-
-        # remove mean noise level from waveforms
-        for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace=trace, window=inoise)
-
-        self.setXLims([ini_pick - x_res, ini_pick + x_res])
-        self.setYLims(np.array([-noiselevel * 3.5, noiselevel * 3.5]) +
-                      trace_number)
-        self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
-                                              ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=(trace_number + noiselevel,
-                                                    trace_number - noiselevel),
-                                        iniPick=ini_pick)
-
-    def setIniPickS(self, gui_event, wfdata):
-
-        parameter = self.parameter
-        ini_pick = gui_event.xdata
-
-        nfac = parameter.get('nfacS')
-        twins = parameter.get('tsnrh')
-        noise_win = twins[0]
-        gap_win = twins[1]
-        signal_win = twins[2]
-
-        stime = self.getStartTime()
-        stime_diff = wfdata[0].stats.starttime - stime
-
-        # copy data for plotting
-        data = self.getWFData().copy()
-
-        # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if filteroptions:
-            try:
-                data.filter(**filteroptions)
-                #wfdata.filter(**filteroptions) MP MP as above
-            except ValueError as e:
-                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
-                self.qmb.show()
-
+        snr = []
+        noiselevels = {}
         # determine SNR and noiselevel
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
-        snr = result[0]
-        noiselevel = result[2]
-
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
+        for trace in data.traces:
+            st = data.select(channel=trace.stats.channel)
+            stime_diff = trace.stats.starttime - stime
+            result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
+            snr.append(result[0])
+            noiselevel = result[2]
+            if noiselevel:
+                noiselevel *= nfac
+            else:
+                noiselevel = nfac
+            noiselevels[trace.stats.channel] = noiselevel
 
         # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
+            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
+            channel = trace.stats.channel
+            noiselevel = noiselevels[channel]
+            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
+            trace.data *= noiseScaleFactor
+            noiselevels[channel] *= noiseScaleFactor
 
-        # scale waveform for plotting
-        horiz_comp = find_horizontals(data)
-        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
+        xlims = [ini_pick - x_res, ini_pick + x_res]
+        ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
 
-        self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
-        traces = self.getTraceID(horiz_comp)
-        traces.sort()
-        self.setYLims(tuple(np.array([-1.0, +1.0]) +
-                            np.array(traces)))
-        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
-                      [trace - 1 / (2.5 * 2) for trace in traces]
-
+        plot_additional = bool(self.compareChannel.currentText())
+        additional_channel = self.compareChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
+                                     title=self.getStation() +
                                               ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=noiselevels,
-                                        scaleddata=True,
-                                        iniPick=ini_pick)
+                                     zoomx=xlims,
+                                     zoomy=ylims,
+                                     noiselevel=noiselevels,
+                                     scaleddata=True,
+                                     iniPick=ini_pick,
+                                     plot_additional=plot_additional,
+                                     additional_channel=additional_channel)
 
     def setPick(self, gui_event):
 
@@ -1986,12 +2068,14 @@ class PickDlg(QDialog):
         # setting pick
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
+        # TODO: channel ID not correct when calcPlotPositions altered positions?
 
         # get name of phase actually picked
         phase = self.currentPhase
 
         # get filter parameter for the phase to be picked
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+        filterphase = self.currentFilterPhase()
+        filteroptions = self.getFilterOptions(self.getPhaseID(filterphase)).parseFilterOptions()
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
@@ -2004,6 +2088,7 @@ class PickDlg(QDialog):
                 self.qmb.show()
 
         # get earliest and latest possible pick and symmetric pick error
+        # TODO: Hardcoded channel 3 for Z!
         if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
             nfac = parameter.get('nfacP')
             TSNR = parameter.get('tsnrz')
@@ -2038,6 +2123,7 @@ class PickDlg(QDialog):
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
         #self.pick_block = self.togglPickBlocker()
+        self.resetZoom()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2328,9 +2414,16 @@ class PickDlg(QDialog):
                 data.filter(**filtoptions)
                 filtops_str = transformFilteroptions2String(filtoptions)
                 title += ' | Filteroptions: {}'.format(filtops_str)
+
+        plot_additional = bool(self.compareChannel.currentText())
+        additional_channel = self.compareChannel.currentText()
+        scale_channel = self.scaleChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data, title=title,
                                      zoomx=self.getXLims(),
-                                     zoomy=self.getYLims())
+                                     zoomy=self.getYLims(),
+                                     plot_additional=plot_additional,
+                                     additional_channel=additional_channel,
+                                     scaleToChannel=scale_channel)
         self.setPlotLabels()
         self.drawAllPicks()
         self.draw()
@@ -2352,6 +2445,43 @@ class PickDlg(QDialog):
     def toggleAutoFilter(self):
         settings = QSettings()
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
+
+    def updateChannelSettingsP(self, action):
+        settings = QSettings()
+        settings.setValue('p_channel_{}'.format(action.text()), action.isChecked())
+
+    def updateChannelSettingsS(self, action):
+        settings = QSettings()
+        settings.setValue('s_channel_{}'.format(action.text()), action.isChecked())
+
+    def getChannelSettingsP(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('p_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['Z']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
+    def getChannelSettingsS(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('s_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['N', 'E']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
 
     def resetPlot(self):
         self.resetZoom()
@@ -2375,8 +2505,8 @@ class PickDlg(QDialog):
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
-        self.setXLims(self.multicompfig.getGlobalLimits(ax, 'x'))
-        self.setYLims(self.multicompfig.getGlobalLimits(ax, 'y'))
+        self.multicompfig.setXLims(ax, self.multicompfig.getGlobalLimits(ax, 'x'))
+        self.multicompfig.setYLims(ax, self.multicompfig.getGlobalLimits(ax, 'y'))
         if not self.zoomAction.isChecked():
             self.multicompfig.connectEvents()
 
@@ -2390,8 +2520,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        self.multicompfig.setXLims(ax, self.getXLims())
-        self.multicompfig.setYLims(ax, self.getYLims())
+        #self.multicompfig.setXLims(ax, self.getXLims())
+        #self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
