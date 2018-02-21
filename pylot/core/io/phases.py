@@ -255,10 +255,15 @@ def picksdict_from_picks(evt):
             lpp = mpp + pick.time_errors.upper_uncertainty
             epp = mpp - pick.time_errors.lower_uncertainty
         except TypeError as e:
-            msg = e + ',\n falling back to symmetric uncertainties'
+            if not spe:
+                msg = 'No uncertainties found for pick: {}. Uncertainty set to 0'.format(pick)
+                lpp = mpp
+                epp = mpp
+            else:
+                msg = str(e) + ',\n falling back to symmetric uncertainties'
+                lpp = mpp + spe
+                epp = mpp - spe
             warnings.warn(msg)
-            lpp = mpp + spe
-            epp = mpp - spe
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp

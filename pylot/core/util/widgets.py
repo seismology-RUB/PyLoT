@@ -987,6 +987,7 @@ class PylotCanvas(FigureCanvas):
 
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
+                ax.axhline(n, color="0.5", lw=0.5)
                 ax.plot(times, data, color=linecolor, linewidth=0.7)
                 if noiselevel is not None:
                     for level in [-noiselevel[channel], noiselevel[channel]]:
