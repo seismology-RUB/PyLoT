@@ -4541,12 +4541,17 @@ class FilterOptionsDialog(QDialog):
                          'S': self.filterOptionWidgets['S'].getFilterOptions()}
         return filteroptions
 
+    def isComparable(self):
+        return {phase: fltOptWid.comparable for (phase, fltOptWid) in self.filterOptionWidgets.items()}
+
 
 class FilterOptionsWidget(QWidget):
     def __init__(self, filterOptions, filterOptionsAuto):
         super(FilterOptionsWidget, self).__init__()
         self.filterOptions = filterOptions
         self.filterOptionsAuto = filterOptionsAuto
+
+        self.comparable = None
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -4576,15 +4581,11 @@ class FilterOptionsWidget(QWidget):
         #         self.freqmaxSpinBox.setValue(
         #             self.getFilterOptions().getFreq()[1])
         # else:
-        try:
-            self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
-        except TypeError as e:
-            print(e)
-            self.freqmaxSpinBox.setValue(1.)
-            self.freqminSpinBox.setValue(.1)
 
-        typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+        self.typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+
+        self.resetButton = QPushButton('Reset')
+        self.resetButton.setToolTip('Reset filter settings to settings for automatic picking.')
 
         self.orderLabel = QLabel()
         self.orderLabel.setText("Order:")
@@ -4594,8 +4595,7 @@ class FilterOptionsWidget(QWidget):
         self.selectTypeLabel = QLabel()
         self.selectTypeLabel.setText("Select filter type:")
         self.selectTypeCombo = QComboBox()
-        self.selectTypeCombo.addItems(typeOptions)
-        self.selectTypeCombo.setCurrentIndex(typeOptions.index(self.getFilterOptions().getFilterType()))
+        self.selectTypeCombo.addItems(self.typeOptions)
 
         self.autoOrder = QLabel('{}')
         self.autoType = QLabel('{}')
@@ -4628,17 +4628,16 @@ class FilterOptionsWidget(QWidget):
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        try:
-            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
-        except:
-            self.orderSpinBox.setValue(2)
-
         grid = QGridLayout()
-        grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
-        grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
+        grid.addWidget(self.freqGroupBox, 0, 0)
+        grid.addLayout(self.selectTypeLayout, 1, 0)
+        grid.addWidget(self.resetButton, 2, 0)
 
         self.setLayout(grid)
 
+        self.setMFtoWidget()
+
+        self.resetButton.clicked.connect(self.setManuToAuto)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
         self.orderSpinBox.valueChanged.connect(self.checkAutoManu)
@@ -4648,7 +4647,7 @@ class FilterOptionsWidget(QWidget):
         self.checkAutoManu()
 
     def checkAutoManu(self):
-        self.updateManuOptions()
+        self.updateMFfromWidget()
 
         manuFilter = self.filterOptions
         autoFilter = self.filterOptionsAuto
@@ -4665,20 +4664,46 @@ class FilterOptionsWidget(QWidget):
                        'freqmin': manuFilter.getFreq()[0],
                        'freqmax': manuFilter.getFreq()[1]}
 
+        comparable = []
+
         for key, label in labels.items():
             text = label.text().format(autoOptions[key])
             label.setText(text)
-            if autoOptions[key] == manuOptions[key]:
+            isEqual = autoOptions[key] == manuOptions[key]
+            if isEqual:
                 label.setStyleSheet('color: green')
             else:
                 label.setStyleSheet('color: red')
+            comparable.append(isEqual)
 
-    def updateManuOptions(self):
+        self.comparable = all(comparable)
+
+    def setMFtoWidget(self):
+        self.selectTypeCombo.setCurrentIndex(self.typeOptions.index(self.getFilterOptions().getFilterType()))
+        try:
+            freqmin, freqmax = self.filterOptions.getFreq()
+            self.freqminSpinBox.setValue(freqmin)
+            self.freqmaxSpinBox.setValue(freqmax)
+        except TypeError as e:
+            print(e)
+            self.freqmaxSpinBox.setValue(1.)
+            self.freqminSpinBox.setValue(.1)
+        try:
+            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
+        except:
+            self.orderSpinBox.setValue(2)
+
+    def updateMFfromWidget(self):
         type = self.selectTypeCombo.currentText()
         freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
         self.filterOptions.setFilterType(type)
         self.filterOptions.setFreq(freq)
         self.filterOptions.setOrder(self.orderSpinBox.value())
+
+    def setManuToAuto(self):
+        self.filterOptions = copy.deepcopy(self.filterOptionsAuto)
+        self.setMFtoWidget()
+        self.updateUi()
 
     def checkMin(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
@@ -4723,7 +4748,7 @@ class FilterOptionsWidget(QWidget):
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
 
-        self.updateManuOptions()
+        self.updateMFfromWidget()
 
     def getFilterOptions(self):
         return self.filterOptions
