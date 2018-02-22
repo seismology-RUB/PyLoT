@@ -1891,7 +1891,7 @@ class MainWindow(QMainWindow):
             print('autoPickParameter: No filter options for phase {}.'.format(phase))
             return
         freqmin, freqmax = self._inputs.get(filtername[phase])
-        filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=3)
+        filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
         return filteroptions
 
     def adjustFilterOptions(self):
