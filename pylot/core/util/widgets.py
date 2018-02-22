@@ -4684,19 +4684,22 @@ class FilterOptionsWidget(QWidget):
         self.comparable = all(comparable)
 
     def setMFtoWidget(self):
-        self.selectTypeCombo.setCurrentIndex(self.typeOptions.index(self.getFilterOptions().getFilterType()))
         try:
             freqmin, freqmax = self.filterOptions.getFreq()
-            self.freqminSpinBox.setValue(freqmin)
-            self.freqmaxSpinBox.setValue(freqmax)
         except TypeError as e:
             print(e)
-            self.freqmaxSpinBox.setValue(1.)
-            self.freqminSpinBox.setValue(.1)
+            freqmin, freqmax = (0.1, 1.0)
         try:
-            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
-        except:
-            self.orderSpinBox.setValue(2)
+            order = self.getFilterOptions().getOrder()
+        except TypeError as e:
+            print(e)
+            order = 4
+        ftype = self.getFilterOptions().getFilterType()
+
+        self.selectTypeCombo.setCurrentIndex(self.typeOptions.index(ftype))
+        self.freqminSpinBox.setValue(freqmin)
+        self.freqmaxSpinBox.setValue(freqmax)
+        self.orderSpinBox.setValue(order)
 
     def updateMFfromWidget(self):
         type = self.selectTypeCombo.currentText()
