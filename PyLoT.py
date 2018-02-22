@@ -194,15 +194,8 @@ class MainWindow(QMainWindow):
         # setup UI
         self.setupUi()
 
-        filter_info = readFilterInformation(self._inputs)
-        p_filter = filter_info['P']
-        s_filter = filter_info['S']
-        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
-                                                 p_filter['freq'],
-                                                 p_filter['order']),
-                              'S': FilterOptions(s_filter['filtertype'],
-                                                 s_filter['freq'],
-                                                 s_filter['order'])}
+        self.updateFilteroptions()
+
         self.loc = False
 
     def setupUi(self):
@@ -793,6 +786,17 @@ class MainWindow(QMainWindow):
     @metadata.setter
     def metadata(self, value):
         self._metadata = value
+
+    def updateFilteroptions(self):
+        filter_info = readFilterInformation(self._inputs)
+        p_filter = filter_info['P']
+        s_filter = filter_info['S']
+        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
+                                                 p_filter['freq'],
+                                                 p_filter['order']),
+                              'S': FilterOptions(s_filter['filtertype'],
+                                                 s_filter['freq'],
+                                                 s_filter['order'])}
 
     def updateFileMenu(self):
 
@@ -3026,6 +3030,7 @@ class MainWindow(QMainWindow):
             if hasattr(self.project, 'parameter'):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
+                    self.updateFilteroptions()
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)

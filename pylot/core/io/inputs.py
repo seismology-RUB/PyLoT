@@ -441,7 +441,7 @@ class FilterOptions(object):
         if self:
             robject = {'type': self.getFilterType(),
                        'corners': self.getOrder(),
-                       'zerophase': True}
+                       'zerophase': False}
             if not self.getFilterType() in ['highpass', 'lowpass']:
                 robject['freqmin'] = self.getFreq()[0]
                 robject['freqmax'] = self.getFreq()[1]
