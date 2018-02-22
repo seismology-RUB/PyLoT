@@ -49,7 +49,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, real_Bool, pick_color
+    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -1847,12 +1847,19 @@ class PickDlg(QDialog):
     def getUser(self):
         return self._user
 
-    def getFilterOptions(self, phase):
-        options = self.filteroptions[self.getPhaseID(phase)]
-        if type(options) == dict:
-            return FilterOptions(**options)
+    def getFilterOptions(self, phase, gui_filter=False):
+        settings = QSettings()
+        phaseID = self.getPhaseID(phase)
+
+        if real_Bool(settings.value('useGuiFilter')) or gui_filter:
+            filteroptions = self.filteroptions[phaseID]
         else:
-            return options
+            filteroptions = getAutoFilteroptions(phaseID, self.parameter).parseFilterOptions()
+
+        if type(filteroptions) == dict:
+            return FilterOptions(**filteroptions)
+        else:
+            return filteroptions
 
     def getXLims(self):
         return self.cur_xlim
@@ -2045,11 +2052,15 @@ class PickDlg(QDialog):
         xlims = [ini_pick - x_res, ini_pick + x_res]
         ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
 
+        title = self.getStation() + ' picking mode'
+        if filterphase:
+            filtops_str = transformFilteroptions2String(filteroptions)
+            title += ' | Filteroptions: {}'.format(filtops_str)
+
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
-                                     title=self.getStation() +
-                                              ' picking mode',
+                                     title=title,
                                      zoomx=xlims,
                                      zoomy=ylims,
                                      noiselevel=noiselevels,
@@ -2075,7 +2086,7 @@ class PickDlg(QDialog):
 
         # get filter parameter for the phase to be picked
         filterphase = self.currentFilterPhase()
-        filteroptions = self.getFilterOptions(self.getPhaseID(filterphase)).parseFilterOptions()
+        filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
@@ -2401,7 +2412,7 @@ class PickDlg(QDialog):
         if filter:
             filtoptions = None
             if phase:
-                filtoptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+                filtoptions = self.getFilterOptions(self.getPhaseID(phase), gui_filter=True).parseFilterOptions()
 
             # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
             #     if not phase:
@@ -4480,8 +4491,8 @@ class FilterOptionsDialog(QDialog):
                                   'S': FilterOptions()}
 
         self.setWindowTitle(titleString)
-        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoPickFilter('P')),
-                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoPickFilter('S'))}
+        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
+                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
         self.setupUi()
         self.updateUi()
         self.connectButtons()
@@ -4491,6 +4502,14 @@ class FilterOptionsDialog(QDialog):
         self.filter_layout = QtGui.QHBoxLayout()
         self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
                            'S': QtGui.QGroupBox('S Filter')}
+
+        settings = QSettings()
+        overwriteFilter = real_Bool(settings.value('useGuiFilter'))
+
+        self.overwriteFilterCheckbox = QCheckBox('Overwrite filteroptions')
+        self.overwriteFilterCheckbox.setToolTip('Overwrite filter settings for refined pick with GUI settings')
+        self.overwriteFilterCheckbox.setChecked(overwriteFilter)
+        self.overwriteFilterCheckbox.clicked.connect(self.toggleFilterOverwrite)
 
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Cancel)
@@ -4504,8 +4523,24 @@ class FilterOptionsDialog(QDialog):
             box_layout.addWidget(self.filterOptionWidgets[phase])
 
         self.main_layout.addLayout(self.filter_layout)
+        self.main_layout.addWidget(self.overwriteFilterCheckbox)
         self.main_layout.addWidget(self.buttonBox)
         self.setLayout(self.main_layout)
+
+    def toggleFilterOverwrite(self):
+        if self.overwriteFilterCheckbox.isChecked():
+            qmb = QMessageBox(self, icon=QMessageBox.Warning,
+                              text='Warning: Overwriting automatic filter settings'
+                                   ' for final pick will contaminate comparability'
+                                   ' of automatic and manual picks! Continue?')
+            qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            qmb.setDefaultButton(QMessageBox.Yes)
+            ret = qmb.exec_()
+            if not ret == qmb.Yes:
+                self.overwriteFilterCheckbox.setChecked(False)
+
+        settings = QSettings()
+        settings.setValue('useGuiFilter', self.overwriteFilterCheckbox.isChecked())
 
     def connectButtons(self):
         self.buttonBox.accepted.connect(self.accept)

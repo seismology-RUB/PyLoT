@@ -75,7 +75,7 @@ from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str
+    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -182,6 +182,8 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
         if settings.value('compclass', None) is None:
             settings.setValue('compclass', SetChannelComponents())
+        if settings.value('useGuiFilter') is None:
+            settings.setValue('useGuiFilter', False)
         if settings.value('output/Format', None) is None:
             outformat = QInputDialog.getText(self,
                                              "Enter output format (*.xml, *.cnv, *.obs):",
@@ -1888,15 +1890,8 @@ class MainWindow(QMainWindow):
                 #self.drawPicks()
                 #self.draw()
 
-    def getAutoPickFilter(self, phase):
-        filtername = {'P': 'bpz2',
-                      'S': 'bph2'}
-        if not phase in filtername.keys():
-            print('autoPickParameter: No filter options for phase {}.'.format(phase))
-            return
-        freqmin, freqmax = self._inputs.get(filtername[phase])
-        filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
-        return filteroptions
+    def getAutoFilteroptions(self, phase):
+        return getAutoFilteroptions(phase, self._inputs)
 
     def adjustFilterOptions(self):
         fstring = "Filter Options"

@@ -13,7 +13,7 @@ from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
-from pylot.core.io.inputs import PylotParameter
+from pylot.core.io.inputs import PylotParameter, FilterOptions
 from pylot.styles import style_settings
 
 from scipy.interpolate import splrep, splev
@@ -31,6 +31,15 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+def getAutoFilteroptions(phase, parameter):
+    filtername = {'P': 'bpz2',
+                  'S': 'bph2'}
+    if not phase in filtername.keys():
+        print('autoPickParameter: No filter options for phase {}.'.format(phase))
+        return
+    freqmin, freqmax = parameter.get(filtername[phase])
+    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
+    return filteroptions
 
 def readDefaultFilterInformation(fname):
     """
