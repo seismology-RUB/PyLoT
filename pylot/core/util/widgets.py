@@ -2016,6 +2016,7 @@ class PickDlg(QDialog):
         if filterphase:
             filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
             try:
+                data.detrend('linear')
                 data.filter(**filteroptions)
                 #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
@@ -2095,6 +2096,7 @@ class PickDlg(QDialog):
         wfdata = self.getWFData().copy().select(channel=channel)
         if filteroptions:
             try:
+                wfdata.detrend('linear')
                 wfdata.filter(**filteroptions)
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
