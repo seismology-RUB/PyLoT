@@ -1884,6 +1884,16 @@ class MainWindow(QMainWindow):
                 #self.drawPicks()
                 #self.draw()
 
+    def getAutoPickFilter(self, phase):
+        filtername = {'P': 'bpz2',
+                      'S': 'bph2'}
+        if not phase in filtername.keys():
+            print('autoPickParameter: No filter options for phase {}.'.format(phase))
+            return
+        freqmin, freqmax = self._inputs.get(filtername[phase])
+        filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=3)
+        return filteroptions
+
     def adjustFilterOptions(self):
         fstring = "Filter Options"
         self.filterDlg = FilterOptionsDialog(titleString=fstring,

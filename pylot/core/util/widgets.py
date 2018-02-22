@@ -4470,7 +4470,7 @@ class FilterOptionsDialog(QDialog):
         PyLoT widget FilterOptionsDialog is a QDialog object. It is an UI to
         adjust parameters for filtering seismic data.
         """
-        super(FilterOptionsDialog, self).__init__()
+        super(FilterOptionsDialog, self).__init__(parent)
         if parent is not None and parent.getFilters():
             self.filterOptions = parent.getFilters()
         # elif filterOptions is not None:
@@ -4480,8 +4480,8 @@ class FilterOptionsDialog(QDialog):
                                   'S': FilterOptions()}
 
         self.setWindowTitle(titleString)
-        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P']),
-                                    'S': FilterOptionsWidget(self.filterOptions['S'])}
+        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoPickFilter('P')),
+                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoPickFilter('S'))}
         self.setupUi()
         self.updateUi()
         self.connectButtons()
@@ -4495,13 +4495,13 @@ class FilterOptionsDialog(QDialog):
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Cancel)
 
-        for key in ['P', 'S']:
-            groupbox = self.groupBoxes[key]
+        for phase in ['P', 'S']:
+            groupbox = self.groupBoxes[phase]
             box_layout = QtGui.QVBoxLayout()
             groupbox.setLayout(box_layout)
 
             self.filter_layout.addWidget(groupbox)
-            box_layout.addWidget(self.filterOptionWidgets[key])
+            box_layout.addWidget(self.filterOptionWidgets[phase])
 
         self.main_layout.addLayout(self.filter_layout)
         self.main_layout.addWidget(self.buttonBox)
@@ -4543,9 +4543,10 @@ class FilterOptionsDialog(QDialog):
 
 
 class FilterOptionsWidget(QWidget):
-    def __init__(self, filterOptions):
+    def __init__(self, filterOptions, filterOptionsAuto):
         super(FilterOptionsWidget, self).__init__()
         self.filterOptions = filterOptions
+        self.filterOptionsAuto = filterOptionsAuto
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -4595,18 +4596,34 @@ class FilterOptionsWidget(QWidget):
         self.selectTypeCombo = QComboBox()
         self.selectTypeCombo.addItems(typeOptions)
         self.selectTypeCombo.setCurrentIndex(typeOptions.index(self.getFilterOptions().getFilterType()))
-        self.selectTypeLayout = QVBoxLayout()
-        self.selectTypeLayout.addWidget(self.orderLabel)
-        self.selectTypeLayout.addWidget(self.orderSpinBox)
-        self.selectTypeLayout.addWidget(self.selectTypeLabel)
-        self.selectTypeLayout.addWidget(self.selectTypeCombo)
+
+        self.autoOrder = QLabel('{}')
+        self.autoType = QLabel('{}')
+
+        self.selectTypeLayout = QGridLayout()
+        self.selectTypeLayout.addWidget(self.orderLabel, 0, 0)
+        self.selectTypeLayout.addWidget(self.orderSpinBox, 1, 0)
+        self.selectTypeLayout.addWidget(self.autoOrder, 1, 1)
+        self.selectTypeLayout.addWidget(self.selectTypeLabel, 2, 0)
+        self.selectTypeLayout.addWidget(self.selectTypeCombo, 3, 0)
+        self.selectTypeLayout.addWidget(self.autoType, 3, 1)
+        self.selectTypeLayout.setColumnStretch(0, 1)
+        self.selectTypeLayout.setColumnStretch(1, 1)
+
+        self.autoMinFreq = QLabel('{} Hz')
+        self.autoMaxFreq = QLabel('{} Hz')
 
         self.freqGroupBox = QGroupBox("Frequency range")
         self.freqGroupLayout = QGridLayout()
         self.freqGroupLayout.addWidget(self.freqminLabel, 0, 0)
         self.freqGroupLayout.addWidget(self.freqminSpinBox, 0, 1)
+        self.freqGroupLayout.addWidget(self.autoMinFreq, 0, 2)
         self.freqGroupLayout.addWidget(self.freqmaxLabel, 1, 0)
         self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
+        self.freqGroupLayout.addWidget(self.autoMaxFreq, 1, 2)
+        self.freqGroupLayout.setColumnStretch(0, 1)
+        self.freqGroupLayout.setColumnStretch(1, 1)
+        self.freqGroupLayout.setColumnStretch(2, 1)
         self.freqGroupBox.setLayout(self.freqGroupLayout)
 
         self.freqmaxSpinBox.setEnabled(_enable)
@@ -4624,6 +4641,44 @@ class FilterOptionsWidget(QWidget):
 
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
+        self.orderSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.selectTypeCombo.currentIndexChanged.connect(self.checkAutoManu)
+        self.freqminSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.freqmaxSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.checkAutoManu()
+
+    def checkAutoManu(self):
+        self.updateManuOptions()
+
+        manuFilter = self.filterOptions
+        autoFilter = self.filterOptionsAuto
+        labels = {'order': self.autoOrder,
+                  'type': self.autoType,
+                  'freqmin': self.autoMinFreq,
+                  'freqmax': self.autoMaxFreq}
+        autoOptions = {'order': autoFilter.getOrder(),
+                       'type': autoFilter.getFilterType(),
+                       'freqmin': autoFilter.getFreq()[0],
+                       'freqmax': autoFilter.getFreq()[1]}
+        manuOptions = {'order': manuFilter.getOrder(),
+                       'type': manuFilter.getFilterType(),
+                       'freqmin': manuFilter.getFreq()[0],
+                       'freqmax': manuFilter.getFreq()[1]}
+
+        for key, label in labels.items():
+            text = label.text().format(autoOptions[key])
+            label.setText(text)
+            if autoOptions[key] == manuOptions[key]:
+                label.setStyleSheet('color: green')
+            else:
+                label.setStyleSheet('color: red')
+
+    def updateManuOptions(self):
+        type = self.selectTypeCombo.currentText()
+        freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
+        self.filterOptions.setFilterType(type)
+        self.filterOptions.setFreq(freq)
+        self.filterOptions.setOrder(self.orderSpinBox.value())
 
     def checkMin(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
@@ -4668,9 +4723,7 @@ class FilterOptionsWidget(QWidget):
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
 
-        self.getFilterOptions().setFilterType(type)
-        self.getFilterOptions().setFreq(freq)
-        self.getFilterOptions().setOrder(self.orderSpinBox.value())
+        self.updateManuOptions()
 
     def getFilterOptions(self):
         return self.filterOptions
