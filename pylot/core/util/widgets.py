@@ -1854,10 +1854,13 @@ class PickDlg(QDialog):
         if real_Bool(settings.value('useGuiFilter')) or gui_filter:
             filteroptions = self.filteroptions[phaseID]
         else:
-            filteroptions = getAutoFilteroptions(phaseID, self.parameter).parseFilterOptions()
+            filteroptions = getAutoFilteroptions(phaseID, self.parameter)
 
         if type(filteroptions) == dict:
-            return FilterOptions(**filteroptions)
+            freq = [filteroptions['freqmin'], filteroptions['freqmax']]
+            order = filteroptions['corners']
+            filtertype = filteroptions['type']
+            return FilterOptions(filtertype=filtertype, freq=freq, order=order)
         else:
             return filteroptions
 
@@ -4744,7 +4747,9 @@ class FilterOptionsWidget(QWidget):
         self.filterOptions.setOrder(self.orderSpinBox.value())
 
     def setManuToAuto(self):
-        self.filterOptions = copy.deepcopy(self.filterOptionsAuto)
+        self.filterOptions.setOrder(self.filterOptionsAuto.getOrder())
+        self.filterOptions.setFilterType(self.filterOptionsAuto.getFilterType())
+        self.filterOptions.setFreq(self.filterOptionsAuto.getFreq())
         self.setMFtoWidget()
         self.updateUi()
 
