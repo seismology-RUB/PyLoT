@@ -1195,7 +1195,7 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
-        self.phaseLines = []
+        self.phaseLines = {}
         self.arrivals = []
         self.arrivalsText = []
         self.cidpick = []
@@ -1769,6 +1769,7 @@ class PickDlg(QDialog):
         self.currentPhase = None
         self.reset_p_button()
         self.reset_s_button()
+        self.resetZoom()
         self.refreshPlot()
         self.deactivatePicking()
 
@@ -2139,7 +2140,7 @@ class PickDlg(QDialog):
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
         #self.pick_block = self.togglPickBlocker()
-        self.resetZoom()
+        #self.resetZoom()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2206,7 +2207,7 @@ class PickDlg(QDialog):
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
                 vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                                 label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
-                self.phaseLines.append(vl)
+                self.phaseLines[phase] = vl
                 if spe:
                     ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
@@ -2231,7 +2232,7 @@ class PickDlg(QDialog):
                 ax.plot(mpp, ylims[0], color=color, marker='^')
                 vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                                 picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
-                self.phaseLines.append(vl)
+                self.phaseLines[phase] = vl
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
         else:
@@ -2266,12 +2267,14 @@ class PickDlg(QDialog):
             self.onpick_delete(event)
 
     def on_hover_info(self, event):
-        if not any([phase.contains(event)[0] for phase in self.phaseLines]):
+        if not any([phase.contains(event)[0] for phase in self.phaseLines.values()]):
             return
         x = event.xdata
         if not x:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
         if 'mpp' in pick:
@@ -2291,6 +2294,8 @@ class PickDlg(QDialog):
             return
         x = event.mouseevent.xdata
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
         if 'mpp' in pick:
@@ -2333,6 +2338,7 @@ class PickDlg(QDialog):
         picks_new = picks[phase_old].copy()
         saved = self.savePick(phase_new, picks_new)
         if saved:
+            self.phaseLines[phase_new] = self.phaseLines.pop(phase_old)
             picks.pop(phase_old)
             self.setDirty(True)
 
@@ -2345,8 +2351,13 @@ class PickDlg(QDialog):
         if not self.picks and not self.autopicks:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
         # delete the value from corresponding dictionary
         allpicks[picktype].pop(phase)
+        # delete line from vlines dictionary
+        if phase in self.phaseLines.keys():
+            del(self.phaseLines[phase])
         # information output
         msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
         print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
@@ -2355,6 +2366,7 @@ class PickDlg(QDialog):
     def identify_selected_picks(self, x):
         # init empty list and get stat5ion starttime
         X = []
+        pick_rel = phase = picktype = None
         starttime = self.getStartTime()
         # init dictionaries to iterate through and iterate over them
         allpicks = {'manual': self.picks,
@@ -2367,10 +2379,11 @@ class PickDlg(QDialog):
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index
                 X.append((pick_rel, phase, picktype))
-        # find index and value closest to x
-        index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
-        # unpack the found value
-        pick_rel, phase, picktype = X[index]
+        if len(X) > 0:
+            # find index and value closest to x
+            index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
+            # unpack the found value
+            pick_rel, phase, picktype = X[index]
         return allpicks, pick_rel, phase, picktype
 
 
