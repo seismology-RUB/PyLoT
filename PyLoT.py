@@ -1138,7 +1138,7 @@ class MainWindow(QMainWindow):
         Initiate GUI widgets in case of changed or newly added events.
         '''
         nitems = self.eventBox.count()
-        if len(self.project.eventlist) == 0:
+        if len(self.project.eventlist) == 0 or not self.data_check():
             print('No events to init.')
             self.clearWaveformDataPlot()
             return
@@ -1150,6 +1150,17 @@ class MainWindow(QMainWindow):
             self.eventBox.setCurrentIndex(nitems)
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
+
+    def data_check(self):
+        paths_exist = [os.path.exists(event.path) for event in self.project.eventlist]
+        if all(paths_exist):
+            return True
+        else:
+            info_str = ''
+            for event, path_exists in zip(self.project.eventlist, paths_exist):
+                info_str += '\n{} exists: {}'.format(event.path, path_exists)
+            print('Unable to find certain event paths:{}'.format(info_str))
+            return False
 
     def fill_eventbox(self, event=None, eventBox=None, select_events='all'):
         '''
