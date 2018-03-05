@@ -3087,7 +3087,7 @@ class TuneAutopicker(QWidget):
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
-        if not picks:
+        if not picks or not 'P' in picks or not 'S' in picks:
             return
         for plotitem in self._manual_pick_plots:
             self.clear_plotitem(plotitem)
