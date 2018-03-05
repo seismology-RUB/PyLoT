@@ -1138,9 +1138,16 @@ class MainWindow(QMainWindow):
         Initiate GUI widgets in case of changed or newly added events.
         '''
         nitems = self.eventBox.count()
-        if len(self.project.eventlist) == 0 or not self.data_check():
+        is_data = self.data_check()
+        if len(self.project.eventlist) == 0 or not is_data:
             print('No events to init.')
             self.clearWaveformDataPlot()
+            if not is_data:
+                new_path, modifypath = self.user_modify_path('Event folders not found! ')
+                if modifypath:
+                    self.modify_project_path(new_path)
+                    self.init_events(True)
+                    self.setDirty(True)
             return
         self.eventBox.setEnabled(True)
         self.fill_eventbox()
@@ -1150,6 +1157,12 @@ class MainWindow(QMainWindow):
             self.eventBox.setCurrentIndex(nitems)
         self.refreshEvents()
         tabindex = self.tabs.currentIndex()
+
+    def user_modify_path(self, reason=''):
+        dialog = QtGui.QInputDialog(parent=self)
+        new_path, executed = dialog.getText(self, 'Change Project rootpath',
+                                             '{}Rename project path {}:'.format(reason, self.project.rootpath))
+        return new_path, executed
 
     def data_check(self):
         paths_exist = [os.path.exists(event.path) for event in self.project.eventlist]
@@ -1161,6 +1174,14 @@ class MainWindow(QMainWindow):
                 info_str += '\n{} exists: {}'.format(event.path, path_exists)
             print('Unable to find certain event paths:{}'.format(info_str))
             return False
+
+    def modify_project_path(self, new_rootpath):
+        self.project.rootpath = new_rootpath
+        for event in self.project.eventlist:
+            event.rootpath = new_rootpath
+            event.path = os.path.join(event.rootpath, event.datapath, event.database, event.pylot_id)
+            event.path = event.path.replace('\\', '/')
+            event.path = event.path.replace('//', '/')
 
     def fill_eventbox(self, event=None, eventBox=None, select_events='all'):
         '''
