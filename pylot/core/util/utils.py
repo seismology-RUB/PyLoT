@@ -13,7 +13,7 @@ from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
-from pylot.core.io.inputs import PylotParameter
+from pylot.core.io.inputs import PylotParameter, FilterOptions
 from pylot.styles import style_settings
 
 from scipy.interpolate import splrep, splev
@@ -31,13 +31,36 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+def getAutoFilteroptions(phase, parameter):
+    filtername = {'P': 'bpz2',
+                  'S': 'bph2'}
+    if not phase in filtername.keys():
+        print('autoPickParameter: No filter options for phase {}.'.format(phase))
+        return
+    freqmin, freqmax = parameter.get(filtername[phase])
+    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
+    return filteroptions
 
 def readDefaultFilterInformation(fname):
+    """
+    Read default filter information from pylot.in file
+    :param fname: path to pylot.in file
+    :type fname: str
+    :return: dictionary containing the defailt filter information
+    :rtype: dict
+    """
     pparam = PylotParameter(fname)
     return readFilterInformation(pparam)
 
 
 def readFilterInformation(pylot_parameter):
+    """
+    Read filter information from PylotParameter object into a dictionary
+    :param pylot_parameter: PylotParameter object
+    :type pylot_parameter: `~pylot.pylot.core.io.inputs.PylotParameter`
+    :return: dictionary containing the filter information
+    :rtype: dict
+    """
     p_filter = {'filtertype': pylot_parameter['filter_type'][0],
                 'freq': [pylot_parameter['minfreq'][0], pylot_parameter['maxfreq'][0]],
                 'order': int(pylot_parameter['filter_order'][0])}
@@ -50,23 +73,46 @@ def readFilterInformation(pylot_parameter):
 
 
 def fit_curve(x, y):
+    """
+
+    :param x: data points defining a curve y = f(x)
+    :type x: array_like
+    :param y: data points defining a curve y = f(x)
+    :type y: array_like
+    :return: tuple containing a function to evaluate a B-spline and
+    (the vector of knots, B-spline coefficients, degree of the spline)
+    :rtype: (func, (t, c, k))
+    """
     return splev, splrep(x, y)
 
 
 def getindexbounds(f, eta):
-    mi = f.argmax()
-    m = max(f)
-    b = m * eta
-    l = find_nearest(f[:mi], b)
-    u = find_nearest(f[mi:], b) + mi
+    """
+    Get indices of values closest below and above maximum value in an array
+    :param f: array
+    :type f: `~numpy.ndarray`
+    :param eta: look for value in array that is closes to max_value * eta
+    :type eta: float
+    :return: tuple containing index of max value, index of value closest below max value,
+     index of value closest above max value
+    :rtype: (int, int, int)
+    """
+    mi = f.argmax()  # get indices of max values
+    m = max(f)  # get maximum value
+    b = m * eta  #
+    l = find_nearest(f[:mi], b)  # find closest value below max value
+    u = find_nearest(f[mi:], b) + mi  # find closest value above max value
     return mi, l, u
 
 
 def gen_Pool(ncores=0):
-    '''
+    """
+    Generate mulitprocessing pool object utilizing ncores amount of cores
     :param ncores: number of CPU cores for multiprocessing.Pool, if ncores == 0 use all available
+    :type ncores: int
     :return: multiprocessing.Pool object
-    '''
+    :rtype: `~multiprocessing.Pool`
+    """
     import multiprocessing
 
     if ncores == 0:
@@ -79,14 +125,19 @@ def gen_Pool(ncores=0):
 
 
 def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
-    '''
+    """
     takes PyLoT picks dictionary and returns a new dictionary with certain classes excluded.
     :param picks: PyLoT picks dictionary
+    :type picks: dict
     :param qClasses: list (or int) of quality classes (0-4) to exclude
-    :param timeerrorsP: time errors for classes (0-4) for P
-    :param timeerrorsS: time errors for classes (0-4) for S
-    :return: new picks dictionary
-    '''
+    :type qClasses: [int]
+    :param timeerrorsP: width of quality classes for P onsets in seconds
+    :type timeerrorsP: (float, float, float, float)
+    :param timeerrorsS: width of quality classes for S onsets in seconds
+    :type timeerrorsS: (float, float, float, float])
+    :return: dictionary containing only picks above the excluded quality class(es)
+    :rtype: dict
+    """
     from pylot.core.pick.utils import getQualityFromUncertainty
 
     if type(qClasses) in [int, float]:
@@ -114,9 +165,12 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
 def clims(lim1, lim2):
     """
     takes two pairs of limits and returns one pair of common limts
-    :param lim1:
-    :param lim2:
-    :return:
+    :param lim1: limit 1
+    :type lim1: int
+    :param lim2: limit 2
+    :type lim2: int
+    :return: new upper and lower limit common to both given limits
+    :rtype: [int, int]
 
     >>> clims([0, 4], [1, 3])
     [0, 4]
@@ -155,7 +209,7 @@ def demeanTrace(trace, window):
     demeaned within a certain time window
     :param trace: waveform trace object
     :type trace: `~obspy.core.stream.Trace`
-    :param window:
+    :param window: time window whitin which data is demeaned
     :type window: tuple
     :return: trace
     :rtype: `~obspy.core.stream.Trace`
@@ -182,8 +236,11 @@ def find_in_list(list, str):
     takes a list of strings and a string and returns the first list item
     matching the string pattern
     :param list: list to search in
+    :type list: list
     :param str: pattern to search for
+    :type str: str
     :return: first list item containing pattern
+    :rtype: str
 
     .. example::
 
@@ -208,13 +265,15 @@ def find_in_list(list, str):
 
 
 def find_nearest(array, value):
-    '''
+    """
     function find_nearest takes an array and a value and returns the
     index of the nearest value found in the array
     :param array: array containing values
     :type array: `~numpy.ndarray`
     :param value: number searched for
+    :type value: float
     :return: index of the array item being nearest to the value
+    :rtype: int
 
     >>> a = np.array([ 1.80339578, -0.72546654,  0.95769195, -0.98320759, 0.85922623])
     >>> find_nearest(a, 1.3)
@@ -228,17 +287,18 @@ def find_nearest(array, value):
     >>> a = np.array([ 1.1, -0.7,  0.9, -0.9, 0.8])
     >>> find_nearest(a, 0.849)
     4
-    '''
+    """
     return (np.abs(array - value)).argmin()
 
 
 def fnConstructor(s):
-    '''
+    """
     takes a string and returns a valid filename (especially on windows machines)
     :param s: desired filename
     :type s: str
     :return: valid filename
-    '''
+    :rtype: str
+    """
     if type(s) is str:
         s = s.split(':')[-1]
     else:
@@ -255,6 +315,13 @@ def fnConstructor(s):
 
 
 def real_None(value):
+    """
+    Convert "None" to None
+    :param value:
+    :type value: str, bool
+    :return:
+    :rtype: bool
+    """
     if value == 'None':
         return None
     else:
@@ -262,9 +329,16 @@ def real_None(value):
 
 
 def real_Bool(value):
-    if value == 'True':
+    """
+    Convert string representations of bools to their true boolean value
+    :param value:
+    :type value: str, bool
+    :return: true boolean value
+    :rtype: bool
+    """
+    if value in ['True', 'true']:
         return True
-    elif value == 'False':
+    elif value in ['False', 'false']:
         return False
     else:
         return value
@@ -276,7 +350,8 @@ def four_digits(year):
     from the last 100 years
     :param year: two digit year
     :type year: int
-    :return: four digit year correspondant
+    :return: four digit year correspondent
+    :rtype: int
 
     >>> four_digits(20)
     1920
@@ -293,13 +368,13 @@ def four_digits(year):
 
 
 def common_range(stream):
-    '''
-    takes a stream object and returns the earliest end and the latest start
-    time of all contained trace objects
-    :param stream: seismological data stream
+    """
+    takes a stream object and returns the earliest end and the latest start time of all contained trace objects
+    :param stream:  seismological data stream
     :type stream: `~obspy.core.stream.Stream`
     :return: maximum start time and minimum end time
-    '''
+    :rtype: (`~maximum start time and minimum end time`, maximum start time and minimum end time)
+    """
     max_start = None
     min_end = None
     for trace in stream:
@@ -311,51 +386,82 @@ def common_range(stream):
 
 
 def full_range(stream):
-    '''
+    """
     takes a stream object and returns the latest end and the earliest start
     time of all contained trace objects
     :param stream: seismological data stream
     :type stream: `~obspy.core.stream.Stream`
     :return: minimum start time and maximum end time
-    '''
-    min_start = UTCDateTime()
-    max_end = None
-    for trace in stream:
-        if trace.stats.starttime < min_start:
-            min_start = trace.stats.starttime
-        if max_end is None or trace.stats.endtime > max_end:
-            max_end = trace.stats.endtime
+    :rtype: (`~maximum start time and minimum end time`, maximum start time and minimum end time)
+    """
+    min_start = min([trace.stats.starttime for trace in stream])
+    max_end = max([trace.stats.endtime for trace in stream])
+
     return min_start, max_end
 
 
+def transformFilteroptions2String(filtopts):
+    st = ''
+    if not filtopts:
+        return st
+    if 'type' in filtopts.keys():
+        st += '{}'.format(filtopts['type'])
+        if 'freq' in filtopts.keys():
+            st += ' | freq: {}'.format(filtopts['freq'])
+        elif 'freqmin' in filtopts.keys() and 'freqmax' in filtopts.keys():
+            st += ' | freqmin: {} | freqmax: {}'.format(filtopts['freqmin'], filtopts['freqmax'])
+    for key, value in filtopts.items():
+        if key in ['type', 'freq', 'freqmin', 'freqmax']:
+            continue
+        st += ' | {}: {}'.format(key, value)
+    return st
+
+
+def transformFilterString4Export(st):
+    st = st.replace('|', '//')
+    st = st.replace(':', '/')
+    st = st.replace(' ', '')
+    return st
+
+
+def backtransformFilterString(st):
+    st = st.split('smi:local/')
+    st = st[1] if len(st) > 1 else st[0]
+    st = st.replace('//', ' | ')
+    st = st.replace('/', ': ')
+    return st
+
+
 def getHash(time):
-    '''
-    takes a time object and returns the corresponding SHA1 hash of the
-    formatted date string
+    """
+    takes a time object and returns the corresponding SHA1 hash of the formatted date string
     :param time: time object for which a hash should be calculated
-    :type time: :class: `~obspy.core.utcdatetime.UTCDateTime` object
-    :return: str
-    '''
+    :type time: `~obspy.core.utcdatetime.UTCDateTime`
+    :return: SHA1 hash
+    :rtype: str
+    """
     hg = hashlib.sha1()
     hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f'))
     return hg.hexdigest()
 
 
 def getLogin():
-    '''
+    """
     returns the actual user's login ID
     :return: login ID
-    '''
+    :rtype: str
+    """
     return os.getlogin()
 
 
 def getOwner(fn):
-    '''
+    """
     takes a filename and return the login ID of the actual owner of the file
     :param fn: filename of the file tested
     :type fn: str
     :return: login ID of the file's owner
-    '''
+    :rtype: str
+    """
     system_name = platform.system()
     if system_name in ["Linux", "Darwin"]:
         import pwd
@@ -376,6 +482,8 @@ def getPatternLine(fn, pattern):
     :param pattern: pattern string to search for
     :type pattern: str
     :return: the complete line containing the pattern string or None
+    :rtype: int, None
+
 
     >>> getPatternLine('utils.py', 'python')
     '#!/usr/bin/env python\\n'
@@ -397,18 +505,20 @@ def is_executable(fn):
     and False otherwise
     :param fn: path to the file to be tested
     :return: True or False
+    :rtype: bool
     """
     return os.path.isfile(fn) and os.access(fn, os.X_OK)
 
 
 def isSorted(iterable):
-    '''
-    takes an iterable and returns 'True' if the items are in order otherwise
-    'False'
+    """
+    takes an iterable and returns True if the items are in order otherwise False
     :param iterable: an iterable object
     :type iterable:
     :return: Boolean
+    :rtype: bool
 
+    ..example::
     >>> isSorted(1)
     Traceback (most recent call last):
     ...
@@ -421,7 +531,7 @@ def isSorted(iterable):
     False
     >>> isSorted([2,3,1,4])
     False
-    '''
+    """
     assert isIterable(iterable), 'object is not iterable; object: {' \
                                  '0}'.format(iterable)
     if type(iterable) is str:
@@ -431,10 +541,12 @@ def isSorted(iterable):
 
 def isIterable(obj):
     """
-    takes a python object and returns 'True' is the object is iterable and
-    'False' otherwise
+    takes a python object and returns True is the object is iterable and
+    False otherwise
     :param obj: a python object
+    :type obj: object
     :return: True of False
+    :rtype: bool
     """
     try:
         iterator = iter(obj)
@@ -451,6 +563,7 @@ def key_for_set_value(d):
     :type d: dict
     :return: key to the first non-False value found; None if no value's
     boolean equals True
+    :rtype:
     """
     r = None
     for k, v in d.items():
@@ -460,13 +573,18 @@ def key_for_set_value(d):
 
 
 def prepTimeAxis(stime, trace, verbosity=0):
-    '''
+    """
     takes a starttime and a trace object and returns a valid time axis for
     plotting
     :param stime: start time of the actual seismogram as UTCDateTime
+    :type stime: `~obspy.core.utcdatetime.UTCDateTime`
     :param trace: seismic trace object
+    :type trace: `~obspy.core.trace.Trace`
+    :param verbosity: if != 0, debug output will be written to console
+    :type verbosity: int
     :return: valid numpy array with time stamps for plotting
-    '''
+    :rtype: `~numpy.ndarray`
+    """
     nsamp = trace.stats.npts
     srate = trace.stats.sampling_rate
     tincr = trace.stats.delta
@@ -513,6 +631,20 @@ def find_horizontals(data):
 
 
 def make_pen(picktype, phase, key, quality):
+    """
+    Make  PyQtGraph.QPen
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param phase: 'P' or 'S'
+    :type phase: str
+    :param key: 'mpp', 'epp', 'lpp' or 'spe', (earliest/latest possible pick, symmetric picking error or
+     most probable pick)
+    :type key: str
+    :param quality: quality class of pick, decides color modifier
+    :type quality: int
+    :return: PyQtGraph QPen
+    :rtype: `~QPen`
+    """
     if pg:
         rgba = pick_color(picktype, phase, quality)
         linestyle, width = pick_linestyle_pg(picktype, key)
@@ -521,8 +653,22 @@ def make_pen(picktype, phase, key, quality):
 
 
 def pick_color(picktype, phase, quality=0):
+    """
+    Create pick color by modifying the base color by the quality.
+
+    Returns rgba values in a range of [0, 255]. picktype, phase decide the base color,
+    quality decides the applied modifier
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param phase: 'P' or 'S'
+    :type phase: str
+    :param quality: quality of pick. Decides the new intensity of the modifier color
+    :type quality: int
+    :return: tuple containing modified rgba color values
+    :rtype: (int, int, int, int)
+    """
     min_quality = 3
-    bpc = base_phase_colors(picktype, phase)
+    bpc = base_phase_colors(picktype, phase)  # returns dict like {'modifier': 'g', 'rgba': (0, 0, 255, 255)}
     rgba = bpc['rgba']
     modifier = bpc['modifier']
     intensity = 255.*quality/min_quality
@@ -531,6 +677,20 @@ def pick_color(picktype, phase, quality=0):
 
 
 def pick_color_plt(picktype, phase, quality=0):
+    """
+    Create pick color by modifying the base color by the quality.
+
+    Returns rgba values in a range of [0, 1]. picktype, phase decide the base color,
+    quality decides the applied modifier
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param phase: 'P' or 'S'
+    :type phase: str
+    :param quality: quality of pick. Decides the new intensity of the modifier color
+    :type quality: int
+    :return: tuple containing rgba values matplotlib style, ranging from [0, 1]
+    :rtype: (float, float, float, float)
+    """
     rgba = list(pick_color(picktype, phase, quality))
     for index, val in enumerate(rgba):
         rgba[index] /= 255.
@@ -538,6 +698,16 @@ def pick_color_plt(picktype, phase, quality=0):
 
 
 def pick_linestyle_plt(picktype, key):
+    """
+    Get matplotlib line style for plotting by pick type and pick parameter (earliest/latest possible pick,
+    symmetric picking error or most probable pick).
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param key: which pick parameter should be plotted, 'mpp', 'epp', 'lpp' or 'spe'
+    :type key: str
+    :return: tuple containing matplotlib line style string and line thicknes
+    :rtype: (str, float)
+    """
     linestyles_manu = {'mpp': ('solid', 2.),
                        'epp': ('dashed', 1.),
                        'lpp': ('dashed', 1.),
@@ -552,6 +722,16 @@ def pick_linestyle_plt(picktype, key):
 
 
 def pick_linestyle_pg(picktype, key):
+    """
+    Get Qt line style by  picktype and pick parameter (earliest/latest possible pick, symmetric picking error or
+    most probable pick)
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param key: which pick parameter should be plotted, 'mpp', 'epp', 'lpp' or 'spe'
+    :type key: str
+    :return: Qt line style parameters
+    :rtype:
+    """
     linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2.),
                        'epp': (QtCore.Qt.DashLine, 1.),
                        'lpp': (QtCore.Qt.DashLine, 1.),
@@ -566,6 +746,17 @@ def pick_linestyle_pg(picktype, key):
 
 
 def modify_rgba(rgba, modifier, intensity):
+    """
+    Modify rgba color by adding the given intensity to the modifier color
+    :param rgba: tuple containing rgba values
+    :type rgba: (int, int, int, int)
+    :param modifier: which color should be modified, eg. 'r', 'g', 'b'
+    :type modifier: str
+    :param intensity: intensity to be added to selected color
+    :type intensity: float
+    :return: tuple containing rgba values
+    :rtype: (int, int, int, int)
+    """
     rgba = list(rgba)
     index = {'r': 0,
              'g': 1,
@@ -580,10 +771,28 @@ def modify_rgba(rgba, modifier, intensity):
 
 
 def base_phase_colors(picktype, phase):
+    """
+    Get base color for a phase from style settings
+    :param picktype: 'manual' or 'automatic' picks
+    :type picktype: str
+    :param phase: Phase to select color for, 'P' or 'S'
+    :type phase: str
+    :return: dictionary {'modifier': 'g', 'rgba': (0, 0, 255, 255)}
+    :rtype: dict
+    """
     phasecolors = style_settings.phasecolors
     return phasecolors[picktype][phase]
 
 def transform_colors_mpl_str(colors, no_alpha=False):
+    """
+    Transforms rgba color values to a matplotlib string of color values with a range of [0, 1]
+    :param colors: tuple of rgba color values ranging from [0, 255]
+    :type colors: (float, float, float, float)
+    :param no_alpha: Wether to return a alpha value in the matplotlib color string
+    :type no_alpha: bool
+    :return: String containing r, g, b values and alpha value if no_alpha is False (default)
+    :rtype: str
+    """
     colors = list(colors)
     colors_mpl = tuple([color / 255. for color in colors])
     if no_alpha:
@@ -593,6 +802,13 @@ def transform_colors_mpl_str(colors, no_alpha=False):
     return colors_mpl
 
 def transform_colors_mpl(colors):
+    """
+    Transform rgba colors from [0, 255] to [0, 1]
+    :param colors: tuple of rgba color values ranging from [0, 255]
+    :type colors: (float, float, float, float)
+    :return: tuple of rgba color values ranging from [0, 1]
+    :rtype: (float, float, float, float)
+    """
     colors = list(colors)
     colors_mpl = tuple([color / 255. for color in colors])
     return colors_mpl
@@ -600,10 +816,11 @@ def transform_colors_mpl(colors):
 def remove_underscores(data):
     """
     takes a `obspy.core.stream.Stream` object and removes all underscores
-    from stationnames
+    from station names
     :param data: stream of seismic data
-    :type data: `obspy.core.stream.Stream`
+    :type data: `~obspy.core.stream.Stream`
     :return: data stream
+    :rtype: `~obspy.core.stream.Stream`
     """
     for tr in data:
         # remove underscores
@@ -612,16 +829,17 @@ def remove_underscores(data):
 
 
 def trim_station_components(data, trim_start=True, trim_end=True):
-    '''
+    """
     cut a stream so only the part common to all three traces is kept to avoid dealing with offsets
     :param data: stream of seismic data
-    :type data: `obspy.core.stream.Stream`
+    :type data: `~obspy.core.stream.Stream`
     :param trim_start: trim start of stream
     :type trim_start: bool
     :param trim_end: trim end of stream
     :type trim_end: bool
     :return: data stream
-    '''
+    :rtype: `~obspy.core.stream.Stream`
+    """
     starttime = {False: None}
     endtime = {False: None}
 
@@ -639,11 +857,13 @@ def trim_station_components(data, trim_start=True, trim_end=True):
 
 
 def check4gaps(data):
-    '''
+    """
     check for gaps in Stream and remove them
     :param data: stream of seismic data
+    :type data: `~obspy.core.stream.Stream`
     :return: data stream
-    '''
+    :rtype: `~obspy.core.stream.Stream`
+    """
     stations = get_stations(data)
 
     for station in stations:
@@ -657,11 +877,13 @@ def check4gaps(data):
 
 
 def check4doubled(data):
-    '''
+    """
     check for doubled stations for same channel in Stream and take only the first one
     :param data: stream of seismic data
+    :type data: `~obspy.core.stream.Stream`
     :return: data stream
-    '''
+    :rtype: `~obspy.core.stream.Stream`
+    """
     stations = get_stations(data)
 
     for station in stations:
@@ -682,6 +904,13 @@ def check4doubled(data):
 
 
 def get_stations(data):
+    """
+    Get list of all station names in data stream
+    :param data: stream containing seismic traces
+    :type data: `~obspy.core.stream.Stream`
+    :return: list of all station names in data, no duplicates
+    :rtype: list of str
+    """
     stations = []
     for tr in data:
         station = tr.stats.station
@@ -692,14 +921,35 @@ def get_stations(data):
 
 
 def check4rotated(data, metadata=None, verbosity=1):
+    """
+
+    :param data: stream object containing seismic traces
+    :type data: `~obspy.core.stream.Stream`
+    :param metadata: tuple containing metadata type string and metadata parser object
+    :type metadata: (str, `~obspy.io.xseed.parser.Parser`)
+    :param verbosity: if 0 print no information at runtime
+    :type verbosity: int
+    :return: stream object with traditionally oriented traces (ZNE) for stations that had misaligned traces (123) before
+    :rtype: `~obspy.core.stream.Stream`
+    """
 
     def rotate_components(wfstream, metadata=None):
-        """rotates components if orientation code is numeric.
-        azimut and dip are fetched from metadata"""
+        """
+        Rotate components if orientation code is numeric (= non traditional orientation).
+
+        Azimut and dip are fetched from metadata. To be rotated, traces of a station have to be cut to the same length.
+        Returns unrotated traces of no metadata is provided
+        :param wfstream: stream containing seismic traces
+        :type wfstream: `~obspy.core.stream.Stream`
+        :param metadata: tuple containing metadata type string and metadata parser object
+        :type metadata: (str, `~obspy.io.xseed.parser.Parser`)
+        :return: stream object with traditionally oriented traces (ZNE)
+        :rtype: `~obspy.core.stream.Stream`
+        """
         try:
             # indexing fails if metadata is None
             metadata[0]
-        except:
+        except TypeError:
             if verbosity:
                 msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
                 print(msg)
@@ -714,7 +964,15 @@ def check4rotated(data, metadata=None, verbosity=1):
             parser = metadata[1]
 
         def get_dip_azimut(parser, trace_id):
-            """gets azimut and dip for a trace out of the metadata parser"""
+            """
+            Gets azimuth and dip by trace id out of the metadata parser
+            :param parser: metadata parser object
+            :type parser: `~obspy.io.xseed.parser.Parser`
+            :param trace_id: eg. 'BW.RJOB..EHZ',
+            :type trace_id: str
+            :return: tuple containing dip and azimuth of the trace corresponding to trace_id
+            :rtype: (float, float)
+            """
             dip = None
             azimut = None
             try:
@@ -728,14 +986,14 @@ def check4rotated(data, metadata=None, verbosity=1):
                 dip = blockette_.dip
                 azimut = blockette_.azimuth
                 break
-            if dip is None or azimut is None:
+            if (dip is None or azimut is None) or (dip == 0 and azimut == 0):
                 error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
                 raise ValueError(error_msg)
             return dip, azimut
 
         trace_ids = [trace.id for trace in wfstream]
         for trace_id in trace_ids:
-            orientation = trace_id[-1]
+            orientation = trace_id[-1]  # last letter if trace id is orientation code, ZNE or 123
             if orientation.isnumeric():
                 # misaligned channels have a number as orientation
                 azimuts = []
@@ -752,10 +1010,10 @@ def check4rotated(data, metadata=None, verbosity=1):
                 # to rotate all traces must have same length
                 wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
                 z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
-                                          wfstream[1], azimuts[1], dips[1],
-                                          wfstream[2], azimuts[2], dips[2])
+                                     wfstream[1], azimuts[1], dips[1],
+                                     wfstream[2], azimuts[2], dips[2])
                 print('check4rotated: rotated station {} to ZNE'.format(trace_id))
-                z_index = dips.index(min(dips)) # get z-trace index (dip is measured from 0 to -90
+                z_index = dips.index(min(dips))  # get z-trace index (dip is measured from 0 to -90)
                 wfstream[z_index].data = z
                 wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
                 del trace_ids[z_index]
@@ -775,9 +1033,9 @@ def check4rotated(data, metadata=None, verbosity=1):
 
     stations = get_stations(data)
 
-    for station in stations:
+    for station in stations:  # loop through all stations and rotate data if neccessary
         wf_station = data.select(station=station)
-        wf_station = rotate_components(wf_station, metadata)
+        rotate_components(wf_station, metadata)
     return data
 
 
@@ -837,7 +1095,9 @@ def which(program, infile=None):
     takes a program name and returns the full path to the executable or None
     modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     :param program: name of the desired external program
+    :type program: str
     :return: full path of the executable file
+    :rtype: str
     """
     try:
         from PySide.QtCore import QSettings
@@ -880,14 +1140,16 @@ def which(program, infile=None):
 
 
 def loopIdentifyPhase(phase):
-    '''
+    """
     Loop through phase string and try to recognize its type (P or S wave).
     Global variable ALTSUFFIX gives alternative suffix for phases if they do not end with P, p or S, s.
     If ALTSUFFIX is not given, the function will cut the last letter of the phase string until string ends
     with P or S.
-    :param phase: phase name (str)
-    :return:
-    '''
+    :param phase: phase name
+    :type phase: str
+    :return: str of phase ending with identified type, None if phase could not be identified
+    :rtype: str or None
+    """
     from pylot.core.util.defaults import ALTSUFFIX
 
     phase_copy = phase
@@ -906,14 +1168,18 @@ def loopIdentifyPhase(phase):
 
 
 def identifyPhase(phase):
-    '''
+    """
     Returns capital P or S if phase string is identified by last letter. Else returns False.
-    :param phase: phase name (str)
+    :param phase: phase name
+    :type phase: str
     :return: 'P', 'S' or False
-    '''
+    :rtype: str or bool
+    """
     # common phase suffix for P and S
-    common_P = ['P', 'p']
+    common_P = ['P', 'p', 'R']
     common_S = ['S', 's']
+    if phase is None:
+        return False
     if phase[-1] in common_P:
         return 'P'
     if phase[-1] in common_S:
@@ -923,10 +1189,24 @@ def identifyPhase(phase):
 
 
 def identifyPhaseID(phase):
+    """
+    Returns phase id (capital P or S)
+    :param phase: phase name
+    :type phase: str
+    :return: phase type string
+    :rtype: str
+    """
     return identifyPhase(loopIdentifyPhase(phase))
 
 
 def has_spe(pick):
+    """
+    Check for 'spe' key (symmetric picking error) in dict and return its value if found, else return None
+    :param pick: pick dictionary
+    :type pick: dict
+    :return: value of 'spe' key
+    :rtype: float or None
+    """
     if not 'spe' in pick.keys():
         return None
     else:

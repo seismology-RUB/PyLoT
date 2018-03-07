@@ -155,7 +155,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
     :param origin: list containing origin objects representing origins for all events
     :type origin: list(~obspy.core.event.origin)
-    :return:     :dictionary containing P pick, S pick and station name
+    :return: dictionary containing P pick, S pick and station name
     :rtype: dict
     """
 

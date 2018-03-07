@@ -109,10 +109,9 @@ class Comparison(object):
         Comparison is carried out with the help of pdf representation of the picks
         and a probabilistic approach to the time difference of two onset
         measurements.
-        :param a: filename for pickset A
-        :type a: str
-        :param b: filename for pickset B
-        :type b: str
+        :param type: type of the returned `~pylot.core.util.pdf.ProbabilityDensityFunction` object.
+        Possible values: 'exp' and 'gauss', representing the type of branches of the PDF
+        :type type: str
         :return: dictionary containing the resulting comparison pdfs for all picks
         :rtype: dict
         """
@@ -142,8 +141,7 @@ class Comparison(object):
         istations = range(nstations)
         fig, axarr = plt.subplots(nstations, 2, sharex='col', sharey='row')
 
-        for n in istations:
-            station = stations[n]
+        for n, station in enumerate(stations):
             if station not in self.comparison.keys():
                 continue
             compare_pdf = self.comparison[station]
@@ -190,6 +188,20 @@ class Comparison(object):
         return self.get_array(phase, 'standard_deviation')
 
     def hist_expectation(self, phases='all', bins=20, normed=False):
+        """
+        Plot a histogram of the expectation values of the PDFs.
+
+        Expectation represents the time difference between two most likely arrival times
+        :param phases: type of phases to compare
+        :type phases: str
+        :param bins: number of bins in histogram
+        :type bins: int
+        :param normed: Normalize histogram
+        :type normed: bool
+        :return: None
+        :rtype: None
+        """
+
         phases.strip()
         if phases.find('all') is 0:
             phases = 'ps'
@@ -210,6 +222,20 @@ class Comparison(object):
         plt.show()
 
     def hist_standard_deviation(self, phases='all', bins=20, normed=False):
+        """
+        Plot a histogram of the compared standard deviation values of two arrivals.
+
+        Standard deviation of two compared picks represents the combined uncertainties/pick errors
+        (earliest possible pick, latest possible pick)
+        :param phases: type of phases to compare
+        :type phases: str
+        :param bins: number of bins in histogram
+        :type bins: int
+        :param normed: Normalize histogram
+        :type normed: bool
+        :return: None
+        :rtype: None
+        """
         phases.strip()
         if phases.find('all') == 0:
             phases = 'ps'
@@ -370,7 +396,7 @@ class PDFDictionary(object):
 
 class PDFstatistics(object):
     """
-    This object can be used to get various statistic values from probabillity density functions.
+    This object can be used to get various statistic values from probability density functions.
     Takes a path as argument.
     """
 

@@ -29,38 +29,36 @@ from pylot.core.pick.utils import getnoisewin, getsignalwin
 
 
 class AutoPicker(object):
-    '''
+    """
     Superclass of different, automated picking algorithms applied on a CF determined
     using AIC, HOS, or AR prediction.
-    '''
+    """
 
     warnings.simplefilter('ignore')
 
     def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None, linecolor='k'):
-        '''
-        :param: cf, characteristic function, on which the picking algorithm is applied
-        :type: `~pylot.core.pick.CharFuns.CharacteristicFunction` object
-
-        :param: TSNR, length of time windows around pick used to determine SNR [s]
-        :type: tuple (T_noise, T_gap, T_signal)
-
-        :param: PickWindow, length of pick window [s]
-        :type: float
-
-        :param: iplot, no. of figure window for plotting interims results
-        :type: integer
-
-        :param: aus ("artificial uplift of samples"), find local minimum at i if aic(i-1)*(1+aus) >= aic(i)
-        :type: float
-
-        :param: Tsmooth, length of moving smoothing window to calculate smoothed CF [s]
-        :type: float
-
-        :param: Pick1, initial (prelimenary) onset time, starting point for PragPicker and
-         EarlLatePicker
-        :type: float
-
-        '''
+        """
+        Create AutoPicker object
+        :param cf: characteristic function, on which the picking algorithm is applied
+        :type cf: `~pylot.core.pick.CharFuns.CharacteristicFunction`
+        :param TSNR: length of time windows around pick used to determine SNR [s], tuple (T_noise, T_gap, T_signal)
+        :type TSNR: (float, float, float)
+        :param PickWindow: length of pick window [s]
+        :type PickWindow: float
+        :param iplot: flag used for plotting, if > 1, results will be plotted. Use iplot = 0 to disable plotting
+        :type iplot: int
+        :param aus: ("artificial uplift of samples"), find local minimum at i if aic(i-1)*(1+aus) >= aic(i)
+        :type aus: float
+        :param Tsmooth: length of moving smoothing window to calculate smoothed CF [s]
+        :type Tsmooth: float
+        :param Pick1: initial (preliminary) onset time, starting point for PragPicker and EarlLatePicker
+        :type Pick1: float
+        :param fig: matplotlib figure used for plotting. If not given and plotting is enabled, a new figure will
+        be created
+        :type fig: `~matplotlib.figure.Figure`
+        :param linecolor: matplotlib line color string
+        :type linecolor: str
+        """
 
         assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
         self._linecolor = linecolor
@@ -79,6 +77,11 @@ class AutoPicker(object):
         self.calcPick()
 
     def __str__(self):
+        """
+        String representation of AutoPicker object
+        :return:
+        :rtype: str
+        """
         return '''\n\t{name} object:\n
         TSNR:\t\t\t{TSNR}\n
         PickWindow:\t{PickWindow}\n
@@ -142,12 +145,12 @@ class AutoPicker(object):
 
 
 class AICPicker(AutoPicker):
-    '''
+    """
     Method to derive the onset time of an arriving phase based on CF
-    derived from AIC. In order to get an impression of the quality of this inital pick,
+    derived from AIC. In order to get an impression of the quality of this initial pick,
     a quality assessment is applied based on SNR and slope determination derived from the CF,
     from which the AIC has been calculated.
-    '''
+    """
 
     def calcPick(self):
 
@@ -214,7 +217,6 @@ class AICPicker(AutoPicker):
                     self.Pick = self.Tcf[i]
                     break
 
-        # quality assessment using SNR and slope from CF
         if self.Pick is not None:
             # get noise window
             inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
@@ -251,8 +253,8 @@ class AICPicker(AutoPicker):
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
-            if len(dataslope) < 1:
-                print('No data in slope window found!')
+            if len(dataslope) <= 1:
+                print('No or not enough data in slope window found!')
                 return
             imaxs, = argrelmax(dataslope)
             if imaxs.size:
@@ -364,9 +366,9 @@ class AICPicker(AutoPicker):
 
 
 class PragPicker(AutoPicker):
-    '''
+    """
     Method of pragmatic picking exploiting information given by CF.
-    '''
+    """
 
     def calcPick(self):
 

@@ -75,7 +75,7 @@ from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str
+    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -182,25 +182,22 @@ class MainWindow(QMainWindow):
             settings.setValue("data/dataRoot", dirname)
         if settings.value('compclass', None) is None:
             settings.setValue('compclass', SetChannelComponents())
+        if settings.value('useGuiFilter') is None:
+            settings.setValue('useGuiFilter', False)
         if settings.value('output/Format', None) is None:
             outformat = QInputDialog.getText(self,
                                              "Enter output format (*.xml, *.cnv, *.obs):",
                                              "Format")
             settings.setValue("output/Format", outformat)
+        if settings.value('autoFilter', None) is None:
+            settings.setValue('autoFilter', True)
         settings.sync()
 
         # setup UI
         self.setupUi()
 
-        filter_info = readFilterInformation(self._inputs)
-        p_filter = filter_info['P']
-        s_filter = filter_info['S']
-        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
-                                                 p_filter['freq'],
-                                                 p_filter['order']),
-                              'S': FilterOptions(s_filter['filtertype'],
-                                                 s_filter['freq'],
-                                                 s_filter['order'])}
+        self.updateFilteroptions()
+
         self.loc = False
 
     def setupUi(self):
@@ -270,8 +267,12 @@ class MainWindow(QMainWindow):
         s_icon.addPixmap(QPixmap(':/icons/key_S.png'))
         print_icon = QIcon()
         print_icon.addPixmap(QPixmap(':/icons/printer.png'))
-        filter_icon = QIcon()
-        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        self.filter_icon = QIcon()
+        self.filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        self.filter_icon_p = QIcon()
+        self.filter_icon_p.addPixmap(QPixmap(':/icons/filter_p.png'))
+        self.filter_icon_s = QIcon()
+        self.filter_icon_s.addPixmap(QPixmap(':/icons/filter_s.png'))
         z_icon = QIcon()
         z_icon.addPixmap(QPixmap(':/icons/key_Z.png'))
         n_icon = QIcon()
@@ -286,6 +287,8 @@ class MainWindow(QMainWindow):
         locate_icon.addPixmap(QPixmap(':/icons/locate_button.png'))
         compare_icon = QIcon()
         compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
+        qualities_icon = QIcon()
+        qualities_icon.addPixmap(QPixmap(':/icons/pick_qualities_button.png'))
         self.newProjectAction = self.createAction(self, "&New project ...",
                                                   self.createNewProject,
                                                   QKeySequence.New, newIcon,
@@ -366,15 +369,23 @@ class MainWindow(QMainWindow):
                                                  self.setParameter,
                                                  None, paraIcon,
                                                  "Modify Parameter")
-        self.filterAction = self.createAction(self, "&Filter ...",
-                                              self.filterWaveformData,
-                                              "Ctrl+F", filter_icon,
-                                              """Toggle un-/filtered waveforms
-                                              to be displayed, according to the
-                                              desired seismic phase.""", True)
+        self.filterActionP = createAction(parent=self, text='Apply P Filter',
+                                          slot=self.filterP,
+                                          icon=self.filter_icon_p,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='P')
+        self.filterActionS = createAction(parent=self, text='Apply S Filter',
+                                          slot=self.filterS,
+                                          icon=self.filter_icon_s,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='S')
         filterEditAction = self.createAction(self, "&Filter parameter ...",
                                              self.adjustFilterOptions,
-                                             "Alt+F", filter_icon,
+                                             "Ctrl+F", self.filter_icon,
                                              """Adjust filter parameters.""")
         self.inventoryAction = self.createAction(self, "Select &Inventory ...",
                                               self.get_new_metadata,
@@ -402,6 +413,10 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
+        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...', 
+                                                slot=self.pickQualities, shortcut='Alt+Q',
+                                                icon=qualities_icon, tip='Histogram of pick qualities')
+        self.qualities_action.setEnabled(False)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
@@ -472,7 +487,7 @@ class MainWindow(QMainWindow):
                                                ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
-        pickActions = (self.auto_tune, self.auto_pick, self.compare_action)
+        pickActions = (self.auto_tune, self.auto_pick, self.compare_action, self.qualities_action)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -500,8 +515,8 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
-        editActions = (self.filterAction, filterEditAction, None,
-                       self.selectPAction, self.selectSAction, None,
+        editActions = (self.filterActionP, self.filterActionS, filterEditAction, None,
+                       #self.selectPAction, self.selectSAction, None,
                        self.inventoryAction, self.initMapAction, None,
                        prefsEventAction)
                        #printAction) #TODO: print event?
@@ -561,19 +576,28 @@ class MainWindow(QMainWindow):
         style = settings.value('style')
         self.set_style(style)
 
-        # add event combo box and ref/test buttons
+        # add event combo box, forward, backward and ref/test buttons
         self.eventBox = self.createEventBox()
         self.eventBox.setMaxVisibleItems(30)
         self.eventBox.setEnabled(False)
+        self.previous_button = QPushButton('<')
+        self.next_button = QPushButton('>')
         self.init_ref_test_buttons()
         self._event_layout = QHBoxLayout()
         self._event_layout.addWidget(QLabel('Event: '))
         self._event_layout.addWidget(self.eventBox)
+        self._event_layout.addWidget(self.previous_button)
+        self._event_layout.addWidget(self.next_button)
         self._event_layout.addWidget(self.ref_event_button)
         self._event_layout.addWidget(self.test_event_button)
         self._event_layout.setStretch(1, 1)  # set stretch of item 1 to 1
         self._main_layout.addLayout(self._event_layout)
         self.eventBox.activated.connect(self.refreshEvents)
+
+        self.previous_button.clicked.connect(self.previous_event)
+        self.next_button.clicked.connect(self.next_event)
+        self.previous_button.setEnabled(False)
+        self.next_button.setEnabled(False)
 
         # add main tab widget
         self.tabs = QTabWidget(self)
@@ -650,6 +674,8 @@ class MainWindow(QMainWindow):
         '''
         self.ref_event_button = QtGui.QPushButton('Tune')
         self.test_event_button = QtGui.QPushButton('Test')
+        self.ref_event_button.setMinimumWidth(100)
+        self.test_event_button.setMinimumWidth(100)
         self.ref_event_button.setToolTip('Set manual picks of current ' +
                                          'event as reference picks for autopicker tuning.')
         self.test_event_button.setToolTip('Set manual picks of current ' +
@@ -762,6 +788,17 @@ class MainWindow(QMainWindow):
     @metadata.setter
     def metadata(self, value):
         self._metadata = value
+
+    def updateFilteroptions(self):
+        filter_info = readFilterInformation(self._inputs)
+        p_filter = filter_info['P']
+        s_filter = filter_info['S']
+        self.filteroptions = {'P': FilterOptions(p_filter['filtertype'],
+                                                 p_filter['freq'],
+                                                 p_filter['order']),
+                              'S': FilterOptions(s_filter['filtertype'],
+                                                 s_filter['freq'],
+                                                 s_filter['order'])}
 
     def updateFileMenu(self):
 
@@ -1004,7 +1041,8 @@ class MainWindow(QMainWindow):
                          and len(item.split('/')[-1].split('.')) == 3
                          and len(item.split('/')[-1]) == 12]
             if not eventlist:
-                print('No events found! Expected structure for event folders: [evID.DOY.YR]')
+                print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
+                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16')
                 return
         else:
             return
@@ -1353,6 +1391,9 @@ class MainWindow(QMainWindow):
         self.cmpw.refresh_tooltips()
         self.cmpw.show()
 
+    def pickQualities(self):
+        return
+
     def compareMulti(self):
         if not self.compareoptions:
             return
@@ -1401,7 +1442,8 @@ class MainWindow(QMainWindow):
         return None
 
     def getStime(self):
-        return self._stime
+        if self.get_data():
+            return full_range(self.get_data().getWFData())[0]
 
     def addActions(self, target, actions):
         for action in actions:
@@ -1470,6 +1512,26 @@ class MainWindow(QMainWindow):
         if self.tap:
             self.tap.fill_eventbox()
 
+    def checkEventButtons(self):
+        if self.eventBox.currentIndex() == 0:
+            prev_state = False
+        else:
+            prev_state = True
+        if self.eventBox.currentIndex() == len(self.project.eventlist) - 1:
+            next_state = False
+        else:
+            next_state = True
+        self.previous_button.setEnabled(prev_state)
+        self.next_button.setEnabled(next_state)
+
+    def previous_event(self):
+        self.eventBox.setCurrentIndex(self.eventBox.currentIndex() - 1)
+        self.eventBox.activated.emit(-1)
+
+    def next_event(self):
+        self.eventBox.setCurrentIndex(self.eventBox.currentIndex() + 1)
+        self.eventBox.activated.emit(+1)
+
     def refreshEvents(self):
         '''
         Refresh GUI when events get changed.
@@ -1480,6 +1542,7 @@ class MainWindow(QMainWindow):
         # array_map refresh is not necessary when changing event in waveform plot tab,
         # but gets necessary when switching from one to another after changing an event.
         self._eventChanged = [True, True]
+        self.checkEventButtons()
         self.refreshTabs()
 
     def refreshTabs(self):
@@ -1554,18 +1617,9 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
-        self.data.setWFData(self.fnames)
-        wfdat = self.data.getWFData()  # all available streams
-        # remove possible underscores in station names
-        wfdat = remove_underscores(wfdat)
-        # check for gaps and doubled channels
-        check4gaps(wfdat)
-        check4doubled(wfdat)
-        # check for stations with rotated components
-        wfdat = check4rotated(wfdat, self.metadata, verbosity=0)
-        # trim station components to same start value
-        trim_station_components(wfdat, trim_start=True, trim_end=False)
-        self._stime = full_range(self.get_data().getWFData())[0]
+        self.data.setWFData(self.fnames,
+                            checkRotated=True,
+                            metadata=self.metadata)
 
     def connectWFplotEvents(self):
         '''
@@ -1633,7 +1687,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             self.finish_pg_plot()
         else:
-            self._max_xlims = self.dataPlot.getXLims()
+            self._max_xlims = self.dataPlot.getXLims(self.dataPlot.axes[0])
         plotWidget = self.getPlotWidget()
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
@@ -1661,8 +1715,10 @@ class MainWindow(QMainWindow):
         if event.pylot_picks:
             self.drawPicks(picktype='manual')
             self.locateEvent.setEnabled(True)
+            self.qualities_action.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
+            self.qualities_action.setEnabled(True)
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
@@ -1707,7 +1763,8 @@ class MainWindow(QMainWindow):
             self.dataPlot.plotWidget.hideAxis('bottom')
             self.dataPlot.plotWidget.hideAxis('left')
         else:
-            self.dataPlot.getAxes().cla()
+            for ax in self.dataPlot.axes:
+                ax.cla()
         self.loadlocationaction.setEnabled(False)
         self.auto_tune.setEnabled(False)
         self.auto_pick.setEnabled(False)
@@ -1723,18 +1780,19 @@ class MainWindow(QMainWindow):
         self.disableSaveEventAction()
         self.draw()
 
-    def plotWaveformDataThread(self):
+    def plotWaveformDataThread(self, filter=True):
         '''
         Open a modal thread to plot current waveform data.
         '''
         self.clearWaveformDataPlot()
         self.wfp_thread = Thread(self, self.plotWaveformData,
+                                 arg=filter,
                                  progressText='Plotting waveform data...',
                                  pb_widget=self.mainProgressBarWidget)
         self.wfp_thread.finished.connect(self.finishWaveformDataPlot)
         self.wfp_thread.start()
 
-    def plotWaveformData(self):
+    def plotWaveformData(self, filter=True):
         '''
         Plot waveform data to current plotWidget.
         '''
@@ -1746,6 +1804,10 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
+        if self.filterActionP.isChecked() and filter:
+            self.filterWaveformData(plot=False, phase='P')
+        elif self.filterActionS.isChecked() and filter:
+            self.filterWaveformData(plot=False, phase='S')
         # wfst = self.get_data().getWFData().select(component=comp)
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
@@ -1785,18 +1847,51 @@ class MainWindow(QMainWindow):
     def pushFilterWF(self, param_args):
         self.get_data().filterWFData(param_args)
 
-    def filterWaveformData(self):
+    def filterP(self):
+        self.filterActionS.setChecked(False)
+        if self.filterActionP.isChecked():
+            self.filterWaveformData(phase='P')
+        else:
+            self.resetWFData()
+
+    def filterS(self):
+        self.filterActionP.setChecked(False)
+        if self.filterActionS.isChecked():
+            self.filterWaveformData(phase='S')
+        else:
+            self.resetWFData()
+
+    def resetWFData(self):
+        self.get_data().resetWFData()
+        self.plotWaveformDataThread()
+
+    def filterWaveformData(self, plot=True, phase=None):
+        if not self.get_current_event():
+            return
+
         if self.get_data():
-            if self.getFilterOptions() and self.filterAction.isChecked():
-                kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
-                self.pushFilterWF(kwargs)
-            elif self.filterAction.isChecked():
+            if not phase:
+                if self.filterActionP.isChecked():
+                    phase = 'P'
+                elif self.filterActionS.isChecked():
+                    phase = 'S'
+            if self.getFilterOptions():
+                if (phase == 'P' and self.filterActionP.isChecked()) or (phase == 'S' and self.filterActionS.isChecked()):
+                    kwargs = self.getFilterOptions()[phase].parseFilterOptions()
+                    self.pushFilterWF(kwargs)
+                else:
+                    self.get_data().resetWFData()
+            elif self.filterActionP.isChecked() or self.filterActionS.isChecked():
                 self.adjustFilterOptions()
             else:
                 self.get_data().resetWFData()
-        self.plotWaveformDataThread()
-        self.drawPicks()
-        self.draw()
+            if plot:
+                self.plotWaveformDataThread(filter=False)
+                #self.drawPicks()
+                #self.draw()
+
+    def getAutoFilteroptions(self, phase):
+        return getAutoFilteroptions(phase, self._inputs)
 
     def adjustFilterOptions(self):
         fstring = "Filter Options"
@@ -1805,10 +1900,11 @@ class MainWindow(QMainWindow):
         if self.filterDlg.exec_():
             filteroptions = self.filterDlg.getFilterOptions()
             self.setFilterOptions(filteroptions)
-            if self.filterAction.isChecked():
+            if self.filterActionP.isChecked() or self.filterActionS.isChecked():
                 kwargs = self.getFilterOptions()[self.getSeismicPhase()].parseFilterOptions()
                 self.pushFilterWF(kwargs)
                 self.plotWaveformDataThread()
+            return True
 
     def checkFilterOptions(self):
         fstring = "Filter Options"
@@ -1885,7 +1981,7 @@ class MainWindow(QMainWindow):
     #                            '[{0}: {1} Hz]'.format(
     #             self.getFilterOptions().getFilterType(),
     #             self.getFilterOptions().getFreq()))
-    #     if self.filterAction.isChecked():
+    #     if self.filterActionP.isChecked() or self.filterActionS.isChecked():
     #         self.filterWaveformData()
 
     def getSeismicPhase(self):
@@ -1933,7 +2029,7 @@ class MainWindow(QMainWindow):
         if self._shift:
             factor = {'up': 1. / 2.,
                       'down': 2.}
-            xlims = self.dataPlot.getXLims()
+            xlims = self.dataPlot.getXLims(self.dataPlot.axes[0])
             xdiff = xlims[1] - xlims[0]
             xdiff *= factor[button]
             xl = x - 0.5 * xdiff
@@ -1942,7 +2038,7 @@ class MainWindow(QMainWindow):
                 xl = self._max_xlims[0]
             if xr > self._max_xlims[1]:
                 xr = self._max_xlims[1]
-            self.dataPlot.setXLims((xl, xr))
+            self.dataPlot.setXLims(self.dataPlot.axes[0], (xl, xr))
             self.dataPlot.draw()
 
     def pickOnStation(self, gui_event):
@@ -1969,7 +2065,7 @@ class MainWindow(QMainWindow):
         if not station:
             return
         self.update_status('picking on station {0}'.format(station))
-        data = self.get_data().getWFData()
+        data = self.get_data().getOriginalWFData().copy()
         event = self.get_current_event()
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
@@ -1978,6 +2074,9 @@ class MainWindow(QMainWindow):
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
                           filteroptions=self.filteroptions)
+        if self.filterActionP.isChecked() or self.filterActionS.isChecked():
+            pickDlg.currentPhase = self.getSeismicPhase()
+            pickDlg.filterWFData()
         pickDlg.nextStation.setChecked(nextStation)
         if pickDlg.exec_():
             if pickDlg._dirty:
@@ -2314,7 +2413,7 @@ class MainWindow(QMainWindow):
         if self.pg:
             pw = self.getPlotWidget().plotWidget
         else:
-            ax = self.getPlotWidget().axes
+            ax = self.getPlotWidget().axes[0]
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
@@ -2384,7 +2483,7 @@ class MainWindow(QMainWindow):
             else:
                 if picktype == 'manual':
                     linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                    color = pick_color_plt(picktype, phase, quality)
+                    color = pick_color_plt(picktype, self.getPhaseID(phase), quality)
                     if picks['epp'] and picks['lpp']:
                         ax.fill_between([epp, lpp], ylims[0], ylims[1],
                                         alpha=.25, color=color, label='EPP, LPP')
@@ -2926,6 +3025,7 @@ class MainWindow(QMainWindow):
             if hasattr(self.project, 'parameter'):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
+                    self.updateFilteroptions()
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
