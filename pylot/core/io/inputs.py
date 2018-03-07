@@ -93,6 +93,11 @@ class PylotParameter(object):
             return None
 
     def __setitem__(self, key, value):
+        try:
+            value = self.check_range(value, self.__defaults[key]['max'], self.__defaults[key]['min'])
+        except KeyError:
+            # no min/max values in defaults
+            pass
         self.__parameter[key] = value
 
     def __delitem__(self, key):
@@ -189,6 +194,32 @@ class PylotParameter(object):
         all_names += self.get_special_para_names()['fm']
         all_names += self.get_special_para_names()['quality']
         return all_names
+
+    @staticmethod
+    def check_range(value, max_value, min_value):
+        """
+        Check if value is within the min/max values defined in default_parameters. Works for tuple and scalar values.
+        :param value: Value to be checked against min/max range
+        :param max_value: Maximum allowed value, tuple or scalar
+        :param min_value: Minimum allowed value, tuple or scalar
+        :return: value tuple/scalar clamped to the valid range
+
+        >>> checkRange(-5, 10, 0)
+         0
+         >>> checkRange((-5., 100.), (10., 10.), (0., 0.))
+         (0.0, 10.0)
+        """
+        try:
+            # Try handling tuples by comparing their elements
+            comparisons = [(a > b) for a, b in zip(value, max_value)]
+            if True in comparisons:
+                value = tuple(max_value[i] if comp else value[i] for i, comp in enumerate(comparisons))
+            comparisons = [(a < b) for a, b in zip(value, min_value)]
+            if True in comparisons:
+                value = tuple(min_value[i] if comp else value[i] for i, comp in enumerate(comparisons))
+        except TypeError:
+            value = max(min_value, min(max_value, value))
+        return value
 
     def checkValue(self, param, value):
         """
