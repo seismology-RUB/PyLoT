@@ -1152,6 +1152,9 @@ def loopIdentifyPhase(phase):
     """
     from pylot.core.util.defaults import ALTSUFFIX
 
+    if phase == None:
+        raise NameError('Can not identify phase that is None')
+
     phase_copy = phase
     while not identifyPhase(phase_copy):
         identified = False
