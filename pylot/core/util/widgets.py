@@ -1315,6 +1315,8 @@ class PickDlg(QDialog):
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
+        self.deleteLater()
+
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
         if not self._embedded:
@@ -4858,6 +4860,7 @@ class HelpForm(QDialog):
         toolBar.addWidget(self.pageLabel)
         self.webBrowser = QWebView()
         self.webBrowser.load(page)
+        #self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)
