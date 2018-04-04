@@ -46,6 +46,9 @@ from obspy import UTCDateTime
 from obspy.core.event import Magnitude, Origin
 from obspy.core.util import AttribDict
 
+from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
+
+
 try:
     import pyqtgraph as pg
 except Exception as e:
@@ -75,7 +78,8 @@ from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions
+    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
+    check_all_pylot
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -987,8 +991,14 @@ class MainWindow(QMainWindow):
         '''
         Return waveform filenames from event in eventbox.
         '''
+        # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
+        eventpath = self.get_current_event_path(eventbox)
+        basepath = eventpath.split(os.path.basename(eventpath))[0]
+        if check_obspydmt_structure(basepath):
+            directory = os.path.join(eventpath, 'raw')
+        else:
+            directory = eventpath
         if self.dataStructure:
-            directory = self.get_current_event_path(eventbox)
             if not directory:
                 return
             fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
@@ -1036,13 +1046,15 @@ class MainWindow(QMainWindow):
         ed = getExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
             eventlist = ed.selectedFiles()
-            # select only folders that start with 'e', containin two dots and have length 12
-            eventlist = [item for item in eventlist if item.split('/')[-1].startswith('e')
-                         and len(item.split('/')[-1].split('.')) == 3
-                         and len(item.split('/')[-1]) == 12]
+            basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
+            if check_obspydmt_structure(basepath):
+                print('Recognized obspyDMT structure in selected files.')
+                eventlist = check_all_obspy(eventlist)
+            else:
+                eventlist = check_all_pylot(eventlist)
             if not eventlist:
                 print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
-                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16')
+                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16 or obspyDMT database')
                 return
         else:
             return
