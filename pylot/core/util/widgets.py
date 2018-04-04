@@ -2093,7 +2093,10 @@ class PickDlg(QDialog):
 
         # get filter parameter for the phase to be picked
         filterphase = self.currentFilterPhase()
-        filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
+        if filterphase:
+            filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
+        else:
+            filteroptions = None
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
