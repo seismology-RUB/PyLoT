@@ -450,7 +450,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout = QtGui.QVBoxLayout()
         self.label = QtGui.QLabel()
         self.setLayout(self.main_layout)
-        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title, autoDownsample=True)
+        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addWidget(self.label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
@@ -461,6 +461,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
