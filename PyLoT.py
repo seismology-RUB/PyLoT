@@ -1665,6 +1665,35 @@ class MainWindow(QMainWindow):
                             metadata=self.metadata,
                             obspy_dmt=obspy_dmt)
 
+    def check_plot_quantity(self):
+        settings = QSettings()
+        nth_sample = settings.value("nth_sample") if settings.value("nth_sample") else 1
+        npts_max = 1e6
+        npts = self.get_npts_to_plot()
+        npts2plot = npts/nth_sample
+        if npts2plot < npts_max:
+            return
+        nth_sample_new = int(np.ceil(npts/npts_max))
+        message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
+                  "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
+                  "than the maximum setting of {npts_max}. " \
+                  "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Continue?"
+
+        ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
+                                   self.tr(message.format(npts=npts,
+                                                          nth_sample=nth_sample,
+                                                          npts_max=npts_max,
+                                                          nth_sample_new=nth_sample_new,
+                                                          npts2plot=npts2plot)),
+                                   QMessageBox.Yes | QMessageBox.No,
+                                   QMessageBox.Yes)
+        if ans == QMessageBox.Yes:
+            settings.setValue("nth_sample", nth_sample_new)
+            settings.sync()
+
+    def get_npts_to_plot(self):
+        return sum(trace.stats.npts for trace in self.data.getWFData())
+
     def connectWFplotEvents(self):
         '''
         Connect signals refering to WF-Dataplot (select station, tutor_user, scrolling)
@@ -1831,6 +1860,7 @@ class MainWindow(QMainWindow):
         '''
         Open a modal thread to plot current waveform data.
         '''
+        self.check_plot_quantity()
         self.clearWaveformDataPlot()
         self.wfp_thread = Thread(self, self.plotWaveformData,
                                  arg=filter,
