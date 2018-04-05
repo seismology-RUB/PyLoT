@@ -368,7 +368,7 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, checkRotated=False, metadata=None):
+    def setWFData(self, fnames, checkRotated=False, metadata=None, obspy_dmt=False):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
@@ -376,8 +376,21 @@ class Data(object):
         """
         self.wfdata = Stream()
         self.wforiginal = None
-        if fnames is not None:
-            self.appendWFData(fnames)
+        self.wfsyn = Stream()
+        wffnames = None
+        wffnames_syn = None
+        if obspy_dmt:
+            for fpath in fnames:
+                if fpath.endswith('raw'):
+                    wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+                if 'syngine' in fpath.split('/')[-1]:
+                    wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+        else:
+            wffnames = fnames
+        if wffnames is not None:
+            self.appendWFData(wffnames)
+            if wffnames_syn is not None:
+                self.appendWFData(wffnames_syn, synthetic=True)
         else:
             return False
 
@@ -399,8 +412,7 @@ class Data(object):
         return True
 
 
-
-    def appendWFData(self, fnames):
+    def appendWFData(self, fnames, synthetic=False):
         """
         Read waveform data from fnames and append it to current wf data
         :param fnames: waveform data to append
@@ -413,13 +425,16 @@ class Data(object):
         if self.dirty:
             self.resetWFData()
 
+        real_or_syn_data = {True: self.wfsyn,
+                            False: self.wfdata}
+
         warnmsg = ''
         for fname in fnames:
             try:
-                self.wfdata += read(fname)
+                real_or_syn_data[synthetic] += read(fname)
             except TypeError:
                 try:
-                    self.wfdata += read(fname, format='GSE2')
+                    real_or_syn_data[synthetic] += read(fname, format='GSE2')
                 except Exception as e:
                     warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
@@ -433,6 +448,9 @@ class Data(object):
 
     def getOriginalWFData(self):
         return self.wforiginal
+
+    def getSynWFData(self):
+        return self.wfsyn
 
     def resetWFData(self):
         """

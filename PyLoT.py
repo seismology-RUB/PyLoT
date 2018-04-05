@@ -994,14 +994,10 @@ class MainWindow(QMainWindow):
         # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
         eventpath = self.get_current_event_path(eventbox)
         basepath = eventpath.split(os.path.basename(eventpath))[0]
-        if check_obspydmt_structure(basepath):
-            directory = os.path.join(eventpath, 'raw')
-        else:
-            directory = eventpath
         if self.dataStructure:
-            if not directory:
+            if not eventpath:
                 return
-            fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
+            fnames = [os.path.join(eventpath, f) for f in os.listdir(eventpath)]
         else:
             raise DatastructureError('not specified')
         return fnames
@@ -1661,9 +1657,13 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
+        eventpath = self.get_current_event_path()
+        basepath = eventpath.split(os.path.basename(eventpath))[0]
+        obspy_dmt = check_obspydmt_structure(basepath)
         self.data.setWFData(self.fnames,
                             checkRotated=True,
-                            metadata=self.metadata)
+                            metadata=self.metadata,
+                            obspy_dmt=obspy_dmt)
 
     def connectWFplotEvents(self):
         '''
@@ -1719,9 +1719,12 @@ class MainWindow(QMainWindow):
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
         plots = self.wfp_thread.data
-        for times, data in plots:
+        for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
+            if data_syn:
+                self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
+                                                            pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
@@ -1848,6 +1851,7 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
+        wfsyn = self.get_data().getSynWFData()
         if self.filterActionP.isChecked() and filter:
             self.filterWaveformData(plot=False, phase='P')
         elif self.filterActionS.isChecked() and filter:
@@ -1856,7 +1860,7 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
-        plots = plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, component=comp,
+        plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
                                       nth_sample=int(nth_sample))
         return plots
 

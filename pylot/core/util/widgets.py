@@ -450,7 +450,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout = QtGui.QVBoxLayout()
         self.label = QtGui.QLabel()
         self.setLayout(self.main_layout)
-        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title, autoDownsample=True)
+        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addWidget(self.label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
@@ -459,8 +459,10 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
+        self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
@@ -491,7 +493,7 @@ class WaveformWidgetPG(QtGui.QWidget):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+    def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
         if not wfdata:
@@ -536,7 +538,10 @@ class WaveformWidgetPG(QtGui.QWidget):
         for n, (network, station, channel) in enumerate(nsc):
             n+=1
             st = st_select.select(network=network, station=station, channel=channel)
+            st_syn = wfsyn.select(network=network, station=station, channel=channel)
             trace = st[0]
+            if st_syn:
+                trace_syn = st_syn[0]
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -548,13 +553,22 @@ class WaveformWidgetPG(QtGui.QWidget):
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
             time_ax = prepTimeAxis(stime, trace)
+            if st_syn:
+                stime_syn = trace_syn.stats.starttime - self.wfstart
+                time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
             if time_ax is not None:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
+                    if st_syn:
+                        trace_syn.detrend('constant')
+                        trace_syn.normalize(np.max(np.abs(trace_syn.data)) * 2)
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
+                times_syn = [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else []
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                plots.append((times, data))
+                data_syn = [datum + n for index, datum in enumerate(trace_syn.data)
+                            if not index % nth_sample] if st_syn else []
+                plots.append((times, data, times_syn, data_syn))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
