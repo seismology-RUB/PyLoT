@@ -1654,8 +1654,12 @@ class MainWindow(QMainWindow):
                             metadata=self.metadata)
 
     def check_plot_quantity(self):
+        """
+        Check the amount of samples to be plotted and ask user to reduce the amount if it is too large.
+        :rtype: None
+        """
         settings = QSettings()
-        nth_sample = settings.value("nth_sample") if settings.value("nth_sample") else 1
+        nth_sample = int(settings.value("nth_sample") if settings.value("nth_sample") else 1)
         npts_max = 1e6
         npts = self.get_npts_to_plot()
         npts2plot = npts/nth_sample
