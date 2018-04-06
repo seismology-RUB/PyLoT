@@ -18,8 +18,8 @@ def export(picks, fnout, parameter):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
     
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
     '''
     # write phases to HYPOSAT-phase file
     writephases(picks, 'HYPOSAT', fnout, parameter)

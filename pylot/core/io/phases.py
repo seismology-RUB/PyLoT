@@ -16,7 +16,8 @@ from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, full_range, four_digits
+from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilteroptions2String, \
+    transformFilterString4Export, backtransformFilterString
 
 
 def add_amplitudes(event, amplitudes):
@@ -118,6 +119,13 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
 
 
 def picksdict_from_pilot(fn):
+    """
+    Create pick dictionary from matlab file
+    :param fn: matlab file
+    :type fn:
+    :return: pick dictionary
+    :rtype: dict
+    """
     from pylot.core.util.defaults import TIMEERROR_DEFAULTS
     picks = dict()
     phases_pilot = sio.loadmat(fn)
@@ -147,6 +155,13 @@ def picksdict_from_pilot(fn):
 
 
 def stations_from_pilot(stat_array):
+    """
+    Create stations list from pilot station array
+    :param stat_array:
+    :type stat_array:
+    :return:
+    :rtype: list
+    """
     stations = list()
     cur_stat = None
     for stat in stat_array:
@@ -164,6 +179,13 @@ def stations_from_pilot(stat_array):
 
 
 def convert_pilot_times(time_array):
+    """
+    Convert pilot times to UTCDateTimes
+    :param time_array: pilot times
+    :type time_array:
+    :return:
+    :rtype:
+    """
     times = [int(time) for time in time_array]
     microseconds = int((time_array[-1] - times[-1]) * 1e6)
     times.append(microseconds)
@@ -171,6 +193,13 @@ def convert_pilot_times(time_array):
 
 
 def picksdict_from_obs(fn):
+    """
+    create pick dictionary from obs file
+    :param fn: filename
+    :type fn:
+    :return:
+    :rtype:
+    """
     picks = dict()
     station_name = str()
     for line in open(fn, 'r'):
@@ -207,6 +236,10 @@ def picksdict_from_picks(evt):
         network = pick.waveform_id.network_code
         mpp = pick.time
         spe = pick.time_errors.uncertainty
+        if pick.filter_id:
+            filter_id = backtransformFilterString(str(pick.filter_id.id))
+        else:
+            filter_id = None
         try:
             picker = str(pick.method_id)
             if picker.startswith('smi:local/'):
@@ -222,10 +255,15 @@ def picksdict_from_picks(evt):
             lpp = mpp + pick.time_errors.upper_uncertainty
             epp = mpp - pick.time_errors.lower_uncertainty
         except TypeError as e:
-            msg = e + ',\n falling back to symmetric uncertainties'
+            if not spe:
+                msg = 'No uncertainties found for pick: {}. Uncertainty set to 0'.format(pick)
+                lpp = mpp
+                epp = mpp
+            else:
+                msg = str(e) + ',\n falling back to symmetric uncertainties'
+                lpp = mpp + spe
+                epp = mpp - spe
             warnings.warn(msg)
-            lpp = mpp + spe
-            epp = mpp - spe
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp
@@ -233,6 +271,7 @@ def picksdict_from_picks(evt):
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
+        phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
         picksdict[picker][station] = onsets.copy()
@@ -240,6 +279,16 @@ def picksdict_from_picks(evt):
 
 
 def picks_from_picksdict(picks, creation_info=None):
+    """
+    Create a list of picks out of a pick dictionary
+    :param picks: pick dictionary
+    :type picks: dict
+    :param creation_info: obspy creation information to apply to picks
+    :type creation_info:
+    :param creation_info: obspy creation information to apply to picks
+    :return: list of picks
+    :rtype: list
+    """
     picks_list = list()
     for station, onsets in picks.items():
         for label, phase in onsets.items():
@@ -275,6 +324,13 @@ def picks_from_picksdict(picks, creation_info=None):
                                                     channel_code=ccode,
                                                     network_code=ncode)
             try:
+                filter_id = phase['filteroptions']
+                filter_id = transformFilterString4Export(filter_id)
+            except KeyError as e:
+                warnings.warn(e.message, RuntimeWarning)
+                filter_id = ''
+            pick.filter_id = filter_id
+            try:
                 polarity = phase['fm']
                 if polarity == 'U' or '+':
                     pick.polarity = 'positive'
@@ -289,7 +345,6 @@ def picks_from_picksdict(picks, creation_info=None):
                     raise e
             picks_list.append(pick)
     return picks_list
-
 
 def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
@@ -410,25 +465,24 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
 
     HYPO71, NLLoc, VELEST, HYPOSAT, and hypoDD
 
-    :param: arrivals
-    :type: dictionary containing all phase information including
-           station ID, phase, first motion, weight (uncertainty),
-           ....
+    :param arrivals:dictionary containing all phase information including
+     station ID, phase, first motion, weight (uncertainty), ...
+    :type arrivals: dict
 
-    :param: fformat
-    :type:  string, chosen file format (location routine),
-            choose between NLLoc, HYPO71, HYPOSAT, VELEST,
-            HYPOINVERSE, and hypoDD
+    :param fformat: chosen file format (location routine),
+    choose between NLLoc, HYPO71, HYPOSAT, VELEST,
+    HYPOINVERSE, and hypoDD
+    :type fformat: str
 
-    :param: filename, full path and name of phase file
-    :type:  string
+    :param filename: full path and name of phase file
+    :type filename:  string
 
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
 
-    :param: eventinfo, optional, needed for VELEST-cnv file 
+    :param eventinfo: optional, needed for VELEST-cnv file
             and FOCMEC- and HASH-input files 
-    :type:  `obspy.core.event.Event` object
+    :type eventinfo: `obspy.core.event.Event` object
     """
 
     if fformat == 'NLLoc':
@@ -874,10 +928,20 @@ def merge_picks(event, picks):
 
 def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     """
-   Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
+    Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
    Uncertainties are tranformed into quality classes and visualized via histogram if desired.
    Ludger Küperkoch, BESTEC GmbH, 07/2017
-   """
+    :param xmlnames: list of xml obspy event files containing picks
+    :type xmlnames: list
+    :param ErrorsP: time errors of P waves for the four discrete quality classes
+    :type ErrorsP:
+    :param ErrorsS: time errors of S waves for the four discrete quality classes
+    :type ErrorsS:
+    :param plotflag:
+    :type plotflag:
+    :return:
+    :rtype:
+    """
 
     from pylot.core.pick.utils import getQualityFromUncertainty
     from pylot.core.util.utils import loopIdentifyPhase, identifyPhase

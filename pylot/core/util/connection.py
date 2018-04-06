@@ -8,6 +8,13 @@ except:
 
 
 def checkurl(url='https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/'):
+    """
+    check if URL is available
+    :param url: url
+    :type url: str
+    :return: available: True/False
+    :rtype: bool
+    """
     try:
         urlopen(url, timeout=1)
         return True

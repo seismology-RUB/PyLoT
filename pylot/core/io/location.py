@@ -54,7 +54,7 @@ def create_arrival(pickresID, cinfo, phase, azimuth=None, dist=None):
 
 def create_creation_info(agency_id=None, creation_time=None, author=None):
     '''
-
+    get creation info of obspy event
     :param agency_id:
     :param creation_time:
     :param author:
@@ -197,9 +197,9 @@ def create_pick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
 
 def create_resourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
-
-    :param timetohash:
-    :type timetohash
+    create unique resource id
+    :param timetohash: event origin time to hash
+    :type timetohash: class: `~obspy.core.utcdatetime.UTCDateTime` object
     :param restype: type of the resource, e.g. 'orig', 'earthquake' ...
     :type restype: str
     :param authority_id: name of the institution carrying out the processing

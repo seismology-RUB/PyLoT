@@ -16,7 +16,6 @@ from pylot.core.util.utils import common_range, fit_curve
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
 
-
 def richter_magnitude_scaling(delta):
     distance = np.array([0, 10, 20, 25, 30, 35, 40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
                          120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 230, 240, 250,
@@ -133,7 +132,7 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             else:
-                # no saling necessary
+                # no scaling necessary
                 mag = ope.Magnitude(
                     mag=np.median([M.mag for M in self.magnitudes.values()]),
                     magnitude_type=self.type,
@@ -233,23 +232,43 @@ class LocalMagnitude(Magnitude):
         # check for plot flag (for debugging only)
         fig = None
         if iplot > 1:
-            st.plot()
             fig = plt.figure()
-            ax = fig.add_subplot(111)
+            ax = fig.add_subplot(211)
+            ax.plot(th, st[0].data, 'k')
             ax.plot(th, sqH)
             ax.plot(th[iwin], sqH[iwin], 'g')
-            ax.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
-            ax.title(
-                'Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
-                % (st[0].stats.station, wapp))
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Station %s, Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[0].stats.station, 
+                                                       st[0].stats.channel,
+                                                                        wapp))
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Displacement [mm]')
+            ax = fig.add_subplot(212)
+            ax.plot(th, st[1].data, 'k')
+            ax.plot(th, sqH)
+            ax.plot(th[iwin], sqH[iwin], 'g')
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[1].stats.channel,
+                                                                       wapp))
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Displacement [mm]')
+            fig.show()
+            try: input()
+            except SyntaxError: pass
+            plt.close(fig)
+
 
         return wapp, fig
 
     def calc(self):
         for a in self.arrivals:
             if a.phase not in 'sS':
+                continue
+            # make sure calculating Ml only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
@@ -347,7 +366,11 @@ class MomentMagnitude(Magnitude):
 
     def calc(self):
         for a in self.arrivals:
-            if a.phase not in 'pP':
+            if a.phase not in 'pP': 
+                continue
+            # make sure calculating Mo only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code

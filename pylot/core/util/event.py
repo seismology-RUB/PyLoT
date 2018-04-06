@@ -15,6 +15,11 @@ class Event(ObsPyEvent):
     '''
 
     def __init__(self, path):
+        """
+        Initialize event by event directory
+        :param path: path to event directory
+        :type path: str
+        """
         self.pylot_id = path.split('/')[-1]
         # initialize super class
         super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/' + self.pylot_id))
@@ -30,10 +35,20 @@ class Event(ObsPyEvent):
         self.get_notes()
 
     def get_notes_path(self):
+        """
+        Notes files is freely editable by the user and can contain notes regarding the event
+        :return: path to notes file
+        :rtype: str
+        """
         notesfile = os.path.join(self.path, 'notes.txt')
         return notesfile
 
     def get_notes(self):
+        """
+        set self.note attribute to content of notes file
+        :return:
+        :rtype: None
+        """
         notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
@@ -48,34 +63,81 @@ class Event(ObsPyEvent):
                     pass
 
     def addNotes(self, notes):
+        """
+        Set new notes string
+        :param notes: notes to save in Event object
+        :type notes: str
+        :return:
+        :rtype: None
+        """
         self.notes = str(notes)
 
     def clearNotes(self):
+        """
+        Clear event notes
+        :return:
+        :rtype: None
+        """
         self.notes = None
 
     def isRefEvent(self):
+        """
+        Return reference event flag
+        :return: True if event is refence event
+        :rtype: bool
+        """
         return self._refEvent
 
     def isTestEvent(self):
+        """
+        Return test event flag
+        :return: True if event is test event
+        :rtype: bool
+        """
         return self._testEvent
 
     def setRefEvent(self, bool):
+        """
+        Set reference event flag
+        :param bool: new reference event flag
+        :type bool: bool
+        :return:
+        :rtype: None
+        """
         self._refEvent = bool
         if bool: self._testEvent = False
 
     def setTestEvent(self, bool):
+        """
+        Set test event flag
+        :param bool: new test event flag
+        :type bool: bool
+        :return:
+        :rtype: None
+        """
         self._testEvent = bool
         if bool: self._refEvent = False
 
     def clearObsPyPicks(self, picktype):
+        """
+        Remove picks of a certain type from event
+        :param picktype: type of picks to remove, 'auto' or 'manual'
+        :type picktype: str
+        :return:
+        :rtype: None
+        """
         for index, pick in reversed(list(enumerate(self.picks))):
             if picktype in str(pick.method_id):
                 self.picks.pop(index)
 
     def addPicks(self, picks):
-        '''
+        """
         add pylot picks and overwrite existing ones
-        '''
+        :param picks: picks to add to event in pick dictionary
+        :type picks: dict
+        :return:
+        :rtype: None
+        """
         for station in picks:
             self.pylot_picks[station] = picks[station]
         # add ObsPy picks (clear old manual and copy all new manual from pylot)
@@ -83,6 +145,13 @@ class Event(ObsPyEvent):
         self.picks += picks_from_picksdict(self.pylot_picks)
 
     def addAutopicks(self, autopicks):
+        """
+        Add automatic picks to event
+        :param autopicks: automatic picks to add to event
+        :type autopicks dict:
+        :return:
+        :rtype: None
+        """
         for station in autopicks:
             self.pylot_autopicks[station] = autopicks[station]
         # add ObsPy picks (clear old auto and copy all new auto from pylot)
@@ -90,6 +159,15 @@ class Event(ObsPyEvent):
         self.picks += picks_from_picksdict(self.pylot_autopicks)
 
     def setPick(self, station, pick):
+        """
+        Set pick for a station
+        :param station: station name
+        :type station: str
+        :param pick:
+        :type pick: dict
+        :return:
+        :rtype:
+        """
         if pick:
             self.pylot_picks[station] = pick
         else:
@@ -101,21 +179,46 @@ class Event(ObsPyEvent):
         self.picks += picks_from_picksdict(self.pylot_picks)
 
     def setPicks(self, picks):
-        '''
-        set pylot picks and delete and overwrite all existing
-        '''
+        """
+        Set pylot picks and delete and overwrite all existing
+        :param picks: new picks
+        :type picks: dict
+        :return:
+        :rtype: None
+        """
         self.pylot_picks = picks
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
 
     def getPick(self, station):
+        """
+        Get pick at station
+        :param station: station name
+        :type station: str
+        :return: pick dictionary of station
+        :rtype: dict
+        """
         if station in self.pylot_picks.keys():
             return self.pylot_picks[station]
 
     def getPicks(self):
+        """
+        Return pylot picks
+        :return:
+        :rtype: dict
+        """
         return self.pylot_picks
 
     def setAutopick(self, station, pick):
+        """
+        Set pick at station
+        :param station: station name
+        :type station: str
+        :param pick:
+        :type pick: dict
+        :return:
+        :rtype: None
+        """
         if pick:
             self.pylot_autopicks[station] = pick
         else:
@@ -127,25 +230,46 @@ class Event(ObsPyEvent):
         self.picks += picks_from_picksdict(self.pylot_autopicks)
 
     def setAutopicks(self, picks):
-        '''
-        set pylot picks and delete and overwrite all existing
-        '''
+        """
+        Set pylot picks and delete and overwrite all existing
+        :param picks:  new picks
+        :type picks: dict
+        :return:
+        :rtype: None
+        """
         self.pylot_autopicks = picks
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
 
     def getAutopick(self, station):
+        """
+        Return autopick at station
+        :param station: station name
+        :type station: str
+        :return: pick dictionary
+        :rtype: dict
+        """
         if station in self.pylot_autopicks.keys():
             return self.pylot_autopicks[station]
 
     def getAutopicks(self):
+        """
+        Get autopicks of event
+        :return: dict containing automatic picks
+        :rtype: dict
+        """
         return self.pylot_autopicks
 
     def save(self, filename):
-        '''
-        Save PyLoT Event to a file. 
+        """
+        Save PyLoT Event to a file.
         Can be loaded by using event.load(filename).
-        '''
+        Uses pickling to save event object to file
+        :param filename: filename to save project under
+        :type filename: str
+        :return:
+        :rtype: None
+        """
         try:
             import cPickle
         except ImportError:
@@ -159,9 +283,13 @@ class Event(ObsPyEvent):
 
     @staticmethod
     def load(filename):
-        '''
-        Load project from filename.
-        '''
+        """
+        Load project from filename
+        :param filename: to load event file
+        :type filename: str
+        :return: event loaded from file
+        :rtype: Event
+        """
         try:
             import cPickle
         except ImportError:

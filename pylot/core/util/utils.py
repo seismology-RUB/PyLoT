@@ -13,7 +13,7 @@ from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
 
-from pylot.core.io.inputs import PylotParameter
+from pylot.core.io.inputs import PylotParameter, FilterOptions
 from pylot.styles import style_settings
 
 from scipy.interpolate import splrep, splev
@@ -31,6 +31,15 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+def getAutoFilteroptions(phase, parameter):
+    filtername = {'P': 'bpz2',
+                  'S': 'bph2'}
+    if not phase in filtername.keys():
+        print('autoPickParameter: No filter options for phase {}.'.format(phase))
+        return
+    freqmin, freqmax = parameter.get(filtername[phase])
+    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
+    return filteroptions
 
 def readDefaultFilterInformation(fname):
     """
@@ -327,9 +336,9 @@ def real_Bool(value):
     :return: true boolean value
     :rtype: bool
     """
-    if value == 'True':
+    if value in ['True', 'true']:
         return True
-    elif value == 'False':
+    elif value in ['False', 'false']:
         return False
     else:
         return value
@@ -389,6 +398,38 @@ def full_range(stream):
     max_end = max([trace.stats.endtime for trace in stream])
 
     return min_start, max_end
+
+
+def transformFilteroptions2String(filtopts):
+    st = ''
+    if not filtopts:
+        return st
+    if 'type' in filtopts.keys():
+        st += '{}'.format(filtopts['type'])
+        if 'freq' in filtopts.keys():
+            st += ' | freq: {}'.format(filtopts['freq'])
+        elif 'freqmin' in filtopts.keys() and 'freqmax' in filtopts.keys():
+            st += ' | freqmin: {} | freqmax: {}'.format(filtopts['freqmin'], filtopts['freqmax'])
+    for key, value in filtopts.items():
+        if key in ['type', 'freq', 'freqmin', 'freqmax']:
+            continue
+        st += ' | {}: {}'.format(key, value)
+    return st
+
+
+def transformFilterString4Export(st):
+    st = st.replace('|', '//')
+    st = st.replace(':', '/')
+    st = st.replace(' ', '')
+    return st
+
+
+def backtransformFilterString(st):
+    st = st.split('smi:local/')
+    st = st[1] if len(st) > 1 else st[0]
+    st = st.replace('//', ' | ')
+    st = st.replace('/', ': ')
+    return st
 
 
 def getHash(time):
@@ -945,7 +986,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 dip = blockette_.dip
                 azimut = blockette_.azimuth
                 break
-            if dip is None or azimut is None:
+            if (dip is None or azimut is None) or (dip == 0 and azimut == 0):
                 error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
                 raise ValueError(error_msg)
             return dip, azimut
@@ -1111,6 +1152,9 @@ def loopIdentifyPhase(phase):
     """
     from pylot.core.util.defaults import ALTSUFFIX
 
+    if phase == None:
+        raise NameError('Can not identify phase that is None')
+
     phase_copy = phase
     while not identifyPhase(phase_copy):
         identified = False
@@ -1135,8 +1179,10 @@ def identifyPhase(phase):
     :rtype: str or bool
     """
     # common phase suffix for P and S
-    common_P = ['P', 'p']
+    common_P = ['P', 'p', 'R']
     common_S = ['S', 's']
+    if phase is None:
+        return False
     if phase[-1] in common_P:
         return 'P'
     if phase[-1] in common_S:

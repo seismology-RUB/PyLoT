@@ -123,7 +123,6 @@ color:rgba(255, 255, 255, 255);
 border-style: outset;
 border-width: 2px;
 border-color: rgba(50, 50, 60, 255);
-min-width: 6em;
 padding: 4px;
 padding-left:5px;
 padding-right:5px;

@@ -28,8 +28,8 @@ def export(picks, fnout, parameter):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
  
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
     '''
     # write phases to NLLoc-phase file
     writephases(picks, 'NLLoc', fnout, parameter)
@@ -38,19 +38,19 @@ def export(picks, fnout, parameter):
 def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     '''
     :param ctrfn: name of NLLoc-control file
-    :type: str
+    :type ctrfn: str
 
     :param root: root path to NLLoc working directory
-    :type: str
+    :type root: str
 
     :param nllocoutn: name of NLLoc-location output file
-    :type: str
+    :type nllocoutn: str
 
     :param phasefn: name of NLLoc-input phase file
-    :type: str
+    :type phasefn: str
 
     :param tttn: pattern of precalculated NLLoc traveltime tables
-    :type: str
+    :type tttn: str
     '''
     # For locating the event the NLLoc-control file has to be modified!
     # create comment line for NLLoc-control file NLLoc-output file
@@ -75,9 +75,9 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
 
 def locate(fnin, infile=None):
     """
-    takes an external program name
-    :param fnin:
-    :return:
+    takes an external program name and tries to run it
+    :param fnin: external program name
+    :return: None
     """
 
     if infile is None:

@@ -17,8 +17,6 @@ import time
 import numpy as np
 
 from matplotlib.figure import Figure
-from pylot.core.util.utils import find_horizontals, identifyPhase, loopIdentifyPhase, trim_station_components, \
-    identifyPhaseID, check4rotated
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -49,7 +47,9 @@ from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, check4gaps, remove_underscores
+    check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
+    loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
+    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 
@@ -375,8 +375,8 @@ class ComparisonWidget(QWidget):
                 ax = axes_dict[phase]['exp']
                 xlims = ax.get_xlim()
                 ylims = ax.get_ylim()
-                ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
-                ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+                #ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                #ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
             legend = ax.legend()
             legend.draggable()
 
@@ -450,7 +450,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout = QtGui.QVBoxLayout()
         self.label = QtGui.QLabel()
         self.setLayout(self.main_layout)
-        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title, autoDownsample=True)
+        self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addWidget(self.label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
@@ -461,6 +461,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
@@ -494,6 +495,9 @@ class WaveformWidgetPG(QtGui.QWidget):
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0):
+        if not wfdata:
+            print('Nothing to plot.')
+            return
         self.title = title
         self.clearPlotDict()
         self.wfstart, self.wfend = full_range(wfdata)
@@ -742,6 +746,16 @@ class PylotCanvas(FigureCanvas):
 
         self.draw()
 
+    def set_frame_color(self, color='k'):
+        for ax in self.axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor(color)
+
+    def set_frame_linewidth(self, linewidth=1.):
+        for ax in self.axes:
+            for spine in ax.spines.values():
+                spine.set_linewidth(linewidth)
+
     def saveFigure(self):
         if self.figure:
             fd = QtGui.QFileDialog()
@@ -886,9 +900,30 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
+    def calcPlotPositions(self, wfdata, compclass):
+        possible_plot_pos = list(range(len(wfdata)))
+        plot_positions = {}
+        for trace in wfdata:
+            comp = trace.stats.channel[-1]
+            try:
+                position = compclass.getPlotPosition(str(comp))
+            except ValueError as e:
+                continue
+            plot_positions[trace.stats.channel] = position
+        for channel, plot_pos in plot_positions.items():
+            while not plot_pos in possible_plot_pos or not plot_pos - 1 in plot_positions.values():
+                if plot_pos == 0:
+                    break
+                plot_pos -= 1
+                if plot_pos < 0:
+                    raise Exception('Plot position lower zero. This should not happen.')
+            plot_positions[channel] = plot_pos
+        return plot_positions
+
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0,
+                   plot_additional=False, additional_channel=None, scaleToChannel=None):
         ax = self.axes[0]
         ax.cla()
 
@@ -911,9 +946,15 @@ class PylotCanvas(FigureCanvas):
         else:
             st_select = wfdata
 
-        # list containing tuples of network, station, channel (for sorting)
+        if mapping:
+            plot_positions = self.calcPlotPositions(st_select, compclass)
+
+        # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []
-        for trace in st_select:
+        for plot_pos, trace in enumerate(st_select):
+            if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
+                print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
+                continue
             nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
         nsc.sort()
         nsc.reverse()
@@ -923,11 +964,9 @@ class PylotCanvas(FigureCanvas):
 
         for n, (network, station, channel) in enumerate(nsc):
             st = st_select.select(network=network, station=station, channel=channel)
-            trace = st[0]
+            trace = st[0].copy()
             if mapping:
-                comp = channel[-1]
-                n = compclass.getPlotPosition(str(comp))
-                # n = n[0]
+                n = plot_positions[trace.stats.channel]
             if n > nmax:
                 nmax = n
             if verbosity:
@@ -936,19 +975,52 @@ class PylotCanvas(FigureCanvas):
             stime = trace.stats.starttime - wfstart
             time_ax = prepTimeAxis(stime, trace)
             if time_ax is not None:
+                if scaleToChannel:
+                    st_scale = wfdata.select(channel=scaleToChannel)
+                    if st_scale:
+                        tr = st_scale[0]
+                        trace.detrend('constant')
+                        trace.normalize(np.max(np.abs(tr.data)) * 2)
+                        scaleddata = True
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
+
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
+                ax.axhline(n, color="0.5", lw=0.5)
                 ax.plot(times, data, color=linecolor, linewidth=0.7)
                 if noiselevel is not None:
-                    for level in noiselevel:
+                    for level in [-noiselevel[channel], noiselevel[channel]]:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                            [level, level],
+                                [n+level, n+level],
                                 color = linecolor,
                                 linestyle = 'dashed')
                 self.setPlotDict(n, (station, channel, network))
+        if plot_additional and additional_channel:
+            compare_stream = wfdata.select(channel=additional_channel)
+            if compare_stream:
+                trace = compare_stream[0]
+                if scaleToChannel:
+                    st_scale = wfdata.select(channel=scaleToChannel)
+                    if st_scale:
+                        tr = st_scale[0]
+                        trace.detrend('constant')
+                        trace.normalize(np.max(np.abs(tr.data)) * 2)
+                        scaleddata = True
+                if not scaleddata:
+                    trace.detrend('constant')
+                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                time_ax = prepTimeAxis(stime, trace)
+                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
+                p_data = compare_stream[0].data
+                # #normalize
+                # p_max = max(abs(p_data))
+                # p_data /= p_max
+                for index in range(3):
+                    ax.plot(times, p_data, color='red', alpha=0.5, linewidth=0.7)
+                    p_data += 1
+
         if iniPick:
             ax.vlines(iniPick, ax.get_ylim()[0], ax.get_ylim()[1],
                       colors='m', linestyles='dashed',
@@ -1124,9 +1196,11 @@ class PickDlg(QDialog):
         self.components = 'ZNE'
         self.currentPhase = None
         self.phaseText = []
+        self.phaseLines = {}
         self.arrivals = []
         self.arrivalsText = []
         self.cidpick = []
+        self.cidpress = None
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -1149,7 +1223,15 @@ class PickDlg(QDialog):
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
-        self.nextStation = QtGui.QCheckBox('Continue with next station.')
+        self.nextStation = QtGui.QCheckBox('Continue with next station ')
+
+        # comparison channel
+        self.compareChannel = QtGui.QComboBox()
+        self.compareChannel.activated.connect(self.resetPlot)
+
+        # scale channel
+        self.scaleChannel = QtGui.QComboBox()
+        self.scaleChannel.activated.connect(self.resetPlot)
 
         # initialize panning attributes
         self.press = None
@@ -1177,9 +1259,30 @@ class PickDlg(QDialog):
         self.phaseplot = PhasePlotWidget(self)
         self.phaseplot.hide()
 
+        # setup ui
+        self.setupUi()
+
+        # fill compare and scale channels
+        self.compareChannel.addItem('-', None)
+        self.scaleChannel.addItem('normalized', None)
+
+        for trace in self.getWFData():
+            channel = trace.stats.channel
+            self.compareChannel.addItem(channel, trace)
+            if not channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
+                print('Skipping unknown channel for scaling: {}'.format(channel))
+                continue
+            self.scaleChannel.addItem(channel, trace)
+            actionP = self.pChannels.addAction(str(channel))
+            actionS = self.sChannels.addAction(str(channel))
+            actionP.setCheckable(True)
+            actionS.setCheckable(True)
+            actionP.setChecked(self.getChannelSettingsP(channel))
+            actionS.setChecked(self.getChannelSettingsS(channel))
+
         # plot data
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
+                                     title=self.getStation())
 
         self.multicompfig.setZoomBorders2content()
 
@@ -1187,8 +1290,6 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
-        # setup ui
-        self.setupUi()
 
         # set plot labels
         self.setPlotLabels()
@@ -1211,7 +1312,11 @@ class PickDlg(QDialog):
 
         # init pick delete (with right click)
         self.connect_pick_delete()
+        self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
+        self.setWindowState(QtCore.Qt.WindowMaximized)
+
+        self.deleteLater()
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
@@ -1221,38 +1326,71 @@ class PickDlg(QDialog):
             exitAction.triggered.connect(self.close)
             exitMenu.addAction(exitAction)
 
-        self.addPickPhases(menuBar)
-
         # create matplotlib toolbar to inherit functionality
         self.figToolBar = NavigationToolbar2QT(self.multicompfig, self)
         self.figToolBar.hide()
 
         # create icons
-        filter_icon = QIcon()
-        filter_icon.addPixmap(QPixmap(':/icons/filter.png'))
+        filter_icon_p = QIcon()
+        filter_icon_p.addPixmap(QPixmap(':/icons/filter_p.png'))
+        filter_icon_s = QIcon()
+        filter_icon_s.addPixmap(QPixmap(':/icons/filter_s.png'))
+        key_a_icon = QIcon()
+        key_a_icon.addPixmap(QPixmap(':/icons/key_A.png'))
         zoom_icon = QIcon()
         zoom_icon.addPixmap(QPixmap(':/icons/zoom_in.png'))
         home_icon = QIcon()
         home_icon.addPixmap(QPixmap(':/icons/zoom_0.png'))
         del_icon = QIcon()
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
+        sync_icon = QIcon()
+        sync_icon.addPixmap(QPixmap(':/icons/sync.png'))
 
         # create actions
-        self.filterAction = createAction(parent=self, text='Filter',
-                                         slot=self.filterWFData,
-                                         icon=filter_icon,
-                                         tip='Toggle filtered/original'
-                                             ' waveforms')
+        self.filterActionP = createAction(parent=self, text='Apply P Filter',
+                                          slot=self.filterP,
+                                          icon=filter_icon_p,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='P')
+        self.filterActionS = createAction(parent=self, text='Apply S Filter',
+                                          slot=self.filterS,
+                                          icon=filter_icon_s,
+                                          tip='Toggle filtered/original'
+                                              ' waveforms',
+                                          checkable=True,
+                                          shortcut='S')
+        self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
+                                          slot=self.toggleAutoFilter,
+                                          icon=key_a_icon,
+                                          tip='Filter automatically before initial pick',
+                                          checkable=True,
+                                          shortcut='Ctrl+A')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
                                        checkable=True)
         self.resetZoomAction = createAction(parent=self, text='Home',
-                                            slot=self.multicompfig.resetZoom, icon=home_icon,
+                                            slot=self.resetPlot, icon=home_icon,
                                             tip='Reset zoom to original limits')
         self.resetPicksAction = createAction(parent=self, text='Delete Picks',
                                              slot=self.delPicks, icon=del_icon,
                                              tip='Delete current picks.')
+        self.renamePhaseAction = createAction(parent=self, text='Rename Phase',
+                                              slot=self.initRenamePhase, icon=sync_icon,
+                                              tip='Rename a Phase.', checkable=True,
+                                              shortcut='R')
+
+        self.addPickPhases(menuBar)
+
+        self.pChannels = menuBar.addMenu('P-Channels')
+        self.sChannels = menuBar.addMenu('S-Channels')
+        self.pChannels.triggered.connect(self.updateChannelSettingsP)
+        self.sChannels.triggered.connect(self.updateChannelSettingsS)
+
+        settings = QSettings()
+        self.autoFilterAction.setChecked(real_Bool(settings.value('autoFilter')))
 
         # create other widget elements
         phaseitems = [None] + list(FILTERDEFAULTS.keys())
@@ -1260,6 +1398,8 @@ class PickDlg(QDialog):
         # create buttons for P and S filter and picking
         self.p_button = QPushButton('P', self)
         self.s_button = QPushButton('S', self)
+        self.p_button.setMinimumWidth(100)
+        self.s_button.setMinimumWidth(100)
         self.p_button.setCheckable(True)
         self.s_button.setCheckable(True)
         # set button tooltips
@@ -1274,6 +1414,8 @@ class PickDlg(QDialog):
         self.reject_button = QPushButton('&Reject')
         self.disable_ar_buttons()
 
+        self.statusbar = QtGui.QStatusBar(self)
+
         # add hotkeys
         self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
@@ -1284,9 +1426,12 @@ class PickDlg(QDialog):
         # layout the outermost appearance of the Pick Dialog
         _outerlayout = QVBoxLayout()
         _dialtoolbar = QToolBar()
+        _dialtoolbar.setStyleSheet('QToolBar{spacing:5px;}')
 
         # fill toolbar with content
-        _dialtoolbar.addAction(self.filterAction)
+        _dialtoolbar.addAction(self.filterActionP)
+        _dialtoolbar.addAction(self.filterActionS)
+        _dialtoolbar.addAction(self.autoFilterAction)
         _dialtoolbar.addWidget(self.p_button)
         _dialtoolbar.addWidget(self.s_button)
         _dialtoolbar.addAction(self.zoomAction)
@@ -1294,6 +1439,8 @@ class PickDlg(QDialog):
         _dialtoolbar.addAction(self.resetZoomAction)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addAction(self.resetPicksAction)
+        _dialtoolbar.addAction(self.renamePhaseAction)
+        _dialtoolbar.addSeparator()
         if self._embedded:
             manu_label = QLabel('Manual Onsets:')
             manu_label.setStyleSheet('QLabel {'
@@ -1304,19 +1451,29 @@ class PickDlg(QDialog):
             _dialtoolbar.addWidget(self.reject_button)
         else:
             _dialtoolbar.addWidget(self.nextStation)
+            _dialtoolbar.addSeparator()
         est_label = QLabel('Estimated onsets:')
         est_label.setStyleSheet('QLabel {'
                                    'padding:2px;'
                                    'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
+        _dialtoolbar.addWidget(self.compareChannel)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtGui.QLabel('Scale by: '))
+        _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
         _innerinnerlayout = QtGui.QHBoxLayout()
+        _lowerlayout = QHBoxLayout()
         _innerinnerlayout.addWidget(self.multicompfig)
         _innerinnerlayout.addWidget(self.phaseplot)
         _innerlayout.addLayout(_innerinnerlayout)
+        _innerlayout.addLayout(_lowerlayout)
+        _lowerlayout.addWidget(self.statusbar)
 
         # add button box to the dialog
         _buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
@@ -1324,13 +1481,17 @@ class PickDlg(QDialog):
 
         # merge widgets and layouts to establish the dialog
         if not self._embedded:
-            _innerlayout.addWidget(_buttonbox)
+            _lowerlayout.addWidget(_buttonbox)
         _outerlayout.addWidget(menuBar)
         _outerlayout.addWidget(_dialtoolbar)
         _outerlayout.addLayout(_innerlayout)
         _outerlayout.setStretch(0, 0)
         _outerlayout.setStretch(1, 0)
         _outerlayout.setStretch(2, 1)
+        _lowerlayout.setStretch(0, 5)
+        _lowerlayout.setStretch(1, 1)
+        _innerlayout.setStretch(0, 1)
+        _innerlayout.setStretch(1, 0)
 
         # connect widget element signals with slots (methods to the dialog
         # object
@@ -1466,8 +1627,8 @@ class PickDlg(QDialog):
         phaseSelect = {'P': self.p_phase_select,
                        'S': self.s_phase_select}
 
-        nHotkey = 4  # max hotkeys per phase
-        hotkey = 1  # start hotkey
+        hotkeys = {'P': [1, 2, 3, 4, 'q', 'w', 'e', 'r'],
+                   'S': [5, 6, 7, 8, 't', 'z', 'u', 'i']}
 
         # loop over P and S (use explicit list instead of iter over dict.keys to keep order)
         for phaseIndex, phaseID in enumerate(['P', 'S']):
@@ -1476,11 +1637,11 @@ class PickDlg(QDialog):
                 # remove zeros
                 phase = phase.strip()
                 # add hotkeys
-                if not index >= nHotkey:
-                    shortcut = str(hotkey)
-                    hotkey += 1
-                else:
+                try:
+                    shortcut = str(hotkeys[phaseID][index])
+                except IndexError:
                     shortcut = None
+
                 # create action and add to menu
                 # phase name transferred using lambda function
                 slot = lambda phase=phase, phaseID=phaseID: phaseSelect[phaseID](phase)
@@ -1492,6 +1653,27 @@ class PickDlg(QDialog):
             if phaseIndex == 0:
                 picksMenu.addSeparator()
 
+        filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
+                                   slot=self.filterOptions,
+                                   shortcut='Ctrl+F',
+                                   icon=self.orig_parent.filter_icon)
+        filterMenu = menuBar.addMenu('Filter')
+        filterMenu.addAction(self.filterActionP)
+        filterMenu.addAction(self.filterActionS)
+        filterMenu.addAction(self.autoFilterAction)
+        filterMenu.addAction(filterOptionsAction)
+
+
+    def filterOptions(self):
+        if self.orig_parent.adjustFilterOptions():
+            phase = None
+            if self.filterActionP.isChecked():
+                phase = 'P'
+            elif self.filterActionS.isChecked():
+                phase = 'S'
+            if phase:
+                self.plotWFData(phase=phase, filter=True)
+
     def disable_ar_buttons(self):
         self.enable_ar_buttons(False)
 
@@ -1501,6 +1683,7 @@ class PickDlg(QDialog):
 
     def p_phase_select(self, phase):
         if not self.p_button.isChecked():
+            self.p_button.setEnabled(True)
             self.p_button.setChecked(True)
             self.p_button.setText(phase)
         else:
@@ -1512,6 +1695,7 @@ class PickDlg(QDialog):
 
     def s_phase_select(self, phase):
         if not self.s_button.isChecked():
+            self.s_button.setEnabled(True)
             self.s_button.setChecked(True)
             self.s_button.setText(phase)
         else:
@@ -1538,14 +1722,16 @@ class PickDlg(QDialog):
             self.leave_picking_mode()
 
     def init_p_pick(self):
-        self.set_button_border_color(self.p_button, 'yellow')
-        self.activatePicking()
+        color = pick_color('manual', 'P')
+        self.set_button_border_color(self.p_button, color)
         self.currentPhase = str(self.p_button.text())
+        self.activatePicking()
 
     def init_s_pick(self):
-        self.set_button_border_color(self.s_button, 'yellow')
-        self.activatePicking()
+        color = pick_color('manual', 'S')
+        self.set_button_border_color(self.s_button, color)
         self.currentPhase = str(self.s_button.text())
+        self.activatePicking()
 
     def getPhaseID(self, phase):
         return identifyPhaseID(phase)
@@ -1586,28 +1772,50 @@ class PickDlg(QDialog):
         self.currentPhase = None
         self.reset_p_button()
         self.reset_s_button()
-        self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                        title=self.getStation())
-        self.drawAllPicks()
-        self.drawArrivals()
-        self.setPlotLabels()
-        self.resetZoomAction.trigger()
+        self.resetZoom()
+        self.refreshPlot()
         self.deactivatePicking()
 
     def activatePicking(self):
-        self.resetZoom()
+        self.leave_rename_phase()
+        self.renamePhaseAction.setEnabled(False)
+        self.compareChannel.setEnabled(False)
+        self.scaleChannel.setEnabled(False)
+        phase = self.currentPhase
+        phaseID = self.getPhaseID(phase)
+        if not phaseID:
+            self.warn_unknown_phase(phase)
+            self.leave_picking_mode()
+            return
+        color = pick_color_plt('manual', phaseID)
+        self.multicompfig.set_frame_color(color)
+        self.multicompfig.set_frame_linewidth(1.5)
         if self.zoomAction.isChecked():
             self.zoomAction.trigger()
         self.multicompfig.disconnectEvents()
         self.cidpress = self.multicompfig.connectPressEvent(self.setIniPick)
-        self.filterWFData()
+        if not self.filterActionP.isChecked() and not self.filterActionS.isChecked():
+            if self.autoFilterAction.isChecked():
+                self.filterWFData()
+            else:
+                self.draw()
+        else:
+            self.draw()
         #self.pick_block = self.togglePickBlocker()
         self.disconnect_pick_delete()
 
     def deactivatePicking(self):
+        defaultcolor = self.orig_parent._style['linecolor']['rgba_mpl']
+        self.multicompfig.set_frame_color(defaultcolor)
+        self.multicompfig.set_frame_linewidth(1)
+
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
+        self.renamePhaseAction.setEnabled(True)
+        self.compareChannel.setEnabled(True)
+        self.scaleChannel.setEnabled(True)
         self.connect_pick_delete()
+        self.draw()
 
     def getParameter(self):
         return self.parameter
@@ -1643,12 +1851,22 @@ class PickDlg(QDialog):
     def getUser(self):
         return self._user
 
-    def getFilterOptions(self, phase):
-        options = self.filteroptions[self.getPhaseID(phase)]
-        if type(options) == dict:
-            return FilterOptions(**options)
+    def getFilterOptions(self, phase, gui_filter=False):
+        settings = QSettings()
+        phaseID = self.getPhaseID(phase)
+
+        if real_Bool(settings.value('useGuiFilter')) or gui_filter:
+            filteroptions = self.filteroptions[phaseID]
         else:
-            return options
+            filteroptions = getAutoFilteroptions(phaseID, self.parameter)
+
+        if type(filteroptions) == dict:
+            freq = [filteroptions['freqmin'], filteroptions['freqmax']]
+            order = filteroptions['corners']
+            filtertype = filteroptions['type']
+            return FilterOptions(filtertype=filtertype, freq=freq, order=order)
+        else:
+            return filteroptions
 
     def getXLims(self):
         return self.cur_xlim
@@ -1703,14 +1921,39 @@ class PickDlg(QDialog):
 
     def delPicks(self):
         self.resetPicks()
-        self.resetPlot()
+        self.refreshPlot()
+
+    def initRenamePhase(self):
+        if self.renamePhaseAction.isChecked():
+            self.multicompfig.disconnectEvents()
+            self.multicompfig.set_frame_color('orange')
+            self.draw()
+            self.statusbar.showMessage('Click on a phase you want to rename.')
+        else:
+            self.multicompfig.set_frame_color()
+            self.multicompfig.connectEvents()
+            self.draw()
+
+    def getPickPhases(self, data, phase):
+        st = Stream()
+        phases = {'P': self.pChannels,
+                  'S': self.sChannels}
+        if not phase in phases.keys():
+            raise ValueError('Unknown phase ID {}'.format(phase))
+        for action in phases[phase].actions():
+            if action.isChecked():
+                st += data.select(channel=action.text())
+        return st
+
+    def calcNoiseScaleFactor(self, noiselevel, zoomfactor=5., norm=1):
+        # calculate factor to upscale a trace normed to 'norm' in a way that all values
+        # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
+        scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
+        return scaleFactor
 
     def setIniPick(self, gui_event):
-
+        self.multicompfig.set_frame_color('green')
         trace_number = round(gui_event.ydata)
-
-        channel = self.getChannelID(trace_number)
-        wfdata = self.selectWFData(channel)
 
         self.multicompfig.disconnectEvents()
         self.disconnectPressEvent()
@@ -1718,10 +1961,10 @@ class PickDlg(QDialog):
 
         if self.getPhaseID(self.currentPhase) == 'P':
             self.set_button_border_color(self.p_button, 'green')
-            self.setIniPickP(gui_event, wfdata, trace_number)
+            self.setIniPickP(gui_event)
         elif self.getPhaseID(self.currentPhase) == 'S':
             self.set_button_border_color(self.s_button, 'green')
-            self.setIniPickS(gui_event, wfdata)
+            self.setIniPickS(gui_event)
 
         self.zoomAction.setEnabled(False)
 
@@ -1729,135 +1972,110 @@ class PickDlg(QDialog):
         self.setPlotLabels()
         self.draw()
 
-    def setIniPickP(self, gui_event, wfdata, trace_number):
+    def currentFilterPhase(self):
+        filterphase = None
+        if self.filterActionP.isChecked():
+            filterphase = 'P'
+        elif self.filterActionS.isChecked():
+            filterphase = 'S'
+        return filterphase
+
+    def setIniPickP(self, gui_event):
+        self.setIniPickPS(gui_event, phase='P')
+
+    def setIniPickS(self, gui_event):
+        self.setIniPickPS(gui_event, phase='S')
+
+    def setIniPickPS(self, gui_event, phase):
+        phase = self.getPhaseID(phase)
+
+        nfac_phase = {'P': 'nfacP',
+                      'S': 'nfacS'}
+        twins_phase = {'P': 'tsnrz',
+                       'S': 'tsnrh'}
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
 
-        nfac = parameter.get('nfacP')
-        twins = parameter.get('tsnrz')
-        noise_win = twins[0]
-        gap_win = twins[1]
-        signal_win = twins[2]
-        itrace = int(trace_number)
-
-        while itrace > len(wfdata) - 1:
-            itrace -= 1
-
-        stime = self.getStartTime()
-        stime_diff = wfdata[itrace].stats.starttime - stime
-
-        # copy data for plotting
-        data = self.getWFData().copy()
-
-        # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if filteroptions:
-            try:
-                data.filter(**filteroptions)
-                wfdata.filter(**filteroptions)
-            except ValueError as e:
-                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickP: Could not filter waveform: {}'.format(e))
-                self.qmb.show()
-
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick - stime_diff, itrace)
-
-        snr = result[0]
-        noiselevel = result[2]
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
-
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
-
-        # remove mean noise level from waveforms
-        for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace=trace, window=inoise)
-
-        self.setXLims([ini_pick - x_res, ini_pick + x_res])
-        self.setYLims(np.array([-noiselevel * 3.5, noiselevel * 3.5]) +
-                      trace_number)
-        self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
-                                              ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=(trace_number + noiselevel,
-                                                    trace_number - noiselevel),
-                                        iniPick=ini_pick)
-
-    def setIniPickS(self, gui_event, wfdata):
-
-        parameter = self.parameter
-        ini_pick = gui_event.xdata
-
-        nfac = parameter.get('nfacS')
-        twins = parameter.get('tsnrh')
+        nfac = parameter.get(nfac_phase[phase])
+        twins = parameter.get(twins_phase[phase])
         noise_win = twins[0]
         gap_win = twins[1]
         signal_win = twins[2]
 
         stime = self.getStartTime()
-        stime_diff = wfdata[0].stats.starttime - stime
 
         # copy data for plotting
         data = self.getWFData().copy()
+        data = self.getPickPhases(data, phase)
+        data.normalize()
+        if not data:
+            QtGui.QMessageBox.warning(self, 'No channel to plot',
+                                      'No channel to plot for phase: {}.'.format(phase))
+            self.leave_picking_mode()
+            return
 
         # filter data and trace on which is picked prior to determination of SNR
-        phase = self.currentPhase
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if filteroptions:
+        filterphase = self.currentFilterPhase()
+        if filterphase:
+            filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
             try:
+                data.detrend('linear')
                 data.filter(**filteroptions)
-                wfdata.filter(**filteroptions)
+                #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPickS: Could not filter waveform: {}'.format(e))
+                                             'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
                 self.qmb.show()
 
+        snr = []
+        noiselevels = {}
         # determine SNR and noiselevel
-        result = getSNR(wfdata, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
-        snr = result[0]
-        noiselevel = result[2]
-
-        if noiselevel:
-            noiselevel *= nfac
-        else:
-            noiselevel = nfac
+        for trace in data.traces:
+            st = data.select(channel=trace.stats.channel)
+            stime_diff = trace.stats.starttime - stime
+            result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
+            snr.append(result[0])
+            noiselevel = result[2]
+            if noiselevel:
+                noiselevel *= nfac
+            else:
+                noiselevel = nfac
+            noiselevels[trace.stats.channel] = noiselevel
 
         # prepare plotting of data
         for trace in data:
             t = prepTimeAxis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
+            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
+            channel = trace.stats.channel
+            noiselevel = noiselevels[channel]
+            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
+            trace.data *= noiseScaleFactor
+            noiselevels[channel] *= noiseScaleFactor
 
-        # scale waveform for plotting
-        horiz_comp = find_horizontals(data)
-        data = scaleWFData(data, noiselevel * 2.5, horiz_comp)
+        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
-        x_res = getResolutionWindow(snr, parameter.get('extent'))
+        xlims = [ini_pick - x_res, ini_pick + x_res]
+        ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
 
-        self.setXLims(tuple([ini_pick - x_res, ini_pick + x_res]))
-        traces = self.getTraceID(horiz_comp)
-        traces.sort()
-        self.setYLims(tuple(np.array([-1.0, +1.0]) +
-                            np.array(traces)))
-        noiselevels = [trace + 1 / (2.5 * 2) for trace in traces] + \
-                      [trace - 1 / (2.5 * 2) for trace in traces]
+        title = self.getStation() + ' picking mode'
+        if filterphase:
+            filtops_str = transformFilteroptions2String(filteroptions)
+            title += ' | Filteroptions: {}'.format(filtops_str)
 
+        plot_additional = bool(self.compareChannel.currentText())
+        additional_channel = self.compareChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data,
-                                        title=self.getStation() +
-                                              ' picking mode',
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims(),
-                                        noiselevel=noiselevels,
-                                        scaleddata=True,
-                                        iniPick=ini_pick)
+                                     title=title,
+                                     zoomx=xlims,
+                                     zoomy=ylims,
+                                     noiselevel=noiselevels,
+                                     scaleddata=True,
+                                     iniPick=ini_pick,
+                                     plot_additional=plot_additional,
+                                     additional_channel=additional_channel)
 
     def setPick(self, gui_event):
 
@@ -1869,17 +2087,23 @@ class PickDlg(QDialog):
         # setting pick
         pick = gui_event.xdata  # get pick time relative to the traces timeaxis not to the global
         channel = self.getChannelID(round(gui_event.ydata))
+        # TODO: channel ID not correct when calcPlotPositions altered positions?
 
         # get name of phase actually picked
         phase = self.currentPhase
 
         # get filter parameter for the phase to be picked
-        filteroptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
+        filterphase = self.currentFilterPhase()
+        if filterphase:
+            filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
+        else:
+            filteroptions = None
 
         # copy and filter data for earliest and latest possible picks
         wfdata = self.getWFData().copy().select(channel=channel)
         if filteroptions:
             try:
+                wfdata.detrend('linear')
                 wfdata.filter(**filteroptions)
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
@@ -1887,6 +2111,7 @@ class PickDlg(QDialog):
                 self.qmb.show()
 
         # get earliest and latest possible pick and symmetric pick error
+        # TODO: Hardcoded channel 3 for Z!
         if wfdata[0].stats.channel[2] == 'Z' or wfdata[0].stats.channel[2] == '3':
             nfac = parameter.get('nfacP')
             TSNR = parameter.get('tsnrz')
@@ -1910,41 +2135,31 @@ class PickDlg(QDialog):
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
                           picker='manual', channel=channel,
-                          network=wfdata[0].stats.network)
+                          network=wfdata[0].stats.network,
+                          filteroptions=transformFilteroptions2String(filteroptions))
 
-        try:
-            oldphasepick = self.picks[phase]
-        except KeyError:
-            self.picks[phase] = phasepicks
-        else:
-            self.picks[phase] = phasepicks
-            oepp = oldphasepick['epp']
-            ompp = oldphasepick['mpp']
-            olpp = oldphasepick['lpp']
-            msg = """Warning old phase information for phase {phase} has been
-                     altered.\n
-                     New phase times:\n
-                     earliest possible pick: {epp}\n
-                     most probable pick: {mpp}\n
-                     latest possible pick: {lpp}\n
-                     \n
-                     Old phase times (overwritten):\n
-                     earliest possible pick: {oepp}\n
-                     most probable pick: {ompp}\n
-                     latest possible pick: {olpp}\n""".format(phase=phase,
-                                                              epp=epp,
-                                                              mpp=pick,
-                                                              lpp=lpp,
-                                                              oepp=oepp,
-                                                              ompp=ompp,
-                                                              olpp=olpp)
+        saved = self.savePick(phase, phasepicks)
+        if saved:
+            self.setDirty(True)
 
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        #self.pick_block = self.togglePickBlocker()
+        #self.pick_block = self.togglPickBlocker()
+        #self.resetZoom()
         self.leave_picking_mode()
-        self.setDirty(True)
+
+    def savePick(self, phase, phasepicks):
+        if not self.getPhaseID(phase):
+            self.warn_unknown_phase(phase)
+            return
+
+        self.picks[phase] = phasepicks
+        return True
+
+    def warn_unknown_phase(self, phase=None):
+        QtGui.QMessageBox.warning(self, 'Unknown phase ID',
+                                  'Could not identify phase ID: {}.'.format(phase))
 
     def disconnectPressEvent(self):
         self.multicompfig.mpl_disconnect(self.cidpress)
@@ -1954,6 +2169,7 @@ class PickDlg(QDialog):
         self.removePhaseText()
         self.drawPicks(picktype='manual')
         self.drawPicks(picktype='auto')
+        self.draw()
 
     def drawPicks(self, phase=None, picktype='manual', textOnly=False, picks=None):
         # plotting picks
@@ -1995,19 +2211,20 @@ class PickDlg(QDialog):
             color = pick_color_plt(picktype, phaseID, quality)
             if not textOnly:
                 linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                        label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                self.phaseLines[phase] = vl
                 if spe:
                     ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
                 if picks['epp']:
                     linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
-                    ax.plot([epp, epp], ylims, color=color, linestyle=linestyle_epp,
-                            linewidth=width_epp, label='{}-EPP'.format(phase))
+                    ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
+                               linewidth=width_epp, label='{}-EPP'.format(phase))
                 if picks['lpp']:
                     linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
-                    ax.plot([lpp, lpp], ylims, color=color, linestyle=linestyle_lpp,
-                            linewidth=width_lpp, label='{}-LPP'.format(phase))
+                    ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
+                               linewidth=width_lpp, label='{}-LPP'.format(phase))
                 # else:
                 #     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                 #             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
@@ -2019,8 +2236,9 @@ class PickDlg(QDialog):
             if not textOnly:
                 ax.plot(mpp, ylims[1], color=color, marker='v')
                 ax.plot(mpp, ylims[0], color=color, marker='^')
-                ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                          picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                self.phaseLines[phase] = vl
             # append phase text (if textOnly: draw with current ylims)
             self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
         else:
@@ -2028,25 +2246,133 @@ class PickDlg(QDialog):
 
         ax.legend(loc=1)
 
+    def connect_mouse_motion(self):
+        self.cidmotion = self.multicompfig.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
     def connect_pick_delete(self):
-        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick_delete)
+        self.cidpick = self.multicompfig.mpl_connect('pick_event', self.onpick)
+        self.cidpick = self.multicompfig.mpl_connect('motion_notify_event', self.on_hover_info)
 
     def disconnect_pick_delete(self):
         if hasattr(self, 'cidpick'):
             self.multicompfig.mpl_disconnect(self.cidpick)
 
+    def on_motion(self, event):
+        x = event.xdata
+        if x is not None:
+            time_code = 'T = {}, t = {} [s]'.format(self.stime+x, x)
+            user_help = ' - Left-Click to Drag | Right-Click to Pan-Zoom |' \
+                        ' Mousewheel to Zoom | Middle-Click to Delete Pick'
+            self.statusbar.showMessage(time_code + user_help)
+
+    def onpick(self, event):
+        if event.mouseevent.button == 1:
+            self.onpick_info(event)
+        elif event.mouseevent.button == 2:
+            self.onpick_delete(event)
+
+    def on_hover_info(self, event):
+        if not any([phase.contains(event)[0] for phase in self.phaseLines.values()]):
+            return
+        x = event.xdata
+        if not x:
+            return
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', MPP: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', SPE: {} [s]'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+        x = event.x
+        y = event.y
+        y = self.size().height() - y
+        pt = self.mapToGlobal(QtCore.QPoint(x, y))
+        QtGui.QToolTip.showText(pt, message)
+
+    def onpick_info(self, event):
+        if not event.mouseevent.button == 1:
+            return
+        x = event.mouseevent.xdata
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
+        pick = allpicks[picktype][phase]
+        message = '{} {}-pick'.format(picktype, phase)
+        if 'mpp' in pick:
+            message += ', MPP: {}'.format(pick['mpp'])
+        if 'spe' in pick:
+            message += ', SPE: {}'.format(pick['spe'])
+        if 'filteroptions' in pick:
+            message += ', FILTER: {}'.format(pick['filteroptions'])
+
+        if self.renamePhaseAction.isChecked():
+            self.renamePhase(picktype, phase)
+
+        self.statusbar.showMessage(message, 10e3)
+
     def onpick_delete(self, event):
-        if not event.mouseevent.button == 3:
+        if not event.mouseevent.button == 2:
             return
         x = event.mouseevent.xdata
         self.remove_pick_by_x(x)
-        self.resetPlot()
+        self.refreshPlot()
+
+    def renamePhase(self, picktype, phase):
+        allpicks = {'manual': self.picks,
+                    'auto': self.autopicks}
+        picks = allpicks[picktype]
+        dialog = QtGui.QInputDialog(parent=self)
+        new_phase, executed = dialog.getText(self, 'Rename phase', 'Rename phase {} to:'.format(phase))
+        if executed:
+            try:
+                self.renamePhaseInDict(picks, phase, new_phase)
+            except KeyError as e:
+                QtGui.QMessageBox.warning(self, 'Could not rename phase',
+                                          'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
+        self.leave_rename_phase()
+        self.refreshPlot()
+
+    def renamePhaseInDict(self, picks, phase_old, phase_new):
+        if phase_new in picks:
+            raise KeyError('New phase ID already assigned.')
+        picks_new = picks[phase_old].copy()
+        saved = self.savePick(phase_new, picks_new)
+        if saved:
+            self.phaseLines[phase_new] = self.phaseLines.pop(phase_old)
+            picks.pop(phase_old)
+            self.setDirty(True)
+
+    def leave_rename_phase(self):
+        self.renamePhaseAction.setChecked(False)
+        self.multicompfig.set_frame_color()
+        self.multicompfig.connectEvents()
 
     def remove_pick_by_x(self, x):
         if not self.picks and not self.autopicks:
             return
-        # init empty list and get station starttime
+        allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
+        if pick_rel == None:
+            return
+        # delete the value from corresponding dictionary
+        allpicks[picktype].pop(phase)
+        # delete line from vlines dictionary
+        if phase in self.phaseLines.keys():
+            del(self.phaseLines[phase])
+        # information output
+        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
+        self.setDirty(True)
+
+    def identify_selected_picks(self, x):
+        # init empty list and get stat5ion starttime
         X = []
+        pick_rel = phase = picktype = None
         starttime = self.getStartTime()
         # init dictionaries to iterate through and iterate over them
         allpicks = {'manual': self.picks,
@@ -2059,16 +2385,14 @@ class PickDlg(QDialog):
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index
                 X.append((pick_rel, phase, picktype))
-        # find index and value closest to x
-        index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
-        # unpack the found value
-        pick_rel, phase, picktype = X[index]
-        # delete the value from corresponding dictionary
-        allpicks[picktype].pop(phase)
-        # information output
-        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, starttime+pick_rel, pick_rel))
-        self.setDirty(True)
+        if len(X) > 0:
+            # find index and value closest to x
+            index, value = min(enumerate([val[0] for val in X]), key=lambda y: abs(y[1] - x))
+            # unpack the found value
+            pick_rel, phase, picktype = X[index]
+        return allpicks, pick_rel, phase, picktype
+
+
 
     def drawPhaseText(self):
         self.drawPicks(picktype='manual', textOnly=True)
@@ -2089,56 +2413,137 @@ class PickDlg(QDialog):
     def togglePickBlocker(self):
         return not self.pick_block
 
-    def filterWFData(self):
+    def filterWFData(self, phase=None):
+        if not phase:
+            phase = self.currentPhase
+            if self.getPhaseID(phase) == 'P':
+                self.filterActionP.setChecked(True)
+                self.filterP()
+            elif self.getPhaseID(phase) == 'S':
+                self.filterActionS.setChecked(True)
+                self.filterS()
+            return
+        self.plotWFData(phase=phase, filter=True)
+
+    def plotWFData(self, phase=None, filter=False):
         if self.pick_block:
             return
-        self.multicompfig.updateCurrentLimits()
+        self.cur_xlim = self.multicompfig.axes[0].get_xlim()
+        self.cur_ylim = self.multicompfig.axes[0].get_ylim()
+        #self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
-        old_title = self.multicompfig.axes[0].get_title()
-        title = None
-        phase = self.currentPhase
-        filtoptions = None
-        if phase:
-            filtoptions = self.getFilterOptions(self.getPhaseID(phase)).parseFilterOptions()
-        if self.filterAction.isChecked():
-            if not phase:
-                filtoptions = FilterOptionsDialog.getFilterObject()
-                filtoptions = filtoptions.parseFilterOptions()
-        if filtoptions is not None:
-            data.filter(**filtoptions)
-            if not old_title.endswith(')'):
-                title = old_title + ' (filtered)'
-            elif not old_title.endswith(' (filtered)') and not old_title.endswith(', filtered)'):
-                title = old_title[:-1] + ', filtered)'
-        else:
-            if old_title.endswith(' (filtered)'):
-                title = old_title.replace(' (filtered)', '')
-            elif old_title.endswith(', filtered)'):
-                title = old_title.replace(', filtered)', ')')
-        if title is None:
-            title = old_title
+        title = self.getStation()
+        if filter:
+            filtoptions = None
+            if phase:
+                filtoptions = self.getFilterOptions(self.getPhaseID(phase), gui_filter=True).parseFilterOptions()
+
+            # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
+            #     if not phase:
+            #         filtoptions = FilterOptionsDialog.getFilterObject()
+            #         filtoptions = filtoptions.parseFilterOptions()
+
+            if filtoptions is not None:
+                data.detrend('linear')
+                data.taper(0.02, type='cosine')
+                data.filter(**filtoptions)
+                filtops_str = transformFilteroptions2String(filtoptions)
+                title += ' | Filteroptions: {}'.format(filtops_str)
+
+        plot_additional = bool(self.compareChannel.currentText())
+        additional_channel = self.compareChannel.currentText()
+        scale_channel = self.scaleChannel.currentText()
         self.multicompfig.plotWFData(wfdata=data, title=title,
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims())
+                                     zoomx=self.getXLims(),
+                                     zoomy=self.getYLims(),
+                                     plot_additional=plot_additional,
+                                     additional_channel=additional_channel,
+                                     scaleToChannel=scale_channel)
         self.setPlotLabels()
         self.drawAllPicks()
         self.draw()
+
+    def filterP(self):
+        self.filterActionS.setChecked(False)
+        if self.filterActionP.isChecked():
+            self.filterWFData('P')
+        else:
+            self.refreshPlot()
+
+    def filterS(self):
+        self.filterActionP.setChecked(False)
+        if self.filterActionS.isChecked():
+            self.filterWFData('S')
+        else:
+            self.refreshPlot()
+
+    def toggleAutoFilter(self):
+        settings = QSettings()
+        settings.setValue('autoFilter', self.autoFilterAction.isChecked())
+
+    def updateChannelSettingsP(self, action):
+        settings = QSettings()
+        settings.setValue('p_channel_{}'.format(action.text()), action.isChecked())
+
+    def updateChannelSettingsS(self, action):
+        settings = QSettings()
+        settings.setValue('s_channel_{}'.format(action.text()), action.isChecked())
+
+    def getChannelSettingsP(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('p_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['Z']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
+    def getChannelSettingsS(self, channel):
+        settings = QSettings()
+        rval = real_Bool(settings.value('s_channel_{}'.format(channel)))
+        compclass = settings.value('compclass')
+        components = ['N', 'E']
+        for component in components[:]:
+            components.append(compclass.getCompPosition(component))
+        if not rval in [True, False]:
+            if any([channel.endswith(component) for component in components]):
+                rval = True
+            else:
+                rval = False
+        return rval
+
 
     def resetPlot(self):
         self.resetZoom()
-        data = self.getWFData().copy()
-        title = self.multicompfig.axes[0].get_title()
-        self.multicompfig.plotWFData(wfdata=data, title=title,
-                                        zoomx=self.getXLims(),
-                                        zoomy=self.getYLims())
-        self.setPlotLabels()
-        self.drawAllPicks()
-        self.draw()
+        self.refreshPlot()
+
+    def refreshPlot(self):
+        if self.autoFilterAction.isChecked():
+            self.filterActionP.setChecked(False)
+            self.filterActionS.setChecked(False)
+        # data = self.getWFData().copy()
+        # title = self.getStation()
+        filter = False
+        phase = None
+        if self.filterActionP.isChecked():
+            phase = 'P'
+            filter = True
+        if self.filterActionS.isChecked():
+            phase = 'S'
+            filter = True
+        self.plotWFData(phase=phase, filter=filter)
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
-        self.setXLims(self.multicompfig.getGlobalLimits(ax, 'x'))
-        self.setYLims(self.multicompfig.getGlobalLimits(ax, 'y'))
+        self.multicompfig.setXLims(ax, self.multicompfig.getGlobalLimits(ax, 'x'))
+        self.multicompfig.setYLims(ax, self.multicompfig.getGlobalLimits(ax, 'y'))
+        if not self.zoomAction.isChecked():
+            self.multicompfig.connectEvents()
 
     def setPlotLabels(self):
 
@@ -2150,8 +2555,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        self.multicompfig.setXLims(ax, self.getXLims())
-        self.multicompfig.setYLims(ax, self.getYLims())
+        #self.multicompfig.setXLims(ax, self.getXLims())
+        #self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
@@ -2161,6 +2566,7 @@ class PickDlg(QDialog):
             self.figToolBar.zoom()
         else:
             self.figToolBar.zoom()
+            self.multicompfig.connectEvents()
 
     def draw(self):
         self.multicompfig.draw()
@@ -2183,7 +2589,7 @@ class PickDlg(QDialog):
         if not self._embedded:
             QDialog.reject(self)
         else:
-            self.resetPlot()
+            self.refreshPlot()
             self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
                                          'Denied', 'New picks rejected!')
             self.qmb.show()
@@ -2646,7 +3052,7 @@ class TuneAutopicker(QWidget):
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        self.pickDlg = PickDlg(self, data=data.select(station=station),
+        self.pickDlg = PickDlg(self.parent(), data=data.select(station=station),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
@@ -2687,7 +3093,7 @@ class TuneAutopicker(QWidget):
 
     def plot_manual_picks_to_figs(self):
         picks = self.get_current_event_picks(self.get_current_station())
-        if not picks:
+        if not picks or not 'P' in picks or not 'S' in picks:
             return
         for plotitem in self._manual_pick_plots:
             self.clear_plotitem(plotitem)
@@ -2735,9 +3141,9 @@ class TuneAutopicker(QWidget):
 
         y_top = 0.9 * ax.get_ylim()[1]
         y_bot = 0.9 * ax.get_ylim()[0]
-        self._manual_pick_plots.append(ax.vlines(mpp, y_bot, y_top,
-                                                 color=color, linewidth=2,
-                                                 label='manual {} Onset (quality: {})'.format(phase, quality)))
+        self._manual_pick_plots.append(ax.axvline(mpp, y_bot, y_top,
+                                                  color=color, linewidth=2,
+                                                  label='manual {} Onset (quality: {})'.format(phase, quality)))
         self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
                                                [y_bot, y_bot], linewidth=2,
                                                color=color))
@@ -4099,7 +4505,7 @@ class FilterOptionsDialog(QDialog):
         PyLoT widget FilterOptionsDialog is a QDialog object. It is an UI to
         adjust parameters for filtering seismic data.
         """
-        super(FilterOptionsDialog, self).__init__()
+        super(FilterOptionsDialog, self).__init__(parent)
         if parent is not None and parent.getFilters():
             self.filterOptions = parent.getFilters()
         # elif filterOptions is not None:
@@ -4109,8 +4515,8 @@ class FilterOptionsDialog(QDialog):
                                   'S': FilterOptions()}
 
         self.setWindowTitle(titleString)
-        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P']),
-                                    'S': FilterOptionsWidget(self.filterOptions['S'])}
+        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
+                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
         self.setupUi()
         self.updateUi()
         self.connectButtons()
@@ -4121,28 +4527,68 @@ class FilterOptionsDialog(QDialog):
         self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
                            'S': QtGui.QGroupBox('S Filter')}
 
+        settings = QSettings()
+        overwriteFilter = real_Bool(settings.value('useGuiFilter'))
+
+        self.overwriteFilterCheckbox = QCheckBox('Overwrite filteroptions')
+        self.overwriteFilterCheckbox.setToolTip('Overwrite filter settings for refined pick with GUI settings')
+        self.overwriteFilterCheckbox.setChecked(overwriteFilter)
+        self.overwriteFilterCheckbox.clicked.connect(self.toggleFilterOverwrite)
+
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok |
                                           QDialogButtonBox.Cancel)
 
-        for key in ['P', 'S']:
-            groupbox = self.groupBoxes[key]
+        for phase in ['P', 'S']:
+            groupbox = self.groupBoxes[phase]
             box_layout = QtGui.QVBoxLayout()
             groupbox.setLayout(box_layout)
 
             self.filter_layout.addWidget(groupbox)
-            box_layout.addWidget(self.filterOptionWidgets[key])
+            box_layout.addWidget(self.filterOptionWidgets[phase])
 
         self.main_layout.addLayout(self.filter_layout)
+        self.main_layout.addWidget(self.overwriteFilterCheckbox)
         self.main_layout.addWidget(self.buttonBox)
         self.setLayout(self.main_layout)
+
+    def toggleFilterOverwrite(self):
+        if self.overwriteFilterCheckbox.isChecked():
+            qmb = QMessageBox(self, icon=QMessageBox.Warning,
+                              text='Warning: Overwriting automatic filter settings'
+                                   ' for final pick will contaminate comparability'
+                                   ' of automatic and manual picks! Continue?')
+            qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            qmb.setDefaultButton(QMessageBox.Yes)
+            ret = qmb.exec_()
+            if not ret == qmb.Yes:
+                self.overwriteFilterCheckbox.setChecked(False)
+
+        settings = QSettings()
+        settings.setValue('useGuiFilter', self.overwriteFilterCheckbox.isChecked())
 
     def connectButtons(self):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
     def accept(self):
+        if not self.checkMinMax():
+            QMessageBox.warning(self, "Value error",
+                                "Maximum frequency must be at least the "
+                                "same value as minimum frequency (notch)! "
+                                "Adjusted maximum frequency automatically!")
+            return
         self.updateUi()
         QDialog.accept(self)
+
+    def checkMinMax(self):
+        returnvals = []
+        for foWidget in self.filterOptionWidgets.values():
+            returnvals.append(foWidget.checkMin())
+            returnvals.append(foWidget.checkMax())
+        if all(returnvals):
+            return True
+        else:
+            return False
 
     def updateUi(self):
         returnvals = []
@@ -4154,11 +4600,17 @@ class FilterOptionsDialog(QDialog):
                          'S': self.filterOptionWidgets['S'].getFilterOptions()}
         return filteroptions
 
+    def isComparable(self):
+        return {phase: fltOptWid.comparable for (phase, fltOptWid) in self.filterOptionWidgets.items()}
+
 
 class FilterOptionsWidget(QWidget):
-    def __init__(self, filterOptions):
+    def __init__(self, filterOptions, filterOptionsAuto):
         super(FilterOptionsWidget, self).__init__()
         self.filterOptions = filterOptions
+        self.filterOptionsAuto = filterOptionsAuto
+
+        self.comparable = None
 
         _enable = True
         if self.getFilterOptions().getFilterType() is None:
@@ -4168,7 +4620,7 @@ class FilterOptionsWidget(QWidget):
         self.freqminLabel.setText("minimum:")
         self.freqminSpinBox = QDoubleSpinBox()
         self.freqminSpinBox.setRange(5e-7, 1e6)
-        self.freqminSpinBox.setDecimals(2)
+        self.freqminSpinBox.setDecimals(5)
         self.freqminSpinBox.setSingleStep(0.01)
         self.freqminSpinBox.setSuffix(' Hz')
         self.freqminSpinBox.setEnabled(_enable)
@@ -4177,7 +4629,7 @@ class FilterOptionsWidget(QWidget):
         self.freqmaxLabel.setText("maximum:")
         self.freqmaxSpinBox = QDoubleSpinBox()
         self.freqmaxSpinBox.setRange(5e-7, 1e6)
-        self.freqmaxSpinBox.setDecimals(2)
+        self.freqmaxSpinBox.setDecimals(5)
         self.freqmaxSpinBox.setSingleStep(0.01)
         self.freqmaxSpinBox.setSuffix(' Hz')
 
@@ -4188,15 +4640,11 @@ class FilterOptionsWidget(QWidget):
         #         self.freqmaxSpinBox.setValue(
         #             self.getFilterOptions().getFreq()[1])
         # else:
-        try:
-            self.freqminSpinBox.setValue(self.getFilterOptions().getFreq()[0])
-            self.freqmaxSpinBox.setValue(self.getFilterOptions().getFreq()[1])
-        except TypeError as e:
-            print(e)
-            self.freqmaxSpinBox.setValue(1.)
-            self.freqminSpinBox.setValue(.1)
 
-        typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+        self.typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+
+        self.resetButton = QPushButton('Reset')
+        self.resetButton.setToolTip('Reset filter settings to settings for automatic picking.')
 
         self.orderLabel = QLabel()
         self.orderLabel.setText("Order:")
@@ -4206,47 +4654,137 @@ class FilterOptionsWidget(QWidget):
         self.selectTypeLabel = QLabel()
         self.selectTypeLabel.setText("Select filter type:")
         self.selectTypeCombo = QComboBox()
-        self.selectTypeCombo.addItems(typeOptions)
-        self.selectTypeCombo.setCurrentIndex(typeOptions.index(self.getFilterOptions().getFilterType()))
-        self.selectTypeLayout = QVBoxLayout()
-        self.selectTypeLayout.addWidget(self.orderLabel)
-        self.selectTypeLayout.addWidget(self.orderSpinBox)
-        self.selectTypeLayout.addWidget(self.selectTypeLabel)
-        self.selectTypeLayout.addWidget(self.selectTypeCombo)
+        self.selectTypeCombo.addItems(self.typeOptions)
+
+        self.autoOrder = QLabel('{}')
+        self.autoType = QLabel('{}')
+
+        self.selectTypeLayout = QGridLayout()
+        self.selectTypeLayout.addWidget(self.orderLabel, 0, 0)
+        self.selectTypeLayout.addWidget(self.orderSpinBox, 1, 0)
+        self.selectTypeLayout.addWidget(self.autoOrder, 1, 1)
+        self.selectTypeLayout.addWidget(self.selectTypeLabel, 2, 0)
+        self.selectTypeLayout.addWidget(self.selectTypeCombo, 3, 0)
+        self.selectTypeLayout.addWidget(self.autoType, 3, 1)
+        self.selectTypeLayout.setColumnStretch(0, 1)
+        self.selectTypeLayout.setColumnStretch(1, 1)
+
+        self.autoMinFreq = QLabel('{} Hz')
+        self.autoMaxFreq = QLabel('{} Hz')
+
+        self.manuLabel = QLabel('manual')
+        self.autoLabel = QLabel('auto')
 
         self.freqGroupBox = QGroupBox("Frequency range")
         self.freqGroupLayout = QGridLayout()
-        self.freqGroupLayout.addWidget(self.freqminLabel, 0, 0)
-        self.freqGroupLayout.addWidget(self.freqminSpinBox, 0, 1)
-        self.freqGroupLayout.addWidget(self.freqmaxLabel, 1, 0)
-        self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 1, 1)
+        self.freqGroupLayout.addWidget(self.manuLabel, 0, 1, 80)
+        self.freqGroupLayout.addWidget(self.autoLabel, 0, 2, 80)
+        self.freqGroupLayout.addWidget(self.freqminLabel, 1, 0)
+        self.freqGroupLayout.addWidget(self.freqminSpinBox, 1, 1)
+        self.freqGroupLayout.addWidget(self.autoMinFreq, 1, 2)
+        self.freqGroupLayout.addWidget(self.freqmaxLabel, 2, 0)
+        self.freqGroupLayout.addWidget(self.freqmaxSpinBox, 2, 1)
+        self.freqGroupLayout.addWidget(self.autoMaxFreq, 2, 2)
+        self.freqGroupLayout.setColumnStretch(0, 1)
+        self.freqGroupLayout.setColumnStretch(1, 1)
+        self.freqGroupLayout.setColumnStretch(2, 1)
         self.freqGroupBox.setLayout(self.freqGroupLayout)
 
         self.freqmaxSpinBox.setEnabled(_enable)
 
-        try:
-            self.orderSpinBox.setValue(self.getFilterOptions().getOrder())
-        except:
-            self.orderSpinBox.setValue(2)
-
         grid = QGridLayout()
-        grid.addWidget(self.freqGroupBox, 0, 2, 1, 2)
-        grid.addLayout(self.selectTypeLayout, 1, 2, 1, 2)
+        grid.addWidget(self.freqGroupBox, 0, 0)
+        grid.addLayout(self.selectTypeLayout, 1, 0)
+        grid.addWidget(self.resetButton, 2, 0)
 
         self.setLayout(grid)
 
-        self.freqminSpinBox.valueChanged.connect(self.checkMin)
-        self.freqmaxSpinBox.valueChanged.connect(self.checkMax)
+        self.setMFtoWidget()
+
+        self.resetButton.clicked.connect(self.setManuToAuto)
         self.orderSpinBox.valueChanged.connect(self.updateUi)
         self.selectTypeCombo.currentIndexChanged.connect(self.updateUi)
+        self.orderSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.selectTypeCombo.currentIndexChanged.connect(self.checkAutoManu)
+        self.freqminSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.freqmaxSpinBox.valueChanged.connect(self.checkAutoManu)
+        self.checkAutoManu()
+
+    def checkAutoManu(self):
+        self.updateMFfromWidget()
+
+        manuFilter = self.filterOptions
+        autoFilter = self.filterOptionsAuto
+        labels = {'order': self.autoOrder,
+                  'type': self.autoType,
+                  'freqmin': self.autoMinFreq,
+                  'freqmax': self.autoMaxFreq}
+        autoOptions = {'order': autoFilter.getOrder(),
+                       'type': autoFilter.getFilterType(),
+                       'freqmin': autoFilter.getFreq()[0],
+                       'freqmax': autoFilter.getFreq()[1]}
+        manuOptions = {'order': manuFilter.getOrder(),
+                       'type': manuFilter.getFilterType(),
+                       'freqmin': manuFilter.getFreq()[0],
+                       'freqmax': manuFilter.getFreq()[1]}
+
+        comparable = []
+
+        for key, label in labels.items():
+            text = label.text().format(autoOptions[key])
+            label.setText(text)
+            isEqual = autoOptions[key] == manuOptions[key]
+            if isEqual:
+                label.setStyleSheet('color: green')
+            else:
+                label.setStyleSheet('color: red')
+            comparable.append(isEqual)
+
+        self.comparable = all(comparable)
+
+    def setMFtoWidget(self):
+        try:
+            freqmin, freqmax = self.filterOptions.getFreq()
+        except TypeError as e:
+            print(e)
+            freqmin, freqmax = (0.1, 1.0)
+        try:
+            order = self.getFilterOptions().getOrder()
+        except TypeError as e:
+            print(e)
+            order = 4
+        ftype = self.getFilterOptions().getFilterType()
+
+        self.selectTypeCombo.setCurrentIndex(self.typeOptions.index(ftype))
+        self.freqminSpinBox.setValue(freqmin)
+        self.freqmaxSpinBox.setValue(freqmax)
+        self.orderSpinBox.setValue(order)
+
+    def updateMFfromWidget(self):
+        type = self.selectTypeCombo.currentText()
+        freq = [self.freqminSpinBox.value(), self.freqmaxSpinBox.value()]
+        self.filterOptions.setFilterType(type)
+        self.filterOptions.setFreq(freq)
+        self.filterOptions.setOrder(self.orderSpinBox.value())
+
+    def setManuToAuto(self):
+        self.filterOptions.setOrder(self.filterOptionsAuto.getOrder())
+        self.filterOptions.setFilterType(self.filterOptionsAuto.getFilterType())
+        self.filterOptions.setFreq(self.filterOptionsAuto.getFreq())
+        self.setMFtoWidget()
+        self.updateUi()
 
     def checkMin(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
             self.freqmaxSpinBox.setValue(self.freqminSpinBox.value())
+            return False
+        return True
 
     def checkMax(self):
         if not self.freqminSpinBox.value() <= self.freqmaxSpinBox.value():
             self.freqminSpinBox.setValue(self.freqmaxSpinBox.value())
+            return False
+        return True
 
     def updateUi(self):
         type = self.selectTypeCombo.currentText()
@@ -4279,9 +4817,7 @@ class FilterOptionsWidget(QWidget):
                 self.freqmaxSpinBox.selectAll()
                 self.freqmaxSpinBox.setFocus()
 
-        self.getFilterOptions().setFilterType(type)
-        self.getFilterOptions().setFreq(freq)
-        self.getFilterOptions().setOrder(self.orderSpinBox.value())
+        self.updateMFfromWidget()
 
     def getFilterOptions(self):
         return self.filterOptions
@@ -4328,6 +4864,7 @@ class HelpForm(QDialog):
         toolBar.addWidget(self.pageLabel)
         self.webBrowser = QWebView()
         self.webBrowser.load(page)
+        #self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)

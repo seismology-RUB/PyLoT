@@ -18,11 +18,11 @@ def export(picks, fnout, parameter, eventinfo):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
     
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
 
-    :param: eventinfo, source information needed for hypoDD format
-    :type:  list object
+    :param eventinfo: source information needed for hypoDD format
+    :type eventinfo:  list object
     '''
     # write phases to hypoDD-phase file
     writephases(picks, 'hypoDD', fnout, parameter, eventinfo)
