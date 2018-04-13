@@ -25,6 +25,7 @@ except ImportError:
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
+from scipy.signal import argrelmin, argrelmax
 
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
@@ -539,9 +540,9 @@ class WaveformWidgetPG(QtGui.QWidget):
             n+=1
             st = st_select.select(network=network, station=station, channel=channel)
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
-            trace = st[0]
+            trace = st[0].copy()
             if st_syn:
-                trace_syn = st_syn[0]
+                trace_syn = st_syn[0].copy()
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -552,23 +553,46 @@ class WaveformWidgetPG(QtGui.QWidget):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
+
             time_ax = prepTimeAxis(stime, trace)
             if st_syn:
                 stime_syn = trace_syn.stats.starttime - self.wfstart
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
-            if time_ax is not None:
+
+            # TEST TEST max/min plot
+            minsamples = argrelmin(trace.data)
+            maxsamples = argrelmax(trace.data)
+            plot_samples = np.sort(np.append(minsamples, maxsamples))
+            trace.data = trace.data[plot_samples]
+            time_ax = time_ax[plot_samples]
+            if st_syn:
+                minsamples_syn = argrelmin(trace_syn.data)
+                maxsamples_syn = argrelmax(trace_syn.data)
+                plot_samples_syn = np.sort(np.append(minsamples_syn, maxsamples_syn))
+                trace_syn.data = trace_syn.data[plot_samples_syn]
+                time_ax_syn = time_ax_syn[plot_samples_syn]
+
+            # TEST TEST Remove middle of seismograms for overview plot
+            # trace.data = trace.data[abs(trace.data) > 0.1 * max(abs(trace.data))]
+            # if st_syn:
+            #     trace.data_syn = trace.data_syn[abs(trace.data_syn) > 0.1 * max(abs(trace.data))]
+            # TEST TEST ------
+
+            if time_ax not in [None, []]:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
                     if st_syn:
                         trace_syn.detrend('constant')
                         trace_syn.normalize(np.max(np.abs(trace_syn.data)) * 2)
-                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
-                times_syn = [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else []
-                data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                data_syn = [datum + n for index, datum in enumerate(trace_syn.data)
-                            if not index % nth_sample] if st_syn else []
-                plots.append((times, data, times_syn, data_syn))
+                # TODO: change this to numpy operations instead of lists?
+                times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
+                times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
+                trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
+                trace.data_syn = np.array([datum + n for index, datum in enumerate(trace.data_syn)
+                            if not index % nth_sample] if st_syn else [])
+                plots.append((times, trace.data,
+                              times_syn, trace.data_syn))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''

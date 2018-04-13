@@ -379,9 +379,10 @@ class Data(object):
         self.wfsyn = Stream()
         wffnames = None
         wffnames_syn = None
+        wfdir = 'processed' if 'processed' in [fname.split('/')[-1] for fname in fnames] else 'raw'
         if obspy_dmt:
             for fpath in fnames:
-                if fpath.endswith('raw'):
+                if fpath.endswith(wfdir):
                     wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
                 if 'syngine' in fpath.split('/')[-1]:
                     wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
