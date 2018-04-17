@@ -1365,6 +1365,34 @@ def calcSlope(Data, datasmooth, Tcf, Pick, TSNR):
     return slope, iislope, datafit
 
 
+def get_pickparams(pickparam):
+    """
+    Get parameter names out of pickparam into dictionaries and return them
+    :return: dictionaries containing 1. p pick parameters, 2. s pick parameters, 3. first motion determinatiion
+    parameters, 4. signal length parameters
+    :rtype: (dict, dict, dict, dict)
+    """
+    # Define names of all parameters in different groups
+    p_parameter_names = 'algoP pstart pstop tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP'.split(' ')
+    s_parameter_names = 'algoS sstart sstop use_taup taup_model bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac'.split(' ')
+    first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
+    signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
+    # Get list of values from pickparam by name
+    p_parameter_values = map(pickparam.get, p_parameter_names)
+    s_parameter_values = map(pickparam.get, s_parameter_names)
+    fm_parameter_values = map(pickparam.get, first_motion_names)
+    sl_parameter_values = map(pickparam.get, signal_length_names)
+    # construct dicts from names and values
+    p_params = dict(zip(p_parameter_names, p_parameter_values))
+    s_params = dict(zip(s_parameter_names, s_parameter_values))
+    first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
+    signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
+
+    s_params['use_taup'] = real_Bool(s_params['use_taup'])
+
+    return p_params, s_params, first_motion_params, signal_length_params
+
+
 if __name__ == '__main__':
     import doctest
 

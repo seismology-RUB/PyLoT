@@ -15,7 +15,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
-    getSNR, fmpicker, checkPonsets, wadaticheck
+    getSNR, fmpicker, checkPonsets, wadaticheck, get_pickparams
 from pylot.core.util.utils import getPatternLine, gen_Pool,\
     real_Bool, identifyPhaseID
 
@@ -163,62 +163,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     # read your pylot.in for details!
     plt_flag = 0
 
-    # special parameters for P picking
-    algoP = pickparam.get('algoP')
-    pstart = pickparam.get('pstart')
-    pstop = pickparam.get('pstop')
-    thosmw = pickparam.get('tlta')
-    tsnrz = pickparam.get('tsnrz')
-    hosorder = pickparam.get('hosorder')
-    bpz1 = pickparam.get('bpz1')
-    bpz2 = pickparam.get('bpz2')
-    pickwinP = pickparam.get('pickwinP')
-    aictsmoothP = pickparam.get('aictsmooth')
-    tsmoothP = pickparam.get('tsmoothP')
-    ausP = pickparam.get('ausP')
-    nfacP = pickparam.get('nfacP')
-    tpred1z = pickparam.get('tpred1z')
-    tdet1z = pickparam.get('tdet1z')
-    Parorder = pickparam.get('Parorder')
-    addnoise = pickparam.get('addnoise')
-    Precalcwin = pickparam.get('Precalcwin')
-    minAICPslope = pickparam.get('minAICPslope')
-    minAICPSNR = pickparam.get('minAICPSNR')
-    timeerrorsP = pickparam.get('timeerrorsP')
-    # special parameters for S picking
-    algoS = pickparam.get('algoS')
-    sstart = pickparam.get('sstart')
-    sstop = pickparam.get('sstop')
-    use_taup = real_Bool(pickparam.get('use_taup'))
-    taup_model = pickparam.get('taup_model')
-    bph1 = pickparam.get('bph1')
-    bph2 = pickparam.get('bph2')
-    tsnrh = pickparam.get('tsnrh')
-    pickwinS = pickparam.get('pickwinS')
-    tpred1h = pickparam.get('tpred1h')
-    tdet1h = pickparam.get('tdet1h')
-    tpred2h = pickparam.get('tpred2h')
-    tdet2h = pickparam.get('tdet2h')
-    Sarorder = pickparam.get('Sarorder')
-    aictsmoothS = pickparam.get('aictsmoothS')
-    tsmoothS = pickparam.get('tsmoothS')
-    ausS = pickparam.get('ausS')
-    minAICSslope = pickparam.get('minAICSslope')
-    minAICSSNR = pickparam.get('minAICSSNR')
-    Srecalcwin = pickparam.get('Srecalcwin')
-    nfacS = pickparam.get('nfacS')
-    timeerrorsS = pickparam.get('timeerrorsS')
-    # parameters for first-motion determination
-    minFMSNR = pickparam.get('minFMSNR')
-    fmpickwin = pickparam.get('fmpickwin')
-    minfmweight = pickparam.get('minfmweight')
-    # parameters for checking signal length
-    minsiglength = pickparam.get('minsiglength')
-    minpercent = pickparam.get('minpercent')
-    nfacsl = pickparam.get('noisefactor')
-    # parameter to check for spuriously picked S onset
-    zfac = pickparam.get('zfac')
-    # path to inventory-, dataless- or resp-files
+    # get picking parameter dictionaries
+    p_params, s_params, first_motion_params, signal_length_params = get_pickparams(pickparam)
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -260,7 +206,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
         return
 
-    if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
+    if p_params['algoP'] == 'HOS' or p_params['algoP'] == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
               'trace ...\n{data}'.format(station=wfstream[0].stats.station,
@@ -271,7 +217,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         # remove constant offset from data to avoid unwanted filter response
         tr_filt.detrend(type='demean')
         # filter and taper data
-        tr_filt.filter('bandpass', freqmin=bpz1[0], freqmax=bpz1[1],
+        tr_filt.filter('bandpass', freqmin=p_params['bpz1'][0], freqmax=p_params['bpz1'][1],
                        zerophase=False)
         tr_filt.taper(max_percentage=0.05, type='hann')
         z_copy[0].data = tr_filt.data
@@ -280,7 +226,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
         # if not given: sets Lc to infinity to use full stream
-        if use_taup is True:
+        if s_params['use_taup'] is True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata[1]:
@@ -291,7 +237,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 station_coords = get_source_coords(parser, station_id)
                 if station_coords and origin:
                     source_origin = origin[0]
-                    model = TauPyModel(taup_model)
+                    model = TauPyModel(s_params['taup_model'])
                     arrivals = model.get_travel_times_geo(
                         source_origin.depth,
                         source_origin.latitude,
@@ -311,19 +257,19 @@ def autopickstation(wfstream, pickparam, verbose=False,
                           ' origin time using TauPy'.format(estFirstP, estFirstS))
 
                     # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
-                    pstart += (source_origin.time + estFirstP) - zdat[0].stats.starttime
-                    pstop += (source_origin.time + estFirstP) - zdat[0].stats.starttime
+                    p_params['pstart'] += (source_origin.time + estFirstP) - zdat[0].stats.starttime
+                    p_params['pstop']+= (source_origin.time + estFirstP) - zdat[0].stats.starttime
                     print('autopick: CF calculation times respectively:'
-                          ' pstart: {} s, pstop: {} s'.format(pstart, pstop))
+                          ' pstart: {} s, pstop: {} s'.format(p_params['pstart'], p_params['pstop']))
                 elif not origin:
                     print('No source origins given!')
 
         # make sure pstart and pstop are inside zdat[0]
-        pstart = max(pstart, 0)
-        pstop = min(pstop, len(zdat[0])*zdat[0].stats.delta)
+        pstart = max(p_params['pstart'], 0)
+        pstop = min(p_params['pstop'], len(zdat[0])*zdat[0].stats.delta)
 
-        if not use_taup is True or origin:
-            Lc = pstop - pstart
+        if not s_params['use_taup'] is True or origin:
+            Lc = p_params['pstop'] - p_params['pstart']
 
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         if not Lwf > 0:
@@ -339,15 +285,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
             pstop = len(zdat[0].data) * zdat[0].stats.delta
         cuttimes = [pstart, pstop]
         cf1 = None
-        if algoP == 'HOS':
+        if p_params['algoP'] == 'HOS':
             # calculate HOS-CF using subclass HOScf of class
             # CharacteristicFunction
-            cf1 = HOScf(z_copy, cuttimes, thosmw, hosorder)  # instance of HOScf
-        elif algoP == 'ARZ':
+            cf1 = HOScf(z_copy, cuttimes, p_params['tlta'], p_params['hosorder'])  # instance of HOScf
+        elif p_params['algoP'] == 'ARZ':
             # calculate ARZ-CF using subclass ARZcf of class
             # CharcteristicFunction
-            cf1 = ARZcf(z_copy, cuttimes, tpred1z, Parorder, tdet1z,
-                        addnoise)  # instance of ARZcf
+            cf1 = ARZcf(z_copy, cuttimes, p_params['tpred1z'], p_params['Parorder'], p_params['tdet1z'],
+                        p_params['addnoise'])  # instance of ARZcf
         ##############################################################
         # calculate AIC-HOS-CF using subclass AICcf of class
         # CharacteristicFunction
@@ -355,7 +301,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
                                                         'correctly: maybe the algorithm name ({algoP}) is ' \
                                                         'corrupted'.format(
-            algoP=algoP)
+            algoP=p_params['algoP'])
         tr_aic = tr_filt.copy()
         tr_aic.data = cf1.getCF()
         z_copy[0].data = tr_aic.data
@@ -370,7 +316,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
         else:
             fig = None
             linecolor = 'k'
-        aicpick = AICPicker(aiccf, tsnrz, pickwinP, iplot, None, aictsmoothP, fig=fig, linecolor=linecolor)
+        aicpick = AICPicker(aiccf, p_params['tsnrz'], p_params['pickwinP'], iplot, None, p_params['aictsmooth'],
+                            fig=fig, linecolor=linecolor)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -388,7 +335,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 msg = 'One or more horizontal component(s) missing!\nSignal ' \
                       'length only checked on vertical component!\n' \
                       'Decreasing minsiglengh from {0} to ' \
-                      '{1}'.format(minsiglength, minsiglength / 2)
+                      '{1}'.format(signal_length_params['minsiglength'], signal_length_params['minsiglength'] / 2)
                 if verbose: print(msg)
                 key = 'slength'
                 if fig_dict:
@@ -397,9 +344,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 else:
                     fig = None
                     linecolor = 'k'
-                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength / 2,
-                                          nfacsl, minpercent, iplot,
+                Pflag = checksignallength(zne, aicpick.getpick(), p_params['tsnrz'],
+                                          signal_length_params['minsiglength'] / 2,
+                                          signal_length_params['noisefactor'], signal_length_params['minpercent'], iplot,
                                           fig, linecolor)
             else:
                 # filter and taper horizontal traces
@@ -408,11 +355,11 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 # remove constant offset from data to avoid unwanted filter response
                 trH1_filt.detrend(type='demean')
                 trH2_filt.detrend(type='demean')
-                trH1_filt.filter('bandpass', freqmin=bph1[0],
-                                 freqmax=bph1[1],
+                trH1_filt.filter('bandpass', freqmin=s_params['bph1'][0],
+                                 freqmax=s_params['bph1'][1],
                                  zerophase=False)
-                trH2_filt.filter('bandpass', freqmin=bph1[0],
-                                 freqmax=bph1[1],
+                trH2_filt.filter('bandpass', freqmin=s_params['bph1'][0],
+                                 freqmax=s_params['bph1'][1],
                                  zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
@@ -424,9 +371,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 else:
                     fig = None
                     linecolor = 'k'
-                Pflag = checksignallength(zne, aicpick.getpick(), tsnrz,
-                                          minsiglength,
-                                          nfacsl, minpercent, iplot,
+                Pflag = checksignallength(zne, aicpick.getpick(), p_params['tsnrz'],
+                                          signal_length_params['minsiglength'],
+                                          signal_length_params['noisefactor'], signal_length_params['minpercent'], iplot,
                                           fig, linecolor)
 
             if Pflag == 1:
@@ -444,8 +391,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                         else:
                             fig = None
                             linecolor = 'k'
-                    Pflag = checkZ4S(zne, aicpick.getpick(), zfac,
-                                     tsnrz[2], iplot, fig, linecolor)
+                    Pflag = checkZ4S(zne, aicpick.getpick(), s_params['zfac'],
+                                     p_params['tsnrz'][2], iplot, fig, linecolor)
                     if Pflag == 0:
                         Pmarker = 'SinsteadP'
                         Pweight = 9
@@ -457,7 +404,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         slope = aicpick.getSlope()
         if not slope:
             slope = 0
-        if slope >= minAICPslope and aicpick.getSNR() >= minAICPSNR and Pflag == 1:
+        if slope >= p_params['minAICPslope'] and aicpick.getSNR() >= p_params['minAICPSNR'] and Pflag == 1:
             aicPflag = 1
             msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -468,41 +415,40 @@ def autopickstation(wfstream, pickparam, verbose=False,
             z_copy = zdat.copy()
             tr_filt = zdat[0].copy()
             tr_filt.detrend(type='demean')
-            tr_filt.filter('bandpass', freqmin=bpz2[0], freqmax=bpz2[1],
+            tr_filt.filter('bandpass', freqmin=p_params['bpz2'][0], freqmax=p_params['bpz2'][1],
                            zerophase=False)
             tr_filt.taper(max_percentage=0.05, type='hann')
             z_copy[0].data = tr_filt.data
             #############################################################
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
-            cuttimes2 = [round(max([aicpick.getpick() - Precalcwin, 0])),
+            cuttimes2 = [round(max([aicpick.getpick() - p_params['Precalcwin'], 0])),
                          round(min([len(zdat[0].data) * zdat[0].stats.delta,
-                                    aicpick.getpick() + Precalcwin]))]
+                                    aicpick.getpick() + p_params['Precalcwin']]))]
             cf2 = None
-            if algoP == 'HOS':
+            if p_params['algoP'] == 'HOS':
                 # calculate HOS-CF using subclass HOScf of class
                 # CharacteristicFunction
-                cf2 = HOScf(z_copy, cuttimes2, thosmw,
-                            hosorder)  # instance of HOScf
-            elif algoP == 'ARZ':
+                cf2 = HOScf(z_copy, cuttimes2, p_params['tlta'],
+                            p_params['hosorder'])  # instance of HOScf
+            elif p_params['algoP'] == 'ARZ':
                 # calculate ARZ-CF using subclass ARZcf of class
                 # CharcteristicFunction
-                cf2 = ARZcf(z_copy, cuttimes2, tpred1z, Parorder, tdet1z,
-                            addnoise)  # instance of ARZcf
+                cf2 = ARZcf(z_copy, cuttimes2, p_params['tpred1z'], p_params['Parorder'], p_params['tdet1z'],
+                            p_params['addnoise'])  # instance of ARZcf
             ##############################################################
             # get refined onset time from CF2 using class Picker
             assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
                                                             'correctly: maybe the algorithm name ({algoP}) is ' \
-                                                            'corrupted'.format(
-                algoP=algoP)
+                                                            'corrupted'.format(algoP=p_params['algoP'])
             if fig_dict:
                 fig = fig_dict['refPpick']
                 linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
             else:
                 fig = None
                 linecolor = 'k'
-            refPpick = PragPicker(cf2, tsnrz, pickwinP, iplot, ausP, tsmoothP,
-                                  aicpick.getpick(), fig, linecolor)
+            refPpick = PragPicker(cf2, p_params['tsnrz'], p_params['pickwinP'], iplot, p_params['ausP'],
+                                  p_params['tsmoothP'], aicpick.getpick(), fig, linecolor)
             mpickP = refPpick.getpick()
             #############################################################
             if mpickP is not None:
@@ -515,52 +461,49 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = 'k'
-                    epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
+                    epickP, lpickP, Perror = earllatepicker(z_copy, p_params['nfacP'], p_params['tsnrz'],
                                                             mpickP, iplot, fig=fig,
                                                             linecolor=linecolor)
                 else:
-                    epickP, lpickP, Perror = earllatepicker(z_copy, nfacP, tsnrz,
+                    epickP, lpickP, Perror = earllatepicker(z_copy, p_params['nfacP'], p_params['tsnrz'],
                                                             mpickP, iplot)
 
                 # get SNR
-                [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, tsnrz, mpickP)
+                [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, p_params['tsnrz'], mpickP)
 
                 # weight P-onset using symmetric error
                 if Perror is None:
                     Pweight = 4
                 else:
-                    if Perror <= timeerrorsP[0]:
+                    if Perror <= p_params['timeerrorsP'][0]:
                         Pweight = 0
-                    elif timeerrorsP[0] < Perror <= timeerrorsP[1]:
+                    elif p_params['timeerrorsP'][0] < Perror <= p_params['timeerrorsP'][1]:
                         Pweight = 1
-                    elif timeerrorsP[1] < Perror <= timeerrorsP[2]:
+                    elif p_params['timeerrorsP'][1] < Perror <= p_params['timeerrorsP'][2]:
                         Pweight = 2
-                    elif timeerrorsP[2] < Perror <= timeerrorsP[3]:
+                    elif p_params['timeerrorsP'][2] < Perror <= p_params['timeerrorsP'][3]:
                         Pweight = 3
-                    elif Perror > timeerrorsP[3]:
+                    elif Perror > p_params['timeerrorsP'][3]:
                         Pweight = 4
 
                 ##############################################################
                 # get first motion of P onset
                 # certain quality required
-                if Pweight <= minfmweight and SNRP >= minFMSNR:
+                if Pweight <= first_motion_params['minfmweight'] and SNRP >= first_motion_params['minFMSNR']:
                     if iplot:
                         if fig_dict:
                             fig = fig_dict['fm_picker']
                             linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
                         else:
                             fig = None
-                        FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot, fig, linecolor)
+                        FM = fmpicker(zdat, z_copy, first_motion_params['fmpickwin'], mpickP, iplot, fig, linecolor)
                     else:
-                        FM = fmpicker(zdat, z_copy, fmpickwin, mpickP, iplot)
+                        FM = fmpicker(zdat, z_copy, first_motion_params['fmpickwin'], mpickP, iplot)
                 else:
                     FM = 'N'
 
                 msg = "autopickstation: P-weight: {0}, " \
-                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight,
-                                                                     SNRP,
-                                                                     SNRPdB,
-                                                                     FM)
+                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight, SNRP, SNRPdB, FM)
                 print(msg)
                 msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
                 print(msg)
@@ -572,8 +515,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                   '(min. AIC-SNR={2}, ' \
                   'min. AIC-Slope={3}counts/s)'.format(aicpick.getSNR(),
                                                        aicpick.getSlope(),
-                                                       minAICPSNR,
-                                                       minAICPslope)
+                                                       p_params['minAICPSNR'],
+                                                       p_params['minAICPslope'])
             if verbose: print(msg)
             Sflag = 0
 
@@ -601,9 +544,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if pickSonset:
         # determine time window for calculating CF after P onset
         cuttimesh = [
-            round(max([mpickP + sstart, 0])),  # MP MP relative time axis
+            round(max([mpickP + s_params['sstart'], 0])),  # MP MP relative time axis
             round(min([
-                mpickP + sstop,
+                mpickP + s_params['sstop'],
                 edat[0].stats.endtime-edat[0].stats.starttime,
                 ndat[0].stats.endtime-ndat[0].stats.starttime
             ]))
@@ -620,7 +563,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
               'traces ...'.format(edat[0].stats.station)
         if verbose: print(msg)
 
-        if algoS == 'ARH':
+        if s_params['algoS'] == 'ARH':
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
@@ -630,15 +573,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
             trH2_filt = hdat[1].copy()
             trH1_filt.detrend(type='demean')
             trH2_filt.detrend(type='demean')
-            trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
+            trH1_filt.filter('bandpass', freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1],
                              zerophase=False)
-            trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
+            trH2_filt.filter('bandpass', freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1],
                              zerophase=False)
             trH1_filt.taper(max_percentage=0.05, type='hann')
             trH2_filt.taper(max_percentage=0.05, type='hann')
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
-        elif algoS == 'AR3':
+        elif s_params['algoS'] == 'AR3':
             # re-create stream object including all components
             hdat = zdat.copy()
             hdat += edat
@@ -651,11 +594,11 @@ def autopickstation(wfstream, pickparam, verbose=False,
             trH1_filt.detrend(type='demean')
             trH2_filt.detrend(type='demean')
             trH3_filt.detrend(type='demean')
-            trH1_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
+            trH1_filt.filter('bandpass', freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1],
                              zerophase=False)
-            trH2_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
+            trH2_filt.filter('bandpass', freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1],
                              zerophase=False)
-            trH3_filt.filter('bandpass', freqmin=bph1[0], freqmax=bph1[1],
+            trH3_filt.filter('bandpass', freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1],
                              zerophase=False)
             trH1_filt.taper(max_percentage=0.05, type='hann')
             trH2_filt.taper(max_percentage=0.05, type='hann')
@@ -664,16 +607,16 @@ def autopickstation(wfstream, pickparam, verbose=False,
             h_copy[1].data = trH2_filt.data
             h_copy[2].data = trH3_filt.data
         ##############################################################
-        if algoS == 'ARH':
+        if s_params['algoS'] == 'ARH':
             # calculate ARH-CF using subclass ARHcf of class
             # CharcteristicFunction
-            arhcf1 = ARHcf(h_copy, cuttimesh, tpred1h, Sarorder, tdet1h,
-                           addnoise)  # instance of ARHcf
-        elif algoS == 'AR3':
+            arhcf1 = ARHcf(h_copy, cuttimesh, s_params['tpred1h'], s_params['Sarorder'], s_params['tdet1h'],
+                           p_params['addnoise'])  # instance of ARHcf
+        elif s_params['algoS'] == 'AR3':
             # calculate ARH-CF using subclass AR3cf of class
             # CharcteristicFunction
-            arhcf1 = AR3Ccf(h_copy, cuttimesh, tpred1h, Sarorder, tdet1h,
-                            addnoise)  # instance of ARHcf
+            arhcf1 = AR3Ccf(h_copy, cuttimesh, s_params['tpred1h'], s_params['Sarorder'], s_params['tdet1h'],
+                            p_params['addnoise'])  # instance of ARHcf
         ##############################################################
         # calculate AIC-ARH-CF using subclass AICcf of class
         # CharacteristicFunction
@@ -692,15 +635,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
         else:
             fig = None
             linecolor = 'k'
-        aicarhpick = AICPicker(haiccf, tsnrh, pickwinS, iplot, None,
-                               aictsmoothS, fig=fig, linecolor=linecolor)
+        aicarhpick = AICPicker(haiccf, s_params['tsnrh'], s_params['pickwinS'], iplot, None,
+                               s_params['aictsmoothS'], fig=fig, linecolor=linecolor)
         ###############################################################
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
         if not slope:
             slope = 0
-        if (slope >= minAICSslope and
-            aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
+        if (slope >= s_params['minAICSslope'] and
+            aicarhpick.getSNR() >= s_params['minAICSSNR'] and aicarhpick.getpick() is not None):
             aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -709,39 +652,39 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if verbose: print(msg)
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
-            cuttimesh2 = [round(aicarhpick.getpick() - Srecalcwin),
-                          round(aicarhpick.getpick() + Srecalcwin)]
+            cuttimesh2 = [round(aicarhpick.getpick() - s_params['Srecalcwin']),
+                          round(aicarhpick.getpick() + s_params['Srecalcwin'])]
             # re-filter waveform with larger bandpass
             h_copy = hdat.copy()
             # filter and taper data
-            if algoS == 'ARH':
+            if s_params['algoS']== 'ARH':
                 trH1_filt = hdat[0].copy()
                 trH2_filt = hdat[1].copy()
                 trH1_filt.detrend(type='demean')
                 trH2_filt.detrend(type='demean')
-                trH1_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
+                trH1_filt.filter('bandpass', freqmin=s_params['bph2'][0], freqmax=s_params['bph2'][1],
                                  zerophase=False)
-                trH2_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
+                trH2_filt.filter('bandpass', freqmin=s_params['bph2'][0], freqmax=s_params['bph2'][1],
                                  zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
                 h_copy[0].data = trH1_filt.data
                 h_copy[1].data = trH2_filt.data
                 #############################################################
-                arhcf2 = ARHcf(h_copy, cuttimesh2, tpred2h, Sarorder, tdet2h,
-                               addnoise)  # instance of ARHcf
-            elif algoS == 'AR3':
+                arhcf2 = ARHcf(h_copy, cuttimesh2, s_params['tpred2h'], s_params['Sarorder'], s_params['tdet2h'],
+                               p_params['addnoise'])  # instance of ARHcf
+            elif s_params['algoS'] == 'AR3':
                 trH1_filt = hdat[0].copy()
                 trH2_filt = hdat[1].copy()
                 trH3_filt = hdat[2].copy()
                 trH1_filt.detrend(type='demean')
                 trH2_filt.detrend(type='demean')
                 trH3_filt.detrend(type='demean')
-                trH1_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
+                trH1_filt.filter('bandpass', freqmin=s_params['bph2'][0], freqmax=s_params['bph2'][1],
                                  zerophase=False)
-                trH2_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
+                trH2_filt.filter('bandpass', freqmin=s_params['bph2'][0], freqmax=s_params['bph2'][1],
                                  zerophase=False)
-                trH3_filt.filter('bandpass', freqmin=bph2[0], freqmax=bph2[1],
+                trH3_filt.filter('bandpass', freqmin=s_params['bph2'][0], freqmax=s_params['bph2'][1],
                                  zerophase=False)
                 trH1_filt.taper(max_percentage=0.05, type='hann')
                 trH2_filt.taper(max_percentage=0.05, type='hann')
@@ -750,8 +693,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 h_copy[1].data = trH2_filt.data
                 h_copy[2].data = trH3_filt.data
                 #############################################################
-                arhcf2 = AR3Ccf(h_copy, cuttimesh2, tpred2h, Sarorder, tdet2h,
-                                addnoise)  # instance of ARHcf
+                arhcf2 = AR3Ccf(h_copy, cuttimesh2, s_params['tpred2h'], s_params['Sarorder'], s_params['tdet2h'],
+                                p_params['addnoise'])  # instance of ARHcf
 
             # get refined onset time from CF2 using class Picker
             if fig_dict:
@@ -760,8 +703,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             else:
                 fig = None
                 linecolor = 'k'
-            refSpick = PragPicker(arhcf2, tsnrh, pickwinS, iplot, ausS,
-                                  tsmoothS, aicarhpick.getpick(), fig, linecolor)
+            refSpick = PragPicker(arhcf2, s_params['tsnrh'], s_params['pickwinS'], iplot, s_params['ausS'],
+                                  s_params['tsmoothS'], aicarhpick.getpick(), fig, linecolor)
             mpickS = refSpick.getpick()
             #############################################################
             if mpickS is not None:
@@ -775,15 +718,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = 'k'
-                    epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
-                                                               tsnrh,
-                                                               mpickS, iplot,
-                                                               fig=fig,
-                                                               linecolor=linecolor)
+                    epickS1, lpickS1, Serror1 = earllatepicker(h_copy, s_params['nfacS'], s_params['tsnrh'], mpickS,
+                                                               iplot, fig=fig, linecolor=linecolor)
                 else:
-                    epickS1, lpickS1, Serror1 = earllatepicker(h_copy, nfacS,
-                                                               tsnrh,
-                                                               mpickS, iplot)
+                    epickS1, lpickS1, Serror1 = earllatepicker(h_copy, s_params['nfacS'], s_params['tsnrh'], mpickS, iplot)
 
                 h_copy[0].data = trH2_filt.data
                 if iplot:
@@ -793,17 +731,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = ''
-                    epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
-                                                               tsnrh,
-                                                               mpickS, iplot,
-                                                               fig=fig,
-                                                               linecolor=linecolor)
+                    epickS2, lpickS2, Serror2 = earllatepicker(h_copy, s_params['nfacS'], s_params['tsnrh'],  mpickS,
+                                                               iplot, fig=fig, linecolor=linecolor)
                 else:
-                    epickS2, lpickS2, Serror2 = earllatepicker(h_copy, nfacS,
-                                                               tsnrh,
-                                                               mpickS, iplot)
+                    epickS2, lpickS2, Serror2 = earllatepicker(h_copy, s_params['nfacS'], s_params['tsnrh'], mpickS, iplot)
                 if epickS1 is not None and epickS2 is not None:
-                    if algoS == 'ARH':
+                    if s_params['algoS'] == 'ARH':
                         # get earliest pick of both earliest possible picks
                         epick = [epickS1, epickS2]
                         lpick = [lpickS1, lpickS2]
@@ -814,12 +747,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                             ipick = 0
                         elif epickS1 is not None and epickS2 is not None:
                             ipick = np.argmin([epickS1, epickS2])
-                    elif algoS == 'AR3':
-                        [epickS3, lpickS3, Serror3] = earllatepicker(h_copy,
-                                                                     nfacS,
-                                                                     tsnrh,
-                                                                     mpickS,
-                                                                     iplot)
+                    elif s_params['algoS'] == 'AR3':
+                        [epickS3, lpickS3, Serror3] = earllatepicker(h_copy, s_params['nfacS'], s_params['tsnrh'],
+                                                                     mpickS, iplot)
                         # get earliest pick of all three picks
                         epick = [epickS1, epickS2, epickS3]
                         lpick = [lpickS1, lpickS2, lpickS3]
@@ -845,18 +775,18 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     print(msg)
 
                     # get SNR
-                    [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, tsnrh, mpickS)
+                    [SNRS, SNRSdB, Snoiselevel] = getSNR(h_copy, s_params['tsnrh'], mpickS)
 
                     # weight S-onset using symmetric error
-                    if Serror <= timeerrorsS[0]:
+                    if Serror <= s_params['timeerrorsS'][0]:
                         Sweight = 0
-                    elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
+                    elif s_params['timeerrorsS'][0] < Serror <= s_params['timeerrorsS'][1]:
                         Sweight = 1
-                    elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
+                    elif Perror > s_params['timeerrorsS'][1] and Serror <= s_params['timeerrorsS'][2]:
                         Sweight = 2
-                    elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
+                    elif s_params['timeerrorsS'][2] < Serror <= s_params['timeerrorsS'][3]:
                         Sweight = 3
-                    elif Serror > timeerrorsS[3]:
+                    elif Serror > s_params['timeerrorsS'][3]:
                         Sweight = 4
 
                     print('autopickstation: S-weight: {0}, SNR: {1}, '
@@ -875,10 +805,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                   '(min. AIC-SNR={2}, ' \
                   'min. AIC-Slope={3}counts/s)\n' \
                   '##################################################' \
-                  ''.format(aicarhpick.getSNR(),
-                            aicarhpick.getSlope(),
-                            minAICSSNR,
-                            minAICSslope)
+                  ''.format(aicarhpick.getSNR(), aicarhpick.getSlope(), s_params['minAICSSNR'], s_params['minAICSslope'])
             if verbose: print(msg)
 
             ############################################################
@@ -1080,8 +1007,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        lpickP = zdat[0].stats.starttime + timeerrorsP[3]
-        epickP = zdat[0].stats.starttime - timeerrorsP[3]
+        lpickP = zdat[0].stats.starttime + p_params['timeerrorsP'][3]
+        epickP = zdat[0].stats.starttime - p_params['timeerrorsP'][3]
         mpickP = zdat[0].stats.starttime
 
     if edat:
@@ -1102,8 +1029,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # dummy values (start of seismic trace) in order to derive
         # theoretical onset times for iteratve picking
-        lpickS = hdat.stats.starttime + timeerrorsS[3]
-        epickS = hdat.stats.starttime - timeerrorsS[3]
+        lpickS = hdat.stats.starttime + s_params['timeerrorsS'][3]
+        epickS = hdat.stats.starttime - s_params['timeerrorsS'][3]
         mpickS = hdat.stats.starttime
 
     # create dictionary
