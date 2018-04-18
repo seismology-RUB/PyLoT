@@ -1673,24 +1673,24 @@ class MainWindow(QMainWindow):
         npts2plot = npts/nth_sample
         if npts2plot < npts_max:
             return
-        nth_sample_new = int(np.ceil(npts/npts_max))
-        message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
-                  "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
-                  "than the maximum setting of {npts_max}. " \
-                  "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Do you want "\
-                  "to change nth_sample to {nth_sample_new} now?"
-
-        ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
-                                   self.tr(message.format(npts=npts,
-                                                          nth_sample=nth_sample,
-                                                          npts_max=npts_max,
-                                                          nth_sample_new=nth_sample_new,
-                                                          npts2plot=npts2plot)),
-                                   QMessageBox.Yes | QMessageBox.No,
-                                   QMessageBox.Yes)
-        if ans == QMessageBox.Yes:
-            settings.setValue("nth_sample", nth_sample_new)
-            settings.sync()
+        # nth_sample_new = int(np.ceil(npts/npts_max))
+        # message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
+        #           "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
+        #           "than the maximum setting of {npts_max}. " \
+        #           "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Do you want "\
+        #           "to change nth_sample to {nth_sample_new} now?"
+        #
+        # ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
+        #                            self.tr(message.format(npts=npts,
+        #                                                   nth_sample=nth_sample,
+        #                                                   npts_max=npts_max,
+        #                                                   nth_sample_new=nth_sample_new,
+        #                                                   npts2plot=npts2plot)),
+        #                            QMessageBox.Yes | QMessageBox.No,
+        #                            QMessageBox.Yes)
+        # if ans == QMessageBox.Yes:
+        #     settings.setValue("nth_sample", nth_sample_new)
+        #     settings.sync()
 
     def get_npts_to_plot(self):
         return sum(trace.stats.npts for trace in self.data.getWFData())
