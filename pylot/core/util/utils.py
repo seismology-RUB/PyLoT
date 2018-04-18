@@ -592,7 +592,7 @@ def prepTimeAxis(stime, trace, verbosity=0):
     srate = trace.stats.sampling_rate
     tincr = trace.stats.delta
     etime = stime + nsamp / srate
-    time_ax = np.arange(stime, etime, tincr)
+    time_ax = np.linspace(stime, etime, nsamp)
     if len(time_ax) < nsamp:
         if verbosity:
             print('elongate time axes by one datum')
