@@ -1752,7 +1752,7 @@ class MainWindow(QMainWindow):
         for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
-            if data_syn:
+            if len(data_syn) > 0:
                 self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
                                                             pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
