@@ -496,7 +496,8 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0,
+                   method='normal'):
         if not wfdata:
             print('Nothing to plot.')
             return
@@ -556,6 +557,9 @@ class WaveformWidgetPG(QtGui.QWidget):
             if st_syn:
                 stime_syn = trace_syn.stats.starttime - self.wfstart
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
+
+            if method == 'fast':
+               trace.data, time_ax = self.minMax(trace, time_ax)
 
             if time_ax not in [None, []]:
                 if not scaleddata:
