@@ -79,7 +79,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
     check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot
+    check_all_pylot, real_Bool
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1672,7 +1672,11 @@ class MainWindow(QMainWindow):
         npts = self.get_npts_to_plot()
         npts2plot = npts/nth_sample
         if npts2plot < npts_max:
-            return
+            settings.setValue('large_dataset', False)
+        else:
+            settings.setValue('large_dataset', True)
+            self.update_status('Dataset is very large. Using fast plotting method (MIN/MAX)', 10000)
+        settings.sync()
         # nth_sample_new = int(np.ceil(npts/npts_max))
         # message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
         #           "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
@@ -1891,8 +1895,12 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
+        if real_Bool(settings.value('large_dataset')) == True:
+            method = 'fast'
+        else:
+            method = 'normal'
         plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                      nth_sample=int(nth_sample))
+                                      nth_sample=int(nth_sample), method=method)
         return plots
 
     def adjustPlotHeight(self):

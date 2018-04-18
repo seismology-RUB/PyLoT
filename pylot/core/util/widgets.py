@@ -540,6 +540,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         for n, (network, station, channel) in enumerate(nsc):
             n+=1
             st = st_select.select(network=network, station=station, channel=channel)
+            trace = st[0].copy()
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
             if st_syn:
                 trace_syn = st_syn[0].copy()
