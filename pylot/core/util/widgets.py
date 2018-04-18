@@ -463,7 +463,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        self.plotWidget.getPlotItem().setDownsampling(auto=True)
+        #self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
