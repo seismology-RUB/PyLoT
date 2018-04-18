@@ -35,7 +35,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QPushButton, QFileDialog, QInputDialog, QKeySequence
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
-from obspy import Stream, UTCDateTime
+from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
 from obspy.taup import TauPyModel
 from obspy.taup.utils import get_phase_names
@@ -540,7 +540,6 @@ class WaveformWidgetPG(QtGui.QWidget):
             n+=1
             st = st_select.select(network=network, station=station, channel=channel)
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
-            trace = st[0].copy()
             if st_syn:
                 trace_syn = st_syn[0].copy()
             if mapping:
@@ -553,30 +552,10 @@ class WaveformWidgetPG(QtGui.QWidget):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
-
             time_ax = prepTimeAxis(stime, trace)
             if st_syn:
                 stime_syn = trace_syn.stats.starttime - self.wfstart
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
-
-            # TEST TEST max/min plot
-            minsamples = argrelmin(trace.data)
-            maxsamples = argrelmax(trace.data)
-            plot_samples = np.sort(np.append(minsamples, maxsamples))
-            trace.data = trace.data[plot_samples]
-            time_ax = time_ax[plot_samples]
-            if st_syn:
-                minsamples_syn = argrelmin(trace_syn.data)
-                maxsamples_syn = argrelmax(trace_syn.data)
-                plot_samples_syn = np.sort(np.append(minsamples_syn, maxsamples_syn))
-                trace_syn.data = trace_syn.data[plot_samples_syn]
-                time_ax_syn = time_ax_syn[plot_samples_syn]
-
-            # TEST TEST Remove middle of seismograms for overview plot
-            # trace.data = trace.data[abs(trace.data) > 0.1 * max(abs(trace.data))]
-            # if st_syn:
-            #     trace.data_syn = trace.data_syn[abs(trace.data_syn) > 0.1 * max(abs(trace.data))]
-            # TEST TEST ------
 
             if time_ax not in [None, []]:
                 if not scaleddata:
@@ -599,6 +578,41 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
         return plots
+
+    def minMax(self, trace, time_ax):
+        '''
+        create min/max array for fast plotting (approach based on obspy __plot_min_max function)
+        :returns data, time_ax
+        '''
+        npixel = self.width()
+        ndata = len(trace.data)
+        pts_per_pixel = ndata/npixel
+        if pts_per_pixel < 2:
+            return trace.data, time_ax
+        remaining_samples = ndata%pts_per_pixel
+        npixel = ndata//pts_per_pixel
+        if remaining_samples:
+            data = trace.data[:-remaining_samples]
+        else:
+            data = trace.data
+        data = data.reshape(npixel, pts_per_pixel)
+        min_ = data.min(axis=1)
+        max_ = data.max(axis=1)
+        if remaining_samples:
+            extreme_values = np.empty((npixel + 1, 2), dtype=np.float)
+            extreme_values[:-1, 0] = min_
+            extreme_values[:-1, 1] = max_
+            extreme_values[-1, 0] = \
+                trace.data[-remaining_samples:].min()
+            extreme_values[-1, 1] = \
+                trace.data[-remaining_samples:].max()
+        else:
+            extreme_values = np.empty((npixel, 2), dtype=np.float)
+            extreme_values[:, 0] = min_
+            extreme_values[:, 1] = max_
+        data = extreme_values.flatten()
+        time_ax = np.linspace(time_ax[0], time_ax[-1], num=len(data))
+        return data, time_ax
 
     # def getAxes(self):
     #     return self.axes
