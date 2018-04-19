@@ -192,7 +192,7 @@ def read_metadata(path_to_inventory):
             robj = inv[invtype]
     else:
         print("Reading metadata information from inventory-xml file ...")
-        robj = inv[invtype]
+        robj = read_inventory(inv[invtype])
     return invtype, robj
 
 

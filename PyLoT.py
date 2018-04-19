@@ -46,6 +46,9 @@ from obspy import UTCDateTime
 from obspy.core.event import Magnitude, Origin
 from obspy.core.util import AttribDict
 
+from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
+
+
 try:
     import pyqtgraph as pg
 except Exception as e:
@@ -75,7 +78,8 @@ from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions
+    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
+    check_all_pylot, real_Bool
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -143,6 +147,7 @@ class MainWindow(QMainWindow):
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
+        self.plot_method = 'normal'
 
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
@@ -987,11 +992,13 @@ class MainWindow(QMainWindow):
         '''
         Return waveform filenames from event in eventbox.
         '''
+        # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
+        eventpath = self.get_current_event_path(eventbox)
+        basepath = eventpath.split(os.path.basename(eventpath))[0]
         if self.dataStructure:
-            directory = self.get_current_event_path(eventbox)
-            if not directory:
+            if not eventpath:
                 return
-            fnames = [os.path.join(directory, f) for f in os.listdir(directory)]
+            fnames = [os.path.join(eventpath, f) for f in os.listdir(eventpath)]
         else:
             raise DatastructureError('not specified')
         return fnames
@@ -1036,13 +1043,15 @@ class MainWindow(QMainWindow):
         ed = getExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
             eventlist = ed.selectedFiles()
-            # select only folders that start with 'e', containin two dots and have length 12
-            eventlist = [item for item in eventlist if item.split('/')[-1].startswith('e')
-                         and len(item.split('/')[-1].split('.')) == 3
-                         and len(item.split('/')[-1]) == 12]
+            basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
+            if check_obspydmt_structure(basepath):
+                print('Recognized obspyDMT structure in selected files.')
+                eventlist = check_all_obspy(eventlist)
+            else:
+                eventlist = check_all_pylot(eventlist)
             if not eventlist:
                 print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
-                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16')
+                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16 or obspyDMT database')
                 return
         else:
             return
@@ -1649,9 +1658,13 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
+        eventpath = self.get_current_event_path()
+        basepath = eventpath.split(os.path.basename(eventpath))[0]
+        obspy_dmt = check_obspydmt_structure(basepath)
         self.data.setWFData(self.fnames,
                             checkRotated=True,
-                            metadata=self.metadata)
+                            metadata=self.metadata,
+                            obspy_dmt=obspy_dmt)
 
     def check_plot_quantity(self):
         """
@@ -1659,29 +1672,34 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
         settings = QSettings()
-        nth_sample = int(settings.value("nth_sample") if settings.value("nth_sample") else 1)
-        npts_max = 1e6
+        nth_sample = int(settings.value("nth_sample")) if settings.value("nth_sample") else 1
+        npts_max = 1e7
         npts = self.get_npts_to_plot()
         npts2plot = npts/nth_sample
         if npts2plot < npts_max:
-            return
-        nth_sample_new = int(np.ceil(npts/npts_max))
-        message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
-                  "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
-                  "than the maximum setting of {npts_max}. " \
-                  "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Continue?"
-
-        ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
-                                   self.tr(message.format(npts=npts,
-                                                          nth_sample=nth_sample,
-                                                          npts_max=npts_max,
-                                                          nth_sample_new=nth_sample_new,
-                                                          npts2plot=npts2plot)),
-                                   QMessageBox.Yes | QMessageBox.No,
-                                   QMessageBox.Yes)
-        if ans == QMessageBox.Yes:
-            settings.setValue("nth_sample", nth_sample_new)
-            settings.sync()
+            settings.setValue('large_dataset', False)
+        else:
+            settings.setValue('large_dataset', True)
+            self.update_status('Dataset is very large. Using fast plotting method (MIN/MAX)', 10000)
+        settings.sync()
+        # nth_sample_new = int(np.ceil(npts/npts_max))
+        # message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
+        #           "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
+        #           "than the maximum setting of {npts_max}. " \
+        #           "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Do you want "\
+        #           "to change nth_sample to {nth_sample_new} now?"
+        #
+        # ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
+        #                            self.tr(message.format(npts=npts,
+        #                                                   nth_sample=nth_sample,
+        #                                                   npts_max=npts_max,
+        #                                                   nth_sample_new=nth_sample_new,
+        #                                                   npts2plot=npts2plot)),
+        #                            QMessageBox.Yes | QMessageBox.No,
+        #                            QMessageBox.Yes)
+        # if ans == QMessageBox.Yes:
+        #     settings.setValue("nth_sample", nth_sample_new)
+        #     settings.sync()
 
     def get_npts_to_plot(self):
         return sum(trace.stats.npts for trace in self.data.getWFData())
@@ -1740,9 +1758,12 @@ class MainWindow(QMainWindow):
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
         plots = self.wfp_thread.data
-        for times, data in plots:
+        for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
+            if len(data_syn) > 0:
+                self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
+                                                            pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
@@ -1870,6 +1891,7 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
+        wfsyn = self.get_data().getSynWFData()
         if self.filterActionP.isChecked() and filter:
             self.filterWaveformData(plot=False, phase='P')
         elif self.filterActionS.isChecked() and filter:
@@ -1878,8 +1900,12 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
-        plots = plotWidget.plotWFData(wfdata=wfst, title=title, mapping=False, component=comp,
-                                      nth_sample=int(nth_sample))
+        if real_Bool(settings.value('large_dataset')) == True:
+            self.plot_method = 'fast'
+        else:
+            self.plot_method = 'normal'
+        plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
+                                      nth_sample=int(nth_sample), method=self.plot_method)
         return plots
 
     def adjustPlotHeight(self):
@@ -3153,6 +3179,10 @@ class MainWindow(QMainWindow):
     def draw(self):
         self.fill_eventbox()
         self.getPlotWidget().draw()
+        if self.plot_method == 'fast':
+            self.dataPlot.setPermText('MIN/MAX plot', color='red')
+        else:
+            self.dataPlot.setPermText()
 
     def _setDirty(self):
         self.setDirty(True)
