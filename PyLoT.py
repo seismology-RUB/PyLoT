@@ -1753,13 +1753,14 @@ class MainWindow(QMainWindow):
 
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
-        plots = self.wfp_thread.data
+        plots, gaps = self.wfp_thread.data
         for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
             if len(data_syn) > 0:
                 self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
                                                             pen=self.dataPlot.pen_linecolor_syn)
+
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
@@ -1900,9 +1901,9 @@ class MainWindow(QMainWindow):
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'
-        plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                      nth_sample=int(nth_sample), method=self.plot_method)
-        return plots
+        plots, gaps = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
+                                            nth_sample=int(nth_sample), method=self.plot_method)
+        return plots, gaps
 
     def adjustPlotHeight(self):
         if self.pg:

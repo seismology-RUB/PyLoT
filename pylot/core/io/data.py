@@ -398,9 +398,6 @@ class Data(object):
         # various pre-processing steps:
         # remove possible underscores in station names
         self.wfdata = remove_underscores(self.wfdata)
-        # check for gaps and doubled channels
-        check4gaps(self.wfdata)
-        check4doubled(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)

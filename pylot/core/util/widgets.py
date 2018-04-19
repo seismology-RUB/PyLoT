@@ -464,6 +464,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
+        self.pen_linecolor_highlight = self.pg.mkPen((255, 100, 100, 255))
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
@@ -529,6 +530,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         else:
             st_select = wfdata
 
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
+
         # list containing tuples of network, station, channel (for sorting)
         nsc = []
         for trace in st_select:
@@ -590,7 +599,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
-        return plots
+        return plots, gaps
 
     def minMax(self, trace, time_ax):
         '''
@@ -1012,6 +1021,14 @@ class PylotCanvas(FigureCanvas):
 
         if mapping:
             plot_positions = self.calcPlotPositions(st_select, compclass)
+
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
 
         # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []
