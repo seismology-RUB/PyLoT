@@ -147,6 +147,7 @@ class MainWindow(QMainWindow):
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
+        self.plot_method = 'normal'
 
         # UI has to be set up before(!) children widgets are about to show up
         self.createAction = createAction
@@ -1896,11 +1897,11 @@ class MainWindow(QMainWindow):
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
         if real_Bool(settings.value('large_dataset')) == True:
-            method = 'fast'
+            self.plot_method = 'fast'
         else:
-            method = 'normal'
+            self.plot_method = 'normal'
         plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                      nth_sample=int(nth_sample), method=method)
+                                      nth_sample=int(nth_sample), method=self.plot_method)
         return plots
 
     def adjustPlotHeight(self):
@@ -3174,6 +3175,10 @@ class MainWindow(QMainWindow):
     def draw(self):
         self.fill_eventbox()
         self.getPlotWidget().draw()
+        if self.plot_method == 'fast':
+            self.dataPlot.setPermText('MIN/MAX plot', color='red')
+        else:
+            self.dataPlot.setPermText()
 
     def _setDirty(self):
         self.setDirty(True)

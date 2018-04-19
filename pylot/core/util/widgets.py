@@ -449,11 +449,15 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotdict = dict()
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
-        self.label = QtGui.QLabel()
+        self.label_layout = QtGui.QHBoxLayout()
+        self.status_label = QtGui.QLabel()
+        self.perm_label = QtGui.QLabel()
         self.setLayout(self.main_layout)
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
-        self.main_layout.addWidget(self.label)
+        self.main_layout.addLayout(self.label_layout)
+        self.label_layout.addWidget(self.status_label)
+        self.label_layout.addWidget(self.perm_label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
@@ -481,12 +485,16 @@ class WaveformWidgetPG(QtGui.QWidget):
             station = self.orig_parent.getStationName(wfID)
             abstime = self.wfstart + x
             if self.orig_parent.get_current_event():
-                self.label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
+                self.status_label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
     def getPlotDict(self):
         return self.plotdict
+
+    def setPermText(self, text=None, color='black'):
+        self.perm_label.setText(text)
+        self.perm_label.setStyleSheet('color: {}'.format(color))
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
