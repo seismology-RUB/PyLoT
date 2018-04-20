@@ -379,7 +379,10 @@ class Data(object):
         self.wfsyn = Stream()
         wffnames = None
         wffnames_syn = None
-        wfdir = 'processed' if 'processed' in [fname.split('/')[-1] for fname in fnames] else 'raw'
+        wfdir = 'raw'
+        for fname in fnames:
+            if fname.endswith('processed'):
+                wfdir = 'processed'
         if obspy_dmt:
             for fpath in fnames:
                 if fpath.endswith(wfdir):
