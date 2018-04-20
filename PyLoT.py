@@ -138,6 +138,7 @@ class MainWindow(QMainWindow):
         self._eventChanged = [False, False]
         self.apd_local = None
         self.apd_sge = None
+        self.stations_highlighted = []
 
         self.poS_id = None
         self.ae_id = None
@@ -1764,6 +1765,7 @@ class MainWindow(QMainWindow):
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
+        self.highlight_stations()
 
     def finishWaveformDataPlot(self):
         self.comparable = self.checkEvents4comparison()
@@ -2132,10 +2134,12 @@ class MainWindow(QMainWindow):
 
     def pickOnStation(self, gui_event):
         if self.pg:
-            if not gui_event.button() == 1:
+            button = gui_event.button()
+            if not button in [1, 4]:
                 return
         else:
-            if not gui_event.button == 1:
+            button = gui_event.button
+            if not button == 1:
                 return
 
         if self.pg:
@@ -2146,12 +2150,42 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(ycoord)
 
         if wfID is None: return
-        self.pickDialog(wfID)
 
-    def pickDialog(self, wfID, nextStation=False):
-        station = self.getStationName(wfID)
         network = self.getNetworkName(wfID)
+        station = self.getStationName(wfID)
+        if button == 1:
+            self.pickDialog(wfID, network, station)
+        elif button == 4:
+            self.toggle_station_color(wfID, network, station)
+
+    def toggle_station_color(self, wfID, network, station):
+        black_pen = pg.mkPen((0, 0, 0))
+        red_pen = pg.mkPen((200, 50, 50))
+        line_item = self.dataPlot.plotWidget.getPlotItem().listDataItems()[wfID - 1]
+        current_pen = line_item.opts['pen']
+        nwst = '{}.{}'.format(network, station)
+        if current_pen == black_pen:
+            line_item.setPen(red_pen)
+            if not nwst in self.stations_highlighted:
+                self.stations_highlighted.append(nwst)
+        else:
+            line_item.setPen(black_pen)
+            if nwst in self.stations_highlighted:
+                self.stations_highlighted.pop(self.stations_highlighted.index(nwst))
+
+    def highlight_stations(self):
+        for wfID, value in self.getPlotWidget().getPlotDict().items():
+            station, channel, network = value
+            nwst = '{}.{}'.format(network, station)
+            if nwst in self.stations_highlighted:
+                self.toggle_station_color(wfID, network, station)
+
+    def pickDialog(self, wfID, network=None, station=None, nextStation=False):
+        if not network:
+            network = self.getNetworkName(wfID)
         if not station:
+            station = self.getStationName(wfID)
+        if not station or not network:
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getOriginalWFData().copy()
