@@ -1903,8 +1903,9 @@ class MainWindow(QMainWindow):
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'
-        plots, gaps = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                            nth_sample=int(nth_sample), method=self.plot_method)
+        rval = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
+                                     nth_sample=int(nth_sample), method=self.plot_method)
+        plots, gaps = rval if rval else ([], [])
         return plots, gaps
 
     def adjustPlotHeight(self):

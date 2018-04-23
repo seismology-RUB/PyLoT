@@ -447,6 +447,10 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.orig_parent = parent
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
+        # init labels
+        self.xlabel = None
+        self.ylabel = None
+        self.title = None
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
         self.label_layout = QtGui.QHBoxLayout()
