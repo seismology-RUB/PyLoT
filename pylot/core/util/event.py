@@ -7,6 +7,7 @@ from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier
 from pylot.core.io.phases import picks_from_picksdict
+from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
 
 class Event(ObsPyEvent):
@@ -33,6 +34,7 @@ class Event(ObsPyEvent):
         self._testEvent = False
         self._refEvent = False
         self.get_notes()
+        self.get_obspy_event_info()
 
     def get_notes_path(self):
         """
@@ -42,6 +44,18 @@ class Event(ObsPyEvent):
         """
         notesfile = os.path.join(self.path, 'notes.txt')
         return notesfile
+
+    def get_obspy_event_info(self):
+        infile_pickle = os.path.join(self.path, 'info/event.pkl')
+        if not os.path.isfile(infile_pickle):
+            return
+        try:
+            event_dmt = qml_from_obspyDMT(infile_pickle)
+        except Exception as e:
+            print('Could not get obspy event info: {}'.format(e))
+            return
+        self.magnitudes = event_dmt.magnitudes
+        self.origins = event_dmt.origins
 
     def get_notes(self):
         """

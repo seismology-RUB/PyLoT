@@ -15,7 +15,7 @@ from pylot.core.util.event import Event
 from pylot.core.util.utils import fnConstructor, full_range, remove_underscores, check4gaps, check4doubled, \
     check4rotated, trim_station_components
 import pylot.core.loc.velest as velest
-
+from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
 class Data(object):
     """
@@ -60,6 +60,8 @@ class Data(object):
                         raise NotImplementedError('PILOT location information '
                                                   'read support not yet '
                                                   'implemeted.')
+                    elif 'event.pkl' in evtdata:
+                        evtdata = qml_from_obspyDMT(evtdata)
                     else:
                         raise e
                 else:
