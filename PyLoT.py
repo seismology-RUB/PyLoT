@@ -1667,6 +1667,21 @@ class MainWindow(QMainWindow):
                             metadata=self.metadata,
                             obspy_dmt=obspy_dmt)
 
+    def setWFstatus(self):
+        '''
+        show status of current data, can be either 'raw' or 'processed'
+        :param status:
+        :return:
+        '''
+        status = self.data.processed
+        wf_stat_color = {True: 'green',
+                         False: 'black',
+                         None: None}
+        wf_stat = {True: 'processed',
+                   False: 'raw',
+                   None: None}
+        self.dataPlot.setPermTextRight(wf_stat[status], wf_stat_color[status])
+
     def check_plot_quantity(self):
         settings = QSettings()
         nth_sample = int(settings.value("nth_sample")) if settings.value("nth_sample") else 1
@@ -1807,6 +1822,7 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
+        self.setWFstatus()
 
     def checkEvent4comparison(self, event):
         if event.pylot_picks and event.pylot_autopicks:
@@ -3212,9 +3228,9 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.getPlotWidget().draw()
         if self.plot_method == 'fast':
-            self.dataPlot.setPermText('MIN/MAX plot', color='red')
+            self.dataPlot.setPermTextMid('MIN/MAX plot', color='red')
         else:
-            self.dataPlot.setPermText()
+            self.dataPlot.setPermTextMid()
 
     def _setDirty(self):
         self.setDirty(True)

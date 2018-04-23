@@ -74,6 +74,7 @@ class Data(object):
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
+        self.processed = None
 
     def __str__(self):
         return str(self.wfdata)
@@ -381,11 +382,14 @@ class Data(object):
         self.wfsyn = Stream()
         wffnames = None
         wffnames_syn = None
-        wfdir = 'raw'
-        for fname in fnames:
-            if fname.endswith('processed'):
-                wfdir = 'processed'
         if obspy_dmt:
+            wfdir = 'raw'
+            self.processed = False
+            for fname in fnames:
+                if fname.endswith('processed'):
+                    wfdir = 'processed'
+                    self.processed = True
+                    break
             for fpath in fnames:
                 if fpath.endswith(wfdir):
                     wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
