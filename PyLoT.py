@@ -1250,6 +1250,17 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
+            time = lat = lon = depth = mag = None
+            if len(event.origins) == 1:
+                origin = event.origins[0]
+                time = origin.time + 0 # add 0 because there was an exception for time = 0s
+                lat = origin.latitude
+                lon = origin.longitude
+                depth = origin.depth
+            if len(event.magnitudes) == 1:
+                magnitude = event.magnitudes[0]
+                mag = magnitude.mag
+
             # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             # text = text.format(path=event_path,
             #                    plen=plmax,
@@ -1257,6 +1268,11 @@ class MainWindow(QMainWindow):
             #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
+            item_time = QtGui.QStandardItem('{}'.format(time))
+            item_lat = QtGui.QStandardItem('{}'.format(lat))
+            item_lon = QtGui.QStandardItem('{}'.format(lon))
+            item_depth = QtGui.QStandardItem('{}'.format(depth))
+            item_mag = QtGui.QStandardItem('{}'.format(mag))
             item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
             item_nap = QtGui.QStandardItem(str(ma_count['auto']))
@@ -1282,7 +1298,10 @@ class MainWindow(QMainWindow):
             # item.setFont(font)
             # item2.setForeground(QtGui.QColor('black'))
             # item2.setFont(font)
-            itemlist = [item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
+            itemlist = [item_path, item_time, item_lat, item_lon, item_depth,
+                        item_mag, item_nmp, item_nap, item_ref, item_test, item_notes]
+            for item in itemlist:
+                item.setTextAlignment(Qt.AlignCenter)
             if event_test and select_events == 'ref':
                 for item in itemlist:
                     item.setEnabled(False)
@@ -2935,7 +2954,7 @@ class MainWindow(QMainWindow):
             if hasattr(event, 'origins'):
                 if event.origins:
                     origin = event.origins[0]
-                    item_time.setText(str(origin.time).split('.')[0])
+                    item_time.setText(str(origin.time + 0).split('.')[0]) # +0 as workaround in case time=0s
                     item_lon.setText(str(origin.longitude))
                     item_lat.setText(str(origin.latitude))
                     item_depth.setText(str(origin.depth))

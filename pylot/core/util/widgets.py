@@ -576,6 +576,8 @@ class WaveformWidgetPG(QtGui.QWidget):
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
             if st_syn:
                 trace_syn = st_syn[0].copy()
+            else:
+                trace_syn = Trace()
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -592,7 +594,9 @@ class WaveformWidgetPG(QtGui.QWidget):
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
 
             if method == 'fast':
-               trace.data, time_ax = self.minMax(trace, time_ax)
+                trace.data, time_ax = self.minMax(trace, time_ax)
+                if trace_syn:
+                    trace_syn.data, time_ax_syn = self.minMax(trace_syn, time_ax_syn)
 
             if time_ax not in [None, []]:
                 if not scaleddata:
@@ -605,10 +609,10 @@ class WaveformWidgetPG(QtGui.QWidget):
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
                 times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
-                trace.data_syn = np.array([datum + n for index, datum in enumerate(trace.data_syn)
+                trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
                             if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
-                              times_syn, trace.data_syn))
+                              times_syn, trace_syn.data))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
