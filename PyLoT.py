@@ -1324,10 +1324,14 @@ class MainWindow(QMainWindow):
         # self.data.processed is only None for PyLoT datastructure, else True or False
         wf_dir = wf_stat[self.data.processed]
         if wf_dir is not None:
-            event_path = os.path.join(event_path, wf_dir)
-            if wf_dir is 'processed' and not os.path.exists(event_path):
-                event_path = os.path.join(event_path, 'raw')
-        return not bool(os.listdir(event_path))
+            wf_path = os.path.join(event_path, wf_dir)
+            if wf_dir is 'processed' and not os.path.exists(wf_path):
+                wf_path = os.path.join(event_path, 'raw')
+        else:
+            wf_path = event_path
+        if not os.path.exists(wf_path):
+            return True
+        return not bool(os.listdir(wf_path))
 
     def filename_from_action(self, action):
         if action.data() is None:
