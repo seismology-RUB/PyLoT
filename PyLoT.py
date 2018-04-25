@@ -1302,7 +1302,7 @@ class MainWindow(QMainWindow):
                         item_mag, item_nmp, item_nap, item_ref, item_test, item_notes]
             for item in itemlist:
                 item.setTextAlignment(Qt.AlignCenter)
-            if event_test and select_events == 'ref':
+            if event_test and select_events == 'ref' or self.isEmpty(event_path):
                 for item in itemlist:
                     item.setEnabled(False)
             model.appendRow(itemlist)
@@ -1315,6 +1315,16 @@ class MainWindow(QMainWindow):
                 # eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
         self.refreshRefTestButtons()
+
+    def isEmpty(self, event_path):
+        wf_stat = {True: 'processed',
+                   False: 'raw',
+                   None: None}
+
+        wf_dir = wf_stat[self.data.processed]
+        if wf_dir is not None:
+            event_path = os.path.join(event_path, wf_dir)
+        return not bool(os.listdir(event_path))
 
     def filename_from_action(self, action):
         if action.data() is None:
