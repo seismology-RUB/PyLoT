@@ -598,7 +598,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                 if trace_syn:
                     trace_syn.data, time_ax_syn = self.minMax(trace_syn, time_ax_syn)
 
-            if time_ax not in [None, []]:
+            if len(time_ax) > 0:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
