@@ -3019,6 +3019,9 @@ class MainWindow(QMainWindow):
             if index%2:
                 set_background_color(column, QtGui.QColor(*(245, 245, 245, 255)))
 
+            if self.isEmpty(event.path):
+                set_foreground_color(column, QtGui.QColor(*(180, 180, 180, 255)))
+
             if event == current_event:
                 set_foreground_color(column, QtGui.QColor(*(0, 143, 143, 255)))
 
