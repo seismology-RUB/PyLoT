@@ -524,7 +524,9 @@ class WaveformWidgetPG(QtGui.QWidget):
                    method='normal'):
         if not wfdata:
             print('Nothing to plot.')
+            self.setVisible(False)
             return
+        self.setVisible(True)
         self.title = title
         self.clearPlotDict()
         self.wfstart, self.wfend = full_range(wfdata)
