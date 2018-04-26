@@ -1810,13 +1810,14 @@ class MainWindow(QMainWindow):
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
         plots, gaps = self.wfp_thread.data
+        # do not show plot if no data are given
+        self.dataPlot.setVisible(len(plots) > 0)
         for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
             if len(data_syn) > 0:
                 self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
                                                             pen=self.dataPlot.pen_linecolor_syn)
-
         self.dataPlot.reinitMoveProxy()
         self.dataPlot.plotWidget.showAxis('left')
         self.dataPlot.plotWidget.showAxis('bottom')
