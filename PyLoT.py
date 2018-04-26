@@ -1719,6 +1719,10 @@ class MainWindow(QMainWindow):
         self.dataPlot.setPermTextRight(wf_stat[status], wf_stat_color[status])
 
     def check_plot_quantity(self):
+        """
+        Check the amount of samples to be plotted and ask user to reduce the amount if it is too large.
+        :rtype: None
+        """
         settings = QSettings()
         nth_sample = int(settings.value("nth_sample")) if settings.value("nth_sample") else 1
         npts_max = 1e7
