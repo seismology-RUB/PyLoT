@@ -454,7 +454,8 @@ def getLogin():
     :return: login ID
     :rtype: str
     """
-    return os.getlogin()
+    import getpass
+    return getpass.getuser()
 
 
 def getOwner(fn):
