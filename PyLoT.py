@@ -2905,6 +2905,16 @@ class MainWindow(QMainWindow):
                 event.addNotes(notes)
                 self.fill_eventbox()
 
+        def set_background_color(items, color):
+            for item in items:
+                item.setBackground(color)
+
+        def set_foreground_color(items, color):
+            for item in items:
+                item.setForeground(color)
+
+        current_event = self.get_current_event()
+
         # generate delete icon
         del_icon = QIcon()
         del_icon.addPixmap(QPixmap(':/icons/delete.png'))
@@ -2968,9 +2978,6 @@ class MainWindow(QMainWindow):
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
 
-            # manipulate items
-            item_ref.setBackground(self._ref_test_colors['ref'])
-            item_test.setBackground(self._ref_test_colors['test'])
             item_path.setText(event.path)
             if hasattr(event, 'origins'):
                 if event.origins:
@@ -3008,6 +3015,16 @@ class MainWindow(QMainWindow):
             column = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_mag,
                       item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(column)
+
+            if index%2:
+                set_background_color(column, QtGui.QColor(*(245, 245, 245, 255)))
+
+            if event == current_event:
+                set_foreground_color(column, QtGui.QColor(*(0, 143, 143, 255)))
+
+            # manipulate items
+            item_ref.setBackground(self._ref_test_colors['ref'])
+            item_test.setBackground(self._ref_test_colors['test'])
 
         for r_index, row in enumerate(self.project._table):
             for c_index, item in enumerate(row):
