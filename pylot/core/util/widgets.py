@@ -462,8 +462,6 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.label_layout.addWidget(self.perm_label_mid)
         self.label_layout.addWidget(self.perm_label_right)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
-        self.plotWidget.hideAxis('bottom')
-        self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])

@@ -616,6 +616,10 @@ class MainWindow(QMainWindow):
 
         # add scroll area used in case number of traces gets too high
         self.wf_scroll_area = QtGui.QScrollArea(self)
+        self.wf_scroll_area.setVisible(False)
+        self.no_data_label = QLabel('No Data')
+        self.no_data_label.setStyleSheet('color: red')
+        self.no_data_label.setAlignment(Qt.AlignCenter)
 
         # create central matplotlib figure canvas widget
         self.init_wfWidget()
@@ -638,6 +642,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
 
+        self.wf_layout.addWidget(self.no_data_label)
         self.wf_layout.addWidget(self.wf_scroll_area)
         self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
@@ -1811,7 +1816,8 @@ class MainWindow(QMainWindow):
         self.getPlotWidget().updateWidget()
         plots, gaps = self.wfp_thread.data
         # do not show plot if no data are given
-        self.dataPlot.setVisible(len(plots) > 0)
+        self.wf_scroll_area.setVisible(len(plots) > 0)
+        self.no_data_label.setVisible(not len(plots) > 0)
         for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
@@ -1819,8 +1825,6 @@ class MainWindow(QMainWindow):
                 self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
                                                             pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
-        self.dataPlot.plotWidget.showAxis('left')
-        self.dataPlot.plotWidget.showAxis('bottom')
         self.highlight_stations()
 
     def finishWaveformDataPlot(self):
@@ -1898,12 +1902,10 @@ class MainWindow(QMainWindow):
             comparable[event.pylot_id] = self.checkEvent4comparison(event)
         return comparable
 
-    def clearWaveformDataPlot(self):
+    def clearWaveformDataPlot(self, refresh_plot=False):
         self.disconnectWFplotEvents()
         if self.pg:
             self.dataPlot.plotWidget.getPlotItem().clear()
-            self.dataPlot.plotWidget.hideAxis('bottom')
-            self.dataPlot.plotWidget.hideAxis('left')
         else:
             for ax in self.dataPlot.axes:
                 ax.cla()
@@ -1919,6 +1921,9 @@ class MainWindow(QMainWindow):
         self.openEventAction.setEnabled(False)
         self.openEventsAutoAction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
+        if not refresh_plot:
+            self.wf_scroll_area.setVisible(False)
+            self.no_data_label.setVisible(True)
         self.disableSaveEventAction()
         self.draw()
 
@@ -1927,7 +1932,7 @@ class MainWindow(QMainWindow):
         Open a modal thread to plot current waveform data.
         '''
         self.check_plot_quantity()
-        self.clearWaveformDataPlot()
+        self.clearWaveformDataPlot(refresh_plot=True)
         self.wfp_thread = Thread(self, self.plotWaveformData,
                                  arg=filter,
                                  progressText='Plotting waveform data...',
