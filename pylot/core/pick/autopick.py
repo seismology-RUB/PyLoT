@@ -124,7 +124,8 @@ def get_source_coords(parser, station_id):
     retrieves station coordinates from metadata
     :param parser: Parser object containing metadata read from inventory file
     :type parser: ~obspy.io.xseed.parser.Parser
-    :param station_id: station id of which the coordinates should be retrieved
+    :param station_id: station id of which the coordinates should be retrieved, for example 'BW.RJOB..EHZ'. Only
+    network and station name is required, channel id (last part) is ignored.
     :type station_id: str
     :return: dictionary containing 'latitude', 'longitude', 'elevation' and 'local_depth' of station
     :rtype: dict
@@ -209,8 +210,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if p_params['algoP'] == 'HOS' or p_params['algoP'] == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
-              'trace ...\n{data}'.format(station=wfstream[0].stats.station,
-                                         data=str(zdat))
+              'trace ...\n{data}'.format(station=wfstream[0].stats.station, data=str(zdat))
         if verbose: print(msg)
         z_copy = zdat.copy()
         tr_filt = zdat[0].copy()
@@ -300,8 +300,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         # class needs stream object => build it
         assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
                                                         'correctly: maybe the algorithm name ({algoP}) is ' \
-                                                        'corrupted'.format(
-            algoP=p_params['algoP'])
+                                                        'corrupted'.format(algoP=p_params['algoP'])
         tr_aic = tr_filt.copy()
         tr_aic.data = cf1.getCF()
         z_copy[0].data = tr_aic.data
