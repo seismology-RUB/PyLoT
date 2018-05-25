@@ -226,7 +226,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # for global seismology: use tau-p method for estimating travel times (needs source and station coords.)
         # if not given: sets Lc to infinity to use full stream
-        if s_params['use_taup'] is True:
+        if p_params['use_taup'] is True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata[1]:
@@ -237,7 +237,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 station_coords = get_source_coords(parser, station_id)
                 if station_coords and origin:
                     source_origin = origin[0]
-                    model = TauPyModel(s_params['taup_model'])
+                    model = TauPyModel(p_params['taup_model'])
                     arrivals = model.get_travel_times_geo(
                         source_origin.depth,
                         source_origin.latitude,
@@ -268,7 +268,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         pstart = max(p_params['pstart'], 0)
         pstop = min(p_params['pstop'], len(zdat[0])*zdat[0].stats.delta)
 
-        if not s_params['use_taup'] is True or origin:
+        if p_params['use_taup'] is False or origin:
             Lc = p_params['pstop'] - p_params['pstart']
 
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime

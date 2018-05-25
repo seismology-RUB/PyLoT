@@ -1373,8 +1373,8 @@ def get_pickparams(pickparam):
     :rtype: (dict, dict, dict, dict)
     """
     # Define names of all parameters in different groups
-    p_parameter_names = 'algoP pstart pstop tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP'.split(' ')
-    s_parameter_names = 'algoS sstart sstop use_taup taup_model bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac'.split(' ')
+    p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(' ')
+    s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(' ')
     first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
     signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
     # Get list of values from pickparam by name
@@ -1388,7 +1388,7 @@ def get_pickparams(pickparam):
     first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
     signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
 
-    s_params['use_taup'] = real_Bool(s_params['use_taup'])
+    p_params['use_taup'] = real_Bool(p_params['use_taup'])
 
     return p_params, s_params, first_motion_params, signal_length_params
 
