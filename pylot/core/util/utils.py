@@ -6,12 +6,15 @@ import os
 import platform
 import re
 import subprocess
+import warnings
 
 import numpy as np
 from obspy import UTCDateTime, read
 from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from obspy.io.xseed.utils import SEEDParserException
+
+from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
 
 from pylot.core.io.inputs import PylotParameter, FilterOptions
 from pylot.styles import style_settings
@@ -451,7 +454,8 @@ def getLogin():
     :return: login ID
     :rtype: str
     """
-    return os.getlogin()
+    import getpass
+    return getpass.getuser()
 
 
 def getOwner(fn):
@@ -589,7 +593,7 @@ def prepTimeAxis(stime, trace, verbosity=0):
     srate = trace.stats.sampling_rate
     tincr = trace.stats.delta
     etime = stime + nsamp / srate
-    time_ax = np.arange(stime, etime, tincr)
+    time_ax = np.linspace(stime, etime, nsamp)
     if len(time_ax) < nsamp:
         if verbosity:
             print('elongate time axes by one datum')
@@ -1214,6 +1218,46 @@ def has_spe(pick):
         return None
     else:
         return pick['spe']
+
+
+def check_all_obspy(eventlist):
+    ev_type = 'obspydmt'
+    return check_event_folders(eventlist, ev_type)
+
+
+def check_all_pylot(eventlist):
+    ev_type = 'pylot'
+    return check_event_folders(eventlist, ev_type)
+
+
+def check_event_folders(eventlist, ev_type):
+    checklist = []
+    clean_eventlist = []
+    for path in eventlist:
+        folder_check = check_event_folder(path)
+        if not folder_check:
+            warnings.warn('Unrecognized event folder: {}'.format(path))
+            continue
+        checklist.append(folder_check == ev_type)
+        clean_eventlist.append(path)
+    if all(checklist) or len(checklist) == 0:
+        return clean_eventlist
+    else:
+        warnings.warn('Not all selected folders of type {}'.format(ev_type))
+        return []
+
+
+def check_event_folder(path):
+    ev_type = None
+    folder = path.split('/')[-1]
+    # for pylot: select only folders that start with 'e', containin two dots and have length 12
+    if (folder.startswith('e')
+        and len(folder.split('.')) == 3
+        and len(folder) == 12):
+        ev_type = 'pylot'
+    elif check_obspydmt_eventfolder(folder)[0]:
+        ev_type = 'obspydmt'
+    return ev_type
 
 
 if __name__ == "__main__":

@@ -25,6 +25,7 @@ except ImportError:
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
+from scipy.signal import argrelmin, argrelmax
 
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
@@ -34,7 +35,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QPushButton, QFileDialog, QInputDialog, QKeySequence
 from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide.QtWebKit import QWebView
-from obspy import Stream, UTCDateTime
+from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
 from obspy.taup import TauPyModel
 from obspy.taup.utils import get_phase_names
@@ -448,20 +449,25 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.plotdict = dict()
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
-        self.label = QtGui.QLabel()
+        self.label_layout = QtGui.QHBoxLayout()
+        self.status_label = QtGui.QLabel()
+        self.perm_label = QtGui.QLabel()
         self.setLayout(self.main_layout)
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
-        self.main_layout.addWidget(self.label)
+        self.main_layout.addLayout(self.label_layout)
+        self.label_layout.addWidget(self.status_label)
+        self.label_layout.addWidget(self.perm_label)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
         self.plotWidget.hideAxis('bottom')
         self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
+        self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        self.plotWidget.getPlotItem().setDownsampling(auto=True)
+        #self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
@@ -479,12 +485,16 @@ class WaveformWidgetPG(QtGui.QWidget):
             station = self.orig_parent.getStationName(wfID)
             abstime = self.wfstart + x
             if self.orig_parent.get_current_event():
-                self.label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
+                self.status_label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
     def getPlotDict(self):
         return self.plotdict
+
+    def setPermText(self, text=None, color='black'):
+        self.perm_label.setText(text)
+        self.perm_label.setStyleSheet('color: {}'.format(color))
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
@@ -492,9 +502,10 @@ class WaveformWidgetPG(QtGui.QWidget):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+    def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0):
+                   component='*', nth_sample=1, iniPick=None, verbosity=0,
+                   method='normal'):
         if not wfdata:
             print('Nothing to plot.')
             return
@@ -537,7 +548,10 @@ class WaveformWidgetPG(QtGui.QWidget):
         for n, (network, station, channel) in enumerate(nsc):
             n+=1
             st = st_select.select(network=network, station=station, channel=channel)
-            trace = st[0]
+            trace = st[0].copy()
+            st_syn = wfsyn.select(network=network, station=station, channel=channel)
+            if st_syn:
+                trace_syn = st_syn[0].copy()
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -549,19 +563,69 @@ class WaveformWidgetPG(QtGui.QWidget):
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
             time_ax = prepTimeAxis(stime, trace)
-            if time_ax is not None:
+            if st_syn:
+                stime_syn = trace_syn.stats.starttime - self.wfstart
+                time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
+
+            if method == 'fast':
+               trace.data, time_ax = self.minMax(trace, time_ax)
+
+            if time_ax not in [None, []]:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
-                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
-                data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                plots.append((times, data))
+                    if st_syn:
+                        trace_syn.detrend('constant')
+                        trace_syn.normalize(np.max(np.abs(trace_syn.data)) * 2)
+                # TODO: change this to numpy operations instead of lists?
+                times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
+                times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
+                trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
+                trace.data_syn = np.array([datum + n for index, datum in enumerate(trace.data_syn)
+                            if not index % nth_sample] if st_syn else [])
+                plots.append((times, trace.data,
+                              times_syn, trace.data_syn))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
         return plots
+
+    def minMax(self, trace, time_ax):
+        '''
+        create min/max array for fast plotting (approach based on obspy __plot_min_max function)
+        :returns data, time_ax
+        '''
+        npixel = self.width()
+        ndata = len(trace.data)
+        pts_per_pixel = ndata/npixel
+        if pts_per_pixel < 2:
+            return trace.data, time_ax
+        remaining_samples = ndata%pts_per_pixel
+        npixel = ndata//pts_per_pixel
+        if remaining_samples:
+            data = trace.data[:-remaining_samples]
+        else:
+            data = trace.data
+        data = data.reshape(npixel, pts_per_pixel)
+        min_ = data.min(axis=1)
+        max_ = data.max(axis=1)
+        if remaining_samples:
+            extreme_values = np.empty((npixel + 1, 2), dtype=np.float)
+            extreme_values[:-1, 0] = min_
+            extreme_values[:-1, 1] = max_
+            extreme_values[-1, 0] = \
+                trace.data[-remaining_samples:].min()
+            extreme_values[-1, 1] = \
+                trace.data[-remaining_samples:].max()
+        else:
+            extreme_values = np.empty((npixel, 2), dtype=np.float)
+            extreme_values[:, 0] = min_
+            extreme_values[:, 1] = max_
+        data = extreme_values.flatten()
+        time_ax = np.linspace(time_ax[0], time_ax[-1], num=len(data))
+        return data, time_ax
 
     # def getAxes(self):
     #     return self.axes

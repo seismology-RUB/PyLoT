@@ -9,4 +9,4 @@ Created on Wed Jan 26 17:47:25 2015
 from pylot.core.io.data import SeiscompDataStructure, PilotDataStructure
 
 DATASTRUCTURE = {'PILOT': PilotDataStructure, 'SeisComP': SeiscompDataStructure,
-                 None: None}
+                 'obspyDMT': None, None: None}
