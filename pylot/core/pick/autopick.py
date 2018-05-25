@@ -192,16 +192,61 @@ def autopickstation(wfstream, pickparam, verbose=False,
     Ao = None  # Wood-Anderson peak-to-peak amplitude
     picker = 'auto'  # type of picks
 
+    def get_components_from_waveformstream(waveformstream):
+        """
+        Splits waveformstream into multiple components zdat, ndat, edat. For traditional orientation (ZNE) these contain
+        the vertical, north-south or east-west component. Otherwise they contain components numbered 123 with
+        orientation diverging from the traditional orientation.
+        :param waveformstream: Stream containing all three components for one station either by ZNE or 123 channel code
+        (mixture of both options is handled as well)
+        :type waveformstream: obspy.core.stream.Stream
+        :return: Tuple containing (z waveform, n waveform, e waveform) selected by the given channels
+        :rtype: (obspy.core.stream.Stream, obspy.core.stream.Stream, obspy.core.stream.Stream)
+        """
+
+        #TODO: get this order from the pylot preferences
+        channelorder_default = {'Z': 3, 'N': 1, 'E': 2}
+        waveform_data = {}
+        for key in channelorder_default:
+            waveform_data[key] = waveformstream.select(component=key) # try ZNE first
+            if len(waveform_data[key]) == 0:
+                waveform_data[key] = waveformstream.select(component=str(channelorder_default[key])) # use 123 as second option
+        return waveform_data['Z'], waveform_data['N'], waveform_data['E']
+
+
+    def prepare_wfstream_component(wfstream, detrend_type='demean', filter_type='bandpass', freqmin=None, freqmax=None, zerophase=False, taper_max_percentage=0.05, taper_type='hann'):
+        """
+        Prepare a waveformstream for picking by applying detrending, filtering and tapering. Creates a copy of the
+        waveform the leave the original unchanged.
+        :param wfstream:
+        :type wfstream:
+        :param detrend_type:
+        :type detrend_type:
+        :param filter_type:
+        :type filter_type:
+        :param freqmin:
+        :type freqmin:
+        :param freqmax:
+        :type freqmax:
+        :param zerophase:
+        :type zerophase:
+        :param taper_max_percentage:
+        :type taper_max_percentage:
+        :param taper_type:
+        :type taper_type:
+        :return: Tuple containing the changed waveform stream and the first trace of the stream
+        :rtype: (obspy.core.stream.Stream, obspy.core.trace.Trace)
+        """
+        wfstream_copy = wfstream.copy()
+        trace_copy = wfstream[0].copy()
+        trace_copy.detrend(type=detrend_type)
+        trace_copy.filter(filter_type, freqmin=freqmin, freqmax=freqmax, zerophase=zerophase)
+        trace_copy.taper(max_percentage=taper_max_percentage, type=taper_type)
+        wfstream_copy[0].data = trace_copy.data
+        return wfstream_copy, trace_copy
+
     # split components
-    zdat = wfstream.select(component="Z")
-    if len(zdat) == 0:  # check for other components
-        zdat = wfstream.select(component="3")
-    edat = wfstream.select(component="E")
-    if len(edat) == 0:  # check for other components
-        edat = wfstream.select(component="2")
-    ndat = wfstream.select(component="N")
-    if len(ndat) == 0:  # check for other components
-        ndat = wfstream.select(component="1")
+    zdat, ndat, edat = get_components_from_waveformstream(wfstream)
 
     if not zdat:
         print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
@@ -212,15 +257,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
               ' Working on P onset of station {station}\nFiltering vertical ' \
               'trace ...\n{data}'.format(station=wfstream[0].stats.station, data=str(zdat))
         if verbose: print(msg)
-        z_copy = zdat.copy()
-        tr_filt = zdat[0].copy()
-        # remove constant offset from data to avoid unwanted filter response
-        tr_filt.detrend(type='demean')
-        # filter and taper data
-        tr_filt.filter('bandpass', freqmin=p_params['bpz1'][0], freqmax=p_params['bpz1'][1],
-                       zerophase=False)
-        tr_filt.taper(max_percentage=0.05, type='hann')
-        z_copy[0].data = tr_filt.data
+        z_copy, tr_filt = prepare_wfstream_component(zdat, freqmin=p_params['bpz1'][0], freqmax=p_params['bpz1'][1])
         ##############################################################
         # check length of waveform and compare with cut times
 
