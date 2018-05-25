@@ -137,6 +137,274 @@ def get_source_coords(parser, station_id):
         print('Could not get source coordinates for station {}: {}'.format(station_id, e))
     return station_coords
 
+class PickingParameters(object):
+    """
+    Stores parameters used for picking a single station.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Add dictionaries given as positional arguments and the keyword argument dictionary to the instance
+        as attributes. Positional arguments with types differing from dict are ignored.
+        """
+        # add entries from dictionaries given as positional arguments
+        for arg in args:
+            if type(arg) == dict:
+                self.add_params_from_dict(arg)
+        # add values given as keyword arguments
+        self.add_params_from_dict(kwargs)
+
+    def add_params_from_dict(self, d):
+        """
+        Add all key-value pairs from dictionary d to the class namespace as attributes.
+        :param d:
+        :type d: dict
+        :rtype: None
+        """
+        for key, value in d.items():
+            setattr(self, key, value)
+
+class PickingResults(object):
+
+    def __init__(self):
+        # initialize output
+        self.Pweight = 4  # weight for P onset
+        self.Sweight = 4  # weight for S onset
+        self.FM = 'N'  # first motion (polarity)
+        self.SNRP = None  # signal-to-noise ratio of P onset
+        self.SNRPdB = None  # signal-to-noise ratio of P onset [dB]
+        self.SNRS = None  # signal-to-noise ratio of S onset
+        self.SNRSdB = None  # signal-to-noise ratio of S onset [dB]
+        self.mpickP = None  # most likely P onset
+        self.lpickP = None  # latest possible P onset
+        self.epickP = None  # earliest possible P onset
+        self.mpickS = None  # most likely S onset
+        self.lpickS = None  # latest possible S onset
+        self.epickS = None  # earliest possible S onset
+        self.Perror = None  # symmetrized picking error P onset
+        self.Serror = None  # symmetrized picking error S onset
+
+        self.aicSflag = 0
+        self.aicPflag = 0
+        self.Pflag = 0
+        self.Sflag = 0
+        self.Pmarker = []
+        self.Ao = None  # Wood-Anderson peak-to-peak amplitude
+        self.picker = 'auto'  # type of picks
+
+class MissingTraceException(ValueError):
+    """
+    Used to indicate missing traces in a obspy.core.stream.Stream object
+    """
+    pass
+
+class AutopickStation(object):
+
+    def __init__(self, wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin):
+        # save given parameters
+        self.wfstream = wfstream
+        self.pickparam = pickparam
+        self.verbose = verbose
+        self.iplot = iplot
+        self.fig_dict = fig_dict
+        self.metadata = metadata
+        self.origin = origin
+
+        # extract additional information
+        pickparams = self.extract_pickparams(pickparam)
+        self.p_params, self.s_params, self.first_motion_params, self.signal_length_params = pickparams
+        self.results = PickingResults()
+        self.channelorder = {'Z': 3, 'N': 1, 'E': 2} # TODO get this from the pylot preferences
+        self.station_name = wfstream[0].stats.station
+        self.network_name = wfstream[0].stats.network
+        self.station_id = '{}.{}'.format(self.network_name, self.station_name)
+
+        # default values used in old autopickstation function #TODO way for user to set those
+        self.detrend_type = 'demean'
+        self.filter_type = 'bandpass'
+        self.zerophase = False
+        self.taper_max_percentage = 0.05
+        self.taper_type = 'hann'
+
+    def vprint(self, s):
+        """Only print statement if verbose picking is set to true."""
+        if self.verbose:
+            print(s)
+
+    def extract_pickparams(self, pickparam):
+        """
+        Get parameter names out of pickparam dictionary into PickingParameters objects and return them.
+        :return: PickingParameters objects containing 1. p pick parameters, 2. s pick parameters, 3. first motion determinatiion
+        parameters, 4. signal length parameters
+        :rtype: (PickingParameters, PickingParameters, PickingParameters,  PickingParameters)
+        """
+        # Define names of all parameters in different groups
+        p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(
+            ' ')
+        s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(
+            ' ')
+        first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
+        signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
+        # Get list of values from pickparam by name
+        p_parameter_values = map(pickparam.get, p_parameter_names)
+        s_parameter_values = map(pickparam.get, s_parameter_names)
+        fm_parameter_values = map(pickparam.get, first_motion_names)
+        sl_parameter_values = map(pickparam.get, signal_length_names)
+        # construct dicts from names and values
+        p_params = dict(zip(p_parameter_names, p_parameter_values))
+        s_params = dict(zip(s_parameter_names, s_parameter_values))
+        first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
+        signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
+
+        p_params['use_taup'] = real_Bool(p_params['use_taup'])
+
+        return PickingParameters(p_params), PickingParameters(s_params), PickingParameters(first_motion_params), PickingParameters(signal_length_params)
+
+    def get_components_from_waveformstream(self):
+        """
+        Splits waveformstream into multiple components zdat, ndat, edat. For traditional orientation (ZNE) these contain
+        the vertical, north-south or east-west component. Otherwise they contain components numbered 123 with
+        orientation diverging from the traditional orientation.
+        :param waveformstream: Stream containing all three components for one station either by ZNE or 123 channel code
+        (mixture of both options is handled as well)
+        :type waveformstream: obspy.core.stream.Stream
+        :return: Tuple containing (z waveform, n waveform, e waveform) selected by the given channels
+        :rtype: (obspy.core.stream.Stream, obspy.core.stream.Stream, obspy.core.stream.Stream)
+        """
+
+        waveform_data = {}
+        for key in self.channelorder:
+            waveform_data[key] = self.wfstream.select(component=key) # try ZNE first
+            if len(waveform_data[key]) == 0:
+                waveform_data[key] = self.wfstream.select(component=str(self.channelorder[key])) # use 123 as second option
+        return waveform_data['Z'], waveform_data['N'], waveform_data['E']
+
+    def prepare_wfstream(self, wfstream, freqmin=None, freqmax=None):
+        """
+        Prepare a waveformstream for picking by applying detrending, filtering and tapering. Creates a copy of the
+        waveform the leave the original unchanged.
+        :param wfstream:
+        :type wfstream:
+        :param freqmin:
+        :type freqmin:
+        :param freqmax:
+        :type freqmax:
+        :return: Tuple containing the changed waveform stream and the first trace of the stream
+        :rtype: (obspy.core.stream.Stream, obspy.core.trace.Trace)
+        """
+        wfstream_copy = wfstream.copy()
+        trace_copy = wfstream[0].copy()
+        trace_copy.detrend(type=self.detrend_type)
+        trace_copy.filter(self.filter_type, freqmin=freqmin, freqmax=freqmax, zerophase=self.zerophase)
+        trace_copy.taper(max_percentage=self.taper_max_percentage, type=self.taper_type)
+        wfstream_copy[0].data = trace_copy.data
+        return wfstream_copy, trace_copy
+
+    def modify_starttimes_taupy(self):
+        """
+        Calculate theoretical arrival times for a source at self.origin and a station at self.metadata. Modify
+        self.pstart and self.pstop so they are based on a time window around these theoretical arrival times.
+        :rtype: None
+        """
+
+        def create_arrivals(metadata, origin, station_id, taup_model):
+            """
+            Create List of arrival times for all phases for a given origin and station
+            :param metadata: tuple containing metadata type string and Parser object read from inventory file
+            :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
+            :param origin: list containing origin objects representing origins for all events
+            :type origin: list(~obspy.core.event.origin)
+            :param station_id: Station id with format NETWORKNAME.STATIONNAME
+            :type station_id: str
+            :param taup_model: Model name to use. See obspy.taup.tau.TauPyModel for options
+            :type taup_model: str
+            :return: List of Arrival objects
+            :rtype: obspy.taup.tau.Arrivals
+            """
+            parser = metadata[1]
+            station_coords = get_source_coords(parser, station_id)
+            source_origin = origin[0]
+            model = TauPyModel(taup_model)
+            arrivals = model.get_travel_times_geo(source_depth_in_km=source_origin.depth,
+                                                  source_latitude_in_deg=source_origin.latitude,
+                                                  source_longitude_in_deg=source_origin.longitude,
+                                                  receiver_latitude_in_deg=station_coords['latitude'],
+                                                  receiver_longitude_in_deg=station_coords['longitude'])
+            return arrivals
+
+        def first_PS_onsets(arrivals):
+            """
+            Get first P and S onsets from arrivals list
+            :param arrivals: List of Arrival objects
+            :type arrivals: obspy.taup.tau.Arrivals
+            :return:
+            :rtype:
+            """
+            phases = {'P': [], 'S': []}
+            # sort phases in P and S phases
+            for arr in arrivals:
+                phases[identifyPhaseID(arr.phase.name)].append(arr)
+            # get first P and S onsets from arrivals list
+            arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
+            arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
+            print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
+                  ' origin time using TauPy'.format(estFirstP, estFirstS))
+            return estFirstP, estFirstS
+
+        print('autopickstation: use_taup flag active.')
+        if not self.metadata[1]:
+            raise AttributeError('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
+        if not self.origin:
+            raise AttributeError('No source origins given!')
+        arrivals = create_arrivals(self.metadata, self.origin, self.station_id, self.p_params.taup_model)
+        estFirstP, estFirstS = first_PS_onsets(arrivals)
+        # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
+        self.p_params.pstart += (self.origin[0].time + estFirstP) - self.zstream[0].stats.starttime
+        self.p_params.pstop += (self.origin[0].time + estFirstP) - self.zstream[0].stats.starttime
+        print('autopick: CF calculation times respectively:'
+              ' pstart: {} s, pstop: {} s'.format(self.p_params.pstart, self.p_params.pstop))
+        # make sure pstart and pstop are inside the starttime/endtime of vertical trace
+        self.p_params.pstart = max(self.p_params.pstart, 0)
+        self.p_params.pstop = min(self.p_params.pstop, len(self.zstream[0]) * self.zstream[0].stats.starttime)
+
+    def autopickstation(self):
+        self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
+        self.ztrace, self.ntrace, self.etrace = self.zstream[0], self.nstream[0], self.estream[0]
+
+        try:
+            self.pick_p_phase()
+        #TODO handle exceptions correctly
+        # requires an overlook of what should be returned in case picking fails at various stages
+        except MissingTraceException as mte:
+            print(mte)
+            return
+
+    def pick_p_phase(self):
+        """
+        Pick p phase, return results
+        :return: P pick results
+        :rtype: PickingResults
+        :raises:
+            MissingTraceException: If vertical trace is missing.
+        """
+        if not self.zstream or self.zstream is None:
+            raise MissingTraceException('No z-component found for station {}'.format(self.station_name))
+
+        msg = '##################################################\nautopickstation:' \
+              ' Working on P onset of station {station}\nFiltering vertical ' \
+              'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
+        self.vprint(msg)
+        z_copy, tr_filt = self.prepare_wfstream(self.wfstream, self.p_params.bpz1[0], self.p_params.bpz2[0])
+        if self.p_params.use_taup is True and self.origin is not None:
+            Lc = np.inf  # what is Lc? DA
+            try:
+                self.modify_starttimes_taupy()
+            except AttributeError as ae:
+                print(ae)
+        else:
+            Lc = self.p_params.pstop - self.p_params.pstop
+        Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
+
 
 def autopickstation(wfstream, pickparam, verbose=False,
                     iplot=0, fig_dict=None, metadata=None, origin=None):
