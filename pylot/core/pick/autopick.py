@@ -289,7 +289,7 @@ class AutopickStation(object):
         :type freqmin:
         :param freqmax:
         :type freqmax:
-        :return: Tuple containing the changed waveform stream and the first trace of the stream
+        :return: Tuple containing the changed waveform stream and the changed first trace of the stream
         :rtype: (obspy.core.stream.Stream, obspy.core.trace.Trace)
         """
         wfstream_copy = wfstream.copy()
@@ -320,6 +320,8 @@ class AutopickStation(object):
             :type taup_model: str
             :return: List of Arrival objects
             :rtype: obspy.taup.tau.Arrivals
+            :raises:
+                AttributeError when no metadata or source origins is given
             """
             parser = metadata[1]
             station_coords = get_source_coords(parser, station_id)
@@ -394,7 +396,8 @@ class AutopickStation(object):
               ' Working on P onset of station {station}\nFiltering vertical ' \
               'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
         self.vprint(msg)
-        z_copy, tr_filt = self.prepare_wfstream(self.wfstream, self.p_params.bpz1[0], self.p_params.bpz2[0])
+
+        z_copy, tr_filt = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz2[0])
         if self.p_params.use_taup is True and self.origin is not None:
             Lc = np.inf  # what is Lc? DA
             try:
@@ -776,7 +779,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         z_copy[0].data = tr_aic.data
         aiccf = AICcf(z_copy, cuttimes)  # instance of AICcf
         ##############################################################
-        # get prelimenary onset time from AIC-HOS-CF using subclass AICPicker
+        # get preliminary onset time from AIC-HOS-CF using subclass AICPicker
         # of class AutoPicking
         key = 'aicFig'
         if fig_dict:
@@ -801,10 +804,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
             z_copy[0].data = tr_filt.data
             zne = z_copy
             if len(ndat) == 0 or len(edat) == 0:
-                msg = 'One or more horizontal component(s) missing!\nSignal ' \
-                      'length only checked on vertical component!\n' \
-                      'Decreasing minsiglengh from {0} to ' \
-                      '{1}'.format(signal_length_params['minsiglength'], signal_length_params['minsiglength'] / 2)
+                msg = 'One or more horizontal component(s) missing!\n' \
+                      'Signal length only checked on vertical component!\n' \
+                      'Decreasing minsiglengh from {0} to {1}' \
+                      .format(signal_length_params['minsiglength'], signal_length_params['minsiglength'] / 2)
                 if verbose: print(msg)
                 key = 'slength'
                 if fig_dict:
@@ -938,7 +941,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                             mpickP, iplot)
 
                 # get SNR
-                [SNRP, SNRPdB, Pnoiselevel] = getSNR(z_copy, p_params['tsnrz'], mpickP)
+                SNRP, SNRPdB, Pnoiselevel = getSNR(z_copy, p_params['tsnrz'], mpickP)
 
                 # weight P-onset using symmetric error
                 if Perror is None:
