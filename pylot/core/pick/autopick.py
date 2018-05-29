@@ -239,9 +239,9 @@ class AutopickStation(object):
         :rtype: (PickingParameters, PickingParameters, PickingParameters,  PickingParameters)
         """
         # Define names of all parameters in different groups
-        p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(
+        p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP'.split(
             ' ')
-        s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(
+        s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac'.split(
             ' ')
         first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
         signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
@@ -436,8 +436,7 @@ class AutopickStation(object):
         # get preliminary onset time from AIC-CF
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
         aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
-                            Tsmooth=self.p_params.aictsmooth, fig=fig, linecolor=linecolor,
-                            checkwindow=self.p_params.checkwindowP, minfactor=self.p_params.minfactorP)
+                            Tsmooth=self.p_params.aictsmooth, fig=fig, linecolor=linecolor)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -508,8 +507,7 @@ class AutopickStation(object):
                                                             'corrupted'.format(algoP=self.p_params.algoP)
             fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
             refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
-                                  self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor,
-                                  checkwindow=self.p_params.checkWindowP, minfactor=self.p_params.minfactorP)
+                                  self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
             mpickP = refPpick.getpick()
             if mpickP is not None:
                 # quality assessment, get earliest/latest pick and symmetrized uncertainty
@@ -789,7 +787,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = None
             linecolor = 'k'
         aicpick = AICPicker(aiccf, p_params['tsnrz'], p_params['pickwinP'], iplot, Tsmooth=p_params['aictsmooth'],
-                            fig=fig, linecolor=linecolor, checkwindow=p_params['checkwindowP'], minfactor=p_params['minfactorP'])
+                            fig=fig, linecolor=linecolor)
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -1075,7 +1073,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = None
             linecolor = 'k'
         aicarhpick = AICPicker(haiccf, s_params['tsnrh'], s_params['pickwinS'], iplot, None,
-                               s_params['aictsmoothS'], fig=fig, linecolor=linecolor, checkwindow=s_params['checkwindowS'], minfactor=s_params['minfactorS'])
+                               s_params['aictsmoothS'], fig=fig, linecolor=linecolor)
         ###############################################################
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
