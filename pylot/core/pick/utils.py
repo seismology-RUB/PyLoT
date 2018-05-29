@@ -1204,27 +1204,13 @@ def get_quality_class(uncertainty, weight_classes):
     :return: quality of pick (0-4)
     :rtype: int
     """
-
-    # set initial quality to 4 (worst) and change only if one condition is hit
-    quality = 4
-
-    if real_None(uncertainty) is None:
-        return quality
-
-    if uncertainty <= Errors[0]:
-        quality = 0
-    elif (uncertainty > Errors[0]) and \
-         (uncertainty <= Errors[1]):
-        quality = 1
-    elif (uncertainty > Errors[1]) and \
-         (uncertainty <= Errors[2]):
-        quality = 2
-    elif (uncertainty > Errors[2]) and \
-         (uncertainty <= Errors[3]):
-        quality = 3
-    elif uncertainty > Errors[3]:
-        quality = 4
-
+    try:
+        # create generator expression containing all indices of values in weight classes that are >= than uncertainty.
+        # call next on it once to receive first value
+        quality = next(i for i, v in enumerate(weight_classes) if v >= uncertainty)
+    except StopIteration:
+        # raised when uncertainty is larger than all values in weight_classes
+        quality = len(weight_classes)
     return quality
 
 def set_NaNs_to(data, nan_value):
