@@ -915,12 +915,9 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     else:
                         fig = None
                         linecolor = 'k'
-                    epickP, lpickP, Perror = earllatepicker(z_copy, p_params['nfacP'], p_params['tsnrz'],
-                                                            mpickP, iplot, fig=fig,
-                                                            linecolor=linecolor)
-                else:
-                    epickP, lpickP, Perror = earllatepicker(z_copy, p_params['nfacP'], p_params['tsnrz'],
-                                                            mpickP, iplot)
+                epickP, lpickP, Perror = earllatepicker(z_copy, p_params['nfacP'], p_params['tsnrz'],
+                                                        mpickP, iplot, fig=fig,
+                                                        linecolor=linecolor)
 
                 # get SNR
                 SNRP, SNRPdB, Pnoiselevel = getSNR(z_copy, p_params['tsnrz'], mpickP)
