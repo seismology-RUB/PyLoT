@@ -26,6 +26,10 @@ class TestPickingParameters(unittest.TestCase):
         pickparam = PickingParameters(self.simple_dict)
         self.assertParameterEquality(self.simple_dict, pickparam)
 
+    def test_dot_access(self):
+        pickparam = PickingParameters(self.simple_dict)
+        self.assertEqual(pickparam.a, self.simple_dict['a'])
+
 
 if __name__ == '__main__':
     unittest.main()
