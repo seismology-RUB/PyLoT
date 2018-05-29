@@ -1214,13 +1214,13 @@ def getQualityFromUncertainty(uncertainty, Errors):
     if uncertainty <= Errors[0]:
         quality = 0
     elif (uncertainty > Errors[0]) and \
-         (uncertainty < Errors[1]):
+         (uncertainty <= Errors[1]):
         quality = 1
     elif (uncertainty > Errors[1]) and \
-         (uncertainty < Errors[2]):
+         (uncertainty <= Errors[2]):
         quality = 2
     elif (uncertainty > Errors[2]) and \
-         (uncertainty < Errors[3]):
+         (uncertainty <= Errors[3]):
         quality = 3
     elif uncertainty > Errors[3]:
         quality = 4
