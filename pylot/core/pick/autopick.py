@@ -405,7 +405,7 @@ class AutopickStation(object):
             except AttributeError as ae:
                 print(ae)
         else:
-            Lc = self.p_params.pstop - self.p_params.pstop
+            Lc = self.p_params.pstop - self.p_params.pstart
         Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
         if Lwf < 0:
             print('autopickstation: empty trace! Return!')
