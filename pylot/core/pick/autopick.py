@@ -788,8 +788,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
         else:
             fig = None
             linecolor = 'k'
-        aicpick = AICPicker(aiccf, p_params['tsnrz'], p_params['pickwinP'], iplot, None, p_params['aictsmooth'],
-                            fig=fig, linecolor=linecolor)
+        aicpick = AICPicker(aiccf, p_params['tsnrz'], p_params['pickwinP'], iplot, Tsmooth=p_params['aictsmooth'],
+                            fig=fig, linecolor=linecolor, checkwindow=p_params['checkwindowP'], minfactor=p_params['minfactorP'])
         # add pstart and pstop to aic plot
         if fig:
             for ax in fig.axes:
@@ -1108,7 +1108,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             fig = None
             linecolor = 'k'
         aicarhpick = AICPicker(haiccf, s_params['tsnrh'], s_params['pickwinS'], iplot, None,
-                               s_params['aictsmoothS'], fig=fig, linecolor=linecolor)
+                               s_params['aictsmoothS'], fig=fig, linecolor=linecolor, checkwindow=s_params['checkwindowS'], minfactor=s_params['minfactorS'])
         ###############################################################
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
