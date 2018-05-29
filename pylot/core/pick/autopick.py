@@ -821,20 +821,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                           signal_length_params['noisefactor'], signal_length_params['minpercent'], iplot,
                                           fig, linecolor)
             else:
-                # filter and taper horizontal traces
-                trH1_filt = edat.copy()
-                trH2_filt = ndat.copy()
-                # remove constant offset from data to avoid unwanted filter response
-                trH1_filt.detrend(type='demean')
-                trH2_filt.detrend(type='demean')
-                trH1_filt.filter('bandpass', freqmin=s_params['bph1'][0],
-                                 freqmax=s_params['bph1'][1],
-                                 zerophase=False)
-                trH2_filt.filter('bandpass', freqmin=s_params['bph1'][0],
-                                 freqmax=s_params['bph1'][1],
-                                 zerophase=False)
-                trH1_filt.taper(max_percentage=0.05, type='hann')
-                trH2_filt.taper(max_percentage=0.05, type='hann')
+                trH1_filt, _ = prepare_wfstream_component(edat, freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1])
+                trH2_filt, _ = prepare_wfstream_component(ndat, freqmin=s_params['bph1'][0], freqmax=s_params['bph1'][1])
                 zne += trH1_filt
                 zne += trH2_filt
                 if fig_dict:
@@ -884,13 +872,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                   '...'.format(aicpick.getSlope(), aicpick.getSNR())
             if verbose: print(msg)
             # re-filter waveform with larger bandpass
-            z_copy = zdat.copy()
-            tr_filt = zdat[0].copy()
-            tr_filt.detrend(type='demean')
-            tr_filt.filter('bandpass', freqmin=p_params['bpz2'][0], freqmax=p_params['bpz2'][1],
-                           zerophase=False)
-            tr_filt.taper(max_percentage=0.05, type='hann')
-            z_copy[0].data = tr_filt.data
+            z_copy, tr_filt = prepare_wfstream_component(zdat, freqmin=p_params['bpz2'][0], freqmax=p_params['bpz2'][1])
             #############################################################
             # re-calculate CF from re-filtered trace in vicinity of initial
             # onset
@@ -944,19 +926,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 SNRP, SNRPdB, Pnoiselevel = getSNR(z_copy, p_params['tsnrz'], mpickP)
 
                 # weight P-onset using symmetric error
-                if Perror is None:
-                    Pweight = 4
-                else:
-                    if Perror <= p_params['timeerrorsP'][0]:
-                        Pweight = 0
-                    elif p_params['timeerrorsP'][0] < Perror <= p_params['timeerrorsP'][1]:
-                        Pweight = 1
-                    elif p_params['timeerrorsP'][1] < Perror <= p_params['timeerrorsP'][2]:
-                        Pweight = 2
-                    elif p_params['timeerrorsP'][2] < Perror <= p_params['timeerrorsP'][3]:
-                        Pweight = 3
-                    elif Perror > p_params['timeerrorsP'][3]:
-                        Pweight = 4
+                Pweight = get_quality_class(Perror, p_params['timeerrorsP'])
 
                 ##############################################################
                 # get first motion of P onset
