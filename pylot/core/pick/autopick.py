@@ -404,6 +404,171 @@ class AutopickStation(object):
         else:
             Lc = self.p_params.pstop - self.p_params.pstop
         Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
+        if Lwf < 0:
+            print('autopickstation: empty trace! Return!')
+            return
+
+        Ldiff = Lwf - abs(Lc)
+        if Ldiff < 0 or self.p_params.pstop <= self.p_params.pstart:
+            msg = 'autopickstation: Cutting times are too large for actual waveform!\nUsing entire waveform instead!'
+            self.vprint(msg)
+            self.p_params.pstart = 0
+            self.p_params.pstop = len(self.ztrace.data) * self.ztrace.stats.delta
+        cuttimes = [self.p_params.pstart, self.p_params.pstop]
+        if self.p_params.algoP == 'HOS':
+            cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
+        elif self.p_params.algoP == 'ARZ':
+            cf1 = ARZcf(z_copy, cuttimes, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z,
+                        self.p_params.addnoise)
+        else:
+            cf1 = None
+        assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
+                                                        'correctly: maybe the algorithm name ({algoP}) is ' \
+                                                        'corrupted'.format(algoP=self.p_params.algoP)
+        # AICcf needs stream object -> build it
+        tr_aic = tr_filt.copy()
+        tr_aic.data = cf1.getCF()
+        z_copy[0].data = tr_aic.data
+        aiccf = AICcf(z_copy, cuttimes)
+        # get preliminary onset time from AIC-CF
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
+        aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
+                            Tsmooth=self.p_params.aictsmooth, fig=fig, linecolor=linecolor,
+                            checkwindow=self.p_params.checkwindowP, minfactor=self.p_params.minfactorP)
+        # add pstart and pstop to aic plot
+        if fig:
+            for ax in fig.axes:
+                ax.vlines(self.p_params.pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
+                ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
+                ax.legend(loc=1)
+
+        fig, linecolor = get_fig_from_figdict(self.figdict, 'slength')
+        if aicpick.getpick() is not None:
+            z_copy[0].data = tr_filt.data
+            zne = z_copy
+            if len(self.nstream) == 0 or len(self.estream) == 0:
+                msg = 'One or more horizontal component(s) missing!\n' \
+                      'Signal length only checked on vertical component!\n' \
+                      'Decreasing minsiglengh from {0} to {1}' \
+                      .format(self.signal_length_params.minsiglength, self.signal_length_params.minsiglength/2)
+                self.vprint(msg)
+                minsiglength =  self.signal_length_params.minsiglength/2
+            else:
+                trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
+                trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
+                zne += trH1_filt
+                zne += trH2_filt
+                minsiglength = self.signal_length_params.minsiglength
+            Pflag = checksignallength(zne, aicpick.getpick(), self.p_params.tsnrz,
+                                      minsiglength,
+                                      self.signal_length_params.noisefactor,
+                                      self.signal_length_params.minpercent, self.iplot, fig, linecolor)
+            if Pflag == 0:
+                Pmarker = 'shortsignallength'
+                Pweight = 9
+        if Pflag == 1:
+            if len(self.nstream) == 0 or len(self.estream) == 0:
+                msg = 'One or more horizontal components missing!\n' \
+                      'Skipping control function checkZ4S.'
+                self.vprint(msg)
+            else:
+                if self.iplot > 1:
+                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'checkZ4s')
+                    Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
+                    if Pflag == 0:
+                        Pmarker = 'SinsteadP'
+                        Pweight = 9
+        # go on with processing if AIC onset passes quality control
+        slope = aicpick.getSlope()
+        if not slope: slope = 0
+        if slope >= self.p_params.minAICPslope and aicpick.getSNR() >= self.p_params.minAICPSNR and Pflag == 1:
+            aicPflag = 1
+            msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
+                  'SNR: {1}\nGo on with refined picking ...\n' \
+                  'autopickstation: re-filtering vertical trace ' \
+                  '...'.format(aicpick.getSlope(), aicpick.getSNR())
+            self.vprint(msg)
+            # refilter waveform with larger bandpass
+            z_copy, tr_filt = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0])
+            cuttimes2 = [round(max([aicpick.getpick() - self.p_params.Precalcwin, 0])),
+                         round(min([len(self.ztrace.data) * self.ztrace.stats.delta,
+                                    aicpick.getpick() + self.p_params.Precalcwin]))]
+            if self.p_params.algoP == 'HOS':
+                cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
+            elif self.p_params.algoP == 'ARZ':
+                cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z, self.p_params.addnoise)
+            else:
+                cf2 = None
+            # get refined onset time from CF2
+            assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
+                                                            'correctly: maybe the algorithm name ({algoP}) is ' \
+                                                            'corrupted'.format(algoP=self.p_params.algoP)
+            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
+            refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
+                                  self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor,
+                                  checkwindow=self.p_params.checkWindowP, minfactor=self.p_params.minfactorP)
+            mpickP = refPpick.getpick()
+            if mpickP is not None:
+                # quality assessment, get earliest/latest pick and symmetrized uncertainty
+                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Ppick')
+                epickP, lpickP, Perror = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, mpickP,
+                                                        self.iplot, fig=fig, linecolor=linecolor)
+                SNRP, SNRPdB, Pnoiselevel = getSNR(z_copy, self.p_params.tsnrz, mpickP)
+
+                # weight P-onset using symmetric error
+                #todo shorter expression for this
+
+                if Perror is None:
+                    Pweight = 4
+                else:
+                    if Perror <= self.p_params.timeerrorsP[0]:
+                        Pweight = 0
+                    elif self.p_params.timeerrorsP[0] < Perror <= self.p_params.timeerrorsP[1]:
+                        Pweight = 1
+                    elif self.p_params.timeerrorsP[1] < Perror <= self.p_params.timeerrorsP[2]:
+                        Pweight = 2
+                    elif self.p_params.timeerrorsP[2] < Perror <= self.p_params.timeerrorsP[3]:
+                        Pweight = 3
+                    elif Perror > self.p_params.timeerrorsP[3]:
+                        Pweight = 4
+                if Pweight <= self.first_motion_params.minfmweight and SNRP >= self.first_motion_params.minFMSSNR:
+                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'fm_picker')
+                    FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin, mpickP, self.iplot,
+                                  fig, linecolor)
+                else:
+                    FM = 'N'
+                msg = "autopickstation: P-weight: {0}, " \
+                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight, SNRP, SNRPdB, FM)
+                print(msg)
+                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
+                print(msg)
+                Sflag = 1
+            else:
+                msg = 'Bad initial (AIC) P-pick, skipping this onset!\n' \
+                      'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
+                      '(min. AIC-SNR={2}, ' \
+                      'min. AIC-Slope={3}counts/s)'.format(aicpick.getSNR(), aicpick.getSlope(),
+                                                           self.p_params.minAICPSNR, self.p_params.minAICPslope)
+                self.vprint(msg)
+                Sflag = 0
+
+
+def get_fig_from_figdict(figdict, figkey):
+    """
+
+    :param figdict:
+    :type figdict: dict
+    :param figkey:
+    :type figkey: str
+    :return:
+    :rtype:
+    """
+    fig = figdict.get(figkey, None)
+    linecolor = figdict.get('plot_style', 'k')
+    linecolor = linecolor['linecolor']['rgba_mpl']
+    return fig, linecolor
+
+
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
