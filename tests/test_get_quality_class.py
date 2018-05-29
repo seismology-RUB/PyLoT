@@ -1,5 +1,5 @@
 import unittest
-from pylot.core.pick.utils import getQualityFromUncertainty as get_quality_class
+from pylot.core.pick.utils import get_quality_class
 
 
 class TestQualityClassFromUncertainty(unittest.TestCase):

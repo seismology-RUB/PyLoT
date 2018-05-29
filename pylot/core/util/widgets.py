@@ -42,7 +42,7 @@ from obspy.taup.utils import get_phase_names
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
-    getResolutionWindow, getQualityFromUncertainty
+    getResolutionWindow, get_quality_class
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
     SetChannelComponents
@@ -2259,10 +2259,10 @@ class PickDlg(QDialog):
 
         # get quality classes
         if self.getPhaseID(phase) == 'P':
-            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsP'])
+            quality = get_quality_class(picks['spe'], self.parameter['timeerrorsP'])
             phaseID = 'P'
         elif self.getPhaseID(phase) == 'S':
-            quality = getQualityFromUncertainty(picks['spe'], self.parameter['timeerrorsS'])
+            quality = get_quality_class(picks['spe'], self.parameter['timeerrorsS'])
             phaseID = 'S'
 
         mpp = picks['mpp'] - self.getStartTime()
@@ -3180,8 +3180,8 @@ class TuneAutopicker(QWidget):
             ('refSpick', 0),
             ('el_S1pick', 0),
             ('el_S2pick', 0)]
-        qualityPpick = getQualityFromUncertainty(picks['P']['spe'], self.parameter['timeerrorsP'])
-        qualitySpick = getQualityFromUncertainty(picks['S']['spe'], self.parameter['timeerrorsS'])
+        qualityPpick = get_quality_class(picks['P']['spe'], self.parameter['timeerrorsP'])
+        qualitySpick = get_quality_class(picks['S']['spe'], self.parameter['timeerrorsS'])
         for p_ax in p_axes:
             axes = self.parent().fig_dict[p_ax[0]].axes
             if not axes:

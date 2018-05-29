@@ -15,7 +15,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
-    getSNR, fmpicker, checkPonsets, wadaticheck, get_pickparams
+    getSNR, fmpicker, checkPonsets, wadaticheck, get_pickparams, get_quality_class
 from pylot.core.util.utils import getPatternLine, gen_Pool,\
     real_Bool, identifyPhaseID
 

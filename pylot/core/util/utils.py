@@ -141,7 +141,7 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
     :return: dictionary containing only picks above the excluded quality class(es)
     :rtype: dict
     """
-    from pylot.core.pick.utils import getQualityFromUncertainty
+    from pylot.core.pick.utils import get_quality_class
 
     if type(qClasses) in [int, float]:
         qClasses = [qClasses]
@@ -156,7 +156,7 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
             if not type(pick) in [AttribDict, dict]:
                 continue
             pickerror = phaseError[identifyPhaseID(phase)]
-            quality = getQualityFromUncertainty(pick['spe'], pickerror)
+            quality = get_quality_class(pick['spe'], pickerror)
             if not quality in qClasses:
                 if not station in picksdict_new:
                     picksdict_new[station] = {}

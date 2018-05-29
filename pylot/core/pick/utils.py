@@ -1194,7 +1194,7 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     return returnflag
 
 
-def getQualityFromUncertainty(uncertainty, Errors):
+def get_quality_class(uncertainty, weight_classes):
     """
     Script to transform uncertainty into quality classes 0-4 regarding adjusted time errors
     :param uncertainty: symmetric picking error of picks

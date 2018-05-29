@@ -943,7 +943,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     :rtype:
     """
 
-    from pylot.core.pick.utils import getQualityFromUncertainty
+    from pylot.core.pick.utils import get_quality_class
     from pylot.core.util.utils import loopIdentifyPhase, identifyPhase
 
     # read all onset weights
@@ -991,7 +991,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         for Pick in arrivals_copy:
             phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
             if phase == 'P':
-                Pqual = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsP)
+                Pqual = get_quality_class(Pick.time_errors.uncertainty, ErrorsP)
                 if Pqual == 0:
                     Pw0.append(Pick.time_errors.uncertainty)
                 elif Pqual == 1:
@@ -1003,7 +1003,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                 elif Pqual == 4:
                     Pw4.append(Pick.time_errors.uncertainty)
             elif phase == 'S':
-                Squal = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsS)
+                Squal = get_quality_class(Pick.time_errors.uncertainty, ErrorsS)
                 if Squal == 0:
                     Sw0.append(Pick.time_errors.uncertainty)
                 elif Squal == 1:

@@ -67,7 +67,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
+from pylot.core.pick.utils import symmetrize_error, get_quality_class
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -1243,7 +1243,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if get_quality_class(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
 
             event_ref = event.isRefEvent()
@@ -2519,10 +2519,10 @@ class MainWindow(QMainWindow):
 
             # get quality classes
             if self.getPhaseID(phase) == 'P':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+                quality = get_quality_class(picks['spe'], self._inputs['timeerrorsP'])
                 phaseID = 'P'
             elif self.getPhaseID(phase) == 'S':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+                quality = get_quality_class(picks['spe'], self._inputs['timeerrorsS'])
                 phaseID = 'S'
 
             mpp = picks['mpp'] - stime
@@ -2870,7 +2870,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if get_quality_class(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
 
             # init table items for current row
