@@ -15,7 +15,7 @@ from pylot.core.util.event import Event
 from pylot.core.util.utils import fnConstructor, full_range, remove_underscores, check4gaps, check4doubled, \
     check4rotated, trim_station_components
 import pylot.core.loc.velest as velest
-
+from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
 class Data(object):
     """
@@ -60,6 +60,8 @@ class Data(object):
                         raise NotImplementedError('PILOT location information '
                                                   'read support not yet '
                                                   'implemeted.')
+                    elif 'event.pkl' in evtdata:
+                        evtdata = qml_from_obspyDMT(evtdata)
                     else:
                         raise e
                 else:
@@ -72,6 +74,7 @@ class Data(object):
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
+        self.processed = None
 
     def __str__(self):
         return str(self.wfdata)
@@ -379,8 +382,14 @@ class Data(object):
         self.wfsyn = Stream()
         wffnames = None
         wffnames_syn = None
-        wfdir = 'processed' if 'processed' in [fname.split('/')[-1] for fname in fnames] else 'raw'
         if obspy_dmt:
+            wfdir = 'raw'
+            self.processed = False
+            for fname in fnames:
+                if fname.endswith('processed'):
+                    wfdir = 'processed'
+                    self.processed = True
+                    break
             for fpath in fnames:
                 if fpath.endswith(wfdir):
                     wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
@@ -398,9 +407,6 @@ class Data(object):
         # various pre-processing steps:
         # remove possible underscores in station names
         self.wfdata = remove_underscores(self.wfdata)
-        # check for gaps and doubled channels
-        check4gaps(self.wfdata)
-        check4doubled(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)

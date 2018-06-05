@@ -447,23 +447,25 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.orig_parent = parent
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
+        # init labels
+        self.xlabel = None
+        self.ylabel = None
+        self.title = None
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
         self.label_layout = QtGui.QHBoxLayout()
-        self.status_label = QtGui.QLabel()
-        self.perm_label = QtGui.QLabel()
-        self.setLayout(self.main_layout)
+        self.add_labels()
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addLayout(self.label_layout)
         self.label_layout.addWidget(self.status_label)
-        self.label_layout.addWidget(self.perm_label)
+        self.label_layout.addWidget(self.perm_label_mid)
+        self.label_layout.addWidget(self.perm_label_right)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
-        self.plotWidget.hideAxis('bottom')
-        self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
+        self.pen_linecolor_highlight = self.pg.mkPen((255, 100, 100, 255))
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
@@ -489,12 +491,24 @@ class WaveformWidgetPG(QtGui.QWidget):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
+    def add_labels(self):
+        self.status_label = QtGui.QLabel()
+        self.perm_label_mid = QtGui.QLabel()
+        self.perm_label_mid.setAlignment(4)
+        self.perm_label_right = QtGui.QLabel()
+        self.perm_label_right.setAlignment(2)
+        self.setLayout(self.main_layout)
+
     def getPlotDict(self):
         return self.plotdict
 
-    def setPermText(self, text=None, color='black'):
-        self.perm_label.setText(text)
-        self.perm_label.setStyleSheet('color: {}'.format(color))
+    def setPermTextMid(self, text=None, color='black'):
+        self.perm_label_mid.setText(text)
+        self.perm_label_mid.setStyleSheet('color: {}'.format(color))
+
+    def setPermTextRight(self, text=None, color='black'):
+        self.perm_label_right.setText(text)
+        self.perm_label_right.setStyleSheet('color: {}'.format(color))
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
@@ -529,6 +543,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         else:
             st_select = wfdata
 
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
+
         # list containing tuples of network, station, channel (for sorting)
         nsc = []
         for trace in st_select:
@@ -552,6 +574,8 @@ class WaveformWidgetPG(QtGui.QWidget):
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
             if st_syn:
                 trace_syn = st_syn[0].copy()
+            else:
+                trace_syn = Trace()
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -568,9 +592,11 @@ class WaveformWidgetPG(QtGui.QWidget):
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
 
             if method == 'fast':
-               trace.data, time_ax = self.minMax(trace, time_ax)
+                trace.data, time_ax = self.minMax(trace, time_ax)
+                if trace_syn:
+                    trace_syn.data, time_ax_syn = self.minMax(trace_syn, time_ax_syn)
 
-            if time_ax not in [None, []]:
+            if len(time_ax) > 0:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
@@ -581,16 +607,16 @@ class WaveformWidgetPG(QtGui.QWidget):
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
                 times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
-                trace.data_syn = np.array([datum + n for index, datum in enumerate(trace.data_syn)
+                trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
                             if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
-                              times_syn, trace.data_syn))
+                              times_syn, trace_syn.data))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
-        return plots
+        return plots, gaps
 
     def minMax(self, trace, time_ax):
         '''
@@ -1012,6 +1038,14 @@ class PylotCanvas(FigureCanvas):
 
         if mapping:
             plot_positions = self.calcPlotPositions(st_select, compclass)
+
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
 
         # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []

@@ -25,4 +25,20 @@ def check_obspydmt_eventfolder(folder):
     except Exception as e:
         return False, e
 
-check_obspydmt_eventfolder('20110311_054623.a')
+def qml_from_obspyDMT(path):
+    import pickle
+    from obspy.core.event import Event, Magnitude, Origin
+
+    if not os.path.exists(path):
+        return IOError('Could not find Event at {}'.format(path))
+    infile = open(path, 'rb')
+    event_dmt = pickle.load(infile)
+    ev = Event(resource_id=event_dmt['event_id'])
+    origin = Origin(resource_id=event_dmt['origin_id'], time=event_dmt['datetime'], longitude=event_dmt['longitude'],
+                    latitude=event_dmt['latitude'], depth=event_dmt['depth'])
+    mag = Magnitude(mag=event_dmt['magnitude'], magnitude_type=event_dmt['magnitude_type'],
+                    origin_id=event_dmt['origin_id'])
+    ev.magnitudes.append(mag)
+    ev.origins.append(origin)
+    return ev
+

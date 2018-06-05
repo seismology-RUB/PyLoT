@@ -138,6 +138,7 @@ class MainWindow(QMainWindow):
         self._eventChanged = [False, False]
         self.apd_local = None
         self.apd_sge = None
+        self.stations_highlighted = []
 
         self.poS_id = None
         self.ae_id = None
@@ -615,6 +616,10 @@ class MainWindow(QMainWindow):
 
         # add scroll area used in case number of traces gets too high
         self.wf_scroll_area = QtGui.QScrollArea(self)
+        self.wf_scroll_area.setVisible(False)
+        self.no_data_label = QLabel('No Data')
+        self.no_data_label.setStyleSheet('color: red')
+        self.no_data_label.setAlignment(Qt.AlignCenter)
 
         # create central matplotlib figure canvas widget
         self.init_wfWidget()
@@ -637,6 +642,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
 
+        self.wf_layout.addWidget(self.no_data_label)
         self.wf_layout.addWidget(self.wf_scroll_area)
         self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
@@ -1249,6 +1255,17 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
+            time = lat = lon = depth = mag = None
+            if len(event.origins) == 1:
+                origin = event.origins[0]
+                time = origin.time + 0 # add 0 because there was an exception for time = 0s
+                lat = origin.latitude
+                lon = origin.longitude
+                depth = origin.depth
+            if len(event.magnitudes) == 1:
+                magnitude = event.magnitudes[0]
+                mag = magnitude.mag
+
             # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             # text = text.format(path=event_path,
             #                    plen=plmax,
@@ -1256,6 +1273,11 @@ class MainWindow(QMainWindow):
             #                    a=event_nautopicks)
 
             item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
+            item_time = QtGui.QStandardItem('{}'.format(time))
+            item_lat = QtGui.QStandardItem('{}'.format(lat))
+            item_lon = QtGui.QStandardItem('{}'.format(lon))
+            item_depth = QtGui.QStandardItem('{}'.format(depth))
+            item_mag = QtGui.QStandardItem('{}'.format(mag))
             item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
             item_nap = QtGui.QStandardItem(str(ma_count['auto']))
@@ -1281,8 +1303,11 @@ class MainWindow(QMainWindow):
             # item.setFont(font)
             # item2.setForeground(QtGui.QColor('black'))
             # item2.setFont(font)
-            itemlist = [item_path, item_nmp, item_nap, item_ref, item_test, item_notes]
-            if event_test and select_events == 'ref':
+            itemlist = [item_path, item_time, item_lat, item_lon, item_depth,
+                        item_mag, item_nmp, item_nap, item_ref, item_test, item_notes]
+            for item in itemlist:
+                item.setTextAlignment(Qt.AlignCenter)
+            if event_test and select_events == 'ref' or self.isEmpty(event_path):
                 for item in itemlist:
                     item.setEnabled(False)
             model.appendRow(itemlist)
@@ -1295,6 +1320,23 @@ class MainWindow(QMainWindow):
                 # eventBox.setItemData(id, event)
         eventBox.setCurrentIndex(index)
         self.refreshRefTestButtons()
+
+    def isEmpty(self, event_path):
+        wf_stat = {True: 'processed',
+                   False: 'raw',
+                   None: None}
+
+        # self.data.processed is only None for PyLoT datastructure, else True or False
+        wf_dir = wf_stat[self.data.processed]
+        if wf_dir is not None:
+            wf_path = os.path.join(event_path, wf_dir)
+            if wf_dir is 'processed' and not os.path.exists(wf_path):
+                wf_path = os.path.join(event_path, 'raw')
+        else:
+            wf_path = event_path
+        if not os.path.exists(wf_path):
+            return True
+        return not bool(os.listdir(wf_path))
 
     def filename_from_action(self, action):
         if action.data() is None:
@@ -1666,6 +1708,21 @@ class MainWindow(QMainWindow):
                             metadata=self.metadata,
                             obspy_dmt=obspy_dmt)
 
+    def setWFstatus(self):
+        '''
+        show status of current data, can be either 'raw' or 'processed'
+        :param status:
+        :return:
+        '''
+        status = self.data.processed
+        wf_stat_color = {True: 'green',
+                         False: 'black',
+                         None: None}
+        wf_stat = {True: 'processed',
+                   False: 'raw',
+                   None: None}
+        self.dataPlot.setPermTextRight(wf_stat[status], wf_stat_color[status])
+
     def check_plot_quantity(self):
         """
         Check the amount of samples to be plotted and ask user to reduce the amount if it is too large.
@@ -1757,7 +1814,10 @@ class MainWindow(QMainWindow):
 
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
-        plots = self.wfp_thread.data
+        plots, gaps = self.wfp_thread.data
+        # do not show plot if no data are given
+        self.wf_scroll_area.setVisible(len(plots) > 0)
+        self.no_data_label.setVisible(not len(plots) > 0)
         for times, data, times_syn, data_syn in plots:
             self.dataPlot.plotWidget.getPlotItem().plot(times, data,
                                                         pen=self.dataPlot.pen_linecolor)
@@ -1765,8 +1825,7 @@ class MainWindow(QMainWindow):
                 self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
                                                             pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
-        self.dataPlot.plotWidget.showAxis('left')
-        self.dataPlot.plotWidget.showAxis('bottom')
+        self.highlight_stations()
 
     def finishWaveformDataPlot(self):
         self.comparable = self.checkEvents4comparison()
@@ -1808,6 +1867,7 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
+        self.setWFstatus()
 
     def checkEvent4comparison(self, event):
         if event.pylot_picks and event.pylot_autopicks:
@@ -1842,12 +1902,10 @@ class MainWindow(QMainWindow):
             comparable[event.pylot_id] = self.checkEvent4comparison(event)
         return comparable
 
-    def clearWaveformDataPlot(self):
+    def clearWaveformDataPlot(self, refresh_plot=False):
         self.disconnectWFplotEvents()
         if self.pg:
             self.dataPlot.plotWidget.getPlotItem().clear()
-            self.dataPlot.plotWidget.hideAxis('bottom')
-            self.dataPlot.plotWidget.hideAxis('left')
         else:
             for ax in self.dataPlot.axes:
                 ax.cla()
@@ -1863,6 +1921,9 @@ class MainWindow(QMainWindow):
         self.openEventAction.setEnabled(False)
         self.openEventsAutoAction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
+        if not refresh_plot:
+            self.wf_scroll_area.setVisible(False)
+            self.no_data_label.setVisible(True)
         self.disableSaveEventAction()
         self.draw()
 
@@ -1871,7 +1932,7 @@ class MainWindow(QMainWindow):
         Open a modal thread to plot current waveform data.
         '''
         self.check_plot_quantity()
-        self.clearWaveformDataPlot()
+        self.clearWaveformDataPlot(refresh_plot=True)
         self.wfp_thread = Thread(self, self.plotWaveformData,
                                  arg=filter,
                                  progressText='Plotting waveform data...',
@@ -1904,9 +1965,10 @@ class MainWindow(QMainWindow):
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'
-        plots = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                      nth_sample=int(nth_sample), method=self.plot_method)
-        return plots
+        rval = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
+                                     nth_sample=int(nth_sample), method=self.plot_method)
+        plots, gaps = rval if rval else ([], [])
+        return plots, gaps
 
     def adjustPlotHeight(self):
         if self.pg:
@@ -2135,10 +2197,12 @@ class MainWindow(QMainWindow):
 
     def pickOnStation(self, gui_event):
         if self.pg:
-            if not gui_event.button() == 1:
+            button = gui_event.button()
+            if not button in [1, 4]:
                 return
         else:
-            if not gui_event.button == 1:
+            button = gui_event.button
+            if not button == 1:
                 return
 
         if self.pg:
@@ -2149,12 +2213,42 @@ class MainWindow(QMainWindow):
         wfID = self.getWFID(ycoord)
 
         if wfID is None: return
-        self.pickDialog(wfID)
 
-    def pickDialog(self, wfID, nextStation=False):
-        station = self.getStationName(wfID)
         network = self.getNetworkName(wfID)
+        station = self.getStationName(wfID)
+        if button == 1:
+            self.pickDialog(wfID, network, station)
+        elif button == 4:
+            self.toggle_station_color(wfID, network, station)
+
+    def toggle_station_color(self, wfID, network, station):
+        black_pen = pg.mkPen((0, 0, 0))
+        red_pen = pg.mkPen((200, 50, 50))
+        line_item = self.dataPlot.plotWidget.getPlotItem().listDataItems()[wfID - 1]
+        current_pen = line_item.opts['pen']
+        nwst = '{}.{}'.format(network, station)
+        if current_pen == black_pen:
+            line_item.setPen(red_pen)
+            if not nwst in self.stations_highlighted:
+                self.stations_highlighted.append(nwst)
+        else:
+            line_item.setPen(black_pen)
+            if nwst in self.stations_highlighted:
+                self.stations_highlighted.pop(self.stations_highlighted.index(nwst))
+
+    def highlight_stations(self):
+        for wfID, value in self.getPlotWidget().getPlotDict().items():
+            station, channel, network = value
+            nwst = '{}.{}'.format(network, station)
+            if nwst in self.stations_highlighted:
+                self.toggle_station_color(wfID, network, station)
+
+    def pickDialog(self, wfID, network=None, station=None, nextStation=False):
+        if not network:
+            network = self.getNetworkName(wfID)
         if not station:
+            station = self.getStationName(wfID)
+        if not station or not network:
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getOriginalWFData().copy()
@@ -2894,7 +2988,7 @@ class MainWindow(QMainWindow):
             if hasattr(event, 'origins'):
                 if event.origins:
                     origin = event.origins[0]
-                    item_time.setText(str(origin.time).split('.')[0])
+                    item_time.setText(str(origin.time + 0).split('.')[0]) # +0 as workaround in case time=0s
                     item_lon.setText(str(origin.longitude))
                     item_lat.setText(str(origin.latitude))
                     item_depth.setText(str(origin.depth))
@@ -2930,6 +3024,9 @@ class MainWindow(QMainWindow):
 
             if index%2:
                 set_background_color(column, QtGui.QColor(*(245, 245, 245, 255)))
+
+            if self.isEmpty(event.path):
+                set_foreground_color(column, QtGui.QColor(*(180, 180, 180, 255)))
 
             if event == current_event:
                 set_foreground_color(column, QtGui.QColor(*(0, 143, 143, 255)))
@@ -3197,9 +3294,9 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.getPlotWidget().draw()
         if self.plot_method == 'fast':
-            self.dataPlot.setPermText('MIN/MAX plot', color='red')
+            self.dataPlot.setPermTextMid('MIN/MAX plot', color='red')
         else:
-            self.dataPlot.setPermText()
+            self.dataPlot.setPermTextMid()
 
     def _setDirty(self):
         self.setDirty(True)
