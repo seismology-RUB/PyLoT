@@ -1282,6 +1282,7 @@ class PickDlg(QDialog):
                  event=None, filteroptions=None, model='iasp91'):
         super(PickDlg, self).__init__(parent, 1)
         self.orig_parent = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
         # initialize attributes
         self.parameter = parameter
@@ -1414,7 +1415,6 @@ class PickDlg(QDialog):
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
-        self.deleteLater()
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
