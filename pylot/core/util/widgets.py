@@ -3127,7 +3127,8 @@ class TuneAutopicker(QWidget):
     def get_current_event_autopicks(self, station):
         event = self.get_current_event()
         if event.pylot_autopicks:
-            return event.pylot_autopicks[station]
+            if station in event.pylot_autopicks:
+                return event.pylot_autopicks[station]
 
     def get_current_station(self):
         return str(self.stationBox.currentText()).split('.')[-1]
