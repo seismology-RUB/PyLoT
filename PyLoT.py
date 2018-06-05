@@ -2457,6 +2457,7 @@ class MainWindow(QMainWindow):
 
         self.mp_worker.signals.message.connect(self.addListItem)
         self.mp_worker.signals.result.connect(self.finalizeAutoPick)
+        self.mp_worker.signals.finished.connect(self.enableAutoPickWidget)
 
         self.mp_thread.start(self.mp_worker)
 
@@ -2471,7 +2472,6 @@ class MainWindow(QMainWindow):
         self.apd_sge.show()
 
     def finalizeAutoPick(self, result):
-        self.apw.enable(True)
         if result:
             self.init_canvas_dict_wadatijack()
             for eventID in result.keys():
@@ -2486,6 +2486,9 @@ class MainWindow(QMainWindow):
             self.apw.update_plots()
             self.drawPicks(picktype='auto')
             self.draw()
+
+    def enableAutoPickWidget(self, event=None):
+        self.apw.enable(True)
 
     def get_event_from_id(self, eventID):
         for event in self.project.eventlist:
