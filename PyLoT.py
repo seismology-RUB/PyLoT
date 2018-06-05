@@ -2348,7 +2348,7 @@ class MainWindow(QMainWindow):
 
     def tune_autopicker(self):
         '''
-        Initiates TuneAutopicker widget use to interactively
+        Initiates TuneAutopicker widget used to interactively
         tune parameters for autopicking algorithm.
         '''
         # figures and canvas have to be iniated from the main GUI
@@ -2447,7 +2447,8 @@ class MainWindow(QMainWindow):
                 'iplot': 0,
                 'fig_dict': None,
                 'fig_dict_wadatijack': self.fig_dict_wadatijack,
-                'locflag': 0}
+                'locflag': 0,
+                'savexml': False}
 
         # init pick thread
         self.mp_thread = QtCore.QThreadPool()
