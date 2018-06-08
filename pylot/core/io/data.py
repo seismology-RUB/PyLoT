@@ -371,7 +371,7 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, checkRotated=False, metadata=None, obspy_dmt=False):
+    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
@@ -380,27 +380,25 @@ class Data(object):
         self.wfdata = Stream()
         self.wforiginal = None
         self.wfsyn = Stream()
-        wffnames = None
-        wffnames_syn = None
-        if obspy_dmt:
-            wfdir = 'raw'
-            self.processed = False
-            for fname in fnames:
-                if fname.endswith('processed'):
-                    wfdir = 'processed'
-                    self.processed = True
-                    break
-            for fpath in fnames:
-                if fpath.endswith(wfdir):
-                    wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
-                if 'syngine' in fpath.split('/')[-1]:
-                    wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
-        else:
-            wffnames = fnames
-        if wffnames is not None:
-            self.appendWFData(wffnames)
-            if wffnames_syn is not None:
-                self.appendWFData(wffnames_syn, synthetic=True)
+        # if obspy_dmt:
+        #     wfdir = 'raw'
+        #     self.processed = False
+        #     for fname in fnames:
+        #         if fname.endswith('processed'):
+        #             wfdir = 'processed'
+        #             self.processed = True
+        #             break
+        #     for fpath in fnames:
+        #         if fpath.endswith(wfdir):
+        #             wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+        #         if 'syngine' in fpath.split('/')[-1]:
+        #             wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+        # else:
+        #     wffnames = fnames
+        if fnames is not None:
+            self.appendWFData(fnames)
+            if fnames_syn is not None:
+                self.appendWFData(fnames_syn, synthetic=True)
         else:
             return False
 

@@ -455,12 +455,13 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout = QtGui.QVBoxLayout()
         self.label_layout = QtGui.QHBoxLayout()
         self.add_labels()
+        self.connect_signals()
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addLayout(self.label_layout)
         self.label_layout.addWidget(self.status_label)
         self.label_layout.addWidget(self.perm_label_mid)
-        self.label_layout.addWidget(self.perm_label_right)
+        self.label_layout.addWidget(self.perm_qcbox_right)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
@@ -491,12 +492,17 @@ class WaveformWidgetPG(QtGui.QWidget):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
+    def connect_signals(self):
+        self.perm_qcbox_right.currentIndexChanged.connect(self.parent().newWF)
+
     def add_labels(self):
         self.status_label = QtGui.QLabel()
         self.perm_label_mid = QtGui.QLabel()
         self.perm_label_mid.setAlignment(4)
-        self.perm_label_right = QtGui.QLabel()
-        self.perm_label_right.setAlignment(2)
+        self.perm_qcbox_right = QtGui.QComboBox()
+        self.addQCboxItem('raw', 'black')
+        self.addQCboxItem('processed', 'green')
+        #self.perm_qcbox_right.setAlignment(2)
         self.setLayout(self.main_layout)
 
     def getPlotDict(self):
@@ -506,9 +512,15 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.perm_label_mid.setText(text)
         self.perm_label_mid.setStyleSheet('color: {}'.format(color))
 
-    def setPermTextRight(self, text=None, color='black'):
-        self.perm_label_right.setText(text)
-        self.perm_label_right.setStyleSheet('color: {}'.format(color))
+    def addQCboxItem(self, text=None, color='black'):
+        item = QtGui.QStandardItem(text)
+        model = self.perm_qcbox_right.model()
+        model.appendRow(item)
+        item.setForeground(QtGui.QColor('{}'.format(color)))
+
+    def setQCboxItem(self, text):
+        index = self.perm_qcbox_right.findText(text)
+        self.perm_qcbox_right.setCurrentIndex(index)
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value

@@ -1001,6 +1001,7 @@ class MainWindow(QMainWindow):
         # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
         eventpath = self.get_current_event_path(eventbox)
         basepath = eventpath.split(os.path.basename(eventpath))[0]
+        obspy_dmt = check_obspydmt_structure(basepath)
         if self.dataStructure:
             if not eventpath:
                 return
@@ -1659,10 +1660,10 @@ class MainWindow(QMainWindow):
             if self._eventChanged[1]:
                 self.refresh_array_map()
                 if not plotted and self._eventChanged[0]:
-                    # newWF(False) = load data without plotting
+                    # newWF(plot=False) = load data without plotting
                     self.newWF(plot=False)
 
-    def newWF(self, plot=True):
+    def newWF(self, event=None, plot=True):
         '''
         Load new data and plot if necessary.
         '''
@@ -1703,25 +1704,42 @@ class MainWindow(QMainWindow):
         eventpath = self.get_current_event_path()
         basepath = eventpath.split(os.path.basename(eventpath))[0]
         obspy_dmt = check_obspydmt_structure(basepath)
-        self.data.setWFData(self.fnames,
-                            checkRotated=True,
-                            metadata=self.metadata,
-                            obspy_dmt=obspy_dmt)
+        if obspy_dmt:
+            self.prepareObspyDMT_data(eventpath)
 
-    def setWFstatus(self):
-        '''
-        show status of current data, can be either 'raw' or 'processed'
-        :param status:
-        :return:
-        '''
-        status = self.data.processed
-        wf_stat_color = {True: 'green',
-                         False: 'black',
-                         None: None}
-        wf_stat = {True: 'processed',
-                   False: 'raw',
-                   None: None}
-        self.dataPlot.setPermTextRight(wf_stat[status], wf_stat_color[status])
+        self.data.setWFData(self.fnames,
+                            self.fnames_syn,
+                            checkRotated=True,
+                            metadata=self.metadata)
+
+    def prepareObspyDMT_data(self, eventpath):
+        qcbox_processed = self.dataPlot.perm_qcbox_right
+        qcbox_processed.setEnabled(False)
+        for fpath in os.listdir(eventpath):
+            fpath = fpath.split('/')[-1]
+            if 'syngine' in fpath:
+                eventpath_syn = os.path.join(eventpath, fpath)
+                self.fnames_syn = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
+            if 'processed' in fpath:
+                qcbox_processed.setEnabled(True)
+        wftype = qcbox_processed.currentText() if qcbox_processed.isEnabled() else 'raw'
+        eventpath_dmt = os.path.join(eventpath, wftype)
+        self.fnames = [os.path.join(eventpath_dmt, filename) for filename in os.listdir(eventpath_dmt)]
+
+    # def setWFstatus(self):
+    #     '''
+    #     show status of current data, can be either 'raw' or 'processed'
+    #     :param status:
+    #     :return:
+    #     '''
+    #     status = self.data.processed
+    #     wf_stat_color = {True: 'green',
+    #                      False: 'black',
+    #                      None: None}
+    #     wf_stat = {True: 'processed',
+    #                False: 'raw',
+    #                None: None}
+    #     self.dataPlot.setQCboxItem(wf_stat[status])
 
     def check_plot_quantity(self):
         """
@@ -1867,7 +1885,6 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
-        self.setWFstatus()
 
     def checkEvent4comparison(self, event):
         if event.pylot_picks and event.pylot_autopicks:
