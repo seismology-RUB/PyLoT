@@ -1677,6 +1677,7 @@ class MainWindow(QMainWindow):
         call modal plot thread method when finished.
         '''
         if load:
+            self.prepareLoadWaveformData()
             self.wfd_thread = Thread(self, self.loadWaveformData,
                                      progressText='Reading data input...',
                                      pb_widget=self.mainProgressBarWidget)
@@ -1689,6 +1690,16 @@ class MainWindow(QMainWindow):
         if plot and not load:
             self.plotWaveformDataThread()
 
+    def prepareLoadWaveformData(self):
+        self.fnames = self.getWFFnames_from_eventbox()
+        self.fnames_syn = []
+        eventpath = self.get_current_event_path()
+        basepath = eventpath.split(os.path.basename(eventpath))[0]
+        obspy_dmt = check_obspydmt_structure(basepath)
+        self.dataPlot.activateObspyDMToptions(obspy_dmt)
+        if obspy_dmt:
+            self.prepareObspyDMT_data(eventpath)
+
     def loadWaveformData(self):
         '''
         Load waveform data corresponding to current selected event.
@@ -1700,13 +1711,6 @@ class MainWindow(QMainWindow):
         #     ans = self.data.setWFData(self.getWFFnames())
         # else:
         #     ans = False
-        self.fnames = self.getWFFnames_from_eventbox()
-        self.fnames_syn = []
-        eventpath = self.get_current_event_path()
-        basepath = eventpath.split(os.path.basename(eventpath))[0]
-        obspy_dmt = check_obspydmt_structure(basepath)
-        if obspy_dmt:
-            self.prepareObspyDMT_data(eventpath)
 
         self.data.setWFData(self.fnames,
                             self.fnames_syn,
@@ -1714,7 +1718,7 @@ class MainWindow(QMainWindow):
                             metadata=self.metadata)
 
     def prepareObspyDMT_data(self, eventpath):
-        qcbox_processed = self.dataPlot.perm_qcbox_right
+        qcbox_processed = self.dataPlot.qcombo_processed
         qcheckb_syn = self.dataPlot.syn_checkbox
         qcbox_processed.setEnabled(False)
         qcheckb_syn.setEnabled(False)
@@ -1727,7 +1731,11 @@ class MainWindow(QMainWindow):
                     self.fnames_syn = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
             if 'processed' in fpath:
                 qcbox_processed.setEnabled(True)
-        wftype = qcbox_processed.currentText() if qcbox_processed.isEnabled() else 'raw'
+        if qcbox_processed.isEnabled():
+            wftype = qcbox_processed.currentText()
+        else:
+            wftype = 'raw'
+            qcbox_processed.setCurrentIndex(qcbox_processed.findText(wftype))
         eventpath_dmt = os.path.join(eventpath, wftype)
         self.fnames = [os.path.join(eventpath_dmt, filename) for filename in os.listdir(eventpath_dmt)]
 
