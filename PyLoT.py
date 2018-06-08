@@ -1701,6 +1701,7 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
         self.fnames = self.getWFFnames_from_eventbox()
+        self.fnames_syn = []
         eventpath = self.get_current_event_path()
         basepath = eventpath.split(os.path.basename(eventpath))[0]
         obspy_dmt = check_obspydmt_structure(basepath)
@@ -1714,12 +1715,16 @@ class MainWindow(QMainWindow):
 
     def prepareObspyDMT_data(self, eventpath):
         qcbox_processed = self.dataPlot.perm_qcbox_right
+        qcheckb_syn = self.dataPlot.syn_checkbox
         qcbox_processed.setEnabled(False)
+        qcheckb_syn.setEnabled(False)
         for fpath in os.listdir(eventpath):
             fpath = fpath.split('/')[-1]
             if 'syngine' in fpath:
                 eventpath_syn = os.path.join(eventpath, fpath)
-                self.fnames_syn = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
+                qcheckb_syn.setEnabled(True)
+                if self.dataPlot.syn_checkbox.isChecked():
+                    self.fnames_syn = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
             if 'processed' in fpath:
                 qcbox_processed.setEnabled(True)
         wftype = qcbox_processed.currentText() if qcbox_processed.isEnabled() else 'raw'

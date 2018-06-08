@@ -461,6 +461,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.main_layout.addLayout(self.label_layout)
         self.label_layout.addWidget(self.status_label)
         self.label_layout.addWidget(self.perm_label_mid)
+        self.label_layout.addWidget(self.syn_checkbox)
         self.label_layout.addWidget(self.perm_qcbox_right)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
         self.wfstart, self.wfend = 0, 0
@@ -494,12 +495,14 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def connect_signals(self):
         self.perm_qcbox_right.currentIndexChanged.connect(self.parent().newWF)
+        self.syn_checkbox.clicked.connect(self.parent().newWF)
 
     def add_labels(self):
         self.status_label = QtGui.QLabel()
         self.perm_label_mid = QtGui.QLabel()
         self.perm_label_mid.setAlignment(4)
         self.perm_qcbox_right = QtGui.QComboBox()
+        self.syn_checkbox = QtGui.QCheckBox('synthetics')
         self.addQCboxItem('raw', 'black')
         self.addQCboxItem('processed', 'green')
         #self.perm_qcbox_right.setAlignment(2)
