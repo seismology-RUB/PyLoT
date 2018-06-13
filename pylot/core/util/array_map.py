@@ -13,19 +13,20 @@ from scipy.interpolate import griddata
 plt.interactive(False)
 
 
-class map_projection(QtGui.QWidget):
+class Array_map(QtGui.QWidget):
     def __init__(self, parent, figure=None):
         '''
-
-        :param: picked, can be False, auto, manual
-        :value: str
+        Create a map of the array.
+        :param parent: PyLoT Mainwindow class
+        :param figure:
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
-        self.metadata = parent.metadata
-        self.parser = parent.metadata[1]
+        self.metadata_type = parent.metadata[0]
+        self.metadata = parent.metadata[1]
         self.picks = None
         self.picks_dict = None
+        self.autopicks_dict = None
         self.eventLoc = None
         self.figure = figure
         self.init_graphics()
@@ -49,9 +50,9 @@ class map_projection(QtGui.QWidget):
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
-            station = str(self.station_names[index].split('.')[-1])
+            station = str(self._station_onpick_ids[index].split('.')[-1])
             try:
-                pickDlg = PickDlg(self, parameter=self._parent._inputs,
+                pickDlg = PickDlg(self._parent, parameter=self._parent._inputs,
                                   data=data.select(station=station),
                                   station=station,
                                   picks=self._parent.get_current_event().getPick(station),
@@ -84,7 +85,29 @@ class map_projection(QtGui.QWidget):
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
-        self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+        self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
+        #self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+
+    def _from_dict(self, function, key):
+        return function(self.stations_dict.values(), key=lambda x: x[key])[key]
+
+    def get_min_from_stations(self, key):
+        return self._from_dict(min, key)
+
+    def get_max_from_stations(self, key):
+        return self._from_dict(max, key)
+
+    def get_min_from_picks(self):
+        return min(self.picks_rel.values())
+
+    def get_max_from_picks(self):
+        return max(self.picks_rel.values())
+
+    def current_picks_dict(self):
+        picktype = self.comboBox_am.currentText()
+        auto_manu = {'auto': self.autopicks_dict,
+                     'manual': self.picks_dict}
+        return auto_manu[picktype]
 
     def init_graphics(self):
         if not self.figure:
@@ -115,103 +138,97 @@ class map_projection(QtGui.QWidget):
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1, 1)  # set stretch of item 1 to 1
+        self.top_row.addWidget(QtGui.QLabel('Pick type: '))
+        self.top_row.addWidget(self.comboBox_am)
+        self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
 
         self.main_box.addWidget(self.canvas)
         self.main_box.addWidget(self.toolbar)
 
+
     def init_stations(self):
-        def get_station_names_lat_lon(parser):
-            station_names = []
-            lat = []
-            lon = []
+        def stat_info_from_parser(parser):
+            stations_dict = {}
             for station in parser.stations:
                 station_name = station[0].station_call_letters
-                network = station[0].network_code
-                if not station_name in station_names:
-                    station_names.append(network + '.' + station_name)
-                    lat.append(station[0].latitude)
-                    lon.append(station[0].longitude)
-            return station_names, lat, lon
+                network_name = station[0].network_code
+                if not station_name in stations_dict.keys():
+                    st_id = network_name + '.' + station_name
+                    stations_dict[st_id] = {'latitude': station[0].latitude,
+                                            'longitude': station[0].longitude}
+            return stations_dict
 
-        station_names, lat, lon = get_station_names_lat_lon(self.parser)
-        self.station_names = station_names
-        self.lat = lat
-        self.lon = lon
+        def stat_info_from_inventory(inventory):
+            stations_dict = {}
+            for network in inventory.networks:
+                for station in network.stations:
+                    station_name = station.code
+                    network_name = network_name.code
+                    if not station_name in stations_dict.keys():
+                        st_id = network_name + '.' + station_name
+                        stations_dict[st_id] = {'latitude': station[0].latitude,
+                                                'longitude': station[0].longitude}
+            return stations_dict
+
+        read_stat = {'xml': stat_info_from_inventory,
+                     'dless': stat_info_from_parser}
+
+        self.stations_dict = read_stat[self.metadata_type](self.metadata)
+        self.latmin = self.get_min_from_stations('latitude')
+        self.lonmin = self.get_min_from_stations('longitude')
+        self.latmax = self.get_max_from_stations('latitude')
+        self.lonmax = self.get_max_from_stations('longitude')
 
     def init_picks(self):
-        phase = self.comboBox_phase.currentText()
-
-        def get_picks(station_names):
-            picks = []
-            for station in station_names:
+        def get_picks(station_dict):
+            picks = {}
+            phase = self.comboBox_phase.currentText()
+            for st_id in station_dict.keys():
                 try:
-                    station = station.split('.')[-1]
-                    picks.append(self.picks_dict[station][phase]['mpp'])
-                except:
-                    picks.append(np.nan)
+                    station_name = st_id.split('.')[-1]
+                    picks[st_id] = self.current_picks_dict()[station_name][phase]['mpp']
+                except KeyError:
+                    continue
+                except Exception as e:
+                    print('Cannot display pick for station {}. Reason: {}'.format(station_name, e))
             return picks
 
         def get_picks_rel(picks):
-            picks_rel = []
+            picks_rel = {}
             picks_utc = []
-            for pick in picks:
+            for pick in picks.values():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     picks_utc.append(pick)
             minp = min(picks_utc)
-            for pick in picks:
+            for st_id, pick in picks.items():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     pick -= minp
-                picks_rel.append(pick)
+                picks_rel[st_id] = pick
             return picks_rel
 
-        self.picks = get_picks(self.station_names)
+        self.picks = get_picks(self.stations_dict)
         self.picks_rel = get_picks_rel(self.picks)
 
-    def init_picks_active(self):
-        def remove_nan_picks(picks):
-            picks_no_nan = []
-            for pick in picks:
-                if not np.isnan(pick):
-                    picks_no_nan.append(pick)
-            return picks_no_nan
-
-        self.picks_no_nan = remove_nan_picks(self.picks_rel)
-
-    def init_stations_active(self):
-        def remove_nan_lat_lon(picks, lat, lon):
-            lat_no_nan = []
-            lon_no_nan = []
-            for index, pick in enumerate(picks):
-                if not np.isnan(pick):
-                    lat_no_nan.append(lat[index])
-                    lon_no_nan.append(lon[index])
-            return lat_no_nan, lon_no_nan
-
-        self.lat_no_nan, self.lon_no_nan = remove_nan_lat_lon(self.picks_rel, self.lat, self.lon)
-
     def init_lat_lon_dimensions(self):
-        def get_lon_lat_dim(lon, lat):
-            londim = max(lon) - min(lon)
-            latdim = max(lat) - min(lat)
-            return londim, latdim
-
-        self.londim, self.latdim = get_lon_lat_dim(self.lon, self.lat)
+        # init minimum and maximum lon and lat dimensions
+        self.londim = self.lonmax - self.lonmin
+        self.latdim = self.latmax - self.latmin
 
     def init_x_y_dimensions(self):
-        def get_x_y_dim(x, y):
-            xdim = max(x) - min(x)
-            ydim = max(y) - min(y)
-            return xdim, ydim
+        # transformation of lat/lon to ax coordinate system
+        for st_id, coords in self.stations_dict.items():
+            lat, lon = coords['latitude'], coords['longitude']
+            coords['x'], coords['y'] = self.basemap(lon, lat)
 
-        self.x, self.y = self.basemap(self.lon, self.lat)
-        self.xdim, self.ydim = get_x_y_dim(self.x, self.y)
+        self.xdim = self.get_max_from_stations('x') - self.get_min_from_stations('x')
+        self.ydim = self.get_max_from_stations('y') - self.get_min_from_stations('y')
 
     def init_basemap(self, resolution='l'):
         # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
         basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax,
                           width=5e6, height=2e6,
-                          lat_0=(min(self.lat) + max(self.lat)) / 2.,
-                          lon_0=(min(self.lon) + max(self.lon)) / 2.)
+                          lat_0=(self.latmin + self.latmax) / 2.,
+                          lon_0=(self.lonmin + self.lonmax) / 2.)
 
         # basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
         basemap.drawmapboundary(zorder=2)  # fill_color='darkblue')
@@ -222,60 +239,81 @@ class map_projection(QtGui.QWidget):
         self.basemap = basemap
         self.figure.tight_layout()
 
-    def init_lat_lon_grid(self):
-        def get_lat_lon_axis(lat, lon):
-            steplat = (max(lat) - min(lat)) / 250
-            steplon = (max(lon) - min(lon)) / 250
-
-            lataxis = np.arange(min(lat), max(lat), steplat)
-            lonaxis = np.arange(min(lon), max(lon), steplon)
-            return lataxis, lonaxis
-
-        def get_lat_lon_grid(lataxis, lonaxis):
-            longrid, latgrid = np.meshgrid(lonaxis, lataxis)
-            return latgrid, longrid
-
-        self.lataxis, self.lonaxis = get_lat_lon_axis(self.lat, self.lon)
-        self.latgrid, self.longrid = get_lat_lon_grid(self.lataxis, self.lonaxis)
+    def init_lat_lon_grid(self, nstep=250):
+        # create a regular grid to display colormap
+        lataxis = np.linspace(self.latmin, self.latmax, nstep)
+        lonaxis = np.linspace(self.lonmin, self.lonmax, nstep)
+        self.longrid, self.latgrid = np.meshgrid(lonaxis, lataxis)
 
     def init_picksgrid(self):
-        self.picksgrid_no_nan = griddata((self.lat_no_nan, self.lon_no_nan),
-                                         self.picks_no_nan, (self.latgrid, self.longrid),
-                                         method='linear')  ##################
+        picks, lats, lons = self.get_picks_lat_lon()
+        self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid),
+                                         method='linear')
+
+    def get_st_lat_lon_for_plot(self):
+        stations = []
+        latitudes = []
+        longitudes = []
+        for st_id, coords in self.stations_dict.items():
+            stations.append(st_id)
+            latitudes.append(coords['latitude'])
+            longitudes.append(coords['longitude'])
+        return stations, latitudes, longitudes
+
+    def get_st_x_y_for_plot(self):
+        stations = []
+        xs = []
+        ys = []
+        for st_id, coords in self.stations_dict.items():
+            stations.append(st_id)
+            xs.append(coords['x'])
+            ys.append(coords['y'])
+        return stations, xs, ys
+
+    def get_picks_lat_lon(self):
+        picks = []
+        latitudes = []
+        longitudes = []
+        for st_id, pick in self.picks_rel.items():
+            picks.append(pick)
+            latitudes.append(self.stations_dict[st_id]['latitude'])
+            longitudes.append(self.stations_dict[st_id]['longitude'])
+        return picks, latitudes, longitudes
 
     def draw_contour_filled(self, nlevel='50'):
-        levels = np.linspace(min(self.picks_no_nan), max(self.picks_no_nan), nlevel)
-        self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_no_nan,
+        levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
+        self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
                                               levels, latlon=True, zorder=9, alpha=0.5)
 
     def scatter_all_stations(self):
-        self.sc = self.basemap.scatter(self.lon, self.lat, s=50, facecolor='none', latlon=True,
+        stations, lats, lons = self.get_st_lat_lon_for_plot()
+        self.sc = self.basemap.scatter(lons, lats, s=50, facecolor='none', latlon=True,
                                        zorder=10, picker=True, edgecolor='m', label='Not Picked')
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
+        self._station_onpick_ids = stations
         if self.eventLoc:
-            lat, lon = self.eventLoc
-            self.sc_event = self.basemap.scatter(lon, lat, s=100, facecolor='red',
+            lats, lons = self.eventLoc
+            self.sc_event = self.basemap.scatter(lons, lats, s=100, facecolor='red',
                                                  latlon=True, zorder=11, label='Event (might be outside map region)')
 
     def scatter_picked_stations(self):
-        lon = self.lon_no_nan
-        lat = self.lat_no_nan
-
+        picks, lats, lons = self.get_picks_lat_lon()
         # workaround because of an issue with latlon transformation of arrays with len <3
-        if len(lon) <= 2 and len(lat) <= 2:
-            self.sc_picked = self.basemap.scatter(lon[0], lat[0], s=50, facecolor='white',
-                                                  c=self.picks_no_nan[0], latlon=True, zorder=11, label='Picked')
-        if len(lon) == 2 and len(lat) == 2:
-            self.sc_picked = self.basemap.scatter(lon[1], lat[1], s=50, facecolor='white',
-                                                  c=self.picks_no_nan[1], latlon=True, zorder=11)
+        if len(lons) <= 2 and len(lats) <= 2:
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, facecolor='white',
+                                                  c=picks[0], latlon=True, zorder=11, label='Picked')
+        if len(lons) == 2 and len(lats) == 2:
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, facecolor='white',
+                                                  c=picks[1], latlon=True, zorder=11)
         else:
-            self.sc_picked = self.basemap.scatter(lon, lat, s=50, facecolor='white',
-                                                  c=self.picks_no_nan, latlon=True, zorder=11, label='Picked')
+            self.sc_picked = self.basemap.scatter(lons, lats, s=50, facecolor='white',
+                                                  c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
         self.annotations = []
-        for index, name in enumerate(self.station_names):
-            self.annotations.append(self.main_ax.annotate(' %s' % name, xy=(self.x[index], self.y[index]),
+        stations, xs, ys = self.get_st_x_y_for_plot()
+        for st, x, y in zip(stations, xs, ys):
+            self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
                                                           fontsize='x-small', color='white', zorder=12))
         self.legend = self.main_ax.legend(loc=1)
 
@@ -284,8 +322,9 @@ class map_projection(QtGui.QWidget):
         cbar.set_label(label)
         return cbar
 
-    def refresh_drawings(self, picks=None):
+    def refresh_drawings(self, picks=None, autopicks=None):
         self.picks_dict = picks
+        self.autopicks_dict = autopicks
         self._refresh_drawings()
 
     def _refresh_drawings(self):
@@ -295,9 +334,7 @@ class map_projection(QtGui.QWidget):
     def draw_everything(self):
         if self.picks_dict:
             self.init_picks()
-            self.init_picks_active()
-            self.init_stations_active()
-            if len(self.picks_no_nan) >= 3:
+            if len(self.picks) >= 3:
                 self.init_picksgrid()
                 self.draw_contour_filled()
         self.scatter_all_stations()
@@ -311,15 +348,15 @@ class map_projection(QtGui.QWidget):
         self.canvas.draw()
 
     def remove_drawings(self):
+        if hasattr(self, 'cbar'):
+            self.cbar.remove()
+            del (self.cbar)
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
             del (self.sc_picked)
         if hasattr(self, 'sc_event'):
             self.sc_event.remove()
             del (self.sc_event)
-        if hasattr(self, 'cbar'):
-            self.cbar.remove()
-            del (self.cbar)
         if hasattr(self, 'contourf'):
             self.remove_contourf()
             del (self.contourf)

@@ -86,7 +86,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget
-from pylot.core.util.map_projection import map_projection
+from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -2850,9 +2850,9 @@ class MainWindow(QMainWindow):
                 if not self.metadata:
                     return
         self.am_figure = Figure()
-        self.am_canvas = FigureCanvas(self.am_figure)
+        self.am_canvas = PylotCanvas(self.am_figure, parent=self, panZoomX=False, panZoomY=False)
         self.am_toolbar = NavigationToolbar(self.am_canvas, self)
-        self.array_map = map_projection(self)
+        self.array_map = Array_map(self)
         # self.array_map_thread()
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
@@ -2891,7 +2891,8 @@ class MainWindow(QMainWindow):
                 lon = event.origins[0].longitude
                 self.array_map.eventLoc = (lat, lon)
         if self.get_current_event():
-            self.array_map.refresh_drawings(self.get_current_event().getPicks())
+            self.array_map.refresh_drawings(self.get_current_event().getPicks(),
+                                            self.get_current_event().getAutopicks(),)
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
