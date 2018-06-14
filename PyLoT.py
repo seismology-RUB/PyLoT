@@ -637,6 +637,11 @@ class MainWindow(QMainWindow):
         array_tab.setLayout(self.array_layout)
         events_tab.setLayout(self.events_layout)
 
+        # tighten up layouts inside tabs
+        for layout in [self.wf_layout, self.array_layout, self.events_layout]:
+            layout.setSpacing(0)
+            layout.setContentsMargins(0, 0, 0, 0)
+
         # add tabs to main tab widget
         self.tabs.addTab(wf_tab, 'Waveform Plot')
         self.tabs.addTab(array_tab, 'Array Map')
