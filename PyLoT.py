@@ -2849,9 +2849,6 @@ class MainWindow(QMainWindow):
                 self.init_metadata()
                 if not self.metadata:
                     return
-        self.am_figure = Figure()
-        self.am_canvas = PylotCanvas(self.am_figure, parent=self, panZoomX=False, panZoomY=False)
-        self.am_toolbar = NavigationToolbar(self.am_canvas, self)
         self.array_map = Array_map(self)
         # self.array_map_thread()
         self.array_layout.addWidget(self.array_map)

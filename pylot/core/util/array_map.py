@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import obspy
 from PySide import QtGui
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from mpl_toolkits.basemap import Basemap
-from pylot.core.util.widgets import PickDlg
+from matplotlib.figure import Figure
+from pylot.core.util.widgets import PickDlg, PylotCanvas
 from scipy.interpolate import griddata
 
 plt.interactive(False)
@@ -42,6 +42,7 @@ class Array_map(QtGui.QWidget):
         self.init_x_y_dimensions()
         self.connectSignals()
         self.draw_everything()
+        self.canvas.setZoomBorders2content()
 
     def onpick(self, event):
         ind = event.ind
@@ -111,15 +112,12 @@ class Array_map(QtGui.QWidget):
 
     def init_graphics(self):
         if not self.figure:
-            if not hasattr(self._parent, 'am_figure'):
-                self.figure = plt.figure()
-                self.toolbar = NavigationToolbar(self.figure.canvas, self)
-            else:
-                self.figure = self._parent.am_figure
-                self.toolbar = self._parent.am_toolbar
+            self.figure = Figure()
 
         self.main_ax = self.figure.add_subplot(111)
-        self.canvas = self.figure.canvas
+        self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
+                                  panZoomX=False, panZoomY=False)
+        #self.canvas.setZoomBorders2content()
 
         self.main_box = QtGui.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -143,7 +141,6 @@ class Array_map(QtGui.QWidget):
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
 
         self.main_box.addWidget(self.canvas)
-        self.main_box.addWidget(self.toolbar)
 
 
     def init_stations(self):
@@ -236,6 +233,11 @@ class Array_map(QtGui.QWidget):
         basemap.drawcountries(zorder=4)
         basemap.drawstates(zorder=5)
         basemap.drawcoastlines(zorder=6)
+        # labels = [left,right,top,bottom]
+        parallels = np.arange(-90, 90, 5.)
+        basemap.drawparallels(parallels, labels=[True, True, False, False], zorder=7)
+        meridians = np.arange(-180, 180, 5.)
+        basemap.drawmeridians(meridians, labels=[False, False, True, True], zorder=7)
         self.basemap = basemap
         self.figure.tight_layout()
 
