@@ -53,11 +53,16 @@ class Array_map(QtGui.QWidget):
         for index in ind:
             station = str(self._station_onpick_ids[index].split('.')[-1])
             try:
+                data = data.select(station=station)
+                if not data:
+                    self._warn('No data for station {}'.format(station))
+                    return
                 pickDlg = PickDlg(self._parent, parameter=self._parent._inputs,
-                                  data=data.select(station=station),
+                                  data=data,
                                   station=station,
                                   picks=self._parent.get_current_event().getPick(station),
-                                  autopicks=self._parent.get_current_event().getAutopick(station))
+                                  autopicks=self._parent.get_current_event().getAutopick(station),
+                                  filteroptions=self._parent.filteroptions)
             except Exception as e:
                 message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
                 self._warn(message)
@@ -183,7 +188,11 @@ class Array_map(QtGui.QWidget):
             for st_id in station_dict.keys():
                 try:
                     station_name = st_id.split('.')[-1]
-                    picks[st_id] = self.current_picks_dict()[station_name][phase]['mpp']
+                    pick = self.current_picks_dict()[station_name][phase]
+                    if pick['picker'] == 'auto':
+                        if pick['weight'] > 3:
+                            continue
+                    picks[st_id] = pick['mpp']
                 except KeyError:
                     continue
                 except Exception as e:
@@ -196,10 +205,10 @@ class Array_map(QtGui.QWidget):
             for pick in picks.values():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     picks_utc.append(pick)
-            minp = min(picks_utc)
+            self._earliest_picktime = min(picks_utc)
             for st_id, pick in picks.items():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
-                    pick -= minp
+                    pick -= self._earliest_picktime
                 picks_rel[st_id] = pick
             return picks_rel
 
@@ -239,7 +248,8 @@ class Array_map(QtGui.QWidget):
         meridians = np.arange(-180, 180, 5.)
         basemap.drawmeridians(meridians, labels=[False, False, True, True], zorder=7)
         self.basemap = basemap
-        self.figure.tight_layout()
+        self.figure._tight = True
+        self.figure.tight_layout(1.15)
 
     def init_lat_lon_grid(self, nstep=250):
         # create a regular grid to display colormap
@@ -249,8 +259,11 @@ class Array_map(QtGui.QWidget):
 
     def init_picksgrid(self):
         picks, lats, lons = self.get_picks_lat_lon()
-        self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid),
-                                         method='linear')
+        try:
+            self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid),
+                                             method='linear')
+        except Exception as e:
+            self._warn('Could not init picksgrid: {}'.format(e))
 
     def get_st_lat_lon_for_plot(self):
         stations = []
@@ -342,7 +355,7 @@ class Array_map(QtGui.QWidget):
         self.scatter_all_stations()
         if self.picks_dict:
             self.scatter_picked_stations()
-            self.cbar = self.add_cbar(label='Time relative to first onset [s]')
+            self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)
         else:
             self.comboBox_phase.setEnabled(False)

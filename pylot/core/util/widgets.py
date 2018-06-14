@@ -1368,7 +1368,7 @@ class PickDlg(QDialog):
         self.cur_ylim = None
 
         # set attribute holding data
-        if data is None:
+        if data is None or not data:
             try:
                 data = parent.get_data().getWFData().copy()
                 self.data = data.select(station=station)
