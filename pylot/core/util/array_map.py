@@ -7,6 +7,7 @@ import obspy
 from PySide import QtGui
 from mpl_toolkits.basemap import Basemap
 from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from pylot.core.util.widgets import PickDlg, PylotCanvas
 from scipy.interpolate import griddata
 
@@ -92,6 +93,7 @@ class Array_map(QtGui.QWidget):
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
+        self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
         #self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
 
     def _from_dict(self, function, key):
@@ -109,6 +111,14 @@ class Array_map(QtGui.QWidget):
     def get_max_from_picks(self):
         return max(self.picks_rel.values())
 
+    def mouse_moved(self, event):
+        if not event.inaxes == self.main_ax:
+            return
+        x = event.xdata
+        y = event.ydata
+        lat, lon = self.basemap(x, y, inverse=True)
+        self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
+
     def current_picks_dict(self):
         picktype = self.comboBox_am.currentText()
         auto_manu = {'auto': self.autopicks_dict,
@@ -119,16 +129,17 @@ class Array_map(QtGui.QWidget):
         if not self.figure:
             self.figure = Figure()
 
+        self.status_label = QtGui.QLabel()
+
         self.main_ax = self.figure.add_subplot(111)
         self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
                                   panZoomX=False, panZoomY=False)
-        #self.canvas.setZoomBorders2content()
 
         self.main_box = QtGui.QVBoxLayout()
         self.setLayout(self.main_box)
 
         self.top_row = QtGui.QHBoxLayout()
-        self.main_box.addLayout(self.top_row)
+        self.main_box.addLayout(self.top_row, 1)
 
         self.comboBox_phase = QtGui.QComboBox()
         self.comboBox_phase.insertItem(0, 'P')
@@ -145,7 +156,8 @@ class Array_map(QtGui.QWidget):
         self.top_row.addWidget(self.comboBox_am)
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
 
-        self.main_box.addWidget(self.canvas)
+        self.main_box.addWidget(self.canvas, 1)
+        self.main_box.addWidget(self.status_label, 0)
 
 
     def init_stations(self):
@@ -231,8 +243,10 @@ class Array_map(QtGui.QWidget):
 
     def init_basemap(self, resolution='l'):
         # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
+        width = 5e6
+        height = 2e6
         basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax,
-                          width=5e6, height=2e6,
+                          width=width, height=height,
                           lat_0=(self.latmin + self.latmax) / 2.,
                           lon_0=(self.lonmin + self.lonmax) / 2.)
 
@@ -244,12 +258,16 @@ class Array_map(QtGui.QWidget):
         basemap.drawcoastlines(zorder=6)
         # labels = [left,right,top,bottom]
         parallels = np.arange(-90, 90, 5.)
-        basemap.drawparallels(parallels, labels=[True, True, False, False], zorder=7)
+        parallels_small = np.arange(-90, 90, 2.5)
+        basemap.drawparallels(parallels_small, linewidth=0.5, zorder=7)
+        basemap.drawparallels(parallels, zorder=7)
         meridians = np.arange(-180, 180, 5.)
-        basemap.drawmeridians(meridians, labels=[False, False, True, True], zorder=7)
+        meridians_small = np.arange(-180, 180, 2.5)
+        basemap.drawmeridians(meridians_small, linewidth=0.5, zorder=7)
+        basemap.drawmeridians(meridians, zorder=7)
         self.basemap = basemap
         self.figure._tight = True
-        self.figure.tight_layout(1.15)
+        self.figure.tight_layout()
 
     def init_lat_lon_grid(self, nstep=250):
         # create a regular grid to display colormap
@@ -331,10 +349,20 @@ class Array_map(QtGui.QWidget):
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
                                                           fontsize='x-small', color='white', zorder=12))
         self.legend = self.main_ax.legend(loc=1)
+        self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
     def add_cbar(self, label):
-        cbar = self.main_ax.figure.colorbar(self.sc_picked, fraction=0.025)
+        self.cbax_bg = inset_axes(self.main_ax, width="6%", height="75%", loc=5)
+        cbax = inset_axes(self.main_ax, width='2%', height='70%', loc=5)
+        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax = cbax)
         cbar.set_label(label)
+        cbax.yaxis.tick_left()
+        cbax.yaxis.set_label_position('left')
+        for spine in self.cbax_bg.spines.values():
+            spine.set_visible(False)
+        self.cbax_bg.yaxis.set_ticks([])
+        self.cbax_bg.xaxis.set_ticks([])
+        self.cbax_bg.patch.set_facecolor((1, 1, 1, 0.75))
         return cbar
 
     def refresh_drawings(self, picks=None, autopicks=None):
@@ -365,7 +393,8 @@ class Array_map(QtGui.QWidget):
     def remove_drawings(self):
         if hasattr(self, 'cbar'):
             self.cbar.remove()
-            del (self.cbar)
+            self.cbax_bg.remove()
+            del (self.cbar, self.cbax_bg)
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
             del (self.sc_picked)
