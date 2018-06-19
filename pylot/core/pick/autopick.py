@@ -399,6 +399,75 @@ class AutopickStation(object):
         except MissingTraceException as mte:
             print(mte)
             return
+    def finish_picking(self):
+
+        # calculate "real" onset times, save them in PickingResults
+        if self.p_results.lpickP is not None and self.p_results.lpickP == self.p_results.mpickP:
+            self.p_results.lpickP += self.ztrace.stats.delta
+        if self.p_results.epickP is not None and self.p_results.epickP == self.p_results.mpickP:
+            self.p_results.epickP -= self.ztrace.stats.delta
+        if self.p_results.mpickP is not None and self.p_results.epickP is not None and self.p_results.lpickP is not None:
+            lpickP = self.ztrace.stats.starttime + self.p_results.lpickP
+            epickP = self.ztrace.stats.starttime + self.p_results.epickP
+            mpickP = self.ztrace.stats.starttime + self.p_results.mpickP
+        else:
+            # dummy values (start of seismic trace) in order to derive
+            # theoretical onset times for iterative picking
+            lpickP = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
+            epickP = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
+            mpickP = self.ztrace.stats.starttime
+
+        # add picking results to PickingResults instance
+        self.p_results.channel = self.ztrace.stats.channel
+        self.p_results.network = self.ztrace.stats.network
+        self.p_results.lpp = lpickP
+        self.p_results.epp = epickP
+        self.p_results.mpp = mpickP
+        self.p_results.snrdb = self.p_results.SNRPdB
+        self.p_results.snr = self.p_results.SNRP
+        self.p_results.marked = self.p_results.Pmarker # TODO add equal implementation as in old function
+        self.p_results.weight = self.p_results.Pweight
+        self.p_results.fm = self.p_results.FM
+        self.p_results.spe = self.p_results.Perror
+        self.p_results.Mo = None  # TODO what is this parameter for?
+
+        #
+        #   S results
+        #
+        if self.etrace:
+            hdat = self.etrace
+        elif self.ntrace:
+            hdat = self.ntrace
+
+        # TODO picks are calculated with stats from E trace if it exists, otherwise stats from N trace is used.
+        # What if the stats are different?
+        if self.s_results.lpickS is not None and self.s_results.lpickS == self.s_results.mpickS:
+            self.s_results.lpickS += hdat.stats.delta
+        if self.s_results.epickS is not None and self.s_results.epickS == self.s_results.mpickS:
+            self.s_results.epickS -= hdat.stats.delta
+        if self.s_results.mpickS is not None and self.s_results.epickS is not None and self.s_results.lpickS is not None:
+            lpickS = hdat.stats.starttime + self.s_results.lpickS
+            epickS = hdat.stats.starttime + self.s_results.epickS
+            mpickS = hdat.stats.starttime + self.s_results.mpickS
+        else:
+            # dummy values (start of seismic trace) in order to derive
+            # theoretical onset times for iteratve picking
+            lpickS = hdat.stats.starttime + self.s_params.timeerrorsS[3]
+            epickS = hdat.stats.starttime - self.s_params.timeerrorsS[3]
+            mpickS = hdat.stats.starttime
+
+        self.s_results.channel = self.etrace.stats.channel
+        self.s_results.network = self.etrace.stats.network
+        self.s_results.lpp = lpickS
+        self.s_results.epp = epickS
+        self.s_results.mpp = mpickS
+        self.s_results.spe = self.s_results.Serror
+        self.s_results.snr = self.s_results.SNRS
+        self.s_results.snrdb = self.s_results.SNRSdB
+        self.s_results.weight = self.s_results.Sweight
+        self.s_results.fm = None
+        self.s_results.picker='auto'
+        self.s_results.Ao = None
 
     def pick_p_phase(self):
         """
