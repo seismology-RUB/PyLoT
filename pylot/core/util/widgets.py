@@ -3008,13 +3008,13 @@ class TuneAutopicker(QWidget):
     :type: PyLoT Mainwindow
     '''
 
-    def __init__(self, parent):
+    def __init__(self, parent, wftype=None):
         QtGui.QWidget.__init__(self, parent, 1)
         self._style = parent._style
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = self.parent()._inputs
         self.fig_dict = self.parent().fig_dict
-        self.data = Data()
+        self.wftype = wftype
         self.pdlg_widget = None
         self.pylot_picks = None
         self.init_main_layouts()
@@ -3072,18 +3072,19 @@ class TuneAutopicker(QWidget):
         self.stationBox.activated.connect(self.fill_tabs)
 
     def fill_stationbox(self):
-        fnames = self.parent().getWFFnames_from_eventbox(eventbox=self.eventBox)
-        self.data.setWFData(fnames)
+        #fnames = self.parent().fnames #getWFFnames_from_eventbox(eventbox=self.eventBox)
+        #self.data.setWFData(fnames)
+        self.data = self.parent().data
         wfdat = self.data.getWFData()  # all available streams
         # remove possible underscores in station names
-        wfdat = remove_underscores(wfdat)
-        # rotate misaligned stations to ZNE
-        # check for gaps and doubled channels
-        check4gaps(wfdat)
-        check4doubled(wfdat)
-        wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
-        # trim station components to same start value
-        trim_station_components(wfdat, trim_start=True, trim_end=False)
+        # wfdat = remove_underscores(wfdat)
+        # # rotate misaligned stations to ZNE
+        # # check for gaps and doubled channels
+        # check4gaps(wfdat)
+        # check4doubled(wfdat)
+        # wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
+        # # trim station components to same start value
+        # trim_station_components(wfdat, trim_start=True, trim_end=False)
         self.stationBox.clear()
         stations = []
         for trace in self.data.getWFData():
@@ -3145,7 +3146,9 @@ class TuneAutopicker(QWidget):
         return self.eventBox.currentText().split('/')[-1]
 
     def get_current_event_fp(self):
-        return self.eventBox.currentText()
+        wfext = self.wftype if self.wftype else ''
+        fp = os.path.join(self.eventBox.currentText(), wfext)
+        return fp
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
@@ -3175,11 +3178,11 @@ class TuneAutopicker(QWidget):
             self.pdlg_widget = None
             return
         station = self.get_current_station()
-        data = self.data.getWFData()
+        wfdata = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        self.pickDlg = PickDlg(self.parent(), data=data.select(station=station),
+        self.pickDlg = PickDlg(self.parent(), data=wfdata.select(station=station).copy(),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),

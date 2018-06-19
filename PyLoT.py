@@ -139,6 +139,7 @@ class MainWindow(QMainWindow):
         self.apd_local = None
         self.apd_sge = None
         self.stations_highlighted = []
+        self.obspy_dmt = False
 
         self.poS_id = None
         self.ae_id = None
@@ -1006,7 +1007,6 @@ class MainWindow(QMainWindow):
         # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
         eventpath = self.get_current_event_path(eventbox)
         basepath = eventpath.split(os.path.basename(eventpath))[0]
-        obspy_dmt = check_obspydmt_structure(basepath)
         if self.dataStructure:
             if not eventpath:
                 return
@@ -1700,9 +1700,9 @@ class MainWindow(QMainWindow):
         self.fnames_syn = []
         eventpath = self.get_current_event_path()
         basepath = eventpath.split(os.path.basename(eventpath))[0]
-        obspy_dmt = check_obspydmt_structure(basepath)
-        self.dataPlot.activateObspyDMToptions(obspy_dmt)
-        if obspy_dmt:
+        self.obspy_dmt = check_obspydmt_structure(basepath)
+        self.dataPlot.activateObspyDMToptions(self.obspy_dmt)
+        if self.obspy_dmt:
             self.prepareObspyDMT_data(eventpath)
 
     def loadWaveformData(self):
@@ -2392,7 +2392,8 @@ class MainWindow(QMainWindow):
         self.init_fig_dict()
         #if not self.tap:
         # init TuneAutopicker object
-        self.tap = TuneAutopicker(self)
+        wftype = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else None
+        self.tap = TuneAutopicker(self, wftype)
         # first call of update to init tabs with empty canvas
         self.update_autopicker()
         # connect update signal of TuneAutopicker with update function
