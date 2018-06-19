@@ -296,7 +296,7 @@ class AutopickStation(object):
         :param freqmax:
         :type freqmax:
         :return: Tuple containing the changed waveform stream and the changed first trace of the stream
-        :rtype: (obspy.core.stream.Stream, obspy.core.trace.Trace)
+        :rtype: (obspy.core.trace.Trace, obspy.core.stream.Stream)
         """
         wfstream_copy = wfstream.copy()
         trace_copy = wfstream[0].copy()
@@ -304,7 +304,7 @@ class AutopickStation(object):
         trace_copy.filter(self.filter_type, freqmin=freqmin, freqmax=freqmax, zerophase=self.zerophase)
         trace_copy.taper(max_percentage=self.taper_max_percentage, type=self.taper_type)
         wfstream_copy[0].data = trace_copy.data
-        return wfstream_copy, trace_copy
+        return trace_copy, wfstream_copy
 
     def modify_starttimes_taupy(self):
         """
@@ -403,7 +403,7 @@ class AutopickStation(object):
               'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
         self.vprint(msg)
 
-        z_copy, tr_filt = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz2[0])
+        tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz1[1])
         if self.p_params.use_taup is True and self.origin is not None:
             Lc = np.inf  # what is Lc? DA
             try:
@@ -423,6 +423,9 @@ class AutopickStation(object):
             self.vprint(msg)
             self.p_params.pstart = 0
             self.p_params.pstop = len(self.ztrace.data) * self.ztrace.stats.delta
+        if self.p_params.use_taup is False and self.p_params.pstart < 0:
+            # cuttimes are based on start of trace when taupy is disabled, so a negative value does not make sense
+            self.p_params.pstart = 0
         cuttimes = [self.p_params.pstart, self.p_params.pstop]
         if self.p_params.algoP == 'HOS':
             cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
@@ -450,7 +453,7 @@ class AutopickStation(object):
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
-        fig, linecolor = get_fig_from_figdict(self.figdict, 'slength')
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'slength')
         if aicpick.getpick() is not None:
             z_copy[0].data = tr_filt.data
             zne = z_copy
@@ -497,7 +500,7 @@ class AutopickStation(object):
                   '...'.format(aicpick.getSlope(), aicpick.getSNR())
             self.vprint(msg)
             # refilter waveform with larger bandpass
-            z_copy, tr_filt = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0])
+            tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
             cuttimes2 = [round(max([aicpick.getpick() - self.p_params.Precalcwin, 0])),
                          round(min([len(self.ztrace.data) * self.ztrace.stats.delta,
                                     aicpick.getpick() + self.p_params.Precalcwin]))]
