@@ -497,19 +497,24 @@ class WaveformWidgetPG(QtGui.QWidget):
 
     def init_labels(self):
         self.label_layout.addWidget(self.status_label)
-        self.label_layout.addWidget(self.perm_label_mid)
+        for label in self.perm_labels:
+            self.label_layout.addWidget(label)
         self.label_layout.addWidget(self.syn_checkbox)
         self.label_layout.addWidget(self.qcombo_processed)
         self.syn_checkbox.setLayoutDirection(Qt.RightToLeft)
         self.label_layout.setStretch(0, 4)
-        self.label_layout.setStretch(1, 2)
-        self.label_layout.setStretch(2, 3)
-        self.label_layout.setStretch(3, 1)
+        self.label_layout.setStretch(1, 0)
+        self.label_layout.setStretch(2, 0)
+        self.label_layout.setStretch(3, 0)
+        self.label_layout.setStretch(4, 3)
+        self.label_layout.setStretch(5, 1)
 
     def add_labels(self):
         self.status_label = QtGui.QLabel()
-        self.perm_label_mid = QtGui.QLabel()
-        self.perm_label_mid.setAlignment(4)
+        self.perm_labels = []
+        for index in range(3):
+            label = QtGui.QLabel()
+            self.perm_labels.append(label)
         self.qcombo_processed = QtGui.QComboBox()
         self.syn_checkbox = QtGui.QCheckBox('synthetics')
         self.addQCboxItem('raw', 'black')
@@ -524,9 +529,11 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.syn_checkbox.setVisible(activate)
         self.qcombo_processed.setVisible(activate)
 
-    def setPermTextMid(self, text=None, color='black'):
-        self.perm_label_mid.setText(text)
-        self.perm_label_mid.setStyleSheet('color: {}'.format(color))
+    def setPermText(self, number, text=None, color='black'):
+        if not 0 <= number < len(self.perm_labels):
+            raise ValueError('No label for number {}'.format(number))
+        self.perm_labels[number].setText(text)
+        self.perm_labels[number].setStyleSheet('color: {}'.format(color))
 
     def addQCboxItem(self, text=None, color='black'):
         item = QtGui.QStandardItem(text)

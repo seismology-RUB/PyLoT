@@ -3332,9 +3332,11 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.getPlotWidget().draw()
         if self.plot_method == 'fast':
-            self.dataPlot.setPermTextMid('MIN/MAX plot', color='red')
+            self.dataPlot.setPermText(1, ' MIN/MAX plot ', color='red')
         else:
-            self.dataPlot.setPermTextMid()
+            self.dataPlot.setPermText(1)
+        self.dataPlot.setPermText(0, '| Number of traces: {} |'.format(len(self.getPlotWidget().getPlotDict())))
+
 
     def _setDirty(self):
         self.setDirty(True)
