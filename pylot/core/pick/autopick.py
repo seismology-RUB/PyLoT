@@ -225,6 +225,21 @@ class AutopickStation(object):
         self.network_name = wfstream[0].stats.network
         self.station_id = '{}.{}'.format(self.network_name, self.station_name)
 
+        # save streams and traces
+        # TODO: error handling of missing traces
+        self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
+        self.ztrace = self.zstream[0]
+        try:
+            self.ntrace = self.nstream[0]
+        except IndexError:
+            self.nstream = self.estream
+            self.ntrace = self.nstream[0]
+        try:
+            self.etrace = self.estream[0]
+        except IndexError:
+            self.estream = self.nstream
+            self.etrace = self.estream[0]
+
         # default values used in old autopickstation function #TODO way for user to set those
         self.detrend_type = 'demean'
         self.filter_type = 'bandpass'
@@ -376,9 +391,6 @@ class AutopickStation(object):
         self.p_params.pstop = min(self.p_params.pstop, len(self.ztrace) * self.ztrace.stats.delta)
 
     def autopickstation(self):
-        self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
-        self.ztrace, self.ntrace, self.etrace = self.zstream[0], self.nstream[0], self.estream[0]
-
         try:
             self.pick_p_phase()
         #TODO handle exceptions correctly
