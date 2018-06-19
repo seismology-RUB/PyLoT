@@ -184,13 +184,17 @@ class PickingResults(dict):
         self.Perror = None  # symmetrized picking error P onset
         self.Serror = None  # symmetrized picking error S onset
 
-        self.aicSflag = 0
-        self.aicPflag = 0
-        self.Pflag = 0
-        self.Sflag = 0
+        #self.aicSflag = 0
+        #self.aicPflag = 0
+        #self.Pflag = 0
         self.Pmarker = []
         self.Ao = None  # Wood-Anderson peak-to-peak amplitude
         self.picker = 'auto'  # type of picks
+
+        # these get added during the construction of the p pick results dictionary
+        self.w0 = None
+        self.fc = None
+        self.Mw = None
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -253,6 +257,9 @@ class AutopickStation(object):
         self.taper_max_percentage = 0.05
         self.taper_type = 'hann'
 
+        # initialize picking results
+        self.p_results = PickingResults()
+        self.s_results = PickingResults()
 
     def vprint(self, s):
         """Only print statement if verbose picking is set to true."""
@@ -400,11 +407,25 @@ class AutopickStation(object):
     def autopickstation(self):
         try:
             self.pick_p_phase()
-        #TODO handle exceptions correctly
+        #TODO handle exceptions correctly (goal is to be compatible with old code first)
         # requires an overlook of what should be returned in case picking fails at various stages
         except MissingTraceException as mte:
             print(mte)
-            return
+        except PickingFailedException as pfe:
+            print(pfe)
+
+        if self.estream is not None and self.nstream is not None and len(self.estream) > 0 and len(self.nstream) > 0 and self.p_results.Pweight is not None and self.p_results.Pweight < 4:
+            try:
+                self.pick_s_phase()
+            # TODO: when an exception occurs, return picking results so far. This requires that the pick methods save their results in the instance member of PickingResults
+            except MissingTraceException as mte:
+                print(mte)
+            except PickingFailedException as pfe:
+                print(pfe)
+
+        self.finish_picking()
+        return {'P': self.p_results, 'S':self.s_results, 'station':self.ztrace.stats.station} #TODO method to format picking results as a dict correctly
+
     def finish_picking(self):
 
         # calculate "real" onset times, save them in PickingResults
@@ -492,18 +513,22 @@ class AutopickStation(object):
         self.vprint(msg)
 
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz1[1])
+        # save filtered trace in instance for later plotting
+        self.tr_filt_z = tr_filt
         if self.p_params.use_taup is True and self.origin is not None:
             Lc = np.inf  # what is Lc? DA
             try:
                 self.modify_starttimes_taupy()
             except AttributeError as ae:
                 print(ae)
-        else:
+                #TODO handle case of no metadata/origin. Picking should continue without taupy.
+        if self.p_params.use_taup is False or self.origin:
             Lc = self.p_params.pstop - self.p_params.pstart
         Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
         if Lwf < 0:
             print('autopickstation: empty trace! Return!')
             return
+            #Todo add correct exception here
 
         Ldiff = Lwf - abs(Lc)
         if Ldiff < 0 or self.p_params.pstop <= self.p_params.pstart:
@@ -522,6 +547,8 @@ class AutopickStation(object):
                         self.p_params.addnoise)
         else:
             cf1 = None
+        # save cf1 for plotting
+        self.cf1 = cf1
         assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
                                                         'correctly: maybe the algorithm name ({algoP}) is ' \
                                                         'corrupted'.format(algoP=self.p_params.algoP)
@@ -562,21 +589,21 @@ class AutopickStation(object):
                                       minsiglength,
                                       self.signal_length_params.noisefactor,
                                       self.signal_length_params.minpercent, self.iplot, fig, linecolor)
-            if Pflag == 0:
-                Pmarker = 'shortsignallength'
-                Pweight = 9
         if Pflag == 1:
-            if len(self.nstream) == 0 or len(self.estream) == 0:
+            if self.nstream == self.estream:
                 msg = 'One or more horizontal components missing!\n' \
                       'Skipping control function checkZ4S.'
                 self.vprint(msg)
             else:
                 if self.iplot > 1:
                     fig, linecolor = get_fig_from_figdict(self.fig_dict, 'checkZ4s')
-                    Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
-                    if Pflag == 0:
-                        Pmarker = 'SinsteadP'
-                        Pweight = 9
+                Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
+                if Pflag == 0:
+                    self.p_results.Pmarker = 'SinsteadP'
+                    self.p_results.Pweight = 9
+        else:
+            self.p_results.Pmarker = 'shortsignallength'
+            self.p_results.Pweight = 9
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
@@ -598,6 +625,8 @@ class AutopickStation(object):
                 cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z, self.p_params.addnoise)
             else:
                 cf2 = None
+            # save cf2 for plotting
+            self.cf2 = cf2
             # get refined onset time from CF2
             assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
                                                             'correctly: maybe the algorithm name ({algoP}) is ' \
@@ -605,42 +634,30 @@ class AutopickStation(object):
             fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
             refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
                                   self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
-            mpickP = refPpick.getpick()
-            if mpickP is not None:
+            self.p_results.mpickP = refPpick.getpick()
+            if self.p_results.mpickP is not None:
                 # quality assessment, get earliest/latest pick and symmetrized uncertainty
                 fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Ppick')
-                epickP, lpickP, Perror = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, mpickP,
+                self.p_results.epickP, self.p_results.lpickP, self.p_results.Perror = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpickP,
                                                         self.iplot, fig=fig, linecolor=linecolor)
-                SNRP, SNRPdB, Pnoiselevel = getSNR(z_copy, self.p_params.tsnrz, mpickP)
+                self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.Pnoiselevel = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpickP)
 
                 # weight P-onset using symmetric error
-                #todo shorter expression for this
-
-                if Perror is None:
-                    Pweight = 4
-                else:
-                    if Perror <= self.p_params.timeerrorsP[0]:
-                        Pweight = 0
-                    elif self.p_params.timeerrorsP[0] < Perror <= self.p_params.timeerrorsP[1]:
-                        Pweight = 1
-                    elif self.p_params.timeerrorsP[1] < Perror <= self.p_params.timeerrorsP[2]:
-                        Pweight = 2
-                    elif self.p_params.timeerrorsP[2] < Perror <= self.p_params.timeerrorsP[3]:
-                        Pweight = 3
-                    elif Perror > self.p_params.timeerrorsP[3]:
-                        Pweight = 4
-                if Pweight <= self.first_motion_params.minfmweight and SNRP >= self.first_motion_params.minFMSSNR:
+                self.p_results.Pweight = get_quality_class(self.p_results.Perror, self.p_params.timeerrorsP)
+                if self.p_results.Pweight <= self.first_motion_params.minfmweight and self.p_results.SNRP >= self.first_motion_params.minFMSNR:
                     fig, linecolor = get_fig_from_figdict(self.fig_dict, 'fm_picker')
-                    FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin, mpickP, self.iplot,
+                    self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin, self.p_results.mpickP, self.iplot,
                                   fig, linecolor)
                 else:
-                    FM = 'N'
+                    self.p_results.FM = 'N'
                 msg = "autopickstation: P-weight: {0}, " \
-                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight, SNRP, SNRPdB, FM)
+                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
                 print(msg)
-                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
+                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(self.p_results.mpickP, self.p_results.Perror)
                 print(msg)
                 Sflag = 1
+
+                self.p_results.aicpick = aicpick
             else:
                 msg = 'Bad initial (AIC) P-pick, skipping this onset!\n' \
                       'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
@@ -649,6 +666,10 @@ class AutopickStation(object):
                                                            self.p_params.minAICPSNR, self.p_params.minAICPslope)
                 self.vprint(msg)
                 Sflag = 0
+        else:
+            #todo add why did picking fail, which should be saved in the pick dictionary
+            raise PickingFailedException("Why did it fail")
+
     def pick_s_phase(self):
 
         def check_existence_ne_traces():
@@ -852,7 +873,7 @@ class AutopickStation(object):
 
 def get_fig_from_figdict(figdict, figkey):
     """
-
+    Helper method to extract a figure by name from dictionary
     :param figdict:
     :type figdict: dict
     :param figkey:
@@ -860,15 +881,20 @@ def get_fig_from_figdict(figdict, figkey):
     :return:
     :rtype:
     """
+    if figdict is None:
+        return None, None
     fig = figdict.get(figkey, None)
     linecolor = figdict.get('plot_style', 'k')
     linecolor = linecolor['linecolor']['rgba_mpl']
     return fig, linecolor
 
 
+def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, metadata=None, origin=None):
+    station = AutopickStation(wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin)
+    return station.autopickstation()
 
 
-def autopickstation(wfstream, pickparam, verbose=False,
+def nautopickstation(wfstream, pickparam, verbose=False,
                     iplot=0, fig_dict=None, metadata=None, origin=None):
     """
     picks a single station
