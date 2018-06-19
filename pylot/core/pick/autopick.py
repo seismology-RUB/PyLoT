@@ -198,6 +198,12 @@ class MissingTraceException(ValueError):
     """
     pass
 
+class PickingFailedException(Exception):
+    """
+    Raised when picking fails due to missing values etc.
+    """
+    pass
+
 class AutopickStation(object):
 
     def __init__(self, wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin):
