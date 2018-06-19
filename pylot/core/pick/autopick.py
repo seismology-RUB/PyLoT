@@ -367,13 +367,13 @@ class AutopickStation(object):
         arrivals = create_arrivals(self.metadata, self.origin, self.station_id, self.p_params.taup_model)
         estFirstP, estFirstS = first_PS_onsets(arrivals)
         # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
-        self.p_params.pstart += (self.origin[0].time + estFirstP) - self.zstream[0].stats.starttime
-        self.p_params.pstop += (self.origin[0].time + estFirstP) - self.zstream[0].stats.starttime
+        self.p_params.pstart += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
+        self.p_params.pstop += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
         print('autopick: CF calculation times respectively:'
               ' pstart: {} s, pstop: {} s'.format(self.p_params.pstart, self.p_params.pstop))
         # make sure pstart and pstop are inside the starttime/endtime of vertical trace
         self.p_params.pstart = max(self.p_params.pstart, 0)
-        self.p_params.pstop = min(self.p_params.pstop, len(self.zstream[0]) * self.zstream[0].stats.starttime)
+        self.p_params.pstop = min(self.p_params.pstop, len(self.ztrace) * self.ztrace.stats.delta)
 
     def autopickstation(self):
         self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
