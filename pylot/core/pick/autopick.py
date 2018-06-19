@@ -17,7 +17,7 @@ from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck, get_pickparams, get_quality_class
 from pylot.core.util.utils import getPatternLine, gen_Pool,\
-    real_Bool, identifyPhaseID
+    real_Bool, identifyPhaseID, real_None, correct_iplot
 
 from obspy.taup import TauPyModel
 
@@ -211,8 +211,8 @@ class AutopickStation(object):
         self.wfstream = wfstream
         self.pickparam = pickparam
         self.verbose = verbose
-        self.iplot = iplot
-        self.fig_dict = fig_dict
+        self.iplot = correct_iplot(iplot)
+        self.fig_dict = real_None(fig_dict)
         self.metadata = metadata
         self.origin = origin
 
@@ -246,6 +246,7 @@ class AutopickStation(object):
         self.zerophase = False
         self.taper_max_percentage = 0.05
         self.taper_type = 'hann'
+
 
     def vprint(self, s):
         """Only print statement if verbose picking is set to true."""

@@ -1260,6 +1260,25 @@ def check_event_folder(path):
     return ev_type
 
 
+def correct_iplot(iplot):
+    """
+    iplot should be in range 0...2, but it can be given as True or 'True' as well, which should be converted
+    to an integer. Both will be converted to 2.
+    :type iplot: Bool or int
+    :return: iplot as an integer
+    :rtype: int
+    """
+    # TODO this is a hack, there should never be the ability to pass anything else but an int
+    try:
+        iplot = int(iplot)
+    except ValueError:
+        if iplot is True or iplot == 'True':
+            iplot = 2
+        else:
+            iplot = 0
+    return iplot
+
+
 if __name__ == "__main__":
     import doctest
 
