@@ -90,35 +90,45 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
         error_message = self.construct_error_message('GR.GRA1', False, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
     def test_autopickstation_taupy_enabled_gra1(self):
         expected = {'P': {'picker': 'auto', 'snrdb': 15.405649120980094, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None, 'fc': None, 'snr': 34.718816470730317, 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 31, 690000), 'w0': None, 'spe': 0.93333333333333235, 'network': u'GR', 'epp': UTCDateTime(2016, 1, 24, 10, 41, 28, 890000), 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 32, 690000), 'fm': 'D', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 10.669661906545489, 'network': u'GR', 'weight': 0, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 50, 30, 690000), 'snr': 11.667187857573905, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 21, 690000), 'mpp': UTCDateTime(2016, 1, 24, 10, 50, 29, 690000), 'fm': None, 'spe': 2.6666666666666665, 'channel': u'LHE'}, 'station': u'GRA1'}
         with HidePrints():
             result = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
         error_message = self.construct_error_message('GR.GRA1', True, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
     def test_autopickstation_taupy_disabled_gra2(self):
         expected = {'P': {'picker': 'auto', 'snrdb': None, 'weight': 9, 'Mo': None, 'marked': 'shortsignallength', 'Mw': None, 'fc': None, 'snr': None, 'mpp': UTCDateTime(2016, 1, 24, 10, 36, 59, 150000), 'w0': None, 'spe': None, 'network': u'GR', 'epp': UTCDateTime(2016, 1, 24, 10, 36, 43, 150000), 'lpp': UTCDateTime(2016, 1, 24, 10, 37, 15, 150000), 'fm': 'N', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': None, 'network': u'GR', 'weight': 4, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 37, 15, 150000), 'snr': None, 'epp': UTCDateTime(2016, 1, 24, 10, 36, 43, 150000), 'mpp': UTCDateTime(2016, 1, 24, 10, 36, 59, 150000), 'fm': None, 'spe': None, 'channel': u'LHE'}, 'station': u'GRA2'}
         with HidePrints():
             result = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
         error_message = self.construct_error_message('GR.GRA2', False, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
     def test_autopickstation_taupy_enabled_gra2(self):
         expected = {'P': {'picker': 'auto', 'snrdb': 13.957959025719253, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None, 'fc': None, 'snr': 24.876879503607871, 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 29, 150000), 'w0': None, 'spe': 1.0, 'network': u'GR', 'epp': UTCDateTime(2016, 1, 24, 10, 41, 26, 150000), 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 30, 150000), 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 10.573236990555648, 'network': u'GR', 'weight': 1, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 50, 34, 150000), 'snr': 11.410999834108294, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 21, 150000), 'mpp': UTCDateTime(2016, 1, 24, 10, 50, 33, 150000), 'fm': None, 'spe': 4.666666666666667, 'channel': u'LHE'}, 'station': u'GRA2'}
         with HidePrints():
             result = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin = self.origin)
         error_message = self.construct_error_message('GR.GRA2', True, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
     def test_autopickstation_taupy_disabled_ech(self):
         expected = {'P': {'picker': 'auto', 'snrdb': None, 'weight': 9, 'Mo': None, 'marked': 'SinsteadP', 'Mw': None, 'fc': None, 'snr': None, 'mpp': UTCDateTime(2016, 1, 24, 10, 26, 57), 'w0': None, 'spe': None, 'network': u'G', 'epp': UTCDateTime(2016, 1, 24, 10, 26, 41), 'lpp': UTCDateTime(2016, 1, 24, 10, 27, 13), 'fm': 'N', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': None, 'network': u'G', 'weight': 4, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 27, 13), 'snr': None, 'epp': UTCDateTime(2016, 1, 24, 10, 26, 41), 'mpp': UTCDateTime(2016, 1, 24, 10, 26, 57), 'fm': None, 'spe': None, 'channel': u'LHE'}, 'station': u'ECH'}
         with HidePrints():
             result = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_disabled)
         error_message = self.construct_error_message('G.ECH', False, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
     def test_autopickstation_taupy_enabled_ech(self):
         # this station has a long time of before the first onset, so taupy will help during picking
@@ -126,8 +136,9 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
         error_message = self.construct_error_message('G.ECH', True, expected, result)
-        self.assertEqual(expected, result, msg=error_message)
-
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
 
 if __name__ == '__main__':
     unittest.main()
