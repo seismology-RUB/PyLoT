@@ -1229,6 +1229,8 @@ class MainWindow(QMainWindow):
         tv.verticalHeader().hide()
         tv.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 
+        current_event = self.get_current_event()
+
         eventBox.setView(tv)
         eventBox.clear()
         model = eventBox.model()
@@ -1316,6 +1318,10 @@ class MainWindow(QMainWindow):
             if event_test and select_events == 'ref' or self.isEmpty(event_path):
                 for item in itemlist:
                     item.setEnabled(False)
+
+            #item color
+            self.setItemColor(itemlist, id, event, current_event)
+
             model.appendRow(itemlist)
             if not event.path == self.eventBox.itemText(id).strip():
                 message = ('Path missmatch creating eventbox.\n'
@@ -2949,14 +2955,6 @@ class MainWindow(QMainWindow):
                 event.addNotes(notes)
                 self.fill_eventbox()
 
-        def set_background_color(items, color):
-            for item in items:
-                item.setBackground(color)
-
-        def set_foreground_color(items, color):
-            for item in items:
-                item.setForeground(color)
-
         current_event = self.get_current_event()
 
         # generate delete icon
@@ -3060,14 +3058,7 @@ class MainWindow(QMainWindow):
                       item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(column)
 
-            if index%2:
-                set_background_color(column, QtGui.QColor(*(245, 245, 245, 255)))
-
-            if self.isEmpty(event.path):
-                set_foreground_color(column, QtGui.QColor(*(180, 180, 180, 255)))
-
-            if event == current_event:
-                set_background_color(column, QtGui.QColor(*(0, 143, 143, 255)))
+            self.setItemColor(column, index, event, current_event)
 
             # manipulate items
             item_ref.setBackground(self._ref_test_colors['ref'])
@@ -3088,6 +3079,24 @@ class MainWindow(QMainWindow):
 
         self.events_layout.addWidget(self.event_table)
         self.tabs.setCurrentIndex(tabindex)
+
+    def setItemColor(self, item_list, index, event, current_event):
+        def set_background_color(items, color):
+            for item in items:
+                item.setBackground(color)
+
+        def set_foreground_color(items, color):
+            for item in items:
+                item.setForeground(color)
+
+        if index % 2:
+            set_background_color(item_list, QtGui.QColor(*(245, 245, 245, 255)))
+
+        if self.isEmpty(event.path):
+            set_foreground_color(item_list, QtGui.QColor(*(180, 180, 180, 255)))
+
+        if event == current_event:
+            set_background_color(item_list, QtGui.QColor(*(0, 143, 143, 255)))
 
     def read_metadata_thread(self, fninv):
         self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...',
