@@ -164,7 +164,7 @@ class PickingParameters(object):
         for key, value in d.items():
             setattr(self, key, value)
 
-class PickingResults(object):
+class PickingResults(dict):
 
     def __init__(self):
         # initialize output
@@ -191,6 +191,12 @@ class PickingResults(object):
         self.Pmarker = []
         self.Ao = None  # Wood-Anderson peak-to-peak amplitude
         self.picker = 'auto'  # type of picks
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def __getattr__(self, key):
+        return self[key]
 
 class MissingTraceException(ValueError):
     """
