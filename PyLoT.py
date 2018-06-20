@@ -2294,13 +2294,14 @@ class MainWindow(QMainWindow):
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getOriginalWFData().copy()
         event = self.get_current_event()
+        wftype = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else None
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
                           station=station, network=network,
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
-                          filteroptions=self.filteroptions)
+                          filteroptions=self.filteroptions, wftype=wftype)
         if self.filterActionP.isChecked() or self.filterActionS.isChecked():
             pickDlg.currentPhase = self.getSeismicPhase()
             pickDlg.filterWFData()
@@ -2398,8 +2399,7 @@ class MainWindow(QMainWindow):
         self.init_fig_dict()
         #if not self.tap:
         # init TuneAutopicker object
-        wftype = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else None
-        self.tap = TuneAutopicker(self, wftype)
+        self.tap = TuneAutopicker(self, self.obspy_dmt)
         # first call of update to init tabs with empty canvas
         self.update_autopicker()
         # connect update signal of TuneAutopicker with update function

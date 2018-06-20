@@ -26,6 +26,7 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
 from scipy.signal import argrelmin, argrelmax
+from obspy import read
 
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
@@ -1314,7 +1315,7 @@ class PickDlg(QDialog):
 
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
-                 event=None, filteroptions=None, model='iasp91'):
+                 event=None, filteroptions=None, model='iasp91', wftype=None):
         super(PickDlg, self).__init__(parent, 1)
         self.orig_parent = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -1326,6 +1327,7 @@ class PickDlg(QDialog):
         self.network = network
         self.rotate = rotate
         self.metadata = metadata
+        self.wftype = wftype
         self.pylot_event = event
         self.components = 'ZNE'
         self.currentPhase = None
@@ -1415,8 +1417,12 @@ class PickDlg(QDialog):
             actionS.setChecked(self.getChannelSettingsS(channel))
 
         # plot data
+        title = self.getStation()
+        if self.wftype is not None:
+            title += ' | ({})'.format(self.wftype)
+
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                     title=self.getStation())
+                                     title=title)
 
         self.multicompfig.setZoomBorders2content()
 
@@ -2583,6 +2589,9 @@ class PickDlg(QDialog):
                 filtops_str = transformFilteroptions2String(filtoptions)
                 title += ' | Filteroptions: {}'.format(filtops_str)
 
+        if self.wftype is not None:
+            title += ' | ({})'.format(self.wftype)
+
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
         scale_channel = self.scaleChannel.currentText()
@@ -3015,13 +3024,15 @@ class TuneAutopicker(QWidget):
     :type: PyLoT Mainwindow
     '''
 
-    def __init__(self, parent, wftype=None):
+    def __init__(self, parent, obspy_dmt=False):
         QtGui.QWidget.__init__(self, parent, 1)
         self._style = parent._style
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = self.parent()._inputs
         self.fig_dict = self.parent().fig_dict
-        self.wftype = wftype
+        self.data = Data()
+        self.obspy_dmt = obspy_dmt
+        self.wftype = None
         self.pdlg_widget = None
         self.pylot_picks = None
         self.init_main_layouts()
@@ -3078,35 +3089,56 @@ class TuneAutopicker(QWidget):
         self.eventBox.activated.connect(self.fill_tabs)
         self.stationBox.activated.connect(self.fill_tabs)
 
+    def catch_station_ids(self):
+        self.station_ids = {}
+        eventpath = self.get_current_event_fp()
+        self.wftype = 'processed' if self.obspy_dmt else ''
+        wf_path = os.path.join(eventpath, self.wftype)
+        if not os.path.exists(wf_path) and self.obspy_dmt:
+            self.wftype = 'raw'
+            wf_path = os.path.join(eventpath, self.wftype)
+        for filename in os.listdir(wf_path):
+            filename = os.path.join(eventpath, self.wftype, filename)
+            try:
+                st = read(filename, headonly=True)
+            except Exception as e:
+                print('Warning: Could not read file {} as a stream object: {}'.format(filename, e))
+                continue
+            for trace in st:
+                network = trace.stats.network
+                station = trace.stats.station
+                location = trace.stats.location
+                station_id = '{}.{}.{}'.format(network, station, location)
+                if not station_id in self.station_ids:
+                    self.station_ids[station_id] = []
+                self.station_ids[station_id].append(filename)
+
     def fill_stationbox(self):
-        #fnames = self.parent().fnames #getWFFnames_from_eventbox(eventbox=self.eventBox)
-        #self.data.setWFData(fnames)
-        self.data = self.parent().data
-        wfdat = self.data.getWFData()  # all available streams
-        # remove possible underscores in station names
-        # wfdat = remove_underscores(wfdat)
-        # # rotate misaligned stations to ZNE
-        # # check for gaps and doubled channels
-        # check4gaps(wfdat)
-        # check4doubled(wfdat)
-        # wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
-        # # trim station components to same start value
-        # trim_station_components(wfdat, trim_start=True, trim_end=False)
         self.stationBox.clear()
-        stations = []
-        for trace in self.data.getWFData():
-            station = trace.stats.station
-            network = trace.stats.network
-            ns_tup = (str(network), str(station))
-            if not ns_tup in stations:
-                stations.append(ns_tup)
-        stations.sort()
         model = self.stationBox.model()
-        for network, station in stations:
-            item = QtGui.QStandardItem(network + '.' + station)
-            if station in self.get_current_event().pylot_picks:
+
+        self.catch_station_ids()
+        st_ids_list = list(self.station_ids.keys())
+        st_ids_list.sort()
+        for station_id in st_ids_list:
+            item = QtGui.QStandardItem(station_id)
+            if station_id.split('.')[1] in self.get_current_event().pylot_picks:
                 item.setBackground(self.parent()._ref_test_colors['ref'])
             model.appendRow(item)
+
+    def load_wf_data(self):
+        fnames = self.station_ids[self.get_current_station_id()]
+        self.data.setWFData(fnames)
+        wfdat = self.data.getWFData()  # all available streams
+        # remove possible underscores in station names
+        wfdat = remove_underscores(wfdat)
+        # rotate misaligned stations to ZNE
+        # check for gaps and doubled channels
+        check4gaps(wfdat)
+        check4doubled(wfdat)
+        wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
+        # trim station components to same start value
+        trim_station_components(wfdat, trim_start=True, trim_end=False)
 
     def init_figure_tabs(self):
         self.figure_tabs = QtGui.QTabWidget()
@@ -3153,9 +3185,7 @@ class TuneAutopicker(QWidget):
         return self.eventBox.currentText().split('/')[-1]
 
     def get_current_event_fp(self):
-        wfext = self.wftype if self.wftype else ''
-        fp = os.path.join(self.eventBox.currentText(), wfext)
-        return fp
+        return self.eventBox.currentText()
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
@@ -3169,7 +3199,10 @@ class TuneAutopicker(QWidget):
                 return event.pylot_autopicks[station]
 
     def get_current_station(self):
-        return str(self.stationBox.currentText()).split('.')[-1]
+        return str(self.stationBox.currentText()).split('.')[1]
+
+    def get_current_station_id(self):
+        return str(self.stationBox.currentText())
 
     def gen_tab_widget(self, name, canvas):
         widget = QtGui.QWidget()
@@ -3184,17 +3217,19 @@ class TuneAutopicker(QWidget):
                 self.pdlg_widget.setParent(None)
             self.pdlg_widget = None
             return
+        self.load_wf_data()
         station = self.get_current_station()
         wfdata = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
+        wftype = self.wftype if self.obspy_dmt else ''
         self.pickDlg = PickDlg(self.parent(), data=wfdata.select(station=station).copy(),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
                                metadata=metadata, event=event, filteroptions=filteroptions,
-                               embedded=True)
+                               embedded=True, wftype=wftype)
         self.pickDlg.update_picks.connect(self.picks_from_pickdlg)
         self.pickDlg.update_picks.connect(self.fill_eventbox)
         self.pickDlg.update_picks.connect(self.fill_stationbox)
@@ -3381,7 +3416,8 @@ class TuneAutopicker(QWidget):
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
                 'locflag': 0,
-                'savexml': False}
+                'savexml': False,
+                'obspyDMT_wfpath': self.obspy_dmt}
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
