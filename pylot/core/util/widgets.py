@@ -659,7 +659,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         create min/max array for fast plotting (approach based on obspy __plot_min_max function)
         :returns data, time_ax
         '''
-        npixel = self.width()
+        npixel = self.orig_parent.width()
         ndata = len(trace.data)
         pts_per_pixel = ndata/npixel
         if pts_per_pixel < 2:
