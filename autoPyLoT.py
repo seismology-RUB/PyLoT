@@ -34,7 +34,7 @@ __version__ = _getVersionString()
 
 
 def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None,
-              savexml=True, station='all', iplot=0, ncores=0):
+              savexml=True, station='all', iplot=0, ncores=0, obspyDMT_wfpath=False):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -114,6 +114,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             locflag = input_dict['locflag']
         if 'savexml' in input_dict:
             savexml = input_dict['savexml']
+        if 'obspyDMT_wfpath' in input_dict:
+            obspyDMT_wfpath = input_dict['obspyDMT_wfpath']
 
     if not parameter:
         if inputfile:
@@ -175,6 +177,14 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print("!!No source parameter estimation possible!!")
             print("                 !!!              ")
 
+        wfpath_extension = ''
+        if obspyDMT_wfpath not in [None, False]:
+            wfpath_extension = obspyDMT_wfpath
+            print('Using obspyDMT structure. There will be no restitution, as pre-processed data are expected.')
+            if wfpath_extension != 'processed':
+                print('WARNING: Expecting wfpath_extension to be "processed" for'
+                      ' pre-processed data but received "{}" instead!!!'.format(wfpath_extension))
+
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
@@ -184,16 +194,16 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
             elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
                 # single event processing
-                events = glob.glob(os.path.join(datapath, parameter['eventID']))
+                events = glob.glob(os.path.join(datapath, parameter['eventID'], wfpath_extension))
             elif fnames == 'None' and type(parameter['eventID']) == list:
                 # multiple event processing
                 events = []
                 for eventID in parameter['eventID']:
-                    events.append(os.path.join(datapath, eventID))
+                    events.append(os.path.join(datapath, eventID, wfpath_extension))
             else:
                 # autoPyLoT was initialized from GUI
                 events = []
-                events.append(eventid)
+                events.append(os.path.join(eventid, wfpath_extension))
                 evID = os.path.split(eventid)[-1]
                 locflag = 2
         else:
@@ -204,7 +214,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             for eventID in eventid:
                 events.append(os.path.join(datapath,
                                            parameter['database'],
-                                           eventID))
+                                           eventID,
+                                           wfpath_extension))
 
         if not events:
             print('autoPyLoT: No events given. Return!')
@@ -218,7 +229,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         allpicks = {}
         glocflag = locflag
         for eventpath in events:
-            evID = os.path.split(eventpath)[-1]
+            if not wfpath_extension:
+                evID = os.path.split(eventpath)[-1]
+            else:
+                evID = os.path.split(os.path.split(eventpath)[0])[-1]
             fext = '.xml'
             filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
             try:
@@ -267,13 +281,17 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = check4gaps(wfdat)
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
-            metadata = read_metadata(parameter.get('invdir'))
-            # rotate stations to ZNE
-            wfdat = check4rotated(wfdat, metadata)
+            if not wfpath_extension:
+                metadata = read_metadata(parameter.get('invdir'))
+            else:
+                metadata = None
             corr_dat = None
-            if locflag:
-                print("Restitute data ...")
-                corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
+            if metadata:
+                # rotate stations to ZNE
+                wfdat = check4rotated(wfdat, metadata)
+                if locflag:
+                    print("Restitute data ...")
+                    corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
             print('Working on event %s. Stations: %s' % (eventpath, station))

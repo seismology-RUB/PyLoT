@@ -283,6 +283,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if use_taup is True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
+            if not metadata:
+                metadata = [None, None]
             if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
