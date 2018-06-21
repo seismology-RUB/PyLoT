@@ -140,6 +140,7 @@ class MainWindow(QMainWindow):
         self.apd_sge = None
         self.stations_highlighted = []
         self.obspy_dmt = False
+        self.nextStation = False
 
         self.poS_id = None
         self.ae_id = None
@@ -2284,7 +2285,7 @@ class MainWindow(QMainWindow):
             if nwst in self.stations_highlighted:
                 self.toggle_station_color(wfID, network, station)
 
-    def pickDialog(self, wfID, network=None, station=None, nextStation=False):
+    def pickDialog(self, wfID, network=None, station=None):
         if not network:
             network = self.getNetworkName(wfID)
         if not station:
@@ -2305,7 +2306,8 @@ class MainWindow(QMainWindow):
         if self.filterActionP.isChecked() or self.filterActionS.isChecked():
             pickDlg.currentPhase = self.getSeismicPhase()
             pickDlg.filterWFData()
-        pickDlg.nextStation.setChecked(nextStation)
+        pickDlg.nextStation.setChecked(self.nextStation)
+        pickDlg.nextStation.stateChanged.connect(self.toggle_next_station)
         if pickDlg.exec_():
             if pickDlg._dirty:
                 self.setDirty(True)
@@ -2315,13 +2317,13 @@ class MainWindow(QMainWindow):
                 self.enableSaveEventAction()
                 if replot1 or replot2:
                     self.plotWaveformDataThread()
-                    self.drawPicks()
+
                     self.draw()
                 else:
                     self.drawPicks(station)
                     self.draw()
-            if pickDlg.nextStation.isChecked():
-                self.pickDialog(wfID - 1, nextStation=pickDlg.nextStation.isChecked())
+            if self.nextStation:
+                self.pickDialog(wfID - 1)
         else:
             self.update_status('picks discarded ({0})'.format(station))
         if not self.get_loc_flag() and self.check4Loc():
@@ -2329,6 +2331,9 @@ class MainWindow(QMainWindow):
             self.set_loc_flag(True)
         elif self.get_loc_flag() and not self.check4Loc():
             self.set_loc_flag(False)
+
+    def toggle_next_station(self, signal):
+        self.nextStation = bool(signal)
 
     def addListItem(self, text):
         self.listWidget.addItem(text)
