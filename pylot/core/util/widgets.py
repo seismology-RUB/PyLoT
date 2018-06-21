@@ -518,8 +518,8 @@ class WaveformWidgetPG(QtGui.QWidget):
             self.perm_labels.append(label)
         self.qcombo_processed = QtGui.QComboBox()
         self.syn_checkbox = QtGui.QCheckBox('synthetics')
-        self.addQCboxItem('raw', 'black')
         self.addQCboxItem('processed', 'green')
+        self.addQCboxItem('raw', 'black')
         #self.perm_qcbox_right.setAlignment(2)
         self.setLayout(self.main_layout)
 
