@@ -16,6 +16,9 @@ import time
 
 import numpy as np
 
+import matplotlib
+matplotlib.use('QT4Agg')
+
 from matplotlib.figure import Figure
 
 try:
@@ -1400,7 +1403,7 @@ class PickDlg(QDialog):
 
         # fill compare and scale channels
         self.compareChannel.addItem('-', None)
-        self.scaleChannel.addItem('normalized', None)
+        self.scaleChannel.addItem('individual', None)
 
         for trace in self.getWFData():
             channel = trace.stats.channel
@@ -1601,7 +1604,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
         _dialtoolbar.addWidget(self.compareChannel)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtGui.QLabel('Scale by: '))
+        _dialtoolbar.addWidget(QtGui.QLabel('Scaling: '))
         _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
@@ -2942,7 +2945,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                widget.setParent(None)
+                del(widget)
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -3473,9 +3476,7 @@ class TuneAutopicker(QWidget):
     def clear_all(self):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
-                self.pdlg_widget.setParent(None)
-                # TODO: removing widget by parent deletion raises exception when activating stationbox:
-                # RuntimeError: Internal C++ object (PylotCanvas) already deleted.
+                del(self.pdlg_widget)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):
