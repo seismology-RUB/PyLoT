@@ -2481,6 +2481,7 @@ class MainWindow(QMainWindow):
         # export current picks etc.
         self.exportAllEvents(['.xml'])
 
+        wfpath = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else ''
         # define arguments for picker
         args = {'parameter': self._inputs,
                 'station': 'all',
@@ -2490,8 +2491,8 @@ class MainWindow(QMainWindow):
                 'fig_dict': None,
                 'fig_dict_wadatijack': self.fig_dict_wadatijack,
                 'locflag': 0,
-                'savexml': False}
-
+                'savexml': False,
+                'obspyDMT_wfpath': wfpath}
         # init pick thread
         self.mp_thread = QtCore.QThreadPool()
         self.mp_worker = Worker(autoPyLoT, args, redirect_stdout=True)

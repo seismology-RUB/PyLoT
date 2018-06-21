@@ -3409,6 +3409,7 @@ class TuneAutopicker(QWidget):
         if not station:
             self._warn('No station selected')
             return
+        wfpath = self.wftype if self.obspy_dmt else ''
         args = {'parameter': self.parameter,
                 'station': station,
                 'fnames': 'None',
@@ -3417,7 +3418,7 @@ class TuneAutopicker(QWidget):
                 'fig_dict': self.fig_dict,
                 'locflag': 0,
                 'savexml': False,
-                'obspyDMT_wfpath': self.obspy_dmt}
+                'obspyDMT_wfpath': wfpath}
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
