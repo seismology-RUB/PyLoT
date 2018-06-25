@@ -300,7 +300,6 @@ class AICPicker(AutoPicker):
             datafit = np.polyval(P, xslope)
             if datafit[0] >= datafit[-1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
-                #return
             else:
                 self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
 
