@@ -196,6 +196,69 @@ def read_metadata(path_to_inventory):
     return invtype, robj
 
 
+# idea to optimize read_metadata
+# def read_metadata_new(path_to_inventory):
+#     metadata_objects = []
+#     # read multiple files from directory
+#     if os.path.isdir(path_to_inventory):
+#         fnames = os.listdir(path_to_inventory)
+#     # read single file
+#     elif os.path.isfile(path_to_inventory):
+#         fnames = [path_to_inventory]
+#     else:
+#         print("Neither dataless-SEED file, inventory-xml file nor "
+#               "RESP-file found!")
+#         print("!!WRONG CALCULATION OF SOURCE PARAMETERS!!")
+#         fnames = []
+#
+#     for fname in fnames:
+#         path_to_inventory_filename = os.path.join(path_to_inventory, fname)
+#         try:
+#             ftype, robj = read_metadata_file(path_to_inventory_filename)
+#             metadata_objects.append((ftype, robj))
+#         except Exception as e:
+#             print('Could not read metadata file {} '
+#                   'because of the following Exception: {}'.format(path_to_inventory_filename, e))
+#     return metadata_objects
+
+
+# def read_metadata_file(path_to_inventory_filename):
+#     # functions used to read metadata for different file endings (or file types)
+#     read_functions = {'dless': _read_dless,
+#                       'dseed': _read_dless,
+#                       'xml': _read_inventory_file,
+#                       'resp': _read_inventory_file}
+#     file_ending = path_to_inventory_filename.split('.')[-1]
+#     if file_ending in read_functions.keys():
+#         robj, exc = read_functions[file_ending](path_to_inventory_filename)
+#         if exc is not None:
+#             raise exc
+#         return file_ending, robj
+#     # in case file endings did not match the above keys, try and error
+#     for file_type in ['dless', 'xml']:
+#         robj, exc = read_functions[file_type](path_to_inventory_filename)
+#         if exc is None:
+#             return file_type, robj
+#
+#
+# def _read_dless(path_to_inventory):
+#     exc = None
+#     try:
+#         parser = Parser(path_to_inventory)
+#     except Exception as exc:
+#         parser = None
+#     return parser, exc
+#
+#
+# def _read_inventory_file(path_to_inventory):
+#     exc = None
+#     try:
+#         inv = read_inventory(path_to_inventory)
+#     except Exception as exc:
+#         inv = None
+#     return inv, exc
+
+
 def restitute_trace(input_tuple):
     tr, invtype, inobj, unit, force = input_tuple
 
