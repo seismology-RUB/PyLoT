@@ -253,7 +253,7 @@ class AICPicker(AutoPicker):
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
-            if len(dataslope) <= 2:
+            if len(dataslope) < 2:
                 print('No or not enough data in slope window found!')
                 return
             try:
@@ -300,8 +300,9 @@ class AICPicker(AutoPicker):
             datafit = np.polyval(P, xslope)
             if datafit[0] >= datafit[-1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
-                return
-            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
+                #return
+            else:
+                self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
 
         else:
             self.SNR = None
@@ -342,8 +343,11 @@ class AICPicker(AutoPicker):
                             label='Slope Window')
                 ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2, label='Slope')
 
-                ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
-                                                                                 self.SNR, self.slope))
+                if self.slope is not None:
+                    ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
+                                                                                     self.SNR, self.slope))
+                else:
+                    ax1.set_title('Station %s, SNR=%7.2f' % (self.Data[0].stats.station, self.SNR))
                 ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
