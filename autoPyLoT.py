@@ -178,7 +178,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print("                 !!!              ")
 
         wfpath_extension = ''
-        if obspyDMT_wfpath not in [None, False]:
+        if obspyDMT_wfpath not in [None, False, 'False']:
             wfpath_extension = obspyDMT_wfpath
             print('Using obspyDMT structure. There will be no restitution, as pre-processed data are expected.')
             if wfpath_extension != 'processed':
@@ -281,10 +281,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = check4gaps(wfdat)
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
-            if not wfpath_extension:
-                metadata = read_metadata(parameter.get('invdir'))
-            else:
-                metadata = None
+            metadata = read_metadata(parameter.get('invdir'))
+            # TODO: (idea) read metadata from obspy_dmt database
+            # if not wfpath_extension:
+            #     metadata = read_metadata(parameter.get('invdir'))
+            # else:
+            #     metadata = None
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
@@ -530,9 +532,12 @@ if __name__ == "__main__":
     parser.add_argument('-c', '-C', '--ncores', type=int,
                         action='store', default=0,
                         help='''optional, number of CPU cores used for parallel processing (default: all available(=0))''')
+    parser.add_argument('-dmt', '-DMT', '--obspy_dmt_wfpath', type=str,
+                        action='store', default=False,
+                        help='''optional, wftype (raw, processed) used for obspyDMT database structure''')
 
     cla = parser.parse_args()
 
     picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
                       eventid=str(cla.eventid), savepath=str(cla.spath),
-                      ncores=cla.ncores, iplot=int(cla.iplot))
+                      ncores=cla.ncores, iplot=int(cla.iplot), obspyDMT_wfpath=str(cla.obspy_dmt_wfpath))
