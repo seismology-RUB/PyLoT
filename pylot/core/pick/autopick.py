@@ -333,7 +333,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             return
 
         Ldiff = Lwf - abs(Lc)
-        if Ldiff < 0 or pstop <= pstart:
+        if Ldiff <= 0 or pstop <= pstart or pstop - pstart <= thosmw:
             msg = 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!\nUsing entire waveform instead!'
             if verbose: print(msg)
