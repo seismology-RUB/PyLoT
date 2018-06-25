@@ -253,13 +253,15 @@ class AICPicker(AutoPicker):
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
-            if len(dataslope) <= 1:
+            if len(dataslope) <= 2:
                 print('No or not enough data in slope window found!')
                 return
-            imaxs, = argrelmax(dataslope)
-            if imaxs.size:
+            try:
+                imaxs, = argrelmax(dataslope)
+                imaxs.size
                 imax = imaxs[0]
-            else:
+            except ValueError as e:
+                print(e, 'picker: argrelmax not working!')
                 imax = np.argmax(dataslope)
             iislope = islope[0][0:imax + 1]
             if len(iislope) < 2:

@@ -564,7 +564,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      SNRPdB,
                                                                      FM)
                 print(msg)
-                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
                 print(msg)
                 Sflag = 1
 
@@ -843,7 +842,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     lpickS = lpick[ipick]
                     Serror = pickerr[ipick]
 
-                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(mpickS, Serror)
+                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(hdat[0].stats.starttime + mpickS, Serror)
                     print(msg)
 
                     # get SNR
