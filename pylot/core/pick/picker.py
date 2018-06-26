@@ -239,7 +239,7 @@ class AICPicker(AutoPicker):
                 print(msg)
                 return
             # calculate SNR from CF
-            self.SNR = max(abs(self.Data[0].data[isignal] - np.mean(self.Data[0].data[isignal]))) / \
+            self.SNR = max(abs(self.Data[0].data[isignal])) / \
                        max(abs(self.Data[0].data[inoise] - np.mean(self.Data[0].data[inoise])))
             # calculate slope from CF after initial pick
             # get slope window
