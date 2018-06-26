@@ -43,7 +43,7 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif isinstance(evtdata, str):
+        elif type(evtdata) in [str, unicode]:
             try:
                 cat = read_events(evtdata)
                 if len(cat) is not 1:

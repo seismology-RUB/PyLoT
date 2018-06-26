@@ -222,41 +222,72 @@ def read_metadata(path_to_inventory):
 #     return metadata_objects
 
 
-# def read_metadata_file(path_to_inventory_filename):
-#     # functions used to read metadata for different file endings (or file types)
-#     read_functions = {'dless': _read_dless,
-#                       'dseed': _read_dless,
-#                       'xml': _read_inventory_file,
-#                       'resp': _read_inventory_file}
-#     file_ending = path_to_inventory_filename.split('.')[-1]
-#     if file_ending in read_functions.keys():
-#         robj, exc = read_functions[file_ending](path_to_inventory_filename)
-#         if exc is not None:
-#             raise exc
-#         return file_ending, robj
-#     # in case file endings did not match the above keys, try and error
-#     for file_type in ['dless', 'xml']:
-#         robj, exc = read_functions[file_type](path_to_inventory_filename)
-#         if exc is None:
-#             return file_type, robj
-#
-#
-# def _read_dless(path_to_inventory):
-#     exc = None
-#     try:
-#         parser = Parser(path_to_inventory)
-#     except Exception as exc:
-#         parser = None
-#     return parser, exc
-#
-#
-# def _read_inventory_file(path_to_inventory):
-#     exc = None
-#     try:
-#         inv = read_inventory(path_to_inventory)
-#     except Exception as exc:
-#         inv = None
-#     return inv, exc
+def read_metadata_iterator(path_to_inventory, station_seed_id):
+    '''
+    # search for metadata for a specific station iteratively
+    '''
+    station, network, location, channel = station_seed_id.split('.')
+    fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
+    if not fnames:
+        # search for station name in filename
+        fnames = glob.glob(os.path.join(path_to_inventory, '*' + station + '*'))
+    if not fnames:
+        # search for network name in filename
+        fnames = glob.glob(os.path.join(path_to_inventory, '*' + network + '*'))
+    if not fnames:
+        print('Could not find filenames matching station name, network name or seed id')
+        return
+    for fname in fnames:
+        invtype, robj = read_metadata_file(os.path.join(path_to_inventory, fname))
+        try:
+            robj.get_coordinates(station_seed_id)
+            return invtype, robj
+        except Exception as e:
+            continue
+    print('Could not find metadata for station_seed_id {} in path {}'.format(station_seed_id, path_to_inventory))
+
+
+
+def read_metadata_file(path_to_inventory_filename):
+    '''
+    function reading metadata files (either dataless seed, xml or resp)
+    :param path_to_inventory_filename:
+    :return: file type/ending, inventory object (Parser or Inventory)
+    '''
+    # functions used to read metadata for different file endings (or file types)
+    read_functions = {'dless': _read_dless,
+                      'dseed': _read_dless,
+                      'xml': _read_inventory_file,
+                      'resp': _read_inventory_file}
+    file_ending = path_to_inventory_filename.split('.')[-1]
+    if file_ending in read_functions.keys():
+        robj, exc = read_functions[file_ending](path_to_inventory_filename)
+        if exc is not None:
+            raise exc
+        return file_ending, robj
+    # in case file endings did not match the above keys, try and error
+    for file_type in ['dless', 'xml']:
+        robj, exc = read_functions[file_type](path_to_inventory_filename)
+        if exc is None:
+            return file_type, robj
+
+
+def _read_dless(path_to_inventory):
+    exc = None
+    try:
+        parser = Parser(path_to_inventory)
+    except Exception as exc:
+        parser = None
+    return parser, exc
+
+
+def _read_inventory_file(path_to_inventory):
+    exc = None
+    try:
+        inv = read_inventory(path_to_inventory)
+    except Exception as exc:
+        inv = None
+    return inv, exc
 
 
 def restitute_trace(input_tuple):

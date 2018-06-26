@@ -3476,6 +3476,7 @@ class TuneAutopicker(QWidget):
     def clear_all(self):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
+                self.pdlg_widget.setParent(None)
                 del(self.pdlg_widget)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)

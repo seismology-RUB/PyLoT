@@ -194,16 +194,16 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
             elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
                 # single event processing
-                events = glob.glob(os.path.join(datapath, parameter['eventID'], wfpath_extension))
+                events = glob.glob(os.path.join(datapath, parameter['eventID']))
             elif fnames == 'None' and type(parameter['eventID']) == list:
                 # multiple event processing
                 events = []
                 for eventID in parameter['eventID']:
-                    events.append(os.path.join(datapath, eventID, wfpath_extension))
+                    events.append(os.path.join(datapath, eventID))
             else:
                 # autoPyLoT was initialized from GUI
                 events = []
-                events.append(os.path.join(eventid, wfpath_extension))
+                events.append(eventid)
                 evID = os.path.split(eventid)[-1]
                 locflag = 2
         else:
@@ -214,8 +214,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             for eventID in eventid:
                 events.append(os.path.join(datapath,
                                            parameter['database'],
-                                           eventID,
-                                           wfpath_extension))
+                                           eventID))
 
         if not events:
             print('autoPyLoT: No events given. Return!')
@@ -229,10 +228,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         allpicks = {}
         glocflag = locflag
         for eventpath in events:
-            if not wfpath_extension:
-                evID = os.path.split(eventpath)[-1]
-            else:
-                evID = os.path.split(os.path.split(eventpath)[0])[-1]
+            evID = os.path.split(eventpath)[-1]
+            if wfpath_extension:
+                event_datapath = os.path.join(eventpath, wfpath_extension)
             fext = '.xml'
             filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
             try:
@@ -245,7 +243,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 pylot_event = Event(eventpath)  # event should be path to event directory
                 data.setEvtData(pylot_event)
             if fnames == 'None':
-                data.setWFData(glob.glob(os.path.join(datapath, eventpath, '*')))
+                data.setWFData(glob.glob(os.path.join(datapath, event_datapath, '*')))
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in
