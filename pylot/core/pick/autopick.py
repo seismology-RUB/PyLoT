@@ -100,9 +100,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, 1, fig_dict_wadatijack)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, iplot, fig_dict_wadatijack)
     # check S-P times (Wadati)
-    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
+    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, iplot, fig_dict_wadatijack)
     return wadationsets
 
 
