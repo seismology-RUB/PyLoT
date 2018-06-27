@@ -239,7 +239,7 @@ class AICPicker(AutoPicker):
                 print(msg)
                 return
             # calculate SNR from CF
-            self.SNR = max(abs(self.Data[0].data[isignal] - np.mean(self.Data[0].data[isignal]))) / \
+            self.SNR = max(abs(self.Data[0].data[isignal])) / \
                        max(abs(self.Data[0].data[inoise] - np.mean(self.Data[0].data[inoise])))
             # calculate slope from CF after initial pick
             # get slope window
@@ -253,13 +253,15 @@ class AICPicker(AutoPicker):
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
-            if len(dataslope) <= 1:
+            if len(dataslope) < 2:
                 print('No or not enough data in slope window found!')
                 return
-            imaxs, = argrelmax(dataslope)
-            if imaxs.size:
+            try:
+                imaxs, = argrelmax(dataslope)
+                imaxs.size
                 imax = imaxs[0]
-            else:
+            except ValueError as e:
+                print(e, 'picker: argrelmax not working!')
                 imax = np.argmax(dataslope)
             iislope = islope[0][0:imax + 1]
             if len(iislope) < 2:
@@ -298,8 +300,8 @@ class AICPicker(AutoPicker):
             datafit = np.polyval(P, xslope)
             if datafit[0] >= datafit[-1]:
                 print('AICPicker: Negative slope, bad onset skipped!')
-                return
-            self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
+            else:
+                self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
 
         else:
             self.SNR = None
@@ -340,8 +342,11 @@ class AICPicker(AutoPicker):
                             label='Slope Window')
                 ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2, label='Slope')
 
-                ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
-                                                                                 self.SNR, self.slope))
+                if self.slope is not None:
+                    ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
+                                                                                     self.SNR, self.slope))
+                else:
+                    ax1.set_title('Station %s, SNR=%7.2f' % (self.Data[0].stats.station, self.SNR))
                 ax2.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])

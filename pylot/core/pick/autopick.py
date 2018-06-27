@@ -100,9 +100,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, 1, fig_dict_wadatijack)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, iplot, fig_dict_wadatijack)
     # check S-P times (Wadati)
-    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
+    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, iplot, fig_dict_wadatijack)
     return wadationsets
 
 
@@ -333,7 +333,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             return
 
         Ldiff = Lwf - abs(Lc)
-        if Ldiff < 0 or pstop <= pstart:
+        if Ldiff <= 0 or pstop <= pstart or pstop - pstart <= thosmw:
             msg = 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!\nUsing entire waveform instead!'
             if verbose: print(msg)
@@ -564,7 +564,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      SNRPdB,
                                                                      FM)
                 print(msg)
-                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
+                msg = 'autopickstation: Refind P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
+                                                                             + mpickP, Perror)
                 print(msg)
                 Sflag = 1
 
@@ -843,7 +844,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     lpickS = lpick[ipick]
                     Serror = pickerr[ipick]
 
-                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(mpickS, Serror)
+                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(hdat[0].stats.starttime \
+                                                                                  + mpickS, Serror)
                     print(msg)
 
                     # get SNR

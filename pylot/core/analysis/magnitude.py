@@ -6,6 +6,7 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
@@ -219,7 +220,7 @@ class LocalMagnitude(Magnitude):
         sqH = np.sqrt(power_sum)
 
         # get time array
-        th = np.arange(0, len(sqH) * dt, dt)
+        th=np.arange(0, st[0].stats.npts/st[0].stats.sampling_rate, st[0].stats.delta)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         ii = min([iwin[len(iwin) - 1], len(th)])
