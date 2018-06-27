@@ -1428,7 +1428,10 @@ class MainWindow(QMainWindow):
     def exportAllEvents(self, outformats=['.xml']):
         for event in self.project.eventlist:
             self.get_data().setEvtData(event)
-            self.saveData(event, event.path, outformats)
+            try:
+                self.saveData(event, event.path, outformats)
+            except Exception as e:
+                print('WARNING! Could not save event {}. Reason: {}'.format(event.path, e))
 
     def enableSaveEventAction(self):
         self.saveEventAction.setEnabled(True)
