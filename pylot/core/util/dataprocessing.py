@@ -12,6 +12,186 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
     remove_underscores, gen_Pool
 
 
+class Metadata(object):
+    def __init__(self, inventory=None):
+        self.inventories = []
+        if os.path.isdir(inventory):
+            self.add_inventory(inventory)
+        if os.path.isfile(inventory):
+            self.add_inventory_file(inventory)
+        self.seed_ids = {}
+        self.inventory_files = {}
+
+
+    def add_inventory(self, path_to_inventory):
+        # add paths to list of inventories
+        assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
+        if not path_to_inventory in self.inventories:
+            self.inventories.append(path_to_inventory)
+
+
+    def add_inventory_file(self, path_to_inventory_file):
+        assert (os.path.isfile(path_to_inventory_file)), '{} is no directory'.format(path_to_inventory_file)
+        self.add_inventory(os.path.split(path_to_inventory_file)[0])
+        if not path_to_inventory_file in self.inventory_files.keys():
+            self.read_single_file(path_to_inventory_file)
+
+
+    def remove_inventory(self, path_to_inventory):
+        if not path_to_inventory in self.inventories:
+            print('Path {} not in inventories list.'.format(path_to_inventory))
+            return
+        self.inventories.remove(path_to_inventory)
+
+
+    def get_metadata(self, seed_id):
+        # get metadata for a specific seed_id, if not already read, try to read from inventories
+        if not seed_id in self.seed_ids.keys():
+            self._read_inventory_data(seed_id)
+        # if seed id is not found read all inventories and try to find it there
+        if not seed_id in self.seed_ids.keys():
+            print('No data found for seed id {}. Trying to find it in all known inventories...'.format(seed_id))
+            self.read_all()
+            for inv_fname, metadata in self.inventory_files.items():
+                # use get_coordinates to check for seed_id
+                if metadata['data'].get_coordinates(seed_id):
+                    self.seed_ids[seed_id] = inv_fname
+                    return metadata
+            print('Could not find metadata for station {}'.format(seed_id))
+            return None
+        fname = self.seed_ids[seed_id]
+        return self.inventory_files[fname]
+
+
+    def read_all(self):
+        for inventory in self.inventories:
+            for inv_fname in os.listdir(inventory):
+                inv_fname = os.path.join(inventory, inv_fname)
+                if not self.read_single_file(inv_fname):
+                    continue
+
+
+    def read_single_file(self, inv_fname):
+        if not inv_fname in self.inventory_files.keys():
+            pass
+        else:
+            if not self.inventory_files[inv_fname]:
+                pass
+            else:
+                return
+        try:
+            invtype, robj = self._read_metadata_file(inv_fname)
+            if robj == None:
+                return
+        except Exception as e:
+            print('Could not read file {}'.format(inv_fname))
+            return
+        self.inventory_files[inv_fname] = {'invtype': invtype,
+                                           'data': robj}
+        return True
+
+
+    def get_coordinates(self, seed_id):
+        metadata = self.get_metadata(seed_id)
+        return metadata['data'].get_coordinates(seed_id)
+
+
+    def get_paz(self, seed_id, time=None):
+        metadata = self.get_metadata(seed_id)
+        if metadata['invtype'] in ['dless', 'dseed']:
+            return metadata['data'].get_paz(seed_id)
+        elif metadata['invtype'] in ['resp', 'xml']:
+            if not time:
+                print('Time needed to extract metadata from station inventory.')
+                return None
+            resp = metadata['data'].get_response(seed_id, time)
+            return resp.get_paz(seed_id)
+
+
+    def _read_inventory_data(self, seed_id=None):
+        for inventory in self.inventories:
+            if self._read_metadata_iterator(path_to_inventory=inventory, station_seed_id=seed_id):
+                return
+
+
+    def _read_metadata_iterator(self, path_to_inventory, station_seed_id):
+        '''
+        search for metadata for a specific station iteratively
+        '''
+        station, network, location, channel = station_seed_id.split('.')
+        fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
+        if not fnames:
+            # search for station name in filename
+            fnames = glob.glob(os.path.join(path_to_inventory, '*' + station + '*'))
+        if not fnames:
+            # search for network name in filename
+            fnames = glob.glob(os.path.join(path_to_inventory, '*' + network + '*'))
+        if not fnames:
+            print('Could not find filenames matching station name, network name or seed id')
+            return
+        for fname in fnames:
+            if fname in self.inventory_files.keys():
+                if self.inventory_files[fname]:
+                    # file already read
+                    continue
+            invtype, robj = self._read_metadata_file(os.path.join(path_to_inventory, fname))
+            try:
+                robj.get_coordinates(station_seed_id)
+                self.inventory_files[fname] = {'invtype': invtype,
+                                               'data': robj}
+                if station_seed_id in self.seed_ids.keys():
+                    print('WARNING: Overwriting metadata for station {}'.format(station_seed_id))
+                self.seed_ids[station_seed_id] = fname
+                return True
+            except Exception as e:
+                continue
+        print('Could not find metadata for station_seed_id {} in path {}'.format(station_seed_id, path_to_inventory))
+
+
+    def _read_metadata_file(self, path_to_inventory_filename):
+        '''
+        function reading metadata files (either dataless seed, xml or resp)
+        :param path_to_inventory_filename:
+        :return: file type/ending, inventory object (Parser or Inventory)
+        '''
+        # functions used to read metadata for different file endings (or file types)
+        read_functions = {'dless': self._read_dless,
+                          'dseed': self._read_dless,
+                          'xml': self._read_inventory_file,
+                          'resp': self._read_inventory_file}
+        file_ending = path_to_inventory_filename.split('.')[-1]
+        if file_ending in read_functions.keys():
+            robj, exc = read_functions[file_ending](path_to_inventory_filename)
+            if exc is not None:
+                raise exc
+            return file_ending, robj
+        # in case file endings did not match the above keys, try and error
+        for file_type in ['dless', 'xml']:
+            robj, exc = read_functions[file_type](path_to_inventory_filename)
+            if exc is None:
+                return file_type, robj
+        return None, None
+
+
+    def _read_dless(self, path_to_inventory):
+        exc = None
+        try:
+            parser = Parser(path_to_inventory)
+        except Exception as exc:
+            parser = None
+        return parser, exc
+
+
+    def _read_inventory_file(self, path_to_inventory):
+        exc = None
+        try:
+            inv = read_inventory(path_to_inventory)
+        except Exception as exc:
+            inv = None
+        return inv, exc
+
+
+
 def time_from_header(header):
     """
     Function takes in the second line from a .gse file and takes out the date and time from that line.
@@ -221,73 +401,6 @@ def read_metadata(path_to_inventory):
 #                   'because of the following Exception: {}'.format(path_to_inventory_filename, e))
 #     return metadata_objects
 
-
-def read_metadata_iterator(path_to_inventory, station_seed_id):
-    '''
-    # search for metadata for a specific station iteratively
-    '''
-    station, network, location, channel = station_seed_id.split('.')
-    fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
-    if not fnames:
-        # search for station name in filename
-        fnames = glob.glob(os.path.join(path_to_inventory, '*' + station + '*'))
-    if not fnames:
-        # search for network name in filename
-        fnames = glob.glob(os.path.join(path_to_inventory, '*' + network + '*'))
-    if not fnames:
-        print('Could not find filenames matching station name, network name or seed id')
-        return
-    for fname in fnames:
-        invtype, robj = read_metadata_file(os.path.join(path_to_inventory, fname))
-        try:
-            robj.get_coordinates(station_seed_id)
-            return invtype, robj
-        except Exception as e:
-            continue
-    print('Could not find metadata for station_seed_id {} in path {}'.format(station_seed_id, path_to_inventory))
-
-
-
-def read_metadata_file(path_to_inventory_filename):
-    '''
-    function reading metadata files (either dataless seed, xml or resp)
-    :param path_to_inventory_filename:
-    :return: file type/ending, inventory object (Parser or Inventory)
-    '''
-    # functions used to read metadata for different file endings (or file types)
-    read_functions = {'dless': _read_dless,
-                      'dseed': _read_dless,
-                      'xml': _read_inventory_file,
-                      'resp': _read_inventory_file}
-    file_ending = path_to_inventory_filename.split('.')[-1]
-    if file_ending in read_functions.keys():
-        robj, exc = read_functions[file_ending](path_to_inventory_filename)
-        if exc is not None:
-            raise exc
-        return file_ending, robj
-    # in case file endings did not match the above keys, try and error
-    for file_type in ['dless', 'xml']:
-        robj, exc = read_functions[file_type](path_to_inventory_filename)
-        if exc is None:
-            return file_type, robj
-
-
-def _read_dless(path_to_inventory):
-    exc = None
-    try:
-        parser = Parser(path_to_inventory)
-    except Exception as exc:
-        parser = None
-    return parser, exc
-
-
-def _read_inventory_file(path_to_inventory):
-    exc = None
-    try:
-        inv = read_inventory(path_to_inventory)
-    except Exception as exc:
-        inv = None
-    return inv, exc
 
 
 def restitute_trace(input_tuple):
