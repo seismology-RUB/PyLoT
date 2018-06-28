@@ -2764,7 +2764,7 @@ class MainWindow(QMainWindow):
             self.PyLoTprefs()
             self.locate_event()
 
-        ctrfile = parameter['ctrfile']
+        ctrfile = os.path.join(locroot, 'run', parameter['ctrfile'])
 
         ttt = parameter['ttpatter']
         outfile = parameter['outpatter']
