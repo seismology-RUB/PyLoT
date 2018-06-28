@@ -3419,7 +3419,6 @@ class TuneAutopicker(QWidget):
                 'eventid': [self.get_current_event_fp()],
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
-                'locflag': 0,
                 'savexml': False,
                 'obspyDMT_wfpath': wfpath}
         for key in self.fig_dict.keys():

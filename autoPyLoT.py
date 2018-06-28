@@ -94,7 +94,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     fig_dict = None
     fig_dict_wadatijack = None
 
-    locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
             parameter = input_dict['parameter']
@@ -110,8 +109,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             eventid = input_dict['eventid']
         if 'iplot' in input_dict:
             iplot = input_dict['iplot']
-        if 'locflag' in input_dict:
-            locflag = input_dict['locflag']
         if 'savexml' in input_dict:
             savexml = input_dict['savexml']
         if 'obspyDMT_wfpath' in input_dict:
@@ -153,7 +150,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available
-        if real_None(parameter['nllocbin']) and locflag:
+        if real_None(parameter['nllocbin']):
+            locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
             # get path to NLLoc executable
@@ -178,7 +176,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             print("                 !!!              ")
 
         wfpath_extension = ''
-        if obspyDMT_wfpath not in [None, False, 'False']:
+        if obspyDMT_wfpath not in [None, False, 'False', '']:
             wfpath_extension = obspyDMT_wfpath
             print('Using obspyDMT structure. There will be no restitution, as pre-processed data are expected.')
             if wfpath_extension != 'processed':

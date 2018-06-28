@@ -2498,7 +2498,6 @@ class MainWindow(QMainWindow):
                 'iplot': 0,
                 'fig_dict': None,
                 'fig_dict_wadatijack': self.fig_dict_wadatijack,
-                'locflag': 0,
                 'savexml': False,
                 'obspyDMT_wfpath': wfpath}
         # init pick thread
@@ -2756,55 +2755,28 @@ class MainWindow(QMainWindow):
         """
         if not self.okToContinue():
             return
-        settings = QSettings()
-        # get location tool hook
-        loctool = settings.value("loc/tool", "nll")
+        parameter = self._inputs
+        loctool = 'nll'
         lt = locateTool[loctool]
         # get working directory
-        locroot = settings.value("{0}/rootPath".format(loctool), None)
+        locroot = parameter['nllocroot']
         if locroot is None:
             self.PyLoTprefs()
             self.locate_event()
 
-        infile = settings.value("{0}/inputFile".format(loctool), None)
+        ctrfile = parameter['ctrfile']
 
-        if not infile:
-            caption = 'Select {0} input file'.format(loctool)
-            filt = "Supported file formats" \
-                   " (*.in *.ini *.conf *.cfg)"
-            ans = QFileDialog().getOpenFileName(self, caption=caption,
-                                                filter=filt, dir=locroot)
-            if ans[0]:
-                infile = ans[0]
-            else:
-                QMessageBox.information(self,
-                                        self.tr('No infile selected'),
-                                        self.tr('Inputfile necessary for localization.'))
-                return
-            settings.setValue("{0}/inputFile".format(loctool), infile)
-            settings.sync()
-        if loctool == 'nll':
-            ttt = settings.value("{0}/travelTimeTables", None)
-            ok = False
-            if ttt is None:
-                while not ok:
-                    text, ok = QInputDialog.getText(self, 'Pattern for travel time tables',
-                                                    'Base name of travel time tables',
-                                                    echo=QLineEdit.Normal,
-                                                    text="ttime")
-                ttt = text
-
-        outfile = settings.value("{0}/outputFile".format(loctool),
-                                 os.path.split(os.tempnam())[-1])
+        ttt = parameter['ttpatter']
+        outfile = parameter['outpatter']
         eventname = self.get_current_event_name()
         obsdir = os.path.join(self._inputs['rootpath'], self._inputs['datapath'], self._inputs['database'], eventname)
         self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
         filename = 'PyLoT_' + eventname
         locpath = os.path.join(locroot, 'loc', filename)
         phasefile = os.path.join(obsdir, filename + '.obs')
-        lt.modify_inputs(infile, locroot, filename, phasefile, ttt)
+        lt.modify_inputs(ctrfile, locroot, filename, phasefile, ttt)
         try:
-            lt.locate(infile)
+            lt.locate(ctrfile)
         except RuntimeError as e:
             print(e.message)
         #finally:

@@ -122,7 +122,13 @@ class Magnitude(object):
 
     def net_magnitude(self, magscaling=None):
         if self:
-            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+            if magscaling == None:
+                scaling = False
+            elif magscaling[0] != 0 and magscaling[1] != 0:
+                scaling = False
+            else:
+                scaling = True
+            if scaling:
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(
@@ -141,7 +147,6 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
-        return None
 
 
 class LocalMagnitude(Magnitude):
