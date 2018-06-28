@@ -229,8 +229,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         glocflag = locflag
         for eventpath in events:
             evID = os.path.split(eventpath)[-1]
-            if wfpath_extension:
-                event_datapath = os.path.join(eventpath, wfpath_extension)
+            event_datapath = os.path.join(eventpath, wfpath_extension)
             fext = '.xml'
             filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
             try:
