@@ -140,6 +140,7 @@ def get_source_coords(parser, station_id):
 class PickingParameters(object):
     """
     Stores parameters used for picking a single station.
+    @DynamicAttrs (mark class so that PyCharm doesnt warn when accessing dynamically added attributes)
     """
 
     def __init__(self, *args, **kwargs):
@@ -164,6 +165,7 @@ class PickingParameters(object):
         for key, value in d.items():
             setattr(self, key, value)
 
+
 class PickingResults(dict):
 
     def __init__(self):
@@ -184,9 +186,6 @@ class PickingResults(dict):
         self.Perror = None  # symmetrized picking error P onset
         self.Serror = None  # symmetrized picking error S onset
 
-        #self.aicSflag = 0
-        #self.aicPflag = 0
-        #self.Pflag = 0
         self.Pmarker = []
         self.Ao = None  # Wood-Anderson peak-to-peak amplitude
         self.picker = 'auto'  # type of picks
@@ -318,12 +317,12 @@ class AutopickStation(object):
         """
         Prepare a waveformstream for picking by applying detrending, filtering and tapering. Creates a copy of the
         waveform the leave the original unchanged.
-        :param wfstream:
-        :type wfstream:
-        :param freqmin:
-        :type freqmin:
-        :param freqmax:
-        :type freqmax:
+        :param wfstream: waveform stream
+        :type wfstream: obspy.core.stream.Stream
+        :param freqmin: Lower frequency of bandpass or highpass
+        :type freqmin: float
+        :param freqmax: Upper frequency of bandpass or lowpass
+        :type freqmax: float
         :return: Tuple containing the changed waveform stream and the changed first trace of the stream
         :rtype: (obspy.core.trace.Trace, obspy.core.stream.Stream)
         """
@@ -425,7 +424,6 @@ class AutopickStation(object):
         if self.estream is not None and self.nstream is not None and len(self.estream) > 0 and len(self.nstream) > 0 and self.p_results.Pweight is not None and self.p_results.Pweight < 4:
             try:
                 self.pick_s_phase()
-            # TODO: when an exception occurs, return picking results so far. This requires that the pick methods save their results in the instance member of PickingResults
             except MissingTraceException as mte:
                 print(mte)
             except PickingFailedException as pfe:
@@ -601,13 +599,12 @@ class AutopickStation(object):
             cf1 = None
         # save cf1 for plotting
         self.cf1 = cf1
-        assert isinstance(cf1, CharacteristicFunction), 'cf2 is not set ' \
+        assert isinstance(cf1, CharacteristicFunction), 'cf1 is not set ' \
                                                         'correctly: maybe the algorithm name ({algoP}) is ' \
                                                         'corrupted'.format(algoP=self.p_params.algoP)
-        # AICcf needs stream object -> build it
-        tr_aic = tr_filt.copy()
-        tr_aic.data = cf1.getCF()
-        z_copy[0].data = tr_aic.data
+
+        # calculate AIC cf from first cf (either HOS or ARZ)
+        z_copy[0].data = cf1.getCF()
         aiccf = AICcf(z_copy, cuttimes)
         # get preliminary onset time from AIC-CF
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
@@ -891,11 +888,11 @@ class AutopickStation(object):
 def get_fig_from_figdict(figdict, figkey):
     """
     Helper method to extract a figure by name from dictionary
-    :param figdict:
+    :param figdict: Dictionary of matplotlib figures
     :type figdict: dict
-    :param figkey:
+    :param figkey: which figure to extract from figdict
     :type figkey: str
-    :return:
+    :return: Figure and linecolor as a tuple
     :rtype:
     """
     if figdict is None:
