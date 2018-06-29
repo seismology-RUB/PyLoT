@@ -1727,7 +1727,7 @@ class PickDlg(QDialog):
             self.arrivalsText.append(ax.text(time_rel, ylims[0], arrival.name, color='0.5'))
 
     def drawArrivalsText(self):
-        return self.drawArrivals(True)
+        return self.drawArrivals(textOnly=True)
 
     def refreshArrivalsText(self, event=None):
         self.removeArrivalsText()
@@ -2682,6 +2682,7 @@ class PickDlg(QDialog):
             phase = 'S'
             filter = True
         self.plotWFData(phase=phase, filter=filter)
+        self.drawArrivals()
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
