@@ -3422,6 +3422,8 @@ class TuneAutopicker(QWidget):
                 'fig_dict': self.fig_dict,
                 'savexml': False,
                 'obspyDMT_wfpath': wfpath}
+        event = self.get_current_event()
+        self.parent().saveData(event, event.path, '.xml')
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
