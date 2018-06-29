@@ -504,6 +504,65 @@ class AutopickStation(object):
         self.s_results.picker='auto'
         self.s_results.Ao = None
 
+    def pick_p_qc1(self, aicpick, z_copy, tr_filt):
+        """
+        Quality control of first pick using minseglength and checkZ4S.
+        :param aicpick: Instance of AICPicker to run quality control on
+        :type aicpick: AICPicker
+        :param z_copy: Stream if vertical trace, data replaced with values from from initial CF (HOScf or ARHcf)
+        :type z_copy: obspy.core.stream.Stream
+        :param tr_filt: Filtered and tapered trace of vertical component
+        :type tr_filt: obspy.core.trace.trace
+        :return: Flag if P onset passed quality control, 1 if passed, 0 if failed.
+        :rtype: int
+        """
+
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'slength')
+        if aicpick.getpick() is None:
+            msg = "Bad initial (AIC) P-pick, skipping this onset!\nAIC-SNR={0}, AIC-Slope={1}counts/s\n " \
+                  "(min. AIC-SNR={2}, min. AIC-Slope={3}counts/s)"
+            msg = msg.format(aicpick.getSNR(), aicpick.getSlope(), self.p_params.minAICPSNR, self.p_params.minAICPslope)
+            self.vprint(msg)
+            return 0
+        # Quality check initial pick with minimum signal length
+        z_copy[0].data = tr_filt.data  # save filtered, tapered trace in z_copy stream object
+        zne = z_copy
+        if len(self.nstream) == 0 or len(self.estream) == 0:
+            msg = 'One or more horizontal component(s) missing!\n' \
+                  'Signal length only checked on vertical component!\n' \
+                  'Decreasing minsiglengh from {0} to {1}'\
+                  .format(self.signal_length_params.minsiglength, self.signal_length_params.minsiglength / 2)
+            self.vprint(msg)
+            minsiglength = self.signal_length_params.minsiglength / 2
+        else:
+            # filter, taper other traces as well since signal length is compared on all traces
+            trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
+            trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
+            zne += trH1_filt
+            zne += trH2_filt
+            minsiglength = self.signal_length_params.minsiglength
+        Pflag = checksignallength(zne, aicpick.getpick(), self.p_params.tsnrz, minsiglength,
+                                  self.signal_length_params.noisefactor, self.signal_length_params.minpercent,
+                                  self.iplot, fig, linecolor)
+        if Pflag == 0:
+            self.p_results.Pmarker = 'shortsignallength'
+            self.p_results.Pweight = 9
+            return 0
+
+        if self.nstream == self.estream:
+            # todo: old implementation skipped this test if one component was misisng, why not use one component?
+            msg = 'One or more horizontal components missing!\n Skipping control function checkZ4S.'
+            self.vprint(msg)
+            return 1
+
+        if self.iplot > 1: fig, linecolor = get_fig_from_figdict(self.fig_dict, 'checkZ4s')
+        Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
+        if Pflag == 0:
+            self.p_results.Pmarker = 'SinsteadP'
+            self.p_results.Pweight = 9
+            return 0
+        return 1
+
     def pick_p_phase(self):
         """
         Pick p phase, return results
@@ -561,42 +620,7 @@ class AutopickStation(object):
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'slength')
-        if aicpick.getpick() is not None:
-            z_copy[0].data = tr_filt.data
-            zne = z_copy
-            if len(self.nstream) == 0 or len(self.estream) == 0:
-                msg = 'One or more horizontal component(s) missing!\n' \
-                      'Signal length only checked on vertical component!\n' \
-                      'Decreasing minsiglengh from {0} to {1}' \
-                      .format(self.signal_length_params.minsiglength, self.signal_length_params.minsiglength/2)
-                self.vprint(msg)
-                minsiglength =  self.signal_length_params.minsiglength/2
-            else:
-                trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
-                trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
-                zne += trH1_filt
-                zne += trH2_filt
-                minsiglength = self.signal_length_params.minsiglength
-            Pflag = checksignallength(zne, aicpick.getpick(), self.p_params.tsnrz,
-                                      minsiglength,
-                                      self.signal_length_params.noisefactor,
-                                      self.signal_length_params.minpercent, self.iplot, fig, linecolor)
-        if Pflag == 1:
-            if self.nstream == self.estream:
-                msg = 'One or more horizontal components missing!\n' \
-                      'Skipping control function checkZ4S.'
-                self.vprint(msg)
-            else:
-                if self.iplot > 1:
-                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'checkZ4s')
-                Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
-                if Pflag == 0:
-                    self.p_results.Pmarker = 'SinsteadP'
-                    self.p_results.Pweight = 9
-        else:
-            self.p_results.Pmarker = 'shortsignallength'
-            self.p_results.Pweight = 9
+        Pflag = self.pick_p_qc1(aicpick, z_copy, tr_filt)
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
