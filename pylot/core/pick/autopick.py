@@ -388,11 +388,19 @@ class AutopickStation(object):
                   ' origin time using TauPy'.format(estFirstP, estFirstS))
             return estFirstP, estFirstS
 
+        if self.p_params.use_taup is False and self.p_params.pstart < 0:
+            # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
+            # not the required parameters
+            self.p_params.pstart = 0
+            return
+
         print('autopickstation: use_taup flag active.')
+        # catch missing metadata or origin information. Onset calculation is stopped, given cuttimes are then used.
         if not self.metadata[1]:
             raise AttributeError('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
         if not self.origin:
             raise AttributeError('No source origins given!')
+
         arrivals = create_arrivals(self.metadata, self.origin, self.station_id, self.p_params.taup_model)
         estFirstP, estFirstS = first_PS_onsets(arrivals)
         # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
@@ -515,31 +523,16 @@ class AutopickStation(object):
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz1[1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z = tr_filt
-        if self.p_params.use_taup is True and self.origin is not None:
-            Lc = np.inf  # what is Lc? DA
-            try:
-                self.modify_starttimes_taupy()
-            except AttributeError as ae:
-                print(ae)
-                #TODO handle case of no metadata/origin. Picking should continue without taupy.
-        if self.p_params.use_taup is False or self.origin:
-            Lc = self.p_params.pstop - self.p_params.pstart
-        Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
-        if Lwf < 0:
-            print('autopickstation: empty trace! Return!')
-            return
-            #Todo add correct exception here
-
-        Ldiff = Lwf - abs(Lc)
-        if Ldiff < 0 or self.p_params.pstop <= self.p_params.pstart:
-            msg = 'autopickstation: Cutting times are too large for actual waveform!\nUsing entire waveform instead!'
-            self.vprint(msg)
-            self.p_params.pstart = 0
-            self.p_params.pstop = len(self.ztrace.data) * self.ztrace.stats.delta
-        if self.p_params.use_taup is False and self.p_params.pstart < 0:
-            # cuttimes are based on start of trace when taupy is disabled, so a negative value does not make sense
-            self.p_params.pstart = 0
+        try:
+            # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
+            self.modify_starttimes_taupy()
+        except AttributeError as ae:
+            print(ae)
+        except MissingTraceException as mte:
+            print(mte)
         cuttimes = [self.p_params.pstart, self.p_params.pstop]
+
+        # calculate first CF
         if self.p_params.algoP == 'HOS':
             cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
         elif self.p_params.algoP == 'ARZ':
