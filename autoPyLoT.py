@@ -167,7 +167,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             ttpat = parameter.get('ttpatter')
             # pattern of NLLoc-output file
             nllocoutpatter = parameter.get('outpatter')
-            maxnumit = 3  # maximum number of iterations for re-picking
+            maxnumit = 2  # maximum number of iterations for re-picking
         else:
             locflag = 0
             print("                 !!!              ")
@@ -439,8 +439,15 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             evt = local_mag.updated_event(magscaling)
                             net_ml = local_mag.net_magnitude(magscaling)
                             print("Network local magnitude: %4.1f" % net_ml.mag)
-                            print("Network local magnitude scaled with:")
-                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                            if magscaling == None:
+                                scaling = False
+                            elif magscaling[0] != 0 and magscaling[1] != 0:
+                                scaling = False
+                            else:
+                                scaling = True
+                            if scaling:
+                                print("Network local magnitude scaled with:")
+                                print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
