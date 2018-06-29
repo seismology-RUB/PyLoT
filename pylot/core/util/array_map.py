@@ -375,13 +375,13 @@ class Array_map(QtGui.QWidget):
         self.draw_everything()
 
     def draw_everything(self):
-        if self.picks_dict:
+        if self.picks_dict or self.autopicks_dict:
             self.init_picks()
             if len(self.picks) >= 3:
                 self.init_picksgrid()
                 self.draw_contour_filled()
         self.scatter_all_stations()
-        if self.picks_dict:
+        if self.picks_dict or self.autopicks_dict:
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)
