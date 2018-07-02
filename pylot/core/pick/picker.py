@@ -221,7 +221,7 @@ class AICPicker(AutoPicker):
             # get noise window
             inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
             # check, if these are counts or m/s, important for slope estimation!
-            # this is quick and dirty, better solution?
+            # this is quick and dirty, better solution? #Todo wtf
             if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
                 self.Data[0].data = self.Data[0].data * 1000000.
             elif max(self.Data[0].data < 1e-6):
@@ -351,18 +351,14 @@ class AICPicker(AutoPicker):
                 ax2.set_ylabel('Counts')
                 ax2.set_yticks([])
                 ax2.legend(loc=1)
-                if plt_flag == 1:
-                    fig.show()
-                    try: input()
-                    except SyntaxError: pass
-                    plt.close(fig)
             else:
                 ax1.set_title(self.Data[0].stats.station)
-                if plt_flag == 1:
-                    fig.show()
-                    try: input()
-                    except SyntaxError: pass
-                    plt.close(fig)
+
+            if plt_flag == 1:
+                fig.show()
+                try: input()
+                except SyntaxError: pass
+                plt.close(fig)
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')
