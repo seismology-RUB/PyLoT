@@ -195,6 +195,12 @@ class PickingResults(dict):
         self.fc = None
         self.Mw = None
 
+        # flags for plotting
+        self.aicPflag = 0
+        self.aicSflag = 0
+        self.Pflag = 0
+        self.Sflag = 0
+
     def __setattr__(self, key, value):
         self[key] = value
 
@@ -430,6 +436,7 @@ class AutopickStation(object):
                 print(pfe)
 
         self.finish_picking()
+        self.plot_pick_results()
         return {'P': self.p_results, 'S':self.s_results, 'station':self.ztrace.stats.station} #TODO method to format picking results as a dict correctly
 
     def finish_picking(self):
@@ -501,6 +508,130 @@ class AutopickStation(object):
         self.s_results.fm = None
         self.s_results.picker='auto'
         self.s_results.Ao = None
+
+    def plot_pick_results(self):
+        if self.iplot > 0:
+            # plot vertical trace
+            if self.fig_dict is None:
+                fig = plt.figure()
+                plt_flag = 1
+                linecolor = 'k'
+            else:
+                fig = self.fig_dict['mainFig']
+                linecolor = self.fig_dict['plot_style']['linecolor']['rgba_mpl']
+                plt_flag = 0
+            fig._tight = True
+            ax1 = fig.add_subplot(311)
+            tdata = np.linspace(start=0, stop=self.ztrace.stats.npts*self.ztrace.stats.delta, num=self.ztrace.stats.npts)
+            # plot tapered trace filtered with bpz2 filter settings
+            ax1.plot(tdata, self.tr_filt_z_bpz2.data/max(self.tr_filt_z_bpz2.data), color=linecolor, linewidth=0.7, label='Data')
+            if self.p_results.Pweight < 4:
+                # plot CF of initial onset (HOScf or ARZcf)
+                ax1.plot(self.cf1.getTimeArray(), self.cf1.getCF()/max(self.cf1.getCF()), 'b', label='CF1')
+            if self.p_results.aicPflag == 1:
+                aicpick = self.p_results.aicpick
+                refPpick = self.p_results.refPpick
+                # plot CF of precise pick (HOScf or ARZcf)
+                ax1.plot(self.cf2.getTimeArray(), self.cf2.getCF() / max(self.cf2.getCF()), 'm', label='CF2')
+                # plot inital P pick
+                ax1.plot([aicpick.getpick(), aicpick.getpick()], [-1, 1], 'r', label='Initial P Onset')
+                ax1.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5], [1, 1], 'r')
+                ax1.plot([aicpick.getpick() - 0.5, aicpick.getpick() + 0.5], [-1, -1], 'r')
+                # plot precise P pick
+                ax1.plot([refPpick.getpick(), refPpick.getpick()], [-1.3, 1.3], 'r', linewidth=2, label='Final P Pick')
+                ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5], [1.3, 1.3], 'r', linewidth=2)
+                ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5], [-1.3, -1.3], 'r', linewidth=2)
+                # plot latest possible P pick
+                ax1.plot([self.p_results.lpickP, self.p_results.lpickP], [-1.1, 1.1], 'r--', label='lpp')
+                # plot earliest possible P pick
+                ax1.plot([self.p_results.epickP, self.p_results.epickP], [-1.1, 1.1], 'r--', label='epp')
+                # add title to plot
+                title = '{station}, {channel}, P weight={pweight:d}, SNR={snr:7.2}, SNR[dB]={snrdb:7.2}, Polarity: {polarity}'
+                ax1.set_title(title.format(station=self.ztrace.stats.station,
+                                           channel=self.ztrace.stats.channel,
+                                           pweight=self.p_results.Pweight,
+                                           snr=self.p_results.SNRP,
+                                           snrdb=self.p_results.SNRPdB,
+                                           polarity=self.p_results.FM))
+            else:
+                title = '{channel}, P weight={pweight}, SNR=None, SNR[dB]=None'
+                ax1.set_title(title.format(channel=self.ztrace.stats.channel, pweight=self.p_results.Pweight))
+
+            ax1.legend(loc=1)
+            ax1.set_yticks([])
+            ax1.set_ylim([-1.5, 1.5])
+            ax1.set_ylabel('Normalized Counts')
+
+            if self.s_results.Sflag == 1:
+                # plot E trace
+                ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
+                th1data = np.linspace(0, self.etrace.stats.npts*self.etrace.stats.delta, self.etrace.stats.npts)
+                # plot filtered and tapered waveform
+                ax2.plot(th1data, self.etrace.data / max(self.etrace.data), color=linecolor, linewidth=0.7, label='Data')
+                if self.p_results.Pweight < 4:
+                    # plot initial CF (ARHcf or AR3Ccf)
+                    ax2.plot(self.arhcf1.getTimeArray(), self.arhcf1.getCF() / max(self.arhcf1.getCF()), 'b', label='CF1')
+                    if self.s_results.aicSflag == 1 and self.s_results.Sweight <= 4:
+                        aicarhpick = self.aicarhpick
+                        refSpick = self.refSpick
+                        # plot second cf, used for determing precise onset (ARHcf or AR3Ccf)
+                        ax2.plot(self.arhcf2.getTimeArray(), self.arhcf2.getCF() / max(self.arhcf2.getCF()), 'm', label='CF2')
+                        # plot preliminary onset time, calculated from CF1
+                        ax2.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'g', label='Initial S Onset')
+                        ax2.plot([aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5], [1, 1], 'g')
+                        ax2.plot([aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5], [-1, -1], 'g')
+                        # plot precise onset time, calculated from CF2
+                        ax2.plot([refSpick.getpick(), refSpick.getpick()], [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
+                        ax2.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [1.3, 1.3], 'g', linewidth=2)
+                        ax2.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [-1.3, -1.3], 'g', linewidth=2)
+                        ax2.plot([self.s_results.lpickS, self.s_results.lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                        ax2.plot([self.s_results.epickS, self.s_results.epickS], [-1.1, 1.1], 'g--', label='epp')
+                        title = '{channel}, S weight={sweight}, SNR={snr:7.2}, SNR[dB]={snrdb:7.2}'
+                        ax2.set_title(title.format(channel=self.etrace.stats.channel,
+                                                   sweight=self.s_results.Sweight,
+                                                   snr=self.s_results.SNRS,
+                                                   snrdb=self.s_results.SNRSdB))
+                    else:
+                        title = '{channel}, S weight={sweight}, SNR=None, SNR[dB]=None'
+                        ax2.set_title(title.format(channel=self.etrace.stats.channel, sweight=self.s_results.Sweight))
+                ax2.legend(loc=1)
+                ax2.set_yticks([])
+                ax2.set_ylim([-1.5, 1.5])
+                ax2.set_ylabel('Normalized Counts')
+
+                # plot N trace
+                ax3 = fig.add_subplot(3, 1, 3, sharex=ax1)
+                th2data= np.linspace(0, self.ntrace.stats.npts*self.ntrace.stats.delta, self.ntrace.stats.npts)
+                # plot trace
+                ax3.plot(th2data, self.ntrace.data / max(self.ntrace.data), color=linecolor, linewidth=0.7, label='Data')
+                if self.p_results.Pweight < 4:
+                    p22, = ax3.plot(self.arhcf1.getTimeArray(), self.arhcf1.getCF() / max(self.arhcf1.getCF()), 'b', label='CF1')
+                    if self.s_results.aicSflag == 1:
+                        aicarhpick = self.aicarhpick
+                        refSpick = self.refSpick
+                        ax3.plot(self.arhcf2.getTimeArray(), self.arhcf2.getCF() / max(self.arhcf2.getCF()), 'm', label='CF2')
+                        ax3.plot([aicarhpick.getpick(), aicarhpick.getpick()], [-1, 1], 'g', label='Initial S Onset')
+                        ax3.plot([aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5], [1, 1], 'g')
+                        ax3.plot([aicarhpick.getpick() - 0.5, aicarhpick.getpick() + 0.5], [-1, -1], 'g')
+                        ax3.plot([refSpick.getpick(), refSpick.getpick()], [-1.3, 1.3], 'g', linewidth=2,
+                                 label='Final S Pick')
+                        ax3.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [1.3, 1.3], 'g', linewidth=2)
+                        ax3.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [-1.3, -1.3], 'g', linewidth=2)
+                        ax3.plot([self.s_results.lpickS, self.s_results.lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                        ax3.plot([self.s_results.epickS, self.s_results.epickS], [-1.1, 1.1], 'g--', label='epp')
+                ax3.legend(loc=1)
+                ax3.set_yticks([])
+                ax3.set_ylim([-1.5, 1.5])
+                ax3.set_xlabel('Time [s] after %s' % self.ntrace.stats.starttime)
+                ax3.set_ylabel('Normalized Counts')
+                ax3.set_title(self.ntrace.stats.channel)
+                if plt_flag == 1:
+                    fig.show()
+                    try:
+                        input()
+                    except SyntaxError:
+                        pass
+                    plt.close(fig)
 
     def pick_p_qc1(self, aicpick, z_copy, tr_filt):
         """
@@ -579,7 +710,7 @@ class AutopickStation(object):
 
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz1[1])
         # save filtered trace in instance for later plotting
-        self.tr_filt_z = tr_filt
+        self.tr_filt_z_bpz2 = tr_filt
         try:
             # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
             self.modify_starttimes_taupy()
@@ -622,7 +753,7 @@ class AutopickStation(object):
         slope = aicpick.getSlope()
         if not slope: slope = 0
         if slope >= self.p_params.minAICPslope and aicpick.getSNR() >= self.p_params.minAICPSNR and Pflag == 1:
-            aicPflag = 1
+            self.p_results.aicPflag = 1
             msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
                   'autopickstation: re-filtering vertical trace ' \
@@ -630,6 +761,8 @@ class AutopickStation(object):
             self.vprint(msg)
             # refilter waveform with larger bandpass
             tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
+            # save filtered trace in instance for later plotting
+            self.tr_filt_z_bpz2 = tr_filt
             cuttimes2 = [round(max([aicpick.getpick() - self.p_params.Precalcwin, 0])),
                          round(min([len(self.ztrace.data) * self.ztrace.stats.delta,
                                     aicpick.getpick() + self.p_params.Precalcwin]))]
@@ -648,6 +781,8 @@ class AutopickStation(object):
             fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
             refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
                                   self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
+            # save PragPicker result for plotting
+            self.p_results.refPpick = refPpick
             self.p_results.mpickP = refPpick.getpick()
             if self.p_results.mpickP is not None:
                 # quality assessment, get earliest/latest pick and symmetrized uncertainty
@@ -669,7 +804,7 @@ class AutopickStation(object):
                 print(msg)
                 msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(self.p_results.mpickP, self.p_results.Perror)
                 print(msg)
-                Sflag = 1
+                self.s_results.Sflag = 1
 
                 self.p_results.aicpick = aicpick
             else:
@@ -679,10 +814,10 @@ class AutopickStation(object):
                       'min. AIC-Slope={3}counts/s)'.format(aicpick.getSNR(), aicpick.getSlope(),
                                                            self.p_params.minAICPSNR, self.p_params.minAICPslope)
                 self.vprint(msg)
-                Sflag = 0
+                self.s_results.Sflag = 0
         else:
-            #todo add why did picking fail, which should be saved in the pick dictionary
-            raise PickingFailedException("Why did it fail")
+            #todo why did picking fail should be saved in the pick dictionary
+            raise PickingFailedException('AIC P onset did not pass quality control')
 
     def pick_s_phase(self):
 
@@ -748,6 +883,8 @@ class AutopickStation(object):
             arhcf1 = ARHcf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
         elif self.s_params.algoS == 'AR3':
             arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
+        # save cf for later plotting
+        self.arhcf1 = arhcf1
 
         tr_arhaic = trH1_filt.copy()
         tr_arhaic.data = arhcf1.getCF()
@@ -759,6 +896,8 @@ class AutopickStation(object):
         # get preliminary onset time from AIC cf
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicARHfig')
         aicarhpick = AICPicker(haiccf, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, Tsmooth=self.s_params.aictsmoothS, fig=fig, linecolor=linecolor)
+        # save pick for later plotting
+        self.aicarhpick = aicarhpick
 
         # go on with processing if AIC onset passes quality control
         slope = aicarhpick.getSlope()
@@ -767,7 +906,7 @@ class AutopickStation(object):
             slope = 0
 
         if slope >= self.s_params.minAICSslope and aicarhpick.getSNR() >= self.s_params.minAICSSNR and aicarhpick.getpick() is not None:
-            aicSflag = 1
+            self.s_results.aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
                   'autopickstation: re-filtering horizontal traces ' \
@@ -787,23 +926,31 @@ class AutopickStation(object):
                 h_copy[0].data = trH1_filt.data
                 h_copy[1].data = trH2_filt.data
             elif self.s_params.algoS == 'AR3':
-                trH1_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                trH2_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                trH3_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+                trH3_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+                trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+                trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
                 h_copy = hdat.copy()
-                h_copy[0].data = trH1_filt.data
-                h_copy[1].data = trH2_filt.data
-                h_copy[2].data = trH3_filt.data
+                h_copy[0].data = trH3_filt.data
+                h_copy[1].data = trH1_filt.data
+                h_copy[2].data = trH2_filt.data
 
-            # calculate second cd
+            # save filtered traces for plotting
+            self.estream_bph2 = trH1_filt
+            self.nstream_bph2 = trH2_filt
+
+            # calculate second cf
             if self.s_params.algoS == 'ARH':
                 arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
             elif self.s_params.algoS == 'AR3':
                 arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+            # save cf for later plotting
+            self.arhcf2 = arhcf2
 
             # get refined onset time from CF2
             fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refSpick')
             refSpick = PragPicker(arhcf2, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, self.s_params.ausS, self.s_params.tsmoothS, aicarhpick.getpick(), fig, linecolor)
+            # save refSpick for later plotitng
+            self.refSpick = refSpick
             self.s_results.mpickS = refSpick.getpick()
 
             if self.s_results.mpickS is not None:
@@ -860,30 +1007,6 @@ class AutopickStation(object):
         else:
             print('autopickstation: No horizontal component data available or '
                   'bad P onset, skipping S picking!')
-
-        ### plotting ###
-        # TODO finish converting the plotting code
-        if self.iplot > 0:
-            # plot vertical trace
-            if self.fig_dict is None:
-                fig = plt.figure()
-                plt_flag = 1
-                linecolor = 'k'
-            else:
-                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'mainFig')
-            fig._tight = True
-            ax1 = fig.add_subplot(311)
-            # create time axis
-            tdata = np.linspace(start=0., stop=self.ztrace.stats.npts*self.tr_filt_z.stats.delta, num=self.tr_filt_z.stats.npts)
-            # plot filtered waveform of z trace
-            ax1.plot(tdata, self.tr_filt_z.data / max(self.tr_filt_z.data), color=linecolor, linewidth=0.7, label='Data')
-            if self.p_results.Pweight < 4:
-                # plot first HOS/ARZ cf of z trace
-                ax1.plot(self.cf1.getTimeArray(), self.cf1.getCF / max(self.cf1.getCF()), color='b', label='CF1')
-                if self.p_results.aicPflag == 1:
-                    ax1.plot(self.cf2.getTimeArray(), self.cf2.getCF() / max(self.cf2.getCF()), color='m', label='CF2')
-                    ax1.plot([self.p_results.aicpick.getpick(), self.p_results.aicpick.getpick()], [-1, 1], 'r', label='Initial P Onset')
-
 
 def get_fig_from_figdict(figdict, figkey):
     """
