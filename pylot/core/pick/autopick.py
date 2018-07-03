@@ -958,7 +958,7 @@ class AutopickStation(object):
                 # get earliest/latest possible pick and symmetrized uncertainty
                 h_copy[0].data = trH1_filt.data
                 if self.iplot:
-                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Slpick')
+                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
                 epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
 
                 h_copy[0].data = trH2_filt.data
