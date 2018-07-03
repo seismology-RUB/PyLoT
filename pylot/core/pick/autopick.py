@@ -393,7 +393,7 @@ class AutopickStation(object):
                   ' origin time using TauPy'.format(estFirstP, estFirstS))
             return estFirstP, estFirstS
 
-        if self.p_params.use_taup is False and self.p_params.pstart < 0:
+        if (self.p_params.use_taup is False or not self.origin) and self.p_params.pstart < 0:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
             self.p_params.pstart = 0
