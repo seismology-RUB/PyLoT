@@ -2339,7 +2339,9 @@ class MainWindow(QMainWindow):
         self.nextStation = bool(signal)
 
     def addListItem(self, text):
-        self.listWidget.addItem(text)
+        textlist = text.split('\n')
+        for text in textlist:
+            self.listWidget.addItem(text)
         self.listWidget.scrollToBottom()
 
     def init_fig_dict(self):
