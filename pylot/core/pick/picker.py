@@ -240,12 +240,17 @@ class AICPicker(AutoPicker):
                 return
             # calculate SNR from CF
             self.SNR = max(abs(self.Data[0].data[isignal])) / \
-                       max(abs(self.Data[0].data[inoise] - np.mean(self.Data[0].data[inoise])))
+                       abs(np.mean(self.Data[0].data[inoise]))
             # calculate slope from CF after initial pick
             # get slope window
             tslope = self.TSNR[3]  # slope determination window
-            islope = np.where((self.Tcf <= min([self.Pick + tslope, self.Tcf[-1]])) \
-                              & (self.Tcf >= self.Pick)) # TODO: put this in a seperate function like getsignalwin
+            tsafety = self.TSNR[1] # safety gap, AIC is usually a little bit too late
+            if tsafety >= 0:
+                islope = np.where((self.Tcf <= min([self.Pick + tslope + tsafety, self.Tcf[-1]])) \
+                                  & (self.Tcf >= self.Pick)) # TODO: put this in a seperate function like getsignalwin
+            else:
+                islope = np.where((self.Tcf <= min([self.Pick + tslope, self.Tcf[-1]])) \
+                                  & (self.Tcf >= self.Pick + tsafety)) # TODO: put this in a seperate function like getsignalwin
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             try:
