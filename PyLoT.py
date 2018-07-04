@@ -3128,20 +3128,18 @@ class MainWindow(QMainWindow):
             settings.setValue("inventoryFile", self.project.inv_path)
 
         fninv = settings.value("inventoryFile", None)
-        if fninv and ask_default:
+        if (fninv and ask_default) and not new:
             ans = QMessageBox.question(self, self.tr("Use default metadata..."),
                                        self.tr(
                                            "Do you want to use the default value for metadata?\n({})".format(fninv)),
                                        QMessageBox.Yes | QMessageBox.No,
                                        QMessageBox.Yes)
-            if ans == QMessageBox.No:
-                if not set_inv(settings):
-                    return None
-            elif ans == QMessageBox.Yes:
+            if ans == QMessageBox.Yes:
                 self.read_metadata_thread(fninv)
-        if fninv and not ask_default:
-            self.read_metadata_thread(fninv)
+                return
+        set_inv(settings)
 
+            
     def calc_magnitude(self, type='ML'):
         self.init_metadata()
         if not self.metadata:
