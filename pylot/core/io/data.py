@@ -445,7 +445,7 @@ class Data(object):
             except SacIOError as se:
                 warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:
-            warnmsg = 'WARNING: unable to read\n' + warnmsg
+            warnmsg = 'WARNING in appendWFData: unable to read waveform data\n' + warnmsg
             print(warnmsg)
 
     def getWFData(self):
