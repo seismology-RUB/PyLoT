@@ -179,6 +179,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     nfacP = pickparam.get('nfacP')
     tpred1z = pickparam.get('tpred1z')
     tdet1z = pickparam.get('tdet1z')
+    tpred2z = pickparam.get('tpred2z')
+    tdet2z = pickparam.get('tdet2z')
     Parorder = pickparam.get('Parorder')
     addnoise = pickparam.get('addnoise')
     Precalcwin = pickparam.get('Precalcwin')
@@ -489,7 +491,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             elif algoP == 'ARZ':
                 # calculate ARZ-CF using subclass ARZcf of class
                 # CharcteristicFunction
-                cf2 = ARZcf(z_copy, cuttimes2, tpred1z, Parorder, tdet1z,
+                cf2 = ARZcf(z_copy, cuttimes2, tpred2z, Parorder, tdet2z,
                             addnoise)  # instance of ARZcf
             ##############################################################
             # get refined onset time from CF2 using class Picker
