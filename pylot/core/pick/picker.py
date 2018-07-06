@@ -305,6 +305,8 @@ class AICPicker(AutoPicker):
                 print('AICPicker: Negative slope, bad onset skipped!')
             else:
                 self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
+                # normalize slope to maximum of cf to make it unit independent
+                self.slope /= self.Data[0].data[icfmax]
 
         else:
             self.SNR = None
