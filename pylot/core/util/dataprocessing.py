@@ -15,12 +15,32 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
 class Metadata(object):
     def __init__(self, inventory=None):
         self.inventories = []
-        if os.path.isdir(inventory):
-            self.add_inventory(inventory)
-        if os.path.isfile(inventory):
-            self.add_inventory_file(inventory)
+        if inventory:
+            if os.path.isdir(inventory):
+                self.add_inventory(inventory)
+            if os.path.isfile(inventory):
+                self.add_inventory_file(inventory)
+        # saves filenames holding metadata for a seed_id
         self.seed_ids = {}
+        # saves read metadata objects (Parser/inventory) for a filename
         self.inventory_files = {}
+
+
+    def __str__(self):
+        repr = 'PyLoT Metadata object including the following inventories:\n\n'
+        ntotal = len(self.inventories)
+        for index, inventory in enumerate(self.inventories):
+            if index < 2 or (ntotal - index) < 3:
+                repr += '{}\n'.format(inventory)
+            if ntotal > 4 and int(ntotal/2) == index:
+                repr += '...\n'
+        if ntotal > 4:
+            repr += '\nTotal of {} inventories. Use Metadata.inventories to see all.'.format(ntotal)
+        return repr
+
+
+    def __repr__(self):
+        return self.__str__()
 
 
     def add_inventory(self, path_to_inventory):
@@ -43,10 +63,14 @@ class Metadata(object):
         :return:
 
         '''
-        assert (os.path.isfile(path_to_inventory_file)), '{} is no directory'.format(path_to_inventory_file)
+        assert (os.path.isfile(path_to_inventory_file)), '{} is no file'.format(path_to_inventory_file)
         self.add_inventory(os.path.split(path_to_inventory_file)[0])
         if not path_to_inventory_file in self.inventory_files.keys():
             self.read_single_file(path_to_inventory_file)
+
+
+    def remove_all_inventories(self):
+        self.__init__()
 
 
     def remove_inventory(self, path_to_inventory):
@@ -60,6 +84,12 @@ class Metadata(object):
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
         self.inventories.remove(path_to_inventory)
+        for filename in self.inventory_files.keys():
+            if filename.startswith(path_to_inventory):
+                del(self.inventory_files[filename])
+        for seed_id in self.seed_ids.keys():
+            if self.seed_ids[seed_id].startswith(path_to_inventory):
+                del(self.seed_ids[seed_id])
 
 
     def get_metadata(self, seed_id):
