@@ -24,13 +24,25 @@ class Metadata(object):
 
 
     def add_inventory(self, path_to_inventory):
-        # add paths to list of inventories
+        '''
+        add paths to list of inventories
+
+        :param path_to_inventory:
+        :return:
+        '''
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
         if not path_to_inventory in self.inventories:
             self.inventories.append(path_to_inventory)
 
 
     def add_inventory_file(self, path_to_inventory_file):
+        '''
+        add a single file to inventory files
+
+        :param path_to_inventory_file:
+        :return:
+
+        '''
         assert (os.path.isfile(path_to_inventory_file)), '{} is no directory'.format(path_to_inventory_file)
         self.add_inventory(os.path.split(path_to_inventory_file)[0])
         if not path_to_inventory_file in self.inventory_files.keys():
@@ -38,6 +50,12 @@ class Metadata(object):
 
 
     def remove_inventory(self, path_to_inventory):
+        '''
+        remove a path from inventories list
+
+        :param path_to_inventory:
+        :return:
+        '''
         if not path_to_inventory in self.inventories:
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
@@ -54,9 +72,12 @@ class Metadata(object):
             self.read_all()
             for inv_fname, metadata in self.inventory_files.items():
                 # use get_coordinates to check for seed_id
-                if metadata['data'].get_coordinates(seed_id):
+                try:
+                    metadata['data'].get_coordinates(seed_id)
                     self.seed_ids[seed_id] = inv_fname
                     return metadata
+                except Exception as e:
+                    continue
             print('Could not find metadata for station {}'.format(seed_id))
             return None
         fname = self.seed_ids[seed_id]
@@ -64,6 +85,10 @@ class Metadata(object):
 
 
     def read_all(self):
+        '''
+        read all metadata files found in all inventories
+        :return:
+        '''
         for inventory in self.inventories:
             for inv_fname in os.listdir(inventory):
                 inv_fname = os.path.join(inventory, inv_fname)
@@ -93,17 +118,18 @@ class Metadata(object):
 
     def get_coordinates(self, seed_id):
         metadata = self.get_metadata(seed_id)
+        if not metadata:
+            return
         return metadata['data'].get_coordinates(seed_id)
 
 
-    def get_paz(self, seed_id, time=None):
+    def get_paz(self, seed_id, time):
         metadata = self.get_metadata(seed_id)
+        if not metadata:
+            return
         if metadata['invtype'] in ['dless', 'dseed']:
-            return metadata['data'].get_paz(seed_id)
+            return metadata['data'].get_paz(seed_id, time)
         elif metadata['invtype'] in ['resp', 'xml']:
-            if not time:
-                print('Time needed to extract metadata from station inventory.')
-                return None
             resp = metadata['data'].get_response(seed_id, time)
             return resp.get_paz(seed_id)
 
