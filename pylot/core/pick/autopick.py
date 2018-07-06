@@ -100,9 +100,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     # quality control
     # median check and jackknife on P-onset times
-    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, 1, fig_dict_wadatijack)
+    jk_checked_onsets = checkPonsets(all_onsets, mdttolerance, jackfactor, iplot, fig_dict_wadatijack)
     # check S-P times (Wadati)
-    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, 1, fig_dict_wadatijack)
+    wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, iplot, fig_dict_wadatijack)
     return wadationsets
 
 
@@ -1057,8 +1057,64 @@ def nautopickstation(wfstream, pickparam, verbose=False,
     # read your pylot.in for details!
     plt_flag = 0
 
-    # get picking parameter dictionaries
-    p_params, s_params, first_motion_params, signal_length_params = get_pickparams(pickparam)
+    # special parameters for P picking
+    algoP = pickparam.get('algoP')
+    pstart = pickparam.get('pstart')
+    pstop = pickparam.get('pstop')
+    thosmw = pickparam.get('tlta')
+    tsnrz = pickparam.get('tsnrz')
+    hosorder = pickparam.get('hosorder')
+    bpz1 = pickparam.get('bpz1')
+    bpz2 = pickparam.get('bpz2')
+    pickwinP = pickparam.get('pickwinP')
+    aictsmoothP = pickparam.get('aictsmooth')
+    tsmoothP = pickparam.get('tsmoothP')
+    ausP = pickparam.get('ausP')
+    nfacP = pickparam.get('nfacP')
+    tpred1z = pickparam.get('tpred1z')
+    tdet1z = pickparam.get('tdet1z')
+    tpred2z = pickparam.get('tpred2z')
+    tdet2z = pickparam.get('tdet2z')
+    Parorder = pickparam.get('Parorder')
+    addnoise = pickparam.get('addnoise')
+    Precalcwin = pickparam.get('Precalcwin')
+    minAICPslope = pickparam.get('minAICPslope')
+    minAICPSNR = pickparam.get('minAICPSNR')
+    timeerrorsP = pickparam.get('timeerrorsP')
+    # special parameters for S picking
+    algoS = pickparam.get('algoS')
+    sstart = pickparam.get('sstart')
+    sstop = pickparam.get('sstop')
+    use_taup = real_Bool(pickparam.get('use_taup'))
+    taup_model = pickparam.get('taup_model')
+    bph1 = pickparam.get('bph1')
+    bph2 = pickparam.get('bph2')
+    tsnrh = pickparam.get('tsnrh')
+    pickwinS = pickparam.get('pickwinS')
+    tpred1h = pickparam.get('tpred1h')
+    tdet1h = pickparam.get('tdet1h')
+    tpred2h = pickparam.get('tpred2h')
+    tdet2h = pickparam.get('tdet2h')
+    Sarorder = pickparam.get('Sarorder')
+    aictsmoothS = pickparam.get('aictsmoothS')
+    tsmoothS = pickparam.get('tsmoothS')
+    ausS = pickparam.get('ausS')
+    minAICSslope = pickparam.get('minAICSslope')
+    minAICSSNR = pickparam.get('minAICSSNR')
+    Srecalcwin = pickparam.get('Srecalcwin')
+    nfacS = pickparam.get('nfacS')
+    timeerrorsS = pickparam.get('timeerrorsS')
+    # parameters for first-motion determination
+    minFMSNR = pickparam.get('minFMSNR')
+    fmpickwin = pickparam.get('fmpickwin')
+    minfmweight = pickparam.get('minfmweight')
+    # parameters for checking signal length
+    minsiglength = pickparam.get('minsiglength')
+    minpercent = pickparam.get('minpercent')
+    nfacsl = pickparam.get('noisefactor')
+    # parameter to check for spuriously picked S onset
+    zfac = pickparam.get('zfac')
+    # path to inventory-, dataless- or resp-files
 
     # initialize output
     Pweight = 4  # weight for P onset
@@ -1159,6 +1215,8 @@ def nautopickstation(wfstream, pickparam, verbose=False,
         if p_params['use_taup'] is True:
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
+            if not metadata:
+                metadata = [None, None]
             if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
@@ -1207,7 +1265,7 @@ def nautopickstation(wfstream, pickparam, verbose=False,
             return
 
         Ldiff = Lwf - abs(Lc)
-        if Ldiff < 0 or pstop <= pstart:
+        if Ldiff <= 0 or pstop <= pstart or pstop - pstart <= thosmw:
             msg = 'autopickstation: Cutting times are too large for actual ' \
                   'waveform!\nUsing entire waveform instead!'
             if verbose: print(msg)
@@ -1345,8 +1403,8 @@ def nautopickstation(wfstream, pickparam, verbose=False,
             elif p_params['algoP'] == 'ARZ':
                 # calculate ARZ-CF using subclass ARZcf of class
                 # CharcteristicFunction
-                cf2 = ARZcf(z_copy, cuttimes2, p_params['tpred1z'], p_params['Parorder'], p_params['tdet1z'],
-                            p_params['addnoise'])  # instance of ARZcf
+                cf2 = ARZcf(z_copy, cuttimes2, tpred2z, Parorder, tdet2z,
+                            addnoise)  # instance of ARZcf
             ##############################################################
             # get refined onset time from CF2 using class Picker
             assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
@@ -1401,7 +1459,8 @@ def nautopickstation(wfstream, pickparam, verbose=False,
                 msg = "autopickstation: P-weight: {0}, " \
                       "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(Pweight, SNRP, SNRPdB, FM)
                 print(msg)
-                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(mpickP, Perror)
+                msg = 'autopickstation: Refind P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
+                                                                             + mpickP, Perror)
                 print(msg)
                 Sflag = 1
 
@@ -1667,7 +1726,8 @@ def nautopickstation(wfstream, pickparam, verbose=False,
                     lpickS = lpick[ipick]
                     Serror = pickerr[ipick]
 
-                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(mpickS, Serror)
+                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(hdat[0].stats.starttime \
+                                                                                  + mpickS, Serror)
                     print(msg)
 
                     # get SNR

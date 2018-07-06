@@ -178,9 +178,9 @@ background-color:transparent;
 
 QTabWidget::pane{
 background-color:rgba(70, 70, 80, 255);
-border-style:solid;
-border-color:rgba(70, 70, 80, 255);
-border-width:1px;
+margin: 0px, 0px, 0px, 0px;
+padding: 0px;
+border-width:0px;
 }
 
 QTabWidget::tab{

@@ -34,7 +34,7 @@ __version__ = _getVersionString()
 
 
 def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, eventid=None, savepath=None,
-              savexml=True, station='all', iplot=0, ncores=0):
+              savexml=True, station='all', iplot=0, ncores=0, obspyDMT_wfpath=False):
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
@@ -94,7 +94,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     fig_dict = None
     fig_dict_wadatijack = None
 
-    locflag = 1
     if input_dict and isinstance(input_dict, dict):
         if 'parameter' in input_dict:
             parameter = input_dict['parameter']
@@ -110,10 +109,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             eventid = input_dict['eventid']
         if 'iplot' in input_dict:
             iplot = input_dict['iplot']
-        if 'locflag' in input_dict:
-            locflag = input_dict['locflag']
         if 'savexml' in input_dict:
             savexml = input_dict['savexml']
+        if 'obspyDMT_wfpath' in input_dict:
+            obspyDMT_wfpath = input_dict['obspyDMT_wfpath']
 
     if not parameter:
         if inputfile:
@@ -151,7 +150,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available
-        if real_None(parameter['nllocbin']) and locflag:
+        if real_None(parameter['nllocbin']):
+            locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
             # get path to NLLoc executable
@@ -167,13 +167,21 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             ttpat = parameter.get('ttpatter')
             # pattern of NLLoc-output file
             nllocoutpatter = parameter.get('outpatter')
-            maxnumit = 3  # maximum number of iterations for re-picking
+            maxnumit = 2  # maximum number of iterations for re-picking
         else:
             locflag = 0
             print("                 !!!              ")
             print("!!No location routine available, autoPyLoT is running in non-location mode!!")
             print("!!No source parameter estimation possible!!")
             print("                 !!!              ")
+
+        wfpath_extension = ''
+        if obspyDMT_wfpath not in [None, False, 'False', '']:
+            wfpath_extension = obspyDMT_wfpath
+            print('Using obspyDMT structure. There will be no restitution, as pre-processed data are expected.')
+            if wfpath_extension != 'processed':
+                print('WARNING: Expecting wfpath_extension to be "processed" for'
+                      ' pre-processed data but received "{}" instead!!!'.format(wfpath_extension))
 
         if not input_dict:
             # started in production mode
@@ -219,6 +227,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         glocflag = locflag
         for eventpath in events:
             evID = os.path.split(eventpath)[-1]
+            event_datapath = os.path.join(eventpath, wfpath_extension)
             fext = '.xml'
             filename = os.path.join(eventpath, 'PyLoT_' + evID + fext)
             try:
@@ -231,7 +240,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 pylot_event = Event(eventpath)  # event should be path to event directory
                 data.setEvtData(pylot_event)
             if fnames == 'None':
-                data.setWFData(glob.glob(os.path.join(datapath, eventpath, '*')))
+                data.setWFData(glob.glob(os.path.join(datapath, event_datapath, '*')))
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in
@@ -268,12 +277,18 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
             metadata = read_metadata(parameter.get('invdir'))
-            # rotate stations to ZNE
-            wfdat = check4rotated(wfdat, metadata)
+            # TODO: (idea) read metadata from obspy_dmt database
+            # if not wfpath_extension:
+            #     metadata = read_metadata(parameter.get('invdir'))
+            # else:
+            #     metadata = None
             corr_dat = None
-            if locflag:
-                print("Restitute data ...")
-                corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
+            if metadata:
+                # rotate stations to ZNE
+                wfdat = check4rotated(wfdat, metadata)
+                if locflag:
+                    print("Restitute data ...")
+                    corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
             print('Working on event %s. Stations: %s' % (eventpath, station))
@@ -331,7 +346,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             picks[stats]['P'].update(props)
                         evt = moment_mag.updated_event()
                         net_mw = moment_mag.net_magnitude()
-                        print("Network moment magnitude: %4.1f" % net_mw.mag)
+                        if net_mw is not None:
+                            print("Network moment magnitude: %4.1f" % net_mw.mag)
                         # calculate local (Richter) magntiude
                         WAscaling = parameter.get('WAscaling')
                         magscaling = parameter.get('magscaling')
@@ -348,8 +364,15 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         evt = local_mag.updated_event(magscaling)
                         net_ml = local_mag.net_magnitude(magscaling)
                         print("Network local magnitude: %4.1f" % net_ml.mag)
-                        print("Network local magnitude scaled with:")
-                        print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                        if magscaling == None:
+                            scaling = False
+                        elif magscaling[0] != 0 and magscaling[1] != 0:
+                            scaling = False
+                        else:
+                            scaling = True
+                        if scaling:
+                            print("Network local magnitude scaled with:")
+                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available!")
                         print("No source parameter estimation possible!")
@@ -406,7 +429,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                     picks[stats]['P'].update(props)
                             evt = moment_mag.updated_event()
                             net_mw = moment_mag.net_magnitude()
-                            print("Network moment magnitude: %4.1f" % net_mw.mag)
+                            if net_mw is not None:
+                                print("Network moment magnitude: %4.1f" % net_mw.mag)
                             # calculate local (Richter) magntiude
                             WAscaling = parameter.get('WAscaling')
                             magscaling = parameter.get('magscaling')
@@ -424,8 +448,15 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             evt = local_mag.updated_event(magscaling)
                             net_ml = local_mag.net_magnitude(magscaling)
                             print("Network local magnitude: %4.1f" % net_ml.mag)
-                            print("Network local magnitude scaled with:")
-                            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+                            if magscaling == None:
+                                scaling = False
+                            elif magscaling[0] != 0 and magscaling[1] != 0:
+                                scaling = False
+                            else:
+                                scaling = True
+                            if scaling:
+                                print("Network local magnitude scaled with:")
+                                print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
                     else:
                         print("autoPyLoT: No NLLoc-location file available! Stop iteration!")
                         locflag = 9
@@ -512,9 +543,12 @@ if __name__ == "__main__":
     parser.add_argument('-c', '-C', '--ncores', type=int,
                         action='store', default=0,
                         help='''optional, number of CPU cores used for parallel processing (default: all available(=0))''')
+    parser.add_argument('-dmt', '-DMT', '--obspy_dmt_wfpath', type=str,
+                        action='store', default=False,
+                        help='''optional, wftype (raw, processed) used for obspyDMT database structure''')
 
     cla = parser.parse_args()
 
     picks = autoPyLoT(inputfile=str(cla.inputfile), fnames=str(cla.fnames),
                       eventid=str(cla.eventid), savepath=str(cla.spath),
-                      ncores=cla.ncores, iplot=int(cla.iplot))
+                      ncores=cla.ncores, iplot=int(cla.iplot), obspyDMT_wfpath=str(cla.obspy_dmt_wfpath))

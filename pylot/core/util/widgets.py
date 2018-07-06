@@ -16,6 +16,9 @@ import time
 
 import numpy as np
 
+import matplotlib
+matplotlib.use('QT4Agg')
+
 from matplotlib.figure import Figure
 
 try:
@@ -26,6 +29,7 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
 from scipy.signal import argrelmin, argrelmax
+from obspy import read
 
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
@@ -447,23 +451,25 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.orig_parent = parent
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
+        # init labels
+        self.xlabel = None
+        self.ylabel = None
+        self.title = None
         # create plot
         self.main_layout = QtGui.QVBoxLayout()
         self.label_layout = QtGui.QHBoxLayout()
-        self.status_label = QtGui.QLabel()
-        self.perm_label = QtGui.QLabel()
-        self.setLayout(self.main_layout)
+        self.add_labels()
+        self.connect_signals()
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
         self.main_layout.addWidget(self.plotWidget)
         self.main_layout.addLayout(self.label_layout)
-        self.label_layout.addWidget(self.status_label)
-        self.label_layout.addWidget(self.perm_label)
+        self.init_labels()
+        self.activateObspyDMToptions(False)
         self.plotWidget.showGrid(x=False, y=True, alpha=0.3)
-        self.plotWidget.hideAxis('bottom')
-        self.plotWidget.hideAxis('left')
         self.wfstart, self.wfend = 0, 0
         self.pen_multicursor = self.pg.mkPen(self.parent()._style['multicursor']['rgba'])
         self.pen_linecolor = self.pg.mkPen(self.parent()._style['linecolor']['rgba'])
+        self.pen_linecolor_highlight = self.pg.mkPen((255, 100, 100, 255))
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
@@ -489,12 +495,59 @@ class WaveformWidgetPG(QtGui.QWidget):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
+    def connect_signals(self):
+        self.qcombo_processed.activated.connect(self.parent().newWF)
+        self.syn_checkbox.clicked.connect(self.parent().newWF)
+
+    def init_labels(self):
+        self.label_layout.addWidget(self.status_label)
+        for label in self.perm_labels:
+            self.label_layout.addWidget(label)
+        self.label_layout.addWidget(self.syn_checkbox)
+        self.label_layout.addWidget(self.qcombo_processed)
+        self.syn_checkbox.setLayoutDirection(Qt.RightToLeft)
+        self.label_layout.setStretch(0, 4)
+        self.label_layout.setStretch(1, 0)
+        self.label_layout.setStretch(2, 0)
+        self.label_layout.setStretch(3, 0)
+        self.label_layout.setStretch(4, 3)
+        self.label_layout.setStretch(5, 1)
+
+    def add_labels(self):
+        self.status_label = QtGui.QLabel()
+        self.perm_labels = []
+        for index in range(3):
+            label = QtGui.QLabel()
+            self.perm_labels.append(label)
+        self.qcombo_processed = QtGui.QComboBox()
+        self.syn_checkbox = QtGui.QCheckBox('synthetics')
+        self.addQCboxItem('processed', 'green')
+        self.addQCboxItem('raw', 'black')
+        #self.perm_qcbox_right.setAlignment(2)
+        self.setLayout(self.main_layout)
+
     def getPlotDict(self):
         return self.plotdict
 
-    def setPermText(self, text=None, color='black'):
-        self.perm_label.setText(text)
-        self.perm_label.setStyleSheet('color: {}'.format(color))
+    def activateObspyDMToptions(self, activate):
+        self.syn_checkbox.setVisible(activate)
+        self.qcombo_processed.setVisible(activate)
+
+    def setPermText(self, number, text=None, color='black'):
+        if not 0 <= number < len(self.perm_labels):
+            raise ValueError('No label for number {}'.format(number))
+        self.perm_labels[number].setText(text)
+        self.perm_labels[number].setStyleSheet('color: {}'.format(color))
+
+    def addQCboxItem(self, text=None, color='black'):
+        item = QtGui.QStandardItem(text)
+        model = self.qcombo_processed.model()
+        model.appendRow(item)
+        item.setForeground(QtGui.QColor('{}'.format(color)))
+
+    def setQCboxItem(self, text):
+        index = self.qcombo_processed.findText(text)
+        self.qcombo_processed.setCurrentIndex(index)
 
     def setPlotDict(self, key, value):
         self.plotdict[key] = value
@@ -529,6 +582,14 @@ class WaveformWidgetPG(QtGui.QWidget):
         else:
             st_select = wfdata
 
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
+
         # list containing tuples of network, station, channel (for sorting)
         nsc = []
         for trace in st_select:
@@ -552,6 +613,8 @@ class WaveformWidgetPG(QtGui.QWidget):
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
             if st_syn:
                 trace_syn = st_syn[0].copy()
+            else:
+                trace_syn = Trace()
             if mapping:
                 comp = channel[-1]
                 n = compclass.getPlotPosition(str(comp))
@@ -568,9 +631,11 @@ class WaveformWidgetPG(QtGui.QWidget):
                 time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
 
             if method == 'fast':
-               trace.data, time_ax = self.minMax(trace, time_ax)
+                trace.data, time_ax = self.minMax(trace, time_ax)
+                if trace_syn:
+                    trace_syn.data, time_ax_syn = self.minMax(trace_syn, time_ax_syn)
 
-            if time_ax not in [None, []]:
+            if len(time_ax) > 0:
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
@@ -581,23 +646,23 @@ class WaveformWidgetPG(QtGui.QWidget):
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
                 times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
-                trace.data_syn = np.array([datum + n for index, datum in enumerate(trace.data_syn)
+                trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
                             if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
-                              times_syn, trace.data_syn))
+                              times_syn, trace_syn.data))
                 self.setPlotDict(n, (station, channel, network))
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
-        return plots
+        return plots, gaps
 
     def minMax(self, trace, time_ax):
         '''
         create min/max array for fast plotting (approach based on obspy __plot_min_max function)
         :returns data, time_ax
         '''
-        npixel = self.width()
+        npixel = self.orig_parent.width()
         ndata = len(trace.data)
         pts_per_pixel = ndata/npixel
         if pts_per_pixel < 2:
@@ -1013,6 +1078,14 @@ class PylotCanvas(FigureCanvas):
         if mapping:
             plot_positions = self.calcPlotPositions(st_select, compclass)
 
+        gaps = st_select.get_gaps()
+        if gaps:
+            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+            st_select.merge()
+            print('Merged the following stations because of gaps:')
+            for merged_station in merged:
+                print(merged_station)
+
         # list containing tuples of network, station, channel and plot position (for sorting)
         nsc = []
         for plot_pos, trace in enumerate(st_select):
@@ -1245,9 +1318,10 @@ class PickDlg(QDialog):
 
     def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
-                 event=None, filteroptions=None, model='iasp91'):
+                 event=None, filteroptions=None, model='iasp91', wftype=None):
         super(PickDlg, self).__init__(parent, 1)
         self.orig_parent = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
         # initialize attributes
         self.parameter = parameter
@@ -1256,6 +1330,7 @@ class PickDlg(QDialog):
         self.network = network
         self.rotate = rotate
         self.metadata = metadata
+        self.wftype = wftype
         self.pylot_event = event
         self.components = 'ZNE'
         self.currentPhase = None
@@ -1305,7 +1380,7 @@ class PickDlg(QDialog):
         self.cur_ylim = None
 
         # set attribute holding data
-        if data is None:
+        if data is None or not data:
             try:
                 data = parent.get_data().getWFData().copy()
                 self.data = data.select(station=station)
@@ -1328,7 +1403,7 @@ class PickDlg(QDialog):
 
         # fill compare and scale channels
         self.compareChannel.addItem('-', None)
-        self.scaleChannel.addItem('normalized', None)
+        self.scaleChannel.addItem('individual', None)
 
         for trace in self.getWFData():
             channel = trace.stats.channel
@@ -1345,8 +1420,12 @@ class PickDlg(QDialog):
             actionS.setChecked(self.getChannelSettingsS(channel))
 
         # plot data
+        title = self.getStation()
+        if self.wftype is not None:
+            title += ' | ({})'.format(self.wftype)
+
         self.multicompfig.plotWFData(wfdata=self.getWFData(),
-                                     title=self.getStation())
+                                     title=title)
 
         self.multicompfig.setZoomBorders2content()
 
@@ -1380,7 +1459,6 @@ class PickDlg(QDialog):
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
-        self.deleteLater()
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
@@ -1526,7 +1604,7 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
         _dialtoolbar.addWidget(self.compareChannel)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtGui.QLabel('Scale by: '))
+        _dialtoolbar.addWidget(QtGui.QLabel('Scaling: '))
         _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
@@ -1649,7 +1727,7 @@ class PickDlg(QDialog):
             self.arrivalsText.append(ax.text(time_rel, ylims[0], arrival.name, color='0.5'))
 
     def drawArrivalsText(self):
-        return self.drawArrivals(True)
+        return self.drawArrivals(textOnly=True)
 
     def refreshArrivalsText(self, event=None):
         self.removeArrivalsText()
@@ -2514,6 +2592,9 @@ class PickDlg(QDialog):
                 filtops_str = transformFilteroptions2String(filtoptions)
                 title += ' | Filteroptions: {}'.format(filtops_str)
 
+        if self.wftype is not None:
+            title += ' | ({})'.format(self.wftype)
+
         plot_additional = bool(self.compareChannel.currentText())
         additional_channel = self.compareChannel.currentText()
         scale_channel = self.scaleChannel.currentText()
@@ -2601,6 +2682,7 @@ class PickDlg(QDialog):
             phase = 'S'
             filter = True
         self.plotWFData(phase=phase, filter=filter)
+        self.drawArrivals()
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
@@ -2864,7 +2946,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                widget.setParent(None)
+                del(widget)
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -2946,13 +3028,15 @@ class TuneAutopicker(QWidget):
     :type: PyLoT Mainwindow
     '''
 
-    def __init__(self, parent):
+    def __init__(self, parent, obspy_dmt=False):
         QtGui.QWidget.__init__(self, parent, 1)
         self._style = parent._style
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = self.parent()._inputs
         self.fig_dict = self.parent().fig_dict
         self.data = Data()
+        self.obspy_dmt = obspy_dmt
+        self.wftype = None
         self.pdlg_widget = None
         self.pylot_picks = None
         self.init_main_layouts()
@@ -3009,8 +3093,45 @@ class TuneAutopicker(QWidget):
         self.eventBox.activated.connect(self.fill_tabs)
         self.stationBox.activated.connect(self.fill_tabs)
 
+    def catch_station_ids(self):
+        self.station_ids = {}
+        eventpath = self.get_current_event_fp()
+        self.wftype = 'processed' if self.obspy_dmt else ''
+        wf_path = os.path.join(eventpath, self.wftype)
+        if not os.path.exists(wf_path) and self.obspy_dmt:
+            self.wftype = 'raw'
+            wf_path = os.path.join(eventpath, self.wftype)
+        for filename in os.listdir(wf_path):
+            filename = os.path.join(eventpath, self.wftype, filename)
+            try:
+                st = read(filename, headonly=True)
+            except Exception as e:
+                print('Warning: Could not read file {} as a stream object: {}'.format(filename, e))
+                continue
+            for trace in st:
+                network = trace.stats.network
+                station = trace.stats.station
+                location = trace.stats.location
+                station_id = '{}.{}.{}'.format(network, station, location)
+                if not station_id in self.station_ids:
+                    self.station_ids[station_id] = []
+                self.station_ids[station_id].append(filename)
+
     def fill_stationbox(self):
-        fnames = self.parent().getWFFnames_from_eventbox(eventbox=self.eventBox)
+        self.stationBox.clear()
+        model = self.stationBox.model()
+
+        self.catch_station_ids()
+        st_ids_list = list(self.station_ids.keys())
+        st_ids_list.sort()
+        for station_id in st_ids_list:
+            item = QtGui.QStandardItem(station_id)
+            if station_id.split('.')[1] in self.get_current_event().pylot_picks:
+                item.setBackground(self.parent()._ref_test_colors['ref'])
+            model.appendRow(item)
+
+    def load_wf_data(self):
+        fnames = self.station_ids[self.get_current_station_id()]
         self.data.setWFData(fnames)
         wfdat = self.data.getWFData()  # all available streams
         # remove possible underscores in station names
@@ -3022,21 +3143,6 @@ class TuneAutopicker(QWidget):
         wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
         # trim station components to same start value
         trim_station_components(wfdat, trim_start=True, trim_end=False)
-        self.stationBox.clear()
-        stations = []
-        for trace in self.data.getWFData():
-            station = trace.stats.station
-            network = trace.stats.network
-            ns_tup = (str(network), str(station))
-            if not ns_tup in stations:
-                stations.append(ns_tup)
-        stations.sort()
-        model = self.stationBox.model()
-        for network, station in stations:
-            item = QtGui.QStandardItem(network + '.' + station)
-            if station in self.get_current_event().pylot_picks:
-                item.setBackground(self.parent()._ref_test_colors['ref'])
-            model.appendRow(item)
 
     def init_figure_tabs(self):
         self.figure_tabs = QtGui.QTabWidget()
@@ -3093,10 +3199,14 @@ class TuneAutopicker(QWidget):
     def get_current_event_autopicks(self, station):
         event = self.get_current_event()
         if event.pylot_autopicks:
-            return event.pylot_autopicks[station]
+            if station in event.pylot_autopicks:
+                return event.pylot_autopicks[station]
 
     def get_current_station(self):
-        return str(self.stationBox.currentText()).split('.')[-1]
+        return str(self.stationBox.currentText()).split('.')[1]
+
+    def get_current_station_id(self):
+        return str(self.stationBox.currentText())
 
     def gen_tab_widget(self, name, canvas):
         widget = QtGui.QWidget()
@@ -3111,17 +3221,19 @@ class TuneAutopicker(QWidget):
                 self.pdlg_widget.setParent(None)
             self.pdlg_widget = None
             return
+        self.load_wf_data()
         station = self.get_current_station()
-        data = self.data.getWFData()
+        wfdata = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
-        self.pickDlg = PickDlg(self.parent(), data=data.select(station=station),
+        wftype = self.wftype if self.obspy_dmt else ''
+        self.pickDlg = PickDlg(self.parent(), data=wfdata.select(station=station).copy(),
                                station=station, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
                                metadata=metadata, event=event, filteroptions=filteroptions,
-                               embedded=True)
+                               embedded=True, wftype=wftype)
         self.pickDlg.update_picks.connect(self.picks_from_pickdlg)
         self.pickDlg.update_picks.connect(self.fill_eventbox)
         self.pickDlg.update_picks.connect(self.fill_stationbox)
@@ -3301,14 +3413,17 @@ class TuneAutopicker(QWidget):
         if not station:
             self._warn('No station selected')
             return
+        wfpath = self.wftype if self.obspy_dmt else ''
         args = {'parameter': self.parameter,
                 'station': station,
                 'fnames': 'None',
                 'eventid': [self.get_current_event_fp()],
                 'iplot': 2,
                 'fig_dict': self.fig_dict,
-                'locflag': 0,
-                'savexml': False}
+                'savexml': False,
+                'obspyDMT_wfpath': wfpath}
+        event = self.get_current_event()
+        self.parent().saveData(event, event.path, '.xml')
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
@@ -3364,8 +3479,7 @@ class TuneAutopicker(QWidget):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
                 self.pdlg_widget.setParent(None)
-                # TODO: removing widget by parent deletion raises exception when activating stationbox:
-                # RuntimeError: Internal C++ object (PylotCanvas) already deleted.
+                del(self.pdlg_widget)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):

@@ -6,6 +6,7 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
@@ -121,7 +122,13 @@ class Magnitude(object):
 
     def net_magnitude(self, magscaling=None):
         if self:
-            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+            if magscaling == None:
+                scaling = False
+            elif magscaling[0] != 0 and magscaling[1] != 0:
+                scaling = False
+            else:
+                scaling = True
+            if scaling:
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(
@@ -140,7 +147,6 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
-        return None
 
 
 class LocalMagnitude(Magnitude):
@@ -219,7 +225,7 @@ class LocalMagnitude(Magnitude):
         sqH = np.sqrt(power_sum)
 
         # get time array
-        th = np.arange(0, len(sqH) * dt, dt)
+        th=np.arange(0, st[0].stats.npts/st[0].stats.sampling_rate, st[0].stats.delta)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         ii = min([iwin[len(iwin) - 1], len(th)])
