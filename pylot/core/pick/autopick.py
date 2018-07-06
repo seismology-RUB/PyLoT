@@ -769,7 +769,7 @@ class AutopickStation(object):
             if self.p_params.algoP == 'HOS':
                 cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
             elif self.p_params.algoP == 'ARZ':
-                cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z, self.p_params.addnoise)
+                cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
             else:
                 cf2 = None
             # save cf2 for plotting
