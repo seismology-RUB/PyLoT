@@ -420,8 +420,6 @@ class AutopickStation(object):
     def autopickstation(self):
         try:
             self.pick_p_phase()
-        #TODO handle exceptions correctly (goal is to be compatible with old code first)
-        # requires an overlook of what should be returned in case picking fails at various stages
         except MissingTraceException as mte:
             print(mte)
         except PickingFailedException as pfe:
@@ -741,8 +739,11 @@ class AutopickStation(object):
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
         aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
                             Tsmooth=self.p_params.aictsmooth, fig=fig, linecolor=linecolor)
+        # save aicpick for plotting later
+        self.p_results.aicpick = aicpick
         # add pstart and pstop to aic plot
         if fig:
+            # TODO remove plotting from picking, make own plot function
             for ax in fig.axes:
                 ax.vlines(self.p_params.pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
@@ -752,72 +753,75 @@ class AutopickStation(object):
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
-        if slope >= self.p_params.minAICPslope and aicpick.getSNR() >= self.p_params.minAICPSNR and Pflag == 1:
-            self.p_results.aicPflag = 1
-            msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
-                  'SNR: {1}\nGo on with refined picking ...\n' \
-                  'autopickstation: re-filtering vertical trace ' \
-                  '...'.format(aicpick.getSlope(), aicpick.getSNR())
-            self.vprint(msg)
-            # refilter waveform with larger bandpass
-            tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
-            # save filtered trace in instance for later plotting
-            self.tr_filt_z_bpz2 = tr_filt
-            cuttimes2 = [round(max([aicpick.getpick() - self.p_params.Precalcwin, 0])),
-                         round(min([len(self.ztrace.data) * self.ztrace.stats.delta,
-                                    aicpick.getpick() + self.p_params.Precalcwin]))]
-            if self.p_params.algoP == 'HOS':
-                cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
-            elif self.p_params.algoP == 'ARZ':
-                cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
-            else:
-                cf2 = None
-            # save cf2 for plotting
-            self.cf2 = cf2
-            # get refined onset time from CF2
-            assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set ' \
-                                                            'correctly: maybe the algorithm name ({algoP}) is ' \
-                                                            'corrupted'.format(algoP=self.p_params.algoP)
-            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
-            refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
-                                  self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
-            # save PragPicker result for plotting
-            self.p_results.refPpick = refPpick
-            self.p_results.mpickP = refPpick.getpick()
-            if self.p_results.mpickP is not None:
-                # quality assessment, get earliest/latest pick and symmetrized uncertainty
-                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Ppick')
-                self.p_results.epickP, self.p_results.lpickP, self.p_results.Perror = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpickP,
-                                                        self.iplot, fig=fig, linecolor=linecolor)
-                self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.Pnoiselevel = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpickP)
+        # todo why did picking fail was saved in the pick dictionary, should this be reimplemented?
+        if Pflag != 1:
+            raise PickingFailedException('AIC P onset quality control failed')
+        if slope <= self.p_params.minAICPslope:
+            error_msg = 'AIC P onset slope to small: got {}, min {}'.format(slope, self.p_params.minAICPslope)
+            raise PickingFailedException(error_msg)
+        if aicpick.getSNR() < self.p_params.minAICPSNR:
+            error_msg = 'AIC P onset SNR to small: got {}, min {}'.format(aicpick.getSNR(), self.p_params.minAICPSNR)
+            raise PickingFailedException(error_msg)
 
-                # weight P-onset using symmetric error
-                self.p_results.Pweight = get_quality_class(self.p_results.Perror, self.p_params.timeerrorsP)
-                if self.p_results.Pweight <= self.first_motion_params.minfmweight and self.p_results.SNRP >= self.first_motion_params.minFMSNR:
-                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'fm_picker')
-                    self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin, self.p_results.mpickP, self.iplot,
-                                  fig, linecolor)
-                else:
-                    self.p_results.FM = 'N'
-                msg = "autopickstation: P-weight: {0}, " \
-                      "SNR: {1}, SNR[dB]: {2}, Polarity: {3}".format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
-                print(msg)
-                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(self.p_results.mpickP, self.p_results.Perror)
-                print(msg)
-                self.s_results.Sflag = 1
-
-                self.p_results.aicpick = aicpick
-            else:
-                msg = 'Bad initial (AIC) P-pick, skipping this onset!\n' \
-                      'AIC-SNR={0}, AIC-Slope={1}counts/s\n' \
-                      '(min. AIC-SNR={2}, ' \
-                      'min. AIC-Slope={3}counts/s)'.format(aicpick.getSNR(), aicpick.getSlope(),
-                                                           self.p_params.minAICPSNR, self.p_params.minAICPslope)
-                self.vprint(msg)
-                self.s_results.Sflag = 0
+        self.p_results.aicPflag = 1
+        msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
+              'SNR: {1}\nGo on with refined picking ...\n' \
+              'autopickstation: re-filtering vertical trace ' \
+              '...'.format(aicpick.getSlope(), aicpick.getSNR())
+        self.vprint(msg)
+        # refilter waveform with larger bandpass
+        tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
+        # save filtered trace in instance for later plotting
+        self.tr_filt_z_bpz2 = tr_filt
+        starttime2 = round(max(aicpick.getpick() - self.p_params.Precalcwin, 0))
+        endtime2 = round(min(len(self.ztrace.data) * self.ztrace.stats.delta, aicpick.getpick() + self.p_params.Precalcwin))
+        cuttimes2 = [starttime2, endtime2]
+        if self.p_params.algoP == 'HOS':
+            cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
+        elif self.p_params.algoP == 'ARZ':
+            cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
         else:
-            #todo why did picking fail should be saved in the pick dictionary
-            raise PickingFailedException('AIC P onset did not pass quality control')
+            cf2 = None
+        # save cf2 for plotting
+        self.cf2 = cf2
+        # get refined onset time from CF2
+        assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
+                                                        'corrupted'.format(self.p_params.algoP)
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
+        refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
+                              self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
+        # save PragPicker result for plotting
+        self.p_results.refPpick = refPpick
+        self.p_results.mpickP = refPpick.getpick()
+        if self.p_results.mpickP is None:
+            msg = 'Bad initial (AIC) P-pick, skipping this onset!\n AIC-SNR={}, AIC-Slope={}counts/s\n' \
+                  '(min. AIC-SNR={}, min. AIC-Slope={}counts/s)'
+            msg.format(aicpick.getSNR(), aicpick.getSlope(), self.p_params.minAICPSNR, self.p_params.minAICPslope)
+            self.vprint(msg)
+            self.s_results.Sflag = 0
+            raise PickingFailedException(msg)
+        # quality assessment, get earliest/latest pick and symmetrized uncertainty
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Ppick')
+        elpicker_results = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpickP,
+                                          self.iplot, fig=fig, linecolor=linecolor)
+        self.p_results.epickP, self.p_results.lpickP, self.p_results.Perror = elpicker_results
+        snr_results = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpickP)
+        self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.Pnoiselevel = snr_results
+
+        # weight P-onset using symmetric error
+        self.p_results.Pweight = get_quality_class(self.p_results.Perror, self.p_params.timeerrorsP)
+        if self.p_results.Pweight <= self.first_motion_params.minfmweight and self.p_results.SNRP >= self.first_motion_params.minFMSNR:
+            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'fm_picker')
+            self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
+                                         self.p_results.mpickP, self.iplot, fig, linecolor)
+        msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
+        msg.format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
+        print(msg)
+        msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'
+        msg.format(self.p_results.mpickP, self.p_results.Perror)
+        print(msg)
+        self.s_results.Sflag = 1
+        
 
     def pick_s_phase(self):
 
