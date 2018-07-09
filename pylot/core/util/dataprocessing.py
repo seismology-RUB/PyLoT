@@ -15,15 +15,15 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
 class Metadata(object):
     def __init__(self, inventory=None):
         self.inventories = []
+        # saves read metadata objects (Parser/inventory) for a filename
+        self.inventory_files = {}
+        # saves filenames holding metadata for a seed_id
+        self.seed_ids = {}
         if inventory:
             if os.path.isdir(inventory):
                 self.add_inventory(inventory)
             if os.path.isfile(inventory):
                 self.add_inventory_file(inventory)
-        # saves filenames holding metadata for a seed_id
-        self.seed_ids = {}
-        # saves read metadata objects (Parser/inventory) for a filename
-        self.inventory_files = {}
 
 
     def __str__(self):
@@ -460,11 +460,16 @@ def read_metadata(path_to_inventory):
 
 
 def restitute_trace(input_tuple):
-    tr, invtype, inobj, unit, force = input_tuple
+    tr, metadata, unit, force = input_tuple
 
     remove_trace = False
 
     seed_id = tr.get_id()
+
+    mdata = metadata.get_metadata(seed_id)
+    invtype = mdata['invtype']
+    inobj = mdata['data']
+
     # check, whether this trace has already been corrected
     if 'processing' in tr.stats.keys() \
             and np.any(['remove' in p for p in tr.stats.processing]) \
@@ -532,7 +537,7 @@ def restitute_trace(input_tuple):
     return tr, remove_trace
 
 
-def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
+def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -553,7 +558,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
     # loop over traces
     input_tuples = []
     for tr in data:
-        input_tuples.append((tr, invtype, inobj, unit, force))
+        input_tuples.append((tr, metadata, unit, force))
         data.remove(tr)
 
     pool = gen_Pool(ncores)
