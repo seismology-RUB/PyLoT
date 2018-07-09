@@ -2832,10 +2832,20 @@ class MultiEventWidget(QWidget):
             self.rb_layout.insertWidget(index, rb)
             self.rb_layout.setStretch(index, 0)
 
+        self.pb = QtGui.QProgressBar()
+        self.pb.setRange(0, 0)
+        self.pb.setVisible(False)
+
+        #space holder for progressbar
+        self._pb_space = QtGui.QWidget()
+
         self.rb_layout.addWidget(self.start_button)
 
-        self.rb_layout.addWidget(QtGui.QWidget())
+        self.rb_layout.addWidget(self.pb)
+        self.rb_layout.addWidget(self._pb_space)
+
         self.rb_layout.setStretch(len(self.options) + 1, 1)
+        self.rb_layout.setStretch(len(self.options) + 2, 1)
 
         self.main_layout.insertLayout(0, self.rb_layout)
 
@@ -2866,6 +2876,8 @@ class MultiEventWidget(QWidget):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
         self.start_button.setEnabled(bool)
+        self.pb.setVisible(not(bool))
+        self._pb_space.setVisible(bool)
         self.eventbox.setEnabled(bool)
         self.button_clear.setEnabled(bool)
 
