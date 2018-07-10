@@ -63,7 +63,7 @@ defaults = {'rootpath': {'type': str,
 
             'ctrfile': {'type': str,
                         'tooltip': 'name of autoPyLoT-output control file for NLLoc',
-                        'value': 'Insheim_min1d2015_auto.in',
+                        'value': '',
                         'namestring': 'Control filename'},
 
             'ttpatter': {'type': str,
