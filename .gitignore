@@ -2,3 +2,4 @@
 *~
 pylot/RELEASE-VERSION
 *.idea
+autopylot.sh*
