@@ -22,7 +22,7 @@ from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
-from pylot.core.util.dataprocessing import restitute_data, read_metadata
+from pylot.core.util.dataprocessing import restitute_data, read_metadata, Metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
@@ -276,7 +276,11 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             wfdat = check4gaps(wfdat)
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
-            metadata = read_metadata(parameter.get('invdir'))
+            if not wfpath_extension:
+                metadata = Metadata(parameter.get('invdir'))
+            else:
+                metadata = Metadata(os.path.join(eventpath, 'resp'))
+            # metadata = read_metadata(parameter.get('invdir'))
             # TODO: (idea) read metadata from obspy_dmt database
             # if not wfpath_extension:
             #     metadata = read_metadata(parameter.get('invdir'))
@@ -285,10 +289,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
-                wfdat = check4rotated(wfdat, metadata)
+                #wfdat = check4rotated(wfdat, metadata) # MP MP TEMPORARILY DISABLED !!!!!!!!!!!
                 if locflag:
                     print("Restitute data ...")
-                    corr_dat = restitute_data(wfdat.copy(), *metadata, ncores=ncores)
+                    corr_dat = restitute_data(wfdat.copy(), metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
             print('Working on event %s. Stations: %s' % (eventpath, station))
@@ -363,7 +367,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                        WAscaling[2]))
                         evt = local_mag.updated_event(magscaling)
                         net_ml = local_mag.net_magnitude(magscaling)
-                        print("Network local magnitude: %4.1f" % net_ml.mag)
+                        if net_ml:
+                            print("Network local magnitude: %4.1f" % net_ml.mag)
                         if magscaling == None:
                             scaling = False
                         elif magscaling[0] != 0 and magscaling[1] != 0:
@@ -447,7 +452,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                                            WAscaling[2]))
                             evt = local_mag.updated_event(magscaling)
                             net_ml = local_mag.net_magnitude(magscaling)
-                            print("Network local magnitude: %4.1f" % net_ml.mag)
+                            if net_ml:
+                                print("Network local magnitude: %4.1f" % net_ml.mag)
                             if magscaling == None:
                                 scaling = False
                             elif magscaling[0] != 0 and magscaling[1] != 0:
