@@ -1407,7 +1407,7 @@ class MainWindow(QMainWindow):
             self.get_data().resetPicks()
             return self.saveData(event, directory, outformats)
 
-        fcheck = ['manual', 'origins', 'magnitude']
+        fcheck = ['auto', 'manual', 'origins', 'magnitude']
 
         saved_as = str()
         for outformat in outformats:
