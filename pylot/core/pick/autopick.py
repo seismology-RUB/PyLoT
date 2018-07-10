@@ -88,9 +88,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     print('Autopickstation: Distribute autopicking for {} '
           'stations on {} cores.'.format(len(input_tuples), ncores_str))
 
-    pool = gen_Pool(ncores)
-    result = pool.map(call_autopickstation, input_tuples)
-    pool.close()
+
+    result = parallel_picking(input_tuples, ncores)
+    #result = serial_picking(input_tuples)
 
     if ncores == 1:
         results = serial_picking(input_tuples)
@@ -118,6 +118,20 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     # check S-P times (Wadati)
     wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, iplot, fig_dict_wadatijack)
     return wadationsets
+
+
+def serial_picking(input_tuples):
+    result = []
+    for input_tuple in input_tuples:
+        result.append(call_autopickstation(input_tuple))
+    return result
+
+
+def parallel_picking(input_tuples, ncores):
+    pool = gen_Pool(ncores)
+    result = pool.imap_unordered(call_autopickstation, input_tuples)
+    pool.close()
+    return result
 
 
 def call_autopickstation(input_tuple):
@@ -303,13 +317,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata:
-                metadata = [None, None]
-            if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
                 station_id = wfstream[0].get_id()
-                parser = metadata[1]
-                station_coords = get_source_coords(parser, station_id)
+                station_coords = metadata.get_coordinates(station_id)
                 if station_coords and origin:
                     source_origin = origin[0]
                     model = TauPyModel(taup_model)

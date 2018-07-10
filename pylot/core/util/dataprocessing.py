@@ -100,12 +100,13 @@ class Metadata(object):
         if not seed_id in self.seed_ids.keys():
             print('No data found for seed id {}. Trying to find it in all known inventories...'.format(seed_id))
             self.read_all()
-            for inv_fname, metadata in self.inventory_files.items():
+            for inv_fname, metadata_dict in self.inventory_files.items():
                 # use get_coordinates to check for seed_id
                 try:
-                    metadata['data'].get_coordinates(seed_id)
+                    metadata_dict['data'].get_coordinates(seed_id)
                     self.seed_ids[seed_id] = inv_fname
-                    return metadata
+                    print('Found metadata for station {}!'.format(seed_id))
+                    return metadata_dict
                 except Exception as e:
                     continue
             print('Could not find metadata for station {}'.format(seed_id))
@@ -127,6 +128,7 @@ class Metadata(object):
 
 
     def read_single_file(self, inv_fname):
+        # try to read a single file as Parser/Inventory if it was not already read before
         if not inv_fname in self.inventory_files.keys():
             pass
         else:
@@ -460,6 +462,11 @@ def read_metadata(path_to_inventory):
 
 
 def restitute_trace(input_tuple):
+    def no_metadata(tr, seed_id):
+        print('no metadata file found '
+              'for trace {0}'.format(seed_id))
+        return tr, True
+
     tr, metadata, unit, force = input_tuple
 
     remove_trace = False
@@ -467,6 +474,9 @@ def restitute_trace(input_tuple):
     seed_id = tr.get_id()
 
     mdata = metadata.get_metadata(seed_id)
+    if not mdata:
+        return no_metadata(tr, seed_id)
+
     invtype = mdata['invtype']
     inobj = mdata['data']
 
@@ -481,8 +491,7 @@ def restitute_trace(input_tuple):
     if invtype == 'resp':
         fresp = find_in_list(inobj, seed_id)
         if not fresp:
-            raise IOError('no response file found '
-                          'for trace {0}'.format(seed_id))
+            return no_metadata(tr, seed_id)
         fname = fresp
         seedresp = dict(filename=fname,
                         date=stime,
@@ -505,8 +514,7 @@ def restitute_trace(input_tuple):
             finv = invlist[0]
         inventory = read_inventory(finv, format='STATIONXML')
     elif invtype == None:
-        print("No restitution possible, as there are no station-meta data available!")
-        return tr, True
+        return no_metadata(tr, seed_id)
     else:
         remove_trace = True
     # apply restitution to data
@@ -562,7 +570,7 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
         data.remove(tr)
 
     pool = gen_Pool(ncores)
-    result = pool.map(restitute_trace, input_tuples)
+    result = pool.imap_unordered(restitute_trace, input_tuples)
     pool.close()
 
     for tr, remove_trace in result:

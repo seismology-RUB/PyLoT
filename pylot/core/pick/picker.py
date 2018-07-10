@@ -191,9 +191,24 @@ class AICPicker(AutoPicker):
         # remove offset in AIC function
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
+        cf = self.Data[0].data
         # get maximum of HOS/AR-CF as startimg point for searching
         # minimum in AIC function 
-        icfmax = np.argmax(self.Data[0].data)
+        icfmax = np.argmax(cf)
+
+        # MP MP testing threshold
+        thresh_hit = False
+        thresh_factor = 0.6
+        thresh = thresh_factor * cf[icfmax]
+        for index, sample in enumerate(cf):
+            if sample >= thresh:
+                thresh_hit = True
+            # go on searching for the following maximum
+            if index > 0 and thresh_hit:
+                if sample <= cf[index - 1]:
+                    icfmax = index - 1
+                    break
+        # MP MP ---
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))
@@ -233,14 +248,14 @@ class AICPicker(AutoPicker):
             ii = min([isignal[len(isignal) - 1], len(self.Tcf)])
             isignal = isignal[0:ii]
             try:
-                self.Data[0].data[isignal]
+                cf[isignal]
             except IndexError as e:
                 msg = "Time series out of bounds! {}".format(e)
                 print(msg)
                 return
             # calculate SNR from CF
-            self.SNR = max(abs(self.Data[0].data[isignal])) / \
-                       abs(np.mean(self.Data[0].data[inoise]))
+            self.SNR = max(abs(cf[isignal])) / \
+                       abs(np.mean(cf[inoise]))
             # calculate slope from CF after initial pick
             # get slope window
             tslope = self.TSNR[3]  # slope determination window
@@ -253,7 +268,7 @@ class AICPicker(AutoPicker):
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             try:
-                dataslope = self.Data[0].data[islope[0][0:-1]]
+                dataslope = cf[islope[0][0:-1]]
             except IndexError:
                 print("Slope Calculation: empty array islope, check signal window")
                 return
@@ -282,8 +297,8 @@ class AICPicker(AutoPicker):
                         else:
                             fig = self.fig
                         ax = fig.add_subplot(111)
-                        x = self.Data[0].data
-                        ax.plot(self.Tcf, x / max(x), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
+                        cf = cf
+                        ax.plot(self.Tcf, cf / max(cf), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
                         ax.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
                         ax.legend(loc=1)
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
@@ -296,7 +311,16 @@ class AICPicker(AutoPicker):
                             plt.close(fig)
                     return
                 iislope = islope[0][0:imax+1]
-            dataslope = self.Data[0].data[iislope]
+            # MP MP change slope calculation
+            # get all maxima of aicsmooth
+            iaicmaxima = argrelmax(aicsmooth)[0]
+            # get first index of maximum after pickindex (indices saved in iaicmaxima)
+            aicmax = iaicmaxima[np.where(iaicmaxima > pickindex)[0]]
+            if len(aicmax) > 0:
+                iaicmax = aicmax[0]
+            else:
+                iaicmax = -1
+            dataslope = aicsmooth[pickindex : iaicmax]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
             P = np.polyfit(xslope, dataslope, 1)
@@ -306,7 +330,7 @@ class AICPicker(AutoPicker):
             else:
                 self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
                 # normalize slope to maximum of cf to make it unit independent
-                self.slope /= self.Data[0].data[icfmax]
+                self.slope /= aicsmooth[iaicmax]
 
         else:
             self.SNR = None
@@ -320,10 +344,9 @@ class AICPicker(AutoPicker):
                 fig = self.fig
             fig._tight = True
             ax1 = fig.add_subplot(211)
-            x = self.Data[0].data
-            if len(self.Tcf) > len(self.Data[0].data): # why? LK
+            if len(self.Tcf) > len(cf): # why? LK
                 self.Tcf = self.Tcf[0:len(self.Tcf)-1]
-            ax1.plot(self.Tcf, x / max(x), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
+            ax1.plot(self.Tcf, cf / max(cf), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
@@ -333,7 +356,7 @@ class AICPicker(AutoPicker):
 
             if self.Pick is not None:
                 ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-                ax2.plot(self.Tcf, x, color=self._linecolor, linewidth=0.7, label='Data')
+                ax2.plot(self.Tcf, aicsmooth, color='r', linewidth=0.7, label='Data')
                 ax1.axvspan(self.Tcf[inoise[0]], self.Tcf[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
                 ax1.axvspan(self.Tcf[isignal[0]], self.Tcf[isignal[-1]], color='b', alpha=0.2, lw=0,
                             label='Signal Window')
@@ -345,7 +368,7 @@ class AICPicker(AutoPicker):
                             label='Signal Window')
                 ax2.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
                             label='Slope Window')
-                ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2, label='Slope')
+                ax2.plot(self.Tcf[pickindex : iaicmax], datafit, 'g', linewidth=2, label='Slope') # MP MP changed temporarily!
 
                 if self.slope is not None:
                     ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
