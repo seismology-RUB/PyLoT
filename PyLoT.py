@@ -2631,17 +2631,20 @@ class MainWindow(QMainWindow):
         elif type == 'auto':
             event.addAutopicks(picksdict['auto'])
 
-    def drawPicks(self, station=None, picktype=None):
+    def drawPicks(self, station=None, picktype=None, stime=None):
         # if picktype not specified, draw both
+        if not stime:
+            stime = self.getStime()
+
         if not picktype:
-            self.drawPicks(station, 'manual')
-            self.drawPicks(station, 'auto')
+            self.drawPicks(station, 'manual', stime)
+            self.drawPicks(station, 'auto', stime)
             return
 
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
-                self.drawPicks(station, picktype=picktype)
+                self.drawPicks(station, picktype=picktype, stime=stime)
             return
 
         # check for station key in dictionary, else return
@@ -2659,7 +2662,6 @@ class MainWindow(QMainWindow):
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
-        stime = self.getStime()
 
         for phase in stat_picks:
             if phase == 'SPt': continue # wadati SP time
