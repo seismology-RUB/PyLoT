@@ -926,7 +926,10 @@ def get_stations(data):
 
 def check4rotated(data, metadata=None, verbosity=1):
     """
-
+    Check all traces in data. If a trace is not in ZNE rotation (last symbol of channel code is numeric) and the trace
+    is in the metadata with azimuth and dip, rotate it to classical ZNE orientation.
+    Rotating the traces requires them to be of the same length, so, all traces will be trimmed to a common length as a
+    side effect.
     :param data: stream object containing seismic traces
     :type data: `~obspy.core.stream.Stream`
     :param metadata: tuple containing metadata type string and metadata parser object
@@ -943,100 +946,54 @@ def check4rotated(data, metadata=None, verbosity=1):
 
         Azimut and dip are fetched from metadata. To be rotated, traces of a station have to be cut to the same length.
         Returns unrotated traces of no metadata is provided
-        :param wfstream: stream containing seismic traces
+        :param wfstream: stream containing seismic traces of a station
         :type wfstream: `~obspy.core.stream.Stream`
         :param metadata: tuple containing metadata type string and metadata parser object
         :type metadata: (str, `~obspy.io.xseed.parser.Parser`)
         :return: stream object with traditionally oriented traces (ZNE)
         :rtype: `~obspy.core.stream.Stream`
         """
-        try:
-            # indexing fails if metadata is None
-            metadata[0]
-        except TypeError:
-            if verbosity:
-                msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
-                print(msg)
-            return wfstream
-        if metadata[0] is None:
-            # sometimes metadata is (None, (None,))
-            if verbosity:
-                msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
-                print(msg)
-            return wfstream
-        else:
-            parser = metadata[1]
 
-        def get_dip_azimut(parser, trace_id):
-            """
-            Gets azimuth and dip by trace id out of the metadata parser
-            :param parser: metadata parser object
-            :type parser: `~obspy.io.xseed.parser.Parser`
-            :param trace_id: eg. 'BW.RJOB..EHZ',
-            :type trace_id: str
-            :return: tuple containing dip and azimuth of the trace corresponding to trace_id
-            :rtype: (float, float)
-            """
-            dip = None
-            azimut = None
-            try:
-                blockettes = parser._select(trace_id)
-            except SEEDParserException as e:
-                print(e)
-                raise ValueError
-            for blockette_ in blockettes:
-                if blockette_.id != 52:
-                    continue
-                dip = blockette_.dip
-                azimut = blockette_.azimuth
-                break
-            if (dip is None or azimut is None) or (dip == 0 and azimut == 0):
-                error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
-                raise ValueError(error_msg)
-            return dip, azimut
-
+        # check if any traces in this station need to be rotated
         trace_ids = [trace.id for trace in wfstream]
-        for trace_id in trace_ids:
-            orientation = trace_id[-1]  # last letter if trace id is orientation code, ZNE or 123
-            if orientation.isnumeric():
-                # misaligned channels have a number as orientation
-                azimuts = []
-                dips = []
-                for trace_id in trace_ids:
-                    try:
-                        dip, azimut = get_dip_azimut(parser, trace_id)
-                    except ValueError as e:
-                        print(e)
-                        print('Failed to rotate station {}, no azimuth or dip available in metadata'.format(trace_id))
-                        return wfstream
-                    azimuts.append(azimut)
-                    dips.append(dip)
-                # to rotate all traces must have same length
-                wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
-                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
-                                     wfstream[1], azimuts[1], dips[1],
-                                     wfstream[2], azimuts[2], dips[2])
-                print('check4rotated: rotated station {} to ZNE'.format(trace_id))
-                z_index = dips.index(min(dips))  # get z-trace index (dip is measured from 0 to -90)
-                wfstream[z_index].data = z
-                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
-                del trace_ids[z_index]
-                for trace_id in trace_ids:
-                    dip, az = get_dip_azimut(parser, trace_id)
-                    trace = wfstream.select(id=trace_id)[0]
-                    if az > 315 or az <= 45 or az > 135 and az <= 225:
-                        trace.data = n
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
-                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
-                        trace.data = e
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
-                break
-            else:
-                continue
+        orientations = [trace_id[-1] for trace_id in trace_ids]
+        rotation_required = [orientation.isnumeric() for orientation in orientations]
+        if any(rotation_required):
+            try:
+                azimuts = [metadata.get_coordinates(tr_id)['azimuth'] for tr_id in trace_ids]
+                dips = [metadata.get_coordinates(tr_id)['dip'] for tr_id in trace_ids]
+            except (KeyError, TypeError) as e:
+                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
+                return wfstream
+            # to rotate all traces must have same length, so trim them
+            wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
+            z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
+                                 wfstream[1], azimuts[1], dips[1],
+                                 wfstream[2], azimuts[2], dips[2])
+            print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
+            # replace old data with rotated data, change the channel code to ZNE
+            z_index = dips.index(min(dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
+            wfstream[z_index].data = z
+            wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
+            del trace_ids[z_index]
+            for trace_id in trace_ids:
+                coordinates = metadata.get_coordinates(trace_id)
+                dip, az = coordinates['dip'], coordinates['azimuth']
+                trace = wfstream.select(id=trace_id)[0]
+                if az > 315 or az <= 45 or az > 135 and az <= 225:
+                    trace.data = n
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                elif az > 45 and az <= 135 or az > 225 and az <= 315:
+                    trace.data = e
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'E'
         return wfstream
 
+    if metadata is None:
+        if verbosity:
+            msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+            print(msg)
+        return data
     stations = get_stations(data)
-
     for station in stations:  # loop through all stations and rotate data if neccessary
         wf_station = data.select(station=station)
         rotate_components(wf_station, metadata)
