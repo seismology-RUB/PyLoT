@@ -684,7 +684,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         wfitflag = 1
 
     # plot results
-    if iplot > 0:
+    if iplot > 0 or fig_dict:
         if fig_dict:
             fig = fig_dict['wadati']
             linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
@@ -926,7 +926,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
 
     checkedonsets = pickdic
 
-    if iplot > 0:
+    if iplot > 0 or fig_dict:
         if fig_dict:
             fig = fig_dict['jackknife']
             plt_flag = 0
