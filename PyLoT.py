@@ -110,21 +110,8 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None, infile=None):
         super(MainWindow, self).__init__(parent)
 
-        # check for default pylot.in-file
-        if not infile:
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-        if os.path.isfile(infile) == False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+        self.init_config_files(infile)
 
-            if not os.path.exists(infile[0]):
-                QMessageBox.warning(self, "PyLoT Warning",
-                                    "No PyLoT-input file declared!")
-                sys.exit(0)
-            self.infile = infile[0]
-        else:
-            self.infile = infile
-        self._inputs = PylotParameter(infile)
         self._props = None
 
         self.dirty = False
@@ -207,6 +194,22 @@ class MainWindow(QMainWindow):
         self.updateFilteroptions()
 
         self.loc = False
+
+
+    def init_config_files(self, infile):
+        pylot_config_dir = os.path.join(os.path.expanduser('~'), '.pylot')
+        if not os.path.exists(pylot_config_dir):
+            os.mkdir(pylot_config_dir)
+
+        self._inputs = PylotParameter(infile)
+        if not infile:
+            self._inputs.reset_defaults()
+            # check for default pylot.in-file
+            infile = os.path.join(pylot_config_dir, '.pylot.in')
+            print('Using default input file {}'.format(infile))
+            self._inputs.export2File(infile)
+        self.infile = infile
+
 
     def setupUi(self):
         try:
