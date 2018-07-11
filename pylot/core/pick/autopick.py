@@ -93,7 +93,9 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     #result = serial_picking(input_tuples)
 
     for pick in result:
-        if pick:
+        if type(pick) == BaseException:
+            print(pick)
+        elif pick:
             station = pick['station']
             pick.pop('station')
             all_onsets[station] = pick
@@ -130,7 +132,10 @@ def call_autopickstation(input_tuple):
     """
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
-    return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+    try:
+        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+    except Exception as e:
+        return e
 
 
 def get_source_coords(parser, station_id):

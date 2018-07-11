@@ -48,6 +48,7 @@ class PylotParameter(object):
         self.__init_default_paras()
         self.__init_subsettings()
         self.__filename = fnin
+        self.__parameter = {}
         self._verbosity = verbosity
         self._parFileCont = {}
         # io from parsed arguments alternatively
@@ -273,8 +274,8 @@ class PylotParameter(object):
         :rtype: None
         """
         defaults = self.get_defaults()
-        for param in defaults:
-            self.setParamKV(param, defaults[param]['value'])
+        for param_name, param in defaults.items():
+            self.setParamKV(param_name, param['value'])
 
     def from_file(self, fnin=None):
         """
