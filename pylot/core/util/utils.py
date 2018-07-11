@@ -1024,7 +1024,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 for trace_id in trace_ids:
                     dip, az = get_dip_azimut(parser, trace_id)
                     trace = wfstream.select(id=trace_id)[0]
-                    if az > 315 and az <= 45 or az > 135 and az <= 225:
+                    if az > 315 or az <= 45 or az > 135 and az <= 225:
                         trace.data = n
                         trace.stats.channel = trace.stats.channel[0:-1] + 'N'
                     elif az > 45 and az <= 135 or az > 225 and az <= 315:
