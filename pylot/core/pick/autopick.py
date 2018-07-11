@@ -92,13 +92,25 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     result = pool.map(call_autopickstation, input_tuples)
     pool.close()
 
-    for pick in result:
-        if type(pick) == BaseException:
-            print(pick)
-        elif pick:
-            station = pick['station']
-            pick.pop('station')
-            all_onsets[station] = pick
+    if ncores == 1:
+        results = serial_picking(input_tuples)
+    else:
+        results = parallel_picking(input_tuples, ncores)
+
+
+    for result, wfstream in results:
+        if type(result) == dict:
+            station = result['station']
+            result.pop('station')
+            all_onsets[station] = result
+        else:
+            if result == None:
+                result = 'Picker exited unexpectedly.'
+            if len(wfstream) > 0:
+                station = wfstream[0].stats.station
+            else:
+                station = None
+            print('Could not pick a station: {}\nReason: {}'.format(station, result))
 
     # quality control
     # median check and jackknife on P-onset times
@@ -119,9 +131,9 @@ def call_autopickstation(input_tuple):
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
     try:
-        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin), wfstream
     except Exception as e:
-        return e
+        return e, wfstream
 
 
 def get_source_coords(parser, station_id):
