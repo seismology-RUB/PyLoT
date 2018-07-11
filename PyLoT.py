@@ -1061,9 +1061,12 @@ class MainWindow(QMainWindow):
             eventlist = ed.selectedFiles()
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
             if check_obspydmt_structure(basepath):
-                print('Recognized obspyDMT structure in selected files.')
+                print('Recognized obspyDMT structure in selected files. Settings Datastructure to ObspyDMT')
+                self.dataStructure = DATASTRUCTURE['obspyDMT']()
                 eventlist = check_all_obspy(eventlist)
             else:
+                print('Settings Datastructure to PILOT')
+                self.dataStructure = DATASTRUCTURE['PILOT']()
                 eventlist = check_all_pylot(eventlist)
             if not eventlist:
                 print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
