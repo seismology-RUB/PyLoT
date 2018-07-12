@@ -92,7 +92,7 @@ class Metadata(object):
                 del(self.seed_ids[seed_id])
 
 
-    def get_metadata(self, seed_id):
+    def get_metadata(self, seed_id, time):
         # get metadata for a specific seed_id, if not already read, try to read from inventories
         if not seed_id in self.seed_ids.keys():
             self._read_inventory_data(seed_id)
@@ -103,7 +103,7 @@ class Metadata(object):
             for inv_fname, metadata_dict in self.inventory_files.items():
                 # use get_coordinates to check for seed_id
                 try:
-                    metadata_dict['data'].get_coordinates(seed_id)
+                    metadata_dict['data'].get_coordinates(seed_id, time)
                     self.seed_ids[seed_id] = inv_fname
                     print('Found metadata for station {}!'.format(seed_id))
                     return metadata_dict
@@ -148,11 +148,11 @@ class Metadata(object):
         return True
 
 
-    def get_coordinates(self, seed_id):
-        metadata = self.get_metadata(seed_id)
+    def get_coordinates(self, seed_id, time):
+        metadata = self.get_metadata(seed_id, time)
         if not metadata:
             return
-        return metadata['data'].get_coordinates(seed_id)
+        return metadata['data'].get_coordinates(seed_id, time)
 
 
     def get_paz(self, seed_id, time):
