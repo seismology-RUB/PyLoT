@@ -89,14 +89,8 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
           'stations on {} cores.'.format(len(input_tuples), ncores_str))
 
     pool = gen_Pool(ncores)
-    result = pool.map(call_autopickstation, input_tuples)
+    results = pool.map(call_autopickstation, input_tuples)
     pool.close()
-
-    if ncores == 1:
-        results = serial_picking(input_tuples)
-    else:
-        results = parallel_picking(input_tuples, ncores)
-
 
     for result, wfstream in results:
         if type(result) == dict:
