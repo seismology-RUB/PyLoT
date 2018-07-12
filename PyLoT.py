@@ -339,7 +339,7 @@ class MainWindow(QMainWindow):
                                                      "Ctrl+A",
                                                       openEventsIcon,
                                                      "Load event data automatically "
-                                                     "for for all events.")
+                                                     "for all events.")
         self.openEventsAutoAction.setEnabled(False)
         self.openEventsAutoAction.setData(None)
 
@@ -900,6 +900,7 @@ class MainWindow(QMainWindow):
             return
         if self.get_current_event().pylot_picks:
             self.refreshEvents()
+            self.fill_eventbox()
         self.setDirty(True)
 
     def load_data(self, fname=None, loc=False, draw=True, event=None, overwrite=False):

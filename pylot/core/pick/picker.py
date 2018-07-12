@@ -198,7 +198,7 @@ class AICPicker(AutoPicker):
 
         # MP MP testing threshold
         thresh_hit = False
-        thresh_factor = 0.6
+        thresh_factor = 0.7
         thresh = thresh_factor * cf[icfmax]
         for index, sample in enumerate(cf):
             if sample >= thresh:
