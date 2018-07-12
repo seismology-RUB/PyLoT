@@ -935,7 +935,9 @@ class MainWindow(QMainWindow):
                 return
 
         self.data = data
-        print('Loading event info from file {}.'.format(fname))
+        message = 'Loading event info from file {}.'.format(fname)
+        print(message)
+        self.update_status(message)
         if not loc:
             self.updatePicks(type='auto', event=event)
             self.updatePicks(type='manual', event=event)
