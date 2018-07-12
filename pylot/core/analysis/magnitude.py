@@ -510,6 +510,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
     zdat = select_for_phase(wfstream, "P")
 
+    if len(zdat) == 0:
+        raise IOError('No vertical component found in stream:\n{}'.format(wfstream))
+
     dt = zdat[0].stats.delta
 
     freq = zdat[0].stats.sampling_rate
