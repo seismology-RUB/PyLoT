@@ -1,12 +1,14 @@
 import unittest
 import os
 
+from obspy import UTCDateTime
 from pylot.core.util.dataprocessing import Metadata
 
 class TestMetadata(unittest.TestCase):
 
     def setUp(self):
         self.station_id = 'BW.WETR..HH'
+        self.time = UTCDateTime('2012-08-01')
         metadata_folder = 'metadata1'
         self.m = Metadata(metadata_folder)
 
@@ -17,7 +19,7 @@ class TestMetadata(unittest.TestCase):
                     }
         result = {}
         for channel in ('Z', 'N', 'E'):
-            coords = self.m.get_coordinates(self.station_id+channel)
+            coords = self.m.get_coordinates(self.station_id+channel, time=self.time)
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
