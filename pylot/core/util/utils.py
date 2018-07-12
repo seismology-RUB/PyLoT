@@ -118,8 +118,12 @@ def gen_Pool(ncores=0):
     """
     import multiprocessing
 
-    if ncores == 0:
-        ncores = multiprocessing.cpu_count()
+    ncores_max = multiprocessing.cpu_count()
+
+    if ncores == 0 or ncores > ncores_max:
+        ncores = ncores_max
+    if ncores > ncores_max:
+        print('Reduced number of requested CPU slots to available number: {}'.format(ncores))
 
     print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
 

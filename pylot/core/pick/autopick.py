@@ -70,21 +70,14 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     for station in stations:
         topick = data.select(station=station)
-
-        if iplot is None or iplot == 'None' or iplot == 0:
-            input_tuples.append((topick, param, apverbose, metadata, origin))
-        if iplot > 0:
-            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
-                                                  iplot=iplot, fig_dict=fig_dict,
-                                                  metadata=metadata, origin=origin)[0]
+        input_tuples.append((topick, param, apverbose, iplot, fig_dict, metadata, origin))
 
     if iplot > 0:
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
-        return all_onsets
+        ncores = 1
 
-    # rename str for ncores in case ncores == 0 (use all cores)
+    # rename ncores for string representation in case ncores == 0 (use all cores)
     ncores_str = ncores if ncores != 0 else 'all available'
-
     print('Autopickstation: Distribute autopicking for {} '
           'stations on {} cores.'.format(len(input_tuples), ncores_str))
 
@@ -93,7 +86,6 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     else:
         results = parallel_picking(input_tuples, ncores)
 
-
     for result, station in results:
         if type(result) == dict:
             all_onsets[station] = result
@@ -101,6 +93,10 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
             if result == None:
                 result = 'Picker exited unexpectedly.'
             print('Could not pick a station: {}\nReason: {}'.format(station, result))
+
+    # no Wadati/JK for single station (also valid for tuning mode)
+    if len(stations)  == 1:
+        return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
@@ -132,10 +128,12 @@ def call_autopickstation(input_tuple):
     :return: dictionary containing P pick, S pick and station name
     :rtype: dict
     """
-    wfstream, pickparam, verbose, metadata, origin = input_tuple
+    wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin = input_tuple
+    if fig_dict:
+        print('Running in interactive mode')
     # multiprocessing not possible with interactive plotting
     try:
-        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
+        return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata, origin=origin)
     except Exception as e:
         return e, wfstream[0].stats.station
 

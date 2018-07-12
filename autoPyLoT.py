@@ -53,7 +53,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     :type savepath: str
     :param savexml: export results in XML file if True
     :type savexml: bool
-    :param station: list of station names or 'all' to pick all stations
+    :param station: choose specific station name or 'all' to pick all stations
     :type station: str
     :param iplot: logical variable for plotting: 0=none, 1=partial, 2=all
     :type iplot: int
@@ -149,8 +149,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.modifyFields(**dsfields)
         datastructure.setExpandFields(exf)
 
-        # check if default location routine NLLoc is available
-        if real_None(parameter['nllocbin']):
+        # check if default location routine NLLoc is available and all stations are used
+        if real_None(parameter['nllocbin']) and station=='all':
             locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
