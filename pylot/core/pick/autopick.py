@@ -594,7 +594,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      SNRPdB,
                                                                      FM)
                 print(msg)
-                msg = 'autopickstation: Refind P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
+                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
                                                                              + mpickP, Perror)
                 print(msg)
                 Sflag = 1
