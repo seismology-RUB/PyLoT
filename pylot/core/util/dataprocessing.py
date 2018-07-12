@@ -92,7 +92,10 @@ class Metadata(object):
                 del(self.seed_ids[seed_id])
 
 
-    def get_metadata(self, seed_id, time):
+    def get_metadata(self, seed_id, time=None):
+        # try most recent data if no time is specified
+        if not time:
+            time = UTCDateTime()
         # get metadata for a specific seed_id, if not already read, try to read from inventories
         if not seed_id in self.seed_ids.keys():
             self._read_inventory_data(seed_id)
@@ -128,14 +131,12 @@ class Metadata(object):
 
 
     def read_single_file(self, inv_fname):
-        # try to read a single file as Parser/Inventory if it was not already read before
-        if not inv_fname in self.inventory_files.keys():
-            pass
-        else:
-            if not self.inventory_files[inv_fname]:
-                pass
-            else:
-                return
+        # try to read a single file as Parser/Inventory
+
+        # return if it was read already
+        if self.inventory_files.get(inv_fname, None):
+            return
+
         try:
             invtype, robj = self._read_metadata_file(inv_fname)
             if robj == None:
@@ -148,7 +149,10 @@ class Metadata(object):
         return True
 
 
-    def get_coordinates(self, seed_id, time):
+    def get_coordinates(self, seed_id, time=None):
+        # try most recent data if no time is specified
+        if not time:
+            time = UTCDateTime()
         metadata = self.get_metadata(seed_id, time)
         if not metadata:
             return
@@ -473,7 +477,7 @@ def restitute_trace(input_tuple):
 
     seed_id = tr.get_id()
 
-    mdata = metadata.get_metadata(seed_id)
+    mdata = metadata.get_metadata(seed_id, time=tr.stats.starttime)
     if not mdata:
         return no_metadata(tr, seed_id)
 

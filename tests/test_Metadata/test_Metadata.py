@@ -23,6 +23,18 @@ class TestMetadata(unittest.TestCase):
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
+    def test_get_coordinates_sucess_no_time(self):
+        expected = {'Z': {u'elevation': 607.0, u'longitude': 12.87571, u'local_depth': 0.0, u'azimuth': 0.0, u'latitude': 49.14502, u'dip': -90.0},
+                    'E': {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571},
+                    'N': {u'azimuth': 0.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571}
+                    }
+        result = {}
+        for channel in ('Z', 'N', 'E'):
+            coords = self.m.get_coordinates(self.station_id+channel)
+            result[channel] = coords
+            self.assertDictEqual(result[channel], expected[channel])
+
+
 class TestMetadataAdding(unittest.TestCase):
     """Tests if adding files and directories to a metadata object works."""
 
