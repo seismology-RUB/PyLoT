@@ -88,10 +88,6 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     print('Autopickstation: Distribute autopicking for {} '
           'stations on {} cores.'.format(len(input_tuples), ncores_str))
 
-
-    result = parallel_picking(input_tuples, ncores)
-    #result = serial_picking(input_tuples)
-
     if ncores == 1:
         results = serial_picking(input_tuples)
     else:
