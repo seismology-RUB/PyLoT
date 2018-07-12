@@ -76,7 +76,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
         if iplot > 0:
             all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
                                                   iplot=iplot, fig_dict=fig_dict,
-                                                  metadata=metadata, origin=origin)
+                                                  metadata=metadata, origin=origin)[0]
 
     if iplot > 0:
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
@@ -98,18 +98,12 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
         results = parallel_picking(input_tuples, ncores)
 
 
-    for result, wfstream in results:
+    for result, station in results:
         if type(result) == dict:
-            station = result['station']
-            result.pop('station')
             all_onsets[station] = result
         else:
             if result == None:
                 result = 'Picker exited unexpectedly.'
-            if len(wfstream) > 0:
-                station = wfstream[0].stats.station
-            else:
-                station = None
             print('Could not pick a station: {}\nReason: {}'.format(station, result))
 
     # quality control
@@ -145,9 +139,9 @@ def call_autopickstation(input_tuple):
     wfstream, pickparam, verbose, metadata, origin = input_tuple
     # multiprocessing not possible with interactive plotting
     try:
-        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin), wfstream
+        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin)
     except Exception as e:
-        return e, wfstream
+        return e, wfstream[0].stats.station
 
 
 def get_source_coords(parser, station_id):
@@ -289,9 +283,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
 
+    picks = {}
+    station = zdat[0].stats.station
+
     if not zdat:
         print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
-        return
+        return picks, station
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
@@ -360,7 +357,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         if not Lwf > 0:
             print('autopickstation: empty trace! Return!')
-            return
+            return picks, station
 
         Ldiff = Lwf - abs(Lc)
         if Ldiff <= 0 or pstop <= pstart or pstop - pstart <= thosmw:
@@ -1123,7 +1120,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     elif ndat:
         hdat = ndat[0]
     else:
-        return
+        return picks, station
 
     if lpickS is not None and lpickS == mpickS:
         lpickS += hdat.stats.delta
@@ -1153,8 +1150,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
-    picks = dict(P=ppick, S=spick, station=zdat[0].stats.station)
-    return picks
+    picks = dict(P=ppick, S=spick)
+    return picks, station
 
 
 def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
@@ -1239,7 +1236,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
         print("zfac: %f => %f" % (zfac_old, pickparameter.get('zfac')))
 
         # repick station
-        newpicks = autopickstation(wf2pick, pickparameter, fig_dict=fig_dict)
+        newpicks, _ = autopickstation(wf2pick, pickparameter, fig_dict=fig_dict)
 
         # replace old dictionary with new one
         picks[badpicks[i][0]] = newpicks
