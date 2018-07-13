@@ -13,18 +13,19 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
 
 
 class Metadata(object):
+
     def __init__(self, inventory=None):
         self.inventories = []
         # saves read metadata objects (Parser/inventory) for a filename
         self.inventory_files = {}
         # saves filenames holding metadata for a seed_id
+        # seed id as key, path to file as value
         self.seed_ids = {}
         if inventory:
             if os.path.isdir(inventory):
                 self.add_inventory(inventory)
             if os.path.isfile(inventory):
                 self.add_inventory_file(inventory)
-
 
     def __str__(self):
         repr = 'PyLoT Metadata object including the following inventories:\n\n'
@@ -38,48 +39,40 @@ class Metadata(object):
             repr += '\nTotal of {} inventories. Use Metadata.inventories to see all.'.format(ntotal)
         return repr
 
-
     def __repr__(self):
         return self.__str__()
 
-
     def add_inventory(self, path_to_inventory):
-        '''
-        add paths to list of inventories
-
-        :param path_to_inventory:
-        :return:
-        '''
+        """
+        Add path to list of inventories.
+        :param path_to_inventory: Path to a folder
+        :type path_to_inventory: str
+        :return: None
+        """
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
         if not path_to_inventory in self.inventories:
             self.inventories.append(path_to_inventory)
 
-
     def add_inventory_file(self, path_to_inventory_file):
-        '''
-        add a single file to inventory files
-
-        :param path_to_inventory_file:
-        :return:
-
-        '''
+        """
+        Add the folder in which the file exists to the list of inventories.
+        :param path_to_inventory_file: full path including filename
+        :type path_to_inventory_file: str
+        :return: None
+        """
         assert (os.path.isfile(path_to_inventory_file)), '{} is no file'.format(path_to_inventory_file)
         self.add_inventory(os.path.split(path_to_inventory_file)[0])
         if not path_to_inventory_file in self.inventory_files.keys():
             self.read_single_file(path_to_inventory_file)
 
-
     def remove_all_inventories(self):
         self.__init__()
 
-
     def remove_inventory(self, path_to_inventory):
-        '''
-        remove a path from inventories list
-
-        :param path_to_inventory:
-        :return:
-        '''
+        """
+        Remove a path from inventories list. If path is not in inventories list, do nothing.
+        :param path_to_inventory: Path to a folder
+        """
         if not path_to_inventory in self.inventories:
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
@@ -93,6 +86,19 @@ class Metadata(object):
 
 
     def get_metadata(self, seed_id, time=None):
+        """
+        Get metadata for seed id at time. When time is not specified, metadata for current time is fetched.
+        :param seed_id: Seed id such as BW.WETR..HHZ (Network.Station.Location.Channel)
+        :type seed_id: str
+        :param time: Time for which the metadata should be returned
+        :type time: UTCDateTime
+        :return: Dictionary with keys data and invtype.
+        data is a obspy.io.xseed.parser.Parser or an obspy.core.inventory.inventory.Inventory depending on the metadata
+        file.
+        invtype is a string denoting of which type the value of the data key is. It can take the values 'dless',
+        'dseed', 'xml', 'resp', according to the filetype of the metadata.
+        :rtype: dict
+        """
         # try most recent data if no time is specified
         if not time:
             time = UTCDateTime()
@@ -119,10 +125,9 @@ class Metadata(object):
 
 
     def read_all(self):
-        '''
-        read all metadata files found in all inventories
-        :return:
-        '''
+        """
+        Read all metadata files found in all inventories
+        """
         for inventory in self.inventories:
             for inv_fname in os.listdir(inventory):
                 inv_fname = os.path.join(inventory, inv_fname)
@@ -131,8 +136,12 @@ class Metadata(object):
 
 
     def read_single_file(self, inv_fname):
-        # try to read a single file as Parser/Inventory
-
+        """
+        Try to read a single file as Parser/Inventory and add its dictionary to inventory files if reading sudceeded.
+        :param inv_fname: path/filename of inventory file
+        :type inv_fname: str
+        :rtype: None
+        """
         # return if it was read already
         if self.inventory_files.get(inv_fname, None):
             return
@@ -150,6 +159,15 @@ class Metadata(object):
 
 
     def get_coordinates(self, seed_id, time=None):
+        """
+        Get coordinates of given seed id.
+        :param seed_id: Seed id such as BW.WETR..HHZ (Network.Station.Location.Channel)
+        :type seed_id: str
+        :param time: Used when a station has data available at multiple time intervals
+        :type time: UTCDateTime
+        :return: dict containing position information of the station
+        :rtype: dict
+        """
         # try most recent data if no time is specified
         if not time:
             time = UTCDateTime()
@@ -160,6 +178,14 @@ class Metadata(object):
 
 
     def get_paz(self, seed_id, time):
+        """
+
+        :param seed_id: Seed id such as BW.WETR..HHZ (Network.Station.Location.Channel)
+        :type seed_id: str
+        :param time: Used when a station has data available at multiple time intervals
+        :type time: UTCDateTime
+        :rtype: dict
+        """
         metadata = self.get_metadata(seed_id)
         if not metadata:
             return
@@ -177,10 +203,11 @@ class Metadata(object):
 
 
     def _read_metadata_iterator(self, path_to_inventory, station_seed_id):
-        '''
-        search for metadata for a specific station iteratively
-        '''
+        """
+        Search for metadata for a specific station iteratively.
+        """
         station, network, location, channel = station_seed_id.split('.')
+        # seach for station seed id in filenames in invetory
         fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
         if not fnames:
             # search for station name in filename
@@ -211,11 +238,12 @@ class Metadata(object):
 
 
     def _read_metadata_file(self, path_to_inventory_filename):
-        '''
+        """
         function reading metadata files (either dataless seed, xml or resp)
         :param path_to_inventory_filename:
         :return: file type/ending, inventory object (Parser or Inventory)
-        '''
+        :rtype: (str, obspy.io.xseed.Parser or obspy.core.inventory.inventory.Inventory)
+        """
         # functions used to read metadata for different file endings (or file types)
         read_functions = {'dless': self._read_dless,
                           'dseed': self._read_dless,
