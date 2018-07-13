@@ -3,6 +3,7 @@ import os
 
 from obspy import UTCDateTime
 from pylot.core.util.dataprocessing import Metadata
+from tests.utils import HidePrints
 
 class TestMetadata(unittest.TestCase):
 
@@ -19,7 +20,8 @@ class TestMetadata(unittest.TestCase):
                     }
         result = {}
         for channel in ('Z', 'N', 'E'):
-            coords = self.m.get_coordinates(self.station_id+channel, time=self.time)
+            with HidePrints():
+                coords = self.m.get_coordinates(self.station_id+channel, time=self.time)
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
@@ -30,7 +32,8 @@ class TestMetadata(unittest.TestCase):
                     }
         result = {}
         for channel in ('Z', 'N', 'E'):
-            coords = self.m.get_coordinates(self.station_id+channel)
+            with HidePrints():
+                coords = self.m.get_coordinates(self.station_id+channel)
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
@@ -107,7 +110,8 @@ class TestMetadataRemoval(unittest.TestCase):
         exist in the instance."""
         # add multiple inventories
         self.m.add_inventory(self.metadata_folders[0])
-        self.m.remove_inventory('metadata_not_existing')
+        with HidePrints():
+            self.m.remove_inventory('metadata_not_existing')
         self.assertIn(self.metadata_folders[0], self.m.inventories)
 
     def isEmpty(self, metadata):
