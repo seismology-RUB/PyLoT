@@ -15,33 +15,81 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
 class Metadata(object):
     def __init__(self, inventory=None):
         self.inventories = []
-        if os.path.isdir(inventory):
-            self.add_inventory(inventory)
-        if os.path.isfile(inventory):
-            self.add_inventory_file(inventory)
-        self.seed_ids = {}
+        # saves read metadata objects (Parser/inventory) for a filename
         self.inventory_files = {}
+        # saves filenames holding metadata for a seed_id
+        self.seed_ids = {}
+        if inventory:
+            if os.path.isdir(inventory):
+                self.add_inventory(inventory)
+            if os.path.isfile(inventory):
+                self.add_inventory_file(inventory)
+
+
+    def __str__(self):
+        repr = 'PyLoT Metadata object including the following inventories:\n\n'
+        ntotal = len(self.inventories)
+        for index, inventory in enumerate(self.inventories):
+            if index < 2 or (ntotal - index) < 3:
+                repr += '{}\n'.format(inventory)
+            if ntotal > 4 and int(ntotal/2) == index:
+                repr += '...\n'
+        if ntotal > 4:
+            repr += '\nTotal of {} inventories. Use Metadata.inventories to see all.'.format(ntotal)
+        return repr
+
+
+    def __repr__(self):
+        return self.__str__()
 
 
     def add_inventory(self, path_to_inventory):
-        # add paths to list of inventories
+        '''
+        add paths to list of inventories
+
+        :param path_to_inventory:
+        :return:
+        '''
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
         if not path_to_inventory in self.inventories:
             self.inventories.append(path_to_inventory)
 
 
     def add_inventory_file(self, path_to_inventory_file):
-        assert (os.path.isfile(path_to_inventory_file)), '{} is no directory'.format(path_to_inventory_file)
+        '''
+        add a single file to inventory files
+
+        :param path_to_inventory_file:
+        :return:
+
+        '''
+        assert (os.path.isfile(path_to_inventory_file)), '{} is no file'.format(path_to_inventory_file)
         self.add_inventory(os.path.split(path_to_inventory_file)[0])
         if not path_to_inventory_file in self.inventory_files.keys():
             self.read_single_file(path_to_inventory_file)
 
 
+    def remove_all_inventories(self):
+        self.__init__()
+
+
     def remove_inventory(self, path_to_inventory):
+        '''
+        remove a path from inventories list
+
+        :param path_to_inventory:
+        :return:
+        '''
         if not path_to_inventory in self.inventories:
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
         self.inventories.remove(path_to_inventory)
+        for filename in self.inventory_files.keys():
+            if filename.startswith(path_to_inventory):
+                del(self.inventory_files[filename])
+        for seed_id in self.seed_ids.keys():
+            if self.seed_ids[seed_id].startswith(path_to_inventory):
+                del(self.seed_ids[seed_id])
 
 
     def get_metadata(self, seed_id):
@@ -54,9 +102,12 @@ class Metadata(object):
             self.read_all()
             for inv_fname, metadata in self.inventory_files.items():
                 # use get_coordinates to check for seed_id
-                if metadata['data'].get_coordinates(seed_id):
+                try:
+                    metadata['data'].get_coordinates(seed_id)
                     self.seed_ids[seed_id] = inv_fname
                     return metadata
+                except Exception as e:
+                    continue
             print('Could not find metadata for station {}'.format(seed_id))
             return None
         fname = self.seed_ids[seed_id]
@@ -64,6 +115,10 @@ class Metadata(object):
 
 
     def read_all(self):
+        '''
+        read all metadata files found in all inventories
+        :return:
+        '''
         for inventory in self.inventories:
             for inv_fname in os.listdir(inventory):
                 inv_fname = os.path.join(inventory, inv_fname)
@@ -93,17 +148,18 @@ class Metadata(object):
 
     def get_coordinates(self, seed_id):
         metadata = self.get_metadata(seed_id)
+        if not metadata:
+            return
         return metadata['data'].get_coordinates(seed_id)
 
 
-    def get_paz(self, seed_id, time=None):
+    def get_paz(self, seed_id, time):
         metadata = self.get_metadata(seed_id)
+        if not metadata:
+            return
         if metadata['invtype'] in ['dless', 'dseed']:
-            return metadata['data'].get_paz(seed_id)
+            return metadata['data'].get_paz(seed_id, time)
         elif metadata['invtype'] in ['resp', 'xml']:
-            if not time:
-                print('Time needed to extract metadata from station inventory.')
-                return None
             resp = metadata['data'].get_response(seed_id, time)
             return resp.get_paz(seed_id)
 
@@ -404,11 +460,16 @@ def read_metadata(path_to_inventory):
 
 
 def restitute_trace(input_tuple):
-    tr, invtype, inobj, unit, force = input_tuple
+    tr, metadata, unit, force = input_tuple
 
     remove_trace = False
 
     seed_id = tr.get_id()
+
+    mdata = metadata.get_metadata(seed_id)
+    invtype = mdata['invtype']
+    inobj = mdata['data']
+
     # check, whether this trace has already been corrected
     if 'processing' in tr.stats.keys() \
             and np.any(['remove' in p for p in tr.stats.processing]) \
@@ -476,7 +537,7 @@ def restitute_trace(input_tuple):
     return tr, remove_trace
 
 
-def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
+def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     """
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
@@ -497,7 +558,7 @@ def restitute_data(data, invtype, inobj, unit='VEL', force=False, ncores=0):
     # loop over traces
     input_tuples = []
     for tr in data:
-        input_tuples.append((tr, invtype, inobj, unit, force))
+        input_tuples.append((tr, metadata, unit, force))
         data.remove(tr)
 
     pool = gen_Pool(ncores)

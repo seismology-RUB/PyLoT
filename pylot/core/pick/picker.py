@@ -23,7 +23,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import argrelmax
+from scipy.signal import argrelmax, argrelmin
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.utils import getnoisewin, getsignalwin
 
@@ -197,10 +197,15 @@ class AICPicker(AutoPicker):
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))
-        for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
-            if aicsmooth[i - 1] >= aicsmooth[i]:
-                self.Pick = self.Tcf[i]
-                break
+        tsafety = self.TSNR[1]  # safety gap, AIC is usually a little bit too late
+        left_corner_ind = max([icfmax - lpickwindow, 2])
+        right_corner_ind = icfmax + int(tsafety / self.dt)
+        aic_snip = aicsmooth[left_corner_ind : right_corner_ind]
+        minima = argrelmin(aic_snip)[0] # 0th entry of tuples for axes
+        if len(minima) > 0:
+            pickindex = minima[-1] + left_corner_ind
+            self.Pick = self.Tcf[pickindex]
+
         # if no minimum could be found:
         # search in 1st derivative of AIC-CF
         if self.Pick is None:
@@ -215,17 +220,12 @@ class AICPicker(AutoPicker):
             for i in range(icfmax - 1, max([icfmax - lpickwindow, 2]), -1):
                 if diffcf[i - 1] >= diffcf[i]:
                     self.Pick = self.Tcf[i]
+                    pickindex = i
                     break
 
         if self.Pick is not None:
             # get noise window
             inoise = getnoisewin(self.Tcf, self.Pick, self.TSNR[0], self.TSNR[1])
-            # check, if these are counts or m/s, important for slope estimation!
-            # this is quick and dirty, better solution? #Todo wtf
-            if max(self.Data[0].data < 1e-3) and max(self.Data[0].data >= 1e-6):
-                self.Data[0].data = self.Data[0].data * 1000000.
-            elif max(self.Data[0].data < 1e-6):
-                self.Data[0].data = self.Data[0].data * 1e13
             # get signal window
             isignal = getsignalwin(self.Tcf, self.Pick, self.TSNR[2])
             if len(isignal) == 0:
@@ -244,7 +244,6 @@ class AICPicker(AutoPicker):
             # calculate slope from CF after initial pick
             # get slope window
             tslope = self.TSNR[3]  # slope determination window
-            tsafety = self.TSNR[1] # safety gap, AIC is usually a little bit too late
             if tsafety >= 0:
                 islope = np.where((self.Tcf <= min([self.Pick + tslope + tsafety, self.Tcf[-1]])) \
                                   & (self.Tcf >= self.Pick)) # TODO: put this in a seperate function like getsignalwin
@@ -263,7 +262,6 @@ class AICPicker(AutoPicker):
                 return
             try:
                 imaxs, = argrelmax(dataslope)
-                imaxs.size
                 imax = imaxs[0]
             except ValueError as e:
                 print(e, 'picker: argrelmax not working!')
@@ -280,7 +278,7 @@ class AICPicker(AutoPicker):
                     if self.iplot > 1:
                         if self.fig == None or self.fig == 'None':
                             fig = plt.figure()
-                            plt_flag = 1
+                            plt_flag = iplot
                         else:
                             fig = self.fig
                         ax = fig.add_subplot(111)
@@ -291,7 +289,7 @@ class AICPicker(AutoPicker):
                         ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                         ax.set_yticks([])
                         ax.set_title(self.Data[0].stats.station)
-                        if plt_flag == 1:
+                        if plt_flag in [1, 2]:
                             fig.show()
                             try: input()
                             except SyntaxError: pass
@@ -307,6 +305,8 @@ class AICPicker(AutoPicker):
                 print('AICPicker: Negative slope, bad onset skipped!')
             else:
                 self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
+                # normalize slope to maximum of cf to make it unit independent
+                self.slope /= self.Data[0].data[icfmax]
 
         else:
             self.SNR = None
@@ -315,7 +315,7 @@ class AICPicker(AutoPicker):
         if iplot > 1:
             if self.fig == None or self.fig == 'None':
                 fig = plt.figure()  # self.iplot)
-                plt_flag = 1
+                plt_flag = iplot
             else:
                 fig = self.fig
             fig._tight = True
@@ -359,11 +359,15 @@ class AICPicker(AutoPicker):
             else:
                 ax1.set_title(self.Data[0].stats.station)
 
-            if plt_flag == 1:
+            if plt_flag in [1, 2]:
                 fig.show()
                 try: input()
                 except SyntaxError: pass
                 plt.close(fig)
+            if plt_flag == 3:
+                stats = self.Data[0].stats
+                netstlc = '{}.{}.{}'.format(stats.network, stats.station, stats.location)
+                fig.savefig('aicfig_{}_{}.png'.format(netstlc, stats.channel))
 
         if self.Pick == None:
             print('AICPicker: Could not find minimum, picking window too short?')

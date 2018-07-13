@@ -110,21 +110,8 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None, infile=None):
         super(MainWindow, self).__init__(parent)
 
-        # check for default pylot.in-file
-        if not infile:
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-        if os.path.isfile(infile) == False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+        self.init_config_files(infile)
 
-            if not os.path.exists(infile[0]):
-                QMessageBox.warning(self, "PyLoT Warning",
-                                    "No PyLoT-input file declared!")
-                sys.exit(0)
-            self.infile = infile[0]
-        else:
-            self.infile = infile
-        self._inputs = PylotParameter(infile)
         self._props = None
 
         self.dirty = False
@@ -207,6 +194,22 @@ class MainWindow(QMainWindow):
         self.updateFilteroptions()
 
         self.loc = False
+
+
+    def init_config_files(self, infile):
+        pylot_config_dir = os.path.join(os.path.expanduser('~'), '.pylot')
+        if not os.path.exists(pylot_config_dir):
+            os.mkdir(pylot_config_dir)
+
+        self._inputs = PylotParameter(infile)
+        if not infile:
+            self._inputs.reset_defaults()
+            # check for default pylot.in-file
+            infile = os.path.join(pylot_config_dir, '.pylot.in')
+            print('Using default input file {}'.format(infile))
+            self._inputs.export2File(infile)
+        self.infile = infile
+
 
     def setupUi(self):
         try:
@@ -1058,9 +1061,12 @@ class MainWindow(QMainWindow):
             eventlist = ed.selectedFiles()
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
             if check_obspydmt_structure(basepath):
-                print('Recognized obspyDMT structure in selected files.')
+                print('Recognized obspyDMT structure in selected files. Settings Datastructure to ObspyDMT')
+                self.dataStructure = DATASTRUCTURE['obspyDMT']()
                 eventlist = check_all_obspy(eventlist)
             else:
+                print('Settings Datastructure to PILOT')
+                self.dataStructure = DATASTRUCTURE['PILOT']()
                 eventlist = check_all_pylot(eventlist)
             if not eventlist:
                 print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
@@ -1407,7 +1413,7 @@ class MainWindow(QMainWindow):
             self.get_data().resetPicks()
             return self.saveData(event, directory, outformats)
 
-        fcheck = ['manual', 'origins', 'magnitude']
+        fcheck = ['auto', 'manual', 'origins', 'magnitude']
 
         saved_as = str()
         for outformat in outformats:
@@ -2631,17 +2637,20 @@ class MainWindow(QMainWindow):
         elif type == 'auto':
             event.addAutopicks(picksdict['auto'])
 
-    def drawPicks(self, station=None, picktype=None):
+    def drawPicks(self, station=None, picktype=None, stime=None):
         # if picktype not specified, draw both
+        if not stime:
+            stime = self.getStime()
+
         if not picktype:
-            self.drawPicks(station, 'manual')
-            self.drawPicks(station, 'auto')
+            self.drawPicks(station, 'manual', stime)
+            self.drawPicks(station, 'auto', stime)
             return
 
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
-                self.drawPicks(station, picktype=picktype)
+                self.drawPicks(station, picktype=picktype, stime=stime)
             return
 
         # check for station key in dictionary, else return
@@ -2659,7 +2668,6 @@ class MainWindow(QMainWindow):
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
-        stime = self.getStime()
 
         for phase in stat_picks:
             if phase == 'SPt': continue # wadati SP time

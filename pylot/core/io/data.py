@@ -733,6 +733,22 @@ class PilotDataStructure(GenericDataStructure):
         self.setExpandFields(['root', 'database'])
 
 
+class ObspyDMTdataStructure(GenericDataStructure):
+    """
+    Object containing the data access information for the old PILOT data
+    structure.
+    """
+
+    def __init__(self, **fields):
+        if not fields:
+            fields = {'database': '',
+                      'root': ''}
+
+        GenericDataStructure.__init__(self, **fields)
+
+        self.setExpandFields(['root', 'database'])
+
+
 class SeiscompDataStructure(GenericDataStructure):
     """
     Dictionary containing the data access information for an SDS data archive:

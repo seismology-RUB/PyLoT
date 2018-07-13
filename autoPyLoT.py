@@ -314,7 +314,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                   ttpat)
 
                 # locate the event
-                nll.locate(ctrfile, inputfile)
+                nll.locate(ctrfile, parameter)
 
                 # !iterative picking if traces remained unpicked or occupied with bad picks!
                 # get theoretical onset times for picks with weights >= 4
@@ -402,7 +402,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             # remove actual NLLoc-location file to keep only the last
                             os.remove(nllocfile)
                             # locate the event
-                            nll.locate(ctrfile, inputfile)
+                            nll.locate(ctrfile, parameter)
                             print("autoPyLoT: Iteration No. %d finished." % nlloccounter)
                             # get updated NLLoc-location file
                             nllocfile = max(glob.glob(locsearch), key=os.path.getctime)

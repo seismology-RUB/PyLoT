@@ -1024,7 +1024,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 for trace_id in trace_ids:
                     dip, az = get_dip_azimut(parser, trace_id)
                     trace = wfstream.select(id=trace_id)[0]
-                    if az > 315 and az <= 45 or az > 135 and az <= 225:
+                    if az > 315 or az <= 45 or az > 135 and az <= 225:
                         trace.data = n
                         trace.stats.channel = trace.stats.channel[0:-1] + 'N'
                     elif az > 45 and az <= 135 or az > 225 and az <= 315:
@@ -1094,7 +1094,7 @@ def runProgram(cmd, parameter=None):
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
 
-def which(program, infile=None):
+def which(program, parameter):
     """
     takes a program name and returns the full path to the executable or None
     modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
@@ -1109,16 +1109,9 @@ def which(program, infile=None):
         for key in settings.allKeys():
             if 'binPath' in key:
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
-        if infile is None:
-            # use default parameter-file name
-            bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-        else:
-            bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
-
-        if os.path.exists(bpath):
-            nllocpath = ":" + PylotParameter(bpath).get('nllocbin')
-            os.environ['PATH'] += nllocpath
-    except ImportError as e:
+        nllocpath = ":" + parameter.get('nllocbin')
+        os.environ['PATH'] += nllocpath
+    except Exception as e:
         print(e.message)
 
     def is_exe(fpath):
