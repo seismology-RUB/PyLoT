@@ -2882,13 +2882,13 @@ class MultiEventWidget(QWidget):
         for rb in self.rb_dict.values():
             if rb.isChecked():
                 check_events = (rb.toolTip() == 'No events for this selection')
-                self.start_button.setEnabled(not (check_events))
+                self.start_button.setEnabled(not check_events)
 
     def enable(self, bool):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
         self.start_button.setEnabled(bool)
-        self.pb.setVisible(not (bool))
+        self.pb.setVisible(not bool)
         self._pb_space.setVisible(bool)
         self.eventbox.setEnabled(bool)
         self.button_clear.setEnabled(bool)
@@ -2970,7 +2970,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                del (widget)
+                del widget
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -3504,7 +3504,7 @@ class TuneAutopicker(QWidget):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
                 self.pdlg_widget.setParent(None)
-                del (self.pdlg_widget)
+                del self.pdlg_widget
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):

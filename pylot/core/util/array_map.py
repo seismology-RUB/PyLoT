@@ -396,16 +396,16 @@ class Array_map(QtGui.QWidget):
             del (self.cbar, self.cbax_bg)
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
-            del (self.sc_picked)
+            del self.sc_picked
         if hasattr(self, 'sc_event'):
             self.sc_event.remove()
-            del (self.sc_event)
+            del self.sc_event
         if hasattr(self, 'contourf'):
             self.remove_contourf()
-            del (self.contourf)
+            del self.contourf
         if hasattr(self, 'cid'):
             self.canvas.mpl_disconnect(self.cid)
-            del (self.cid)
+            del self.cid
         try:
             self.sc.remove()
         except Exception as e:

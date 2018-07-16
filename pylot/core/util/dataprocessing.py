@@ -639,7 +639,7 @@ def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
     fny = trace.stats.sampling_rate / 2
     fc21 = fny - (fny * thi[0] / 100.)
     fc22 = fny - (fny * thi[1] / 100.)
-    return (tlow[0], tlow[1], fc21, fc22)
+    return tlow[0], tlow[1], fc21, fc22
 
 
 if __name__ == "__main__":

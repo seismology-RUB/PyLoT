@@ -966,7 +966,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         arrivals_copy = cat_copy.events[0].picks
         # Prefere manual picks if qualities are sufficient!
         for Pick in arrivals:
-            if (Pick.method_id.id).split('/')[1] == 'manual':
+            if Pick.method_id.id.split('/')[1] == 'manual':
                 mstation = Pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
@@ -974,14 +974,14 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                     if phase == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or
                             (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                                (mpick.method_id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
                             del mpick
                             break
                     elif phase == 'S':
                         if ((mpick.waveform_id.station_code == mstation) or
                             (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                                (mpick.method_id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
                             del mpick
                             break
