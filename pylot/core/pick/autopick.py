@@ -90,7 +90,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
         if type(result) == dict:
             all_onsets[station] = result
         else:
-            if result == None:
+            if result is None:
                 result = 'Picker exited unexpectedly.'
             print('Could not pick a station: {}\nReason: {}'.format(station, result))
 

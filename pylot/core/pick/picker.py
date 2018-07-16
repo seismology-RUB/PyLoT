@@ -291,7 +291,7 @@ class AICPicker(AutoPicker):
                     print("AICPicker: Maximum for slope determination right at the beginning of the window!")
                     print("Choose longer slope determination window!")
                     if self.iplot > 1:
-                        if self.fig == None or self.fig == 'None':
+                        if self.fig is None or self.fig == 'None':
                             fig = plt.figure()
                             plt_flag = iplot
                         else:
@@ -337,7 +337,7 @@ class AICPicker(AutoPicker):
             self.slope = None
 
         if iplot > 1:
-            if self.fig == None or self.fig == 'None':
+            if self.fig is None or self.fig == 'None':
                 fig = plt.figure()  # self.iplot)
                 plt_flag = iplot
             else:
@@ -392,7 +392,7 @@ class AICPicker(AutoPicker):
                 netstlc = '{}.{}.{}'.format(stats.network, stats.station, stats.location)
                 fig.savefig('aicfig_{}_{}.png'.format(netstlc, stats.channel))
 
-        if self.Pick == None:
+        if self.Pick is None:
             print('AICPicker: Could not find minimum, picking window too short?')
 
         return
@@ -509,7 +509,7 @@ class PragPicker(AutoPicker):
                 pickflag = 0
 
             if iplot > 1:
-                if self.fig == None or self.fig == 'None':
+                if self.fig is None or self.fig == 'None':
                     fig = plt.figure()  # self.getiplot())
                     plt_flag = 1
                 else:

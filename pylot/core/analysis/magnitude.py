@@ -122,7 +122,7 @@ class Magnitude(object):
 
     def net_magnitude(self, magscaling=None):
         if self:
-            if magscaling == None:
+            if magscaling is None:
                 scaling = False
             elif magscaling[0] != 0 and magscaling[1] != 0:
                 scaling = False

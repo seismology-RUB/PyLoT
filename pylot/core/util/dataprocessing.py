@@ -148,7 +148,7 @@ class Metadata(object):
 
         try:
             invtype, robj = self._read_metadata_file(inv_fname)
-            if robj == None:
+            if robj is None:
                 return
         except Exception as e:
             print('Could not read file {}'.format(inv_fname))
@@ -545,7 +545,7 @@ def restitute_trace(input_tuple):
         else:
             finv = invlist[0]
         inventory = read_inventory(finv, format='STATIONXML')
-    elif invtype == None:
+    elif invtype is None:
         return no_metadata(tr, seed_id)
     else:
         remove_trace = True

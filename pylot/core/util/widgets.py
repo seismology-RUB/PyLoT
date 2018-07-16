@@ -2421,7 +2421,7 @@ class PickDlg(QDialog):
         if not x:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
@@ -2442,7 +2442,7 @@ class PickDlg(QDialog):
             return
         x = event.mouseevent.xdata
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
@@ -2499,7 +2499,7 @@ class PickDlg(QDialog):
         if not self.picks and not self.autopicks:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         # delete the value from corresponding dictionary
         allpicks[picktype].pop(phase)

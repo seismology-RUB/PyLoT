@@ -499,7 +499,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 except KeyError as e:
                     print(e)
                     fm = None
-                if fm == None:
+                if fm is None:
                     fm = '?'
                 onset = arrivals[key]['P']['mpp']
                 year = onset.year

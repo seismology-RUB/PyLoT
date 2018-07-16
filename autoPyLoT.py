@@ -369,7 +369,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                         net_ml = local_mag.net_magnitude(magscaling)
                         if net_ml:
                             print("Network local magnitude: %4.1f" % net_ml.mag)
-                        if magscaling == None:
+                        if magscaling is None:
                             scaling = False
                         elif magscaling[0] != 0 and magscaling[1] != 0:
                             scaling = False
@@ -454,7 +454,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                             net_ml = local_mag.net_magnitude(magscaling)
                             if net_ml:
                                 print("Network local magnitude: %4.1f" % net_ml.mag)
-                            if magscaling == None:
+                            if magscaling is None:
                                 scaling = False
                             elif magscaling[0] != 0 and magscaling[1] != 0:
                                 scaling = False
