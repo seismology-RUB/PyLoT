@@ -16,7 +16,6 @@ from pylot.core.loc import hyposat
 from pylot.core.loc import nll
 from pylot.core.loc import velest
 
-
 # determine system dependent path separator
 system_name = platform.system()
 if system_name in ["Linux", "Darwin"]:

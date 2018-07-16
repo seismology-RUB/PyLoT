@@ -17,6 +17,7 @@ from pylot.core.util.utils import fnConstructor, full_range, remove_underscores,
 import pylot.core.loc.velest as velest
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
+
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
@@ -284,7 +285,7 @@ class Data(object):
                     mstation_ext = mstation + '_'
                     for k in range(len(picks_copy)):
                         if ((picks_copy[k].waveform_id.station_code == mstation) or
-                                (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                            (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
                                 (picks_copy[k].method_id == 'auto'):
                             del picks_copy[k]
                             break
@@ -415,7 +416,6 @@ class Data(object):
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
         return True
-
 
     def appendWFData(self, fnames, synthetic=False):
         """

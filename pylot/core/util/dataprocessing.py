@@ -33,7 +33,7 @@ class Metadata(object):
         for index, inventory in enumerate(self.inventories):
             if index < 2 or (ntotal - index) < 3:
                 repr += '{}\n'.format(inventory)
-            if ntotal > 4 and int(ntotal/2) == index:
+            if ntotal > 4 and int(ntotal / 2) == index:
                 repr += '...\n'
         if ntotal > 4:
             repr += '\nTotal of {} inventories. Use Metadata.inventories to see all.'.format(ntotal)
@@ -79,11 +79,10 @@ class Metadata(object):
         self.inventories.remove(path_to_inventory)
         for filename in self.inventory_files.keys():
             if filename.startswith(path_to_inventory):
-                del(self.inventory_files[filename])
+                del (self.inventory_files[filename])
         for seed_id in self.seed_ids.keys():
             if self.seed_ids[seed_id].startswith(path_to_inventory):
-                del(self.seed_ids[seed_id])
-
+                del (self.seed_ids[seed_id])
 
     def get_metadata(self, seed_id, time=None):
         """
@@ -123,7 +122,6 @@ class Metadata(object):
         fname = self.seed_ids[seed_id]
         return self.inventory_files[fname]
 
-
     def read_all(self):
         """
         Read all metadata files found in all inventories
@@ -133,7 +131,6 @@ class Metadata(object):
                 inv_fname = os.path.join(inventory, inv_fname)
                 if not self.read_single_file(inv_fname):
                     continue
-
 
     def read_single_file(self, inv_fname):
         """
@@ -157,7 +154,6 @@ class Metadata(object):
                                            'data': robj}
         return True
 
-
     def get_coordinates(self, seed_id, time=None):
         """
         Get coordinates of given seed id.
@@ -175,7 +171,6 @@ class Metadata(object):
         if not metadata:
             return
         return metadata['data'].get_coordinates(seed_id, time)
-
 
     def get_paz(self, seed_id, time):
         """
@@ -195,12 +190,10 @@ class Metadata(object):
             resp = metadata['data'].get_response(seed_id, time)
             return resp.get_paz(seed_id)
 
-
     def _read_inventory_data(self, seed_id=None):
         for inventory in self.inventories:
             if self._read_metadata_iterator(path_to_inventory=inventory, station_seed_id=seed_id):
                 return
-
 
     def _read_metadata_iterator(self, path_to_inventory, station_seed_id):
         """
@@ -236,7 +229,6 @@ class Metadata(object):
                 continue
         print('Could not find metadata for station_seed_id {} in path {}'.format(station_seed_id, path_to_inventory))
 
-
     def _read_metadata_file(self, path_to_inventory_filename):
         """
         function reading metadata files (either dataless seed, xml or resp)
@@ -262,7 +254,6 @@ class Metadata(object):
                 return file_type, robj
         return None, None
 
-
     @staticmethod
     def _read_dless(path_to_inventory):
         exc = None
@@ -272,7 +263,6 @@ class Metadata(object):
             parser = None
         return parser, exc
 
-
     @staticmethod
     def _read_inventory_file(path_to_inventory):
         exc = None
@@ -281,7 +271,6 @@ class Metadata(object):
         except Exception as exc:
             inv = None
         return inv, exc
-
 
 
 def time_from_header(header):
@@ -492,7 +481,6 @@ def read_metadata(path_to_inventory):
 #             print('Could not read metadata file {} '
 #                   'because of the following Exception: {}'.format(path_to_inventory_filename, e))
 #     return metadata_objects
-
 
 
 def restitute_trace(input_tuple):

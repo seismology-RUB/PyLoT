@@ -94,7 +94,7 @@ class Array_map(QtGui.QWidget):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
         self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
-        #self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+        # self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
 
     def _from_dict(self, function, key):
         return function(self.stations_dict.values(), key=lambda x: x[key])[key]
@@ -158,7 +158,6 @@ class Array_map(QtGui.QWidget):
 
         self.main_box.addWidget(self.canvas, 1)
         self.main_box.addWidget(self.status_label, 0)
-
 
     def init_stations(self):
         def stat_info_from_parser(parser):
@@ -354,7 +353,7 @@ class Array_map(QtGui.QWidget):
     def add_cbar(self, label):
         self.cbax_bg = inset_axes(self.main_ax, width="6%", height="75%", loc=5)
         cbax = inset_axes(self.main_ax, width='2%', height='70%', loc=5)
-        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax = cbax)
+        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax=cbax)
         cbar.set_label(label)
         cbax.yaxis.tick_left()
         cbax.yaxis.set_label_position('left')

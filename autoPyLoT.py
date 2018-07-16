@@ -118,7 +118,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     if not parameter:
         if inputfile:
             parameter = PylotParameter(inputfile)
-            #iplot = parameter['iplot']
+            # iplot = parameter['iplot']
         else:
             infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
             print('Using default input file {}'.format(infile))
@@ -151,7 +151,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available and all stations are used
-        if real_None(parameter['nllocbin']) and station=='all':
+        if real_None(parameter['nllocbin']) and station == 'all':
             locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
@@ -289,7 +289,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
-                #wfdat = check4rotated(wfdat, metadata) # MP MP TEMPORARILY DISABLED !!!!!!!!!!!
+                # wfdat = check4rotated(wfdat, metadata) # MP MP TEMPORARILY DISABLED !!!!!!!!!!!
                 if locflag:
                     print("Restitute data ...")
                     corr_dat = restitute_data(wfdat.copy(), metadata, ncores=ncores)
@@ -505,7 +505,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             endsplash = '''------------------------------------------\n'
                            -----Finished event %s!-----\n'
                            ------------------------------------------'''.format \
-                           (version=_getVersionString()) % evID
+                            (version=_getVersionString()) % evID
             print(endsplash)
             locflag = glocflag
             if locflag == 0:
@@ -534,9 +534,9 @@ if __name__ == "__main__":
                         action='store',
                         help='''full path to the file containing the input
                         parameters for autoPyLoT''')
-    parser.add_argument('-p', '-P', '--iplot', type=int, 
+    parser.add_argument('-p', '-P', '--iplot', type=int,
                         action='store', default=0,
-                        help='''optional, logical variable for plotting: 0=none, 1=partial, 2=all''') 
+                        help='''optional, logical variable for plotting: 0=none, 1=partial, 2=all''')
     parser.add_argument('-f', '-F', '--fnames', type=str,
                         action='store',
                         help='''optional, list of data file names''')

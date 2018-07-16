@@ -16,7 +16,6 @@ from obspy.core import Stream, UTCDateTime
 from pylot.core.util.utils import real_Bool, real_None
 
 
-
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
     """
     Function to derive earliest and latest possible pick after Diehl & Kissling (2009)
@@ -143,13 +142,16 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
         ax.plot(t, x, color=linecolor, linewidth=0.7, label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], color=linecolor, linewidth=0.7, linestyle='dashed', label='Noise Level')
+        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='Noise Level')
         ax.plot(t[pis[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
         ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], color=linecolor, linewidth=0.7, linestyle='dashed')
         ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
-        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='lpp')
-        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='epp')
+        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='lpp')
+        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='epp')
         ax.plot([Pick1 + PickError, Pick1 + PickError],
                 [max(x) / 2, -max(x) / 2], 'r--', label='spe')
         ax.plot([Pick1 - PickError, Pick1 - PickError],
@@ -162,8 +164,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
         ax.legend(loc=1)
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return EPick, LPick, PickError
@@ -197,9 +201,9 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         iplot = int(iplot)
     except:
         if iplot == True or iplot == 'True':
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
+            iplot = 0
 
     warnings.simplefilter('ignore', np.RankWarning)
 
@@ -359,8 +363,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         ax2.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return FM
@@ -654,7 +660,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     checkedSPtimes.append(checkedSPtime)
 
                     pickdic[key]['S']['marked'] = marker
-                #pickdic[key]['S']['marked'] = marker
+                # pickdic[key]['S']['marked'] = marker
         print("wadaticheck: the following stations failed the check:")
         print(badstations)
 
@@ -696,8 +702,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
         if wfitflag == 0:
             ax.plot(Ppicks, wdfit, color=linecolor, linewidth=0.7, label='Wadati 1')
-            ax.plot(Ppicks, wdfit+dttolerance, color='0.9', linewidth=0.5, label='Wadati 1 Tolerance')
-            ax.plot(Ppicks, wdfit-dttolerance, color='0.9', linewidth=0.5)
+            ax.plot(Ppicks, wdfit + dttolerance, color='0.9', linewidth=0.5, label='Wadati 1 Tolerance')
+            ax.plot(Ppicks, wdfit - dttolerance, color='0.9', linewidth=0.5)
             ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.plot(checkedPpicks, checkedSPtimes, color=linecolor,
                     linewidth=0, marker='o', label='Reliable S-Picks')
@@ -764,9 +770,9 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         iplot = int(iplot)
     except:
         if real_Bool(iplot):
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
+            iplot = 0
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -828,8 +834,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return returnflag
@@ -1054,16 +1062,15 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :return: returnflag; 0 if onset failed test, 1 if onset passed test
     :rtype: int
     """
-    
+
     plt_flag = 0
     try:
         iplot = int(iplot)
     except:
         if real_Bool(iplot):
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
-
+            iplot = 0
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -1165,8 +1172,10 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
     return returnflag
 
@@ -1191,18 +1200,19 @@ def getQualityFromUncertainty(uncertainty, Errors):
     if uncertainty <= Errors[0]:
         quality = 0
     elif (uncertainty > Errors[0]) and \
-         (uncertainty <= Errors[1]):
+            (uncertainty <= Errors[1]):
         quality = 1
     elif (uncertainty > Errors[1]) and \
-         (uncertainty <= Errors[2]):
+            (uncertainty <= Errors[2]):
         quality = 2
     elif (uncertainty > Errors[2]) and \
-         (uncertainty <= Errors[3]):
+            (uncertainty <= Errors[3]):
         quality = 3
     elif uncertainty > Errors[3]:
         quality = 4
 
     return quality
+
 
 if __name__ == '__main__':
     import doctest

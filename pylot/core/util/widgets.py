@@ -17,6 +17,7 @@ import time
 import numpy as np
 
 import matplotlib
+
 matplotlib.use('QT4Agg')
 
 from matplotlib.figure import Figure
@@ -381,8 +382,8 @@ class ComparisonWidget(QWidget):
                 ax = axes_dict[phase]['exp']
                 xlims = ax.get_xlim()
                 ylims = ax.get_ylim()
-                #ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
-                #ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+                # ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                # ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
             legend = ax.legend()
             legend.draggable()
 
@@ -474,7 +475,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        #self.plotWidget.getPlotItem().setDownsampling(auto=True)
+        # self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
@@ -524,7 +525,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.syn_checkbox = QtGui.QCheckBox('synthetics')
         self.addQCboxItem('processed', 'green')
         self.addQCboxItem('raw', 'black')
-        #self.perm_qcbox_right.setAlignment(2)
+        # self.perm_qcbox_right.setAlignment(2)
         self.setLayout(self.main_layout)
 
     def getPlotDict(self):
@@ -608,7 +609,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             print('Warning: Could not set zoom limits')
 
         for n, (network, station, channel) in enumerate(nsc):
-            n+=1
+            n += 1
             st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0].copy()
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
@@ -645,10 +646,11 @@ class WaveformWidgetPG(QtGui.QWidget):
                         trace_syn.normalize(np.max(np.abs(trace_syn.data)) * 2)
                 # TODO: change this to numpy operations instead of lists?
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
-                times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
+                times_syn = np.array(
+                    [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
                 trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
-                            if not index % nth_sample] if st_syn else [])
+                                           if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
                               times_syn, trace_syn.data))
                 self.setPlotDict(n, (station, channel, network))
@@ -665,11 +667,11 @@ class WaveformWidgetPG(QtGui.QWidget):
         '''
         npixel = self.orig_parent.width()
         ndata = len(trace.data)
-        pts_per_pixel = ndata/npixel
+        pts_per_pixel = ndata / npixel
         if pts_per_pixel < 2:
             return trace.data, time_ax
-        remaining_samples = ndata%pts_per_pixel
-        npixel = ndata//pts_per_pixel
+        remaining_samples = ndata % pts_per_pixel
+        npixel = ndata // pts_per_pixel
         if remaining_samples:
             data = trace.data[:-remaining_samples]
         else:
@@ -849,7 +851,7 @@ class PylotCanvas(FigureCanvas):
                 break
         if not ax_check: return
 
-        #self.updateCurrentLimits() #maybe put this down to else:
+        # self.updateCurrentLimits() #maybe put this down to else:
 
         # calculate delta (relative values in axis)
         old_x, old_y = self.press_rel
@@ -902,13 +904,13 @@ class PylotCanvas(FigureCanvas):
         d_upper = abs(origin - upper_b)
 
         if positive:
-            d_lower *= 1 - 1/factor
-            d_upper *= 1 - 1/factor
+            d_lower *= 1 - 1 / factor
+            d_upper *= 1 - 1 / factor
             lower_b += d_lower
             upper_b -= d_upper
         else:
-            d_lower /= 1 + 1/factor
-            d_upper /= 1 + 1/factor
+            d_lower /= 1 + 1 / factor
+            d_upper /= 1 + 1 / factor
             lower_b -= d_lower
             upper_b += d_upper
 
@@ -1133,9 +1135,9 @@ class PylotCanvas(FigureCanvas):
                 if noiselevel is not None:
                     for level in [-noiselevel[channel], noiselevel[channel]]:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                [n+level, n+level],
-                                color = linecolor,
-                                linestyle = 'dashed')
+                                [n + level, n + level],
+                                color=linecolor,
+                                linestyle='dashed')
                 self.setPlotDict(n, (station, channel, network))
         if plot_additional and additional_channel:
             compare_stream = wfdata.select(channel=additional_channel)
@@ -1217,7 +1219,7 @@ class PylotCanvas(FigureCanvas):
     def insertLabel(self, pos, text):
         pos = pos / max(self.axes[0].ylim)
         axann = self.axes[0].annotate(text, xy=(.03, pos),
-                                        xycoords='axes fraction')
+                                      xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
     def setZoomBorders2content(self):
@@ -1441,7 +1443,6 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
-
         # set plot labels
         self.setPlotLabels()
 
@@ -1466,7 +1467,6 @@ class PickDlg(QDialog):
         self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
-
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
@@ -1512,11 +1512,11 @@ class PickDlg(QDialog):
                                           checkable=True,
                                           shortcut='S')
         self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
-                                          slot=self.toggleAutoFilter,
-                                          icon=key_a_icon,
-                                          tip='Filter automatically before initial pick',
-                                          checkable=True,
-                                          shortcut='Ctrl+A')
+                                             slot=self.toggleAutoFilter,
+                                             icon=key_a_icon,
+                                             tip='Filter automatically before initial pick',
+                                             checkable=True,
+                                             shortcut='Ctrl+A')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
@@ -1604,8 +1604,8 @@ class PickDlg(QDialog):
             _dialtoolbar.addSeparator()
         est_label = QLabel('Estimated onsets:')
         est_label.setStyleSheet('QLabel {'
-                                   'padding:2px;'
-                                   'padding-left:5px}')
+                                'padding:2px;'
+                                'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
         _dialtoolbar.addSeparator()
@@ -1805,15 +1805,14 @@ class PickDlg(QDialog):
                 picksMenu.addSeparator()
 
         filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
-                                   slot=self.filterOptions,
-                                   shortcut='Ctrl+F',
-                                   icon=self.orig_parent.filter_icon)
+                                           slot=self.filterOptions,
+                                           shortcut='Ctrl+F',
+                                           icon=self.orig_parent.filter_icon)
         filterMenu = menuBar.addMenu('Filter')
         filterMenu.addAction(self.filterActionP)
         filterMenu.addAction(self.filterActionS)
         filterMenu.addAction(self.autoFilterAction)
         filterMenu.addAction(filterOptionsAction)
-
 
     def filterOptions(self):
         if self.orig_parent.adjustFilterOptions():
@@ -1953,7 +1952,7 @@ class PickDlg(QDialog):
                 self.draw()
         else:
             self.draw()
-        #self.pick_block = self.togglePickBlocker()
+        # self.pick_block = self.togglePickBlocker()
         self.disconnect_pick_delete()
 
     def deactivatePicking(self):
@@ -2101,7 +2100,7 @@ class PickDlg(QDialog):
     def calcNoiseScaleFactor(noiselevel, zoomfactor=5., norm=1):
         # calculate factor to upscale a trace normed to 'norm' in a way that all values
         # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
-        scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
+        scaleFactor = (norm / 2.) / (zoomfactor * noiselevel)
         return scaleFactor
 
     def setIniPick(self, gui_event):
@@ -2175,7 +2174,7 @@ class PickDlg(QDialog):
             try:
                 data.detrend('linear')
                 data.filter(**filteroptions)
-                #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
+                # wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
                                              'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
@@ -2211,7 +2210,7 @@ class PickDlg(QDialog):
         x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
         xlims = [ini_pick - x_res, ini_pick + x_res]
-        ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
+        ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
 
         title = self.getStation() + ' picking mode'
         if filterphase:
@@ -2298,8 +2297,8 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        #self.pick_block = self.togglPickBlocker()
-        #self.resetZoom()
+        # self.pick_block = self.togglPickBlocker()
+        # self.resetZoom()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2335,7 +2334,7 @@ class PickDlg(QDialog):
             if self.getPicks(picktype):
                 if phase is not None and not phase == 'SPt':
                     if (type(self.getPicks(picktype)[phase]) is dict
-                        or type(self.getPicks(picktype)[phase]) is AttribDict):
+                            or type(self.getPicks(picktype)[phase]) is AttribDict):
                         picks = self.getPicks(picktype)[phase]
                 elif phase is None:
                     for phase in self.getPicks(picktype):
@@ -2368,7 +2367,7 @@ class PickDlg(QDialog):
                                 label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
                 self.phaseLines[phase] = vl
                 if spe:
-                    ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
+                    ax.fill_between([mpp - spe, mpp + spe], ylims[0], ylims[1],
                                     alpha=.25, color=color, label='{}-SPE'.format(phase))
                 if picks['epp']:
                     linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
@@ -2414,7 +2413,7 @@ class PickDlg(QDialog):
     def on_motion(self, event):
         x = event.xdata
         if x is not None:
-            time_code = 'T = {}, t = {} [s]'.format(self.stime+x, x)
+            time_code = 'T = {}, t = {} [s]'.format(self.stime + x, x)
             user_help = ' - Left-Click to Drag | Right-Click to Pan-Zoom |' \
                         ' Mousewheel to Zoom | Middle-Click to Delete Pick'
             self.statusbar.showMessage(time_code + user_help)
@@ -2516,10 +2515,10 @@ class PickDlg(QDialog):
         allpicks[picktype].pop(phase)
         # delete line from vlines dictionary
         if phase in self.phaseLines.keys():
-            del(self.phaseLines[phase])
+            del (self.phaseLines[phase])
         # information output
         msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
+        print(msg.format(picktype, phase, self.getStartTime() + pick_rel, pick_rel))
         self.setDirty(True)
 
     def identify_selected_picks(self, x):
@@ -2544,8 +2543,6 @@ class PickDlg(QDialog):
             # unpack the found value
             pick_rel, phase, picktype = X[index]
         return allpicks, pick_rel, phase, picktype
-
-
 
     def drawPhaseText(self):
         self.drawPicks(picktype='manual', textOnly=True)
@@ -2583,7 +2580,7 @@ class PickDlg(QDialog):
             return
         self.cur_xlim = self.multicompfig.axes[0].get_xlim()
         self.cur_ylim = self.multicompfig.axes[0].get_ylim()
-        #self.multicompfig.updateCurrentLimits()
+        # self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
         title = self.getStation()
         if filter:
@@ -2677,7 +2674,6 @@ class PickDlg(QDialog):
                 rval = False
         return rval
 
-
     def resetPlot(self):
         self.resetZoom()
         self.refreshPlot()
@@ -2716,8 +2712,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        #self.multicompfig.setXLims(ax, self.getXLims())
-        #self.multicompfig.setYLims(ax, self.getYLims())
+        # self.multicompfig.setXLims(ax, self.getXLims())
+        # self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
@@ -2779,7 +2775,7 @@ class CanvasWidget(QWidget):
     '''
 
     def __init__(self, parent, canvas):
-        QtGui.QWidget.__init__(self, parent)#, 1)
+        QtGui.QWidget.__init__(self, parent)  # , 1)
         canvas = canvas
         self.main_layout = QtGui.QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -2792,6 +2788,7 @@ class MultiEventWidget(QWidget):
     '''
 
     '''
+
     def __init__(self, options=None, parent=None, windowflag=1):
         QtGui.QWidget.__init__(self, parent, windowflag)
 
@@ -2851,7 +2848,7 @@ class MultiEventWidget(QWidget):
         self.pb.setRange(0, 0)
         self.pb.setVisible(False)
 
-        #space holder for progressbar
+        # space holder for progressbar
         self._pb_space = QtGui.QWidget()
 
         self.rb_layout.addWidget(self.start_button)
@@ -2869,7 +2866,7 @@ class MultiEventWidget(QWidget):
             eventlist = func()
             if not type(eventlist) == list:
                 eventlist = [eventlist]
-            tooltip=''
+            tooltip = ''
             for index, event in enumerate(eventlist):
                 if not event:
                     continue
@@ -2885,13 +2882,13 @@ class MultiEventWidget(QWidget):
         for rb in self.rb_dict.values():
             if rb.isChecked():
                 check_events = (rb.toolTip() == 'No events for this selection')
-                self.start_button.setEnabled(not(check_events))
+                self.start_button.setEnabled(not (check_events))
 
     def enable(self, bool):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
         self.start_button.setEnabled(bool)
-        self.pb.setVisible(not(bool))
+        self.pb.setVisible(not (bool))
         self._pb_space.setVisible(bool)
         self.eventbox.setEnabled(bool)
         self.button_clear.setEnabled(bool)
@@ -2973,7 +2970,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                del(widget)
+                del (widget)
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -3507,7 +3504,7 @@ class TuneAutopicker(QWidget):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
                 self.pdlg_widget.setParent(None)
-                del(self.pdlg_widget)
+                del (self.pdlg_widget)
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):
@@ -4725,8 +4722,9 @@ class FilterOptionsDialog(QDialog):
                                   'S': FilterOptions()}
 
         self.setWindowTitle(titleString)
-        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
-                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
+        self.filterOptionWidgets = {
+            'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
+            'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
         self.setupUi()
         self.updateUi()
         self.connectButtons()
@@ -5074,7 +5072,7 @@ class HelpForm(QDialog):
         toolBar.addWidget(self.pageLabel)
         self.webBrowser = QWebView()
         self.webBrowser.load(page)
-        #self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
+        # self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)

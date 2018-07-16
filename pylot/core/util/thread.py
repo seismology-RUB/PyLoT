@@ -33,8 +33,8 @@ class Thread(QThread):
             self._executed = False
             self._executedError = e
             traceback.print_exc()
-            exctype, value = sys.exc_info ()[:2]
-            self._executedErrorInfo = '{} {} {}'.\
+            exctype, value = sys.exc_info()[:2]
+            self._executedErrorInfo = '{} {} {}'. \
                 format(exctype, value, traceback.format_exc())
         sys.stdout = sys.__stdout__
 
@@ -75,6 +75,7 @@ class Worker(QRunnable):
     '''
     Worker class to be run by MultiThread(QThread).
     '''
+
     def __init__(self, fun, args,
                  progressText=None,
                  pb_widget=None,
@@ -82,7 +83,7 @@ class Worker(QRunnable):
         super(Worker, self).__init__()
         self.fun = fun
         self.args = args
-        #self.kwargs = kwargs
+        # self.kwargs = kwargs
         self.signals = WorkerSignals()
         self.progressText = progressText
         self.pb_widget = pb_widget
@@ -96,9 +97,9 @@ class Worker(QRunnable):
         try:
             result = self.fun(self.args)
         except:
-            exctype, value = sys.exc_info ()[:2]
+            exctype, value = sys.exc_info()[:2]
             print(exctype, value, traceback.format_exc())
-            self.signals.error.emit ((exctype, value, traceback.format_exc ()))
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:
             self.signals.result.emit(result)
         finally:
@@ -140,13 +141,13 @@ class MultiThread(QThread):
 
     def run(self):
         if self.redirect_stdout:
-             sys.stdout = self
+            sys.stdout = self
         try:
             if not self.ncores:
                 self.ncores = multiprocessing.cpu_count()
             pool = multiprocessing.Pool(self.ncores)
             self.data = pool.map_async(self.func, self.args, callback=self.emitDone)
-            #self.data = pool.apply_async(self.func, self.shotlist, callback=self.emitDone) #emit each time returned
+            # self.data = pool.apply_async(self.func, self.shotlist, callback=self.emitDone) #emit each time returned
             pool.close()
             self._executed = True
         except Exception as e:

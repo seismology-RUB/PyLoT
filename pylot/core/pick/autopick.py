@@ -16,7 +16,7 @@ from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine, gen_Pool,\
+from pylot.core.util.utils import getPatternLine, gen_Pool, \
     real_Bool, identifyPhaseID
 
 from obspy.taup import TauPyModel
@@ -95,7 +95,7 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
             print('Could not pick a station: {}\nReason: {}'.format(station, result))
 
     # no Wadati/JK for single station (also valid for tuning mode)
-    if len(stations)  == 1:
+    if len(stations) == 1:
         return all_onsets
 
     # quality control
@@ -133,7 +133,8 @@ def call_autopickstation(input_tuple):
         print('Running in interactive mode')
     # multiprocessing not possible with interactive plotting
     try:
-        return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata, origin=origin)
+        return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata,
+                               origin=origin)
     except Exception as e:
         return e, wfstream[0].stats.station
 
@@ -343,7 +344,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # make sure pstart and pstop are inside zdat[0]
         pstart = max(pstart, 0)
-        pstop = min(pstop, len(zdat[0])*zdat[0].stats.delta)
+        pstop = min(pstop, len(zdat[0]) * zdat[0].stats.delta)
 
         if not use_taup is True or origin:
             Lc = pstop - pstart
@@ -586,7 +587,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      FM)
                 print(msg)
                 msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
-                                                                             + mpickP, Perror)
+                                                                                     + mpickP, Perror)
                 print(msg)
                 Sflag = 1
 
@@ -620,7 +621,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ndat = edat
 
     pickSonset = (edat is not None and ndat is not None and len(edat) > 0 and len(
-                  ndat) > 0 and Pweight < 4)
+        ndat) > 0 and Pweight < 4)
 
     if pickSonset:
         # determine time window for calculating CF after P onset
@@ -628,8 +629,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             round(max([mpickP + sstart, 0])),  # MP MP relative time axis
             round(min([
                 mpickP + sstop,
-                edat[0].stats.endtime-edat[0].stats.starttime,
-                ndat[0].stats.endtime-ndat[0].stats.starttime
+                edat[0].stats.endtime - edat[0].stats.starttime,
+                ndat[0].stats.endtime - ndat[0].stats.starttime
             ]))
         ]
 
@@ -724,7 +725,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if not slope:
             slope = 0
         if (slope >= minAICSslope and
-            aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
+                aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
             aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -866,7 +867,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     Serror = pickerr[ipick]
 
                     msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(hdat[0].stats.starttime \
-                                                                                  + mpickS, Serror)
+                                                                                         + mpickS, Serror)
                     print(msg)
 
                     # get SNR
@@ -912,7 +913,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
- 
+
     else:
         print('autopickstation: No horizontal component data available or '
               'bad P onset, skipping S picking!')
@@ -1216,11 +1217,11 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
         print(
             "iteratepicker: The following picking parameters have been modified for iterative picking:")
         print(
-            "pstart: %fs => %fs" % (pstart_old, pickparameter.get('pstart')))
+                "pstart: %fs => %fs" % (pstart_old, pickparameter.get('pstart')))
         print(
-            "pstop: %fs => %fs" % (pstop_old, pickparameter.get('pstop')))
+                "pstop: %fs => %fs" % (pstop_old, pickparameter.get('pstop')))
         print(
-            "sstop: %fs => %fs" % (sstop_old, pickparameter.get('sstop')))
+                "sstop: %fs => %fs" % (sstop_old, pickparameter.get('sstop')))
         print("pickwinP: %fs => %fs" % (
             pickwinP_old, pickparameter.get('pickwinP')))
         print("Precalcwin: %fs => %fs" % (

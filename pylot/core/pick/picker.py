@@ -164,9 +164,9 @@ class AICPicker(AutoPicker):
             iplot = int(self.iplot)
         except:
             if self.iplot == True or self.iplot == 'True':
-               iplot = 2
+                iplot = 2
             else:
-               iplot = 0
+                iplot = 0
 
         # find NaN's
         nn = np.isnan(self.cf)
@@ -215,8 +215,8 @@ class AICPicker(AutoPicker):
         tsafety = self.TSNR[1]  # safety gap, AIC is usually a little bit too late
         left_corner_ind = max([icfmax - lpickwindow, 2])
         right_corner_ind = icfmax + int(tsafety / self.dt)
-        aic_snip = aicsmooth[left_corner_ind : right_corner_ind]
-        minima = argrelmin(aic_snip)[0] # 0th entry of tuples for axes
+        aic_snip = aicsmooth[left_corner_ind: right_corner_ind]
+        minima = argrelmin(aic_snip)[0]  # 0th entry of tuples for axes
         if len(minima) > 0:
             pickindex = minima[-1] + left_corner_ind
             self.Pick = self.Tcf[pickindex]
@@ -261,10 +261,11 @@ class AICPicker(AutoPicker):
             tslope = self.TSNR[3]  # slope determination window
             if tsafety >= 0:
                 islope = np.where((self.Tcf <= min([self.Pick + tslope + tsafety, self.Tcf[-1]])) \
-                                  & (self.Tcf >= self.Pick)) # TODO: put this in a seperate function like getsignalwin
+                                  & (self.Tcf >= self.Pick))  # TODO: put this in a seperate function like getsignalwin
             else:
                 islope = np.where((self.Tcf <= min([self.Pick + tslope, self.Tcf[-1]])) \
-                                  & (self.Tcf >= self.Pick + tsafety)) # TODO: put this in a seperate function like getsignalwin
+                                  & (
+                                              self.Tcf >= self.Pick + tsafety))  # TODO: put this in a seperate function like getsignalwin
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             try:
@@ -306,11 +307,13 @@ class AICPicker(AutoPicker):
                         ax.set_title(self.Data[0].stats.station)
                         if plt_flag in [1, 2]:
                             fig.show()
-                            try: input()
-                            except SyntaxError: pass
+                            try:
+                                input()
+                            except SyntaxError:
+                                pass
                             plt.close(fig)
                     return
-                iislope = islope[0][0:imax+1]
+                iislope = islope[0][0:imax + 1]
             # MP MP change slope calculation
             # get all maxima of aicsmooth
             iaicmaxima = argrelmax(aicsmooth)[0]
@@ -320,7 +323,7 @@ class AICPicker(AutoPicker):
                 iaicmax = aicmax[0]
             else:
                 iaicmax = -1
-            dataslope = aicsmooth[pickindex : iaicmax]
+            dataslope = aicsmooth[pickindex: iaicmax]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
             P = np.polyfit(xslope, dataslope, 1)
@@ -344,8 +347,8 @@ class AICPicker(AutoPicker):
                 fig = self.fig
             fig._tight = True
             ax1 = fig.add_subplot(211)
-            if len(self.Tcf) > len(cf): # why? LK
-                self.Tcf = self.Tcf[0:len(self.Tcf)-1]
+            if len(self.Tcf) > len(cf):  # why? LK
+                self.Tcf = self.Tcf[0:len(self.Tcf) - 1]
             ax1.plot(self.Tcf, cf / max(cf), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
             if self.Pick is not None:
@@ -368,7 +371,8 @@ class AICPicker(AutoPicker):
                             label='Signal Window')
                 ax2.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
                             label='Slope Window')
-                ax2.plot(self.Tcf[pickindex : iaicmax], datafit, 'g', linewidth=2, label='Slope') # MP MP changed temporarily!
+                ax2.plot(self.Tcf[pickindex: iaicmax], datafit, 'g', linewidth=2,
+                         label='Slope')  # MP MP changed temporarily!
 
                 if self.slope is not None:
                     ax1.set_title('Station %s, SNR=%7.2f, Slope= %12.2f counts/s' % (self.Data[0].stats.station,
@@ -384,8 +388,10 @@ class AICPicker(AutoPicker):
 
             if plt_flag in [1, 2]:
                 fig.show()
-                try: input()
-                except SyntaxError: pass
+                try:
+                    input()
+                except SyntaxError:
+                    pass
                 plt.close(fig)
             if plt_flag == 3:
                 stats = self.Data[0].stats
@@ -409,9 +415,9 @@ class PragPicker(AutoPicker):
             iplot = int(self.getiplot())
         except:
             if self.getiplot() == True or self.getiplot() == 'True':
-               iplot = 2
+                iplot = 2
             else:
-               iplot = 0
+                iplot = 0
 
         if self.getpick1() is not None:
             print('PragPicker: Get most likely pick from HOS- or AR-CF using pragmatic picking algorithm ...')
@@ -450,11 +456,11 @@ class PragPicker(AutoPicker):
             # prominent trend: decrease aus
             # flat: use given aus
             cfdiff = np.diff(cfipick)
-            if len(cfdiff)<20:
+            if len(cfdiff) < 20:
                 print('PragPicker: Very few samples for CF. Check LTA window dimensions!')
             i0diff = np.where(cfdiff > 0)
             cfdiff = cfdiff[i0diff]
-            if len(cfdiff)<1:
+            if len(cfdiff) < 1:
                 print('PragPicker: Negative slope for CF. Check LTA window dimensions! STOP')
                 self.Pick = None
                 return
@@ -478,7 +484,7 @@ class PragPicker(AutoPicker):
                             break
 
             # now we look to the left
-            if len(self.cf) > ipick1 +1:
+            if len(self.cf) > ipick1 + 1:
                 for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
                     if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
                         if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
@@ -489,7 +495,7 @@ class PragPicker(AutoPicker):
                                 cfpick_l = self.cf[i]
                                 break
             else:
-                msg ='PragPicker: Initial onset too close to start of CF! \
+                msg = 'PragPicker: Initial onset too close to start of CF! \
                       Stop finalizing pick to the left.'
                 print(msg)
 
@@ -519,15 +525,18 @@ class PragPicker(AutoPicker):
                 ax.plot(Tcfpick, cfipick, color=self._linecolor, linewidth=0.7, label='CF')
                 ax.plot(Tcfpick, cfsmoothipick, 'r', label='Smoothed CF')
                 if pickflag > 0:
-                    ax.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], self._pickcolor_p, linewidth=2, label='Pick')
+                    ax.plot([self.Pick, self.Pick], [min(cfipick), max(cfipick)], self._pickcolor_p, linewidth=2,
+                            label='Pick')
                 ax.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
                 ax.set_yticks([])
                 ax.set_title(self.Data[0].stats.station)
                 ax.legend(loc=1)
                 if plt_flag == 1:
                     fig.show()
-                    try: input()
-                    except SyntaxError: pass
+                    try:
+                        input()
+                    except SyntaxError:
+                        pass
                     plt.close(fig)
                 return
 

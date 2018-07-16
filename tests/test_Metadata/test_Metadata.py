@@ -7,6 +7,7 @@ from obspy.io.xseed import Parser
 from pylot.core.util.dataprocessing import Metadata
 from tests.utils import HidePrints
 
+
 class TestMetadata(unittest.TestCase):
 
     def setUp(self):
@@ -16,9 +17,12 @@ class TestMetadata(unittest.TestCase):
         self.m = Metadata(metadata_folder)
 
     def test_get_coordinates_sucess(self):
-        expected = {'Z': {u'elevation': 607.0, u'longitude': 12.87571, u'local_depth': 0.0, u'azimuth': 0.0, u'latitude': 49.14502, u'dip': -90.0},
-                    'E': {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571},
-                    'N': {u'azimuth': 0.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571}
+        expected = {'Z': {u'elevation': 607.0, u'longitude': 12.87571, u'local_depth': 0.0, u'azimuth': 0.0,
+                          u'latitude': 49.14502, u'dip': -90.0},
+                    'E': {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502,
+                          u'local_depth': 0.0, u'longitude': 12.87571},
+                    'N': {u'azimuth': 0.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0,
+                          u'longitude': 12.87571}
                     }
         result = {}
         for channel in ('Z', 'N', 'E'):
@@ -28,9 +32,12 @@ class TestMetadata(unittest.TestCase):
             self.assertDictEqual(result[channel], expected[channel])
 
     def test_get_coordinates_sucess_no_time(self):
-        expected = {'Z': {u'elevation': 607.0, u'longitude': 12.87571, u'local_depth': 0.0, u'azimuth': 0.0, u'latitude': 49.14502, u'dip': -90.0},
-                    'E': {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571},
-                    'N': {u'azimuth': 0.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0, u'longitude': 12.87571}
+        expected = {'Z': {u'elevation': 607.0, u'longitude': 12.87571, u'local_depth': 0.0, u'azimuth': 0.0,
+                          u'latitude': 49.14502, u'dip': -90.0},
+                    'E': {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502,
+                          u'local_depth': 0.0, u'longitude': 12.87571},
+                    'N': {u'azimuth': 0.0, u'dip': 0.0, u'elevation': 607.0, u'latitude': 49.14502, u'local_depth': 0.0,
+                          u'longitude': 12.87571}
                     }
         result = {}
         for channel in ('Z', 'N', 'E'):
@@ -63,8 +70,10 @@ class TestMetadataAdding(unittest.TestCase):
         fpath = os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')
         self.m.add_inventory_file(fpath)
         # adding an inventory file should append its folder to the list of inventories and the file to the
-        self.assertEqual([os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')], self.m.inventory_files.keys())  # does the filename exist in inventory files?
-        self.assertEqual(['data', 'invtype'], self.m.inventory_files[os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')].keys())  # is the required information attacht to the filename?
+        self.assertEqual([os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')],
+                         self.m.inventory_files.keys())  # does the filename exist in inventory files?
+        self.assertEqual(['data', 'invtype'], self.m.inventory_files[os.path.join(self.metadata_folders[0],
+                                                                                  'DATALESS.BW.WETR..HHZ')].keys())  # is the required information attacht to the filename?
         self.assertDictEqual({}, self.m.seed_ids)
         self.assertEqual([self.metadata_folders[0]], self.m.inventories)
 

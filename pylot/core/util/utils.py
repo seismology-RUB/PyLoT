@@ -28,11 +28,13 @@ except Exception as e:
     print('PyLoT: Could not import pyqtgraph. {}'.format(e))
     pg = None
 
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
+
 
 def getAutoFilteroptions(phase, parameter):
     filtername = {'P': 'bpz2',
@@ -41,8 +43,9 @@ def getAutoFilteroptions(phase, parameter):
         print('autoPickParameter: No filter options for phase {}.'.format(phase))
         return
     freqmin, freqmax = parameter.get(filtername[phase])
-    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
+    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4)  # order=4 default from obspy
     return filteroptions
+
 
 def readDefaultFilterInformation(fname):
     """
@@ -679,7 +682,7 @@ def pick_color(picktype, phase, quality=0):
     bpc = base_phase_colors(picktype, phase)  # returns dict like {'modifier': 'g', 'rgba': (0, 0, 255, 255)}
     rgba = bpc['rgba']
     modifier = bpc['modifier']
-    intensity = 255.*quality/min_quality
+    intensity = 255. * quality / min_quality
     rgba = modify_rgba(rgba, modifier, intensity)
     return rgba
 
@@ -791,6 +794,7 @@ def base_phase_colors(picktype, phase):
     phasecolors = style_settings.phasecolors
     return phasecolors[picktype][phase]
 
+
 def transform_colors_mpl_str(colors, no_alpha=False):
     """
     Transforms rgba color values to a matplotlib string of color values with a range of [0, 1]
@@ -809,6 +813,7 @@ def transform_colors_mpl_str(colors, no_alpha=False):
         colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
     return colors_mpl
 
+
 def transform_colors_mpl(colors):
     """
     Transform rgba colors from [0, 255] to [0, 1]
@@ -820,6 +825,7 @@ def transform_colors_mpl(colors):
     colors = list(colors)
     colors_mpl = tuple([color / 255. for color in colors])
     return colors_mpl
+
 
 def remove_underscores(data):
     """
@@ -976,7 +982,8 @@ def check4rotated(data, metadata=None, verbosity=1):
                                  wfstream[2], azimuts[2], dips[2])
             print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
             # replace old data with rotated data, change the channel code to ZNE
-            z_index = dips.index(min(dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
+            z_index = dips.index(min(
+                dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
             wfstream[z_index].data = z
             wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
             del trace_ids[z_index]
@@ -1206,8 +1213,8 @@ def check_event_folder(path):
     folder = path.split('/')[-1]
     # for pylot: select only folders that start with 'e', containin two dots and have length 12
     if (folder.startswith('e')
-        and len(folder.split('.')) == 3
-        and len(folder) == 12):
+            and len(folder.split('.')) == 3
+            and len(folder) == 12):
         ev_type = 'pylot'
     elif check_obspydmt_eventfolder(folder)[0]:
         ev_type = 'obspydmt'
