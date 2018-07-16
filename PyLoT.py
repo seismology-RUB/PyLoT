@@ -1266,7 +1266,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(pick.get('spe'), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if pick.get('spe'):
                                 ma_count[ma] += 1
                             ma_count_total[ma] += 1
 
@@ -2697,42 +2697,31 @@ class MainWindow(QMainWindow):
                 lpp = None
             spe = picks['spe']
 
-            if not spe and epp and lpp:
-                spe = symmetrize_error(mpp - epp, lpp - mpp)
-
             if self.pg:
-                if picktype == 'manual':
-                    if picks['epp'] and picks['lpp']:
-                        pen = make_pen(picktype, phaseID, 'epp', quality)
-                        pw.plot([epp, epp], ylims,
-                                alpha=.25, pen=pen, name='EPP')
-                        pen = make_pen(picktype, phaseID, 'lpp', quality)
-                        pw.plot([lpp, lpp], ylims,
-                                alpha=.25, pen=pen, name='LPP')
-                    pen = make_pen(picktype, phaseID, 'mpp', quality)
+                if picktype == 'manual' or picktype == 'auto':
                     if spe:
-                        # pen = make_pen(picktype, phaseID, 'spe', quality)
-                        # spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
-                        #                         name='{}-SPE'.format(phase))
-                        # spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
-                        # pw.addItem(spe_l)
-                        # pw.addItem(spe_r)
-                        # try:
-                        #     color = pen.color()
-                        #     color.setAlpha(100.)
-                        #     brush = pen.brush()
-                        #     brush.setColor(color)
-                        #     fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
-                        #     fb = pw.addItem(fill)
-                        # except:
-                        #     print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
-                    else:
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick (NO PICKERROR)'.format(phase))
-                elif picktype == 'auto':
-                    if quality < 4:
+                        if picks['epp'] and picks['lpp']:
+                            pen = make_pen(picktype, phaseID, 'epp', quality)
+                            pw.plot([epp, epp], ylims,
+                                    alpha=.25, pen=pen, name='EPP')
+                            pen = make_pen(picktype, phaseID, 'lpp', quality)
+                            pw.plot([lpp, lpp], ylims,
+                                    alpha=.25, pen=pen, name='LPP')
+                            pen = make_pen(picktype, phaseID, 'spe', quality)
+                            spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
+                                                    name='{}-SPE'.format(phase))
+                            spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                            try:
+                                color = pen.color()
+                                color.setAlpha(100.)
+                                brush = pen.brush()
+                                brush.setColor(color)
+                                fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
+                                fb = pw.addItem(fill)
+                            except:
+                                print('Warning: drawPicks: Could not create fill for symmetric pick error.')
                         pen = make_pen(picktype, phaseID, 'mpp', quality)
-                        pw.plot([mpp, mpp], ylims, pen=pen)
+                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
                 else:
                     raise TypeError('Unknown picktype {0}'.format(picktype))
             else:
@@ -2998,7 +2987,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(pick.get('spe'), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if pick.get('spe'):
                                 ma_count[ma] += 1
                             ma_count_total[ma] += 1
 
