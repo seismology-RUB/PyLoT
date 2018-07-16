@@ -8,7 +8,7 @@ setup(
     packages=['pylot', 'pylot.core', 'pylot.core.loc', 'pylot.core.pick',
               'pylot.core.io', 'pylot.core.util', 'pylot.core.active',
               'pylot.core.analysis', 'pylot.testing'],
-    requires=['obspy', 'PySide', 'matplotlib', 'numpy'],
+    requires=['obspy', 'PySide', 'matplotlib', 'numpy', 'scipy', 'pyqtgraph'],
     url='dummy',
     license='LGPLv3',
     author='Sebastian Wehling-Benatelli',
