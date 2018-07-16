@@ -76,7 +76,7 @@ from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import read_metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
     check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
     check_all_pylot, real_Bool
 from pylot.core.util.event import Event
@@ -1266,7 +1266,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if getQualityFromUncertainty(pick.get('spe'), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
                             ma_count_total[ma] += 1
 
@@ -2998,7 +2998,7 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if getQualityFromUncertainty(pick.get('spe'), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
                             ma_count_total[ma] += 1
 

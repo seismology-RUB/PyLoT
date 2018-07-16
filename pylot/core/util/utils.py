@@ -1167,20 +1167,6 @@ def identifyPhaseID(phase):
     return identifyPhase(loopIdentifyPhase(phase))
 
 
-def has_spe(pick):
-    """
-    Check for 'spe' key (symmetric picking error) in dict and return its value if found, else return None
-    :param pick: pick dictionary
-    :type pick: dict
-    :return: value of 'spe' key
-    :rtype: float or None
-    """
-    if not 'spe' in pick.keys():
-        return None
-    else:
-        return pick['spe']
-
-
 def check_all_obspy(eventlist):
     ev_type = 'obspydmt'
     return check_event_folders(eventlist, ev_type)
