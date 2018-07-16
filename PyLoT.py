@@ -3170,7 +3170,7 @@ class MainWindow(QMainWindow):
         #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
             local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                       verbosity=True) ## MP MP missing parameter wascaling in function call!
+                                       self.inputs.get('WAScaling'), verbosity=True)
             return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
