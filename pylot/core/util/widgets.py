@@ -242,7 +242,8 @@ class ComparisonWidget(QWidget):
     def clf(self):
         self.canvas.figure.clf()
 
-    def hasvalue(self, sender):
+    @staticmethod
+    def hasvalue(sender):
         text = sender.currentText()
         index = sender.findText(text.upper())
         return index
@@ -895,7 +896,8 @@ class PylotCanvas(FigureCanvas):
                 fname += '.png'
             self.figure.savefig(fname)
 
-    def calcPanZoom(self, origin, lower_b, upper_b, factor, positive):
+    @staticmethod
+    def calcPanZoom(origin, lower_b, upper_b, factor, positive):
         d_lower = abs(origin - lower_b)
         d_upper = abs(origin - upper_b)
 
@@ -1029,7 +1031,8 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def calcPlotPositions(self, wfdata, compclass):
+    @staticmethod
+    def calcPlotPositions(wfdata, compclass):
         possible_plot_pos = list(range(len(wfdata)))
         plot_positions = {}
         for trace in wfdata:
@@ -1173,16 +1176,20 @@ class PylotCanvas(FigureCanvas):
             self.setYLims(ax, zoomy)
         self.draw()
 
-    def getXLims(self, ax):
+    @staticmethod
+    def getXLims(ax):
         return ax.get_xlim()
 
-    def getYLims(self, ax):
+    @staticmethod
+    def getYLims(ax):
         return ax.get_ylim()
 
-    def setXLims(self, ax, lims):
+    @staticmethod
+    def setXLims(ax, lims):
         ax.set_xlim(lims)
 
-    def setYLims(self, ax, lims):
+    @staticmethod
+    def setYLims(ax, lims):
         ax.set_ylim(lims)
 
     def setYTickLabels(self, pos, labels):
@@ -1298,7 +1305,8 @@ class PhaseDefaults(QtGui.QDialog):
             checkbox.setChecked(bool(phase in self.current_phases))
             row += 1
 
-    def create_phase_box(self, phase_name):
+    @staticmethod
+    def create_phase_box(phase_name):
         checkbox = QtGui.QCheckBox(phase_name)
         return checkbox
 
@@ -1699,7 +1707,8 @@ class PickDlg(QDialog):
                               phases)
         self.arrivals = arrivals
 
-    def prepare_phases(self):
+    @staticmethod
+    def prepare_phases():
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
         s_phases = settings.value('s_phases')
@@ -1875,7 +1884,8 @@ class PickDlg(QDialog):
         self.currentPhase = str(self.s_button.text())
         self.activatePicking()
 
-    def getPhaseID(self, phase):
+    @staticmethod
+    def getPhaseID(phase):
         return identifyPhaseID(phase)
 
     def set_button_border_color(self, button, color=None):
@@ -2087,7 +2097,8 @@ class PickDlg(QDialog):
                 st += data.select(channel=action.text())
         return st
 
-    def calcNoiseScaleFactor(self, noiselevel, zoomfactor=5., norm=1):
+    @staticmethod
+    def calcNoiseScaleFactor(noiselevel, zoomfactor=5., norm=1):
         # calculate factor to upscale a trace normed to 'norm' in a way that all values
         # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
         scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
@@ -2626,15 +2637,18 @@ class PickDlg(QDialog):
         settings = QSettings()
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
 
-    def updateChannelSettingsP(self, action):
+    @staticmethod
+    def updateChannelSettingsP(action):
         settings = QSettings()
         settings.setValue('p_channel_{}'.format(action.text()), action.isChecked())
 
-    def updateChannelSettingsS(self, action):
+    @staticmethod
+    def updateChannelSettingsS(action):
         settings = QSettings()
         settings.setValue('s_channel_{}'.format(action.text()), action.isChecked())
 
-    def getChannelSettingsP(self, channel):
+    @staticmethod
+    def getChannelSettingsP(channel):
         settings = QSettings()
         rval = real_Bool(settings.value('p_channel_{}'.format(channel)))
         compclass = settings.value('compclass')
@@ -2648,7 +2662,8 @@ class PickDlg(QDialog):
                 rval = False
         return rval
 
-    def getChannelSettingsS(self, channel):
+    @staticmethod
+    def getChannelSettingsS(channel):
         settings = QSettings()
         rval = real_Bool(settings.value('s_channel_{}'.format(channel)))
         compclass = settings.value('compclass')
@@ -3220,7 +3235,8 @@ class TuneAutopicker(QWidget):
     def get_current_station_id(self):
         return str(self.stationBox.currentText())
 
-    def gen_tab_widget(self, name, canvas):
+    @staticmethod
+    def gen_tab_widget(name, canvas):
         widget = QtGui.QWidget()
         v_layout = QtGui.QVBoxLayout()
         v_layout.addWidget(canvas)
@@ -3650,7 +3666,8 @@ class PylotParaBox(QtGui.QWidget):
             grid.addWidget(box, index1, 2)
         return grid
 
-    def create_box(self, typ, tooltip):
+    @staticmethod
+    def create_box(typ, tooltip):
         if typ == str:
             box = QtGui.QLineEdit()
         elif typ == float:
@@ -3665,7 +3682,8 @@ class PylotParaBox(QtGui.QWidget):
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
-    def create_multi_box(self, boxes, headline=None):
+    @staticmethod
+    def create_multi_box(boxes, headline=None):
         box = QtGui.QWidget()
         gl = QtGui.QGridLayout()
         column = 0
@@ -4366,7 +4384,8 @@ class PhasesTab(PropTab):
             self.PphasesEdit.setText(p_phases)
             self.SphasesEdit.setText(s_phases)
 
-    def sortPhases(self, phases):
+    @staticmethod
+    def sortPhases(phases):
         sorted_phases = {'P': [],
                          'S': []}
         for phase in phases:
@@ -4607,7 +4626,8 @@ class LocalisationTab(PropTab):
         self.rootlabel.setText("{0} root directory".format(curtool))
         self.binlabel.setText("{0} bin directory".format(curtool))
 
-    def selectDirectory(self, edit):
+    @staticmethod
+    def selectDirectory(edit):
         selected_directory = QFileDialog.getExistingDirectory()
         # check if string is empty
         if selected_directory:

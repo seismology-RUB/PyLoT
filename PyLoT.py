@@ -860,7 +860,8 @@ class MainWindow(QMainWindow):
     def inputs(self):
         return self._inputs
 
-    def getRoot(self):
+    @staticmethod
+    def getRoot():
         settings = QSettings()
         return settings.value("data/dataRoot")
 
@@ -1022,7 +1023,8 @@ class MainWindow(QMainWindow):
             raise DatastructureError('not specified')
         return fnames
 
-    def getPhaseID(self, phase):
+    @staticmethod
+    def getPhaseID(phase):
         return identifyPhaseID(phase)
 
     def get_current_event(self, eventbox=None):
@@ -1150,7 +1152,8 @@ class MainWindow(QMainWindow):
         self.project.remove_event(event)
         self.init_events(True)
 
-    def createEventBox(self):
+    @staticmethod
+    def createEventBox():
         '''
         Eventbox generator.
         '''
@@ -1926,7 +1929,8 @@ class MainWindow(QMainWindow):
             self.compare_action.setEnabled(True)
         self.draw()
 
-    def checkEvent4comparison(self, event):
+    @staticmethod
+    def checkEvent4comparison(event):
         if event.pylot_picks and event.pylot_autopicks:
             for station in event.pylot_picks:
                 if station in event.pylot_autopicks:
@@ -2560,13 +2564,15 @@ class MainWindow(QMainWindow):
             if event.pylot_id == eventID:
                 return event
 
-    def get_event_paths(self, eventlist):
+    @staticmethod
+    def get_event_paths(eventlist):
         eventPaths = []
         for event in eventlist:
             eventPaths.append(event.path)
         return eventPaths
 
-    def get_event_ids(self, eventlist):
+    @staticmethod
+    def get_event_ids(eventlist):
         eventIDs = []
         for event in eventlist:
             eventIDs.append(event.pylot_id)

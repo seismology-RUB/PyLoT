@@ -38,6 +38,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     """
     Determine phase onsets automatically utilizing the automatic picking
     algorithms by Kueperkoch et al. 2010/2012.
+    :param obspyDMT_wfpath: if obspyDMT is used, name of data directory ("raw" or "processed")
     :param input_dict:
     :type input_dict:
     :param parameter: PylotParameter object containing parameters used for automatic picking
@@ -200,8 +201,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     events.append(os.path.join(datapath, eventID))
             else:
                 # autoPyLoT was initialized from GUI
-                events = []
-                events.append(eventid)
+                events = [eventid]
                 evID = os.path.split(eventid)[-1]
                 locflag = 2
         else:

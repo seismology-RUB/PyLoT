@@ -541,7 +541,7 @@ def isSorted(iterable):
     False
     """
     assert isIterable(iterable), 'object is not iterable; object: {' \
-                                 '0}'.format(iterable)
+                                 '}'.format(iterable)
     if type(iterable) is str:
         iterable = [s for s in iterable]
     return sorted(iterable) == iterable

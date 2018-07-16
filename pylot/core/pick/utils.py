@@ -226,8 +226,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         # get zero crossings after most likely pick
         # initial onset is assumed to be the first zero crossing
         # first from unfiltered trace
-        zc1 = []
-        zc1.append(Pick)
+        zc1 = [Pick]
         index1 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
@@ -272,8 +271,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
 
         # now using filterd trace
         # next zero crossings after most likely pick
-        zc2 = []
-        zc2.append(Pick)
+        zc2 = [Pick]
         index2 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):

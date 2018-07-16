@@ -162,7 +162,6 @@ class Event(ObsPyEvent):
         """
         Add automatic picks to event
         :param autopicks: automatic picks to add to event
-        :type autopicks dict:
         :return:
         :rtype: None
         """

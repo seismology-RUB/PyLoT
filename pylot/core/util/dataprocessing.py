@@ -263,7 +263,8 @@ class Metadata(object):
         return None, None
 
 
-    def _read_dless(self, path_to_inventory):
+    @staticmethod
+    def _read_dless(path_to_inventory):
         exc = None
         try:
             parser = Parser(path_to_inventory)
@@ -272,7 +273,8 @@ class Metadata(object):
         return parser, exc
 
 
-    def _read_inventory_file(self, path_to_inventory):
+    @staticmethod
+    def _read_inventory_file(path_to_inventory):
         exc = None
         try:
             inv = read_inventory(path_to_inventory)
@@ -582,9 +584,6 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     takes a data stream and a path_to_inventory and returns the corrected
     waveform data stream
     :param data: seismic data stream
-    :param invtype: type of found metadata
-    :param inobj: either list of metadata files or `obspy.io.xseed.Parser`
-    object
     :param unit: unit to correct for (default: 'VEL')
     :param force: force restitution for already corrected traces (default:
     False)
