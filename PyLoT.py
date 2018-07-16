@@ -900,7 +900,7 @@ class MainWindow(QMainWindow):
             return
         if self.get_current_event().pylot_picks:
             self.refreshEvents()
-            self.fill_eventbox()
+        self.fill_eventbox()
         self.setDirty(True)
 
     def load_data(self, fname=None, loc=False, draw=True, event=None, overwrite=False):
@@ -1260,6 +1260,8 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
+            ma_count_total = {'manual': 0,
+                              'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -1269,6 +1271,7 @@ class MainWindow(QMainWindow):
                                 continue
                             if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
+                            ma_count_total[ma] += 1
 
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
@@ -1296,9 +1299,9 @@ class MainWindow(QMainWindow):
             item_lon = QtGui.QStandardItem('{}'.format(lon))
             item_depth = QtGui.QStandardItem('{}'.format(depth))
             item_mag = QtGui.QStandardItem('{}'.format(mag))
-            item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
+            item_nmp = QtGui.QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QStandardItem(str(ma_count['auto']))
+            item_nap = QtGui.QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QStandardItem()  # str(event_ref))
             item_test = QtGui.QStandardItem()  # str(event_test))
@@ -2987,6 +2990,8 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
+            ma_count_total = {'manual': 0,
+                              'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -2996,6 +3001,7 @@ class MainWindow(QMainWindow):
                                 continue
                             if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
                                 ma_count[ma] += 1
+                            ma_count_total[ma] += 1
 
             # init table items for current row
             item_delete = QtGui.QTableWidgetItem()
@@ -3006,9 +3012,9 @@ class MainWindow(QMainWindow):
             item_lon = QtGui.QTableWidgetItem()
             item_depth = QtGui.QTableWidgetItem()
             item_mag = QtGui.QTableWidgetItem()
-            item_nmp = QtGui.QTableWidgetItem(str(ma_count['manual']))
+            item_nmp = QtGui.QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QTableWidgetItem(str(ma_count['auto']))
+            item_nap = QtGui.QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()
