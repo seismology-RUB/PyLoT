@@ -69,7 +69,7 @@ from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.dataprocessing import read_metadata, restitute_data
+from pylot.core.util.dataprocessing import Metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
@@ -1063,7 +1063,7 @@ class MainWindow(QMainWindow):
                 self.dataStructure = DATASTRUCTURE['obspyDMT']()
                 eventlist = check_all_obspy(eventlist)
             else:
-                print('Settings Datastructure to PILOT')
+                print('Setting Datastructure to PILOT')
                 self.dataStructure = DATASTRUCTURE['PILOT']()
                 eventlist = check_all_pylot(eventlist)
             if not eventlist:
@@ -1922,6 +1922,13 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
+        # MP MP ++++
+        # TODO: Quick and dirty, improve this on later iteration
+        if self.obspy_dmt:
+            self.metadata = Metadata(os.path.join(self.get_current_event_path(), 'resp'))
+        self.inventoryAction.setEnabled(not self.obspy_dmt)
+        # MP MP ---
+
 
     @staticmethod
     def checkEvent4comparison(event):
@@ -3094,7 +3101,7 @@ class MainWindow(QMainWindow):
             set_background_color(item_list, QtGui.QColor(*(0, 143, 143, 255)))
 
     def read_metadata_thread(self, fninv):
-        self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...',
+        self.rm_thread = Thread(self, Metadata, arg=fninv, progressText='Reading metadata...',
                                 pb_widget=self.mainProgressBarWidget)
         self.rm_thread.finished.connect(self.set_metadata)
         self.rm_thread.start()

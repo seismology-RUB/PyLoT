@@ -1691,9 +1691,10 @@ class PickDlg(QDialog):
         func = {True: self.model.get_ray_paths_geo,
                 False: self.model.get_travel_times_geo}
         phases = self.prepare_phases()
-        station_id = self.data.traces[0].get_id()
-        parser = self.metadata[1]
-        station_coords = parser.get_coordinates(station_id)
+        trace = self.data.traces[0]
+        station_id = trace.get_id()
+        starttime = trace.stats.starttime
+        station_coords = self.metadata.get_coordinates(station_id, starttime)
         origins = self.pylot_event.origins
         if origins:
             source_origin = origins[0]
