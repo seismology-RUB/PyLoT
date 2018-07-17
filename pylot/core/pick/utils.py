@@ -639,11 +639,11 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                 # check, if deviation is larger than adjusted
                 if wddiff > dttolerance:
                     # remove pick from dictionary
-                    pickdic.pop(key)
-                    # # mark onset and downgrade S-weight to 9
+                    # # mark onset and downgrade S-weight to 9, also set SPE to None (disregarded in GUI)
                     # # (not used anymore)
-                    # marker = 'badWadatiCheck'
-                    # pickdic[key]['S']['weight'] = 9
+                    marker = 'badWadatiCheck'
+                    pickdic[key]['S']['weight'] = 9
+                    pickdic[key]['S']['spe'] = None
                     badstations.append(key)
                     ibad += 1
                 else:
@@ -655,8 +655,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
 
-                    pickdic[key]['S']['marked'] = marker
-                #pickdic[key]['S']['marked'] = marker
+                pickdic[key]['S']['marked'] = marker
         print("wadaticheck: the following stations failed the check:")
         print(badstations)
 
