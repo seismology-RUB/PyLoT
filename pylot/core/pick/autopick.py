@@ -236,7 +236,7 @@ class PickingFailedException(Exception):
 
 class AutopickStation(object):
 
-    def __init__(self, wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin):
+    def __init__(self, wfstream, pickparam, verbose, iplot=0, fig_dict=None, metadata=None, origin=None):
         """
         :param wfstream: stream object containing waveform of all traces
         :type wfstream: ~obspy.core.stream.Stream
