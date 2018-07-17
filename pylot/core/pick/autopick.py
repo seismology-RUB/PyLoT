@@ -920,108 +920,114 @@ class AutopickStation(object):
         if not slope:
             slope = 0
 
-        if slope >= self.s_params.minAICSslope and aicarhpick.getSNR() >= self.s_params.minAICSSNR and aicarhpick.getpick() is not None:
-            self.s_results.aicSflag = 1
-            msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
-                  'SNR: {1}\nGo on with refined picking ...\n' \
-                  'autopickstation: re-filtering horizontal traces ' \
-                  '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
-            self.vprint(msg)
+        if slope < self.s_params.minAICSslope:
+            error_msg = error_msg = 'AIC S onset slope to small: got {}, min {}'.format(slope, self.s_params.minAICSslope)
+            raise PickingFailedException(error_msg)
+        if aicarhpick.getSNR() < self.s_params.minAICSSNR:
+            error_msg = 'AIC S onset SNR to small: got {}, min {}'.format(aicarhpick.getSNR(), self.s_params.minAICSSNR)
+            raise PickingFailedException(error_msg)
+        if aicarhpick.getpick() is None:
+            error_msg = 'Invalid AIC S pick!'
+            raise PickingFailedException(error_msg)
+        #if slope >= self.s_params.minAICSslope and aicarhpick.getSNR() >= self.s_params.minAICSSNR and aicarhpick.getpick() is not None:
+        self.s_results.aicSflag = 1
+        msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
+              'SNR: {1}\nGo on with refined picking ...\n' \
+              'autopickstation: re-filtering horizontal traces ' \
+              '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
+        self.vprint(msg)
 
-            # recalculate cf from refiltered trace in vicinity of initial onset
-            start = round(aicarhpick.getpick() - self.s_params.Srecalcwin)
-            stop = round(aicarhpick.getpick() + self.s_params.Srecalcwin)
-            cuttimesh2 = (start, stop)
+        # recalculate cf from refiltered trace in vicinity of initial onset
+        start = round(aicarhpick.getpick() - self.s_params.Srecalcwin)
+        stop = round(aicarhpick.getpick() + self.s_params.Srecalcwin)
+        cuttimesh2 = (start, stop)
 
-            # refilter waveform with larger bandpass
-            if self.s_params.algoS == 'ARH':
-                trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                h_copy = hdat.copy()
-                h_copy[0].data = trH1_filt.data
-                h_copy[1].data = trH2_filt.data
-            elif self.s_params.algoS == 'AR3':
-                trH3_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-                h_copy = hdat.copy()
-                h_copy[0].data = trH3_filt.data
-                h_copy[1].data = trH1_filt.data
-                h_copy[2].data = trH2_filt.data
+        # refilter waveform with larger bandpass
+        if self.s_params.algoS == 'ARH':
+            trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+            trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+            h_copy = hdat.copy()
+            h_copy[0].data = trH1_filt.data
+            h_copy[1].data = trH2_filt.data
+        elif self.s_params.algoS == 'AR3':
+            trH3_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+            trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+            trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+            h_copy = hdat.copy()
+            h_copy[0].data = trH3_filt.data
+            h_copy[1].data = trH1_filt.data
+            h_copy[2].data = trH2_filt.data
 
-            # save filtered traces for plotting
-            self.estream_bph2 = trH1_filt
-            self.nstream_bph2 = trH2_filt
+        # save filtered traces for plotting
+        self.estream_bph2 = trH1_filt
+        self.nstream_bph2 = trH2_filt
 
-            # calculate second cf
-            if self.s_params.algoS == 'ARH':
-                arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
-            elif self.s_params.algoS == 'AR3':
-                arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
-            # save cf for later plotting
-            self.arhcf2 = arhcf2
+        # calculate second cf
+        if self.s_params.algoS == 'ARH':
+            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+        elif self.s_params.algoS == 'AR3':
+            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+        # save cf for later plotting
+        self.arhcf2 = arhcf2
 
-            # get refined onset time from CF2
-            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refSpick')
-            refSpick = PragPicker(arhcf2, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, self.s_params.ausS, self.s_params.tsmoothS, aicarhpick.getpick(), fig, linecolor)
-            # save refSpick for later plotitng
-            self.refSpick = refSpick
-            self.s_results.mpickS = refSpick.getpick()
+        # get refined onset time from CF2
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refSpick')
+        refSpick = PragPicker(arhcf2, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, self.s_params.ausS, self.s_params.tsmoothS, aicarhpick.getpick(), fig, linecolor)
+        # save refSpick for later plotitng
+        self.refSpick = refSpick
+        self.s_results.mpickS = refSpick.getpick()
 
-            if self.s_results.mpickS is not None:
-                # quality assessment
-                # get earliest/latest possible pick and symmetrized uncertainty
-                h_copy[0].data = trH1_filt.data
-                if self.iplot:
-                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
-                epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+        if self.s_results.mpickS is not None:
+            # quality assessment
+            # get earliest/latest possible pick and symmetrized uncertainty
+            h_copy[0].data = trH1_filt.data
+            if self.iplot:
+                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
+            epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
 
-                h_copy[0].data = trH2_filt.data
-                if self.iplot:
-                    fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S2pick')
-                else:
-                    # why is it set to empty here? DA
-                    linecolor = ''
-                epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+            h_copy[0].data = trH2_filt.data
+            if self.iplot:
+                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S2pick')
+            else:
+                # why is it set to empty here? DA
+                linecolor = ''
+            epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
 
-                if epickS1 is not None and epickS2 is not None:
-                    if self.s_params.algoS == 'ARH':
-                        # get earliest pick of both earliest possible picks
-                        epick = [epickS1, epickS2]
-                        lpick = [lpickS1, lpickS2]
-                        pickerr = [Serror1, Serror2]
+            if epickS1 is not None and epickS2 is not None:
+                if self.s_params.algoS == 'ARH':
+                    # get earliest pick of both earliest possible picks
+                    epick = [epickS1, epickS2]
+                    lpick = [lpickS1, lpickS2]
+                    pickerr = [Serror1, Serror2]
+                    ipick = np.argmin(epick)
+                if self.s_params.algoS == 'AR3':
+                    epickS3, lpickS3, Serror3 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot)
+                    # get earliest of all three picks
+                    epick = [epickS1, epickS2, epickS3]
+                    lpick = [lpickS1, lpickS2, lpickS3]
+                    pickerr = [Serror1, Serror2, Serror3]
+
+                    if epickS3 is not None:
                         ipick = np.argmin(epick)
-                    if self.s_params.algoS == 'AR3':
-                        epickS3, lpickS3, Serror3 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot)
-                        # get earliest of all three picks
-                        epick = [epickS1, epickS2, epickS3]
-                        lpick = [lpickS1, lpickS2, lpickS3]
-                        pickerr = [Serror1, Serror2, Serror3]
+                    else:
+                        ipick = np.argmin([epickS1, epickS2])
+                self.s_results.epickS = epick[ipick]
+                self.s_results.lpickS = lpick[ipick]
+                self.s_results.Serror = pickerr[ipick]
 
-                        if epickS3 is not None:
-                            ipick = np.argmin(epick)
-                        else:
-                            ipick = np.argmin([epickS1, epickS2])
-                    self.s_results.epickS = epick[ipick]
-                    self.s_results.lpickS = lpick[ipick]
-                    self.s_results.Serror = pickerr[ipick]
+                msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpickS, self.s_results.Serror)
+                print(msg)
 
-                    msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpickS, self.s_results.Serror)
-                    print(msg)
+                # get SNR
+                self.s_results.SNRS, self.s_results.SNRSdB, self.s_results.Snoiselevel = getSNR(h_copy, self.s_params.tsnrh, self.s_results.mpickS)
 
-                    # get SNR
-                    self.s_results.SNRS, self.s_results.SNRSdB, self.s_results.Snoiselevel = getSNR(h_copy, self.s_params.tsnrh, self.s_results.mpickS)
+                self.s_results.Sweight = get_quality_class(self.s_results.Serror, self.s_params.timeerrorsS)
 
-                    self.s_results.Sweight = get_quality_class(self.s_results.Serror, self.s_params.timeerrorsS)
+                print('autopickstation: S-weight: {0}, SNR: {1}, '
+                      'SNR[dB]: {2}\n'
+                      '##################################################'
+                      ''.format(self.s_results.Sweight, self.s_results.SNRS, self.s_results.SNRSdB))
 
-                    print('autopickstation: S-weight: {0}, SNR: {1}, '
-                          'SNR[dB]: {2}\n'
-                          '##################################################'
-                          ''.format(self.s_results.Sweight, self.s_results.SNRS, self.s_results.SNRSdB))
-
-        else:
-            print('autopickstation: No horizontal component data available or '
-                  'bad P onset, skipping S picking!')
 
 def get_fig_from_figdict(figdict, figkey):
     """
