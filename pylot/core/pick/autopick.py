@@ -148,6 +148,7 @@ def get_source_coords(parser, station_id):
         print('Could not get source coordinates for station {}: {}'.format(station_id, e))
     return station_coords
 
+
 class PickingParameters(object):
     """
     Stores parameters used for picking a single station.
@@ -218,11 +219,13 @@ class PickingResults(dict):
     def __getattr__(self, key):
         return self[key]
 
+
 class MissingTraceException(ValueError):
     """
     Used to indicate missing traces in a obspy.core.stream.Stream object
     """
     pass
+
 
 class PickingFailedException(Exception):
     """
@@ -230,9 +233,28 @@ class PickingFailedException(Exception):
     """
     pass
 
+
 class AutopickStation(object):
 
     def __init__(self, wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin):
+        """
+        :param wfstream: stream object containing waveform of all traces
+        :type wfstream: ~obspy.core.stream.Stream
+        :param pickparam: container of picking parameters from input file, usually pylot.in
+        :type pickparam:  pylot.core.io.inputs.PylotParameter
+        :param verbose: used to control output to log during picking. True = more information printed
+        :type verbose: bool
+        :param iplot: logical variable for plotting: 0=none, 1=partial, 2=all
+        :type iplot: int, (Boolean or String)
+        :param fig_dict: dictionary containing Matplotlib figures used for plotting picking results during tuning
+        :type fig_dict: dict
+        :param metadata: tuple containing metadata type string and Parser object read from inventory file
+        :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
+        :param origin: list containing origin objects representing origins for all events
+        :type origin: list(~obspy.core.event.origin)
+        :return: dictionary-like object containing P pick, S pick and station name
+        :rtype:
+        """
         # save given parameters
         self.wfstream = wfstream
         self.pickparam = pickparam
@@ -322,7 +344,6 @@ class AutopickStation(object):
         :return: Tuple containing (z waveform, n waveform, e waveform) selected by the given channels
         :rtype: (obspy.core.stream.Stream, obspy.core.stream.Stream, obspy.core.stream.Stream)
         """
-
         waveform_data = {}
         for key in self.channelorder:
             waveform_data[key] = self.wfstream.select(component=key) # try ZNE first
@@ -739,10 +760,8 @@ class AutopickStation(object):
             cf1 = None
         # save cf1 for plotting
         self.cf1 = cf1
-        assert isinstance(cf1, CharacteristicFunction), 'cf1 is not set ' \
-                                                        'correctly: maybe the algorithm name ({algoP}) is ' \
-                                                        'corrupted'.format(algoP=self.p_params.algoP)
-
+        assert isinstance(cf1, CharacteristicFunction), 'cf1 is not set correctly: maybe the algorithm name ({}) is ' \
+                                                        'corrupted'.format(self.p_params.algoP)
         # calculate AIC cf from first cf (either HOS or ARZ)
         z_copy[0].data = cf1.getCF()
         aiccf = AICcf(z_copy, cuttimes)
@@ -775,15 +794,14 @@ class AutopickStation(object):
             raise PickingFailedException(error_msg)
 
         self.p_results.aicPflag = 1
-        msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, ' \
-              'SNR: {1}\nGo on with refined picking ...\n' \
-              'autopickstation: re-filtering vertical trace ' \
-              '...'.format(aicpick.getSlope(), aicpick.getSNR())
+        msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, SNR: {1}\nGo on with refined picking ...\n' \
+              'autopickstation: re-filtering vertical trace...'.format(aicpick.getSlope(), aicpick.getSNR())
         self.vprint(msg)
         # refilter waveform with larger bandpass
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
+        # determine new times around initial onset
         starttime2 = round(max(aicpick.getpick() - self.p_params.Precalcwin, 0))
         endtime2 = round(min(len(self.ztrace.data) * self.ztrace.stats.delta, aicpick.getpick() + self.p_params.Precalcwin))
         cuttimes2 = [starttime2, endtime2]
@@ -795,10 +813,10 @@ class AutopickStation(object):
             cf2 = None
         # save cf2 for plotting
         self.cf2 = cf2
-        # get refined onset time from CF2
         assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
                                                         'corrupted'.format(self.p_params.algoP)
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
+        # get refined onset time from CF2
         refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
                               self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
         # save PragPicker result for plotting
@@ -832,7 +850,6 @@ class AutopickStation(object):
         msg.format(self.p_results.mpickP, self.p_results.Perror)
         print(msg)
         self.s_results.Sflag = 1
-        
 
     def pick_s_phase(self):
 
