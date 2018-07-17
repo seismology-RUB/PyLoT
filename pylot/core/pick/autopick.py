@@ -139,24 +139,6 @@ def call_autopickstation(input_tuple):
         return e, wfstream[0].stats.station
 
 
-def get_source_coords(parser, station_id):
-    """
-    retrieves station coordinates from metadata
-    :param parser: Parser object containing metadata read from inventory file
-    :type parser: ~obspy.io.xseed.parser.Parser
-    :param station_id: station id of which the coordinates should be retrieved
-    :type station_id: str
-    :return: dictionary containing 'latitude', 'longitude', 'elevation' and 'local_depth' of station
-    :rtype: dict
-    """
-    station_coords = None
-    try:
-        station_coords = parser.get_coordinates(station_id)
-    except Exception as e:
-        print('Could not get source coordinates for station {}: {}'.format(station_id, e))
-    return station_coords
-
-
 def autopickstation(wfstream, pickparam, verbose=False,
                     iplot=0, fig_dict=None, metadata=None, origin=None):
     """
@@ -312,7 +294,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
                 station_id = wfstream[0].get_id()
-                station_coords = metadata.get_coordinates(station_id)
+                station_coords = metadata.get_coordinates(station_id, time=wfstream[0].stats.starttime)
                 if station_coords and origin:
                     source_origin = origin[0]
                     model = TauPyModel(taup_model)
