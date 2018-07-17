@@ -22,12 +22,7 @@ from pylot.styles import style_settings
 from scipy.interpolate import splrep, splev
 from PySide import QtCore, QtGui
 
-try:
-    import pyqtgraph as pg
-except Exception as e:
-    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
-    pg = None
-
+import pyqtgraph as pg
 
 def _pickle_method(m):
     if m.im_self is None:

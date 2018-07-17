@@ -4404,7 +4404,7 @@ class GraphicsTab(PropTab):
         super(GraphicsTab, self).__init__(parent)
         self.pylot_mainwindow = parent._pylot_mainwindow
         self.init_layout()
-        self.add_pg_cb()
+        #self.add_pg_cb()
         self.add_nth_sample()
         self.add_style_settings()
         self.setLayout(self.main_layout)
@@ -4441,12 +4441,7 @@ class GraphicsTab(PropTab):
         self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
     def add_pg_cb(self):
-        try:
-            import pyqtgraph as pg
-            pg = True
-        except:
-            pg = False
-
+        pg = True
         text = {True: 'Use pyqtgraphic library for plotting',
                 False: 'Cannot use library: pyqtgraphic not found on system'}
         label = QLabel('PyQt graphic')

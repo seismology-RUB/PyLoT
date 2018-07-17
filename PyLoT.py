@@ -48,11 +48,7 @@ from obspy.core.util import AttribDict
 
 from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
 
-try:
-    import pyqtgraph as pg
-except Exception as e:
-    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
-    pg = None
+import pyqtgraph as pg
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
