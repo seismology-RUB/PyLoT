@@ -2,6 +2,8 @@ import unittest
 import os
 
 from obspy import UTCDateTime
+from obspy.io.xseed.utils import SEEDParserException
+from obspy.io.xseed import Parser
 from pylot.core.util.dataprocessing import Metadata
 from tests.utils import HidePrints
 
@@ -168,3 +170,56 @@ class TestMetadata_read_single_file(unittest.TestCase):
         self.assertTrue(res1)
         self.assertIsNone(res2)
         self.assertItemsEqual([fname], self.m.inventory_files.keys())
+
+
+class TestMetadataMultipleTime(unittest.TestCase):
+    """Test if stations with multiple metadata entries in a single file are handled correctly.
+    The user must specify the time where he wants to get metadata.
+
+    The station ROTT changed has metadata available at multiple times
+    LE.ROTT..HNE | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-01-08 - 2015-03-19 | Lat: 49.1, Lng: 8.1
+	LE.ROTT..HNE | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-03-19 -  | Lat: 49.1, Lng: 8.1
+	LE.ROTT..HNN | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-01-08 - 2015-03-19 | Lat: 49.1, Lng: 8.1
+	LE.ROTT..HNN | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-03-19 -  | Lat: 49.1, Lng: 8.1
+	LE.ROTT..HNZ | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-01-08 - 2015-03-19 | Lat: 49.1, Lng: 8.1
+	LE.ROTT..HNZ | 200.00 Hz | Titan 4g-EDR-209, Very Low gain, 200 sps | 2015-03-19 -  | Lat: 49.1, Lng: 8.1
+    """
+
+    def setUp(self):
+        self.seed_id = 'LE.ROTT..HN'
+        path = os.path.dirname(__file__)  # gets path to currently running script
+        metadata = os.path.join('test_data', 'dless_multiple_times', 'MAGS2_LE_ROTT.dless')  # specific subfolder of test data
+        metadata_path = os.path.join(path, metadata)
+        self.m = Metadata(metadata_path)
+        self.p = Parser(metadata_path)
+
+    def test_get_metadata_works_without_datetime(self):
+        """Test if get_metadata works if multiple metadata entries are available but no time is
+        specified."""
+        for channel in ('Z', 'N', 'E'):
+            with HidePrints():
+                md = self.m.get_metadata(self.seed_id + channel)
+            self.assertDictEqual(md['data'].get_inventory(), self.p.get_inventory())
+
+    def test_get_metadata_works_with_first_datetime(self):
+        """Test if get_metadata works if multiple metadata entries are available and the older time is specified."""
+        t = UTCDateTime('2015-02-08')
+        for channel in ('Z', 'N', 'E'):
+            with HidePrints():
+                md = self.m.get_metadata(self.seed_id + channel, t)
+            self.assertDictEqual(md['data'].get_inventory(), self.p.get_inventory())
+
+    def test_get_metadata_fails_when_time_before_starttime(self):
+        """Tests if get_metadata returns None when given a data that is before the start date
+        of the metadata"""
+        with HidePrints():
+            md = self.m.get_metadata(self.seed_id, UTCDateTime('1960-07-20'))
+        self.assertIs(md, None)
+
+    def test_get_metadata_invalid_seed_id(self):
+        """Tes if get metadata returns none when asked for a seed id that does not exist"""
+        with HidePrints():
+            res = self.m.get_metadata("this.doesnt..exist")
+        self.assertIsNone(res)
+
+        self.assertIsNone(res)
