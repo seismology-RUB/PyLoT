@@ -10,7 +10,7 @@ class TestMetadata(unittest.TestCase):
     def setUp(self):
         self.station_id = 'BW.WETR..HH'
         self.time = UTCDateTime('2012-08-01')
-        metadata_folder = 'metadata1'
+        metadata_folder = os.path.join('test_data', 'dless_multiple_files', 'metadata1')
         self.m = Metadata(metadata_folder)
 
     def test_get_coordinates_sucess(self):
@@ -43,7 +43,8 @@ class TestMetadataAdding(unittest.TestCase):
 
     def setUp(self):
         self.station_id = 'BW.WETR..HH'
-        self.metadata_folders = ('metadata1', 'metadata2')
+        self.metadata_folders = (os.path.join('test_data', 'dless_multiple_files', 'metadata1'),
+                                 os.path.join('test_data', 'dless_multiple_files', 'metadata2'))
         self.m = Metadata()
 
     def test_add_inventory_folder(self):
@@ -60,8 +61,8 @@ class TestMetadataAdding(unittest.TestCase):
         fpath = os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')
         self.m.add_inventory_file(fpath)
         # adding an inventory file should append its folder to the list of inventories and the file to the
-        self.assertEqual(['metadata1/DATALESS.BW.WETR..HHZ'], self.m.inventory_files.keys())  # does the filename exist in inventory files?
-        self.assertEqual(['data', 'invtype'], self.m.inventory_files['metadata1/DATALESS.BW.WETR..HHZ'].keys())  # is the required information attacht to the filename?
+        self.assertEqual([os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')], self.m.inventory_files.keys())  # does the filename exist in inventory files?
+        self.assertEqual(['data', 'invtype'], self.m.inventory_files[os.path.join(self.metadata_folders[0], 'DATALESS.BW.WETR..HHZ')].keys())  # is the required information attacht to the filename?
         self.assertDictEqual({}, self.m.seed_ids)
         self.assertEqual([self.metadata_folders[0]], self.m.inventories)
 
@@ -83,7 +84,8 @@ class TestMetadataRemoval(unittest.TestCase):
 
     def setUp(self):
         self.station_id = 'BW.WETR..HH'
-        self.metadata_folders = ('metadata1', 'metadata2')
+        self.metadata_folders = (os.path.join('test_data', 'dless_multiple_files', 'metadata1'),
+                                 os.path.join('test_data', 'dless_multiple_files', 'metadata2'))
         self.m = Metadata()
 
     def test_remove_all_inventories(self):
