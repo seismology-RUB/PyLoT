@@ -122,3 +122,49 @@ class TestMetadataRemoval(unittest.TestCase):
         self.assertDictEqual({}, metadata.seed_ids)
         self.assertEqual([], metadata.inventories)
 
+
+class TestMetadata_read_single_file(unittest.TestCase):
+
+    def setUp(self):
+        self.station_id = 'BW.WETR..HHZ'
+        self.metadata_folders = (os.path.join('test_data', 'dless_multiple_files', 'metadata1'),
+                                 os.path.join('test_data', 'dless_multiple_files', 'metadata2'))
+        self.metadata_paths = []
+        self.m = Metadata()
+
+    def test_read_single_file(self):
+        """Test if reading a single file works"""
+        fname = os.path.join(self.metadata_folders[0], 'DATALESS.'+self.station_id)
+        with HidePrints():
+            res = self.m.read_single_file(fname)
+        # method should return true if file is successfully read
+        self.assertTrue(res)
+        # list of inventories (folders) should be empty
+        self.assertEqual([], self.m.inventories)
+        # list of inventory files should contain the added file
+        self.assertIn(fname, self.m.inventory_files.keys())
+        self.assertEqual({}, self.m.seed_ids)
+
+    def test_read_single_file_invalid_path(self):
+        """Test if reading from a non existing file fails. The filename should not be
+        added to the metadata object"""
+        fname = os.path.join("this", "path", "doesnt", "exist")
+        with HidePrints():
+            res = self.m.read_single_file(fname)
+        # method should return None if file reading fails
+        self.assertIsNone(res)
+        # list of inventories (folders) should be empty
+        self.assertEqual([], self.m.inventories)
+        # list of inventory files should not contain the added file
+        self.assertNotIn(fname, self.m.inventory_files.keys())
+        self.assertEqual({}, self.m.seed_ids)
+
+    def test_read_single_file_multiple_times(self):
+        """Test if reading a file twice doesnt add it twice to the metadata object"""
+        fname = os.path.join(self.metadata_folders[0], 'DATALESS.'+self.station_id)
+        with HidePrints():
+            res1 = self.m.read_single_file(fname)
+            res2 = self.m.read_single_file(fname)
+        self.assertTrue(res1)
+        self.assertIsNone(res2)
+        self.assertItemsEqual([fname], self.m.inventory_files.keys())
