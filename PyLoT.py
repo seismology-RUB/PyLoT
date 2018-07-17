@@ -134,6 +134,9 @@ class MainWindow(QMainWindow):
         self._ctrl = False  # control key pressed
         self._shift = False  # shift key pressed
 
+        self.drawnPicks = {'auto': {},
+                           'manual': {}}
+
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
         self.plot_method = 'normal'
@@ -2324,16 +2327,14 @@ class MainWindow(QMainWindow):
             if pickDlg._dirty:
                 self.setDirty(True)
                 self.update_status('picks accepted ({0})'.format(station))
-                replot1 = self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
-                replot2 = self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
+                self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
                 self.enableSaveEventAction()
-                if replot1 or replot2:
-                    self.plotWaveformDataThread()
-
-                    self.draw()
-                else:
-                    self.drawPicks(station)
-                    self.draw()
+                self.comparable = self.checkEvents4comparison()
+                if True in self.comparable.values():
+                    self.compare_action.setEnabled(True)
+                self.drawPicks(station)
+                self.draw()
             if self.nextStation:
                 self.pickDialog(wfID - 1)
         else:
@@ -2652,6 +2653,9 @@ class MainWindow(QMainWindow):
             self.drawPicks(station, 'auto', stime)
             return
 
+        if not picktype in ['manual', 'auto']:
+            raise TypeError('Unknown picktype {0}'.format(picktype))
+
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
@@ -2673,6 +2677,11 @@ class MainWindow(QMainWindow):
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
+
+        if station in self.drawnPicks[picktype].keys():
+            for item in self.drawnPicks[picktype][station]:
+                pw.removeItem(item)
+        self.drawnPicks[picktype][station] = []
 
         for phase in stat_picks:
             if phase == 'SPt': continue  # wadati SP time
@@ -2698,32 +2707,31 @@ class MainWindow(QMainWindow):
             spe = picks['spe']
 
             if self.pg:
-                if picktype == 'manual' or picktype == 'auto':
-                    if spe:
-                        if picks['epp'] and picks['lpp']:
-                            pen = make_pen(picktype, phaseID, 'epp', quality)
-                            pw.plot([epp, epp], ylims,
-                                    alpha=.25, pen=pen, name='EPP')
-                            pen = make_pen(picktype, phaseID, 'lpp', quality)
-                            pw.plot([lpp, lpp], ylims,
-                                    alpha=.25, pen=pen, name='LPP')
-                            pen = make_pen(picktype, phaseID, 'spe', quality)
-                            spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
-                                                    name='{}-SPE'.format(phase))
-                            spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
-                            try:
-                                color = pen.color()
-                                color.setAlpha(100.)
-                                brush = pen.brush()
-                                brush.setColor(color)
-                                fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
-                                fb = pw.addItem(fill)
-                            except:
-                                print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pen = make_pen(picktype, phaseID, 'mpp', quality)
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
-                else:
-                    raise TypeError('Unknown picktype {0}'.format(picktype))
+                if spe:
+                    if picks['epp'] and picks['lpp']:
+                        pen = make_pen(picktype, phaseID, 'epp', quality)
+                        self.drawnPicks[picktype][station].append(pw.plot([epp, epp], ylims,
+                                                                          alpha=.25, pen=pen, name='EPP'))
+                        pen = make_pen(picktype, phaseID, 'lpp', quality)
+                        self.drawnPicks[picktype][station].append(pw.plot([lpp, lpp], ylims,
+                                                                          alpha=.25, pen=pen, name='LPP'))
+                        pen = make_pen(picktype, phaseID, 'spe', quality)
+                        spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
+                                                name='{}-SPE'.format(phase))
+                        spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                        try:
+                            color = pen.color()
+                            color.setAlpha(100.)
+                            brush = pen.brush()
+                            brush.setColor(color)
+                            fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
+                            fb = pw.addItem(fill)
+                            self.drawnPicks[picktype][station].append(fill)
+                        except:
+                            print('Warning: drawPicks: Could not create fill for symmetric pick error.')
+                    pen = make_pen(picktype, phaseID, 'mpp', quality)
+                    self.drawnPicks[picktype][station].append(
+                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase)))
             else:
                 if picktype == 'manual':
                     linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
