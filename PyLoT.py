@@ -1433,8 +1433,11 @@ class MainWindow(QMainWindow):
 
         return True
 
-    def exportAllEvents(self, outformats=['.xml']):
-        for event in self.project.eventlist:
+    def exportEvents(self, outformats=['.xml'], events='all'):
+        if events == 'all':
+            events = self.project.eventlist
+        assert type(events) == list, 'Wrong input type: {}'.format(type(events))
+        for event in events:
             self.get_data().setEvtData(event)
             try:
                 self.saveData(event, event.path, outformats)
@@ -2495,7 +2498,7 @@ class MainWindow(QMainWindow):
         self.apw.enable(False)
 
         # export current picks etc.
-        self.exportAllEvents(['.xml'])
+        self.exportEvents(['.xml'], events=events)
 
         wfpath = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else ''
         # define arguments for picker
@@ -3298,7 +3301,7 @@ class MainWindow(QMainWindow):
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
-        self.exportAllEvents()
+        self.exportEvents()
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
         return True
 
@@ -3314,7 +3317,7 @@ class MainWindow(QMainWindow):
             else:
                 self.project.parameter = self._inputs
                 self.project.save()
-                self.exportAllEvents()
+                self.exportEvents()
             if not self.project.dirty:
                 self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 self.setDirty(False)
