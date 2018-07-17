@@ -222,4 +222,104 @@ class TestMetadataMultipleTime(unittest.TestCase):
             res = self.m.get_metadata("this.doesnt..exist")
         self.assertIsNone(res)
 
+
+class TestMetadataMultipleEntries(unittest.TestCase):
+    """
+    The station KB.TMO07 has changed instruments multiple times.
+    Networks:
+	KB (KB network)
+Stations:
+	KB.TMO07 (Karlsruhe GPI)
+Channels:
+	KB.TMO07.00.BHE | 50.00 Hz | Streckeisen KABBA-STS-2  | 2004-12-06 - 2005-04-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Streckeisen KABBA-STS-2  | 2005-04-18 - 2006-07-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-10-10 - 2006-11-14 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-11-24 - 2007-01-12 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-01-18 - 2007-03-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-10-25 - 2007-11-21 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHE | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-11-21 - 2008-01-17 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Streckeisen KABBA-STS-2  | 2004-12-06 - 2005-04-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Streckeisen KABBA-STS-2  | 2005-04-18 - 2006-07-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-10-10 - 2006-11-14 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-11-24 - 2007-01-12 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-01-18 - 2007-03-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-10-25 - 2007-11-21 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHN | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-11-21 - 2008-01-17 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Streckeisen KABBA-STS-2  | 2004-12-06 - 2005-04-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Streckeisen KABBA-STS-2  | 2005-04-18 - 2006-07-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-10-10 - 2006-11-14 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2006-11-24 - 2007-01-12 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-01-18 - 2007-03-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-10-25 - 2007-11-21 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.BHZ | 50.00 Hz | Lennartz KABBA-LE-3D/5   | 2007-11-21 - 2008-01-17 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-01-12 - 2007-01-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-10-10 - 2007-10-25 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Streckeisen KABBA-STS-2 | 2008-07-11 - 2008-12-05 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Streckeisen KABBA-STS-2 | 2009-05-12 - 2010-02-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-02-15 - 2010-04-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Lennartz KABBA-LE-3D/1  | 2010-04-07 - 2010-08-03 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-08-05 - 2010-12-20 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-20 - 2010-12-22 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-22 - 2011-04-02 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 200.00 Hz | Streckeisen KABBA-STS-2 | 2011-04-15 - 2012-05-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHE | 200.00 Hz | Streckeisen KABBA-STS-2 | 2012-05-07 -            | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-01-12 - 2007-01-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-10-10 - 2007-10-25 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Streckeisen KABBA-STS-2 | 2008-07-11 - 2008-12-05 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Streckeisen KABBA-STS-2 | 2009-05-12 - 2010-02-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-02-15 - 2010-04-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Lennartz KABBA-LE-3D/1  | 2010-04-07 - 2010-08-03 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-08-05 - 2010-12-20 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-20 - 2010-12-22 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-22 - 2011-04-02 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 200.00 Hz | Streckeisen KABBA-STS-2 | 2011-04-15 - 2012-05-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHN | 200.00 Hz | Streckeisen KABBA-STS-2 | 2012-05-07 -            | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-01-12 - 2007-01-18 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Lennartz KABBA-LE-3D/5  | 2007-10-10 - 2007-10-25 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Streckeisen KABBA-STS-2 | 2008-07-11 - 2008-12-05 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Streckeisen KABBA-STS-2 | 2009-05-12 - 2010-02-15 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-02-15 - 2010-04-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Lennartz KABBA-LE-3D/1  | 2010-04-07 - 2010-08-03 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-08-05 - 2010-12-20 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 100.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-20 - 2010-12-22 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 200.00 Hz | Streckeisen KABBA-STS-2 | 2010-12-22 - 2011-04-02 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 200.00 Hz | Streckeisen KABBA-STS-2 | 2011-04-15 - 2012-05-07 | Lat: 49.0, Lng: 8.4
+	KB.TMO07.00.HHZ | 200.00 Hz | Streckeisen KABBA-STS-2 | 2012-05-07 -            | Lat: 49.0, Lng: 8.4
+    """
+
+    def setUp(self):
+        self.seed_id = 'KB.TMO07.00.HHZ'
+        path = os.path.dirname(__file__)  # gets path to currently running script
+        metadata = os.path.join('test_data', 'dless_multiple_instruments', 'MAGS2_KB_TMO07.dless')  # specific subfolder of test data
+        metadata_path = os.path.join(path, metadata)
+        self.m = Metadata(metadata_path)
+        self.p = Parser(metadata_path)
+
+    def test_get_paz_current_time(self):
+        """Test if getting the paz from the metadata object with the current time works"""
+        t = UTCDateTime()
+        with HidePrints():
+            pazm = self.m.get_paz(self.seed_id, t)
+        pazp = self.p.get_paz(self.seed_id, t)
+        self.assertEqual(pazm, pazp)
+
+    def test_get_paz_past(self):
+        """Test if getting paz from metadata object with a time in the past works"""
+        t = UTCDateTime('2007-01-13')
+        with HidePrints():
+            pazm = self.m.get_paz(self.seed_id, t)
+        pazp = self.p.get_paz(self.seed_id, t)
+        self.assertEqual(pazm, pazp)
+
+    def test_get_paz_time_not_exisiting(self):
+        """Test if getting paz from metadata at a time where there is no metadata
+        available fails correctly"""
+        with self.assertRaises(SEEDParserException):
+            with HidePrints():
+                self.m.get_paz(self.seed_id, UTCDateTime('1990-1-1'))
+
+    def test_get_paz_seed_id_not_existing(self):
+        """Test if getting paz from a non existing seed id returns None as expected."""
+        with HidePrints():
+            res = self.m.get_paz('This.doesnt..exist', UTCDateTime)
         self.assertIsNone(res)
