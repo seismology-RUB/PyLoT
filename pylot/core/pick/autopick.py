@@ -853,32 +853,6 @@ class AutopickStation(object):
 
     def pick_s_phase(self):
 
-        def check_existence_ne_traces():
-            """
-            Checks if both N and E stream contain traces and copy over the trace to the missing stream if only
-            one trace is missing
-            :rtype: None
-            :raises:
-                MissingTraceException when both traces are missing
-            """
-            # check existence of vertical traces #Maybe do this in __init__?
-            nstream_exists, estream_exists = bool(len(self.nstream)), bool(len(self.estream))
-            if not all((nstream_exists, estream_exists)):
-                msg = 'Go on picking S onset ...\n' \
-                      '##################################################\n' \
-                      'Only one horizontal component available!\n' \
-                      'ARH prediction requires at least 2 components!\n' \
-                      'Copying existing horizontal component ...'
-                self.vprint(msg)
-                if estream_exists == 0:
-                    self.estream = self.nstream
-                elif nstream_exists == 0:
-                    self.nstream = self.estream
-            else:
-                raise MissingTraceException("N and E stream missing, can't pick S phase.")
-
-
-        #check_existence_ne_traces()
         # determine time window for calculating CF after P onset
         start = round(max(self.p_results.mpickP + self.s_params.sstart, 0))
         stop = round(min([
