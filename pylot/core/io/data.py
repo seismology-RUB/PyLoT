@@ -507,7 +507,7 @@ class Data(object):
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
                 if picks[key]['P']['picker'] == 'auto':
-                    print("Existing picks will be overwritten!")
+                    print("Existing auto-picks will be overwritten in pick-dictionary!")
                     picks = picks_from_picksdict(picks)
                     break
                 else:
