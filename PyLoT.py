@@ -610,7 +610,6 @@ class MainWindow(QMainWindow):
 
         # add progressbar
         self.mainProgressBarWidget = ProgressBarWidget(self)
-        self.mainProgressBarWidget.hide()
         self._main_layout.addWidget(self.mainProgressBarWidget)
 
         # add scroll area used in case number of traces gets too high

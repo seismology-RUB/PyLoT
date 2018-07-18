@@ -129,6 +129,7 @@ class ProgressBarWidget(QtGui.QWidget):
         self.hlayout.addWidget(self.pb)
         self.hlayout.addWidget(self.label)
         self.setLayout(self.hlayout)
+        self.hide()
 
 
 class ComparisonWidget(QWidget):
@@ -3182,7 +3183,7 @@ class TuneAutopicker(QWidget):
         self.fill_figure_tabs()
 
     def init_pbwidget(self):
-        self.pb_widget = QtGui.QWidget()
+        self.pb_widget = ProgressBarWidget()
 
     def init_tab_names(self):
         self.ptb_names = ['aicFig', 'slength', 'checkZ4s', 'refPpick', 'el_Ppick', 'fm_picker']
