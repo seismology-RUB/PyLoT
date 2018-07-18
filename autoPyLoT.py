@@ -280,12 +280,6 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 metadata = Metadata(parameter.get('invdir'))
             else:
                 metadata = Metadata(os.path.join(eventpath, 'resp'))
-            # metadata = read_metadata(parameter.get('invdir'))
-            # TODO: (idea) read metadata from obspy_dmt database
-            # if not wfpath_extension:
-            #     metadata = read_metadata(parameter.get('invdir'))
-            # else:
-            #     metadata = None
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
