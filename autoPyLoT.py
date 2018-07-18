@@ -289,7 +289,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
-                # wfdat = check4rotated(wfdat, metadata) # MP MP TEMPORARILY DISABLED !!!!!!!!!!!
+                wfdat = check4rotated(wfdat, metadata)
                 if locflag:
                     print("Restitute data ...")
                     corr_dat = restitute_data(wfdat.copy(), metadata, ncores=ncores)
