@@ -964,9 +964,10 @@ def check4rotated(data, metadata=None, verbosity=1):
         orientations = [trace_id[-1] for trace_id in trace_ids]
         rotation_required = [orientation.isnumeric() for orientation in orientations]
         if any(rotation_required):
+            t_start = full_range(wfstream)
             try:
-                azimuts = [metadata.get_coordinates(tr_id)['azimuth'] for tr_id in trace_ids]
-                dips = [metadata.get_coordinates(tr_id)['dip'] for tr_id in trace_ids]
+                azimuts = [metadata.get_coordinates(tr_id, t_start)['azimuth'] for tr_id in trace_ids]
+                dips = [metadata.get_coordinates(tr_id, t_start)['dip'] for tr_id in trace_ids]
             except (KeyError, TypeError) as e:
                 print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
                 return wfstream
@@ -983,7 +984,7 @@ def check4rotated(data, metadata=None, verbosity=1):
             wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
             del trace_ids[z_index]
             for trace_id in trace_ids:
-                coordinates = metadata.get_coordinates(trace_id)
+                coordinates = metadata.get_coordinates(trace_id, t_start)
                 dip, az = coordinates['dip'], coordinates['azimuth']
                 trace = wfstream.select(id=trace_id)[0]
                 if az > 315 or az <= 45 or az > 135 and az <= 225:
