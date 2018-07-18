@@ -41,23 +41,13 @@ class Thread(QThread):
     def showProgressbar(self):
         if self.progressText:
 
-            # generate widget if not given in init
-            if not self.pb_widget:
-                self.pb_widget = QDialog(self.parent())
-                self.pb_widget.setWindowFlags(Qt.SplashScreen)
-                self.pb_widget.setModal(True)
+            # # generate widget if not given in init
+            # if not self.pb_widget:
+            #     self.pb_widget = ProgressBarWidget(self.parent())
+            #     self.pb_widget.setWindowFlags(Qt.SplashScreen)
+            #     self.pb_widget.setModal(True)
 
-            # add button
-            delete_button = QPushButton('X')
-            delete_button.clicked.connect(self.exit)
-            hl = QHBoxLayout()
-            pb = QProgressBar()
-            pb.setRange(0, 0)
-            hl.addWidget(pb)
-            hl.addWidget(QLabel(self.progressText))
-            if self.abortButton:
-                hl.addWidget(delete_button)
-            self.pb_widget.setLayout(hl)
+            self.pb_widget.label.setText(self.progressText)
             self.pb_widget.show()
 
     def hideProgressbar(self):

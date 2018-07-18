@@ -80,7 +80,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget
+    CompareEventsWidget, ProgressBarWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -609,7 +609,8 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(self.refreshTabs)
 
         # add progressbar
-        self.mainProgressBarWidget = QtGui.QWidget()
+        self.mainProgressBarWidget = ProgressBarWidget(self)
+        self.mainProgressBarWidget.hide()
         self._main_layout.addWidget(self.mainProgressBarWidget)
 
         # add scroll area used in case number of traces gets too high

@@ -119,6 +119,18 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
+class ProgressBarWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(ProgressBarWidget, self).__init__(parent)
+        self.hlayout = QtGui.QHBoxLayout()
+        self.pb = QtGui.QProgressBar()
+        self.pb.setRange(0, 0)
+        self.label = QLabel()
+        self.hlayout.addWidget(self.pb)
+        self.hlayout.addWidget(self.label)
+        self.setLayout(self.hlayout)
+
+
 class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None, windowflag=1):
         self._data = c
