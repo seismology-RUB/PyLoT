@@ -399,6 +399,10 @@ def full_range(stream):
     :return: minimum start time and maximum end time
     :rtype: (`~maximum start time and minimum end time`, maximum start time and minimum end time)
     """
+    if not stream:
+        print('full_range: Empty Stream!')
+        return None, None
+
     min_start = min([trace.stats.starttime for trace in stream])
     max_end = max([trace.stats.endtime for trace in stream])
 
@@ -831,9 +835,9 @@ def remove_underscores(data):
     :return: data stream
     :rtype: `~obspy.core.stream.Stream`
     """
-    for tr in data:
-        # remove underscores
-        tr.stats.station = tr.stats.station.strip('_')
+    #for tr in data:
+    #    # remove underscores
+    #    tr.stats.station = tr.stats.station.strip('_')
     return data
 
 

@@ -271,7 +271,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 if not wfdat:
                     print('Could not find station {}. STOP!'.format(station))
                     return
-            wfdat = remove_underscores(wfdat)
+            #wfdat = remove_underscores(wfdat)
             # trim components for each station to avoid problems with different trace starttimes for one station
             wfdat = check4gaps(wfdat)
             wfdat = check4doubled(wfdat)

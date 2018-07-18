@@ -185,7 +185,8 @@ class Event(ObsPyEvent):
             self.pylot_picks[station] = pick
         else:
             try:
-                self.pylot_picks.pop(station)
+                if station in self.pylot_picks:
+                    self.pylot_picks.pop(station)
             except Exception as e:
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('manual')
@@ -236,7 +237,8 @@ class Event(ObsPyEvent):
             self.pylot_autopicks[station] = pick
         else:
             try:
-                self.pylot_autopicks.pop(station)
+                if station in self.pylot_autopicks:
+                    self.pylot_autopicks.pop(station)
             except Exception as e:
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('auto')

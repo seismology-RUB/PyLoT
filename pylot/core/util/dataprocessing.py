@@ -580,7 +580,7 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
 
     restflag = list()
 
-    data = remove_underscores(data)
+    #data = remove_underscores(data)
 
     # loop over traces
     input_tuples = []

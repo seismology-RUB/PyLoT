@@ -2669,6 +2669,16 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station, picktype=picktype, stime=stime)
             return
 
+        if self.pg:
+            pw = self.getPlotWidget().plotWidget
+        else:
+            ax = self.getPlotWidget().axes[0]
+
+        if station in self.drawnPicks[picktype].keys():
+            for item in self.drawnPicks[picktype][station]:
+                pw.removeItem(item)
+        self.drawnPicks[picktype][station] = []
+
         # check for station key in dictionary, else return
         if not station in self.getPicks(type=picktype):
             return
@@ -2677,18 +2687,9 @@ class MainWindow(QMainWindow):
         plotID = self.getStationID(station)
         if plotID is None:
             return
-        if self.pg:
-            pw = self.getPlotWidget().plotWidget
-        else:
-            ax = self.getPlotWidget().axes[0]
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
-
-        if station in self.drawnPicks[picktype].keys():
-            for item in self.drawnPicks[picktype][station]:
-                pw.removeItem(item)
-        self.drawnPicks[picktype][station] = []
 
         for phase in stat_picks:
             if phase == 'SPt': continue  # wadati SP time

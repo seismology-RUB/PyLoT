@@ -2525,8 +2525,9 @@ class PickDlg(QDialog):
         if phase in self.phaseLines.keys():
             del (self.phaseLines[phase])
         # information output
-        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, self.getStartTime() + pick_rel, pick_rel))
+        msg = 'Deleted {} pick for phase {}, station {} at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, '{}.{}'.format(self.network, self.station),
+                         self.getStartTime() + pick_rel, pick_rel))
         self.setDirty(True)
 
     def identify_selected_picks(self, x):
@@ -3167,7 +3168,7 @@ class TuneAutopicker(QWidget):
         self.data.setWFData(fnames)
         wfdat = self.data.getWFData()  # all available streams
         # remove possible underscores in station names
-        wfdat = remove_underscores(wfdat)
+        #wfdat = remove_underscores(wfdat)
         # rotate misaligned stations to ZNE
         # check for gaps and doubled channels
         check4gaps(wfdat)
