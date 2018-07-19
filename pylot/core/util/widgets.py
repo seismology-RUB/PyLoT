@@ -58,6 +58,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
+from pylot.core.util.dataprocessing import Metadata
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
@@ -132,6 +133,121 @@ class ProgressBarWidget(QtGui.QWidget):
         self.hide()
 
 
+class AddMetadataWidget(QWidget):
+    def __init__(self, parent=None, metadata=None, windowflag=1):
+        super(AddMetadataWidget, self).__init__(parent, windowflag)
+        self.inventories = {}
+
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.setupUI()
+        self.connect_signals()
+        self.resize(600, 800)
+
+        self.metadata = metadata if metadata else Metadata()
+
+        self.center()
+        self.show()
+        #self.__test__()
+
+    def __test__(self):
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/tests')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/inputs')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/pylot')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/pylot_not_existing')
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
+
+    def setupUI(self):
+        self.init_selection_layout()
+        self.init_add_remove_layout()
+        self.init_list_widget()
+        self.init_close()
+
+    def init_selection_layout(self):
+        self.selection_layout = QHBoxLayout()
+        self.selection_box = QtGui.QLineEdit()
+        self.selection_button = QtGui.QPushButton('...')
+        self.selection_layout.addWidget(self.selection_box, 1)
+        self.selection_layout.addWidget(self.selection_button, 0)
+        self.main_layout.insertLayout(0, self.selection_layout, 0)
+
+    def init_add_remove_layout(self):
+        self.add_remove_layout = QHBoxLayout()
+        self.add_button = QtGui.QPushButton('+')
+        self.add_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Return))
+        self.remove_button = QtGui.QPushButton('-')
+        self.remove_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete))
+        self.add_remove_layout.addWidget(self.add_button, 1)
+        self.add_remove_layout.addWidget(self.remove_button, 1)
+        self.main_layout.insertLayout(1, self.add_remove_layout, 0)
+
+    def init_list_widget(self):
+        self.list_view = QtGui.QListView()
+        self.list_view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.list_model = QtGui.QStandardItemModel(self.list_view)
+        self.list_view.setModel(self.list_model)
+        self.main_layout.insertWidget(2, self.list_view, 1)
+
+    def init_close(self):
+        self.close_button = QPushButton('Close')
+        self.close_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Escape))
+        self.main_layout.addWidget(self.close_button)
+
+
+    def refresh_list(self):
+        self.clear_list()
+        for inventory_path in self.inventories.keys():
+            self.add_item(inventory_path)
+
+    def connect_signals(self):
+        self.selection_button.clicked.connect(self.open_directory)
+        self.add_button.clicked.connect(self.add_item_from_box)
+        self.remove_button.clicked.connect(self.remove_item)
+        self.close_button.clicked.connect(self.hide)
+
+    def open_directory(self):
+        fninv = QFileDialog.getExistingDirectory(self, self.tr(
+            "Select inventory..."), self.tr("Select folder"))
+        if not fninv:
+            return
+        self.selection_box.setText(fninv)
+
+    def add_item_from_box(self):
+        inventory_path = self.selection_box.text()
+        self.add_item(inventory_path)
+        self.selection_box.setText('')
+
+    def add_item(self, inventory_path):
+        if not inventory_path:
+            return
+        if inventory_path in self.metadata.inventories:
+            QMessageBox.warning(self, 'Info', 'Path already in list!')
+            return
+        if not os.path.isdir(inventory_path):
+            QMessageBox.warning(self, 'Warning', 'Path is no directory!')
+            return
+        item = QtGui.QStandardItem(inventory_path)
+        item.setEditable(False)
+        self.inventories[inventory_path] = item
+        self.list_model.appendRow(item)
+
+        self.metadata.add_inventory(inventory_path)
+
+    def remove_item(self):
+        for index in reversed(self.list_view.selectionModel().selectedIndexes()):
+            item = self.list_model.itemData(index)
+            inventory_path = item[0]
+            del (self.inventories[inventory_path])
+            self.metadata.remove_inventory(inventory_path)
+            self.list_model.removeRow(index.row())
+
+
 class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None, windowflag=1):
         self._data = c
@@ -146,6 +262,14 @@ class ComparisonWidget(QWidget):
         self.setupUI()
         self.resize(1280, 720)
         self.plotcomparison()
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def setupUI(self):
 
@@ -2806,6 +2930,14 @@ class MultiEventWidget(QWidget):
         self.setupUi()
         # set initial size
         self.resize(1280, 720)
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def setupUi(self):
         # init main layout
@@ -3008,6 +3140,14 @@ class CompareEventsWidget(MultiEventWidget):
         self.connect_buttons()
         self.setWindowTitle('Compare events')
         self.set_main_stretch()
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.run)
@@ -3084,6 +3224,7 @@ class TuneAutopicker(QWidget):
         self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
+        self.center()
         self._manual_pick_plots = []
         if hasattr(self.parent(), 'metadata'):
             self.metadata = self.parent().metadata
@@ -3091,6 +3232,13 @@ class TuneAutopicker(QWidget):
             self.metadata = None
             # self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
             # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def set_fig_dict(self, fig_dict):
         for key, value in fig_dict.items():
@@ -3569,9 +3717,17 @@ class PylotParaBox(QtGui.QWidget):
         self.params_to_gui()
         self._toggle_advanced_settings()
         self.resize(720, 860)
+        self.center()
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.accepted.connect(self.params_from_gui)
         self.rejected.connect(self.params_to_gui)
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -4922,6 +5078,8 @@ class FilterOptionsWidget(QWidget):
         self.freqminSpinBox.valueChanged.connect(self.checkAutoManu)
         self.freqmaxSpinBox.valueChanged.connect(self.checkAutoManu)
         self.checkAutoManu()
+
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
 
     def checkAutoManu(self):
         self.updateMFfromWidget()

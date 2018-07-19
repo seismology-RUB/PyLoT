@@ -80,7 +80,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget, ProgressBarWidget
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -394,10 +394,10 @@ class MainWindow(QMainWindow):
                                              self.adjustFilterOptions,
                                              "Ctrl+F", self.filter_icon,
                                              """Adjust filter parameters.""")
-        self.inventoryAction = self.createAction(self, "Select &Inventory ...",
+        self.inventoryAction = self.createAction(self, "Manage &Inventories ...",
                                                  self.get_new_metadata,
                                                  "Ctrl+I", self.inventoryIcon,
-                                                 """Select metadata for current project""",
+                                                 """Manage metadata for current project""",
                                                  False)
         self.initMapAction = self.createAction(self, "Init array map ...",
                                                self.init_array_map,
@@ -2435,7 +2435,7 @@ class MainWindow(QMainWindow):
         # else:
         #    self.update_autopicker()
         #    self.tap.fill_eventbox()
-        self.tap.show()
+        self.tap.showMaximized()
 
     def update_autopicker(self):
         '''
@@ -2826,7 +2826,7 @@ class MainWindow(QMainWindow):
 
         self.inventory_label = QLabel('No inventory set...')
         # init inventory button
-        self.new_inv_button = QPushButton('Set inventory file')
+        self.new_inv_button = QPushButton('Manage inventory files')
         self.new_inv_button.setIcon(self.inventoryIcon)
         self.new_inv_button.clicked.connect(self.inventoryAction.trigger)
 
@@ -2839,7 +2839,7 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(self.new_inv_button, 2, 1)
         grid_layout.addWidget(self.init_map_button, 3, 1)
 
-        self.metadata = None
+        self.metadata = Metadata()
         self.metadata_widget.setLayout(grid_layout)
         self.array_layout.addWidget(self.metadata_widget)
 
@@ -3119,7 +3119,14 @@ class MainWindow(QMainWindow):
         self.new_inv_button.setText('Set another inventory file')
 
     def get_new_metadata(self):
-        self.init_metadata(new=True)
+        if hasattr(self, 'add_metadata_widget'):
+            self.add_metadata_widget.show()
+        else:
+            self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
+        #self.init_metadata(new=True)
+
+    def add_metadata(self):
+        pass
 
     def init_metadata(self, new=False, ask_default=True):
         def set_inv(settings):
