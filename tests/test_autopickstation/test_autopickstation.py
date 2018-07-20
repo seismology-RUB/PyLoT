@@ -46,11 +46,13 @@ class MockParser:
         >>>MockParser.get_coordinates('GR.GRA2')
         {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
         """
-        station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH']
+        station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH', 'CH.FIESA']
         gra1 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 499.5, u'latitude': 49.691888, u'local_depth': 0.0, u'longitude': 11.22172}
         gra2 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
         ech = {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 580.0, u'latitude': 48.216313, u'local_depth': 250.0, u'longitude': 7.158961}
-        coordinates = [gra1, gra2, ech]
+        fiesa = {'azimuth': 0.0, 'dip': -90.0, 'elevation': 2340.5, 'latitude': 46.43521, 'local_depth': 0.0, 'longitude': 8.11051}
+
+        coordinates = [gra1, gra2, ech, fiesa]
 
         for index, name in enumerate(station_names):
             if station_id.startswith(name):
@@ -142,13 +144,20 @@ class TestAutopickStation(unittest.TestCase):
         self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
         self.assertEqual(expected['station'], result['station'])
 
-    @skip("Results are just a copy of ech")
     def test_autopickstation_taupy_disabled_fiesa(self):
         # this station has a long time of before the first onset, so taupy will help during picking
-        expected = {'P': {'picker': 'auto', 'snrdb': 9.9753586609166316, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None, 'fc': None, 'snr': 9.9434218804137107, 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 34), 'w0': None, 'spe': 1.6666666666666667, 'network': u'G', 'epp': UTCDateTime(2016, 1, 24, 10, 41, 29), 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 35), 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 12.698999454169567, 'network': u'G', 'weight': 0, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 50, 44), 'snr': 18.616581906366577, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 33), 'mpp': UTCDateTime(2016, 1, 24, 10, 50, 43), 'fm': None, 'spe': 3.3333333333333335, 'channel': u'LHE'}, 'station': u'ECH'}
+        expected = {'P': {'picker': 'auto', 'snrdb': None, 'weight': 9, 'Mo': None, 'marked': 'SinsteadP', 'Mw': None, 'fc': None, 'snr': None, 'mpp': UTCDateTime(2016, 1, 24, 10, 35, 58), 'w0': None, 'spe': None, 'network': u'CH', 'epp': UTCDateTime(2016, 1, 24, 10, 35, 42), 'lpp': UTCDateTime(2016, 1, 24, 10, 36, 14), 'fm': 'N', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': None, 'network': u'CH', 'weight': 4, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 36, 14), 'snr': None, 'epp': UTCDateTime(2016, 1, 24, 10, 35, 42), 'mpp': UTCDateTime(2016, 1, 24, 10, 35, 58), 'fm': None, 'spe': None, 'channel': u'LHE'}, 'station': u'FIESA'}
         with HidePrints():
             result = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_disabled)
-        error_message = self.construct_error_message('CH.FIESE', True, expected, result)
+        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
+        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        self.assertEqual(expected['station'], result['station'])
+
+    def test_autopickstation_taupy_enabled_fiesa(self):
+        # this station has a long time of before the first onset, so taupy will help during picking
+        expected = {'P': {'picker': 'auto', 'snrdb': 13.921049277904373, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None, 'fc': None, 'snr': 24.666352170589487, 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 47), 'w0': None, 'spe': 1.2222222222222285, 'network': u'CH', 'epp': UTCDateTime(2016, 1, 24, 10, 41, 43, 333333), 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 48), 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 10.893086316477728, 'network': u'CH', 'weight': 0, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 51, 5), 'snr': 12.283118216397849, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 59, 333333), 'mpp': UTCDateTime(2016, 1, 24, 10, 51, 2), 'fm': None, 'spe': 2.8888888888888764, 'channel': u'LHE'}, 'station': u'FIESA'}
+        with HidePrints():
+            result = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
         self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
         self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
         self.assertEqual(expected['station'], result['station'])
