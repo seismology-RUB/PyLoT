@@ -180,7 +180,12 @@ class PickingParameters(object):
 
 class PickingResults(dict):
 
-    def __init__(self):
+    def init_for_picking(self):
+        """
+        Initialize intermediary values of PickingResults used during pick calculation.
+        :return:
+        :rtype:
+        """
         # initialize output
         self.Pweight = 4  # weight for P onset
         self.Sweight = 4  # weight for S onset
@@ -206,12 +211,110 @@ class PickingResults(dict):
         self.w0 = None
         self.fc = None
         self.Mw = None
+        self.Mo = None
 
         # flags for plotting
         self.aicPflag = 0
         self.aicSflag = 0
         self.Pflag = 0
         self.Sflag = 0
+
+    def init_default_values(self):
+        """
+        Inits default values of picking results. Called to generate a clean
+        PickingResults instance with sensible defaults.
+        :return:
+        :rtype:
+        """
+        # Magnitude parameters
+        self.Mo = None
+        self.Mw = None
+
+        # TODO What are those?
+        self.w0 = None
+        self.fc = None
+
+        # Station information
+        self.network = None
+        self.channel = None
+
+        # pick information
+        self.picker = 'auto'
+        self.marked = []
+
+        # pick results
+        self.epp = None
+        self.mpp = None
+        self.lpp = None
+        self.fm = 'N'
+        self.snr = None
+        self.snrdb = None
+        self.spe = None
+        self.weight = 4
+
+    def make_clean_results(self, pick, channel, network):
+        """
+        Create a new PickingResults instance that only contains relevant results.
+        No intermediate pick information is saved in the new PickingResults.
+        :param pick: decides P or S pick results are collected
+        :type pick: str
+        :param channel: channel on which the pick was calculated
+        :type channel: str
+        :param network: Network id of station
+        :type network: str
+        :return:
+        :rtype: PickingResults
+        """
+        if pick.upper() == 'P':
+            p = PickingResults()
+            p.init_default_values()
+            # Magnitude parameters
+            p.Mo = self.Mo
+            p.Mw = self.Mw
+
+            # TODO What are those?
+            p.w0 = self.w0
+            p.fc = self.fc
+
+            # Station information
+            p.network = network
+            p.channel = channel
+
+            # pick information
+            p.picker = self.picker
+            p.marked = self.Pmarker
+
+            # pick results
+            p.epp = self.epickP
+            p.mpp = self.mpickP
+            p.lpp = self.lpickP
+            p.fm = self.FM
+            p.snr = self.SNRP
+            p.snrdb = self.SNRPdB
+            p.spe = self.Perror
+            p.weight = self.Pweight
+            return p
+        if pick.upper() == 'S':
+            s = PickingResults()
+            s.init_default_values()
+
+            # Station information
+            s.network = network
+            s.channel = channel
+
+            # Pick results
+            s.lpp = self.lpickS
+            s.mpp = self.mpickS
+            s.epp = self.epickS
+            s.spe = self.Serror
+            s.snr = self.SNRS
+            s.snrdb = self.SNRSdB
+            s.weight = self.Sweight
+            s.fm = None
+            s.picker = self.picker
+            s.Ao = self.Ao
+            return s
+
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -266,7 +369,9 @@ class AutopickStation(object):
 
         # initialize picking results
         self.p_results = PickingResults()
+        self.p_results.init_for_picking()
         self.s_results = PickingResults()
+        self.s_results.init_for_picking()
 
         # extract additional information
         pickparams = self.extract_pickparams(pickparam)
@@ -474,9 +579,9 @@ class AutopickStation(object):
             except PickingFailedException as pfe:
                 print(pfe)
 
-        self.finish_picking()
         self.plot_pick_results()
-        return {'P': self.p_results, 'S':self.s_results, 'station':self.ztrace.stats.station} #TODO method to format picking results as a dict correctly
+        self.finish_picking()
+        return {'P': self.p_results, 'S':self.s_results, 'station':self.ztrace.stats.station}
 
     def finish_picking(self):
 
@@ -486,29 +591,18 @@ class AutopickStation(object):
         if self.p_results.epickP is not None and self.p_results.epickP == self.p_results.mpickP:
             self.p_results.epickP -= self.ztrace.stats.delta
         if self.p_results.mpickP is not None and self.p_results.epickP is not None and self.p_results.lpickP is not None:
-            lpickP = self.ztrace.stats.starttime + self.p_results.lpickP
-            epickP = self.ztrace.stats.starttime + self.p_results.epickP
-            mpickP = self.ztrace.stats.starttime + self.p_results.mpickP
+            self.p_results.lpickP = self.ztrace.stats.starttime + self.p_results.lpickP
+            self.p_results.epickP = self.ztrace.stats.starttime + self.p_results.epickP
+            self.p_results.mpickP = self.ztrace.stats.starttime + self.p_results.mpickP
         else:
             # dummy values (start of seismic trace) in order to derive
             # theoretical onset times for iterative picking
-            lpickP = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
-            epickP = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
-            mpickP = self.ztrace.stats.starttime
+            self.p_results.lpickP = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
+            self.p_results.epickP = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
+            self.p_results.mpickP = self.ztrace.stats.starttime
 
+        self.p_results = self.p_results.make_clean_results('P', self.ztrace.stats.channel, self.ztrace.stats.network)
         # add picking results to PickingResults instance
-        self.p_results.channel = self.ztrace.stats.channel
-        self.p_results.network = self.ztrace.stats.network
-        self.p_results.lpp = lpickP
-        self.p_results.epp = epickP
-        self.p_results.mpp = mpickP
-        self.p_results.snrdb = self.p_results.SNRPdB
-        self.p_results.snr = self.p_results.SNRP
-        self.p_results.marked = self.p_results.Pmarker # TODO add equal implementation as in old function
-        self.p_results.weight = self.p_results.Pweight
-        self.p_results.fm = self.p_results.FM
-        self.p_results.spe = self.p_results.Perror
-        self.p_results.Mo = None  # TODO what is this parameter for?
 
         #
         #   S results
@@ -525,28 +619,17 @@ class AutopickStation(object):
         if self.s_results.epickS is not None and self.s_results.epickS == self.s_results.mpickS:
             self.s_results.epickS -= hdat.stats.delta
         if self.s_results.mpickS is not None and self.s_results.epickS is not None and self.s_results.lpickS is not None:
-            lpickS = hdat.stats.starttime + self.s_results.lpickS
-            epickS = hdat.stats.starttime + self.s_results.epickS
-            mpickS = hdat.stats.starttime + self.s_results.mpickS
+            self.s_results.lpickS = hdat.stats.starttime + self.s_results.lpickS
+            self.s_results.epickS = hdat.stats.starttime + self.s_results.epickS
+            self.s_results.mpickS = hdat.stats.starttime + self.s_results.mpickS
         else:
             # dummy values (start of seismic trace) in order to derive
             # theoretical onset times for iteratve picking
-            lpickS = hdat.stats.starttime + self.s_params.timeerrorsS[3]
-            epickS = hdat.stats.starttime - self.s_params.timeerrorsS[3]
-            mpickS = hdat.stats.starttime
+            self.s_results.lpickS = hdat.stats.starttime + self.s_params.timeerrorsS[3]
+            self.s_results.epickS = hdat.stats.starttime - self.s_params.timeerrorsS[3]
+            self.s_results.mpickS = hdat.stats.starttime
 
-        self.s_results.channel = self.etrace.stats.channel
-        self.s_results.network = self.etrace.stats.network
-        self.s_results.lpp = lpickS
-        self.s_results.epp = epickS
-        self.s_results.mpp = mpickS
-        self.s_results.spe = self.s_results.Serror
-        self.s_results.snr = self.s_results.SNRS
-        self.s_results.snrdb = self.s_results.SNRSdB
-        self.s_results.weight = self.s_results.Sweight
-        self.s_results.fm = None
-        self.s_results.picker='auto'
-        self.s_results.Ao = None
+        self.s_results = self.s_results.make_clean_results('S', self.etrace.stats.channel, self.etrace.stats.network)
 
     def plot_pick_results(self):
         if self.iplot > 0:
