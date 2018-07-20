@@ -264,25 +264,38 @@ class AutopickStation(object):
         self.metadata = metadata
         self.origin = origin
 
+        # initialize picking results
+        self.p_results = PickingResults()
+        self.s_results = PickingResults()
+
         # extract additional information
         pickparams = self.extract_pickparams(pickparam)
         self.p_params, self.s_params, self.first_motion_params, self.signal_length_params = pickparams
         self.results = PickingResults()
-        self.channelorder = {'Z': 3, 'N': 1, 'E': 2} # TODO get this from the pylot preferences
+        # TODO get channelorder from the pylot preferences
+        self.channelorder = {'Z': 3, 'N': 1, 'E': 2}
         self.station_name = wfstream[0].stats.station
         self.network_name = wfstream[0].stats.network
         self.station_id = '{}.{}'.format(self.network_name, self.station_name)
 
         # save streams and traces
-        # TODO: error handling of missing traces
         self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
+        if len(self.zstream) == 0:
+            msg = 'No Z-component found for station {}. STOP'.format(self.wfstream[0].stats.station)
+            raise MissingTraceException(msg)
+        if len(self.nstream) == len(self.estream) == 0:
+            #TODO correct handling of missing both horizontal traces
+            msg = 'No horizontal traces found for station {}. STOP'.format(self.wfstream[0].stats.station)
+            raise MissingTraceException(msg)
         self.ztrace = self.zstream[0]
         try:
             self.ntrace = self.nstream[0]
         except IndexError:
+            # if N trace is misisng, copy E trace
             self.nstream = self.estream
             self.ntrace = self.nstream[0]
         try:
+            # if E trace is missing, copy N trace
             self.etrace = self.estream[0]
         except IndexError:
             self.estream = self.nstream
@@ -294,10 +307,6 @@ class AutopickStation(object):
         self.zerophase = False
         self.taper_max_percentage = 0.05
         self.taper_type = 'hann'
-
-        # initialize picking results
-        self.p_results = PickingResults()
-        self.s_results = PickingResults()
 
     def vprint(self, s):
         """Only print statement if verbose picking is set to true."""
@@ -1039,8 +1048,13 @@ def get_fig_from_figdict(figdict, figkey):
 
 
 def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, metadata=None, origin=None):
-    station = AutopickStation(wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin)
-    return station.autopickstation()
+    try:
+        station = AutopickStation(wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin)
+        return station.autopickstation()
+    except MissingTraceException as e:
+        # Either vertical or both horizontal traces are missing, autopickstation() will return default results
+        print(e)
+        return None
 
 
 def nautopickstation(wfstream, pickparam, verbose=False,
