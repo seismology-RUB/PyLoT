@@ -14,13 +14,20 @@ class HidePrints:
     """
     Used to hide all standard output the Function to be tested have, since it clutters the test results.
     """
+
+    def __init__(self, hide_prints=True):
+        """Create object with hide_prints=False to disable print hiding"""
+        self.hide = hide_prints
+
     def __enter__(self):
-        self._original_stdout = sys.stdout
-        devnull = open(os.devnull, "w")
-        sys.stdout = devnull
+        if self.hide:
+            self._original_stdout = sys.stdout
+            devnull = open(os.devnull, "w")
+            sys.stdout = devnull
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout = self._original_stdout
+        if self.hide:
+            sys.stdout = self._original_stdout
 
 
 class MockParser:
