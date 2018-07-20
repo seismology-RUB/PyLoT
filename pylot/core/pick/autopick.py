@@ -571,7 +571,7 @@ class AutopickStation(object):
         except PickingFailedException as pfe:
             print(pfe)
 
-        if self.estream is not None and self.nstream is not None and len(self.estream) > 0 and len(self.nstream) > 0 and self.p_results.Pweight is not None and self.p_results.Pweight < 4:
+        if self.p_results.Pweight is not None and self.p_results.Pweight < 4:
             try:
                 self.pick_s_phase()
             except MissingTraceException as mte:
