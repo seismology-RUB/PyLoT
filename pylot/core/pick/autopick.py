@@ -1052,7 +1052,7 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, 
         station = AutopickStation(wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin)
         return station.autopickstation()
     except MissingTraceException as e:
-        # Either vertical or both horizontal traces are missing, autopickstation() will return default results
+        # Either vertical or both horizontal traces are missing
         print(e)
         return None
 

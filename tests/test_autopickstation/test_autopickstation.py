@@ -159,5 +159,21 @@ class TestAutopickStation(unittest.TestCase):
         self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
         self.assertEqual(expected['station'], result['station'])
 
+    def test_autopickstation_gra1_z_comp_missing(self):
+        """Picking on a stream without a vertical trace should return None"""
+        wfstream = self.gra1.copy()
+        wfstream = wfstream.select(channel='*E') + wfstream.select(channel='*N')
+        with HidePrints():
+            result = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
+        self.assertIsNone(result)
+
+    def test_autopickstation_gra1_horizontal_comps_missing(self):
+        """Picking on a stream without a horizontal traces should return None"""
+        wfstream = self.gra1.copy()
+        wfstream = wfstream.select(channel='*Z')
+        with HidePrints():
+            result = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
+        self.assertIsNone(result)
+
 if __name__ == '__main__':
     unittest.main()
