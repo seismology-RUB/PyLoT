@@ -395,7 +395,7 @@ class MainWindow(QMainWindow):
                                              "Ctrl+F", self.filter_icon,
                                              """Adjust filter parameters.""")
         self.inventoryAction = self.createAction(self, "Manage &Inventories ...",
-                                                 self.get_new_metadata,
+                                                 self.add_metadata,
                                                  "Ctrl+I", self.inventoryIcon,
                                                  """Manage metadata for current project""",
                                                  False)
@@ -1922,14 +1922,15 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
-        # MP MP ++++
         # TODO: Quick and dirty, improve this on later iteration
         if self.obspy_dmt:
-            self.metadata = Metadata(os.path.join(self.get_current_event_path(), 'resp'))
-        self.inventoryAction.setEnabled(not self.obspy_dmt)
-        self.initMapAction.setEnabled(self.obspy_dmt)
-        # MP MP ---
-
+            invpath = os.path.join(self.get_current_event_path(), 'resp')
+            if not invpath in self.metadata.inventories:
+                self.metadata.add_inventory(invpath)
+            # check if directory is empty
+            if os.listdir(invpath):
+                self.init_map_button.setEnabled(True)
+                self.initMapAction.setEnabled(True)
 
     @staticmethod
     def checkEvent4comparison(event):
@@ -3109,7 +3110,7 @@ class MainWindow(QMainWindow):
             self.inventory_label.setText('Inventory set!')
             self.setDirty(True)
 
-    def get_new_metadata(self):
+    def add_metadata(self):
         self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
         self.add_metadata_widget.close_button.clicked.connect(self.set_metadata)
 

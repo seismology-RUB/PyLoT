@@ -196,7 +196,7 @@ class AddMetadataWidget(QWidget):
         self.main_layout.insertWidget(2, self.list_view, 1)
 
     def init_close(self):
-        self.close_button = QPushButton('Close')
+        self.close_button = QPushButton('Update')
         self.close_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Escape))
         self.main_layout.addWidget(self.close_button)
 
