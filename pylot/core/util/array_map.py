@@ -23,8 +23,7 @@ class Array_map(QtGui.QWidget):
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
-        self.metadata_type = parent.metadata[0]
-        self.metadata = parent.metadata[1]
+        self.metadata = parent.metadata
         self.picks = None
         self.picks_dict = None
         self.autopicks_dict = None
@@ -160,33 +159,7 @@ class Array_map(QtGui.QWidget):
         self.main_box.addWidget(self.status_label, 0)
 
     def init_stations(self):
-        def stat_info_from_parser(parser):
-            stations_dict = {}
-            for station in parser.stations:
-                station_name = station[0].station_call_letters
-                network_name = station[0].network_code
-                if not station_name in stations_dict.keys():
-                    st_id = network_name + '.' + station_name
-                    stations_dict[st_id] = {'latitude': station[0].latitude,
-                                            'longitude': station[0].longitude}
-            return stations_dict
-
-        def stat_info_from_inventory(inventory):
-            stations_dict = {}
-            for network in inventory.networks:
-                for station in network.stations:
-                    station_name = station.code
-                    network_name = network_name.code
-                    if not station_name in stations_dict.keys():
-                        st_id = network_name + '.' + station_name
-                        stations_dict[st_id] = {'latitude': station[0].latitude,
-                                                'longitude': station[0].longitude}
-            return stations_dict
-
-        read_stat = {'xml': stat_info_from_inventory,
-                     'dless': stat_info_from_parser}
-
-        self.stations_dict = read_stat[self.metadata_type](self.metadata)
+        self.stations_dict = self.metadata.get_all_coordinates()
         self.latmin = self.get_min_from_stations('latitude')
         self.lonmin = self.get_min_from_stations('longitude')
         self.latmax = self.get_max_from_stations('latitude')
@@ -195,13 +168,15 @@ class Array_map(QtGui.QWidget):
     def init_picks(self):
         def get_picks(station_dict):
             picks = {}
+            # selected phase
             phase = self.comboBox_phase.currentText()
             for st_id in station_dict.keys():
                 try:
                     station_name = st_id.split('.')[-1]
+                    # current_picks_dict: auto or manual
                     pick = self.current_picks_dict()[station_name][phase]
                     if pick['picker'] == 'auto':
-                        if pick['weight'] > 3:
+                        if not pick['spe']:
                             continue
                     picks[st_id] = pick['mpp']
                 except KeyError:
@@ -216,11 +191,12 @@ class Array_map(QtGui.QWidget):
             for pick in picks.values():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     picks_utc.append(pick)
-            self._earliest_picktime = min(picks_utc)
-            for st_id, pick in picks.items():
-                if type(pick) is obspy.core.utcdatetime.UTCDateTime:
-                    pick -= self._earliest_picktime
-                picks_rel[st_id] = pick
+            if picks_utc:
+                self._earliest_picktime = min(picks_utc)
+                for st_id, pick in picks.items():
+                    if type(pick) is obspy.core.utcdatetime.UTCDateTime:
+                        pick -= self._earliest_picktime
+                    picks_rel[st_id] = pick
             return picks_rel
 
         self.picks = get_picks(self.stations_dict)
@@ -330,6 +306,8 @@ class Array_map(QtGui.QWidget):
 
     def scatter_picked_stations(self):
         picks, lats, lons = self.get_picks_lat_lon()
+        if len(lons) < 1 and len(lats) < 1:
+            return
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
             self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, facecolor='white',
@@ -374,13 +352,16 @@ class Array_map(QtGui.QWidget):
         self.draw_everything()
 
     def draw_everything(self):
-        if self.picks_dict or self.autopicks_dict:
+        picktype = self.comboBox_am.currentText()
+        if (self.picks_dict and picktype == 'manual') \
+                or (self.autopicks_dict and picktype == 'auto'):
             self.init_picks()
             if len(self.picks) >= 3:
                 self.init_picksgrid()
                 self.draw_contour_filled()
         self.scatter_all_stations()
-        if self.picks_dict or self.autopicks_dict:
+        if (self.picks_dict and picktype == 'manual') \
+                or (self.autopicks_dict and picktype == 'auto'):
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)

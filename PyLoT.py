@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.apw = None
         self.paraBox = None
         self.array_map = None
-        self._metadata = None
+        self._metadata = Metadata()
         self._eventChanged = [False, False]
         self.apd_local = None
         self.apd_sge = None
@@ -1927,6 +1927,7 @@ class MainWindow(QMainWindow):
         if self.obspy_dmt:
             self.metadata = Metadata(os.path.join(self.get_current_event_path(), 'resp'))
         self.inventoryAction.setEnabled(not self.obspy_dmt)
+        self.initMapAction.setEnabled(self.obspy_dmt)
         # MP MP ---
 
 
@@ -2839,7 +2840,6 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(self.new_inv_button, 2, 1)
         grid_layout.addWidget(self.init_map_button, 3, 1)
 
-        self.metadata = Metadata()
         self.metadata_widget.setLayout(grid_layout)
         self.array_layout.addWidget(self.metadata_widget)
 
@@ -3101,72 +3101,23 @@ class MainWindow(QMainWindow):
         if event == current_event:
             set_background_color(item_list, QtGui.QColor(*(0, 143, 143, 255)))
 
-    def read_metadata_thread(self, fninv):
-        self.rm_thread = Thread(self, Metadata, arg=fninv, progressText='Reading metadata...',
-                                pb_widget=self.mainProgressBarWidget)
-        self.rm_thread.finished.connect(self.set_metadata)
-        self.rm_thread.start()
-
     def set_metadata(self):
-        settings = QSettings()
-        self.metadata = self.rm_thread.data
-        if settings.value('saveMetadata'):
-            self.project.metadata = self.rm_thread.data
-        self.project.inv_path = settings.value("inventoryFile")
-        self.init_map_button.setEnabled(True)
-        self.initMapAction.setEnabled(True)
-        self.inventory_label.setText('Inventory set!')
-        self.new_inv_button.setText('Set another inventory file')
+        self.project.inventories = self.metadata.inventories
+        if self.metadata.inventories:
+            self.init_map_button.setEnabled(True)
+            self.initMapAction.setEnabled(True)
+            self.inventory_label.setText('Inventory set!')
+            self.setDirty(True)
 
     def get_new_metadata(self):
-        if hasattr(self, 'add_metadata_widget'):
-            self.add_metadata_widget.show()
-        else:
-            self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
-        #self.init_metadata(new=True)
-
-    def add_metadata(self):
-        pass
+        self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
+        self.add_metadata_widget.close_button.clicked.connect(self.set_metadata)
 
     def init_metadata(self, new=False, ask_default=True):
-        def set_inv(settings):
-            fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
-                "Select inventory..."), self.tr("Select file"))
-            if not fninv:
-                return False
-            ans = QMessageBox.question(self, self.tr("Make default..."),
-                                       self.tr(
-                                           "New inventory filename set.\n" + \
-                                           "Do you want to make it the default value?"),
-                                       QMessageBox.Yes | QMessageBox.No,
-                                       QMessageBox.No)
-            if ans == QMessageBox.Yes:
-                settings.setValue("inventoryFile", fninv)
-                settings.sync()
-            self.read_metadata_thread(fninv)
-            return True
-
-        settings = QSettings()
-
-        if hasattr(self.project, 'metadata') and not new:
-            self.metadata = self.project.metadata
-            return True
-        if self.metadata and not new:
-            return True
-        if hasattr(self.project, 'inv_path') and not new:
-            settings.setValue("inventoryFile", self.project.inv_path)
-
-        fninv = settings.value("inventoryFile", None)
-        if (fninv and ask_default) and not new:
-            ans = QMessageBox.question(self, self.tr("Use default metadata..."),
-                                       self.tr(
-                                           "Do you want to use the default value for metadata?\n({})".format(fninv)),
-                                       QMessageBox.Yes | QMessageBox.No,
-                                       QMessageBox.Yes)
-            if ans == QMessageBox.Yes:
-                self.read_metadata_thread(fninv)
-                return
-        set_inv(settings)
+        if hasattr(self.project, 'inventories'):
+            self.metadata = Metadata()
+            for inventory in self.project.inventories:
+                self.metadata.add_inventory(inventory)
 
     def calc_magnitude(self, type='ML'):
         self.init_metadata()
@@ -3289,15 +3240,7 @@ class MainWindow(QMainWindow):
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
-            if hasattr(self.project, 'metadata'):
-                if self.project.metadata:
-                    self.init_metadata(ask_default=False)
-                    # self.init_array_map(index=0)
-                    return
-            if hasattr(self.project, 'inv_path'):
-                self.init_metadata(ask_default=False)
-                # self.init_array_map(index=0)
-                return
+            self.init_metadata()
 
             self.init_array_tab()
 

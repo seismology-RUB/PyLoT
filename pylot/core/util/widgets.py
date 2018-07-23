@@ -145,6 +145,7 @@ class AddMetadataWidget(QWidget):
         self.resize(600, 800)
 
         self.metadata = metadata if metadata else Metadata()
+        self.from_metadata()
 
         self.center()
         self.show()
@@ -199,6 +200,9 @@ class AddMetadataWidget(QWidget):
         self.close_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Escape))
         self.main_layout.addWidget(self.close_button)
 
+    def from_metadata(self):
+        for inventory_path in self.metadata.inventories:
+            self.add_item(inventory_path, from_metadata=True)
 
     def refresh_list(self):
         self.clear_list()
@@ -223,10 +227,10 @@ class AddMetadataWidget(QWidget):
         self.add_item(inventory_path)
         self.selection_box.setText('')
 
-    def add_item(self, inventory_path):
+    def add_item(self, inventory_path, from_metadata=False):
         if not inventory_path:
             return
-        if inventory_path in self.metadata.inventories:
+        if inventory_path in self.inventories.keys():
             QMessageBox.warning(self, 'Info', 'Path already in list!')
             return
         if not os.path.isdir(inventory_path):
@@ -237,7 +241,8 @@ class AddMetadataWidget(QWidget):
         self.inventories[inventory_path] = item
         self.list_model.appendRow(item)
 
-        self.metadata.add_inventory(inventory_path)
+        if not from_metadata:
+            self.metadata.add_inventory(inventory_path)
 
     def remove_item(self):
         for index in reversed(self.list_view.selectionModel().selectedIndexes()):

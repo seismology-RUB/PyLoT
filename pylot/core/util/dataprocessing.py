@@ -21,6 +21,7 @@ class Metadata(object):
         # saves filenames holding metadata for a seed_id
         # seed id as key, path to file as value
         self.seed_ids = {}
+        self.stations_dict = {}
         if inventory:
             if os.path.isdir(inventory):
                 self.add_inventory(inventory)
@@ -171,6 +172,37 @@ class Metadata(object):
         if not metadata:
             return
         return metadata['data'].get_coordinates(seed_id, time)
+
+    def get_all_coordinates(self):
+        def stat_info_from_parser(parser):
+            for station in parser.stations:
+                station_name = station[0].station_call_letters
+                network_name = station[0].network_code
+                if not station_name in self.stations_dict.keys():
+                    st_id = network_name + '.' + station_name
+                    self.stations_dict[st_id] = {'latitude': station[0].latitude,
+                                            'longitude': station[0].longitude}
+
+        def stat_info_from_inventory(inventory):
+            for network in inventory.networks:
+                for station in network.stations:
+                    station_name = station.code
+                    network_name = network_name.code
+                    if not station_name in self.stations_dict.keys():
+                        st_id = network_name + '.' + station_name
+                        self.stations_dict[st_id] = {'latitude': station[0].latitude,
+                                                'longitude': station[0].longitude}
+
+        read_stat = {'xml': stat_info_from_inventory,
+                     'dless': stat_info_from_parser}
+
+        self.read_all()
+        for item in self.inventory_files.values():
+            inventory = item['data']
+            invtype = item['invtype']
+            read_stat[invtype](inventory)
+
+        return self.stations_dict
 
     def get_paz(self, seed_id, time):
         """
