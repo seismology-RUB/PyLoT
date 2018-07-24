@@ -1972,6 +1972,9 @@ class MainWindow(QMainWindow):
         self.openEventAction.setEnabled(False)
         self.openEventsAutoAction.setEnabled(False)
         self.loadpilotevent.setEnabled(False)
+        self.compare_action.setEnabled(False)
+        self.qualities_action.setEnabled(False)
+        self.locateEvent.setEnabled(False)
         if not refresh_plot:
             self.wf_scroll_area.setVisible(False)
             self.no_data_label.setVisible(True)
