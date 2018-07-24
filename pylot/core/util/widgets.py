@@ -4834,7 +4834,7 @@ class FilterOptionsWidget(QWidget):
         #             self.getFilterOptions().getFreq()[1])
         # else:
 
-        self.typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+        self.typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
         self.resetButton = QPushButton('Reset')
         self.resetButton.setToolTip('Reset filter settings to settings for automatic picking.')
