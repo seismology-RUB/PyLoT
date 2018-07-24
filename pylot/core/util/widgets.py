@@ -1936,11 +1936,11 @@ class PickDlg(QDialog):
             self.zoomAction.trigger()
         self.multicompfig.disconnectEvents()
         self.cidpress = self.multicompfig.connectPressEvent(self.setIniPick)
-        if not self.filterActionP.isChecked() and not self.filterActionS.isChecked():
-            if self.autoFilterAction.isChecked():
-                self.filterWFData()
-            else:
-                self.draw()
+        if self.autoFilterAction.isChecked():
+            for filteraction in [self.filterActionP, self.filterActionS]:
+                filteraction.setChecked(False)
+            self.filterWFData()
+            self.draw()
         else:
             self.draw()
         #self.pick_block = self.togglePickBlocker()
