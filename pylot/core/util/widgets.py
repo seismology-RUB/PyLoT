@@ -2088,11 +2088,11 @@ class PickDlg(QDialog):
             self.zoomAction.trigger()
         self.multicompfig.disconnectEvents()
         self.cidpress = self.multicompfig.connectPressEvent(self.setIniPick)
-        if not self.filterActionP.isChecked() and not self.filterActionS.isChecked():
-            if self.autoFilterAction.isChecked():
-                self.filterWFData()
-            else:
-                self.draw()
+        if self.autoFilterAction.isChecked():
+            for filteraction in [self.filterActionP, self.filterActionS]:
+                filteraction.setChecked(False)
+            self.filterWFData()
+            self.draw()
         else:
             self.draw()
         # self.pick_block = self.togglePickBlocker()
@@ -4957,6 +4957,9 @@ class FilterOptionsDialog(QDialog):
     def checkMinMax(self):
         returnvals = []
         for foWidget in self.filterOptionWidgets.values():
+            if foWidget.filterOptions._filtertype in ['highpass', 'lowpass']:
+                returnvals.append(True)
+                continue
             returnvals.append(foWidget.checkMin())
             returnvals.append(foWidget.checkMax())
         if all(returnvals):
@@ -5015,7 +5018,7 @@ class FilterOptionsWidget(QWidget):
         #             self.getFilterOptions().getFreq()[1])
         # else:
 
-        self.typeOptions = [None, "bandpass", "bandstop", "lowpass", "highpass"]
+        self.typeOptions = ["bandpass", "bandstop", "lowpass", "highpass"]
 
         self.resetButton = QPushButton('Reset')
         self.resetButton.setToolTip('Reset filter settings to settings for automatic picking.')
