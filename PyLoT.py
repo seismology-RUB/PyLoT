@@ -504,15 +504,15 @@ class MainWindow(QMainWindow):
         # pickToolActions = (selectStation, )
         # pickToolBar.setObjectName("PickTools")
         # self.addActions(pickToolBar, pickToolActions)
-        self.locateEvent = self.createAction(parent=self, text='locate the event',
-                                             slot=self.locate_event,
-                                             shortcut='Alt+Ctrl+L',
-                                             icon=locate_icon,
-                                             tip='Locate the event using '
+        self.locateEventAction = self.createAction(parent=self, text='locate the event',
+                                                   slot=self.locate_event,
+                                                   shortcut='Alt+Ctrl+L',
+                                                   icon=locate_icon,
+                                                   tip='Locate the event using '
                                                  'the displayed manual arrivals.')
-        self.locateEvent.setEnabled(False)
+        self.locateEventAction.setEnabled(False)
 
-        locationToolActions = (self.locateEvent,)
+        locationToolActions = (self.locateEventAction,)
 
         # add top menu
         self.fileMenu = self.menuBar().addMenu('&File')
@@ -1911,7 +1911,7 @@ class MainWindow(QMainWindow):
         event = self.get_current_event()
         if event.pylot_picks:
             self.drawPicks(picktype='manual')
-            self.locateEvent.setEnabled(True)
+            self.locateEventAction.setEnabled(True)
             self.qualities_action.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
@@ -1974,7 +1974,7 @@ class MainWindow(QMainWindow):
         self.loadpilotevent.setEnabled(False)
         self.compare_action.setEnabled(False)
         self.qualities_action.setEnabled(False)
-        self.locateEvent.setEnabled(False)
+        self.locateEventAction.setEnabled(False)
         if not refresh_plot:
             self.wf_scroll_area.setVisible(False)
             self.no_data_label.setVisible(True)
@@ -2339,7 +2339,7 @@ class MainWindow(QMainWindow):
         else:
             self.update_status('picks discarded ({0})'.format(station))
         if not self.get_loc_flag() and self.check4Loc():
-            self.locateEvent.setEnabled(True)
+            self.locateEventAction.setEnabled(True)
             self.set_loc_flag(True)
         elif self.get_loc_flag() and not self.check4Loc():
             self.set_loc_flag(False)
