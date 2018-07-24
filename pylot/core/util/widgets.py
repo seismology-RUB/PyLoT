@@ -4773,6 +4773,9 @@ class FilterOptionsDialog(QDialog):
     def checkMinMax(self):
         returnvals = []
         for foWidget in self.filterOptionWidgets.values():
+            if foWidget.filterOptions._filtertype in ['highpass', 'lowpass']:
+                returnvals.append(True)
+                continue
             returnvals.append(foWidget.checkMin())
             returnvals.append(foWidget.checkMax())
         if all(returnvals):
