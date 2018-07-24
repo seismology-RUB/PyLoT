@@ -32,6 +32,8 @@ import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
+matplotlib.rcParams['savefig.dpi'] = 300
+
 
 from PySide import QtGui, QtCore
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
