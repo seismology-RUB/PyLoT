@@ -1018,6 +1018,7 @@ class PylotCanvas(FigureCanvas):
             new_ylim = self.calcPanZoom(self.ypress, y_bot, y_top, factor, (ydiff > 0))
             self.setYLims(ax, new_ylim)
 
+        self.refreshPickDlgText()
         self.draw()
 
     def set_frame_color(self, color='k'):
