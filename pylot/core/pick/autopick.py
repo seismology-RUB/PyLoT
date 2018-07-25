@@ -137,8 +137,8 @@ def call_autopickstation(input_tuple):
         return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata,
                                origin=origin)
     except Exception as e:
-        traceback.print_exc()
-        return traceback.format_exc(), wfstream[0].stats.station
+        tbe = traceback.format_exc()
+        return tbe, wfstream[0].stats.station
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
@@ -254,19 +254,22 @@ def autopickstation(wfstream, pickparam, verbose=False,
     # split components
     zdat = wfstream.select(component="Z")
     if len(zdat) == 0:  # check for other components
+        print('HIT: 3')
         zdat = wfstream.select(component="3")
     edat = wfstream.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = wfstream.select(component="2")
+        print('HIT: 2')
     ndat = wfstream.select(component="N")
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
+        print('HIT: 1')
 
     picks = {}
-    station = zdat[0].stats.station
+    station = wfstream[0].stats.station
 
     if not zdat:
-        print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
+        print('No z-component found for station {}. STOP'.format(station))
         return picks, station
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:

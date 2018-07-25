@@ -7,6 +7,7 @@ import argparse
 import datetime
 import glob
 import os
+import traceback
 
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
@@ -283,7 +284,11 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             corr_dat = None
             if metadata:
                 # rotate stations to ZNE
-                wfdat = check4rotated(wfdat, metadata)
+                try:
+                    wfdat = check4rotated(wfdat, metadata)
+                except Exception as e:
+                    print('Could not rotate station {} to ZNE:\n{}'.format(wfdat[0].stats.station,
+                                                                           traceback.format_exc()))
                 if locflag:
                     print("Restitute data ...")
                     corr_dat = restitute_data(wfdat.copy(), metadata, ncores=ncores)

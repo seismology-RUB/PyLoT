@@ -975,6 +975,9 @@ def check4rotated(data, metadata=None, verbosity=1):
             except (KeyError, TypeError) as e:
                 print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
                 return wfstream
+            if len(wfstream) < 3:
+                print('Failed to rotate Stream {}, not enough components available.'.format(wfstream))
+                return wfstream
             # to rotate all traces must have same length, so trim them
             wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
             z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],

@@ -606,14 +606,18 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     ibad = 0
 
     for key in list(pickdic.keys()):
-        if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
+        ppick = pickdic[key].get('P')
+        spick = pickdic[key].get('S')
+        if not ppick or not spick:
+            continue
+        if ppick['weight'] < 4 and spick['weight'] < 4:
             # calculate S-P time
-            spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
+            spt = spick['mpp'] - ppick['mpp']
             # add S-P time to dictionary
             pickdic[key]['SPt'] = spt
             # add P onsets and corresponding S-P times to list
-            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
-            UTCSpick = UTCDateTime(pickdic[key]['S']['mpp'])
+            UTCPpick = UTCDateTime(ppick['mpp'])
+            UTCSpick = UTCDateTime(spick['mpp'])
             Ppicks.append(UTCPpick.timestamp)
             Spicks.append(UTCSpick.timestamp)
             SPtimes.append(spt)
@@ -870,9 +874,12 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     Ppicks = []
     stations = []
     for station in pickdic:
-        if pickdic[station]['P']['weight'] < 4:
+        pick = pickdic[station].get('P')
+        if not pick:
+            continue
+        if pick['weight'] < 4:
             # add P onsets to list
-            UTCPpick = UTCDateTime(pickdic[station]['P']['mpp'])
+            UTCPpick = UTCDateTime(pick['mpp'])
             Ppicks.append(UTCPpick.timestamp)
             stations.append(station)
 

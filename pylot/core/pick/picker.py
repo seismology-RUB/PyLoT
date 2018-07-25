@@ -279,7 +279,7 @@ class AICPicker(AutoPicker):
             try:
                 imaxs, = argrelmax(dataslope)
                 imax = imaxs[0]
-            except ValueError as e:
+            except (ValueError, IndexError) as e:
                 print(e, 'picker: argrelmax not working!')
                 imax = np.argmax(dataslope)
             iislope = islope[0][0:imax + 1]
