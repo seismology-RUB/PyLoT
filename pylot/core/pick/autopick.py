@@ -8,6 +8,7 @@ function conglomerate utils.
 
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
+import traceback
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -136,7 +137,8 @@ def call_autopickstation(input_tuple):
         return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata,
                                origin=origin)
     except Exception as e:
-        return e, wfstream[0].stats.station
+        traceback.print_exc()
+        return traceback.format_exc(), wfstream[0].stats.station
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
@@ -966,115 +968,114 @@ def autopickstation(wfstream, pickparam, verbose=False,
         ax1.set_ylim([-1.5, 1.5])
         ax1.set_ylabel('Normalized Counts')
         # fig.suptitle(tr_filt.stats.starttime)
-        try:
-            len(edat[0])
-        except:
-            edat = ndat
-        try:
-            len(ndat[0])
-        except:
-            ndat = edat
-        if len(edat[0]) > 1 and len(ndat[0]) > 1 and Sflag == 1:
-            # plot horizontal traces
-            ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
-            th1data = np.arange(0,
-                                trH1_filt.stats.npts /
-                                trH1_filt.stats.sampling_rate,
-                                trH1_filt.stats.delta)
-            # check equal length of arrays, sometimes they are different!?
-            wfldiff = len(trH1_filt.data) - len(th1data)
-            if wfldiff < 0:
-                th1data = th1data[0:len(th1data) - abs(wfldiff)]
-            ax2.plot(th1data, trH1_filt.data / max(trH1_filt.data), color=linecolor, linewidth=0.7, label='Data')
-            if Pweight < 4:
-                ax2.plot(arhcf1.getTimeArray(),
-                         arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
-                if aicSflag == 1 and Sweight < 4:
-                    ax2.plot(arhcf2.getTimeArray(),
-                             arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
-                    ax2.plot(
-                        [aicarhpick.getpick(), aicarhpick.getpick()],
-                        [-1, 1], 'g', label='Initial S Onset')
-                    ax2.plot(
-                        [aicarhpick.getpick() - 0.5,
-                         aicarhpick.getpick() + 0.5],
-                        [1, 1], 'g')
-                    ax2.plot(
-                        [aicarhpick.getpick() - 0.5,
-                         aicarhpick.getpick() + 0.5],
-                        [-1, -1], 'g')
-                    ax2.plot([refSpick.getpick(), refSpick.getpick()],
-                             [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
-                    ax2.plot(
-                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                        [1.3, 1.3], 'g', linewidth=2)
-                    ax2.plot(
-                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                        [-1.3, -1.3], 'g', linewidth=2)
-                    ax2.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
-                    ax2.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
-                    ax2.set_title('%s, S Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f' % (
-                        trH1_filt.stats.channel,
-                        Sweight, SNRS, SNRSdB))
-                else:
-                    ax2.set_title('%s, S Weight=%d, SNR=None, SNRdB=None' % (
-                        trH1_filt.stats.channel, Sweight))
-            ax2.legend(loc=1)
-            ax2.set_yticks([])
-            ax2.set_ylim([-1.5, 1.5])
-            ax2.set_ylabel('Normalized Counts')
-            # fig.suptitle(trH1_filt.stats.starttime)
+        # only continue if one horizontal stream exists
+        if (ndat or edat) and Sflag == 1:
+            # mirror components in case one does not exist
+            if not edat:
+                edat = ndat
+            if not ndat:
+                ndat = edat
+            if len(edat[0]) > 1 and len(ndat[0]) > 1:
+                # plot horizontal traces
+                ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
+                th1data = np.arange(0,
+                                    trH1_filt.stats.npts /
+                                    trH1_filt.stats.sampling_rate,
+                                    trH1_filt.stats.delta)
+                # check equal length of arrays, sometimes they are different!?
+                wfldiff = len(trH1_filt.data) - len(th1data)
+                if wfldiff < 0:
+                    th1data = th1data[0:len(th1data) - abs(wfldiff)]
+                ax2.plot(th1data, trH1_filt.data / max(trH1_filt.data), color=linecolor, linewidth=0.7, label='Data')
+                if Pweight < 4:
+                    ax2.plot(arhcf1.getTimeArray(),
+                             arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
+                    if aicSflag == 1 and Sweight < 4:
+                        ax2.plot(arhcf2.getTimeArray(),
+                                 arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
+                        ax2.plot(
+                            [aicarhpick.getpick(), aicarhpick.getpick()],
+                            [-1, 1], 'g', label='Initial S Onset')
+                        ax2.plot(
+                            [aicarhpick.getpick() - 0.5,
+                             aicarhpick.getpick() + 0.5],
+                            [1, 1], 'g')
+                        ax2.plot(
+                            [aicarhpick.getpick() - 0.5,
+                             aicarhpick.getpick() + 0.5],
+                            [-1, -1], 'g')
+                        ax2.plot([refSpick.getpick(), refSpick.getpick()],
+                                 [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
+                        ax2.plot(
+                            [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                            [1.3, 1.3], 'g', linewidth=2)
+                        ax2.plot(
+                            [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                            [-1.3, -1.3], 'g', linewidth=2)
+                        ax2.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                        ax2.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
+                        ax2.set_title('%s, S Weight=%d, SNR=%7.2f, SNR[dB]=%7.2f' % (
+                            trH1_filt.stats.channel,
+                            Sweight, SNRS, SNRSdB))
+                    else:
+                        ax2.set_title('%s, S Weight=%d, SNR=None, SNRdB=None' % (
+                            trH1_filt.stats.channel, Sweight))
+                ax2.legend(loc=1)
+                ax2.set_yticks([])
+                ax2.set_ylim([-1.5, 1.5])
+                ax2.set_ylabel('Normalized Counts')
+                # fig.suptitle(trH1_filt.stats.starttime)
 
-            ax3 = fig.add_subplot(3, 1, 3, sharex=ax1)
-            th2data = np.arange(0,
-                                trH2_filt.stats.npts /
-                                trH2_filt.stats.sampling_rate,
-                                trH2_filt.stats.delta)
-            # check equal length of arrays, sometimes they are different!?
-            wfldiff = len(trH2_filt.data) - len(th2data)
-            if wfldiff < 0:
-                th2data = th2data[0:len(th2data) - abs(wfldiff)]
-            ax3.plot(th2data, trH2_filt.data / max(trH2_filt.data), color=linecolor, linewidth=0.7, label='Data')
-            if Pweight < 4:
-                p22, = ax3.plot(arhcf1.getTimeArray(),
-                                arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
-                if aicSflag == 1:
-                    ax3.plot(arhcf2.getTimeArray(),
-                             arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
-                    ax3.plot(
-                        [aicarhpick.getpick(), aicarhpick.getpick()],
-                        [-1, 1], 'g', label='Initial S Onset')
-                    ax3.plot(
-                        [aicarhpick.getpick() - 0.5,
-                         aicarhpick.getpick() + 0.5],
-                        [1, 1], 'g')
-                    ax3.plot(
-                        [aicarhpick.getpick() - 0.5,
-                         aicarhpick.getpick() + 0.5],
-                        [-1, -1], 'g')
-                    ax3.plot([refSpick.getpick(), refSpick.getpick()],
-                             [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
-                    ax3.plot(
-                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                        [1.3, 1.3], 'g', linewidth=2)
-                    ax3.plot(
-                        [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
-                        [-1.3, -1.3], 'g', linewidth=2)
-                    ax3.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
-                    ax3.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
-            ax3.legend(loc=1)
-            ax3.set_yticks([])
-            ax3.set_ylim([-1.5, 1.5])
-            ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)
-            ax3.set_ylabel('Normalized Counts')
-            ax3.set_title(trH2_filt.stats.channel)
-            if plt_flag == 1:
-                fig.show()
-                try:
-                    input()
-                except SyntaxError:
-                    pass
-                plt.close(fig)
+                ax3 = fig.add_subplot(3, 1, 3, sharex=ax1)
+                th2data = np.arange(0,
+                                    trH2_filt.stats.npts /
+                                    trH2_filt.stats.sampling_rate,
+                                    trH2_filt.stats.delta)
+                # check equal length of arrays, sometimes they are different!?
+                wfldiff = len(trH2_filt.data) - len(th2data)
+                if wfldiff < 0:
+                    th2data = th2data[0:len(th2data) - abs(wfldiff)]
+                ax3.plot(th2data, trH2_filt.data / max(trH2_filt.data), color=linecolor, linewidth=0.7, label='Data')
+                if Pweight < 4:
+                    p22, = ax3.plot(arhcf1.getTimeArray(),
+                                    arhcf1.getCF() / max(arhcf1.getCF()), 'b', label='CF1')
+                    if aicSflag == 1:
+                        ax3.plot(arhcf2.getTimeArray(),
+                                 arhcf2.getCF() / max(arhcf2.getCF()), 'm', label='CF2')
+                        ax3.plot(
+                            [aicarhpick.getpick(), aicarhpick.getpick()],
+                            [-1, 1], 'g', label='Initial S Onset')
+                        ax3.plot(
+                            [aicarhpick.getpick() - 0.5,
+                             aicarhpick.getpick() + 0.5],
+                            [1, 1], 'g')
+                        ax3.plot(
+                            [aicarhpick.getpick() - 0.5,
+                             aicarhpick.getpick() + 0.5],
+                            [-1, -1], 'g')
+                        ax3.plot([refSpick.getpick(), refSpick.getpick()],
+                                 [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
+                        ax3.plot(
+                            [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                            [1.3, 1.3], 'g', linewidth=2)
+                        ax3.plot(
+                            [refSpick.getpick() - 0.5, refSpick.getpick() + 0.5],
+                            [-1.3, -1.3], 'g', linewidth=2)
+                        ax3.plot([lpickS, lpickS], [-1.1, 1.1], 'g--', label='lpp')
+                        ax3.plot([epickS, epickS], [-1.1, 1.1], 'g--', label='epp')
+                ax3.legend(loc=1)
+                ax3.set_yticks([])
+                ax3.set_ylim([-1.5, 1.5])
+                ax3.set_xlabel('Time [s] after %s' % tr_filt.stats.starttime)
+                ax3.set_ylabel('Normalized Counts')
+                ax3.set_title(trH2_filt.stats.channel)
+                if plt_flag == 1:
+                    fig.show()
+                    try:
+                        input()
+                    except SyntaxError:
+                        pass
+                    plt.close(fig)
     ##########################################################################
     # calculate "real" onset times
     if lpickP is not None and lpickP == mpickP:
@@ -1092,11 +1093,21 @@ def autopickstation(wfstream, pickparam, verbose=False,
         epickP = zdat[0].stats.starttime - timeerrorsP[3]
         mpickP = zdat[0].stats.starttime
 
+    # create dictionary
+    # for P phase
+    ccode = zdat[0].stats.channel
+    ncode = zdat[0].stats.network
+    ppick = dict(channel=ccode, network=ncode, lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
+                 snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
+                 Mw=None, picker=picker, marked=Pmarker)
+
     if edat:
         hdat = edat[0]
     elif ndat:
         hdat = ndat[0]
     else:
+        # no horizontal components given
+        picks = dict(P=ppick)
         return picks, station
 
     if lpickS is not None and lpickS == mpickS:
@@ -1114,13 +1125,6 @@ def autopickstation(wfstream, pickparam, verbose=False,
         epickS = hdat.stats.starttime - timeerrorsS[3]
         mpickS = hdat.stats.starttime
 
-    # create dictionary
-    # for P phase
-    ccode = zdat[0].stats.channel
-    ncode = zdat[0].stats.network
-    ppick = dict(channel=ccode, network=ncode, lpp=lpickP, epp=epickP, mpp=mpickP, spe=Perror, snr=SNRP,
-                 snrdb=SNRPdB, weight=Pweight, fm=FM, w0=None, fc=None, Mo=None,
-                 Mw=None, picker=picker, marked=Pmarker)
     # add S phase
     ccode = hdat.stats.channel
     ncode = hdat.stats.network

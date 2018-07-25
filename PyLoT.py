@@ -2454,12 +2454,14 @@ class MainWindow(QMainWindow):
             canvas.setZoomBorders2content()
         if self.tap.pylot_picks:
             station = self.tap.get_current_station()
-            p_pick = self.tap.pylot_picks[station]['P']
-            s_pick = self.tap.pylot_picks[station]['S']
-            self.tap.pickDlg.autopicks['P_tuning'] = p_pick
-            self.tap.pickDlg.autopicks['S_tuning'] = s_pick
-            self.tap.pickDlg.drawPicks(phase='P_tuning', picktype='auto', picks=p_pick)
-            self.tap.pickDlg.drawPicks(phase='S_tuning', picktype='auto', picks=s_pick)
+            p_pick = self.tap.pylot_picks[station].get('P')
+            if p_pick:
+                self.tap.pickDlg.autopicks['P_tuning'] = p_pick
+                self.tap.pickDlg.drawPicks(phase='P_tuning', picktype='auto', picks=p_pick)
+            s_pick = self.tap.pylot_picks[station].get('S')
+            if s_pick:
+                self.tap.pickDlg.autopicks['S_tuning'] = s_pick
+                self.tap.pickDlg.drawPicks(phase='S_tuning', picktype='auto', picks=s_pick)
 
     def autoPick(self):
         autosave = self.get_current_event_path()
