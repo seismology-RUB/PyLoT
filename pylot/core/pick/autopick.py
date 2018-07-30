@@ -863,7 +863,7 @@ class AutopickStation(object):
             print(ae)
         except MissingTraceException as mte:
             print(mte)
-        cuttimes = [self.p_params.pstart, self.p_params.pstop]
+        cuttimes = self._calculate_cuttimes('P', 1)
 
         # calculate first CF
         if self.p_params.algoP == 'HOS':
@@ -917,9 +917,7 @@ class AutopickStation(object):
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
         # determine new times around initial onset
-        starttime2 = round(max(aicpick.getpick() - self.p_params.Precalcwin, 0))
-        endtime2 = round(min(len(self.ztrace.data) * self.ztrace.stats.delta, aicpick.getpick() + self.p_params.Precalcwin))
-        cuttimes2 = [starttime2, endtime2]
+        cuttimes2 = self._calculate_cuttimes('P', 2)
         if self.p_params.algoP == 'HOS':
             cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
         elif self.p_params.algoP == 'ARZ':
@@ -966,20 +964,45 @@ class AutopickStation(object):
         print(msg)
         self.s_results.Sflag = 1
 
-    def pick_s_phase(self):
-
-        # determine time window for calculating CF after P onset
-        start = round(max(self.p_results.mpickP + self.s_params.sstart, 0))
-        stop = round(min([
-            self.p_results.mpickP + self.s_params.sstop,
-            self.etrace.stats.endtime - self.etrace.stats.starttime,
-            self.ntrace.stats.endtime - self.ntrace.stats.starttime
-        ]))
-        cuttimesh = (start, stop)
-
-        if cuttimesh[1] <= cuttimesh[0]:
-            pickSonset = False
-            raise PickingFailedException('Cut window for horizontal phases too small! Will not pick S onsets.')
+    def _calculate_cuttimes(self, type, iteration):
+        """
+        Calculate cuttimes for a trace
+        :param type: 'P' or 'S', denoting the pick for which cuttime should be calculated
+        :type type: str
+        :param iteration: Calculate cut times for initial pick or for the smaller window of the precise pick around
+        the initial pick
+        :type iteration: int
+        :return: tuple of (starttime, endtime) in seconds
+        :rtype: (int, int)
+        """
+        if type.upper() == 'P':
+            if iteration == 1:
+                return [self.p_params.pstart, self.p_params.pstop]
+            if iteration == 2:
+                starttime2 = round(max(self.p_results.aicpick.getpick() - self.p_params.Precalcwin, 0))
+                endtime2 = round(
+                    min(len(self.ztrace.data) * self.ztrace.stats.delta, self.p_results.aicpick.getpick() + self.p_params.Precalcwin))
+                return [starttime2, endtime2]
+        elif type.upper() == 'S':
+            if iteration == 1:
+                # Calculate start times for preliminary S onset
+                start = round(max(self.p_results.mpickP + self.s_params.sstart, 0))  # limit start time to >0 seconds
+                stop = round(min([
+                    self.p_results.mpickP + self.s_params.sstop,
+                    self.etrace.stats.endtime - self.etrace.stats.starttime,
+                    self.ntrace.stats.endtime - self.ntrace.stats.starttime
+                ]))
+                cuttimesh = (start, stop)
+                if cuttimesh[1] <= cuttimesh[0]:
+                    raise PickingFailedException('Cut window for horizontal phases too small! Will not pick S onsets.')
+                return cuttimesh
+            if iteration == 2:
+                # recalculate cf from refiltered trace in vicinity of initial onset
+                start = round(self.aicarhpick.getpick() - self.s_params.Srecalcwin)
+                stop = round(self.aicarhpick.getpick() + self.s_params.Srecalcwin)
+                return (start, stop)
+        else:
+            raise ValueError('Wrong type given, can only be P or S')
 
         # prepare traces for picking by filtering, taper
         if self.s_params.algoS == 'ARH':
@@ -1006,10 +1029,13 @@ class AutopickStation(object):
             arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
         # save cf for later plotting
         self.arhcf1 = arhcf1
+    def pick_s_phase(self):
 
         tr_arhaic = trH1_filt.copy()
         tr_arhaic.data = arhcf1.getCF()
         h_copy[0].data = tr_arhaic.data
+        # determine time window for calculating CF after P onset
+        cuttimesh = self._calculate_cuttimes(type='S', iteration=1)
 
         # calculate AIC cf
         haiccf = AICcf(h_copy, cuttimesh)
@@ -1042,10 +1068,7 @@ class AutopickStation(object):
               '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
         self.vprint(msg)
 
-        # recalculate cf from refiltered trace in vicinity of initial onset
-        start = round(aicarhpick.getpick() - self.s_params.Srecalcwin)
-        stop = round(aicarhpick.getpick() + self.s_params.Srecalcwin)
-        cuttimesh2 = (start, stop)
+        cuttimesh2 = self._calculate_cuttimes('S', 2)
 
         # refilter waveform with larger bandpass
         if self.s_params.algoS == 'ARH':
