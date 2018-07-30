@@ -20,6 +20,7 @@ from pylot.core.util.utils import getPatternLine, gen_Pool,\
     real_Bool, identifyPhaseID, real_None, correct_iplot
 
 from obspy.taup import TauPyModel
+from obspy import Trace
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
@@ -301,7 +302,6 @@ class PickingResults(dict):
             # Station information
             s.network = network
             s.channel = channel
-
             # Pick results
             s.lpp = self.lpickS
             s.mpp = self.mpickS
@@ -385,33 +385,24 @@ class AutopickStation(object):
 
         # save streams and traces
         self.zstream, self.nstream, self.estream = self.get_components_from_waveformstream()
-        if len(self.zstream) == 0:
-            msg = 'No Z-component found for station {}. STOP'.format(self.wfstream[0].stats.station)
-            raise MissingTraceException(msg)
-        if len(self.nstream) == len(self.estream) == 0:
-            #TODO correct handling of missing both horizontal traces
-            msg = 'No horizontal traces found for station {}. STOP'.format(self.wfstream[0].stats.station)
-            raise MissingTraceException(msg)
-        self.ztrace = self.zstream[0]
-        try:
-            self.ntrace = self.nstream[0]
-        except IndexError:
-            # if N trace is misisng, copy E trace
-            self.nstream = self.estream
-            self.ntrace = self.nstream[0]
-        try:
-            # if E trace is missing, copy N trace
-            self.etrace = self.estream[0]
-        except IndexError:
-            self.estream = self.nstream
-            self.etrace = self.estream[0]
+        self.ztrace, self.ntrace, self.etrace = self.get_traces_from_streams()
 
-        # default values used in old autopickstation function #TODO way for user to set those
+        # default values used in old autopickstation function
+        # #TODO way for user to set those
         self.detrend_type = 'demean'
         self.filter_type = 'bandpass'
         self.zerophase = False
         self.taper_max_percentage = 0.05
         self.taper_type = 'hann'
+
+    def horizontal_traces_exist(self):
+        """
+        Return true when at least one horizontal traces exists
+        :rtype: bool
+        """
+        if len(self.nstream) == len(self.estream) == 0:
+            return False
+        return True
 
     def vprint(self, s):
         """Only print statement if verbose picking is set to true."""
@@ -455,7 +446,8 @@ class AutopickStation(object):
         :param waveformstream: Stream containing all three components for one station either by ZNE or 123 channel code
         (mixture of both options is handled as well)
         :type waveformstream: obspy.core.stream.Stream
-        :return: Tuple containing (z waveform, n waveform, e waveform) selected by the given channels
+        :return: Tuple containing (z waveform, n waveform, e waveform) selected by the given channels. If no waveform
+        could be found for a given channel, an empty obspy Stream will be returned for that channel
         :rtype: (obspy.core.stream.Stream, obspy.core.stream.Stream, obspy.core.stream.Stream)
         """
         waveform_data = {}
@@ -464,6 +456,36 @@ class AutopickStation(object):
             if len(waveform_data[key]) == 0:
                 waveform_data[key] = self.wfstream.select(component=str(self.channelorder[key])) # use 123 as second option
         return waveform_data['Z'], waveform_data['N'], waveform_data['E']
+
+    def get_traces_from_streams(self):
+        """
+        Extract Trace from Stream. If a component has data, an empty trace will be returned
+        :return: Tuple of obspy.Trace instances in order ZNE
+        :rtype: (obspy.Trace)
+        """
+        if len(self.zstream) == 0:
+            msg = 'No Z-component found for station {}. STOP'.format(self.wfstream[0].stats.station)
+            raise MissingTraceException(msg)
+        if not self.horizontal_traces_exist():
+            # Both horizontal traces missing, only P pick can be determined
+            msg = 'No horizontal traces found for station {}'.format(self.wfstream[0].stats.station)
+            self.vprint(msg)
+            return self.zstream[0], Trace(), Trace()
+
+        ztrace = self.zstream[0]
+        try:
+            ntrace = self.nstream[0]
+        except IndexError:
+            # if N trace is missing, copy E trace
+            self.nstream = self.estream
+            ntrace = self.nstream[0]
+        try:
+            # if E trace is missing, copy N trace
+            etrace = self.estream[0]
+        except IndexError:
+            self.estream = self.nstream
+            etrace = self.estream[0]
+        return ztrace, ntrace, etrace
 
     def prepare_wfstream(self, wfstream, freqmin=None, freqmax=None):
         """
@@ -571,7 +593,7 @@ class AutopickStation(object):
         except PickingFailedException as pfe:
             print(pfe)
 
-        if self.p_results.Pweight is not None and self.p_results.Pweight < 4:
+        if self.horizontal_traces_exist() and self.p_results.Pweight is not None and self.p_results.Pweight < 4:
             try:
                 self.pick_s_phase()
             except MissingTraceException as mte:
@@ -607,13 +629,14 @@ class AutopickStation(object):
         #
         #   S results
         #
+        if not self.horizontal_traces_exist():
+            # no horizontal components means there is no S pick to be finished
+            return
         if self.etrace:
             hdat = self.etrace
         elif self.ntrace:
             hdat = self.ntrace
 
-        # TODO picks are calculated with stats from E trace if it exists, otherwise stats from N trace is used.
-        # What if the stats are different?
         if self.s_results.lpickS is not None and self.s_results.lpickS == self.s_results.mpickS:
             self.s_results.lpickS += hdat.stats.delta
         if self.s_results.epickS is not None and self.s_results.epickS == self.s_results.mpickS:
@@ -684,7 +707,7 @@ class AutopickStation(object):
             ax1.set_ylim([-1.5, 1.5])
             ax1.set_ylabel('Normalized Counts')
 
-            if self.s_results.Sflag == 1:
+            if self.horizontal_traces_exist() and self.s_results.Sflag == 1:
                 # plot E trace
                 ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
                 th1data = np.linspace(0, self.etrace.stats.npts*self.etrace.stats.delta, self.etrace.stats.npts)
@@ -1012,7 +1035,6 @@ class AutopickStation(object):
         if aicarhpick.getpick() is None:
             error_msg = 'Invalid AIC S pick!'
             raise PickingFailedException(error_msg)
-        #if slope >= self.s_params.minAICSslope and aicarhpick.getSNR() >= self.s_params.minAICSSNR and aicarhpick.getpick() is not None:
         self.s_results.aicSflag = 1
         msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
               'SNR: {1}\nGo on with refined picking ...\n' \
