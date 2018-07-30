@@ -215,7 +215,7 @@ class PickingResults(dict):
         self.Mo = None
 
         # flags for plotting
-        self.aicPflag = 0
+        self.p_aic_plot_flag = 0
         self.aicSflag = 0
         self.Pflag = 0
         self.Sflag = 0
@@ -459,7 +459,7 @@ class AutopickStation(object):
 
     def get_traces_from_streams(self):
         """
-        Extract Trace from Stream. If a component has data, an empty trace will be returned
+        Extract Trace from Stream. If a component has no data, an empty trace will be returned
         :return: Tuple of obspy.Trace instances in order ZNE
         :rtype: (obspy.Trace)
         """
@@ -673,7 +673,7 @@ class AutopickStation(object):
             if self.p_results.Pweight < 4:
                 # plot CF of initial onset (HOScf or ARZcf)
                 ax1.plot(self.cf1.getTimeArray(), self.cf1.getCF()/max(self.cf1.getCF()), 'b', label='CF1')
-            if self.p_results.aicPflag == 1:
+            if self.p_results.p_aic_plot_flag == 1:
                 aicpick = self.p_results.aicpick
                 refPpick = self.p_results.refPpick
                 # plot CF of precise pick (HOScf or ARZcf)
@@ -778,7 +778,7 @@ class AutopickStation(object):
                         pass
                     plt.close(fig)
 
-    def _pick_p_qc1(self, aicpick, z_copy, tr_filt):
+    def _pick_p_qality_control(self, aicpick, z_copy, tr_filt):
         """
         Quality control of first pick using minseglength and checkZ4S.
         :param aicpick: Instance of AICPicker to run quality control on
@@ -824,7 +824,7 @@ class AutopickStation(object):
             return 0
 
         if self.nstream == self.estream:
-            # todo: old implementation skipped this test if one component was misisng, why not use one component?
+            # todo: old implementation skipped this test if one component was missing, why not use one component?
             msg = 'One or more horizontal components missing!\n Skipping control function checkZ4S.'
             self.vprint(msg)
             return 1
@@ -845,9 +845,6 @@ class AutopickStation(object):
         :raises:
             MissingTraceException: If vertical trace is missing.
         """
-        if not self.zstream or self.zstream is None:
-            raise MissingTraceException('No z-component found for station {}'.format(self.station_name))
-
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
               'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
@@ -867,18 +864,16 @@ class AutopickStation(object):
 
         # calculate first CF
         if self.p_params.algoP == 'HOS':
-            cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
+            self.cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
         elif self.p_params.algoP == 'ARZ':
-            cf1 = ARZcf(z_copy, cuttimes, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z,
+            self.cf1 = ARZcf(z_copy, cuttimes, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z,
                         self.p_params.addnoise)
         else:
-            cf1 = None
-        # save cf1 for plotting
-        self.cf1 = cf1
-        assert isinstance(cf1, CharacteristicFunction), 'cf1 is not set correctly: maybe the algorithm name ({}) is ' \
-                                                        'corrupted'.format(self.p_params.algoP)
+            self.cf1 = None
+        assert isinstance(self.cf1, CharacteristicFunction), 'cf1 is not set correctly: maybe the algorithm name ({})' \
+                                                             ' is corrupted'.format(self.p_params.algoP)
         # calculate AIC cf from first cf (either HOS or ARZ)
-        z_copy[0].data = cf1.getCF()
+        z_copy[0].data =  self.cf1.getCF()
         aiccf = AICcf(z_copy, cuttimes)
         # get preliminary onset time from AIC-CF
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
@@ -894,7 +889,7 @@ class AutopickStation(object):
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
-        Pflag = self._pick_p_qc1(aicpick, z_copy, tr_filt)
+        Pflag = self._pick_p_qality_control(aicpick, z_copy, tr_filt)
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
@@ -908,7 +903,7 @@ class AutopickStation(object):
             error_msg = 'AIC P onset SNR to small: got {}, min {}'.format(aicpick.getSNR(), self.p_params.minAICPSNR)
             raise PickingFailedException(error_msg)
 
-        self.p_results.aicPflag = 1
+        self.p_results.p_aic_plot_flag = 1
         msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, SNR: {1}\nGo on with refined picking ...\n' \
               'autopickstation: re-filtering vertical trace...'.format(aicpick.getSlope(), aicpick.getSNR())
         self.vprint(msg)
@@ -919,18 +914,16 @@ class AutopickStation(object):
         # determine new times around initial onset
         cuttimes2 = self._calculate_cuttimes('P', 2)
         if self.p_params.algoP == 'HOS':
-            cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
+            self.cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
         elif self.p_params.algoP == 'ARZ':
-            cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
+            self.cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
         else:
-            cf2 = None
-        # save cf2 for plotting
-        self.cf2 = cf2
-        assert isinstance(cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
+            self.cf2 = None
+        assert isinstance(self.cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
                                                         'corrupted'.format(self.p_params.algoP)
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
         # get refined onset time from CF2
-        refPpick = PragPicker(cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
+        refPpick = PragPicker(self.cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
                               self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
         # save PragPicker result for plotting
         self.p_results.refPpick = refPpick
@@ -957,10 +950,10 @@ class AutopickStation(object):
             self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
                                          self.p_results.mpickP, self.iplot, fig, linecolor)
         msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
-        msg.format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
+        msg = msg.format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
         print(msg)
         msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'
-        msg.format(self.p_results.mpickP, self.p_results.Perror)
+        msg = msg.format(self.p_results.mpickP, self.p_results.Perror)
         print(msg)
         self.s_results.Sflag = 1
 
@@ -1070,16 +1063,14 @@ class AutopickStation(object):
     def _pick_s_calculate_ar_cf_2(self):
         cuttimesh2 = self._calculate_cuttimes('S', 2)
         # refilter waveform with larger bandpass
+        trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
+        trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
         if self.s_params.algoS == 'ARH':
-            trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-            trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
             h_copy = self.hdat.copy()
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
         elif self.s_params.algoS == 'AR3':
             trH3_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-            trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-            trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
             h_copy = self.hdat.copy()
             h_copy[0].data = trH3_filt.data
             h_copy[1].data = trH1_filt.data
@@ -1091,11 +1082,9 @@ class AutopickStation(object):
 
         # calculate second cf
         if self.s_params.algoS == 'ARH':
-            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h,
-                           self.p_params.addnoise)
+            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
         elif self.s_params.algoS == 'AR3':
-            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h,
-                            self.p_params.addnoise)
+            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
         # save cf for later plotting
         self.arhcf2 = arhcf2
 
