@@ -778,7 +778,7 @@ class AutopickStation(object):
                         pass
                     plt.close(fig)
 
-    def pick_p_qc1(self, aicpick, z_copy, tr_filt):
+    def _pick_p_qc1(self, aicpick, z_copy, tr_filt):
         """
         Quality control of first pick using minseglength and checkZ4S.
         :param aicpick: Instance of AICPicker to run quality control on
@@ -894,7 +894,7 @@ class AutopickStation(object):
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
-        Pflag = self.pick_p_qc1(aicpick, z_copy, tr_filt)
+        Pflag = self._pick_p_qc1(aicpick, z_copy, tr_filt)
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
@@ -1004,84 +1004,83 @@ class AutopickStation(object):
         else:
             raise ValueError('Wrong type given, can only be P or S')
 
+    def _calculate_autoregressive_cf_s_pick(self, cuttimesh):
         # prepare traces for picking by filtering, taper
         if self.s_params.algoS == 'ARH':
-            hdat = self.nstream.copy() + self.estream.copy()
+            self.hdat = self.nstream.copy() + self.estream.copy()
             trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
             trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
-            h_copy = hdat.copy()
+            h_copy = self.hdat.copy()
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
         if self.s_params.algoS == 'AR3':
-            hdat = self.zstream.copy() + self.estream.copy() + self.nstream.copy()
+            self.hdat = self.zstream.copy() + self.estream.copy() + self.nstream.copy()
             trH1_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
             trH2_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
             trH3_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph1[0], freqmax=self.s_params.bph1[1])
-            h_copy = hdat.copy()
+            h_copy =self. hdat.copy()
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
             h_copy[2].data = trH3_filt.data
 
-        # calculate inital CF based on autoregression
+        self.trH1_filt = trH1_filt
+        self.h_copy = h_copy
+
+        # calculate initial CF based on autoregression
         if self.s_params.algoS == 'ARH':
             arhcf1 = ARHcf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
         elif self.s_params.algoS == 'AR3':
             arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
-        # save cf for later plotting
-        self.arhcf1 = arhcf1
-    def pick_s_phase(self):
+        return arhcf1
 
-        tr_arhaic = trH1_filt.copy()
-        tr_arhaic.data = arhcf1.getCF()
-        h_copy[0].data = tr_arhaic.data
-        # determine time window for calculating CF after P onset
-        cuttimesh = self._calculate_cuttimes(type='S', iteration=1)
+    def _calculate_aic_cf_s_pick(self, cuttimesh):
+        stream = self.estream.copy()
+        stream[0].data = self.arhcf1.getCF()
+        haiccf = AICcf(stream, cuttimesh)
+        return haiccf
 
-        # calculate AIC cf
-        haiccf = AICcf(h_copy, cuttimesh)
-
-        # get preliminary onset time from AIC cf
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicARHfig')
-        aicarhpick = AICPicker(haiccf, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, Tsmooth=self.s_params.aictsmoothS, fig=fig, linecolor=linecolor)
-        # save pick for later plotting
-        self.aicarhpick = aicarhpick
-
+    def _pick_s_quality_control(self):
+        """
+        Check quality of pick. Function will raise a PickingFailedException if the S pick does not fullfill all quality
+        criteria. Else nothing happens and picking can continue.
+        """
         # go on with processing if AIC onset passes quality control
-        slope = aicarhpick.getSlope()
+        slope = self.aicarhpick.getSlope()
 
         if not slope:
             slope = 0
 
         if slope < self.s_params.minAICSslope:
-            error_msg = error_msg = 'AIC S onset slope to small: got {}, min {}'.format(slope, self.s_params.minAICSslope)
+            error_msg = error_msg = 'AIC S onset slope to small: got {}, min {}'.format(slope,
+                                                                                        self.s_params.minAICSslope)
             raise PickingFailedException(error_msg)
-        if aicarhpick.getSNR() < self.s_params.minAICSSNR:
-            error_msg = 'AIC S onset SNR to small: got {}, min {}'.format(aicarhpick.getSNR(), self.s_params.minAICSSNR)
+        if self.aicarhpick.getSNR() < self.s_params.minAICSSNR:
+            error_msg = 'AIC S onset SNR to small: got {}, min {}'.format(self.aicarhpick.getSNR(), self.s_params.minAICSSNR)
             raise PickingFailedException(error_msg)
-        if aicarhpick.getpick() is None:
+        if self.aicarhpick.getpick() is None:
             error_msg = 'Invalid AIC S pick!'
             raise PickingFailedException(error_msg)
         self.s_results.aicSflag = 1
         msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
               'SNR: {1}\nGo on with refined picking ...\n' \
               'autopickstation: re-filtering horizontal traces ' \
-              '...'.format(aicarhpick.getSlope(), aicarhpick.getSNR())
+              '...'.format(self.aicarhpick.getSlope(), self.aicarhpick.getSNR())
         self.vprint(msg)
 
+    def _pick_s_calculate_ar_cf_2(self):
         cuttimesh2 = self._calculate_cuttimes('S', 2)
-
         # refilter waveform with larger bandpass
         if self.s_params.algoS == 'ARH':
             trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
             trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-            h_copy = hdat.copy()
+            h_copy = self.hdat.copy()
             h_copy[0].data = trH1_filt.data
             h_copy[1].data = trH2_filt.data
         elif self.s_params.algoS == 'AR3':
             trH3_filt, _ = self.prepare_wfstream(self.zstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
             trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
             trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.s_params.bph2[0], freqmax=self.s_params.bph2[1])
-            h_copy = hdat.copy()
+            h_copy = self.hdat.copy()
             h_copy[0].data = trH3_filt.data
             h_copy[1].data = trH1_filt.data
             h_copy[2].data = trH2_filt.data
@@ -1092,11 +1091,95 @@ class AutopickStation(object):
 
         # calculate second cf
         if self.s_params.algoS == 'ARH':
-            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h,
+                           self.p_params.addnoise)
         elif self.s_params.algoS == 'AR3':
-            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h,
+                            self.p_params.addnoise)
         # save cf for later plotting
         self.arhcf2 = arhcf2
+
+        self.h_copy = h_copy
+        return arhcf2
+
+    def _pick_s_quality_assessment(self, h_copy, fig, linecolor):
+        """
+        quality assessment: get earliest/latest possible pick and symmetrized uncertainty
+        """
+        h_copy[0].data = self.estream_bph2.data
+        if self.iplot:
+            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
+        epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
+                                                   self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+
+        h_copy[0].data = self.nstream_bph2.data
+        if self.iplot:
+            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S2pick')
+        else:
+            # why is it set to empty here? DA
+            linecolor = ''
+        epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
+                                                   self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+
+        if epickS1 is not None and epickS2 is not None:
+            if self.s_params.algoS == 'ARH':
+                # get earliest pick of both earliest possible picks
+                epick = [epickS1, epickS2]
+                lpick = [lpickS1, lpickS2]
+                pickerr = [Serror1, Serror2]
+                ipick = np.argmin(epick)
+            if self.s_params.algoS == 'AR3':
+                epickS3, lpickS3, Serror3 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
+                                                           self.s_results.mpickS, self.iplot)
+                # get earliest of all three picks
+                epick = [epickS1, epickS2, epickS3]
+                lpick = [lpickS1, lpickS2, lpickS3]
+                pickerr = [Serror1, Serror2, Serror3]
+
+                if epickS3 is not None:
+                    ipick = np.argmin(epick)
+                else:
+                    ipick = np.argmin([epickS1, epickS2])
+            self.s_results.epickS = epick[ipick]
+            self.s_results.lpickS = lpick[ipick]
+            self.s_results.Serror = pickerr[ipick]
+
+            msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpickS,
+                                                                                 self.s_results.Serror)
+            print(msg)
+
+            # get SNR
+            self.s_results.SNRS, self.s_results.SNRSdB, self.s_results.Snoiselevel = getSNR(h_copy, self.s_params.tsnrh,
+                                                                                            self.s_results.mpickS)
+
+            self.s_results.Sweight = get_quality_class(self.s_results.Serror, self.s_params.timeerrorsS)
+
+            print('autopickstation: S-weight: {0}, SNR: {1}, '
+                  'SNR[dB]: {2}\n'
+                  '##################################################'
+                  ''.format(self.s_results.Sweight, self.s_results.SNRS, self.s_results.SNRSdB))
+
+    def pick_s_phase(self):
+
+        # determine time window for calculating CF after P onset
+        cuttimesh = self._calculate_cuttimes(type='S', iteration=1)
+
+        # calculate autoregressive CF
+        self.arhcf1 = self._calculate_autoregressive_cf_s_pick(cuttimesh)
+
+        # calculate AIC cf
+        haiccf = self._calculate_aic_cf_s_pick(cuttimesh)
+
+        # get preliminary onset time from AIC cf
+        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicARHfig')
+        aicarhpick = AICPicker(haiccf, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, Tsmooth=self.s_params.aictsmoothS, fig=fig, linecolor=linecolor)
+        # save pick for later plotting
+        self.aicarhpick = aicarhpick
+
+        # check quality of pick
+        self._pick_s_quality_control()
+
+        arhcf2 = self._pick_s_calculate_ar_cf_2()
 
         # get refined onset time from CF2
         fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refSpick')
@@ -1106,55 +1189,7 @@ class AutopickStation(object):
         self.s_results.mpickS = refSpick.getpick()
 
         if self.s_results.mpickS is not None:
-            # quality assessment
-            # get earliest/latest possible pick and symmetrized uncertainty
-            h_copy[0].data = trH1_filt.data
-            if self.iplot:
-                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
-            epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
-
-            h_copy[0].data = trH2_filt.data
-            if self.iplot:
-                fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S2pick')
-            else:
-                # why is it set to empty here? DA
-                linecolor = ''
-            epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
-
-            if epickS1 is not None and epickS2 is not None:
-                if self.s_params.algoS == 'ARH':
-                    # get earliest pick of both earliest possible picks
-                    epick = [epickS1, epickS2]
-                    lpick = [lpickS1, lpickS2]
-                    pickerr = [Serror1, Serror2]
-                    ipick = np.argmin(epick)
-                if self.s_params.algoS == 'AR3':
-                    epickS3, lpickS3, Serror3 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh, self.s_results.mpickS, self.iplot)
-                    # get earliest of all three picks
-                    epick = [epickS1, epickS2, epickS3]
-                    lpick = [lpickS1, lpickS2, lpickS3]
-                    pickerr = [Serror1, Serror2, Serror3]
-
-                    if epickS3 is not None:
-                        ipick = np.argmin(epick)
-                    else:
-                        ipick = np.argmin([epickS1, epickS2])
-                self.s_results.epickS = epick[ipick]
-                self.s_results.lpickS = lpick[ipick]
-                self.s_results.Serror = pickerr[ipick]
-
-                msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpickS, self.s_results.Serror)
-                print(msg)
-
-                # get SNR
-                self.s_results.SNRS, self.s_results.SNRSdB, self.s_results.Snoiselevel = getSNR(h_copy, self.s_params.tsnrh, self.s_results.mpickS)
-
-                self.s_results.Sweight = get_quality_class(self.s_results.Serror, self.s_params.timeerrorsS)
-
-                print('autopickstation: S-weight: {0}, SNR: {1}, '
-                      'SNR[dB]: {2}\n'
-                      '##################################################'
-                      ''.format(self.s_results.Sweight, self.s_results.SNRS, self.s_results.SNRSdB))
+            self._pick_s_quality_assessment(self.h_copy, fig, linecolor)
 
 
 def get_fig_from_figdict(figdict, figkey):
