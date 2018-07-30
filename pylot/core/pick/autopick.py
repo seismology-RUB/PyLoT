@@ -395,6 +395,10 @@ class AutopickStation(object):
         self.taper_max_percentage = 0.05
         self.taper_type = 'hann'
 
+        # Used during picking to plot results
+        self.current_figure = None
+        self.current_linecolor = None
+
     def horizontal_traces_exist(self):
         """
         Return true when at least one horizontal traces exists
@@ -791,7 +795,7 @@ class AutopickStation(object):
         :rtype: int
         """
 
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'slength')
+        self.set_current_figure('slength')
         if aicpick.getpick() is None:
             msg = "Bad initial (AIC) P-pick, skipping this onset!\nAIC-SNR={0}, AIC-Slope={1}counts/s\n " \
                   "(min. AIC-SNR={2}, min. AIC-Slope={3}counts/s)"
@@ -817,7 +821,7 @@ class AutopickStation(object):
             minsiglength = self.signal_length_params.minsiglength
         Pflag = checksignallength(zne, aicpick.getpick(), self.p_params.tsnrz, minsiglength,
                                   self.signal_length_params.noisefactor, self.signal_length_params.minpercent,
-                                  self.iplot, fig, linecolor)
+                                  self.iplot, self.current_figure, self.current_linecolor)
         if Pflag == 0:
             self.p_results.Pmarker = 'shortsignallength'
             self.p_results.Pweight = 9
@@ -829,8 +833,9 @@ class AutopickStation(object):
             self.vprint(msg)
             return 1
 
-        if self.iplot > 1: fig, linecolor = get_fig_from_figdict(self.fig_dict, 'checkZ4s')
-        Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot, fig, linecolor)
+        if self.iplot > 1: self.set_current_figure('checkZ4s')
+        Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot,
+                         self.current_figure, self.current_linecolor)
         if Pflag == 0:
             self.p_results.Pmarker = 'SinsteadP'
             self.p_results.Pweight = 9
@@ -876,15 +881,15 @@ class AutopickStation(object):
         z_copy[0].data =  self.cf1.getCF()
         aiccf = AICcf(z_copy, cuttimes)
         # get preliminary onset time from AIC-CF
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicFig')
+        self.set_current_figure('aicFig')
         aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
-                            Tsmooth=self.p_params.aictsmooth, fig=fig, linecolor=linecolor)
+                            Tsmooth=self.p_params.aictsmooth, fig=self.current_figure, linecolor=self.current_linecolor)
         # save aicpick for plotting later
         self.p_results.aicpick = aicpick
         # add pstart and pstop to aic plot
-        if fig:
+        if self.current_figure:
             # TODO remove plotting from picking, make own plot function
-            for ax in fig.axes:
+            for ax in self.current_figure.axes:
                 ax.vlines(self.p_params.pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
@@ -921,10 +926,10 @@ class AutopickStation(object):
             self.cf2 = None
         assert isinstance(self.cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
                                                         'corrupted'.format(self.p_params.algoP)
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refPpick')
+        self.set_current_figure('refPpick')
         # get refined onset time from CF2
         refPpick = PragPicker(self.cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
-                              self.p_params.tsmoothP, aicpick.getpick(), fig, linecolor)
+                              self.p_params.tsmoothP, aicpick.getpick(), self.current_figure, self.current_linecolor)
         # save PragPicker result for plotting
         self.p_results.refPpick = refPpick
         self.p_results.mpickP = refPpick.getpick()
@@ -936,9 +941,10 @@ class AutopickStation(object):
             self.s_results.Sflag = 0
             raise PickingFailedException(msg)
         # quality assessment, get earliest/latest pick and symmetrized uncertainty
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_Ppick')
+        #todo quality assessment in own function
+        self.set_current_figure('el_Ppick')
         elpicker_results = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpickP,
-                                          self.iplot, fig=fig, linecolor=linecolor)
+                                          self.iplot, fig=self.current_figure, linecolor=self.current_linecolor)
         self.p_results.epickP, self.p_results.lpickP, self.p_results.Perror = elpicker_results
         snr_results = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpickP)
         self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.Pnoiselevel = snr_results
@@ -946,9 +952,9 @@ class AutopickStation(object):
         # weight P-onset using symmetric error
         self.p_results.Pweight = get_quality_class(self.p_results.Perror, self.p_params.timeerrorsP)
         if self.p_results.Pweight <= self.first_motion_params.minfmweight and self.p_results.SNRP >= self.first_motion_params.minFMSNR:
-            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'fm_picker')
+            self.set_current_figure('fm_picker')
             self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
-                                         self.p_results.mpickP, self.iplot, fig, linecolor)
+                                         self.p_results.mpickP, self.iplot, self.current_figure, self.current_linecolor)
         msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
         msg = msg.format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
         print(msg)
@@ -1091,24 +1097,26 @@ class AutopickStation(object):
         self.h_copy = h_copy
         return arhcf2
 
-    def _pick_s_quality_assessment(self, h_copy, fig, linecolor):
+    def _pick_s_quality_assessment(self, h_copy):
         """
         quality assessment: get earliest/latest possible pick and symmetrized uncertainty
         """
         h_copy[0].data = self.estream_bph2.data
         if self.iplot:
-            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S1pick')
+            self.set_current_figure('el_S1pick')
         epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
-                                                   self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+                                                   self.s_results.mpickS, self.iplot, fig=self.current_figure,
+                                                   linecolor=self.current_linecolor)
 
         h_copy[0].data = self.nstream_bph2.data
         if self.iplot:
-            fig, linecolor = get_fig_from_figdict(self.fig_dict, 'el_S2pick')
+            self.set_current_figure('el_S2pick')
         else:
             # why is it set to empty here? DA
             linecolor = ''
         epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
-                                                   self.s_results.mpickS, self.iplot, fig=fig, linecolor=linecolor)
+                                                   self.s_results.mpickS, self.iplot, fig=self.current_figure,
+                                                   linecolor=self.current_linecolor)
 
         if epickS1 is not None and epickS2 is not None:
             if self.s_params.algoS == 'ARH':
@@ -1160,8 +1168,9 @@ class AutopickStation(object):
         haiccf = self._calculate_aic_cf_s_pick(cuttimesh)
 
         # get preliminary onset time from AIC cf
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'aicARHfig')
-        aicarhpick = AICPicker(haiccf, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, Tsmooth=self.s_params.aictsmoothS, fig=fig, linecolor=linecolor)
+        self.set_current_figure('aicARHfig')
+        aicarhpick = AICPicker(haiccf, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot,
+                               Tsmooth=self.s_params.aictsmoothS, fig=self.current_figure, linecolor=self.current_linecolor)
         # save pick for later plotting
         self.aicarhpick = aicarhpick
 
@@ -1171,32 +1180,31 @@ class AutopickStation(object):
         arhcf2 = self._pick_s_calculate_ar_cf_2()
 
         # get refined onset time from CF2
-        fig, linecolor = get_fig_from_figdict(self.fig_dict, 'refSpick')
-        refSpick = PragPicker(arhcf2, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, self.s_params.ausS, self.s_params.tsmoothS, aicarhpick.getpick(), fig, linecolor)
+        self.set_current_figure('refSpick')
+        refSpick = PragPicker(arhcf2, self.s_params.tsnrh, self.s_params.pickwinS, self.iplot, self.s_params.ausS,
+                              self.s_params.tsmoothS, aicarhpick.getpick(), self.current_figure, self.current_linecolor)
         # save refSpick for later plotitng
         self.refSpick = refSpick
         self.s_results.mpickS = refSpick.getpick()
 
         if self.s_results.mpickS is not None:
-            self._pick_s_quality_assessment(self.h_copy, fig, linecolor)
+            self._pick_s_quality_assessment(self.h_copy)
 
+    def set_current_figure(self, figkey):
+        """
+        Extracts a figure by name from dictionary and set it as the currently active figure.
+        All functions that create plots during picking will use the currently active figure to plot them.
+        :param figkey:
+        :type figkey:
+        :return:
+        :rtype:
+        """
+        if self.fig_dict is None:
+            return None, None
+        self.current_figure = self.fig_dict.get(figkey, None)
+        plot_style = self.fig_dict.get('plot_style', 'k')
+        self.current_linecolor = plot_style['linecolor']['rgba_mpl']
 
-def get_fig_from_figdict(figdict, figkey):
-    """
-    Helper method to extract a figure by name from dictionary
-    :param figdict: Dictionary of matplotlib figures
-    :type figdict: dict
-    :param figkey: which figure to extract from figdict
-    :type figkey: str
-    :return: Figure and linecolor as a tuple
-    :rtype:
-    """
-    if figdict is None:
-        return None, None
-    fig = figdict.get(figkey, None)
-    linecolor = figdict.get('plot_style', 'k')
-    linecolor = linecolor['linecolor']['rgba_mpl']
-    return fig, linecolor
 
 
 def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, metadata=None, origin=None):
