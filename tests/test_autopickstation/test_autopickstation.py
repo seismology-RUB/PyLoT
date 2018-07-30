@@ -30,7 +30,9 @@ class HidePrints:
             sys.stdout = self._original_stdout
 
 
-class MockParser:
+class MockMetadata:
+    """Mock metadata object used for taupy to avoid reading large dless file from disk.
+    get_coordinates must take the same arguments as pylot.core.utils.dataprocssing.py/class Metadata."""
 
     @staticmethod
     def get_coordinates(station_id):
@@ -77,6 +79,7 @@ class TestAutopickStation(unittest.TestCase):
         self.gra2 = self.wfstream.select(station='GRA2')
         self.ech = self.wfstream.select(station='ECH')
         self.fiesa = self.wfstream.select(station='FIESA')
+        self.a106 = self.wfstream.select(station='A106A')
         # Create input parameter container
         self.inputfile_taupy_enabled = os.path.join(os.path.dirname(__file__), 'autoPyLoT_global_taupy_true.in')
         self.inputfile_taupy_disabled = os.path.join(os.path.dirname(__file__), 'autoPyLoT_global_taupy_false.in')
@@ -171,12 +174,13 @@ class TestAutopickStation(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_autopickstation_gra1_horizontal_comps_missing(self):
-        """Picking on a stream without a horizontal traces should return None"""
+        """Picking on a stream without horizontal traces should still pick the P phase on the vertical component"""
         wfstream = self.gra1.copy()
         wfstream = wfstream.select(channel='*Z')
+        expected =  {'P': {'picker': 'auto', 'snrdb': 15.405649120980094, 'network': u'GR', 'weight': 0, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 32, 690000), 'Mw': None, 'fc': None, 'snr': 34.718816470730317, 'epp': UTCDateTime(2016, 1, 24, 10, 41, 28, 890000), 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 31, 690000), 'w0': None, 'spe': 0.9333333333333323, 'fm': 'D', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'Sweight': 4, 'w0': None, 'epickP': None, 'epickS': None, 'FM': 'N', 'p_aic_plot_flag': 0, 'Serror': None, 'aicSflag': 0, 'Perror': None, 'lpickS': None, 'Mo': None, 'lpickP': None, 'Mw': None, 'fc': None, 'SNRSdB': None, 'Pweight': 4, 'Pflag': 0, 'Pmarker': [], 'mpickP': None, 'Ao': None, 'mpickS': None, 'SNRP': None, 'SNRS': None, 'Sflag': 1, 'SNRPdB': None}, 'station': u'GRA1'}
         with HidePrints():
             result = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
-        self.assertIsNone(result)
+        self.assertEqual(expected, result)
 
 if __name__ == '__main__':
     unittest.main()
