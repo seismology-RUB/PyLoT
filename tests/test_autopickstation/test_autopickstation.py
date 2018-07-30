@@ -48,13 +48,14 @@ class MockMetadata:
         >>>MockParser.get_coordinates('GR.GRA2')
         {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
         """
-        station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH', 'CH.FIESA']
+        station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH', 'CH.FIESA', 'Z3.A106A']
         gra1 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 499.5, u'latitude': 49.691888, u'local_depth': 0.0, u'longitude': 11.22172}
         gra2 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
         ech = {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 580.0, u'latitude': 48.216313, u'local_depth': 250.0, u'longitude': 7.158961}
         fiesa = {'azimuth': 0.0, 'dip': -90.0, 'elevation': 2340.5, 'latitude': 46.43521, 'local_depth': 0.0, 'longitude': 8.11051}
+        a106 = {'azimuth': 90.0, 'dip': 0.0, 'elevation': 468.0, 'latitude': 48.753388, 'local_depth': 0.0, 'longitude': 9.721937}
 
-        coordinates = [gra1, gra2, ech, fiesa]
+        coordinates = [gra1, gra2, ech, fiesa, a106]
 
         for index, name in enumerate(station_names):
             if station_id.startswith(name):
@@ -180,6 +181,14 @@ class TestAutopickStation(unittest.TestCase):
         expected =  {'P': {'picker': 'auto', 'snrdb': 15.405649120980094, 'network': u'GR', 'weight': 0, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 32, 690000), 'Mw': None, 'fc': None, 'snr': 34.718816470730317, 'epp': UTCDateTime(2016, 1, 24, 10, 41, 28, 890000), 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 31, 690000), 'w0': None, 'spe': 0.9333333333333323, 'fm': 'D', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'Sweight': 4, 'w0': None, 'epickP': None, 'epickS': None, 'FM': 'N', 'p_aic_plot_flag': 0, 'Serror': None, 'aicSflag': 0, 'Perror': None, 'lpickS': None, 'Mo': None, 'lpickP': None, 'Mw': None, 'fc': None, 'SNRSdB': None, 'Pweight': 4, 'Pflag': 0, 'Pmarker': [], 'mpickP': None, 'Ao': None, 'mpickS': None, 'SNRP': None, 'SNRS': None, 'Sflag': 1, 'SNRPdB': None}, 'station': u'GRA1'}
         with HidePrints():
             result = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled, metadata=(None, None))
+        print(result['S'])
+        self.assertEqual(expected, result)
+
+    def test_autopickstation_a106_taupy_enabled(self):
+        """This station has invalid values recorded on both N and E component, but a pick can still be found on Z"""
+        expected = {'P': {'picker': 'auto', 'snrdb': 12.862128789922826, 'network': u'Z3', 'weight': 0, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 34), 'Mw': None, 'fc': None, 'snr': 19.329155459132608, 'epp': UTCDateTime(2016, 1, 24, 10, 41, 30), 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 33), 'w0': None, 'spe': 1.6666666666666667, 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': None, 'network': u'Z3', 'weight': 4, 'Ao': None, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 28, 56), 'Mw': None, 'fc': None, 'snr': None, 'epp': UTCDateTime(2016, 1, 24, 10, 28, 24), 'mpp': UTCDateTime(2016, 1, 24, 10, 28, 40), 'w0': None, 'spe': None, 'fm': None, 'channel': u'LHE'}, 'station': u'A106A'}
+        with HidePrints():
+            result = autopickstation(wfstream=self.a106, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
         self.assertEqual(expected, result)
 
 if __name__ == '__main__':
