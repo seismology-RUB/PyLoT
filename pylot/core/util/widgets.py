@@ -3575,7 +3575,7 @@ class TuneAutopicker(QWidget):
         if index == -1:
             index += 1
         nevents = self.eventBox.model().rowCount()
-        path = self.eventBox.itemText(index)
+        path = self.eventBox.itemText(index).split('*')[0]
         if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
                 path = self.eventBox.itemText(index)
