@@ -506,6 +506,8 @@ class Data(object):
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
+                if not picks[key].get('P'):
+                    continue
                 if picks[key]['P']['picker'] == 'auto':
                     print("Existing auto-picks will be overwritten in pick-dictionary!")
                     picks = picks_from_picksdict(picks)
