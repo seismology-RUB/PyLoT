@@ -1028,7 +1028,7 @@ class MainWindow(QMainWindow):
         '''
         if not eventbox:
             eventbox = self.eventBox
-        path = eventbox.currentText()
+        path = eventbox.currentText().split('*')[0]
         return self.project.getEventFromPath(path)
 
     def get_current_event_path(self, eventbox=None):
@@ -1291,7 +1291,10 @@ class MainWindow(QMainWindow):
             #                    p=event_npicks,
             #                    a=event_nautopicks)
 
-            item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
+            event_str = '{path:{plen}}'.format(path=event_path, plen=plmax)
+            if event.dirty:
+                event_str += '*'
+            item_path = QtGui.QStandardItem(event_str)
             item_time = QtGui.QStandardItem('{}'.format(time))
             item_lat = QtGui.QStandardItem('{}'.format(lat))
             item_lon = QtGui.QStandardItem('{}'.format(lon))
@@ -1334,7 +1337,7 @@ class MainWindow(QMainWindow):
             self.setItemColor(itemlist, id, event, current_event)
 
             model.appendRow(itemlist)
-            if not event.path == self.eventBox.itemText(id).strip():
+            if not event.path == self.eventBox.itemText(id).split('*')[0].strip():
                 message = ('Path missmatch creating eventbox.\n'
                            '{} unequal {}.'
                            .format(event.path, self.eventBox.itemText(id)))
@@ -1433,6 +1436,8 @@ class MainWindow(QMainWindow):
         self.update_status(msg)
         print(msg)
 
+        event.dirty = False
+        self.fill_eventbox()
         return True
 
     def exportEvents(self, outformats=['.xml'], events='all'):
@@ -1440,11 +1445,15 @@ class MainWindow(QMainWindow):
             events = self.project.eventlist
         assert type(events) == list, 'Wrong input type: {}'.format(type(events))
         for event in events:
+            if not event.dirty:
+                continue
             self.get_data().setEvtData(event)
             try:
                 self.saveData(event, event.path, outformats)
+                event.dirty = False
             except Exception as e:
                 print('WARNING! Could not save event {}. Reason: {}'.format(event.path, e))
+        self.fill_eventbox()
 
     def enableSaveEventAction(self):
         self.saveEventAction.setEnabled(True)
@@ -3031,7 +3040,11 @@ class MainWindow(QMainWindow):
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
 
-            item_path.setText(event.path)
+            event_str = event.path
+            if event.dirty:
+                event_str += '*'
+
+            item_path.setText(event_str)
             if hasattr(event, 'origins'):
                 if event.origins:
                     origin = event.origins[0]
@@ -3245,6 +3258,10 @@ class MainWindow(QMainWindow):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
                     self.updateFilteroptions()
+            # added for backwards compatibility with older events not having a 'dirty' attribute
+            for event in self.project.eventlist:
+                if not hasattr(event, 'dirty'):
+                    event.dirty = False
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
@@ -3264,10 +3281,10 @@ class MainWindow(QMainWindow):
         if not filename.split('.')[-1] == 'plp':
             filename = fnm[0] + '.plp'
         self.project.parameter = self._inputs
+        self.exportEvents()
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
-        self.exportEvents()
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
         return True
 
@@ -3282,11 +3299,11 @@ class MainWindow(QMainWindow):
                     return False
             else:
                 self.project.parameter = self._inputs
-                self.project.save()
                 self.exportEvents()
+                self.project.save()
             if not self.project.dirty:
-                self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 self.setDirty(False)
+                self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 return True
             else:
                 # if still dirty because saving failed
@@ -3312,6 +3329,7 @@ class MainWindow(QMainWindow):
         self.saveProjectAsAction.setEnabled(True)
         self.project.setDirty(value)
         self.dirty = value
+        self.fill_eventbox()
 
     def closeEvent(self, event):
         if self.okToContinue():

@@ -35,6 +35,7 @@ class Event(ObsPyEvent):
         self._refEvent = False
         self.get_notes()
         self.get_obspy_event_info()
+        self.dirty = False
 
     def get_notes_path(self):
         """
@@ -143,6 +144,7 @@ class Event(ObsPyEvent):
         for index, pick in reversed(list(enumerate(self.picks))):
             if picktype in str(pick.method_id):
                 self.picks.pop(index)
+        self.dirty = True
 
     def addPicks(self, picks):
         """
@@ -157,6 +159,7 @@ class Event(ObsPyEvent):
         # add ObsPy picks (clear old manual and copy all new manual from pylot)
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def addAutopicks(self, autopicks):
         """
@@ -170,6 +173,7 @@ class Event(ObsPyEvent):
         # add ObsPy picks (clear old auto and copy all new auto from pylot)
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def setPick(self, station, pick):
         """
@@ -191,6 +195,7 @@ class Event(ObsPyEvent):
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def setPicks(self, picks):
         """
@@ -203,6 +208,7 @@ class Event(ObsPyEvent):
         self.pylot_picks = picks
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def getPick(self, station):
         """
@@ -243,6 +249,7 @@ class Event(ObsPyEvent):
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def setAutopicks(self, picks):
         """
@@ -255,6 +262,7 @@ class Event(ObsPyEvent):
         self.pylot_autopicks = picks
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def getAutopick(self, station):
         """
@@ -293,6 +301,7 @@ class Event(ObsPyEvent):
         try:
             outfile = open(filename, 'wb')
             cPickle.dump(self, outfile, -1)
+            self.dirty = False
         except Exception as e:
             print('Could not pickle PyLoT event. Reason: {}'.format(e))
 
@@ -311,5 +320,6 @@ class Event(ObsPyEvent):
             import _pickle as cPickle
         infile = open(filename, 'rb')
         event = cPickle.load(infile)
+        event.dirty = False
         print('Loaded %s' % filename)
         return event
