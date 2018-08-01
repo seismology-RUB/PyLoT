@@ -13,8 +13,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
-from pylot.core.util.utils import real_Bool, real_None
-from pylot.core.util.defaults import SetChannelComponents
+from pylot.core.util.utils import real_Bool, real_None, SetChannelComponents
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):

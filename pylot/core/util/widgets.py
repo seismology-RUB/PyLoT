@@ -49,13 +49,12 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
-    SetChannelComponents
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions
+    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
@@ -4617,31 +4616,16 @@ class GraphicsTab(PropTab):
         self.main_layout.addWidget(label, 1, 0)
         self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
-    def add_pg_cb(self):
-        pg = True
-        text = {True: 'Use pyqtgraphic library for plotting',
-                False: 'Cannot use library: pyqtgraphic not found on system'}
-        label = QLabel('PyQt graphic')
-        label.setToolTip(text[bool(pg)])
-        label.setEnabled(bool(pg))
-        self.checkbox_pg = QtGui.QCheckBox()
-        self.checkbox_pg.setEnabled(bool(pg))
-        self.checkbox_pg.setChecked(bool(pg))
-        self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.checkbox_pg, 0, 1)
-
     def set_current_style(self):
         selected_style = self.style_cb.currentText()
         self.pylot_mainwindow.set_style(selected_style)
 
     def getValues(self):
-        values = {'nth_sample': self.spinbox_nth_sample.value(),
-                  'pyqtgraphic': self.checkbox_pg.isChecked()}
+        values = {'nth_sample': self.spinbox_nth_sample.value()}
         return values
 
     def resetValues(self, infile=None):
-        values = {'nth_sample': self.spinbox_nth_sample.setValue(1),
-                  'pyqtgraphic': self.checkbox_pg.setChecked(True)}
+        values = {'nth_sample': self.spinbox_nth_sample.setValue(1)}
         return values
 
 

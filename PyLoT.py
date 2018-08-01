@@ -67,7 +67,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
+from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
@@ -76,7 +76,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
     pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
     check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, real_Bool
+    check_all_pylot, real_Bool, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -155,15 +155,32 @@ class MainWindow(QMainWindow):
             self.data._new = False
         self.autodata = Data(self)
 
-        if settings.value("user/FullName", None) is None:
-            fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
-            settings.setValue("user/FullName", fulluser)
-            settings.setValue("user/Login", getLogin())
-        if settings.value("agency_id", None) is None:
-            agency = QInputDialog.getText(self,
-                                          "Enter authority/institution name:",
-                                          "Authority")
-            settings.setValue("agency_id", agency)
+        while True:
+            try:
+                if settings.value("user/FullName", None) is None:
+                    fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
+                    settings.setValue("user/FullName", fulluser)
+                    settings.setValue("user/Login", getLogin())
+                if settings.value("agency_id", None) is None:
+                    agency = QInputDialog.getText(self,
+                                                  "Enter authority/institution name:",
+                                                  "Authority")
+                    settings.setValue("agency_id", agency)
+                break
+            except Exception as e:
+                qmb = QMessageBox(self, icon=QMessageBox.Question,
+                                  text='Could not init application settings: {}.'
+                                       'Do you want to reset application settings?'.format(e),
+                                  windowTitle='PyLoT - Init QSettings warning')
+                qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                qmb.setDefaultButton(QMessageBox.No)
+                ret = qmb.exec_()
+                if ret == qmb.Yes:
+                    settings.clear()
+                else:
+                    sys.exit()
+                print('Settings cleared!')
+
         self.fnames = None
         self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
@@ -671,14 +688,9 @@ class MainWindow(QMainWindow):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
         plottitle = None  # "Overview: {0} components ".format(self.getComponent())
         self.disconnectWFplotEvents()
-        if str(settings.value('pyqtgraphic')) == 'false' or not pg:
-            self.pg = False
-            self.dataPlot = PylotCanvas(parent=self, connect_events=False, multicursor=True)
-            self.dataPlot.updateWidget(xlab, None, plottitle)
-        else:
-            self.pg = pg
-            self.dataPlot = WaveformWidgetPG(parent=self,
-                                             title=plottitle)
+        self.pg = pg
+        self.dataPlot = WaveformWidgetPG(parent=self,
+                                         title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
         self.wf_scroll_area.setWidget(self.dataPlot)
         if self.get_current_event():
