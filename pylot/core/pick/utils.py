@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
 from pylot.core.util.utils import real_Bool, real_None
+from pylot.core.util.defaults import SetChannelComponents
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -555,8 +556,6 @@ def select_for_phase(st, phase):
     :return: stream object containing the selected phase
     :rtype: `~obspy.core.stream.Stream`
     """
-
-    from pylot.core.util.defaults import SetChannelComponents
 
     sel_st = Stream()
     compclass = SetChannelComponents()
@@ -1184,6 +1183,73 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
                 pass
             plt.close(fig)
     return returnflag
+
+
+def getPickQuality(wfdata, picks, inputs, phase, compclass=None):
+    quality = 4
+    components4phases = {'P': ['Z'],
+                         'S': ['N', 'E']}
+    timeErrors4phases = {'P': 'timeerrorsP',
+                         'S': 'timeerrorsS'}
+    tsnr4phases = {'P': 'tsnrz',
+                   'S': 'tsnrh'}
+
+    if not phase in components4phases.keys():
+        raise IOError('getPickQuality: Could not understand phase: {}'.format(phase))
+
+    if not compclass:
+        print('Warning: No settings for channel components found. Using default')
+        compclass = SetChannelComponents()
+
+    picks = picks[phase]
+    mpp = picks.get('mpp')
+    uncertainty = picks.get('spe')
+    if not mpp:
+        print('getPickQuality: No pick found!')
+        return quality
+    if not uncertainty:
+        print('getPickQuality: No pick uncertainty (spe) found!')
+        return quality
+
+    tsnr = inputs[tsnr4phases[phase]]
+    timeErrors = inputs[timeErrors4phases[phase]]
+    snrdb_final = 0
+
+    for component in components4phases[phase]:
+        alter_comp = compclass.getCompPosition(component)
+        st_select = wfdata.select(component=component)
+        st_select += wfdata.select(component=alter_comp)
+        if st_select:
+            trace = st_select[0]
+            _, snrdb, _ = getSNR(st_select, tsnr,
+                                 mpp - trace.stats.starttime)
+        if snrdb > snrdb_final:
+            snrdb_final = snrdb
+
+    quality = getQualityFromUncertainty(uncertainty, timeErrors)
+    quality += getQualityFromSNR(snrdb_final)
+
+    return quality
+
+
+def getQualityFromSNR(snrdb):
+    quality_modifier = 4
+    if not snrdb:
+        print('getQualityFromSNR: No snrdb!')
+        return quality_modifier
+    # MP MP ++++ experimental,
+    # raise pick quality by x classes if snrdb is lower than corresponding key
+    quality4snrdb = {3: 4,
+                     5: 3,
+                     7: 2,
+                     9: 1,
+                     11: 0}
+    # MP MP ---
+    # iterate over all thresholds and check whether snrdb is larger, if so, set new quality_modifier
+    for snrdb_threshold in sorted(list(quality4snrdb.keys())):
+        if snrdb > snrdb_threshold:
+            quality_modifier = quality4snrdb[snrdb_threshold]
+    return quality_modifier
 
 
 def getQualityFromUncertainty(uncertainty, Errors):

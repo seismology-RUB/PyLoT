@@ -64,7 +64,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
@@ -2707,6 +2707,8 @@ class MainWindow(QMainWindow):
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
+        settings = QSettings()
+        compclass = settings.value('compclass')
 
         for phase in stat_picks:
             if phase == 'SPt': continue  # wadati SP time
@@ -2714,13 +2716,16 @@ class MainWindow(QMainWindow):
             if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
 
+            phaseID = self.getPhaseID(phase)
             # get quality classes
-            if self.getPhaseID(phase) == 'P':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
-                phaseID = 'P'
-            elif self.getPhaseID(phase) == 'S':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
-                phaseID = 'S'
+            # if  phaseID == 'P':
+            #     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+            # elif phaseID == 'S':
+            #     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+
+            quality = getPickQuality(self.get_data().getWFData(),
+                                     stat_picks, self._inputs, phaseID,
+                                     compclass)
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:
