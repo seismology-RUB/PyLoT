@@ -3376,7 +3376,7 @@ class TuneAutopicker(QWidget):
         return self.eventBox.currentText().split('/')[-1]
 
     def get_current_event_fp(self):
-        return self.eventBox.currentText()
+        return self.eventBox.currentText().split('*')[0]
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
