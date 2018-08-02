@@ -684,7 +684,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(_widget)
 
     def init_wfWidget(self):
-        settings = QSettings()
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
         plottitle = None  # "Overview: {0} components ".format(self.getComponent())
         self.disconnectWFplotEvents()
