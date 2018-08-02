@@ -73,15 +73,11 @@ class Array_map(QtGui.QWidget):
                 if pickDlg.exec_():
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    replot = pyl_mw.get_current_event().setPick(station, pickDlg.getPicks())
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
                     self._refresh_drawings()
-                    if replot:
-                        pyl_mw.plotWaveformData()
-                        pyl_mw.drawPicks()
-                        pyl_mw.draw()
-                    else:
-                        pyl_mw.drawPicks(station)
-                        pyl_mw.draw()
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
                 else:
                     pyl_mw.update_status('picks discarded ({0})'.format(station))
             except Exception as e:
