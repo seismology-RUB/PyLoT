@@ -2719,7 +2719,6 @@ class MainWindow(QMainWindow):
 
         stat_picks = self.getPicks(type=picktype)[station]
         settings = QSettings()
-        compclass = settings.value('compclass')
 
         for phase in stat_picks:
             if phase == 'SPt': continue  # wadati SP time
@@ -2729,14 +2728,14 @@ class MainWindow(QMainWindow):
 
             phaseID = self.getPhaseID(phase)
             # get quality classes
-            # if  phaseID == 'P':
-            #     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
-            # elif phaseID == 'S':
-            #     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+            if  phaseID == 'P':
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+            elif phaseID == 'S':
+                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
 
-            quality = getPickQuality(self.get_data().getWFData(),
-                                     stat_picks, self._inputs, phaseID,
-                                     compclass)
+            # quality = getPickQuality(self.get_data().getWFData(),
+            #                          stat_picks, self._inputs, phaseID,
+            #                          compclass)
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:
