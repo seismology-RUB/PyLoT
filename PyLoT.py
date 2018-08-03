@@ -443,6 +443,8 @@ class MainWindow(QMainWindow):
                                                   slot=self.pickQualities, shortcut='Alt+Q',
                                                   icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
+        # MP MP not yet implemented, therefore hide:
+        self.qualities_action.setVisible(False)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
