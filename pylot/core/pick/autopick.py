@@ -553,7 +553,7 @@ class AutopickStation(object):
 
         self.plot_pick_results()
         self.finish_picking()
-        return {'P': self.p_results, 'S':self.s_results, 'station':self.ztrace.stats.station}
+        return [{'P': self.p_results, 'S':self.s_results}, self.ztrace.stats.station]
 
     def finish_picking(self):
 
@@ -1165,7 +1165,11 @@ def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, 
     except MissingTraceException as e:
         # Either vertical or both horizontal traces are missing
         print(e)
-        return None
+        try:
+            station_name = wfstream[0].stats.station
+        except IndexError:
+            station_name = 'None'
+        return None, station_name
 
 
 def nautopickstation(wfstream, pickparam, verbose=False,
