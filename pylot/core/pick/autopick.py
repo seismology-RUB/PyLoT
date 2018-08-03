@@ -180,47 +180,11 @@ class PickingParameters(object):
 
 
 class PickingResults(dict):
+    """
+    Store picking results
+    """
 
-    def init_for_picking(self):
-        """
-        Initialize intermediary values of PickingResults used during pick calculation.
-        :return:
-        :rtype:
-        """
-        # initialize output
-        self.Pweight = 4  # weight for P onset
-        self.Sweight = 4  # weight for S onset
-        self.FM = 'N'  # first motion (polarity)
-        self.SNRP = None  # signal-to-noise ratio of P onset
-        self.SNRPdB = None  # signal-to-noise ratio of P onset [dB]
-        self.SNRS = None  # signal-to-noise ratio of S onset
-        self.SNRSdB = None  # signal-to-noise ratio of S onset [dB]
-        self.mpickP = None  # most likely P onset
-        self.lpickP = None  # latest possible P onset
-        self.epickP = None  # earliest possible P onset
-        self.mpickS = None  # most likely S onset
-        self.lpickS = None  # latest possible S onset
-        self.epickS = None  # earliest possible S onset
-        self.Perror = None  # symmetrized picking error P onset
-        self.Serror = None  # symmetrized picking error S onset
-
-        self.Pmarker = []
-        self.Ao = None  # Wood-Anderson peak-to-peak amplitude
-        self.picker = 'auto'  # type of picks
-
-        # these get added during the construction of the p pick results dictionary
-        self.w0 = None
-        self.fc = None
-        self.Mw = None
-        self.Mo = None
-
-        # flags for plotting
-        self.p_aic_plot_flag = 0
-        self.aicSflag = 0
-        self.Pflag = 0
-        self.Sflag = 0
-
-    def init_default_values(self):
+    def __init__(self):
         """
         Inits default values of picking results. Called to generate a clean
         PickingResults instance with sensible defaults.
@@ -234,93 +198,44 @@ class PickingResults(dict):
         # TODO What are those?
         self.w0 = None
         self.fc = None
+        self.Ao = None          # Wood-Anderson peak-to-peak amplitude
 
         # Station information
         self.network = None
         self.channel = None
 
         # pick information
-        self.picker = 'auto'
+        self.picker = 'auto'    # type of pick
         self.marked = []
 
         # pick results
-        self.epp = None
-        self.mpp = None
-        self.lpp = None
-        self.fm = 'N'
-        self.snr = None
-        self.snrdb = None
-        self.spe = None
-        self.weight = 4
-
-    def make_clean_results(self, pick, channel, network):
-        """
-        Create a new PickingResults instance that only contains relevant results.
-        No intermediate pick information is saved in the new PickingResults.
-        :param pick: decides P or S pick results are collected
-        :type pick: str
-        :param channel: channel on which the pick was calculated
-        :type channel: str
-        :param network: Network id of station
-        :type network: str
-        :return:
-        :rtype: PickingResults
-        """
-        if pick.upper() == 'P':
-            p = PickingResults()
-            p.init_default_values()
-            # Magnitude parameters
-            p.Mo = self.Mo
-            p.Mw = self.Mw
-
-            # TODO What are those?
-            p.w0 = self.w0
-            p.fc = self.fc
-
-            # Station information
-            p.network = network
-            p.channel = channel
-
-            # pick information
-            p.picker = self.picker
-            p.marked = self.Pmarker
-
-            # pick results
-            p.epp = self.epickP
-            p.mpp = self.mpickP
-            p.lpp = self.lpickP
-            p.fm = self.FM
-            p.snr = self.SNRP
-            p.snrdb = self.SNRPdB
-            p.spe = self.Perror
-            p.weight = self.Pweight
-            return p
-        if pick.upper() == 'S':
-            s = PickingResults()
-            s.init_default_values()
-
-            # Station information
-            s.network = network
-            s.channel = channel
-            # Pick results
-            s.lpp = self.lpickS
-            s.mpp = self.mpickS
-            s.epp = self.epickS
-            s.spe = self.Serror
-            s.snr = self.SNRS
-            s.snrdb = self.SNRSdB
-            s.weight = self.Sweight
-            s.fm = None
-            s.picker = self.picker
-            s.Ao = self.Ao
-            return s
-
+        self.epp = None         # earliest possible pick
+        self.mpp = None         # most likely onset
+        self.lpp = None         # latest possible pick
+        self.fm = 'N'           # first motion polarity, can be set to 'U' (Up) or 'D' (Down)
+        self.snr = None         # signal-to-noise ratio of onset
+        self.snrdb = None       # signal-to-noise ratio of onset [dB]
+        self.spe = None         # symmetrized picking error
+        self.weight = 4         # weight of onset
 
     def __setattr__(self, key, value):
         self[key] = value
 
     def __getattr__(self, key):
         return self[key]
+
+
+class PickingContainer:
+    """
+    Keeps intermediary results and values during picking
+    """
+
+    def __init__(self):
+        # flags for plotting
+        self.p_aic_plot_flag = 0
+        self.aicSflag = 0
+        self.Pflag = 0
+        self.Sflag = 0
 
 
 class MissingTraceException(ValueError):
@@ -369,14 +284,15 @@ class AutopickStation(object):
 
         # initialize picking results
         self.p_results = PickingResults()
-        self.p_results.init_for_picking()
         self.s_results = PickingResults()
-        self.s_results.init_for_picking()
+
+        # intialize containers that keep intermediary values between picking P- and S phase and plotting
+        self.p_data = PickingContainer()
+        self.s_data = PickingContainer()
 
         # extract additional information
         pickparams = self.extract_pickparams(pickparam)
         self.p_params, self.s_params, self.first_motion_params, self.signal_length_params = pickparams
-        self.results = PickingResults()
         # TODO get channelorder from the pylot preferences
         self.channelorder = {'Z': 3, 'N': 1, 'E': 2}
         self.station_name = wfstream[0].stats.station
@@ -597,7 +513,7 @@ class AutopickStation(object):
         except PickingFailedException as pfe:
             print(pfe)
 
-        if self.horizontal_traces_exist() and self.p_results.Pweight is not None and self.p_results.Pweight < 4:
+        if self.horizontal_traces_exist() and self.p_results.weight is not None and self.p_results.weight < 4:
             try:
                 self.pick_s_phase()
             except MissingTraceException as mte:
@@ -612,24 +528,23 @@ class AutopickStation(object):
     def finish_picking(self):
 
         # calculate "real" onset times, save them in PickingResults
-        if self.p_results.lpickP is not None and self.p_results.lpickP == self.p_results.mpickP:
-            self.p_results.lpickP += self.ztrace.stats.delta
-        if self.p_results.epickP is not None and self.p_results.epickP == self.p_results.mpickP:
-            self.p_results.epickP -= self.ztrace.stats.delta
-        if self.p_results.mpickP is not None and self.p_results.epickP is not None and self.p_results.lpickP is not None:
-            self.p_results.lpickP = self.ztrace.stats.starttime + self.p_results.lpickP
-            self.p_results.epickP = self.ztrace.stats.starttime + self.p_results.epickP
-            self.p_results.mpickP = self.ztrace.stats.starttime + self.p_results.mpickP
+        if self.p_results.lpp is not None and self.p_results.lpp == self.p_results.mpp:
+            self.p_results.lpp += self.ztrace.stats.delta
+        if self.p_results.epp is not None and self.p_results.epp == self.p_results.mpp:
+            self.p_results.epp -= self.ztrace.stats.delta
+        if self.p_results.mpp is not None and self.p_results.epp is not None and self.p_results.lpp is not None:
+            self.p_results.lpp = self.ztrace.stats.starttime + self.p_results.lpp
+            self.p_results.epp = self.ztrace.stats.starttime + self.p_results.epp
+            self.p_results.mpp = self.ztrace.stats.starttime + self.p_results.mpp
         else:
             # dummy values (start of seismic trace) in order to derive
             # theoretical onset times for iterative picking
-            self.p_results.lpickP = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
-            self.p_results.epickP = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
-            self.p_results.mpickP = self.ztrace.stats.starttime
+            self.p_results.lpp = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
+            self.p_results.epp = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
+            self.p_results.mpp = self.ztrace.stats.starttime
 
-        self.p_results = self.p_results.make_clean_results('P', self.ztrace.stats.channel, self.ztrace.stats.network)
-        # add picking results to PickingResults instance
-
+        self.p_results.channel = self.ztrace.stats.channel
+        self.p_results.network = self.ztrace.stats.network
         #
         #   S results
         #
@@ -641,22 +556,24 @@ class AutopickStation(object):
         elif self.ntrace:
             hdat = self.ntrace
 
-        if self.s_results.lpickS is not None and self.s_results.lpickS == self.s_results.mpickS:
-            self.s_results.lpickS += hdat.stats.delta
-        if self.s_results.epickS is not None and self.s_results.epickS == self.s_results.mpickS:
-            self.s_results.epickS -= hdat.stats.delta
-        if self.s_results.mpickS is not None and self.s_results.epickS is not None and self.s_results.lpickS is not None:
-            self.s_results.lpickS = hdat.stats.starttime + self.s_results.lpickS
-            self.s_results.epickS = hdat.stats.starttime + self.s_results.epickS
-            self.s_results.mpickS = hdat.stats.starttime + self.s_results.mpickS
+        if self.s_results.lpp is not None and self.s_results.lpp == self.s_results.mpp:
+            self.s_results.lpp += hdat.stats.delta
+        if self.s_results.epp is not None and self.s_results.epp == self.s_results.mpp:
+            self.s_results.epp -= hdat.stats.delta
+        if self.s_results.mpp is not None and self.s_results.epp is not None and self.s_results.lpp is not None:
+            self.s_results.lpp = hdat.stats.starttime + self.s_results.lpp
+            self.s_results.epp = hdat.stats.starttime + self.s_results.epp
+            self.s_results.mpp = hdat.stats.starttime + self.s_results.mpp
         else:
             # dummy values (start of seismic trace) in order to derive
             # theoretical onset times for iteratve picking
-            self.s_results.lpickS = hdat.stats.starttime + self.s_params.timeerrorsS[3]
-            self.s_results.epickS = hdat.stats.starttime - self.s_params.timeerrorsS[3]
-            self.s_results.mpickS = hdat.stats.starttime
+            self.s_results.lpp = hdat.stats.starttime + self.s_params.timeerrorsS[3]
+            self.s_results.epp = hdat.stats.starttime - self.s_params.timeerrorsS[3]
+            self.s_results.mpp = hdat.stats.starttime
 
-        self.s_results = self.s_results.make_clean_results('S', self.etrace.stats.channel, self.etrace.stats.network)
+        self.s_results.channel = self.etrace.stats.channel
+        self.s_results.network = self.etrace.stats.network
+        self.s_results.fm = None    # override default value 'N'
 
     def plot_pick_results(self):
         if self.iplot > 0:
@@ -674,12 +591,12 @@ class AutopickStation(object):
             tdata = np.linspace(start=0, stop=self.ztrace.stats.npts*self.ztrace.stats.delta, num=self.ztrace.stats.npts)
             # plot tapered trace filtered with bpz2 filter settings
             ax1.plot(tdata, self.tr_filt_z_bpz2.data/max(self.tr_filt_z_bpz2.data), color=linecolor, linewidth=0.7, label='Data')
-            if self.p_results.Pweight < 4:
+            if self.p_results.weight < 4:
                 # plot CF of initial onset (HOScf or ARZcf)
                 ax1.plot(self.cf1.getTimeArray(), self.cf1.getCF()/max(self.cf1.getCF()), 'b', label='CF1')
-            if self.p_results.p_aic_plot_flag == 1:
-                aicpick = self.p_results.aicpick
-                refPpick = self.p_results.refPpick
+            if self.p_data.p_aic_plot_flag == 1:
+                aicpick = self.p_data.aicpick
+                refPpick = self.p_data.refPpick
                 # plot CF of precise pick (HOScf or ARZcf)
                 ax1.plot(self.cf2.getTimeArray(), self.cf2.getCF() / max(self.cf2.getCF()), 'm', label='CF2')
                 # plot inital P pick
@@ -691,36 +608,36 @@ class AutopickStation(object):
                 ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5], [1.3, 1.3], 'r', linewidth=2)
                 ax1.plot([refPpick.getpick() - 0.5, refPpick.getpick() + 0.5], [-1.3, -1.3], 'r', linewidth=2)
                 # plot latest possible P pick
-                ax1.plot([self.p_results.lpickP, self.p_results.lpickP], [-1.1, 1.1], 'r--', label='lpp')
+                ax1.plot([self.p_results.lpp, self.p_results.lpp], [-1.1, 1.1], 'r--', label='lpp')
                 # plot earliest possible P pick
-                ax1.plot([self.p_results.epickP, self.p_results.epickP], [-1.1, 1.1], 'r--', label='epp')
+                ax1.plot([self.p_results.epp, self.p_results.epp], [-1.1, 1.1], 'r--', label='epp')
                 # add title to plot
                 title = '{station}, {channel}, P weight={pweight:d}, SNR={snr:7.2}, SNR[dB]={snrdb:7.2}, Polarity: {polarity}'
                 ax1.set_title(title.format(station=self.ztrace.stats.station,
                                            channel=self.ztrace.stats.channel,
-                                           pweight=self.p_results.Pweight,
-                                           snr=self.p_results.SNRP,
-                                           snrdb=self.p_results.SNRPdB,
-                                           polarity=self.p_results.FM))
+                                           pweight=self.p_results.weight,
+                                           snr=self.p_results.snr,
+                                           snrdb=self.p_results.snrdb,
+                                           polarity=self.p_results.fm))
             else:
                 title = '{channel}, P weight={pweight}, SNR=None, SNR[dB]=None'
-                ax1.set_title(title.format(channel=self.ztrace.stats.channel, pweight=self.p_results.Pweight))
+                ax1.set_title(title.format(channel=self.ztrace.stats.channel, pweight=self.p_results.weight))
 
             ax1.legend(loc=1)
             ax1.set_yticks([])
             ax1.set_ylim([-1.5, 1.5])
             ax1.set_ylabel('Normalized Counts')
 
-            if self.horizontal_traces_exist() and self.s_results.Sflag == 1:
+            if self.horizontal_traces_exist() and self.s_data.Sflag == 1:
                 # plot E trace
                 ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
                 th1data = np.linspace(0, self.etrace.stats.npts*self.etrace.stats.delta, self.etrace.stats.npts)
                 # plot filtered and tapered waveform
                 ax2.plot(th1data, self.etrace.data / max(self.etrace.data), color=linecolor, linewidth=0.7, label='Data')
-                if self.p_results.Pweight < 4:
+                if self.p_results.weight < 4:
                     # plot initial CF (ARHcf or AR3Ccf)
                     ax2.plot(self.arhcf1.getTimeArray(), self.arhcf1.getCF() / max(self.arhcf1.getCF()), 'b', label='CF1')
-                    if self.s_results.aicSflag == 1 and self.s_results.Sweight <= 4:
+                    if self.s_data.aicSflag == 1 and self.s_results.weight <= 4:
                         aicarhpick = self.aicarhpick
                         refSpick = self.refSpick
                         # plot second cf, used for determing precise onset (ARHcf or AR3Ccf)
@@ -733,16 +650,16 @@ class AutopickStation(object):
                         ax2.plot([refSpick.getpick(), refSpick.getpick()], [-1.3, 1.3], 'g', linewidth=2, label='Final S Pick')
                         ax2.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [1.3, 1.3], 'g', linewidth=2)
                         ax2.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [-1.3, -1.3], 'g', linewidth=2)
-                        ax2.plot([self.s_results.lpickS, self.s_results.lpickS], [-1.1, 1.1], 'g--', label='lpp')
-                        ax2.plot([self.s_results.epickS, self.s_results.epickS], [-1.1, 1.1], 'g--', label='epp')
+                        ax2.plot([self.s_results.lpp, self.s_results.lpp], [-1.1, 1.1], 'g--', label='lpp')
+                        ax2.plot([self.s_results.epp, self.s_results.epp], [-1.1, 1.1], 'g--', label='epp')
                         title = '{channel}, S weight={sweight}, SNR={snr:7.2}, SNR[dB]={snrdb:7.2}'
                         ax2.set_title(title.format(channel=self.etrace.stats.channel,
-                                                   sweight=self.s_results.Sweight,
-                                                   snr=self.s_results.SNRS,
-                                                   snrdb=self.s_results.SNRSdB))
+                                                   sweight=self.s_results.weight,
+                                                   snr=self.s_results.snr,
+                                                   snrdb=self.s_results.snrdb))
                     else:
                         title = '{channel}, S weight={sweight}, SNR=None, SNR[dB]=None'
-                        ax2.set_title(title.format(channel=self.etrace.stats.channel, sweight=self.s_results.Sweight))
+                        ax2.set_title(title.format(channel=self.etrace.stats.channel, sweight=self.s_results.weight))
                 ax2.legend(loc=1)
                 ax2.set_yticks([])
                 ax2.set_ylim([-1.5, 1.5])
@@ -753,9 +670,9 @@ class AutopickStation(object):
                 th2data= np.linspace(0, self.ntrace.stats.npts*self.ntrace.stats.delta, self.ntrace.stats.npts)
                 # plot trace
                 ax3.plot(th2data, self.ntrace.data / max(self.ntrace.data), color=linecolor, linewidth=0.7, label='Data')
-                if self.p_results.Pweight < 4:
+                if self.p_results.weight < 4:
                     p22, = ax3.plot(self.arhcf1.getTimeArray(), self.arhcf1.getCF() / max(self.arhcf1.getCF()), 'b', label='CF1')
-                    if self.s_results.aicSflag == 1:
+                    if self.s_data.aicSflag == 1:
                         aicarhpick = self.aicarhpick
                         refSpick = self.refSpick
                         ax3.plot(self.arhcf2.getTimeArray(), self.arhcf2.getCF() / max(self.arhcf2.getCF()), 'm', label='CF2')
@@ -766,8 +683,8 @@ class AutopickStation(object):
                                  label='Final S Pick')
                         ax3.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [1.3, 1.3], 'g', linewidth=2)
                         ax3.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [-1.3, -1.3], 'g', linewidth=2)
-                        ax3.plot([self.s_results.lpickS, self.s_results.lpickS], [-1.1, 1.1], 'g--', label='lpp')
-                        ax3.plot([self.s_results.epickS, self.s_results.epickS], [-1.1, 1.1], 'g--', label='epp')
+                        ax3.plot([self.s_results.lpp, self.s_results.lpp], [-1.1, 1.1], 'g--', label='lpp')
+                        ax3.plot([self.s_results.epp, self.s_results.epp], [-1.1, 1.1], 'g--', label='epp')
                 ax3.legend(loc=1)
                 ax3.set_yticks([])
                 ax3.set_ylim([-1.5, 1.5])
@@ -823,8 +740,8 @@ class AutopickStation(object):
                                   self.signal_length_params.noisefactor, self.signal_length_params.minpercent,
                                   self.iplot, self.current_figure, self.current_linecolor)
         if Pflag == 0:
-            self.p_results.Pmarker = 'shortsignallength'
-            self.p_results.Pweight = 9
+            self.p_results.marked = 'shortsignallength'
+            self.p_results.weight = 9
             return 0
 
         if self.nstream == self.estream:
@@ -837,8 +754,8 @@ class AutopickStation(object):
         Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot,
                          self.current_figure, self.current_linecolor)
         if Pflag == 0:
-            self.p_results.Pmarker = 'SinsteadP'
-            self.p_results.Pweight = 9
+            self.p_results.marked = 'SinsteadP'
+            self.p_results.weight = 9
             return 0
         return 1
 
@@ -885,7 +802,7 @@ class AutopickStation(object):
         aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
                             Tsmooth=self.p_params.aictsmooth, fig=self.current_figure, linecolor=self.current_linecolor)
         # save aicpick for plotting later
-        self.p_results.aicpick = aicpick
+        self.p_data.aicpick = aicpick
         # add pstart and pstop to aic plot
         if self.current_figure:
             # TODO remove plotting from picking, make own plot function
@@ -908,7 +825,7 @@ class AutopickStation(object):
             error_msg = 'AIC P onset SNR to small: got {}, min {}'.format(aicpick.getSNR(), self.p_params.minAICPSNR)
             raise PickingFailedException(error_msg)
 
-        self.p_results.p_aic_plot_flag = 1
+        self.p_data.p_aic_plot_flag = 1
         msg = 'AIC P-pick passes quality control: Slope: {0} counts/s, SNR: {1}\nGo on with refined picking ...\n' \
               'autopickstation: re-filtering vertical trace...'.format(aicpick.getSlope(), aicpick.getSNR())
         self.vprint(msg)
@@ -931,37 +848,38 @@ class AutopickStation(object):
         refPpick = PragPicker(self.cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
                               self.p_params.tsmoothP, aicpick.getpick(), self.current_figure, self.current_linecolor)
         # save PragPicker result for plotting
-        self.p_results.refPpick = refPpick
-        self.p_results.mpickP = refPpick.getpick()
-        if self.p_results.mpickP is None:
+        self.p_data.refPpick = refPpick
+        self.p_results.mpp = refPpick.getpick()
+        if self.p_results.mpp is None:
             msg = 'Bad initial (AIC) P-pick, skipping this onset!\n AIC-SNR={}, AIC-Slope={}counts/s\n' \
                   '(min. AIC-SNR={}, min. AIC-Slope={}counts/s)'
             msg.format(aicpick.getSNR(), aicpick.getSlope(), self.p_params.minAICPSNR, self.p_params.minAICPslope)
             self.vprint(msg)
-            self.s_results.Sflag = 0
+            self.s_data.Sflag = 0
             raise PickingFailedException(msg)
         # quality assessment, get earliest/latest pick and symmetrized uncertainty
         #todo quality assessment in own function
         self.set_current_figure('el_Ppick')
-        elpicker_results = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpickP,
+        elpicker_results = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpp,
                                           self.iplot, fig=self.current_figure, linecolor=self.current_linecolor)
-        self.p_results.epickP, self.p_results.lpickP, self.p_results.Perror = elpicker_results
-        snr_results = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpickP)
-        self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.Pnoiselevel = snr_results
+        self.p_results.epp, self.p_results.lpp, self.p_results.spe = elpicker_results
+        snr_results = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpp)
+        self.p_results.snr, self.p_results.snrdb, _ = snr_results
 
         # weight P-onset using symmetric error
-        self.p_results.Pweight = get_quality_class(self.p_results.Perror, self.p_params.timeerrorsP)
-        if self.p_results.Pweight <= self.first_motion_params.minfmweight and self.p_results.SNRP >= self.first_motion_params.minFMSNR:
+        self.p_results.weight = get_quality_class(self.p_results.spe, self.p_params.timeerrorsP)
+        if self.p_results.weight <= self.first_motion_params.minfmweight and self.p_results.snr >= self.first_motion_params.minFMSNR:
+            # if SNR is low enough, try to determine first motion of onset
             self.set_current_figure('fm_picker')
-            self.p_results.FM = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
-                                         self.p_results.mpickP, self.iplot, self.current_figure, self.current_linecolor)
+            self.p_results.fm = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
+                                         self.p_results.mpp, self.iplot, self.current_figure, self.current_linecolor)
         msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
-        msg = msg.format(self.p_results.Pweight, self.p_results.SNRP, self.p_results.SNRPdB, self.p_results.FM)
+        msg = msg.format(self.p_results.weight, self.p_results.snr, self.p_results.snrdb, self.p_results.fm)
         print(msg)
         msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'
-        msg = msg.format(self.p_results.mpickP, self.p_results.Perror)
+        msg = msg.format(self.p_results.mpp, self.p_results.spe)
         print(msg)
-        self.s_results.Sflag = 1
+        self.s_data.Sflag = 1
 
     def _calculate_cuttimes(self, type, iteration):
         """
@@ -978,16 +896,16 @@ class AutopickStation(object):
             if iteration == 1:
                 return [self.p_params.pstart, self.p_params.pstop]
             if iteration == 2:
-                starttime2 = round(max(self.p_results.aicpick.getpick() - self.p_params.Precalcwin, 0))
+                starttime2 = round(max(self.p_data.aicpick.getpick() - self.p_params.Precalcwin, 0))
                 endtime2 = round(
-                    min(len(self.ztrace.data) * self.ztrace.stats.delta, self.p_results.aicpick.getpick() + self.p_params.Precalcwin))
+                    min(len(self.ztrace.data) * self.ztrace.stats.delta, self.p_data.aicpick.getpick() + self.p_params.Precalcwin))
                 return [starttime2, endtime2]
         elif type.upper() == 'S':
             if iteration == 1:
                 # Calculate start times for preliminary S onset
-                start = round(max(self.p_results.mpickP + self.s_params.sstart, 0))  # limit start time to >0 seconds
+                start = round(max(self.p_results.mpp + self.s_params.sstart, 0))  # limit start time to >0 seconds
                 stop = round(min([
-                    self.p_results.mpickP + self.s_params.sstop,
+                    self.p_results.mpp + self.s_params.sstop,
                     self.etrace.stats.endtime - self.etrace.stats.starttime,
                     self.ntrace.stats.endtime - self.ntrace.stats.starttime
                 ]))
@@ -1059,7 +977,7 @@ class AutopickStation(object):
         if self.aicarhpick.getpick() is None:
             error_msg = 'Invalid AIC S pick!'
             raise PickingFailedException(error_msg)
-        self.s_results.aicSflag = 1
+        self.s_data.aicSflag = 1
         msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
               'SNR: {1}\nGo on with refined picking ...\n' \
               'autopickstation: re-filtering horizontal traces ' \
@@ -1105,7 +1023,7 @@ class AutopickStation(object):
         if self.iplot:
             self.set_current_figure('el_S1pick')
         epickS1, lpickS1, Serror1 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
-                                                   self.s_results.mpickS, self.iplot, fig=self.current_figure,
+                                                   self.s_results.mpp, self.iplot, fig=self.current_figure,
                                                    linecolor=self.current_linecolor)
 
         h_copy[0].data = self.nstream_bph2.data
@@ -1115,7 +1033,7 @@ class AutopickStation(object):
             # why is it set to empty here? DA
             linecolor = ''
         epickS2, lpickS2, Serror2 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
-                                                   self.s_results.mpickS, self.iplot, fig=self.current_figure,
+                                                   self.s_results.mpp, self.iplot, fig=self.current_figure,
                                                    linecolor=self.current_linecolor)
 
         if epickS1 is not None and epickS2 is not None:
@@ -1127,7 +1045,7 @@ class AutopickStation(object):
                 ipick = np.argmin(epick)
             if self.s_params.algoS == 'AR3':
                 epickS3, lpickS3, Serror3 = earllatepicker(h_copy, self.s_params.nfacS, self.s_params.tsnrh,
-                                                           self.s_results.mpickS, self.iplot)
+                                                           self.s_results.mpp, self.iplot)
                 # get earliest of all three picks
                 epick = [epickS1, epickS2, epickS3]
                 lpick = [lpickS1, lpickS2, lpickS3]
@@ -1137,24 +1055,23 @@ class AutopickStation(object):
                     ipick = np.argmin(epick)
                 else:
                     ipick = np.argmin([epickS1, epickS2])
-            self.s_results.epickS = epick[ipick]
-            self.s_results.lpickS = lpick[ipick]
-            self.s_results.Serror = pickerr[ipick]
+            self.s_results.epp = epick[ipick]
+            self.s_results.lpp = lpick[ipick]
+            self.s_results.spe = pickerr[ipick]
 
-            msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpickS,
-                                                                                 self.s_results.Serror)
+            msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(self.s_results.mpp,
+                                                                                 self.s_results.spe)
             print(msg)
 
             # get SNR
-            self.s_results.SNRS, self.s_results.SNRSdB, self.s_results.Snoiselevel = getSNR(h_copy, self.s_params.tsnrh,
-                                                                                            self.s_results.mpickS)
+            self.s_results.snr, self.s_results.snrdb, _ = getSNR(h_copy, self.s_params.tsnrh, self.s_results.mpp)
 
-            self.s_results.Sweight = get_quality_class(self.s_results.Serror, self.s_params.timeerrorsS)
+            self.s_results.weight = get_quality_class(self.s_results.spe, self.s_params.timeerrorsS)
 
             print('autopickstation: S-weight: {0}, SNR: {1}, '
                   'SNR[dB]: {2}\n'
                   '##################################################'
-                  ''.format(self.s_results.Sweight, self.s_results.SNRS, self.s_results.SNRSdB))
+                  ''.format(self.s_results.weight, self.s_results.snr, self.s_results.snrdb))
 
     def pick_s_phase(self):
 
@@ -1185,9 +1102,9 @@ class AutopickStation(object):
                               self.s_params.tsmoothS, aicarhpick.getpick(), self.current_figure, self.current_linecolor)
         # save refSpick for later plotitng
         self.refSpick = refSpick
-        self.s_results.mpickS = refSpick.getpick()
+        self.s_results.mpp = refSpick.getpick()
 
-        if self.s_results.mpickS is not None:
+        if self.s_results.mpp is not None:
             self._pick_s_quality_assessment(self.h_copy)
 
     def set_current_figure(self, figkey):
