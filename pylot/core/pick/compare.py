@@ -506,7 +506,8 @@ class PDFstatistics(object):
 
         return rlist
 
-    def writeThetaToFile(self, array, out_dir):
+    @staticmethod
+    def writeThetaToFile(array, out_dir):
         """
         Method to write array like data to file. Useful since acquiring can take
         serious amount of time when dealing with large databases.

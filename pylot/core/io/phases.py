@@ -245,7 +245,7 @@ def picksdict_from_picks(evt):
             if picker.startswith('smi:local/'):
                 picker = picker.split('smi:local/')[1]
         except IndexError:
-            picker = 'manual' # MP MP TODO maybe improve statement
+            picker = 'manual'  # MP MP TODO maybe improve statement
         try:
             onsets = picksdict[picker][station]
         except KeyError as e:
@@ -345,6 +345,7 @@ def picks_from_picksdict(picks, creation_info=None):
                     raise e
             picks_list.append(pick)
     return picks_list
+
 
 def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
@@ -499,7 +500,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 except KeyError as e:
                     print(e)
                     fm = None
-                if fm == None:
+                if fm is None:
                     fm = '?'
                 onset = arrivals[key]['P']['mpp']
                 year = onset.year
@@ -916,9 +917,9 @@ def merge_picks(event, picks):
         network = pick.waveform_id.network_code
         method = pick.method_id
         for p in event.picks:
-            if p.waveform_id.station_code == station\
-                    and p.waveform_id.network_code == network\
-                    and p.phase_hint == phase\
+            if p.waveform_id.station_code == station \
+                    and p.waveform_id.network_code == network \
+                    and p.phase_hint == phase \
                     and (str(p.method_id) in str(method)
                          or str(method) in str(p.method_id)):
                 p.time, p.time_errors, p.waveform_id.network_code, p.method_id = time, err, network, method
@@ -965,22 +966,22 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         arrivals_copy = cat_copy.events[0].picks
         # Prefere manual picks if qualities are sufficient!
         for Pick in arrivals:
-            if (Pick.method_id.id).split('/')[1] == 'manual':
+            if Pick.method_id.id.split('/')[1] == 'manual':
                 mstation = Pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
                     phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
                     if phase == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or
-                                (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                            (mpick.waveform_id.station_code == mstation_ext)) and \
+                                (mpick.method_id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
                             del mpick
                             break
                     elif phase == 'S':
                         if ((mpick.waveform_id.station_code == mstation) or
-                                (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
+                            (mpick.waveform_id.station_code == mstation_ext)) and \
+                                (mpick.method_id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
                             del mpick
                             break
@@ -1032,19 +1033,19 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
             P0perc = 0
         if len(Pw1) > 0:
             P1perc = 100 / numPweights * len(Pw1)
-        else:  
+        else:
             P1perc = 0
         if len(Pw2) > 0:
             P2perc = 100 / numPweights * len(Pw2)
-        else:  
+        else:
             P2perc = 0
         if len(Pw3) > 0:
             P3perc = 100 / numPweights * len(Pw3)
-        else:  
+        else:
             P3perc = 0
         if len(Pw4) > 0:
             P4perc = 100 / numPweights * len(Pw4)
-        else:  
+        else:
             P4perc = 0
         if len(Sw0) > 0:
             S0perc = 100 / numSweights * len(Sw0)
@@ -1052,19 +1053,19 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
             S0perc = 0
         if len(Sw1) > 0:
             S1perc = 100 / numSweights * len(Sw1)
-        else:  
+        else:
             S1perc = 0
         if len(Sw2) > 0:
             S2perc = 100 / numSweights * len(Sw2)
-        else:  
+        else:
             S2perc = 0
         if len(Sw3) > 0:
             S3perc = 100 / numSweights * len(Sw3)
-        else:  
+        else:
             S3perc = 0
         if len(Sw4) > 0:
             S4perc = 100 / numSweights * len(Sw4)
-        else:  
+        else:
             S4perc = 0
 
         weights = ('0', '1', '2', '3', '4')

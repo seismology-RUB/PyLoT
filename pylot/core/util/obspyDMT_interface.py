@@ -4,6 +4,7 @@
 import os
 from obspy import UTCDateTime
 
+
 def check_obspydmt_structure(path):
     '''
     Check path for obspyDMT event structure.
@@ -16,6 +17,7 @@ def check_obspydmt_structure(path):
             return True
     return False
 
+
 def check_obspydmt_eventfolder(folder):
     try:
         time = folder.split('.')[0]
@@ -24,6 +26,7 @@ def check_obspydmt_eventfolder(folder):
         return True, time
     except Exception as e:
         return False, e
+
 
 def qml_from_obspyDMT(path):
     import pickle
@@ -41,4 +44,3 @@ def qml_from_obspyDMT(path):
     ev.magnitudes.append(mag)
     ev.origins.append(origin)
     return ev
-

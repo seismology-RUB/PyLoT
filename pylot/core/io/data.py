@@ -17,6 +17,7 @@ from pylot.core.util.utils import fnConstructor, full_range, remove_underscores,
 import pylot.core.loc.velest as velest
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
+
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
@@ -284,7 +285,7 @@ class Data(object):
                     mstation_ext = mstation + '_'
                     for k in range(len(picks_copy)):
                         if ((picks_copy[k].waveform_id.station_code == mstation) or
-                                (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                            (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
                                 (picks_copy[k].method_id == 'auto'):
                             del picks_copy[k]
                             break
@@ -299,7 +300,7 @@ class Data(object):
                     for i in range(len(picks_copy)):
                         if picks_copy[i].phase_hint[0] == 'P':
                             if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                    (picks_copy[i].time_errors['uncertainty'] is None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[0]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
@@ -311,7 +312,7 @@ class Data(object):
                                 break
                         if picks_copy[i].phase_hint[0] == 'S':
                             if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                    (picks_copy[i].time_errors['uncertainty'] is None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[1]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
@@ -404,7 +405,7 @@ class Data(object):
 
         # various pre-processing steps:
         # remove possible underscores in station names
-        self.wfdata = remove_underscores(self.wfdata)
+        #self.wfdata = remove_underscores(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)
@@ -415,7 +416,6 @@ class Data(object):
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
         return True
-
 
     def appendWFData(self, fnames, synthetic=False):
         """
@@ -506,8 +506,10 @@ class Data(object):
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
+                if not picks[key].get('P'):
+                    continue
                 if picks[key]['P']['picker'] == 'auto':
-                    print("Existing picks will be overwritten!")
+                    print("Existing auto-picks will be overwritten in pick-dictionary!")
                     picks = picks_from_picksdict(picks)
                     break
                 else:
