@@ -32,6 +32,8 @@ import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
+matplotlib.rcParams['savefig.dpi'] = 300
+
 
 from PySide import QtGui, QtCore
 from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
@@ -48,12 +50,7 @@ from obspy.core.util import AttribDict
 
 from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
 
-
-try:
-    import pyqtgraph as pg
-except Exception as e:
-    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
-    pg = None
+import pyqtgraph as pg
 
 try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
@@ -67,25 +64,25 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS, SetChannelComponents
+from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
-from pylot.core.util.dataprocessing import read_metadata, restitute_data
+from pylot.core.util.dataprocessing import Metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, has_spe, \
+    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
     check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, real_Bool
+    check_all_pylot, real_Bool, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -121,7 +118,7 @@ class MainWindow(QMainWindow):
         self.apw = None
         self.paraBox = None
         self.array_map = None
-        self._metadata = None
+        self._metadata = Metadata()
         self._eventChanged = [False, False]
         self.apd_local = None
         self.apd_sge = None
@@ -134,6 +131,9 @@ class MainWindow(QMainWindow):
         self.scroll_id = None
         self._ctrl = False  # control key pressed
         self._shift = False  # shift key pressed
+
+        self.drawnPicks = {'auto': {},
+                           'manual': {}}
 
         # default factor for dataplot e.g. enabling/disabling scrollarea
         self.height_factor = 12
@@ -155,15 +155,32 @@ class MainWindow(QMainWindow):
             self.data._new = False
         self.autodata = Data(self)
 
-        if settings.value("user/FullName", None) is None:
-            fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
-            settings.setValue("user/FullName", fulluser)
-            settings.setValue("user/Login", getLogin())
-        if settings.value("agency_id", None) is None:
-            agency = QInputDialog.getText(self,
-                                          "Enter authority/institution name:",
-                                          "Authority")
-            settings.setValue("agency_id", agency)
+        while True:
+            try:
+                if settings.value("user/FullName", None) is None:
+                    fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
+                    settings.setValue("user/FullName", fulluser)
+                    settings.setValue("user/Login", getLogin())
+                if settings.value("agency_id", None) is None:
+                    agency = QInputDialog.getText(self,
+                                                  "Enter authority/institution name:",
+                                                  "Authority")
+                    settings.setValue("agency_id", agency)
+                break
+            except Exception as e:
+                qmb = QMessageBox(self, icon=QMessageBox.Question,
+                                  text='Could not init application settings: {}.'
+                                       'Do you want to reset application settings?'.format(e),
+                                  windowTitle='PyLoT - Init QSettings warning')
+                qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                qmb.setDefaultButton(QMessageBox.No)
+                ret = qmb.exec_()
+                if ret == qmb.Yes:
+                    settings.clear()
+                else:
+                    sys.exit()
+                print('Settings cleared!')
+
         self.fnames = None
         self._stime = None
         structure_setting = settings.value("data/Structure", "PILOT")
@@ -195,7 +212,6 @@ class MainWindow(QMainWindow):
 
         self.loc = False
 
-
     def init_config_files(self, infile):
         pylot_config_dir = os.path.join(os.path.expanduser('~'), '.pylot')
         if not os.path.exists(pylot_config_dir):
@@ -209,7 +225,6 @@ class MainWindow(QMainWindow):
             print('Using default input file {}'.format(infile))
             self._inputs.export2File(infile)
         self.infile = infile
-
 
     def setupUi(self):
         try:
@@ -327,19 +342,19 @@ class MainWindow(QMainWindow):
         #                                    "Create a new event.")
         self.openEventAction = self.createAction(self, "Load event information...",
                                                  self.load_data,
-                                                       "Ctrl+M",
+                                                 "Ctrl+M",
                                                  openEventIcon,
-                                                       "Load event information for "
-                                                       "the displayed event.")
+                                                 "Load event information for "
+                                                 "the displayed event.")
         self.openEventAction.setEnabled(False)
         self.openEventAction.setData(None)
 
         self.openEventsAutoAction = self.createAction(self, "Load event information &automatically ... ",
                                                       self.load_multiple_data,
-                                                     "Ctrl+A",
+                                                      "Ctrl+A",
                                                       openEventsIcon,
-                                                     "Load event data automatically "
-                                                     "for for all events.")
+                                                      "Load event data automatically "
+                                                      "for all events.")
         self.openEventsAutoAction.setEnabled(False)
         self.openEventsAutoAction.setData(None)
 
@@ -360,7 +375,7 @@ class MainWindow(QMainWindow):
         self.saveEventAction = self.createAction(self, "Save &event information ...",
                                                  self.saveData, "Ctrl+P",
                                                  saveEventsIcon, "Save event pick data,"
-                                                                       " source origin and magnitude.")
+                                                                 " source origin and magnitude.")
         self.disableSaveEventAction()
 
         self.addEventDataAction = self.createAction(self, "Add &events ...",
@@ -398,16 +413,16 @@ class MainWindow(QMainWindow):
                                              self.adjustFilterOptions,
                                              "Ctrl+F", self.filter_icon,
                                              """Adjust filter parameters.""")
-        self.inventoryAction = self.createAction(self, "Select &Inventory ...",
-                                              self.get_new_metadata,
-                                              "Ctrl+I", self.inventoryIcon,
-                                              """Select metadata for current project""",
-                                              False)
+        self.inventoryAction = self.createAction(self, "Manage &Inventories ...",
+                                                 self.add_metadata,
+                                                 "Ctrl+I", self.inventoryIcon,
+                                                 """Manage metadata for current project""",
+                                                 False)
         self.initMapAction = self.createAction(self, "Init array map ...",
-                                            self.init_array_map,
-                                            "Ctrl+M", self.mapIcon,
-                                            """Initialize array map with current metadata""",
-                                            False)
+                                               self.init_array_map,
+                                               "Ctrl+M", self.mapIcon,
+                                               """Initialize array map with current metadata""",
+                                               False)
         self.initMapAction.setEnabled(False)
         self.selectPAction = self.createAction(self, "&P", self.alterPhase,
                                                "Alt+P",
@@ -424,10 +439,12 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
-        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...', 
-                                                slot=self.pickQualities, shortcut='Alt+Q',
-                                                icon=qualities_icon, tip='Histogram of pick qualities')
+        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...',
+                                                  slot=self.pickQualities, shortcut='Alt+Q',
+                                                  icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
+        # MP MP not yet implemented, therefore hide:
+        self.qualities_action.setVisible(False)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
@@ -471,7 +488,6 @@ class MainWindow(QMainWindow):
                                           checkable=True)
         self.e_action.setEnabled(False)
 
-
         componentActions = (self.z_action, self.n_action, self.e_action)
 
         self.auto_tune = self.createAction(parent=self, text='autoTune',
@@ -483,19 +499,19 @@ class MainWindow(QMainWindow):
         self.auto_pick = self.createAction(parent=self, text='Current event',
                                            slot=self.autoPick, shortcut='Alt+Ctrl+A',
                                            icon=autopylot_icon, tip='Automatically pick'
-                                           ' the displayed waveforms.')
+                                                                    ' the displayed waveforms.')
         self.auto_pick.setEnabled(False)
 
         self.auto_pick_local = self.createAction(parent=self, text='Whole project (local machine)...',
                                                  slot=self.autoPickProject, shortcut=None,
                                                  icon=self.autopicksicon_small, tip='Automatically pick'
-                                                 ' the complete project on local machine.')
+                                                                                    ' the complete project on local machine.')
         self.auto_pick_local.setEnabled(False)
 
         self.auto_pick_sge = self.createAction(parent=self, text='Whole project (grid engine)...',
                                                slot=self.autoPickProjectSGE, shortcut=None,
                                                icon=self.autopicksicon_small, tip='Automatically pick'
-                                               ' the complete project on grid engine.')
+                                                                                  ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
         pickActions = (self.auto_tune, self.auto_pick, self.compare_action, self.qualities_action)
@@ -527,10 +543,10 @@ class MainWindow(QMainWindow):
 
         self.editMenu = self.menuBar().addMenu('&Edit')
         editActions = (self.filterActionP, self.filterActionS, filterEditAction, None,
-                       #self.selectPAction, self.selectSAction, None,
+                       # self.selectPAction, self.selectSAction, None,
                        self.inventoryAction, self.initMapAction, None,
                        prefsEventAction)
-                       #printAction) #TODO: print event?
+        # printAction) #TODO: print event?
 
         pickMenuActions = (self.parameterAction,)
         self.pickMenu = self.menuBar().addMenu('&Picking')
@@ -546,12 +562,10 @@ class MainWindow(QMainWindow):
                            self.openProjectAction, self.saveProjectAction,
                            self.saveProjectAsAction)
 
-
         eventToolActions = (self.addEventDataAction,
                             self.openEventAction, self.openEventsAutoAction,
                             self.saveEventAction, self.loadlocationaction,
                             self.loadpilotevent)
-
 
         toolbars_keys = [
             "FileTools",
@@ -616,7 +630,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(self.refreshTabs)
 
         # add progressbar
-        self.mainProgressBarWidget = QtGui.QWidget()
+        self.mainProgressBarWidget = ProgressBarWidget(self)
         self._main_layout.addWidget(self.mainProgressBarWidget)
 
         # add scroll area used in case number of traces gets too high
@@ -672,18 +686,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(_widget)
 
     def init_wfWidget(self):
-        settings = QSettings()
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
         plottitle = None  # "Overview: {0} components ".format(self.getComponent())
         self.disconnectWFplotEvents()
-        if str(settings.value('pyqtgraphic')) == 'false' or not pg:
-            self.pg = False
-            self.dataPlot = PylotCanvas(parent=self, connect_events=False, multicursor=True)
-            self.dataPlot.updateWidget(xlab, None, plottitle)
-        else:
-            self.pg = pg
-            self.dataPlot = WaveformWidgetPG(parent=self,
-                                             title=plottitle)
+        self.pg = pg
+        self.dataPlot = WaveformWidgetPG(parent=self,
+                                         title=plottitle)
         self.dataPlot.setCursor(Qt.CrossCursor)
         self.wf_scroll_area.setWidget(self.dataPlot)
         if self.get_current_event():
@@ -860,7 +868,8 @@ class MainWindow(QMainWindow):
     def inputs(self):
         return self._inputs
 
-    def getRoot(self):
+    @staticmethod
+    def getRoot():
         settings = QSettings()
         return settings.value("data/dataRoot")
 
@@ -891,7 +900,7 @@ class MainWindow(QMainWindow):
         fext = '.xml'
         for event in events:
             path = event.path
-            eventname = path.split('/')[-1] #or event.pylot_id
+            eventname = path.split('/')[-1]  # or event.pylot_id
             filename = os.path.join(path, 'PyLoT_' + eventname + fext)
             if os.path.isfile(filename):
                 self.load_data(filename, draw=False, event=event, overwrite=True)
@@ -900,6 +909,7 @@ class MainWindow(QMainWindow):
             return
         if self.get_current_event().pylot_picks:
             self.refreshEvents()
+        self.fill_eventbox()
         self.setDirty(True)
 
     def load_data(self, fname=None, loc=False, draw=True, event=None, overwrite=False):
@@ -934,7 +944,9 @@ class MainWindow(QMainWindow):
                 return
 
         self.data = data
-        print('Loading event info from file {}.'.format(fname))
+        message = 'Loading event info from file {}.'.format(fname)
+        print(message)
+        self.update_status(message)
         if not loc:
             self.updatePicks(type='auto', event=event)
             self.updatePicks(type='manual', event=event)
@@ -961,7 +973,7 @@ class MainWindow(QMainWindow):
             button.setAutoFillBackground(True)
         elif type(color) == str:
             button.setStyleSheet('QPushButton{border-color: %s}'
-                                 'QPushButton:checked{background-color: rgba%s}'% (color, color))
+                                 'QPushButton:checked{background-color: rgba%s}' % (color, color))
         elif type(color) == tuple:
             button.setStyleSheet('QPushButton{border-color: rgba%s}'
                                  'QPushButton:checked{background-color: rgba%s}' % (str(color), str(color)))
@@ -1019,7 +1031,8 @@ class MainWindow(QMainWindow):
             raise DatastructureError('not specified')
         return fnames
 
-    def getPhaseID(self, phase):
+    @staticmethod
+    def getPhaseID(phase):
         return identifyPhaseID(phase)
 
     def get_current_event(self, eventbox=None):
@@ -1028,7 +1041,7 @@ class MainWindow(QMainWindow):
         '''
         if not eventbox:
             eventbox = self.eventBox
-        path = eventbox.currentText()
+        path = eventbox.currentText().split('*')[0]
         return self.project.getEventFromPath(path)
 
     def get_current_event_path(self, eventbox=None):
@@ -1065,7 +1078,7 @@ class MainWindow(QMainWindow):
                 self.dataStructure = DATASTRUCTURE['obspyDMT']()
                 eventlist = check_all_obspy(eventlist)
             else:
-                print('Settings Datastructure to PILOT')
+                print('Setting Datastructure to PILOT')
                 self.dataStructure = DATASTRUCTURE['PILOT']()
                 eventlist = check_all_pylot(eventlist)
             if not eventlist:
@@ -1147,7 +1160,8 @@ class MainWindow(QMainWindow):
         self.project.remove_event(event)
         self.init_events(True)
 
-    def createEventBox(self):
+    @staticmethod
+    def createEventBox():
         '''
         Eventbox generator.
         '''
@@ -1189,7 +1203,7 @@ class MainWindow(QMainWindow):
     def user_modify_path(self, reason=''):
         dialog = QtGui.QInputDialog(parent=self)
         new_path, executed = dialog.getText(self, 'Change Project rootpath',
-                                             '{}Rename project path {}:'.format(reason, self.project.rootpath))
+                                            '{}Rename project path {}:'.format(reason, self.project.rootpath))
         return new_path, executed
 
     def data_check(self):
@@ -1257,6 +1271,8 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
+            ma_count_total = {'manual': 0,
+                              'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -1264,8 +1280,9 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if pick.get('spe'):
                                 ma_count[ma] += 1
+                            ma_count_total[ma] += 1
 
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
@@ -1273,7 +1290,7 @@ class MainWindow(QMainWindow):
             time = lat = lon = depth = mag = None
             if len(event.origins) == 1:
                 origin = event.origins[0]
-                time = origin.time + 0 # add 0 because there was an exception for time = 0s
+                time = origin.time + 0  # add 0 because there was an exception for time = 0s
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
@@ -1287,15 +1304,18 @@ class MainWindow(QMainWindow):
             #                    p=event_npicks,
             #                    a=event_nautopicks)
 
-            item_path = QtGui.QStandardItem('{path:{plen}}'.format(path=event_path, plen=plmax))
+            event_str = '{path:{plen}}'.format(path=event_path, plen=plmax)
+            if event.dirty:
+                event_str += '*'
+            item_path = QtGui.QStandardItem(event_str)
             item_time = QtGui.QStandardItem('{}'.format(time))
             item_lat = QtGui.QStandardItem('{}'.format(lat))
             item_lon = QtGui.QStandardItem('{}'.format(lon))
             item_depth = QtGui.QStandardItem('{}'.format(depth))
             item_mag = QtGui.QStandardItem('{}'.format(mag))
-            item_nmp = QtGui.QStandardItem(str(ma_count['manual']))
+            item_nmp = QtGui.QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QStandardItem(str(ma_count['auto']))
+            item_nap = QtGui.QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QStandardItem()  # str(event_ref))
             item_test = QtGui.QStandardItem()  # str(event_test))
@@ -1326,11 +1346,11 @@ class MainWindow(QMainWindow):
                 for item in itemlist:
                     item.setEnabled(False)
 
-            #item color
+            # item color
             self.setItemColor(itemlist, id, event, current_event)
 
             model.appendRow(itemlist)
-            if not event.path == self.eventBox.itemText(id).strip():
+            if not event.path == self.eventBox.itemText(id).split('*')[0].strip():
                 message = ('Path missmatch creating eventbox.\n'
                            '{} unequal {}.'
                            .format(event.path, self.eventBox.itemText(id)))
@@ -1422,22 +1442,31 @@ class MainWindow(QMainWindow):
                                             upperErrors=[uppererrorP[3], uppererrorS[3]])
                 saved_as += str(outformat) + ' '
             except TypeError:
-                print('WARNING: Format: {} not yet implemented'.format(outformat)) 
+                print('WARNING: Format: {} not yet implemented'.format(outformat))
             self.get_data().setEvtData(event)
 
         msg = 'Event {} saved as {} in format(s) {}'.format(event.pylot_id, fbasename, saved_as.strip())
         self.update_status(msg)
         print(msg)
 
+        event.dirty = False
+        self.fill_eventbox()
         return True
 
-    def exportAllEvents(self, outformats=['.xml']):
-        for event in self.project.eventlist:
+    def exportEvents(self, outformats=['.xml'], events='all'):
+        if events == 'all':
+            events = self.project.eventlist
+        assert type(events) == list, 'Wrong input type: {}'.format(type(events))
+        for event in events:
+            if not event.dirty:
+                continue
             self.get_data().setEvtData(event)
             try:
                 self.saveData(event, event.path, outformats)
+                event.dirty = False
             except Exception as e:
                 print('WARNING! Could not save event {}. Reason: {}'.format(event.path, e))
+        self.fill_eventbox()
 
     def enableSaveEventAction(self):
         self.saveEventAction.setEnabled(True)
@@ -1485,11 +1514,10 @@ class MainWindow(QMainWindow):
         if len(eventdict) < 1:
             return
 
-
         # init event selection options for autopick
-        self.compareoptions =[('tune events', self.get_ref_events, self._style['ref']['rgba']),
-                              ('test events', self.get_test_events, self._style['test']['rgba']),
-                              ('all (picked) events', self.get_manu_picked_events, None)]
+        self.compareoptions = [('tune events', self.get_ref_events, self._style['ref']['rgba']),
+                               ('test events', self.get_test_events, self._style['test']['rgba']),
+                               ('all (picked) events', self.get_manu_picked_events, None)]
 
         self.cmpw = CompareEventsWidget(self, self.compareoptions, eventdict, comparisons)
         self.cmpw.start.connect(self.compareMulti)
@@ -1511,7 +1539,6 @@ class MainWindow(QMainWindow):
         eventlist_overlap = [event for event in eventlist if self.comparable[event.pylot_id]]
         compare_widget = self.buildMultiCompareWidget(eventlist_overlap)
         compare_widget.show()
-
 
     def buildMultiCompareWidget(self, eventlist):
         global_comparison = Comparison(eventlist=eventlist)
@@ -1784,7 +1811,7 @@ class MainWindow(QMainWindow):
         nth_sample = int(settings.value("nth_sample")) if settings.value("nth_sample") else 1
         npts_max = 1e7
         npts = self.get_npts_to_plot()
-        npts2plot = npts/nth_sample
+        npts2plot = npts / nth_sample
         if npts2plot < npts_max:
             settings.setValue('large_dataset', False)
         else:
@@ -1919,8 +1946,18 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
+        # TODO: Quick and dirty, improve this on later iteration
+        if self.obspy_dmt:
+            invpath = os.path.join(self.get_current_event_path(), 'resp')
+            if not invpath in self.metadata.inventories:
+                self.metadata.add_inventory(invpath)
+            # check if directory is empty
+            if os.listdir(invpath):
+                self.init_map_button.setEnabled(True)
+                self.initMapAction.setEnabled(True)
 
-    def checkEvent4comparison(self, event):
+    @staticmethod
+    def checkEvent4comparison(event):
         if event.pylot_picks and event.pylot_autopicks:
             for station in event.pylot_picks:
                 if station in event.pylot_autopicks:
@@ -2084,7 +2121,8 @@ class MainWindow(QMainWindow):
                 elif self.filterActionS.isChecked():
                     phase = 'S'
             if self.getFilterOptions():
-                if (phase == 'P' and self.filterActionP.isChecked()) or (phase == 'S' and self.filterActionS.isChecked()):
+                if (phase == 'P' and self.filterActionP.isChecked()) or (
+                        phase == 'S' and self.filterActionS.isChecked()):
                     kwargs = self.getFilterOptions()[phase].parseFilterOptions()
                     self.pushFilterWF(kwargs)
                 else:
@@ -2095,8 +2133,8 @@ class MainWindow(QMainWindow):
                 self.get_data().resetWFData()
             if plot:
                 self.plotWaveformDataThread(filter=False)
-                #self.drawPicks()
-                #self.draw()
+                # self.drawPicks()
+                # self.draw()
 
     def getAutoFilteroptions(self, phase):
         return getAutoFilteroptions(phase, self._inputs)
@@ -2324,16 +2362,14 @@ class MainWindow(QMainWindow):
             if pickDlg._dirty:
                 self.setDirty(True)
                 self.update_status('picks accepted ({0})'.format(station))
-                replot1 = self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
-                replot2 = self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
+                self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
                 self.enableSaveEventAction()
-                if replot1 or replot2:
-                    self.plotWaveformDataThread()
-
-                    self.draw()
-                else:
-                    self.drawPicks(station)
-                    self.draw()
+                self.comparable = self.checkEvents4comparison()
+                if True in self.comparable.values():
+                    self.compare_action.setEnabled(True)
+                self.drawPicks(station)
+                self.draw()
             if self.nextStation:
                 self.pickDialog(wfID - 1)
         else:
@@ -2416,7 +2452,7 @@ class MainWindow(QMainWindow):
         # thread to prevent handling of QPixmap objects outside of
         # the main thread
         self.init_fig_dict()
-        #if not self.tap:
+        # if not self.tap:
         # init TuneAutopicker object
         self.tap = TuneAutopicker(self, self.obspy_dmt)
         # first call of update to init tabs with empty canvas
@@ -2425,10 +2461,10 @@ class MainWindow(QMainWindow):
         # creating and filling figure canvas
         self.tap.update.connect(self.update_autopicker)
         self.tap.figure_tabs.setCurrentIndex(0)
-        #else:
+        # else:
         #    self.update_autopicker()
         #    self.tap.fill_eventbox()
-        self.tap.show()
+        self.tap.showMaximized()
 
     def update_autopicker(self):
         '''
@@ -2458,11 +2494,11 @@ class MainWindow(QMainWindow):
 
         if not self.apw:
             # init event selection options for autopick
-            self.pickoptions =[('current event', self.get_current_event, None),
-                               ('tune events', self.get_ref_events, self._style['ref']['rgba']),
-                               ('test events', self.get_test_events, self._style['test']['rgba']),
-                               ('all (picked) events', self.get_manu_picked_events, None),
-                               ('all events', self.get_all_events, None)]
+            self.pickoptions = [('current event', self.get_current_event, None),
+                                ('tune events', self.get_ref_events, self._style['ref']['rgba']),
+                                ('test events', self.get_test_events, self._style['test']['rgba']),
+                                ('all (picked) events', self.get_manu_picked_events, None),
+                                ('all events', self.get_all_events, None)]
 
             self.listWidget = QListWidget()
             self.setDirty(True)
@@ -2500,7 +2536,7 @@ class MainWindow(QMainWindow):
         self.apw.enable(False)
 
         # export current picks etc.
-        self.exportAllEvents(['.xml'])
+        self.exportEvents(['.xml'], events=events)
 
         wfpath = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else ''
         # define arguments for picker
@@ -2559,13 +2595,15 @@ class MainWindow(QMainWindow):
             if event.pylot_id == eventID:
                 return event
 
-    def get_event_paths(self, eventlist):
+    @staticmethod
+    def get_event_paths(eventlist):
         eventPaths = []
         for event in eventlist:
             eventPaths.append(event.path)
         return eventPaths
 
-    def get_event_ids(self, eventlist):
+    @staticmethod
+    def get_event_ids(eventlist):
         eventIDs = []
         for event in eventlist:
             eventIDs.append(event.pylot_id)
@@ -2638,7 +2676,7 @@ class MainWindow(QMainWindow):
         picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data())
         if type == 'manual':
             event.addPicks(picksdict['manual'])
-            #event.picks.update(picks) MP MP idea
+            # event.picks.update(picks) MP MP idea
         elif type == 'auto':
             event.addAutopicks(picksdict['auto'])
 
@@ -2652,11 +2690,24 @@ class MainWindow(QMainWindow):
             self.drawPicks(station, 'auto', stime)
             return
 
+        if not picktype in ['manual', 'auto']:
+            raise TypeError('Unknown picktype {0}'.format(picktype))
+
         # if picks to draw not specified, draw all picks available
         if not station:
             for station in self.getPicks(type=picktype):
                 self.drawPicks(station, picktype=picktype, stime=stime)
             return
+
+        if self.pg:
+            pw = self.getPlotWidget().plotWidget
+        else:
+            ax = self.getPlotWidget().axes[0]
+
+        if station in self.drawnPicks[picktype].keys():
+            for item in self.drawnPicks[picktype][station]:
+                pw.removeItem(item)
+        self.drawnPicks[picktype][station] = []
 
         # check for station key in dictionary, else return
         if not station in self.getPicks(type=picktype):
@@ -2666,27 +2717,27 @@ class MainWindow(QMainWindow):
         plotID = self.getStationID(station)
         if plotID is None:
             return
-        if self.pg:
-            pw = self.getPlotWidget().plotWidget
-        else:
-            ax = self.getPlotWidget().axes[0]
         ylims = np.array([-.5, +.5]) + plotID
 
         stat_picks = self.getPicks(type=picktype)[station]
+        settings = QSettings()
 
         for phase in stat_picks:
-            if phase == 'SPt': continue # wadati SP time
+            if phase == 'SPt': continue  # wadati SP time
             picks = stat_picks[phase]
             if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
                 return
 
+            phaseID = self.getPhaseID(phase)
             # get quality classes
-            if self.getPhaseID(phase) == 'P':
+            if  phaseID == 'P':
                 quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
-                phaseID = 'P'
-            elif self.getPhaseID(phase) == 'S':
+            elif phaseID == 'S':
                 quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
-                phaseID = 'S'
+
+            # quality = getPickQuality(self.get_data().getWFData(),
+            #                          stat_picks, self._inputs, phaseID,
+            #                          compclass)
 
             mpp = picks['mpp'] - stime
             if picks['epp'] and picks['lpp']:
@@ -2697,44 +2748,32 @@ class MainWindow(QMainWindow):
                 lpp = None
             spe = picks['spe']
 
-            if not spe and epp and lpp:
-                spe = symmetrize_error(mpp - epp, lpp - mpp)
-
             if self.pg:
-                if picktype == 'manual':
+                if spe:
                     if picks['epp'] and picks['lpp']:
                         pen = make_pen(picktype, phaseID, 'epp', quality)
-                        pw.plot([epp, epp], ylims,
-                                alpha=.25, pen=pen, name='EPP')
+                        self.drawnPicks[picktype][station].append(pw.plot([epp, epp], ylims,
+                                                                          alpha=.25, pen=pen, name='EPP'))
                         pen = make_pen(picktype, phaseID, 'lpp', quality)
-                        pw.plot([lpp, lpp], ylims,
-                                alpha=.25, pen=pen, name='LPP')
+                        self.drawnPicks[picktype][station].append(pw.plot([lpp, lpp], ylims,
+                                                                          alpha=.25, pen=pen, name='LPP'))
+                        pen = make_pen(picktype, phaseID, 'spe', quality)
+                        spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
+                                                name='{}-SPE'.format(phase))
+                        spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                        try:
+                            color = pen.color()
+                            color.setAlpha(100.)
+                            brush = pen.brush()
+                            brush.setColor(color)
+                            fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
+                            fb = pw.addItem(fill)
+                            self.drawnPicks[picktype][station].append(fill)
+                        except:
+                            print('Warning: drawPicks: Could not create fill for symmetric pick error.')
                     pen = make_pen(picktype, phaseID, 'mpp', quality)
-                    if spe:
-                        # pen = make_pen(picktype, phaseID, 'spe', quality)
-                        # spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
-                        #                         name='{}-SPE'.format(phase))
-                        # spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
-                        # pw.addItem(spe_l)
-                        # pw.addItem(spe_r)
-                        # try:
-                        #     color = pen.color()
-                        #     color.setAlpha(100.)
-                        #     brush = pen.brush()
-                        #     brush.setColor(color)
-                        #     fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
-                        #     fb = pw.addItem(fill)
-                        # except:
-                        #     print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase))
-                    else:
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick (NO PICKERROR)'.format(phase))
-                elif picktype == 'auto':
-                    if quality < 4:
-                        pen = make_pen(picktype, phaseID, 'mpp', quality)
-                        pw.plot([mpp, mpp], ylims, pen=pen)
-                else:
-                    raise TypeError('Unknown picktype {0}'.format(picktype))
+                    self.drawnPicks[picktype][station].append(
+                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase)))
             else:
                 if picktype == 'manual':
                     linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
@@ -2794,7 +2833,7 @@ class MainWindow(QMainWindow):
             lt.locate(ctrfile)
         except RuntimeError as e:
             print(e.message)
-        #finally:
+        # finally:
         #    os.remove(phasefile)
 
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
@@ -2822,7 +2861,7 @@ class MainWindow(QMainWindow):
 
         self.inventory_label = QLabel('No inventory set...')
         # init inventory button
-        self.new_inv_button = QPushButton('Set inventory file')
+        self.new_inv_button = QPushButton('Manage inventory files')
         self.new_inv_button.setIcon(self.inventoryIcon)
         self.new_inv_button.clicked.connect(self.inventoryAction.trigger)
 
@@ -2835,7 +2874,6 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(self.new_inv_button, 2, 1)
         grid_layout.addWidget(self.init_map_button, 3, 1)
 
-        self.metadata = None
         self.metadata_widget.setLayout(grid_layout)
         self.array_layout.addWidget(self.metadata_widget)
 
@@ -2897,7 +2935,7 @@ class MainWindow(QMainWindow):
                 self.array_map.eventLoc = (lat, lon)
         if self.get_current_event():
             self.array_map.refresh_drawings(self.get_current_event().getPicks(),
-                                            self.get_current_event().getAutopicks(),)
+                                            self.get_current_event().getAutopicks(), )
         self._eventChanged[1] = False
 
     def init_event_table(self, tabindex=2):
@@ -2989,6 +3027,8 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
+            ma_count_total = {'manual': 0,
+                              'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -2996,8 +3036,9 @@ class MainWindow(QMainWindow):
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
-                            if getQualityFromUncertainty(has_spe(pick), phaseErrors[self.getPhaseID(phasename)]) < 4:
+                            if pick.get('spe'):
                                 ma_count[ma] += 1
+                            ma_count_total[ma] += 1
 
             # init table items for current row
             item_delete = QtGui.QTableWidgetItem()
@@ -3008,19 +3049,23 @@ class MainWindow(QMainWindow):
             item_lon = QtGui.QTableWidgetItem()
             item_depth = QtGui.QTableWidgetItem()
             item_mag = QtGui.QTableWidgetItem()
-            item_nmp = QtGui.QTableWidgetItem(str(ma_count['manual']))
+            item_nmp = QtGui.QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QTableWidgetItem(str(ma_count['auto']))
+            item_nap = QtGui.QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QtGui.QTableWidgetItem()
             item_test = QtGui.QTableWidgetItem()
             item_notes = QtGui.QTableWidgetItem()
 
-            item_path.setText(event.path)
+            event_str = event.path
+            if event.dirty:
+                event_str += '*'
+
+            item_path.setText(event_str)
             if hasattr(event, 'origins'):
                 if event.origins:
                     origin = event.origins[0]
-                    item_time.setText(str(origin.time + 0).split('.')[0]) # +0 as workaround in case time=0s
+                    item_time.setText(str(origin.time + 0).split('.')[0])  # +0 as workaround in case time=0s
                     item_lon.setText(str(origin.longitude))
                     item_lat.setText(str(origin.latitude))
                     item_depth.setText(str(origin.depth))
@@ -3094,67 +3139,24 @@ class MainWindow(QMainWindow):
         if event == current_event:
             set_background_color(item_list, QtGui.QColor(*(0, 143, 143, 255)))
 
-    def read_metadata_thread(self, fninv):
-        self.rm_thread = Thread(self, read_metadata, arg=fninv, progressText='Reading metadata...',
-                                pb_widget=self.mainProgressBarWidget)
-        self.rm_thread.finished.connect(self.set_metadata)
-        self.rm_thread.start()
-
     def set_metadata(self):
-        settings = QSettings()
-        self.metadata = self.rm_thread.data
-        if settings.value('saveMetadata'):
-            self.project.metadata = self.rm_thread.data
-        self.project.inv_path = settings.value("inventoryFile")
-        self.init_map_button.setEnabled(True)
-        self.initMapAction.setEnabled(True)
-        self.inventory_label.setText('Inventory set!')
-        self.new_inv_button.setText('Set another inventory file')
+        self.project.inventories = self.metadata.inventories
+        if self.metadata.inventories:
+            self.init_map_button.setEnabled(True)
+            self.initMapAction.setEnabled(True)
+            self.inventory_label.setText('Inventory set!')
+            self.setDirty(True)
 
-    def get_new_metadata(self):
-        self.init_metadata(new=True)
+    def add_metadata(self):
+        self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
+        self.add_metadata_widget.close_button.clicked.connect(self.set_metadata)
 
     def init_metadata(self, new=False, ask_default=True):
-        def set_inv(settings):
-            fninv, _ = QFileDialog.getOpenFileName(self, self.tr(
-                "Select inventory..."), self.tr("Select file"))
-            if not fninv:
-                return False
-            ans = QMessageBox.question(self, self.tr("Make default..."),
-                                       self.tr(
-                                           "New inventory filename set.\n" + \
-                                           "Do you want to make it the default value?"),
-                                       QMessageBox.Yes | QMessageBox.No,
-                                       QMessageBox.No)
-            if ans == QMessageBox.Yes:
-                settings.setValue("inventoryFile", fninv)
-                settings.sync()
-            self.read_metadata_thread(fninv)
-            return True
+        if hasattr(self.project, 'inventories'):
+            self.metadata = Metadata()
+            for inventory in self.project.inventories:
+                self.metadata.add_inventory(inventory)
 
-        settings = QSettings()
-
-        if hasattr(self.project, 'metadata') and not new:
-            self.metadata = self.project.metadata
-            return True
-        if self.metadata and not new:
-            return True
-        if hasattr(self.project, 'inv_path') and not new:
-            settings.setValue("inventoryFile", self.project.inv_path)
-
-        fninv = settings.value("inventoryFile", None)
-        if (fninv and ask_default) and not new:
-            ans = QMessageBox.question(self, self.tr("Use default metadata..."),
-                                       self.tr(
-                                           "Do you want to use the default value for metadata?\n({})".format(fninv)),
-                                       QMessageBox.Yes | QMessageBox.No,
-                                       QMessageBox.Yes)
-            if ans == QMessageBox.Yes:
-                self.read_metadata_thread(fninv)
-                return
-        set_inv(settings)
-
-            
     def calc_magnitude(self, type='ML'):
         self.init_metadata()
         if not self.metadata:
@@ -3166,7 +3168,7 @@ class MainWindow(QMainWindow):
         #     raise ProcessingError('Restitution of waveform data failed!')
         if type == 'ML':
             local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                       verbosity=True) ## MP MP missing parameter wascaling in function call!
+                                       self.inputs.get('WAScaling'), verbosity=True)
             return local_mag.updated_event()
         elif type == 'Mw':
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
@@ -3273,20 +3275,17 @@ class MainWindow(QMainWindow):
                 if self.project.parameter:
                     self._inputs = self.project.parameter
                     self.updateFilteroptions()
+            # added for backwards compatibility with older events not having a 'dirty' attribute
+            for event in self.project.eventlist:
+                if not hasattr(event, 'dirty'):
+                    event.dirty = False
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
             self.setDirty(False)
-            if hasattr(self.project, 'metadata'):
-                if self.project.metadata:
-                    self.init_metadata(ask_default=False)
-                    #self.init_array_map(index=0)
-                    return
-            if hasattr(self.project, 'inv_path'):
-                self.init_metadata(ask_default=False)
-                #self.init_array_map(index=0)
-                return
+            self.init_metadata()
 
             self.init_array_tab()
+            self.set_metadata()
 
     def saveProjectAs(self, exists=False):
         '''
@@ -3300,10 +3299,10 @@ class MainWindow(QMainWindow):
         if not filename.split('.')[-1] == 'plp':
             filename = fnm[0] + '.plp'
         self.project.parameter = self._inputs
+        self.exportEvents()
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
-        self.exportAllEvents()
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
         return True
 
@@ -3318,11 +3317,11 @@ class MainWindow(QMainWindow):
                     return False
             else:
                 self.project.parameter = self._inputs
+                self.exportEvents()
                 self.project.save()
-                self.exportAllEvents()
             if not self.project.dirty:
-                self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 self.setDirty(False)
+                self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
                 return True
             else:
                 # if still dirty because saving failed
@@ -3340,7 +3339,6 @@ class MainWindow(QMainWindow):
             self.dataPlot.setPermText(1)
         self.dataPlot.setPermText(0, '| Number of traces: {} |'.format(len(self.getPlotWidget().getPlotDict())))
 
-
     def _setDirty(self):
         self.setDirty(True)
 
@@ -3349,6 +3347,7 @@ class MainWindow(QMainWindow):
         self.saveProjectAsAction.setEnabled(True)
         self.project.setDirty(value)
         self.dirty = value
+        self.fill_eventbox()
 
     def closeEvent(self, event):
         if self.okToContinue():
@@ -3379,7 +3378,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(self,
-                'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                            'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
         else:
             form = HelpForm(self, ':/help.html')
         form.show()
@@ -3584,7 +3583,7 @@ def create_window():
 
 def main(args=None):
     project_filename = None
-    #args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
+    # args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
     pylot_infile = None
     if args:
         if args.project_filename:

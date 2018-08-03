@@ -23,8 +23,7 @@ class Array_map(QtGui.QWidget):
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
-        self.metadata_type = parent.metadata[0]
-        self.metadata = parent.metadata[1]
+        self.metadata = parent.metadata
         self.picks = None
         self.picks_dict = None
         self.autopicks_dict = None
@@ -74,15 +73,11 @@ class Array_map(QtGui.QWidget):
                 if pickDlg.exec_():
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    replot = pyl_mw.get_current_event().setPick(station, pickDlg.getPicks())
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
                     self._refresh_drawings()
-                    if replot:
-                        pyl_mw.plotWaveformData()
-                        pyl_mw.drawPicks()
-                        pyl_mw.draw()
-                    else:
-                        pyl_mw.drawPicks(station)
-                        pyl_mw.draw()
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
                 else:
                     pyl_mw.update_status('picks discarded ({0})'.format(station))
             except Exception as e:
@@ -94,7 +89,7 @@ class Array_map(QtGui.QWidget):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
         self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
-        #self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+        # self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
 
     def _from_dict(self, function, key):
         return function(self.stations_dict.values(), key=lambda x: x[key])[key]
@@ -159,35 +154,8 @@ class Array_map(QtGui.QWidget):
         self.main_box.addWidget(self.canvas, 1)
         self.main_box.addWidget(self.status_label, 0)
 
-
     def init_stations(self):
-        def stat_info_from_parser(parser):
-            stations_dict = {}
-            for station in parser.stations:
-                station_name = station[0].station_call_letters
-                network_name = station[0].network_code
-                if not station_name in stations_dict.keys():
-                    st_id = network_name + '.' + station_name
-                    stations_dict[st_id] = {'latitude': station[0].latitude,
-                                            'longitude': station[0].longitude}
-            return stations_dict
-
-        def stat_info_from_inventory(inventory):
-            stations_dict = {}
-            for network in inventory.networks:
-                for station in network.stations:
-                    station_name = station.code
-                    network_name = network_name.code
-                    if not station_name in stations_dict.keys():
-                        st_id = network_name + '.' + station_name
-                        stations_dict[st_id] = {'latitude': station[0].latitude,
-                                                'longitude': station[0].longitude}
-            return stations_dict
-
-        read_stat = {'xml': stat_info_from_inventory,
-                     'dless': stat_info_from_parser}
-
-        self.stations_dict = read_stat[self.metadata_type](self.metadata)
+        self.stations_dict = self.metadata.get_all_coordinates()
         self.latmin = self.get_min_from_stations('latitude')
         self.lonmin = self.get_min_from_stations('longitude')
         self.latmax = self.get_max_from_stations('latitude')
@@ -196,13 +164,15 @@ class Array_map(QtGui.QWidget):
     def init_picks(self):
         def get_picks(station_dict):
             picks = {}
+            # selected phase
             phase = self.comboBox_phase.currentText()
             for st_id in station_dict.keys():
                 try:
                     station_name = st_id.split('.')[-1]
+                    # current_picks_dict: auto or manual
                     pick = self.current_picks_dict()[station_name][phase]
                     if pick['picker'] == 'auto':
-                        if pick['weight'] > 3:
+                        if not pick['spe']:
                             continue
                     picks[st_id] = pick['mpp']
                 except KeyError:
@@ -217,11 +187,12 @@ class Array_map(QtGui.QWidget):
             for pick in picks.values():
                 if type(pick) is obspy.core.utcdatetime.UTCDateTime:
                     picks_utc.append(pick)
-            self._earliest_picktime = min(picks_utc)
-            for st_id, pick in picks.items():
-                if type(pick) is obspy.core.utcdatetime.UTCDateTime:
-                    pick -= self._earliest_picktime
-                picks_rel[st_id] = pick
+            if picks_utc:
+                self._earliest_picktime = min(picks_utc)
+                for st_id, pick in picks.items():
+                    if type(pick) is obspy.core.utcdatetime.UTCDateTime:
+                        pick -= self._earliest_picktime
+                    picks_rel[st_id] = pick
             return picks_rel
 
         self.picks = get_picks(self.stations_dict)
@@ -331,6 +302,8 @@ class Array_map(QtGui.QWidget):
 
     def scatter_picked_stations(self):
         picks, lats, lons = self.get_picks_lat_lon()
+        if len(lons) < 1 and len(lats) < 1:
+            return
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
             self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, facecolor='white',
@@ -354,7 +327,7 @@ class Array_map(QtGui.QWidget):
     def add_cbar(self, label):
         self.cbax_bg = inset_axes(self.main_ax, width="6%", height="75%", loc=5)
         cbax = inset_axes(self.main_ax, width='2%', height='70%', loc=5)
-        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax = cbax)
+        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax=cbax)
         cbar.set_label(label)
         cbax.yaxis.tick_left()
         cbax.yaxis.set_label_position('left')
@@ -375,13 +348,16 @@ class Array_map(QtGui.QWidget):
         self.draw_everything()
 
     def draw_everything(self):
-        if self.picks_dict or self.autopicks_dict:
+        picktype = self.comboBox_am.currentText()
+        if (self.picks_dict and picktype == 'manual') \
+                or (self.autopicks_dict and picktype == 'auto'):
             self.init_picks()
             if len(self.picks) >= 3:
                 self.init_picksgrid()
                 self.draw_contour_filled()
         self.scatter_all_stations()
-        if self.picks_dict or self.autopicks_dict:
+        if (self.picks_dict and picktype == 'manual') \
+                or (self.autopicks_dict and picktype == 'auto'):
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)
@@ -397,16 +373,16 @@ class Array_map(QtGui.QWidget):
             del (self.cbar, self.cbax_bg)
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()
-            del (self.sc_picked)
+            del self.sc_picked
         if hasattr(self, 'sc_event'):
             self.sc_event.remove()
-            del (self.sc_event)
+            del self.sc_event
         if hasattr(self, 'contourf'):
             self.remove_contourf()
-            del (self.contourf)
+            del self.contourf
         if hasattr(self, 'cid'):
             self.canvas.mpl_disconnect(self.cid)
-            del (self.cid)
+            del self.cid
         try:
             self.sc.remove()
         except Exception as e:

@@ -17,6 +17,7 @@ import time
 import numpy as np
 
 import matplotlib
+
 matplotlib.use('QT4Agg')
 
 from matplotlib.figure import Figure
@@ -48,15 +49,15 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
-from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS, \
-    SetChannelComponents
+from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions
+    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
+from pylot.core.util.dataprocessing import Metadata
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
@@ -118,6 +119,139 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
+class ProgressBarWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(ProgressBarWidget, self).__init__(parent)
+        self.hlayout = QtGui.QHBoxLayout()
+        self.pb = QtGui.QProgressBar()
+        self.pb.setRange(0, 0)
+        self.label = QLabel()
+        self.hlayout.addWidget(self.pb)
+        self.hlayout.addWidget(self.label)
+        self.setLayout(self.hlayout)
+        self.hide()
+
+
+class AddMetadataWidget(QWidget):
+    def __init__(self, parent=None, metadata=None, windowflag=1):
+        super(AddMetadataWidget, self).__init__(parent, windowflag)
+        self.inventories = {}
+
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        self.setupUI()
+        self.connect_signals()
+        self.resize(600, 800)
+
+        self.metadata = metadata if metadata else Metadata()
+        self.from_metadata()
+
+        self.center()
+        self.show()
+        #self.__test__()
+
+    def __test__(self):
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/tests')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/inputs')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/pylot')
+        self.add_item(r'/rscratch/minos14/marcel/git/pylot/pylot_not_existing')
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
+
+    def setupUI(self):
+        self.init_selection_layout()
+        self.init_add_remove_layout()
+        self.init_list_widget()
+        self.init_close()
+
+    def init_selection_layout(self):
+        self.selection_layout = QHBoxLayout()
+        self.selection_box = QtGui.QLineEdit()
+        self.selection_button = QtGui.QPushButton('...')
+        self.selection_layout.addWidget(self.selection_box, 1)
+        self.selection_layout.addWidget(self.selection_button, 0)
+        self.main_layout.insertLayout(0, self.selection_layout, 0)
+
+    def init_add_remove_layout(self):
+        self.add_remove_layout = QHBoxLayout()
+        self.add_button = QtGui.QPushButton('+')
+        self.add_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Return))
+        self.remove_button = QtGui.QPushButton('-')
+        self.remove_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete))
+        self.add_remove_layout.addWidget(self.add_button, 1)
+        self.add_remove_layout.addWidget(self.remove_button, 1)
+        self.main_layout.insertLayout(1, self.add_remove_layout, 0)
+
+    def init_list_widget(self):
+        self.list_view = QtGui.QListView()
+        self.list_view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.list_model = QtGui.QStandardItemModel(self.list_view)
+        self.list_view.setModel(self.list_model)
+        self.main_layout.insertWidget(2, self.list_view, 1)
+
+    def init_close(self):
+        self.close_button = QPushButton('Update')
+        self.close_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Escape))
+        self.main_layout.addWidget(self.close_button)
+
+    def from_metadata(self):
+        for inventory_path in self.metadata.inventories:
+            self.add_item(inventory_path, from_metadata=True)
+
+    def refresh_list(self):
+        self.clear_list()
+        for inventory_path in self.inventories.keys():
+            self.add_item(inventory_path)
+
+    def connect_signals(self):
+        self.selection_button.clicked.connect(self.open_directory)
+        self.add_button.clicked.connect(self.add_item_from_box)
+        self.remove_button.clicked.connect(self.remove_item)
+        self.close_button.clicked.connect(self.hide)
+
+    def open_directory(self):
+        fninv = QFileDialog.getExistingDirectory(self, self.tr(
+            "Select inventory..."), self.tr("Select folder"))
+        if not fninv:
+            return
+        self.selection_box.setText(fninv)
+
+    def add_item_from_box(self):
+        inventory_path = self.selection_box.text()
+        self.add_item(inventory_path)
+        self.selection_box.setText('')
+
+    def add_item(self, inventory_path, from_metadata=False):
+        if not inventory_path:
+            return
+        if inventory_path in self.inventories.keys():
+            QMessageBox.warning(self, 'Info', 'Path already in list!')
+            return
+        if not os.path.isdir(inventory_path):
+            QMessageBox.warning(self, 'Warning', 'Path is no directory!')
+            return
+        item = QtGui.QStandardItem(inventory_path)
+        item.setEditable(False)
+        self.inventories[inventory_path] = item
+        self.list_model.appendRow(item)
+
+        if not from_metadata:
+            self.metadata.add_inventory(inventory_path)
+
+    def remove_item(self):
+        for index in reversed(self.list_view.selectionModel().selectedIndexes()):
+            item = self.list_model.itemData(index)
+            inventory_path = item[0]
+            del (self.inventories[inventory_path])
+            self.metadata.remove_inventory(inventory_path)
+            self.list_model.removeRow(index.row())
+
+
 class ComparisonWidget(QWidget):
     def __init__(self, c, parent=None, windowflag=1):
         self._data = c
@@ -132,6 +266,14 @@ class ComparisonWidget(QWidget):
         self.setupUI()
         self.resize(1280, 720)
         self.plotcomparison()
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def setupUI(self):
 
@@ -242,7 +384,8 @@ class ComparisonWidget(QWidget):
     def clf(self):
         self.canvas.figure.clf()
 
-    def hasvalue(self, sender):
+    @staticmethod
+    def hasvalue(sender):
         text = sender.currentText()
         index = sender.findText(text.upper())
         return index
@@ -380,8 +523,8 @@ class ComparisonWidget(QWidget):
                 ax = axes_dict[phase]['exp']
                 xlims = ax.get_xlim()
                 ylims = ax.get_ylim()
-                #ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
-                #ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
+                # ax.fill_between([xlims[0], 0], ylims[0], ylims[1], color=(0.9, 1.0, 0.9, 0.5), label='earlier than manual')
+                # ax.fill_between([0, xlims[1]], ylims[0], ylims[1], color=(1.0, 0.9, 0.9, 0.5), label='later than manual')
             legend = ax.legend()
             legend.draggable()
 
@@ -473,7 +616,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.pen_linecolor_syn = self.pg.mkPen((100, 0, 255, 255))
         self.reinitMoveProxy()
         self._proxy = self.pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        #self.plotWidget.getPlotItem().setDownsampling(auto=True)
+        # self.plotWidget.getPlotItem().setDownsampling(auto=True)
 
     def reinitMoveProxy(self):
         self.vLine = self.pg.InfiniteLine(angle=90, movable=False, pen=self.pen_multicursor)
@@ -503,8 +646,17 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.label_layout.addWidget(self.status_label)
         for label in self.perm_labels:
             self.label_layout.addWidget(label)
-        self.label_layout.addWidget(self.syn_checkbox)
-        self.label_layout.addWidget(self.qcombo_processed)
+        mid_widget = QWidget()
+        right_widget = QWidget()
+        # use widgets as placeholder, so that child widgets keep position when others are hidden
+        mid_layout = QHBoxLayout()
+        right_layout = QHBoxLayout()
+        mid_layout.addWidget(self.syn_checkbox)
+        right_layout.addWidget(self.qcombo_processed)
+        mid_widget.setLayout(mid_layout)
+        right_widget.setLayout(right_layout)
+        self.label_layout.addWidget(mid_widget)
+        self.label_layout.addWidget(right_widget)
         self.syn_checkbox.setLayoutDirection(Qt.RightToLeft)
         self.label_layout.setStretch(0, 4)
         self.label_layout.setStretch(1, 0)
@@ -523,7 +675,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.syn_checkbox = QtGui.QCheckBox('synthetics')
         self.addQCboxItem('processed', 'green')
         self.addQCboxItem('raw', 'black')
-        #self.perm_qcbox_right.setAlignment(2)
+        # self.perm_qcbox_right.setAlignment(2)
         self.setLayout(self.main_layout)
 
     def getPlotDict(self):
@@ -607,7 +759,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             print('Warning: Could not set zoom limits')
 
         for n, (network, station, channel) in enumerate(nsc):
-            n+=1
+            n += 1
             st = st_select.select(network=network, station=station, channel=channel)
             trace = st[0].copy()
             st_syn = wfsyn.select(network=network, station=station, channel=channel)
@@ -644,10 +796,11 @@ class WaveformWidgetPG(QtGui.QWidget):
                         trace_syn.normalize(np.max(np.abs(trace_syn.data)) * 2)
                 # TODO: change this to numpy operations instead of lists?
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
-                times_syn = np.array([time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
+                times_syn = np.array(
+                    [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
                 trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
-                            if not index % nth_sample] if st_syn else [])
+                                           if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
                               times_syn, trace_syn.data))
                 self.setPlotDict(n, (station, channel, network))
@@ -664,11 +817,11 @@ class WaveformWidgetPG(QtGui.QWidget):
         '''
         npixel = self.orig_parent.width()
         ndata = len(trace.data)
-        pts_per_pixel = ndata/npixel
+        pts_per_pixel = ndata / npixel
         if pts_per_pixel < 2:
             return trace.data, time_ax
-        remaining_samples = ndata%pts_per_pixel
-        npixel = ndata//pts_per_pixel
+        remaining_samples = ndata % pts_per_pixel
+        npixel = ndata // pts_per_pixel
         if remaining_samples:
             data = trace.data[:-remaining_samples]
         else:
@@ -848,7 +1001,7 @@ class PylotCanvas(FigureCanvas):
                 break
         if not ax_check: return
 
-        #self.updateCurrentLimits() #maybe put this down to else:
+        # self.updateCurrentLimits() #maybe put this down to else:
 
         # calculate delta (relative values in axis)
         old_x, old_y = self.press_rel
@@ -873,6 +1026,7 @@ class PylotCanvas(FigureCanvas):
             new_ylim = self.calcPanZoom(self.ypress, y_bot, y_top, factor, (ydiff > 0))
             self.setYLims(ax, new_ylim)
 
+        self.refreshPickDlgText()
         self.draw()
 
     def set_frame_color(self, color='k'):
@@ -895,18 +1049,19 @@ class PylotCanvas(FigureCanvas):
                 fname += '.png'
             self.figure.savefig(fname)
 
-    def calcPanZoom(self, origin, lower_b, upper_b, factor, positive):
+    @staticmethod
+    def calcPanZoom(origin, lower_b, upper_b, factor, positive):
         d_lower = abs(origin - lower_b)
         d_upper = abs(origin - upper_b)
 
         if positive:
-            d_lower *= 1 - 1/factor
-            d_upper *= 1 - 1/factor
+            d_lower *= 1 - 1 / factor
+            d_upper *= 1 - 1 / factor
             lower_b += d_lower
             upper_b -= d_upper
         else:
-            d_lower /= 1 + 1/factor
-            d_upper /= 1 + 1/factor
+            d_lower /= 1 + 1 / factor
+            d_upper /= 1 + 1 / factor
             lower_b -= d_lower
             upper_b += d_upper
 
@@ -1029,7 +1184,8 @@ class PylotCanvas(FigureCanvas):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def calcPlotPositions(self, wfdata, compclass):
+    @staticmethod
+    def calcPlotPositions(wfdata, compclass):
         possible_plot_pos = list(range(len(wfdata)))
         plot_positions = {}
         for trace in wfdata:
@@ -1130,9 +1286,9 @@ class PylotCanvas(FigureCanvas):
                 if noiselevel is not None:
                     for level in [-noiselevel[channel], noiselevel[channel]]:
                         ax.plot([time_ax[0], time_ax[-1]],
-                                [n+level, n+level],
-                                color = linecolor,
-                                linestyle = 'dashed')
+                                [n + level, n + level],
+                                color=linecolor,
+                                linestyle='dashed')
                 self.setPlotDict(n, (station, channel, network))
         if plot_additional and additional_channel:
             compare_stream = wfdata.select(channel=additional_channel)
@@ -1173,16 +1329,20 @@ class PylotCanvas(FigureCanvas):
             self.setYLims(ax, zoomy)
         self.draw()
 
-    def getXLims(self, ax):
+    @staticmethod
+    def getXLims(ax):
         return ax.get_xlim()
 
-    def getYLims(self, ax):
+    @staticmethod
+    def getYLims(ax):
         return ax.get_ylim()
 
-    def setXLims(self, ax, lims):
+    @staticmethod
+    def setXLims(ax, lims):
         ax.set_xlim(lims)
 
-    def setYLims(self, ax, lims):
+    @staticmethod
+    def setYLims(ax, lims):
         ax.set_ylim(lims)
 
     def setYTickLabels(self, pos, labels):
@@ -1210,7 +1370,7 @@ class PylotCanvas(FigureCanvas):
     def insertLabel(self, pos, text):
         pos = pos / max(self.axes[0].ylim)
         axann = self.axes[0].annotate(text, xy=(.03, pos),
-                                        xycoords='axes fraction')
+                                      xycoords='axes fraction')
         axann.set_bbox(dict(facecolor='lightgrey', alpha=.6))
 
     def setZoomBorders2content(self):
@@ -1298,7 +1458,8 @@ class PhaseDefaults(QtGui.QDialog):
             checkbox.setChecked(bool(phase in self.current_phases))
             row += 1
 
-    def create_phase_box(self, phase_name):
+    @staticmethod
+    def create_phase_box(phase_name):
         checkbox = QtGui.QCheckBox(phase_name)
         return checkbox
 
@@ -1433,7 +1594,6 @@ class PickDlg(QDialog):
         self.multicompfig.draw()
         self.multicompfig.setFocus()
 
-
         # set plot labels
         self.setPlotLabels()
 
@@ -1458,7 +1618,6 @@ class PickDlg(QDialog):
         self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
         self.setWindowState(QtCore.Qt.WindowMaximized)
-
 
     def setupUi(self):
         menuBar = QtGui.QMenuBar(self)
@@ -1504,11 +1663,11 @@ class PickDlg(QDialog):
                                           checkable=True,
                                           shortcut='S')
         self.autoFilterAction = createAction(parent=self, text='Automatic Filtering',
-                                          slot=self.toggleAutoFilter,
-                                          icon=key_a_icon,
-                                          tip='Filter automatically before initial pick',
-                                          checkable=True,
-                                          shortcut='Ctrl+A')
+                                             slot=self.toggleAutoFilter,
+                                             icon=key_a_icon,
+                                             tip='Filter automatically before initial pick',
+                                             checkable=True,
+                                             shortcut='Ctrl+A')
         self.zoomAction = createAction(parent=self, text='Zoom',
                                        slot=self.zoom, icon=zoom_icon,
                                        tip='Zoom into waveform',
@@ -1596,8 +1755,8 @@ class PickDlg(QDialog):
             _dialtoolbar.addSeparator()
         est_label = QLabel('Estimated onsets:')
         est_label.setStyleSheet('QLabel {'
-                                   'padding:2px;'
-                                   'padding-left:5px}')
+                                'padding:2px;'
+                                'padding-left:5px}')
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
         _dialtoolbar.addSeparator()
@@ -1683,9 +1842,10 @@ class PickDlg(QDialog):
         func = {True: self.model.get_ray_paths_geo,
                 False: self.model.get_travel_times_geo}
         phases = self.prepare_phases()
-        station_id = self.data.traces[0].get_id()
-        parser = self.metadata[1]
-        station_coords = parser.get_coordinates(station_id)
+        trace = self.data.traces[0]
+        station_id = trace.get_id()
+        starttime = trace.stats.starttime
+        station_coords = self.metadata.get_coordinates(station_id, starttime)
         origins = self.pylot_event.origins
         if origins:
             source_origin = origins[0]
@@ -1699,7 +1859,8 @@ class PickDlg(QDialog):
                               phases)
         self.arrivals = arrivals
 
-    def prepare_phases(self):
+    @staticmethod
+    def prepare_phases():
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
         s_phases = settings.value('s_phases')
@@ -1796,15 +1957,14 @@ class PickDlg(QDialog):
                 picksMenu.addSeparator()
 
         filterOptionsAction = createAction(parent=self, text="&Filter parameter ...",
-                                   slot=self.filterOptions,
-                                   shortcut='Ctrl+F',
-                                   icon=self.orig_parent.filter_icon)
+                                           slot=self.filterOptions,
+                                           shortcut='Ctrl+F',
+                                           icon=self.orig_parent.filter_icon)
         filterMenu = menuBar.addMenu('Filter')
         filterMenu.addAction(self.filterActionP)
         filterMenu.addAction(self.filterActionS)
         filterMenu.addAction(self.autoFilterAction)
         filterMenu.addAction(filterOptionsAction)
-
 
     def filterOptions(self):
         if self.orig_parent.adjustFilterOptions():
@@ -1875,7 +2035,8 @@ class PickDlg(QDialog):
         self.currentPhase = str(self.s_button.text())
         self.activatePicking()
 
-    def getPhaseID(self, phase):
+    @staticmethod
+    def getPhaseID(phase):
         return identifyPhaseID(phase)
 
     def set_button_border_color(self, button, color=None):
@@ -1943,7 +2104,7 @@ class PickDlg(QDialog):
             self.draw()
         else:
             self.draw()
-        #self.pick_block = self.togglePickBlocker()
+        # self.pick_block = self.togglePickBlocker()
         self.disconnect_pick_delete()
 
     def deactivatePicking(self):
@@ -2087,10 +2248,11 @@ class PickDlg(QDialog):
                 st += data.select(channel=action.text())
         return st
 
-    def calcNoiseScaleFactor(self, noiselevel, zoomfactor=5., norm=1):
+    @staticmethod
+    def calcNoiseScaleFactor(noiselevel, zoomfactor=5., norm=1):
         # calculate factor to upscale a trace normed to 'norm' in a way that all values
         # zoomfactor*noiselevel are found within -0.5*norm and 0.5*norm
-        scaleFactor = (norm/2.) / (zoomfactor * noiselevel)
+        scaleFactor = (norm / 2.) / (zoomfactor * noiselevel)
         return scaleFactor
 
     def setIniPick(self, gui_event):
@@ -2164,7 +2326,7 @@ class PickDlg(QDialog):
             try:
                 data.detrend('linear')
                 data.filter(**filteroptions)
-                #wfdata.filter(**filteroptions)# MP MP removed filtering of original data
+                # wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
                                              'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
@@ -2200,7 +2362,7 @@ class PickDlg(QDialog):
         x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
 
         xlims = [ini_pick - x_res, ini_pick + x_res]
-        ylims = list(np.array([-.5, .5]) + [0, len(data)-1])
+        ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
 
         title = self.getStation() + ' picking mode'
         if filterphase:
@@ -2287,8 +2449,8 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        #self.pick_block = self.togglPickBlocker()
-        #self.resetZoom()
+        # self.pick_block = self.togglPickBlocker()
+        # self.resetZoom()
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
@@ -2324,7 +2486,7 @@ class PickDlg(QDialog):
             if self.getPicks(picktype):
                 if phase is not None and not phase == 'SPt':
                     if (type(self.getPicks(picktype)[phase]) is dict
-                        or type(self.getPicks(picktype)[phase]) is AttribDict):
+                            or type(self.getPicks(picktype)[phase]) is AttribDict):
                         picks = self.getPicks(picktype)[phase]
                 elif phase is None:
                     for phase in self.getPicks(picktype):
@@ -2349,43 +2511,38 @@ class PickDlg(QDialog):
             lpp = picks['lpp'] - self.getStartTime()
         spe = picks['spe']
 
-        if picktype == 'manual':
-            color = pick_color_plt(picktype, phaseID, quality)
-            if not textOnly:
-                linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
-                self.phaseLines[phase] = vl
-                if spe:
-                    ax.fill_between([mpp-spe, mpp+spe], ylims[0], ylims[1],
-                                    alpha=.25, color=color, label='{}-SPE'.format(phase))
-                if picks['epp']:
-                    linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
-                    ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
-                               linewidth=width_epp, label='{}-EPP'.format(phase))
-                if picks['lpp']:
-                    linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
-                    ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
-                               linewidth=width_lpp, label='{}-LPP'.format(phase))
-                # else:
-                #     ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                #             label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
-            # append phase text (if textOnly: draw with current ylims)
-            self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
-        elif picktype == 'auto':
-            color = pick_color_plt(picktype, phaseID, quality)
-            linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-            if not textOnly:
-                ax.plot(mpp, ylims[1], color=color, marker='v')
-                ax.plot(mpp, ylims[0], color=color, marker='^')
-                vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                                picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
-                self.phaseLines[phase] = vl
-            # append phase text (if textOnly: draw with current ylims)
-            self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color))
-        else:
+        if not picktype in ['auto', 'manual']:
             raise TypeError('Unknown picktype {0}'.format(picktype))
 
+        if picktype == 'manual':
+            baseorder = 5
+        elif picktype == 'auto':
+            baseorder = 0
+
+        color = pick_color_plt(picktype, phaseID, quality)
+        if not textOnly:
+            linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+            vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                            label='{}-{}-Pick (quality: {})'.format(phase, picktype, quality), picker=5,
+                            zorder=baseorder+9)
+            phaseLineKey = '{}-{}'.format(phase, picktype)
+            self.phaseLines[phaseLineKey] = vl
+            if spe:
+                ax.fill_between([mpp - spe, mpp + spe], ylims[0], ylims[1],
+                                alpha=.25, color=color, label='{}-{}-SPE'.format(phase, picktype), zorder=baseorder+1)
+            if picks['epp']:
+                linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
+                ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
+                           linewidth=width_epp, label='{}-{}-EPP'.format(phase, picktype), zorder=baseorder+2)
+            if picks['lpp']:
+                linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
+                ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
+                           linewidth=width_lpp, label='{}-{}-LPP'.format(phase, picktype), zorder=baseorder+2)
+            if picktype == 'auto':
+                ax.plot(mpp, ylims[1], color=color, marker='v', zorder=baseorder+3)
+                ax.plot(mpp, ylims[0], color=color, marker='^', zorder=baseorder+3)
+        # append phase text (if textOnly: draw with current ylims)
+        self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color, zorder=baseorder+10))
         ax.legend(loc=1)
 
     def connect_mouse_motion(self):
@@ -2403,7 +2560,7 @@ class PickDlg(QDialog):
     def on_motion(self, event):
         x = event.xdata
         if x is not None:
-            time_code = 'T = {}, t = {} [s]'.format(self.stime+x, x)
+            time_code = 'T = {}, t = {} [s]'.format(self.stime + x, x)
             user_help = ' - Left-Click to Drag | Right-Click to Pan-Zoom |' \
                         ' Mousewheel to Zoom | Middle-Click to Delete Pick'
             self.statusbar.showMessage(time_code + user_help)
@@ -2421,7 +2578,7 @@ class PickDlg(QDialog):
         if not x:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
@@ -2442,7 +2599,7 @@ class PickDlg(QDialog):
             return
         x = event.mouseevent.xdata
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         pick = allpicks[picktype][phase]
         message = '{} {}-pick'.format(picktype, phase)
@@ -2499,16 +2656,17 @@ class PickDlg(QDialog):
         if not self.picks and not self.autopicks:
             return
         allpicks, pick_rel, phase, picktype = self.identify_selected_picks(x)
-        if pick_rel == None:
+        if pick_rel is None:
             return
         # delete the value from corresponding dictionary
         allpicks[picktype].pop(phase)
         # delete line from vlines dictionary
         if phase in self.phaseLines.keys():
-            del(self.phaseLines[phase])
+            del (self.phaseLines[phase])
         # information output
-        msg = 'Deleted {} pick for phase {}, at timestamp {} (relative time: {} s)'
-        print(msg.format(picktype, phase, self.getStartTime()+pick_rel, pick_rel))
+        msg = 'Deleted {} pick for phase {}, station {} at timestamp {} (relative time: {} s)'
+        print(msg.format(picktype, phase, '{}.{}'.format(self.network, self.station),
+                         self.getStartTime() + pick_rel, pick_rel))
         self.setDirty(True)
 
     def identify_selected_picks(self, x):
@@ -2533,8 +2691,6 @@ class PickDlg(QDialog):
             # unpack the found value
             pick_rel, phase, picktype = X[index]
         return allpicks, pick_rel, phase, picktype
-
-
 
     def drawPhaseText(self):
         self.drawPicks(picktype='manual', textOnly=True)
@@ -2572,7 +2728,7 @@ class PickDlg(QDialog):
             return
         self.cur_xlim = self.multicompfig.axes[0].get_xlim()
         self.cur_ylim = self.multicompfig.axes[0].get_ylim()
-        #self.multicompfig.updateCurrentLimits()
+        # self.multicompfig.updateCurrentLimits()
         data = self.getWFData().copy()
         title = self.getStation()
         if filter:
@@ -2626,15 +2782,18 @@ class PickDlg(QDialog):
         settings = QSettings()
         settings.setValue('autoFilter', self.autoFilterAction.isChecked())
 
-    def updateChannelSettingsP(self, action):
+    @staticmethod
+    def updateChannelSettingsP(action):
         settings = QSettings()
         settings.setValue('p_channel_{}'.format(action.text()), action.isChecked())
 
-    def updateChannelSettingsS(self, action):
+    @staticmethod
+    def updateChannelSettingsS(action):
         settings = QSettings()
         settings.setValue('s_channel_{}'.format(action.text()), action.isChecked())
 
-    def getChannelSettingsP(self, channel):
+    @staticmethod
+    def getChannelSettingsP(channel):
         settings = QSettings()
         rval = real_Bool(settings.value('p_channel_{}'.format(channel)))
         compclass = settings.value('compclass')
@@ -2648,7 +2807,8 @@ class PickDlg(QDialog):
                 rval = False
         return rval
 
-    def getChannelSettingsS(self, channel):
+    @staticmethod
+    def getChannelSettingsS(channel):
         settings = QSettings()
         rval = real_Bool(settings.value('s_channel_{}'.format(channel)))
         compclass = settings.value('compclass')
@@ -2661,7 +2821,6 @@ class PickDlg(QDialog):
             else:
                 rval = False
         return rval
-
 
     def resetPlot(self):
         self.resetZoom()
@@ -2701,8 +2860,8 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        #self.multicompfig.setXLims(ax, self.getXLims())
-        #self.multicompfig.setYLims(ax, self.getYLims())
+        # self.multicompfig.setXLims(ax, self.getXLims())
+        # self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
@@ -2764,7 +2923,7 @@ class CanvasWidget(QWidget):
     '''
 
     def __init__(self, parent, canvas):
-        QtGui.QWidget.__init__(self, parent)#, 1)
+        QtGui.QWidget.__init__(self, parent)  # , 1)
         canvas = canvas
         self.main_layout = QtGui.QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -2777,6 +2936,7 @@ class MultiEventWidget(QWidget):
     '''
 
     '''
+
     def __init__(self, options=None, parent=None, windowflag=1):
         QtGui.QWidget.__init__(self, parent, windowflag)
 
@@ -2784,6 +2944,14 @@ class MultiEventWidget(QWidget):
         self.setupUi()
         # set initial size
         self.resize(1280, 720)
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def setupUi(self):
         # init main layout
@@ -2836,7 +3004,7 @@ class MultiEventWidget(QWidget):
         self.pb.setRange(0, 0)
         self.pb.setVisible(False)
 
-        #space holder for progressbar
+        # space holder for progressbar
         self._pb_space = QtGui.QWidget()
 
         self.rb_layout.addWidget(self.start_button)
@@ -2854,7 +3022,7 @@ class MultiEventWidget(QWidget):
             eventlist = func()
             if not type(eventlist) == list:
                 eventlist = [eventlist]
-            tooltip=''
+            tooltip = ''
             for index, event in enumerate(eventlist):
                 if not event:
                     continue
@@ -2870,13 +3038,13 @@ class MultiEventWidget(QWidget):
         for rb in self.rb_dict.values():
             if rb.isChecked():
                 check_events = (rb.toolTip() == 'No events for this selection')
-                self.start_button.setEnabled(not(check_events))
+                self.start_button.setEnabled(not check_events)
 
     def enable(self, bool):
         for rb in self.rb_dict.values():
             rb.setEnabled(bool)
         self.start_button.setEnabled(bool)
-        self.pb.setVisible(not(bool))
+        self.pb.setVisible(not bool)
         self._pb_space.setVisible(bool)
         self.eventbox.setEnabled(bool)
         self.button_clear.setEnabled(bool)
@@ -2958,7 +3126,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                del(widget)
+                del widget
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -2986,6 +3154,14 @@ class CompareEventsWidget(MultiEventWidget):
         self.connect_buttons()
         self.setWindowTitle('Compare events')
         self.set_main_stretch()
+        self.center()
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def connect_buttons(self):
         self.start_button.clicked.connect(self.run)
@@ -3062,6 +3238,7 @@ class TuneAutopicker(QWidget):
         self.add_log()
         self.set_stretch()
         self.resize(1280, 720)
+        self.center()
         self._manual_pick_plots = []
         if hasattr(self.parent(), 'metadata'):
             self.metadata = self.parent().metadata
@@ -3069,6 +3246,13 @@ class TuneAutopicker(QWidget):
             self.metadata = None
             # self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
             # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def set_fig_dict(self, fig_dict):
         for key, value in fig_dict.items():
@@ -3147,7 +3331,7 @@ class TuneAutopicker(QWidget):
         self.data.setWFData(fnames)
         wfdat = self.data.getWFData()  # all available streams
         # remove possible underscores in station names
-        wfdat = remove_underscores(wfdat)
+        #wfdat = remove_underscores(wfdat)
         # rotate misaligned stations to ZNE
         # check for gaps and doubled channels
         check4gaps(wfdat)
@@ -3161,7 +3345,7 @@ class TuneAutopicker(QWidget):
         self.fill_figure_tabs()
 
     def init_pbwidget(self):
-        self.pb_widget = QtGui.QWidget()
+        self.pb_widget = ProgressBarWidget()
 
     def init_tab_names(self):
         self.ptb_names = ['aicFig', 'slength', 'checkZ4s', 'refPpick', 'el_Ppick', 'fm_picker']
@@ -3201,7 +3385,7 @@ class TuneAutopicker(QWidget):
         return self.eventBox.currentText().split('/')[-1]
 
     def get_current_event_fp(self):
-        return self.eventBox.currentText()
+        return self.eventBox.currentText().split('*')[0]
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
@@ -3220,7 +3404,8 @@ class TuneAutopicker(QWidget):
     def get_current_station_id(self):
         return str(self.stationBox.currentText())
 
-    def gen_tab_widget(self, name, canvas):
+    @staticmethod
+    def gen_tab_widget(name, canvas):
         widget = QtGui.QWidget()
         v_layout = QtGui.QVBoxLayout()
         v_layout.addWidget(canvas)
@@ -3398,7 +3583,7 @@ class TuneAutopicker(QWidget):
         if index == -1:
             index += 1
         nevents = self.eventBox.model().rowCount()
-        path = self.eventBox.itemText(index)
+        path = self.eventBox.itemText(index).split('*')[0]
         if project.getEventFromPath(path).isTestEvent():
             for index in range(nevents):
                 path = self.eventBox.itemText(index)
@@ -3491,7 +3676,7 @@ class TuneAutopicker(QWidget):
         if hasattr(self, 'pdlg_widget'):
             if self.pdlg_widget:
                 self.pdlg_widget.setParent(None)
-                del(self.pdlg_widget)
+                del self.pdlg_widget
         if hasattr(self, 'overview'):
             self.overview.setParent(None)
         if hasattr(self, 'p_tabs'):
@@ -3546,9 +3731,17 @@ class PylotParaBox(QtGui.QWidget):
         self.params_to_gui()
         self._toggle_advanced_settings()
         self.resize(720, 860)
+        self.center()
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.accepted.connect(self.params_from_gui)
         self.rejected.connect(self.params_to_gui)
+
+    def center(self):
+        fm = self.frameGeometry()
+        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        fm.moveCenter(centerPoint)
+        self.move(fm.topLeft())
 
     def _init_sublayouts(self):
         self._main_layout = QtGui.QVBoxLayout()
@@ -3650,7 +3843,8 @@ class PylotParaBox(QtGui.QWidget):
             grid.addWidget(box, index1, 2)
         return grid
 
-    def create_box(self, typ, tooltip):
+    @staticmethod
+    def create_box(typ, tooltip):
         if typ == str:
             box = QtGui.QLineEdit()
         elif typ == float:
@@ -3665,7 +3859,8 @@ class PylotParaBox(QtGui.QWidget):
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
-    def create_multi_box(self, boxes, headline=None):
+    @staticmethod
+    def create_multi_box(boxes, headline=None):
         box = QtGui.QWidget()
         gl = QtGui.QGridLayout()
         column = 0
@@ -3993,7 +4188,7 @@ class AutoPickDlg(QDialog):
         self.gb.setLayout(self.jobLayout)
 
     def exportParameter(self):
-        self.parent().exportAllEvents()
+        self.parent().exportEvents()
         pylot_params = self.parent()._inputs
         self.addEvents2pp(pylot_params)
         pylot_params.export2File(self.pp_export)
@@ -4366,7 +4561,8 @@ class PhasesTab(PropTab):
             self.PphasesEdit.setText(p_phases)
             self.SphasesEdit.setText(s_phases)
 
-    def sortPhases(self, phases):
+    @staticmethod
+    def sortPhases(phases):
         sorted_phases = {'P': [],
                          'S': []}
         for phase in phases:
@@ -4393,7 +4589,7 @@ class GraphicsTab(PropTab):
         super(GraphicsTab, self).__init__(parent)
         self.pylot_mainwindow = parent._pylot_mainwindow
         self.init_layout()
-        self.add_pg_cb()
+        #self.add_pg_cb()
         self.add_nth_sample()
         self.add_style_settings()
         self.setLayout(self.main_layout)
@@ -4429,36 +4625,16 @@ class GraphicsTab(PropTab):
         self.main_layout.addWidget(label, 1, 0)
         self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
 
-    def add_pg_cb(self):
-        try:
-            import pyqtgraph as pg
-            pg = True
-        except:
-            pg = False
-
-        text = {True: 'Use pyqtgraphic library for plotting',
-                False: 'Cannot use library: pyqtgraphic not found on system'}
-        label = QLabel('PyQt graphic')
-        label.setToolTip(text[bool(pg)])
-        label.setEnabled(bool(pg))
-        self.checkbox_pg = QtGui.QCheckBox()
-        self.checkbox_pg.setEnabled(bool(pg))
-        self.checkbox_pg.setChecked(bool(pg))
-        self.main_layout.addWidget(label, 0, 0)
-        self.main_layout.addWidget(self.checkbox_pg, 0, 1)
-
     def set_current_style(self):
         selected_style = self.style_cb.currentText()
         self.pylot_mainwindow.set_style(selected_style)
 
     def getValues(self):
-        values = {'nth_sample': self.spinbox_nth_sample.value(),
-                  'pyqtgraphic': self.checkbox_pg.isChecked()}
+        values = {'nth_sample': self.spinbox_nth_sample.value()}
         return values
 
     def resetValues(self, infile=None):
-        values = {'nth_sample': self.spinbox_nth_sample.setValue(1),
-                  'pyqtgraphic': self.checkbox_pg.setChecked(True)}
+        values = {'nth_sample': self.spinbox_nth_sample.setValue(1)}
         return values
 
 
@@ -4607,7 +4783,8 @@ class LocalisationTab(PropTab):
         self.rootlabel.setText("{0} root directory".format(curtool))
         self.binlabel.setText("{0} bin directory".format(curtool))
 
-    def selectDirectory(self, edit):
+    @staticmethod
+    def selectDirectory(edit):
         selected_directory = QFileDialog.getExistingDirectory()
         # check if string is empty
         if selected_directory:
@@ -4705,8 +4882,9 @@ class FilterOptionsDialog(QDialog):
                                   'S': FilterOptions()}
 
         self.setWindowTitle(titleString)
-        self.filterOptionWidgets = {'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
-                                    'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
+        self.filterOptionWidgets = {
+            'P': FilterOptionsWidget(self.filterOptions['P'], self.parent().getAutoFilteroptions('P')),
+            'S': FilterOptionsWidget(self.filterOptions['S'], self.parent().getAutoFilteroptions('S'))}
         self.setupUi()
         self.updateUi()
         self.connectButtons()
@@ -4903,6 +5081,8 @@ class FilterOptionsWidget(QWidget):
         self.freqmaxSpinBox.valueChanged.connect(self.checkAutoManu)
         self.checkAutoManu()
 
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+
     def checkAutoManu(self):
         self.updateMFfromWidget()
 
@@ -5057,7 +5237,7 @@ class HelpForm(QDialog):
         toolBar.addWidget(self.pageLabel)
         self.webBrowser = QWebView()
         self.webBrowser.load(page)
-        #self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
+        # self.webBrowser.load('C:/Shared/code/git/pylot/pylot/core/util/map_test.html')
 
         layout = QVBoxLayout()
         layout.addWidget(toolBar)

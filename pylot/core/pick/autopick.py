@@ -17,7 +17,7 @@ from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
-from pylot.core.util.utils import getPatternLine, gen_Pool,\
+from pylot.core.util.utils import getPatternLine, gen_Pool, \
     real_Bool, identifyPhaseID
 
 from obspy.taup import TauPyModel
@@ -71,41 +71,33 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
 
     for station in stations:
         topick = data.select(station=station)
-
-        if iplot is None or iplot == 'None' or iplot == 0:
-            input_tuples.append((topick, param, apverbose, metadata, origin))
-        if iplot > 0:
-            all_onsets[station] = autopickstation(topick, param, verbose=apverbose,
-                                                  iplot=iplot, fig_dict=fig_dict,
-                                                  metadata=metadata, origin=origin)
+        input_tuples.append((topick, param, apverbose, iplot, fig_dict, metadata, origin))
 
     if iplot > 0:
         print('iPlot Flag active: NO MULTIPROCESSING possible.')
-        return all_onsets
+        ncores = 1
 
-    # rename str for ncores in case ncores == 0 (use all cores)
+    # rename ncores for string representation in case ncores == 0 (use all cores)
     ncores_str = ncores if ncores != 0 else 'all available'
-
     print('Autopickstation: Distribute autopicking for {} '
           'stations on {} cores.'.format(len(input_tuples), ncores_str))
 
-    pool = gen_Pool(ncores)
-    results = pool.map(call_autopickstation, input_tuples)
-    pool.close()
+    if ncores == 1:
+        results = serial_picking(input_tuples)
+    else:
+        results = parallel_picking(input_tuples, ncores)
 
-    for result, wfstream in results:
+    for result, station in results:
         if type(result) == dict:
-            station = result['station']
-            result.pop('station')
             all_onsets[station] = result
         else:
-            if result == None:
+            if result is None:
                 result = 'Picker exited unexpectedly.'
-            if len(wfstream) > 0:
-                station = wfstream[0].stats.station
-            else:
-                station = None
             print('Could not pick a station: {}\nReason: {}'.format(station, result))
+
+    # no Wadati/JK for single station (also valid for tuning mode)
+    if len(stations) == 1:
+        return all_onsets
 
     # quality control
     # median check and jackknife on P-onset times
@@ -113,6 +105,20 @@ def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None,
     # check S-P times (Wadati)
     wadationsets = wadaticheck(jk_checked_onsets, wdttolerance, iplot, fig_dict_wadatijack)
     return wadationsets
+
+
+def serial_picking(input_tuples):
+    result = []
+    for input_tuple in input_tuples:
+        result.append(call_autopickstation(input_tuple))
+    return result
+
+
+def parallel_picking(input_tuples, ncores):
+    pool = gen_Pool(ncores)
+    result = pool.imap_unordered(call_autopickstation, input_tuples)
+    pool.close()
+    return result
 
 
 def call_autopickstation(input_tuple):
@@ -123,30 +129,16 @@ def call_autopickstation(input_tuple):
     :return: dictionary containing P pick, S pick and station name
     :rtype: dict
     """
-    wfstream, pickparam, verbose, metadata, origin = input_tuple
+    wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin = input_tuple
+    if fig_dict:
+        print('Running in interactive mode')
     # multiprocessing not possible with interactive plotting
     try:
-        return autopickstation(wfstream, pickparam, verbose, iplot=0, metadata=metadata, origin=origin), wfstream
+        return autopickstation(wfstream, pickparam, verbose, fig_dict=fig_dict, iplot=iplot, metadata=metadata,
+                               origin=origin)
     except Exception as e:
-        return e, wfstream
-
-
-def get_source_coords(parser, station_id):
-    """
-    retrieves station coordinates from metadata
-    :param parser: Parser object containing metadata read from inventory file
-    :type parser: ~obspy.io.xseed.parser.Parser
-    :param station_id: station id of which the coordinates should be retrieved
-    :type station_id: str
-    :return: dictionary containing 'latitude', 'longitude', 'elevation' and 'local_depth' of station
-    :rtype: dict
-    """
-    station_coords = None
-    try:
-        station_coords = parser.get_coordinates(station_id)
-    except Exception as e:
-        print('Could not get source coordinates for station {}: {}'.format(station_id, e))
-    return station_coords
+        tbe = traceback.format_exc()
+        return tbe, wfstream[0].stats.station
 
 
 def autopickstation(wfstream, pickparam, verbose=False,
@@ -262,17 +254,23 @@ def autopickstation(wfstream, pickparam, verbose=False,
     # split components
     zdat = wfstream.select(component="Z")
     if len(zdat) == 0:  # check for other components
+        print('HIT: 3')
         zdat = wfstream.select(component="3")
     edat = wfstream.select(component="E")
     if len(edat) == 0:  # check for other components
         edat = wfstream.select(component="2")
+        print('HIT: 2')
     ndat = wfstream.select(component="N")
     if len(ndat) == 0:  # check for other components
         ndat = wfstream.select(component="1")
+        print('HIT: 1')
+
+    picks = {}
+    station = wfstream[0].stats.station
 
     if not zdat:
-        print('No z-component found for station {}. STOP'.format(wfstream[0].stats.station))
-        return
+        print('No z-component found for station {}. STOP'.format(station))
+        return picks, station
 
     if algoP == 'HOS' or algoP == 'ARZ' and zdat is not None:
         msg = '##################################################\nautopickstation:' \
@@ -298,13 +296,10 @@ def autopickstation(wfstream, pickparam, verbose=False,
             Lc = np.inf
             print('autopickstation: use_taup flag active.')
             if not metadata:
-                metadata = [None, None]
-            if not metadata[1]:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
                 station_id = wfstream[0].get_id()
-                parser = metadata[1]
-                station_coords = get_source_coords(parser, station_id)
+                station_coords = metadata.get_coordinates(station_id, time=wfstream[0].stats.starttime)
                 if station_coords and origin:
                     source_origin = origin[0]
                     model = TauPyModel(taup_model)
@@ -336,7 +331,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
 
         # make sure pstart and pstop are inside zdat[0]
         pstart = max(pstart, 0)
-        pstop = min(pstop, len(zdat[0])*zdat[0].stats.delta)
+        pstop = min(pstop, len(zdat[0]) * zdat[0].stats.delta)
 
         if not use_taup is True or origin:
             Lc = pstop - pstart
@@ -344,7 +339,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         Lwf = zdat[0].stats.endtime - zdat[0].stats.starttime
         if not Lwf > 0:
             print('autopickstation: empty trace! Return!')
-            return
+            return picks, station
 
         Ldiff = Lwf - abs(Lc)
         if Ldiff <= 0 or pstop <= pstart or pstop - pstart <= thosmw:
@@ -578,8 +573,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
                                                                      SNRPdB,
                                                                      FM)
                 print(msg)
-                msg = 'autopickstation: Refind P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
-                                                                             + mpickP, Perror)
+                msg = 'autopickstation: Refined P-Pick: {} s | P-Error: {} s'.format(zdat[0].stats.starttime \
+                                                                                     + mpickP, Perror)
                 print(msg)
                 Sflag = 1
 
@@ -613,7 +608,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             ndat = edat
 
     pickSonset = (edat is not None and ndat is not None and len(edat) > 0 and len(
-                  ndat) > 0 and Pweight < 4)
+        ndat) > 0 and Pweight < 4)
 
     if pickSonset:
         # determine time window for calculating CF after P onset
@@ -621,8 +616,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
             round(max([mpickP + sstart, 0])),  # MP MP relative time axis
             round(min([
                 mpickP + sstop,
-                edat[0].stats.endtime-edat[0].stats.starttime,
-                ndat[0].stats.endtime-ndat[0].stats.starttime
+                edat[0].stats.endtime - edat[0].stats.starttime,
+                ndat[0].stats.endtime - ndat[0].stats.starttime
             ]))
         ]
 
@@ -717,7 +712,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
         if not slope:
             slope = 0
         if (slope >= minAICSslope and
-            aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
+                aicarhpick.getSNR() >= minAICSSNR and aicarhpick.getpick() is not None):
             aicSflag = 1
             msg = 'AIC S-pick passes quality control: Slope: {0} counts/s, ' \
                   'SNR: {1}\nGo on with refined picking ...\n' \
@@ -859,7 +854,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                     Serror = pickerr[ipick]
 
                     msg = 'autopickstation: Refined S-Pick: {} s | S-Error: {} s'.format(hdat[0].stats.starttime \
-                                                                                  + mpickS, Serror)
+                                                                                         + mpickS, Serror)
                     print(msg)
 
                     # get SNR
@@ -870,7 +865,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
                         Sweight = 0
                     elif timeerrorsS[0] < Serror <= timeerrorsS[1]:
                         Sweight = 1
-                    elif Perror > timeerrorsS[1] and Serror <= timeerrorsS[2]:
+                    elif timeerrorsS[1] < Serror <= timeerrorsS[2]:
                         Sweight = 2
                     elif timeerrorsS[2] < Serror <= timeerrorsS[3]:
                         Sweight = 3
@@ -905,7 +900,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             # re-create stream object including both horizontal components
             hdat = edat.copy()
             hdat += ndat
- 
+
     else:
         print('autopickstation: No horizontal component data available or '
               'bad P onset, skipping S picking!')
@@ -1116,7 +1111,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     else:
         # no horizontal components given
         picks = dict(P=ppick)
-        return picks
+        return picks, station
 
     if lpickS is not None and lpickS == mpickS:
         lpickS += hdat.stats.delta
@@ -1139,8 +1134,8 @@ def autopickstation(wfstream, pickparam, verbose=False,
     spick = dict(channel=ccode, network=ncode, lpp=lpickS, epp=epickS, mpp=mpickS, spe=Serror, snr=SNRS,
                  snrdb=SNRSdB, weight=Sweight, fm=None, picker=picker, Ao=Ao)
     # merge picks into returning dictionary
-    picks = dict(P=ppick, S=spick, station=zdat[0].stats.station)
-    return picks
+    picks = dict(P=ppick, S=spick)
+    return picks, station
 
 
 def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
@@ -1211,11 +1206,11 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
         print(
             "iteratepicker: The following picking parameters have been modified for iterative picking:")
         print(
-            "pstart: %fs => %fs" % (pstart_old, pickparameter.get('pstart')))
+                "pstart: %fs => %fs" % (pstart_old, pickparameter.get('pstart')))
         print(
-            "pstop: %fs => %fs" % (pstop_old, pickparameter.get('pstop')))
+                "pstop: %fs => %fs" % (pstop_old, pickparameter.get('pstop')))
         print(
-            "sstop: %fs => %fs" % (sstop_old, pickparameter.get('sstop')))
+                "sstop: %fs => %fs" % (sstop_old, pickparameter.get('sstop')))
         print("pickwinP: %fs => %fs" % (
             pickwinP_old, pickparameter.get('pickwinP')))
         print("Precalcwin: %fs => %fs" % (
@@ -1225,7 +1220,7 @@ def iteratepicker(wf, NLLocfile, picks, badpicks, pickparameter, fig_dict=None):
         print("zfac: %f => %f" % (zfac_old, pickparameter.get('zfac')))
 
         # repick station
-        newpicks = autopickstation(wf2pick, pickparameter, fig_dict=fig_dict)
+        newpicks, _ = autopickstation(wf2pick, pickparameter, fig_dict=fig_dict)
 
         # replace old dictionary with new one
         picks[badpicks[i][0]] = newpicks

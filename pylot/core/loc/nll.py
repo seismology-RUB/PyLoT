@@ -76,6 +76,7 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
 def locate(fnin, parameter=None):
     """
     takes an external program name and tries to run it
+    :param parameter: PyLoT Parameter object
     :param fnin: external program name
     :return: None
     """
