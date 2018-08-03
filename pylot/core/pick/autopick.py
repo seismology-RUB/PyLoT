@@ -446,6 +446,17 @@ class AutopickStation(object):
         :rtype: None
         """
 
+        def get_seed_id():
+            """
+            Returns seed id of ztrace
+            :return: Seed id with format Network.Station.Location.Channel
+            :rtype: str
+            """
+            stats = self.ztrace.stats
+            id = "{network}.{station}.{location}.{channel}"
+            id = id.format(network=stats.network, station=stats.station, location=stats.location, channel=stats.channel)
+            return id
+
         def create_arrivals(metadata, origin, station_id, taup_model):
             """
             Create List of arrival times for all phases for a given origin and station
@@ -462,8 +473,8 @@ class AutopickStation(object):
             :raises:
                 AttributeError when no metadata or source origins is given
             """
-            parser = metadata[1]
-            station_coords = get_source_coords(parser, station_id)
+            id = get_seed_id()
+            station_coords = metadata.get_coordinates(id)
             source_origin = origin[0]
             model = TauPyModel(taup_model)
             arrivals = model.get_travel_times_geo(source_depth_in_km=source_origin.depth,
@@ -500,7 +511,7 @@ class AutopickStation(object):
 
         print('autopickstation: use_taup flag active.')
         # catch missing metadata or origin information. Onset calculation is stopped, given cuttimes are then used.
-        if not self.metadata[1]:
+        if not self.metadata:
             raise AttributeError('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
         if not self.origin:
             raise AttributeError('No source origins given!')
