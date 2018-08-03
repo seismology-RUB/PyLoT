@@ -34,8 +34,22 @@ class MockMetadata:
     """Mock metadata object used for taupy to avoid reading large dless file from disk.
     get_coordinates must take the same arguments as pylot.core.utils.dataprocssing.py/class Metadata."""
 
-    @staticmethod
-    def get_coordinates(station_id):
+    def __init__(self):
+        self.station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH', 'CH.FIESA', 'Z3.A106A']
+        gra1 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 499.5, u'latitude': 49.691888, u'local_depth': 0.0,
+                u'longitude': 11.22172}
+        gra2 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0,
+                u'longitude': 11.359444}
+        ech = {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 580.0, u'latitude': 48.216313, u'local_depth': 250.0,
+               u'longitude': 7.158961}
+        fiesa = {'azimuth': 0.0, 'dip': -90.0, 'elevation': 2340.5, 'latitude': 46.43521, 'local_depth': 0.0,
+                 'longitude': 8.11051}
+        a106 = {'azimuth': 90.0, 'dip': 0.0, 'elevation': 468.0, 'latitude': 48.753388, 'local_depth': 0.0,
+                'longitude': 9.721937}
+
+        self.coordinates = [gra1, gra2, ech, fiesa, a106]
+
+    def get_coordinates(self, station_id):
         """
         Mocks the method get_coordinates from obspy.io.xseed.parser.Parser object
         to avoid building a parser for the unit tests
@@ -45,21 +59,13 @@ class MockMetadata:
         local depth as keys
         :rtype: dict
 
-        >>>MockParser.get_coordinates('GR.GRA2')
+        >>>m = MockMetadata(); m.get_coordinates('GR.GRA2..LHZ')
         {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
         """
-        station_names = ['GR.GRA1', 'GR.GRA2', 'G.ECH', 'CH.FIESA', 'Z3.A106A']
-        gra1 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 499.5, u'latitude': 49.691888, u'local_depth': 0.0, u'longitude': 11.22172}
-        gra2 = {u'azimuth': 0.0, u'dip': -90.0, u'elevation': 512.0, u'latitude': 49.655208, u'local_depth': 0.0, u'longitude': 11.359444}
-        ech = {u'azimuth': 90.0, u'dip': 0.0, u'elevation': 580.0, u'latitude': 48.216313, u'local_depth': 250.0, u'longitude': 7.158961}
-        fiesa = {'azimuth': 0.0, 'dip': -90.0, 'elevation': 2340.5, 'latitude': 46.43521, 'local_depth': 0.0, 'longitude': 8.11051}
-        a106 = {'azimuth': 90.0, 'dip': 0.0, 'elevation': 468.0, 'latitude': 48.753388, 'local_depth': 0.0, 'longitude': 9.721937}
 
-        coordinates = [gra1, gra2, ech, fiesa, a106]
-
-        for index, name in enumerate(station_names):
+        for index, name in enumerate(self.station_names):
             if station_id.startswith(name):
-                return coordinates[index]
+                return self.coordinates[index]
 
 
 class TestAutopickStation(unittest.TestCase):
@@ -91,7 +97,7 @@ class TestAutopickStation(unittest.TestCase):
         # create origin for taupy testing
         self.origin = [obspy.core.event.origin.Origin(magnitude=7.1, latitude=59.66, longitude=-153.45, depth=128.0, time=UTCDateTime("2016-01-24T10:30:30.0"))]
         # mocking metadata since reading it takes a long time to read from file
-        self.metadata = ('dless', MockMetadata())
+        self.metadata = MockMetadata()
 
         # show complete diff when difference in results dictionaries are found
         self.maxDiff
