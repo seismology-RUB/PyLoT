@@ -3283,6 +3283,7 @@ class MainWindow(QMainWindow):
             self.init_metadata()
 
             self.init_array_tab()
+            self.set_metadata()
 
     def saveProjectAs(self, exists=False):
         '''
