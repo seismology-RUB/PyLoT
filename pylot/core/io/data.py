@@ -434,7 +434,7 @@ class Data(object):
                             False: self.wfdata}
 
         warnmsg = ''
-        for fname in fnames:
+        for fname in set(fnames):
             try:
                 real_or_syn_data[synthetic] += read(fname)
             except TypeError:
