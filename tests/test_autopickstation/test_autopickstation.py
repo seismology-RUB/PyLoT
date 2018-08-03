@@ -93,6 +93,9 @@ class TestAutopickStation(unittest.TestCase):
         # mocking metadata since reading it takes a long time to read from file
         self.metadata = ('dless', MockMetadata())
 
+        # show complete diff when difference in results dictionaries are found
+        self.maxDiff
+
     #@skip("Works")
     def test_autopickstation_taupy_disabled_gra1(self):
         expected = {'P': {'picker': 'auto', 'snrdb': 15.405649120980094, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None, 'fc': None, 'snr': 34.718816470730317, 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 31, 690000), 'w0': None, 'spe': 0.93333333333333235, 'network': u'GR', 'epp': UTCDateTime(2016, 1, 24, 10, 41, 28, 890000), 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 32, 690000), 'fm': 'D', 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 10.669661906545489, 'network': u'GR', 'weight': 0, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 50, 30, 690000), 'snr': 11.667187857573905, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 21, 690000), 'mpp': UTCDateTime(2016, 1, 24, 10, 50, 29, 690000), 'fm': None, 'spe': 2.6666666666666665, 'channel': u'LHE'}, 'station': u'GRA1'}
