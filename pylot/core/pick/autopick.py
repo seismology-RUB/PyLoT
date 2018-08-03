@@ -506,6 +506,14 @@ class AutopickStation(object):
         self.p_params.pstop = min(self.p_params.pstop, len(self.ztrace) * self.ztrace.stats.delta)
 
     def autopickstation(self):
+        """
+        Main function of autopickstation, which calculates P and S picks and returns them in a dictionary.
+        :return: dict with keys 'P', 'S', and 'station'.
+        P's value is a PickingResults instance containing P results.
+        S's value is a PickingResults instance containing S results.
+        station's value is the station name on which the picks were calculated.
+        :rtype: dict
+        """
         try:
             self.pick_p_phase()
         except MissingTraceException as mte:
@@ -761,9 +769,8 @@ class AutopickStation(object):
 
     def pick_p_phase(self):
         """
-        Pick p phase, return results
-        :return: P pick results
-        :rtype: PickingResults
+        Pick p phase, store results in self.p_results
+        :return: None
         :raises:
             MissingTraceException: If vertical trace is missing.
         """
@@ -1125,6 +1132,11 @@ class AutopickStation(object):
 
 
 def autopickstation(wfstream, pickparam, verbose=False, iplot=0, fig_dict=None, metadata=None, origin=None):
+    """
+    Main function to calculate picks for the station.
+    :return:
+    :rtype: dict
+    """
     try:
         station = AutopickStation(wfstream, pickparam, verbose, iplot, fig_dict, metadata, origin)
         return station.autopickstation()
