@@ -13,7 +13,7 @@ PILOT                                              #datastructure#  %choose data
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #NLLoc settings#
-/progs/bin                                         #nllocbin#       %path to NLLoc executable                                                                            
+None                                               #nllocbin#       %path to NLLoc executable                                                                            
 /home/darius/alparray/auto                         #nllocroot#      %root of NLLoc-processing directory                                                                  
 AUTOPHASES.obs                                     #phasefile#      %name of autoPyLoT-output phase file for NLLoc                                                       
 Insheim_min1d032016_auto.in                        #ctrfile#        %name of autoPyLoT-output control file for NLLoc                                                     
