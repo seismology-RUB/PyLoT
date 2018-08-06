@@ -869,6 +869,19 @@ def trim_station_components(data, trim_start=True, trim_end=True):
     return data
 
 
+def merge_stream(stream):
+    gaps = stream.get_gaps()
+    if gaps:
+        # list of merged stations (seed_ids)
+        merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+        stream.merge()
+        print('Merged the following stations because of gaps:')
+        for merged_station in merged:
+            print(merged_station)
+
+    return stream, gaps
+
+
 def check4gaps(data):
     """
     check for gaps in Stream and remove them

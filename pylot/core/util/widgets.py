@@ -52,7 +52,7 @@ from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
     demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, check4gaps, remove_underscores, find_horizontals, identifyPhase, \
+    check4rotated, check4doubled, check4gaps, merge_stream, remove_underscores, find_horizontals, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
     identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents
 from autoPyLoT import autoPyLoT
@@ -734,13 +734,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         else:
             st_select = wfdata
 
-        gaps = st_select.get_gaps()
-        if gaps:
-            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
-            st_select.merge()
-            print('Merged the following stations because of gaps:')
-            for merged_station in merged:
-                print(merged_station)
+        st_select, gaps = merge_stream(st_select)
 
         # list containing tuples of network, station, channel (for sorting)
         nsc = []
@@ -3240,6 +3234,7 @@ class TuneAutopicker(QWidget):
         self.resize(1280, 720)
         self.center()
         self._manual_pick_plots = []
+        self.fnames = None
         if hasattr(self.parent(), 'metadata'):
             self.metadata = self.parent().metadata
         else:
@@ -3328,17 +3323,20 @@ class TuneAutopicker(QWidget):
 
     def load_wf_data(self):
         fnames = self.station_ids[self.get_current_station_id()]
-        self.data.setWFData(fnames)
-        wfdat = self.data.getWFData()  # all available streams
-        # remove possible underscores in station names
-        #wfdat = remove_underscores(wfdat)
-        # rotate misaligned stations to ZNE
-        # check for gaps and doubled channels
-        check4gaps(wfdat)
-        check4doubled(wfdat)
-        wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
-        # trim station components to same start value
-        trim_station_components(wfdat, trim_start=True, trim_end=False)
+        if not fnames == self.fnames:
+            self.fnames = fnames
+            self.data.setWFData(fnames)
+            wfdat = self.data.getWFData()  # all available streams
+            # remove possible underscores in station names
+            #wfdat = remove_underscores(wfdat)
+            # rotate misaligned stations to ZNE
+            # check for gaps and doubled channels
+            wfdat, gaps = merge_stream(wfdat)
+            #check4gaps(wfdat)
+            check4doubled(wfdat)
+            wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
+            # trim station components to same start value
+            trim_station_components(wfdat, trim_start=True, trim_end=False)
 
     def init_figure_tabs(self):
         self.figure_tabs = QtGui.QTabWidget()
