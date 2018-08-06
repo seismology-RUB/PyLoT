@@ -631,7 +631,7 @@ class WaveformWidgetPG(QtGui.QWidget):
             x, y, = (mousePoint.x(), mousePoint.y())
             # if x > 0:# and index < len(data1):
             wfID = self.orig_parent.getWFID(y)
-            station = self.orig_parent.getStationName(wfID)
+            station = self.orig_parent.getTraceID(wfID)
             abstime = self.wfstart + x
             if self.orig_parent.get_current_event():
                 self.status_label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
@@ -737,26 +737,27 @@ class WaveformWidgetPG(QtGui.QWidget):
         st_select, gaps = merge_stream(st_select)
 
         # list containing tuples of network, station, channel (for sorting)
-        nsc = []
+        nslc = []
         for trace in st_select:
-            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
-        nsc.sort()
-        nsc.reverse()
+            nslc.append(trace.get_id())#(trace.stats.network, trace.stats.station, trace.stats.location trace.stats.channel))
+        nslc.sort()
+        nslc.reverse()
         plots = []
 
         try:
             self.plotWidget.getPlotItem().vb.setLimits(xMin=float(0),
                                                        xMax=float(self.wfend - self.wfstart),
                                                        yMin=.5,
-                                                       yMax=len(nsc) + .5)
+                                                       yMax=len(nslc) + .5)
         except:
             print('Warning: Could not set zoom limits')
 
-        for n, (network, station, channel) in enumerate(nsc):
+        for n, seed_id in enumerate(nslc):
             n += 1
-            st = st_select.select(network=network, station=station, channel=channel)
+            network, station, location, channel = seed_id.split('.')
+            st = st_select.select(id=seed_id)
             trace = st[0].copy()
-            st_syn = wfsyn.select(network=network, station=station, channel=channel)
+            st_syn = wfsyn.select(id=seed_id)
             if st_syn:
                 trace_syn = st_syn[0].copy()
             else:
@@ -797,7 +798,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                                            if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
                               times_syn, trace_syn.data))
-                self.setPlotDict(n, (station, channel, network))
+                self.setPlotDict(n, seed_id)
         self.xlabel = 'seconds since {0}'.format(self.wfstart)
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
@@ -1237,20 +1238,21 @@ class PylotCanvas(FigureCanvas):
                 print(merged_station)
 
         # list containing tuples of network, station, channel and plot position (for sorting)
-        nsc = []
+        nslc = []
         for plot_pos, trace in enumerate(st_select):
             if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
                 print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
                 continue
-            nsc.append((trace.stats.network, trace.stats.station, trace.stats.channel))
-        nsc.sort()
-        nsc.reverse()
+            nslc.append(trace.get_id())
+        nslc.sort()
+        nslc.reverse()
 
         style = self.orig_parent._style
         linecolor = style['linecolor']['rgba_mpl']
 
-        for n, (network, station, channel) in enumerate(nsc):
-            st = st_select.select(network=network, station=station, channel=channel)
+        for n, seed_id in enumerate(nslc):
+            network, station, location, channel = seed_id.split('.')
+            st = st_select.select(id=seed_id)
             trace = st[0].copy()
             if mapping:
                 n = plot_positions[trace.stats.channel]
@@ -1283,7 +1285,7 @@ class PylotCanvas(FigureCanvas):
                                 [n + level, n + level],
                                 color=linecolor,
                                 linestyle='dashed')
-                self.setPlotDict(n, (station, channel, network))
+                self.setPlotDict(n, seed_id)
         if plot_additional and additional_channel:
             compare_stream = wfdata.select(channel=additional_channel)
             if compare_stream:
@@ -1471,7 +1473,7 @@ class PhaseDefaults(QtGui.QDialog):
 class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, data=None, station=None, network=None, picks=None,
+    def __init__(self, parent=None, data=None, station=None, network=None, location=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
                  event=None, filteroptions=None, model='iasp91', wftype=None):
         super(PickDlg, self).__init__(parent, 1)
@@ -1483,6 +1485,7 @@ class PickDlg(QDialog):
         self._embedded = embedded
         self.station = station
         self.network = network
+        self.location = location
         self.rotate = rotate
         self.metadata = metadata
         self.wftype = wftype
@@ -2127,22 +2130,21 @@ class PickDlg(QDialog):
         return self.components
 
     def getStation(self):
-        if self.network and self.station:
-            return self.network + '.' + self.station
-        return self.station
+        return self.network + '.' + self.station + '.' + self.location
 
     def getChannelID(self, key):
         if key < 0: key = 0
-        return self.multicompfig.getPlotDict()[int(key)][1]
+        return self.multicompfig.getPlotDict()[int(key)].split('.')[-1]
 
     def getTraceID(self, channels):
         plotDict = self.multicompfig.getPlotDict()
         traceIDs = []
         for channel in channels:
             channel = channel.upper()
-            for traceID, channelID in plotDict.items():
+            for seed_id in plotDict.items():
+                channelID = seed_id.split('.')[-1]
                 if channelID[1].upper().endswith(channel):
-                    traceIDs.append(traceID)
+                    traceIDs.append(seed_id)
         return traceIDs
 
     def getUser(self):
@@ -2845,10 +2847,9 @@ class PickDlg(QDialog):
             self.multicompfig.connectEvents()
 
     def setPlotLabels(self):
-
         # get channel labels
         pos = self.multicompfig.getPlotDict().keys()
-        labels = [self.multicompfig.getPlotDict()[key][1] for key in pos]
+        labels = [self.multicompfig.getPlotDict()[key].split('.')[-1] for key in pos]
 
         ax = self.multicompfig.figure.axes[0]
 
@@ -3300,10 +3301,7 @@ class TuneAutopicker(QWidget):
                 print('Warning: Could not read file {} as a stream object: {}'.format(filename, e))
                 continue
             for trace in st:
-                network = trace.stats.network
-                station = trace.stats.station
-                location = trace.stats.location
-                station_id = '{}.{}.{}'.format(network, station, location)
+                station_id = trace.get_id()
                 if not station_id in self.station_ids:
                     self.station_ids[station_id] = []
                 self.station_ids[station_id].append(filename)
@@ -3417,14 +3415,15 @@ class TuneAutopicker(QWidget):
             self.pdlg_widget = None
             return
         self.load_wf_data()
-        station = self.get_current_station()
+        network, station, location, channel = self.get_current_station_id()
         wfdata = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
         wftype = self.wftype if self.obspy_dmt else ''
         self.pickDlg = PickDlg(self.parent(), data=wfdata.select(station=station).copy(),
-                               station=station, parameter=self.parameter,
+                               station=station, network=network,
+                               location=location, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
                                metadata=metadata, event=event, filteroptions=filteroptions,
@@ -3441,6 +3440,7 @@ class TuneAutopicker(QWidget):
         hl.addWidget(self.pickDlg)
 
     def picks_from_pickdlg(self, picks=None):
+        seed_id = self.get_current_station_id()
         station = self.get_current_station()
         replot = self.parent().addPicks(station, picks)
         self.get_current_event().setPick(station, picks)
@@ -3449,7 +3449,7 @@ class TuneAutopicker(QWidget):
                 self.parent().plotWaveformDataThread()
                 self.parent().drawPicks()
             else:
-                self.parent().drawPicks(station)
+                self.parent().drawPicks(seed_id)
             self.parent().draw()
 
     def clear_plotitem(self, plotitem):

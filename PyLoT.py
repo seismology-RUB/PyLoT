@@ -1566,12 +1566,13 @@ class MainWindow(QMainWindow):
 
         return statID
 
-    def getStationID(self, station):
+    def getStationIDs(self, station):
+        wfIDs = []
         for wfID in self.getPlotWidget().getPlotDict().keys():
-            actual_station = self.getPlotWidget().getPlotDict()[wfID][0]
+            actual_station = self.getPlotWidget().getPlotDict()[wfID].split('.')[1]
             if station == actual_station:
-                return wfID
-        return None
+                wfIDs.append(wfID)
+        return wfIDs
 
     def getStime(self):
         if self.get_data():
@@ -1915,7 +1916,7 @@ class MainWindow(QMainWindow):
         plotWidget = self.getPlotWidget()
         plotDict = plotWidget.getPlotDict()
         pos = plotDict.keys()
-        labels = [plotDict[n][2] + '.' + plotDict[n][0] for n in pos]
+        labels = ['{}.{}'.format(*plotDict[n].split('.')[:-2]) for n in pos]
         plotWidget.setYTickLabels(pos, labels)
         try:
             plotWidget.figure.tight_layout()
@@ -2233,15 +2234,19 @@ class MainWindow(QMainWindow):
     def getSeismicPhase(self):
         return self.seismicPhase
 
+    def getTraceID(self, wfID):
+        plot_dict = self.getPlotWidget().getPlotDict()
+        return plot_dict.get(wfID)
+
     def getStationName(self, wfID):
         plot_dict = self.getPlotWidget().getPlotDict()
         if wfID in plot_dict.keys():
-            return plot_dict[wfID][0]
+            return plot_dict[wfID].split('.')[1]
 
     def getNetworkName(self, wfID):
         plot_dict = self.getPlotWidget().getPlotDict()
         if wfID in plot_dict.keys():
-            return plot_dict[wfID][2]
+            return plot_dict[wfID].split('.')[0]
 
     def alterPhase(self):
         pass
@@ -2308,38 +2313,38 @@ class MainWindow(QMainWindow):
 
         network = self.getNetworkName(wfID)
         station = self.getStationName(wfID)
+        seed_id = self.getTraceID(wfID)
         if button == 1:
-            self.pickDialog(wfID, network, station)
+            self.pickDialog(wfID, seed_id)
         elif button == 4:
             self.toggle_station_color(wfID, network, station)
 
-    def toggle_station_color(self, wfID, network, station):
+    def toggle_station_color(self, wfID, network, station, location):
         black_pen = pg.mkPen((0, 0, 0))
         red_pen = pg.mkPen((200, 50, 50))
         line_item = self.dataPlot.plotWidget.getPlotItem().listDataItems()[wfID - 1]
         current_pen = line_item.opts['pen']
-        nwst = '{}.{}'.format(network, station)
+        nsl = '{}.{}.{}'.format(network, station, location)
         if current_pen == black_pen:
             line_item.setPen(red_pen)
-            if not nwst in self.stations_highlighted:
-                self.stations_highlighted.append(nwst)
+            if not nsl in self.stations_highlighted:
+                self.stations_highlighted.append(nsl)
         else:
             line_item.setPen(black_pen)
-            if nwst in self.stations_highlighted:
-                self.stations_highlighted.pop(self.stations_highlighted.index(nwst))
+            if nsl in self.stations_highlighted:
+                self.stations_highlighted.pop(self.stations_highlighted.index(nsl))
 
     def highlight_stations(self):
         for wfID, value in self.getPlotWidget().getPlotDict().items():
-            station, channel, network = value
-            nwst = '{}.{}'.format(network, station)
-            if nwst in self.stations_highlighted:
-                self.toggle_station_color(wfID, network, station)
+            station, channel, location, network = value.split('.')
+            nsl = '{}.{}.{}'.format(network, station, location)
+            if nsl in self.stations_highlighted:
+                self.toggle_station_color(wfID, network, station, location)
 
-    def pickDialog(self, wfID, network=None, station=None):
-        if not network:
-            network = self.getNetworkName(wfID)
-        if not station:
-            station = self.getStationName(wfID)
+    def pickDialog(self, wfID, seed_id=None):
+        if not seed_id:
+            seed_id = self.getTraceID(wfID)
+        network, station, location = seed_id.split('.')[:3]
         if not station or not network:
             return
         self.update_status('picking on station {0}'.format(station))
@@ -2349,6 +2354,7 @@ class MainWindow(QMainWindow):
         pickDlg = PickDlg(self, parameter=self._inputs,
                           data=data.select(station=station),
                           station=station, network=network,
+                          location=location,
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
@@ -2714,93 +2720,95 @@ class MainWindow(QMainWindow):
             return
 
         # plotting picks
-        plotID = self.getStationID(station)
-        if plotID is None:
+        plotIDs = self.getStationIDs(station)
+        if not plotIDs:
             return
-        ylims = np.array([-.5, +.5]) + plotID
 
-        stat_picks = self.getPicks(type=picktype)[station]
-        settings = QSettings()
+        for plotID in plotIDs:
+            ylims = np.array([-.5, +.5]) + plotID
 
-        for phase in stat_picks:
-            if phase == 'SPt': continue  # wadati SP time
-            picks = stat_picks[phase]
-            if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
-                return
+            stat_picks = self.getPicks(type=picktype)[station]
+            settings = QSettings()
 
-            phaseID = self.getPhaseID(phase)
-            # get quality classes
-            if  phaseID == 'P':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
-            elif phaseID == 'S':
-                quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
+            for phase in stat_picks:
+                if phase == 'SPt': continue  # wadati SP time
+                picks = stat_picks[phase]
+                if type(stat_picks[phase]) is not dict and type(stat_picks[phase]) is not AttribDict:
+                    return
 
-            # quality = getPickQuality(self.get_data().getWFData(),
-            #                          stat_picks, self._inputs, phaseID,
-            #                          compclass)
+                phaseID = self.getPhaseID(phase)
+                # get quality classes
+                if  phaseID == 'P':
+                    quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
+                elif phaseID == 'S':
+                    quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
 
-            mpp = picks['mpp'] - stime
-            if picks['epp'] and picks['lpp']:
-                epp = picks['epp'] - stime
-                lpp = picks['lpp'] - stime
-            else:
-                epp = None
-                lpp = None
-            spe = picks['spe']
+                # quality = getPickQuality(self.get_data().getWFData(),
+                #                          stat_picks, self._inputs, phaseID,
+                #                          compclass)
 
-            if self.pg:
-                if spe:
-                    if picks['epp'] and picks['lpp']:
-                        pen = make_pen(picktype, phaseID, 'epp', quality)
-                        self.drawnPicks[picktype][station].append(pw.plot([epp, epp], ylims,
-                                                                          alpha=.25, pen=pen, name='EPP'))
-                        pen = make_pen(picktype, phaseID, 'lpp', quality)
-                        self.drawnPicks[picktype][station].append(pw.plot([lpp, lpp], ylims,
-                                                                          alpha=.25, pen=pen, name='LPP'))
-                        pen = make_pen(picktype, phaseID, 'spe', quality)
-                        spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
-                                                name='{}-SPE'.format(phase))
-                        spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
-                        try:
-                            color = pen.color()
-                            color.setAlpha(100.)
-                            brush = pen.brush()
-                            brush.setColor(color)
-                            fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
-                            fb = pw.addItem(fill)
-                            self.drawnPicks[picktype][station].append(fill)
-                        except:
-                            print('Warning: drawPicks: Could not create fill for symmetric pick error.')
-                    pen = make_pen(picktype, phaseID, 'mpp', quality)
-                    self.drawnPicks[picktype][station].append(
-                        pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase)))
-            else:
-                if picktype == 'manual':
-                    linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                    color = pick_color_plt(picktype, self.getPhaseID(phase), quality)
-                    if picks['epp'] and picks['lpp']:
-                        ax.fill_between([epp, lpp], ylims[0], ylims[1],
-                                        alpha=.25, color=color, label='EPP, LPP')
-                    if spe:
-                        linestyle_spe, width_spe = pick_linestyle_plt(picktype, 'spe')
-                        ax.plot([mpp - spe, mpp - spe], ylims, color=color, linestyle=linestyle_spe,
-                                linewidth=width_spe, label='{}-SPE'.format(phase))
-                        ax.plot([mpp + spe, mpp + spe], ylims, color=color, linestyle=linestyle_spe,
-                                linewidth=width_spe)
-                        ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                                label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
-                    else:
-                        ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                                label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
-                elif picktype == 'auto':
-                    color = pick_color_plt(picktype, phase, quality)
-                    linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
-                    ax.plot(mpp, ylims[1], color=color, marker='v')
-                    ax.plot(mpp, ylims[0], color=color, marker='^')
-                    ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
-                              picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                mpp = picks['mpp'] - stime
+                if picks['epp'] and picks['lpp']:
+                    epp = picks['epp'] - stime
+                    lpp = picks['lpp'] - stime
                 else:
-                    raise TypeError('Unknown picktype {0}'.format(picktype))
+                    epp = None
+                    lpp = None
+                spe = picks['spe']
+
+                if self.pg:
+                    if spe:
+                        if picks['epp'] and picks['lpp']:
+                            pen = make_pen(picktype, phaseID, 'epp', quality)
+                            self.drawnPicks[picktype][station].append(pw.plot([epp, epp], ylims,
+                                                                              alpha=.25, pen=pen, name='EPP'))
+                            pen = make_pen(picktype, phaseID, 'lpp', quality)
+                            self.drawnPicks[picktype][station].append(pw.plot([lpp, lpp], ylims,
+                                                                              alpha=.25, pen=pen, name='LPP'))
+                            pen = make_pen(picktype, phaseID, 'spe', quality)
+                            spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
+                                                    name='{}-SPE'.format(phase))
+                            spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                            try:
+                                color = pen.color()
+                                color.setAlpha(100.)
+                                brush = pen.brush()
+                                brush.setColor(color)
+                                fill = pg.FillBetweenItem(spe_l, spe_r, brush=brush)
+                                fb = pw.addItem(fill)
+                                self.drawnPicks[picktype][station].append(fill)
+                            except:
+                                print('Warning: drawPicks: Could not create fill for symmetric pick error.')
+                        pen = make_pen(picktype, phaseID, 'mpp', quality)
+                        self.drawnPicks[picktype][station].append(
+                            pw.plot([mpp, mpp], ylims, pen=pen, name='{}-Pick'.format(phase)))
+                else:
+                    if picktype == 'manual':
+                        linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+                        color = pick_color_plt(picktype, self.getPhaseID(phase), quality)
+                        if picks['epp'] and picks['lpp']:
+                            ax.fill_between([epp, lpp], ylims[0], ylims[1],
+                                            alpha=.25, color=color, label='EPP, LPP')
+                        if spe:
+                            linestyle_spe, width_spe = pick_linestyle_plt(picktype, 'spe')
+                            ax.plot([mpp - spe, mpp - spe], ylims, color=color, linestyle=linestyle_spe,
+                                    linewidth=width_spe, label='{}-SPE'.format(phase))
+                            ax.plot([mpp + spe, mpp + spe], ylims, color=color, linestyle=linestyle_spe,
+                                    linewidth=width_spe)
+                            ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                    label='{}-Pick (quality: {})'.format(phase, quality), picker=5)
+                        else:
+                            ax.plot([mpp, mpp], ylims, color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                    label='{}-Pick (NO PICKERROR)'.format(phase), picker=5)
+                    elif picktype == 'auto':
+                        color = pick_color_plt(picktype, phase, quality)
+                        linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
+                        ax.plot(mpp, ylims[1], color=color, marker='v')
+                        ax.plot(mpp, ylims[0], color=color, marker='^')
+                        ax.vlines(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
+                                  picker=5, label='{}-Autopick (quality: {})'.format(phase, quality))
+                    else:
+                        raise TypeError('Unknown picktype {0}'.format(picktype))
 
     def locate_event(self):
         """
