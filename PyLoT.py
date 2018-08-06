@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.apw = None
         self.paraBox = None
         self.array_map = None
-        self._metadata = Metadata()
+        self._metadata = Metadata(verbosity=0)
         self._eventChanged = [False, False]
         self.apd_local = None
         self.apd_sge = None
@@ -3153,7 +3153,7 @@ class MainWindow(QMainWindow):
 
     def init_metadata(self, new=False, ask_default=True):
         if hasattr(self.project, 'inventories'):
-            self.metadata = Metadata()
+            self.metadata = Metadata(verbosity=0)
             for inventory in self.project.inventories:
                 self.metadata.add_inventory(inventory)
 

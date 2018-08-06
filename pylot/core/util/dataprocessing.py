@@ -14,7 +14,7 @@ from pylot.core.util.utils import key_for_set_value, find_in_list, \
 
 class Metadata(object):
 
-    def __init__(self, inventory=None):
+    def __init__(self, inventory=None, verbosity=1):
         self.inventories = []
         # saves read metadata objects (Parser/inventory) for a filename
         self.inventory_files = {}
@@ -27,6 +27,7 @@ class Metadata(object):
                 self.add_inventory(inventory)
             if os.path.isfile(inventory):
                 self.add_inventory_file(inventory)
+        self.verbosity = verbosity
 
     def __str__(self):
         repr = 'PyLoT Metadata object including the following inventories:\n\n'
@@ -107,14 +108,16 @@ class Metadata(object):
             self._read_inventory_data(seed_id)
         # if seed id is not found read all inventories and try to find it there
         if not seed_id in self.seed_ids.keys():
-            print('No data found for seed id {}. Trying to find it in all known inventories...'.format(seed_id))
+            if self.verbosity:
+                print('No data found for seed id {}. Trying to find it in all known inventories...'.format(seed_id))
             self.read_all()
             for inv_fname, metadata_dict in self.inventory_files.items():
                 # use get_coordinates to check for seed_id
                 try:
                     metadata_dict['data'].get_coordinates(seed_id, time)
                     self.seed_ids[seed_id] = inv_fname
-                    print('Found metadata for station {}!'.format(seed_id))
+                    if self.verbosity:
+                        print('Found metadata for station {}!'.format(seed_id))
                     return metadata_dict
                 except Exception as e:
                     continue
@@ -181,7 +184,7 @@ class Metadata(object):
                 if not station_name in self.stations_dict.keys():
                     st_id = network_name + '.' + station_name
                     self.stations_dict[st_id] = {'latitude': station[0].latitude,
-                                            'longitude': station[0].longitude}
+                                                 'longitude': station[0].longitude}
 
         def stat_info_from_inventory(inventory):
             for network in inventory.networks:
@@ -241,7 +244,8 @@ class Metadata(object):
             # search for network name in filename
             fnames = glob.glob(os.path.join(path_to_inventory, '*' + network + '*'))
         if not fnames:
-            print('Could not find filenames matching station name, network name or seed id')
+            if self.verbosity:
+                print('Could not find filenames matching station name, network name or seed id')
             return
         for fname in fnames:
             if fname in self.inventory_files.keys():

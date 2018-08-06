@@ -143,7 +143,7 @@ class AddMetadataWidget(QWidget):
         self.connect_signals()
         self.resize(600, 800)
 
-        self.metadata = metadata if metadata else Metadata()
+        self.metadata = metadata if metadata else Metadata(verbosity=0)
         self.from_metadata()
 
         self.center()
