@@ -1288,6 +1288,7 @@ def get_quality_class(uncertainty, weight_classes):
         quality = next(i for i, v in enumerate(weight_classes) if v >= uncertainty)
     except StopIteration:
         # raised when uncertainty is larger than all values in weight_classes
+        # set quality to max possible value
         quality = len(weight_classes)
     return quality
 
