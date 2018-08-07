@@ -328,7 +328,7 @@ class AutopickStation(object):
 
     def horizontal_traces_exist(self):
         """
-        Return true when at least one horizontal traces exists
+        Return true when at least one horizontal trace exists
         :rtype: bool
         """
         if len(self.nstream) == len(self.estream) == 0:
@@ -729,7 +729,7 @@ class AutopickStation(object):
                         pass
                     plt.close(fig)
 
-    def _pick_p_qality_control(self, aicpick, z_copy, tr_filt):
+    def _pick_p_quality_control(self, aicpick, z_copy, tr_filt):
         """
         Quality control of first pick using minseglength and checkZ4S.
         :param aicpick: Instance of AICPicker to run quality control on
@@ -840,7 +840,7 @@ class AutopickStation(object):
                 ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
-        Pflag = self._pick_p_qality_control(aicpick, z_copy, tr_filt)
+        Pflag = self._pick_p_quality_control(aicpick, z_copy, tr_filt)
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
