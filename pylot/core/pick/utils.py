@@ -1477,6 +1477,8 @@ def getQualityFromUncertainty(uncertainty, Errors):
     elif uncertainty > Errors[3]:
         quality = 4
 
+    return quality
+
 if __name__ == '__main__':
     import doctest
 
