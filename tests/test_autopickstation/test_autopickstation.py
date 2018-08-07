@@ -100,7 +100,7 @@ class TestAutopickStation(unittest.TestCase):
         self.metadata = MockMetadata()
 
         # show complete diff when difference in results dictionaries are found
-        self.maxDiff
+        self.maxDiff = None
 
     #@skip("Works")
     def test_autopickstation_taupy_disabled_gra1(self):
