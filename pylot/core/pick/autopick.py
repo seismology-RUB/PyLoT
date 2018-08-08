@@ -192,7 +192,8 @@ class PickingParameters(object):
 
 class PickingResults(dict):
     """
-    Store picking results
+    Used to store picking results.
+    PickingResults is a dict like class that adds attribute (dot) access to the dictionaries values.
     """
 
     def __init__(self):
@@ -229,11 +230,21 @@ class PickingResults(dict):
         self.spe = None         # symmetrized picking error
         self.weight = 4         # weight of onset
 
-    def __setattr__(self, key, value):
-        self[key] = value
+    # to correctly provide dot access to dictionary attributes, all attribute access of the class is forwarded to the
+    # dictionary
+    def __getattr__(self, item):
+        """Override getattr to return an AttributeError instead of a KeyError when the instance doesn't have the
+        attribute.
+        """
+        try:
+            attr = dict.__getitem__(self, item)
+        except KeyError:
+            raise AttributeError('{classname} has no attribute {attrname}'.format(classname=self.__class__.__name__,
+                                                                                  attrname=item))
+        return attr
 
-    def __getattr__(self, key):
-        return self[key]
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 
 class PickingContainer:
