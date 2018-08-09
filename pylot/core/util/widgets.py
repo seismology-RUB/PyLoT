@@ -2130,7 +2130,7 @@ class PickDlg(QDialog):
         return self.components
 
     def getStation(self):
-        return self.network + '.' + self.station + '.' + self.location
+        return '{}.{}.{}'.format(self.network, self.station, self.location)
 
     def getChannelID(self, key):
         if key < 0: key = 0

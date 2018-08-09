@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import traceback
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -36,6 +37,15 @@ class Array_map(QtGui.QWidget):
         self._style = parent._style
         # self.show()
 
+    @property
+    def hybrids_dict(self):
+        hybrids_dict = self.picks_dict.copy()
+        for station, pick in self.autopicks_dict.items():
+            if not station in hybrids_dict.keys():
+                hybrids_dict[station] = pick
+        return hybrids_dict
+
+
     def init_map(self):
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
@@ -51,15 +61,14 @@ class Array_map(QtGui.QWidget):
             return
         data = self._parent.get_data().getWFData()
         for index in ind:
-            station = str(self._station_onpick_ids[index].split('.')[-1])
+            network, station = self._station_onpick_ids[index].split('.')[:2]
             try:
                 data = data.select(station=station)
                 if not data:
                     self._warn('No data for station {}'.format(station))
                     return
                 pickDlg = PickDlg(self._parent, parameter=self._parent._inputs,
-                                  data=data,
-                                  station=station,
+                                  data=data, network=network, station=station,
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
                                   filteroptions=self._parent.filteroptions)
@@ -67,6 +76,7 @@ class Array_map(QtGui.QWidget):
                 message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
+                print(traceback.format_exc())
                 return
             pyl_mw = self._parent
             try:
@@ -115,9 +125,10 @@ class Array_map(QtGui.QWidget):
         self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
 
     def current_picks_dict(self):
-        picktype = self.comboBox_am.currentText()
+        picktype = self.comboBox_am.currentText().split(' ')[0]
         auto_manu = {'auto': self.autopicks_dict,
-                     'manual': self.picks_dict}
+                     'manual': self.picks_dict,
+                     'hybrid': self.hybrids_dict}
         return auto_manu[picktype]
 
     def init_graphics(self):
@@ -141,8 +152,9 @@ class Array_map(QtGui.QWidget):
         self.comboBox_phase.insertItem(1, 'S')
 
         self.comboBox_am = QtGui.QComboBox()
-        self.comboBox_am.insertItem(0, 'auto')
+        self.comboBox_am.insertItem(0, 'hybrid (prefer manual)')
         self.comboBox_am.insertItem(1, 'manual')
+        self.comboBox_am.insertItem(2, 'auto')
 
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
@@ -349,15 +361,17 @@ class Array_map(QtGui.QWidget):
 
     def draw_everything(self):
         picktype = self.comboBox_am.currentText()
-        if (self.picks_dict and picktype == 'manual') \
-                or (self.autopicks_dict and picktype == 'auto'):
+        picks_available = (self.picks_dict and picktype == 'manual') \
+                          or (self.autopicks_dict and picktype == 'auto') \
+                          or ((self.autopicks_dict or self.picks_dict) and picktype.startswith('hybrid'))
+
+        if picks_available:
             self.init_picks()
             if len(self.picks) >= 3:
                 self.init_picksgrid()
                 self.draw_contour_filled()
         self.scatter_all_stations()
-        if (self.picks_dict and picktype == 'manual') \
-                or (self.autopicks_dict and picktype == 'auto'):
+        if picks_available:
             self.scatter_picked_stations()
             self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)
