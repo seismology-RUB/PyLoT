@@ -468,15 +468,13 @@ class AutopickStation(object):
             id = id.format(network=stats.network, station=stats.station, location=stats.location, channel=stats.channel)
             return id
 
-        def create_arrivals(metadata, origin, station_id, taup_model):
+        def create_arrivals(metadata, origin, taup_model):
             """
             Create List of arrival times for all phases for a given origin and station
             :param metadata: tuple containing metadata type string and Parser object read from inventory file
             :type metadata: tuple (str, ~obspy.io.xseed.parser.Parser)
             :param origin: list containing origin objects representing origins for all events
             :type origin: list(~obspy.core.event.origin)
-            :param station_id: Station id with format NETWORKNAME.STATIONNAME
-            :type station_id: str
             :param taup_model: Model name to use. See obspy.taup.tau.TauPyModel for options
             :type taup_model: str
             :return: List of Arrival objects
@@ -528,7 +526,7 @@ class AutopickStation(object):
         if not self.origin:
             raise AttributeError('No source origins given!')
 
-        arrivals = create_arrivals(self.metadata, self.origin, self.station_id, self.p_params.taup_model)
+        arrivals = create_arrivals(self.metadata, self.origin, self.p_params.taup_model)
         estFirstP, estFirstS = first_PS_onsets(arrivals)
         # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
         self.p_params.pstart += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
