@@ -77,12 +77,13 @@ class Array_map(QtGui.QWidget):
                 pick = picks.get(phase)
                 if pick:
                     picker = pick['picker']
+                    message = 'Deleted {} pick for phase {}, station {}.{} at timestamp {}'
+                    message = message.format(picker, phase, network, station,
+                                             pick['mpp'])
                     if picker == 'auto':
                         del(self.autopicks_dict[station])
-                        message = 'Removed automatic pick for station {}, phase {}'.format(station, phase)
                     elif picker == 'manual':
                         del(self.picks_dict[station])
-                        message = 'Removed manual pick for station {}, phase {}'.format(station, phase)
                     else:
                         raise TypeError('Unknown "picker" {}'.format(picker))
                     print(message)
