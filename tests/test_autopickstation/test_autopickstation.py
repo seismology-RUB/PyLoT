@@ -49,7 +49,7 @@ class MockMetadata:
 
         self.coordinates = [gra1, gra2, ech, fiesa, a106]
 
-    def get_coordinates(self, station_id):
+    def get_coordinates(self, station_id, time=None):
         """
         Mocks the method get_coordinates from obspy.io.xseed.parser.Parser object
         to avoid building a parser for the unit tests
@@ -87,6 +87,7 @@ class TestAutopickStation(unittest.TestCase):
         self.ech = self.wfstream.select(station='ECH')
         self.fiesa = self.wfstream.select(station='FIESA')
         self.a106 = self.wfstream.select(station='A106A')
+        self.a005a = self.wfstream.select(station='A005A')
         # Create input parameter container
         self.inputfile_taupy_enabled = os.path.join(os.path.dirname(__file__), 'autoPyLoT_global_taupy_true.in')
         self.inputfile_taupy_disabled = os.path.join(os.path.dirname(__file__), 'autoPyLoT_global_taupy_false.in')
@@ -194,6 +195,16 @@ class TestAutopickStation(unittest.TestCase):
         expected = {'P': {'picker': 'auto', 'snrdb': 12.862128789922826, 'network': u'Z3', 'weight': 0, 'Ao': None, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 34), 'Mw': None, 'fc': None, 'snr': 19.329155459132608, 'epp': UTCDateTime(2016, 1, 24, 10, 41, 30), 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 33), 'w0': None, 'spe': 1.6666666666666667, 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': None, 'network': u'Z3', 'weight': 4, 'Ao': None, 'Mo': None, 'marked': [], 'lpp': UTCDateTime(2016, 1, 24, 10, 28, 56), 'Mw': None, 'fc': None, 'snr': None, 'epp': UTCDateTime(2016, 1, 24, 10, 28, 24), 'mpp': UTCDateTime(2016, 1, 24, 10, 28, 40), 'w0': None, 'spe': None, 'fm': None, 'channel': u'LHE'}}
         with HidePrints():
             result, station = autopickstation(wfstream=self.a106, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
+        self.assertEqual(expected, result)
+
+    def test_autopickstation_station_missing_in_metadata(self):
+        """This station is not in the metadata, but Taupy is enabled. Taupy should exit cleanly and modify the starttime
+        relative to the theoretical onset to one relative to the traces starttime, eg never negative.
+        """
+        self.pickparam_taupy_enabled.setParamKV('pstart', -100)  # modify starttime to be relative to theoretical onset
+        expected = {'P': {'picker': 'auto', 'snrdb': 14.464757855513506, 'network': u'Z3', 'weight': 0, 'Mo': None, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 41, 39, 605000), 'Mw': None, 'fc': None, 'snr': 27.956048519707181, 'marked': [], 'mpp': UTCDateTime(2016, 1, 24, 10, 41, 38, 605000), 'w0': None, 'spe': 1.6666666666666667, 'epp': UTCDateTime(2016, 1, 24, 10, 41, 35, 605000), 'fm': None, 'channel': u'LHZ'}, 'S': {'picker': 'auto', 'snrdb': 10.112844176301248, 'network': u'Z3', 'weight': 1, 'Mo': None, 'Ao': None, 'lpp': UTCDateTime(2016, 1, 24, 10, 50, 51, 605000), 'Mw': None, 'fc': None, 'snr': 10.263238413785425, 'marked': [], 'mpp': UTCDateTime(2016, 1, 24, 10, 50, 48, 605000), 'w0': None, 'spe': 4.666666666666667, 'epp': UTCDateTime(2016, 1, 24, 10, 50, 40, 605000), 'fm': None, 'channel': u'LHE'}}
+        with HidePrints():
+            result, station = autopickstation(wfstream = self.a005a, pickparam=self.pickparam_taupy_enabled, metadata=self.metadata, origin=self.origin)
         self.assertEqual(expected, result)
 
 if __name__ == '__main__':

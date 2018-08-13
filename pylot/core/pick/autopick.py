@@ -483,7 +483,11 @@ class AutopickStation(object):
                 AttributeError when no metadata or source origins is given
             """
             id = get_seed_id()
-            station_coords = metadata.get_coordinates(id)
+            station_coords = metadata.get_coordinates(id, self.ztrace.stats.starttime)
+            if station_coords is None:
+                exit_taupy()
+                raise AttributeError('Warning: Could not find station in metadata')
+            # TODO raise when metadata.get_coordinates returns None
             source_origin = origin[0]
             model = TauPyModel(taup_model)
             arrivals = model.get_travel_times_geo(source_depth_in_km=source_origin.depth,
@@ -512,11 +516,17 @@ class AutopickStation(object):
                   ' origin time using TauPy'.format(estFirstP, estFirstS))
             return estFirstP, estFirstS
 
+        def exit_taupy():
+            """If taupy failed to calculate theoretical starttimes, picking continues.
+            For this a clean exit is required, since the P starttime is no longer relative to the theoretic onset but
+            to the vertical trace starttime, eg. it can't be < 0."""
+            if self.p_params.pstart < 0:
+                self.p_params.pstart = 0
+
         if self.p_params.use_taup is False or not self.origin or not self.metadata:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
-            if self.p_params.pstart < 0:
-                self.p_params.pstart = 0
+            exit_taupy()
             return
 
         print('autopickstation: use_taup flag active.')
