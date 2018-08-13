@@ -30,6 +30,8 @@ class Array_map(QtGui.QWidget):
         self.autopicks_dict = None
         self.eventLoc = None
         self.figure = figure
+        self.picks_rel = {}
+        self.marked_stations = []
         self.init_graphics()
         self.init_stations()
         self.init_basemap(resolution='l')
@@ -297,9 +299,50 @@ class Array_map(QtGui.QWidget):
         return picks, latitudes, longitudes
 
     def draw_contour_filled(self, nlevel='50'):
+        #self.test_gradient()
+
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
                                               levels, latlon=True, zorder=9, alpha=0.5)
+
+    def test_gradient(self):
+        st_ids = self.picks_rel.keys()
+        x, y = np.gradient(self.picksgrid_active)
+        gradient_modulus = np.sqrt(x ** 2 + y ** 2)
+        global_mean_gradient = np.nanmean(gradient_modulus)
+        delta_gradient = []
+        for st_id in st_ids:
+            pick_item = self.picks_rel.pop(st_id)
+            self.init_picksgrid()
+            x, y = np.gradient(self.picksgrid_active)
+            gradient_modulus = np.sqrt(x**2 + y**2)
+            mean_gradient = np.nanmean(gradient_modulus)
+            dgradient = global_mean_gradient - mean_gradient
+            # print('station: {}, mean gradient: {}'.format(st_id, dgradient))
+            delta_gradient.append(dgradient)
+            self.picks_rel[st_id] = pick_item
+        global_std_gradient = np.nanstd(delta_gradient)
+        marked_stations = []
+        for st_id, dg in zip(st_ids, delta_gradient):
+            if abs(dg) > global_std_gradient:
+                marked_stations.append(st_id)
+        self.marked_stations = marked_stations
+        self.init_picksgrid()
+
+        # fig = plt.figure()
+        # x = list(range(len(st_ids)))
+        # gradients = zip(x, delta_gradient)
+        # gradients.sort(key=lambda a: a[1])
+        # plt.plot(gradients[0], gradients[1])
+
+        # global_var_gradient = np.nanvar(delta_gradient)
+        # plt.plot(x, delta_gradient)
+        # plt.axhline(global_std_gradient, color='green')
+        # plt.axhline(2 * global_std_gradient, color='blue')
+        # plt.axhline(global_var_gradient, color='red')
+        # plt.xticks(x, st_ids)
+        # plt.show()
+
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
@@ -330,9 +373,20 @@ class Array_map(QtGui.QWidget):
     def annotate_ax(self):
         self.annotations = []
         stations, xs, ys = self.get_st_x_y_for_plot()
+        # MP MP test
+        if self.picks_rel:
+            self.test_gradient()
+        color_marked = {True: 'red',
+                        False: 'white'}
         for st, x, y in zip(stations, xs, ys):
+            if st in self.picks_rel:
+                color = 'white'
+            else:
+                color = 'black'
+            if st in self.marked_stations:
+                color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize='x-small', color='white', zorder=12))
+                                                          fontsize='x-small', color=color, zorder=12))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
