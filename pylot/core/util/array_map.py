@@ -59,8 +59,55 @@ class Array_map(QtGui.QWidget):
     def onpick(self, event):
         ind = event.ind
         button = event.mouseevent.button
-        if ind == [] or not button == 1:
+        if ind == []:
             return
+        if button == 1:
+            self.openPickDlg(ind)
+        elif button == 2:
+            self.deletePick(ind)
+        elif button == 3:
+            self.pickInfo(ind)
+
+    def deletePick(self, ind):
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            try:
+                phase = self.comboBox_phase.currentText()
+                picks = self.current_picks_dict()[station]
+                pick = picks.get(phase)
+                if pick:
+                    picker = pick['picker']
+                    if picker == 'auto':
+                        del(self.autopicks_dict[station])
+                        message = 'Removed automatic pick for station {}, phase {}'.format(station, phase)
+                    elif picker == 'manual':
+                        del(self.picks_dict[station])
+                        message = 'Removed manual pick for station {}, phase {}'.format(station, phase)
+                    else:
+                        raise TypeError('Unknown "picker" {}'.format(picker))
+                    print(message)
+                    pyl_mw = self._parent
+                    pyl_mw.setDirty(True)
+                    pyl_mw.update_status(message)
+                    self._refresh_drawings()
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+            except Exception as e:
+                print('Could not delete pick for station {}.{}: {}'.format(network, station, e))
+
+    def pickInfo(self, ind):
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            dic = self.current_picks_dict()[station]
+            for phase, picks in dic.items():
+                # because of wadati...
+                if phase == 'SPt':
+                    continue
+                print('{} - Pick:'.format(phase))
+                for key, info in picks.items():
+                    print('{}: {}'.format(key, info))
+
+    def openPickDlg(self, ind):
         data = self._parent.get_data().getWFData()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
@@ -361,13 +408,13 @@ class Array_map(QtGui.QWidget):
             return
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, edgecolors='white',
                                                   c=picks[0], latlon=True, zorder=11, label='Picked')
         if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, edgecolors='white',
                                                   c=picks[1], latlon=True, zorder=11)
         else:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white',
                                                   c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
@@ -382,11 +429,11 @@ class Array_map(QtGui.QWidget):
             if st in self.picks_rel:
                 color = 'white'
             else:
-                color = 'black'
+                color = 'lightgrey'
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize='x-small', color=color, zorder=12))
+                                                          fontsize='x-small', color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
@@ -435,6 +482,7 @@ class Array_map(QtGui.QWidget):
         self.canvas.draw()
 
     def remove_drawings(self):
+        self.remove_annotations()
         if hasattr(self, 'cbar'):
             self.cbar.remove()
             self.cbax_bg.remove()
