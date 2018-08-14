@@ -204,6 +204,7 @@ class MainWindow(QMainWindow):
         if settings.value('autoFilter', None) is None:
             settings.setValue('autoFilter', True)
         settings.sync()
+        print(settings.value('recentProjects'))
 
         # setup UI
         self.setupUi()
@@ -542,6 +543,7 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
+
         editActions = (self.filterActionP, self.filterActionS, filterEditAction, None,
                        # self.selectPAction, self.selectSAction, None,
                        self.inventoryAction, self.initMapAction, None,
@@ -552,6 +554,7 @@ class MainWindow(QMainWindow):
         self.pickMenu = self.menuBar().addMenu('&Picking')
         self.autoPickMenu = self.pickMenu.addMenu(self.autopicksicon_small, 'Automatic picking')
         self.autoPickMenu.setEnabled(False)
+
 
         autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
@@ -684,6 +687,7 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
+
 
     def init_wfWidget(self):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
@@ -830,8 +834,9 @@ class MainWindow(QMainWindow):
                                                  s_filter['order'])}
 
     def updateFileMenu(self):
-
+        settings = QSettings()
         self.fileMenu.clear()
+        self.recentProjectsMenu = self.fileMenu.addMenu('Recent Projects')
         for action in self.fileMenuActions[:-1]:
             if action is None:
                 self.fileMenu.addSeparator()
@@ -848,7 +853,6 @@ class MainWindow(QMainWindow):
                 recentEvents.append(eventID)
                 recentEvents.reverse()
                 self.recentfiles = recentEvents[0:5]
-                settings = QSettings()
                 settings.setValue()
         if recentEvents:
             for i, eventID in enumerate(recentEvents):
@@ -863,6 +867,16 @@ class MainWindow(QMainWindow):
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
+
+        # add recent projects
+        recentProjects = settings.value('recentProjects', [])
+        for project in reversed(recentProjects):
+            action = self.createAction(self, project,
+                                        self.createNewProject,
+                                        None, None)
+
+            self.recentProjectsMenu.addAction(action)
+
 
     @property
     def inputs(self):
@@ -3294,6 +3308,16 @@ class MainWindow(QMainWindow):
 
             self.init_array_tab()
             self.set_metadata()
+            self.add2recentProjects(fnm)
+
+    def add2recentProjects(self, fnm):
+        settings = QtCore.QSettings()
+        recent = settings.value('recentProjects', [])
+        if not type(recent) == list:
+            recent = [recent]
+        recent.append(fnm)
+        new_recent = recent[-5:]
+        settings.setValue('recentProjects', new_recent)
 
     def saveProjectAs(self, exists=False):
         '''
