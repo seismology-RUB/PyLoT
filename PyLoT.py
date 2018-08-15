@@ -204,7 +204,6 @@ class MainWindow(QMainWindow):
         if settings.value('autoFilter', None) is None:
             settings.setValue('autoFilter', True)
         settings.sync()
-        print(settings.value('recentProjects'))
 
         # setup UI
         self.setupUi()
@@ -870,10 +869,12 @@ class MainWindow(QMainWindow):
 
         # add recent projects
         recentProjects = settings.value('recentProjects', [])
+        if not type(recentProjects) == list:
+            recentProjects = [recentProjects]
         for project in reversed(recentProjects):
             action = self.createAction(self, project,
-                                        self.createNewProject,
-                                        None, None)
+                                       lambda fnm=project: self.loadProject(fnm),
+                                       None, None)
 
             self.recentProjectsMenu.addAction(action)
 
@@ -3306,6 +3307,10 @@ class MainWindow(QMainWindow):
             self.setDirty(False)
             self.init_metadata()
 
+            message = 'Opened project file {}.'.format(fnm)
+            print(message)
+            self.update_status(message)
+
             self.init_array_tab()
             self.set_metadata()
             self.add2recentProjects(fnm)
@@ -3315,9 +3320,11 @@ class MainWindow(QMainWindow):
         recent = settings.value('recentProjects', [])
         if not type(recent) == list:
             recent = [recent]
-        recent.append(fnm)
+        if not fnm in recent:
+            recent.append(fnm)
         new_recent = recent[-5:]
         settings.setValue('recentProjects', new_recent)
+        settings.sync()
 
     def saveProjectAs(self, exists=False):
         '''

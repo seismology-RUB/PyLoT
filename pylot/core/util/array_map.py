@@ -421,9 +421,9 @@ class Array_map(QtGui.QWidget):
     def annotate_ax(self):
         self.annotations = []
         stations, xs, ys = self.get_st_x_y_for_plot()
-        # MP MP test
-        if self.picks_rel:
-            self.test_gradient()
+        # MP MP testing station highlighting if they have high impact on mean gradient of color map
+        # if self.picks_rel:
+        #    self.test_gradient()
         color_marked = {True: 'red',
                         False: 'white'}
         for st, x, y in zip(stations, xs, ys):
