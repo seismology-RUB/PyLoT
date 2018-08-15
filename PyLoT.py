@@ -3288,10 +3288,13 @@ class MainWindow(QMainWindow):
             return
         if not fnm:
             dlg = QFileDialog(parent=self)
-            fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
+            fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')[0]
             if not fnm:
                 return
-            fnm = fnm[0]
+        if not os.path.exists(fnm):
+            QMessageBox.warning(self, 'Could not open file',
+                                'Could not open project file {}. File does not exist.'.format(fnm))
+            return
         if fnm:
             self.project = Project.load(fnm)
             if hasattr(self.project, 'parameter'):
@@ -3343,6 +3346,7 @@ class MainWindow(QMainWindow):
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
+        self.add2recentProjects(filename)
         return True
 
     def saveProject(self, new=False):
