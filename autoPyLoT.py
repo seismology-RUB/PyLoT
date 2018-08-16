@@ -8,6 +8,8 @@ import datetime
 import glob
 import os
 import traceback
+from obspy import read_events
+from obspy.core.event import ResourceIdentifier
 
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hash as hash
@@ -16,18 +18,16 @@ import pylot.core.loc.hypodd as hypodd
 import pylot.core.loc.hyposat as hyposat
 import pylot.core.loc.nll as nll
 import pylot.core.loc.velest as velest
-from obspy import read_events
-from obspy.core.event import ResourceIdentifier
 # from PySide.QtGui import QWidget, QInputDialog
 from pylot.core.analysis.magnitude import MomentMagnitude, LocalMagnitude
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.pick.autopick import autopickevent, iteratepicker
-from pylot.core.util.dataprocessing import restitute_data, read_metadata, Metadata
+from pylot.core.util.dataprocessing import restitute_data, Metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import real_None, remove_underscores, trim_station_components, check4gaps, check4doubled, \
+from pylot.core.util.utils import real_None, trim_station_components, check4gaps, check4doubled, \
     check4rotated
 from pylot.core.util.version import get_git_version as _getVersionString
 

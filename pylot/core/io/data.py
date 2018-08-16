@@ -3,19 +3,18 @@
 
 import copy
 import os
-
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.io.sac import SacIOError
+
+import pylot.core.loc.velest as velest
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
-from pylot.core.util.utils import fnConstructor, full_range, remove_underscores, check4gaps, check4doubled, \
-    check4rotated, trim_station_components
-import pylot.core.loc.velest as velest
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
+from pylot.core.util.utils import fnConstructor, full_range, check4rotated, trim_station_components
 
 
 class Data(object):
@@ -405,7 +404,7 @@ class Data(object):
 
         # various pre-processing steps:
         # remove possible underscores in station names
-        #self.wfdata = remove_underscores(self.wfdata)
+        # self.wfdata = remove_underscores(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)

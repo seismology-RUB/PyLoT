@@ -2,27 +2,23 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
+import numpy as np
 import os
 import platform
+import pyqtgraph as pg
 import re
 import subprocess
 import warnings
-
-import numpy as np
+from PySide import QtCore
 from obspy import UTCDateTime, read
 from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
-from obspy.io.xseed.utils import SEEDParserException
-
-from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
+from scipy.interpolate import splrep, splev
 
 from pylot.core.io.inputs import PylotParameter, FilterOptions
+from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
 from pylot.styles import style_settings
 
-from scipy.interpolate import splrep, splev
-from PySide import QtCore, QtGui
-
-import pyqtgraph as pg
 
 def _pickle_method(m):
     if m.im_self is None:
@@ -835,7 +831,7 @@ def remove_underscores(data):
     :return: data stream
     :rtype: `~obspy.core.stream.Stream`
     """
-    #for tr in data:
+    # for tr in data:
     #    # remove underscores
     #    tr.stats.station = tr.stats.station.strip('_')
     return data

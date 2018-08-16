@@ -8,10 +8,11 @@ function conglomerate utils.
 
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
-import traceback
-
 import matplotlib.pyplot as plt
 import numpy as np
+import traceback
+from obspy.taup import TauPyModel
+
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
@@ -19,8 +20,6 @@ from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck
 from pylot.core.util.utils import getPatternLine, gen_Pool, \
     real_Bool, identifyPhaseID
-
-from obspy.taup import TauPyModel
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):

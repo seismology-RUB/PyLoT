@@ -9,12 +9,12 @@ Created on Wed Feb 26 12:31:25 2014
 import os
 import platform
 
-from pylot.core.util.utils import readDefaultFilterInformation
 from pylot.core.loc import hypo71
 from pylot.core.loc import hypodd
 from pylot.core.loc import hyposat
 from pylot.core.loc import nll
 from pylot.core.loc import velest
+from pylot.core.util.utils import readDefaultFilterInformation
 
 # determine system dependent path separator
 system_name = platform.system()
@@ -39,5 +39,3 @@ OUTPUTFORMATS = {'.xml': 'QUAKEML',
                  '.obs': 'NLLOC_OBS'}
 
 LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=hypodd)
-
-

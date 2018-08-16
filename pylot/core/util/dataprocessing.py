@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import glob
+import numpy as np
 import os
 import sys
-
-import numpy as np
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
+
 from pylot.core.util.utils import key_for_set_value, find_in_list, \
-    remove_underscores, gen_Pool
+    gen_Pool
 
 
 class Metadata(object):
@@ -616,7 +616,7 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
 
     restflag = list()
 
-    #data = remove_underscores(data)
+    # data = remove_underscores(data)
 
     # loop over traces
     input_tuples = []

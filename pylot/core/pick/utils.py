@@ -8,11 +8,11 @@
    :author: Ludger Kueperkoch, BESTEC GmbH
 """
 
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 from obspy.core import Stream, UTCDateTime
+
 from pylot.core.util.utils import real_Bool, real_None, SetChannelComponents
 
 

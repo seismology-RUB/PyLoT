@@ -8,15 +8,13 @@ Created on Wed Mar 19 11:27:35 2014
 import copy
 import datetime
 import getpass
+import matplotlib
 import multiprocessing
+import numpy as np
 import os
 import subprocess
 import sys
 import time
-
-import numpy as np
-
-import matplotlib
 
 matplotlib.use('QT4Agg')
 
@@ -28,8 +26,6 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
-from matplotlib.tight_layout import get_renderer, get_subplotspec_list, get_tight_layout_figure
-from scipy.signal import argrelmin, argrelmax
 from obspy import read
 
 from PySide import QtCore, QtGui
@@ -38,7 +34,7 @@ from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QGridLayout, QIcon, QLabel, QLineEdit, QMessageBox, \
     QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog, QKeySequence
-from PySide.QtCore import QSettings, Qt, QUrl, Signal, Slot
+from PySide.QtCore import QSettings, Qt, QUrl, Signal
 from PySide.QtWebKit import QWebView
 from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
@@ -50,9 +46,9 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow, getQualityFromUncertainty
 from pylot.core.pick.compare import Comparison
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
-from pylot.core.util.utils import prepTimeAxis, full_range, scaleWFData, \
-    demeanTrace, isSorted, findComboBoxIndex, clims, pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, check4gaps, merge_stream, remove_underscores, find_horizontals, identifyPhase, \
+from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
+    pick_linestyle_plt, pick_color_plt, \
+    check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
     identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents
 from autoPyLoT import autoPyLoT
@@ -65,6 +61,9 @@ elif sys.version_info.major == 2:
     import icons_rc_2 as icons_rc
 else:
     raise ImportError('Could not determine python version.')
+
+# workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
+icons_rc = icons_rc
 
 
 def getDataType(parent):
@@ -148,7 +147,7 @@ class AddMetadataWidget(QWidget):
 
         self.center()
         self.show()
-        #self.__test__()
+        # self.__test__()
 
     def __test__(self):
         self.add_item(r'/rscratch/minos14/marcel/git/pylot/tests')
@@ -739,7 +738,8 @@ class WaveformWidgetPG(QtGui.QWidget):
         # list containing tuples of network, station, channel (for sorting)
         nslc = []
         for trace in st_select:
-            nslc.append(trace.get_id())#(trace.stats.network, trace.stats.station, trace.stats.location trace.stats.channel))
+            nslc.append(
+                trace.get_id())  # (trace.stats.network, trace.stats.station, trace.stats.location trace.stats.channel))
         nslc.sort()
         nslc.reverse()
         plots = []
@@ -2390,7 +2390,6 @@ class PickDlg(QDialog):
                                      additional_channel=additional_channel,
                                      snr=mean_snr)
 
-
     def setPick(self, gui_event):
 
         parameter = self.parameter
@@ -2539,25 +2538,25 @@ class PickDlg(QDialog):
             linestyle_mpp, width_mpp = pick_linestyle_plt(picktype, 'mpp')
             vl = ax.axvline(mpp, ylims[0], ylims[1], color=color, linestyle=linestyle_mpp, linewidth=width_mpp,
                             label='{}-{}-Pick (quality: {})'.format(phase, picktype, quality), picker=5,
-                            zorder=baseorder+9)
+                            zorder=baseorder + 9)
             phaseLineKey = '{}-{}'.format(phase, picktype)
             self.phaseLines[phaseLineKey] = vl
             if spe:
                 ax.fill_between([mpp - spe, mpp + spe], ylims[0], ylims[1],
-                                alpha=.25, color=color, label='{}-{}-SPE'.format(phase, picktype), zorder=baseorder+1)
+                                alpha=.25, color=color, label='{}-{}-SPE'.format(phase, picktype), zorder=baseorder + 1)
             if picks['epp']:
                 linestyle_epp, width_epp = pick_linestyle_plt(picktype, 'epp')
                 ax.axvline(epp, ylims[0], ylims[1], color=color, linestyle=linestyle_epp,
-                           linewidth=width_epp, label='{}-{}-EPP'.format(phase, picktype), zorder=baseorder+2)
+                           linewidth=width_epp, label='{}-{}-EPP'.format(phase, picktype), zorder=baseorder + 2)
             if picks['lpp']:
                 linestyle_lpp, width_lpp = pick_linestyle_plt(picktype, 'lpp')
                 ax.axvline(lpp, ylims[0], ylims[1], color=color, linestyle=linestyle_lpp,
-                           linewidth=width_lpp, label='{}-{}-LPP'.format(phase, picktype), zorder=baseorder+2)
+                           linewidth=width_lpp, label='{}-{}-LPP'.format(phase, picktype), zorder=baseorder + 2)
             if picktype == 'auto':
-                ax.plot(mpp, ylims[1], color=color, marker='v', zorder=baseorder+3)
-                ax.plot(mpp, ylims[0], color=color, marker='^', zorder=baseorder+3)
+                ax.plot(mpp, ylims[1], color=color, marker='v', zorder=baseorder + 3)
+                ax.plot(mpp, ylims[0], color=color, marker='^', zorder=baseorder + 3)
         # append phase text (if textOnly: draw with current ylims)
-        self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color, zorder=baseorder+10))
+        self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color, zorder=baseorder + 10))
         ax.legend(loc=1)
 
     def connect_mouse_motion(self):
@@ -3345,11 +3344,11 @@ class TuneAutopicker(QWidget):
             self.data.setWFData(fnames)
             wfdat = self.data.getWFData()  # all available streams
             # remove possible underscores in station names
-            #wfdat = remove_underscores(wfdat)
+            # wfdat = remove_underscores(wfdat)
             # rotate misaligned stations to ZNE
             # check for gaps and doubled channels
             wfdat, gaps = merge_stream(wfdat)
-            #check4gaps(wfdat)
+            # check4gaps(wfdat)
             check4doubled(wfdat)
             wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
             # trim station components to same start value
@@ -4606,7 +4605,7 @@ class GraphicsTab(PropTab):
         super(GraphicsTab, self).__init__(parent)
         self.pylot_mainwindow = parent._pylot_mainwindow
         self.init_layout()
-        #self.add_pg_cb()
+        # self.add_pg_cb()
         self.add_nth_sample()
         self.add_style_settings()
         self.setLayout(self.main_layout)

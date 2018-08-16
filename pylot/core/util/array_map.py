@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import traceback
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
+import traceback
 from PySide import QtGui
-from mpl_toolkits.basemap import Basemap
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from pylot.core.util.widgets import PickDlg, PylotCanvas
+from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import griddata
+
+from pylot.core.util.widgets import PickDlg, PylotCanvas
 
 plt.interactive(False)
 
@@ -47,7 +48,6 @@ class Array_map(QtGui.QWidget):
                 hybrids_dict[station] = pick
         return hybrids_dict
 
-
     def init_map(self):
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
@@ -81,9 +81,9 @@ class Array_map(QtGui.QWidget):
                     message = message.format(picker, phase, network, station,
                                              pick['mpp'])
                     if picker == 'auto':
-                        del(self.autopicks_dict[station])
+                        del (self.autopicks_dict[station])
                     elif picker == 'manual':
-                        del(self.picks_dict[station])
+                        del (self.picks_dict[station])
                     else:
                         raise TypeError('Unknown "picker" {}'.format(picker))
                     print(message)
@@ -347,7 +347,7 @@ class Array_map(QtGui.QWidget):
         return picks, latitudes, longitudes
 
     def draw_contour_filled(self, nlevel='50'):
-        #self.test_gradient()
+        # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
@@ -363,7 +363,7 @@ class Array_map(QtGui.QWidget):
             pick_item = self.picks_rel.pop(st_id)
             self.init_picksgrid()
             x, y = np.gradient(self.picksgrid_active)
-            gradient_modulus = np.sqrt(x**2 + y**2)
+            gradient_modulus = np.sqrt(x ** 2 + y ** 2)
             mean_gradient = np.nanmean(gradient_modulus)
             dgradient = global_mean_gradient - mean_gradient
             # print('station: {}, mean gradient: {}'.format(st_id, dgradient))
@@ -390,7 +390,6 @@ class Array_map(QtGui.QWidget):
         # plt.axhline(global_var_gradient, color='red')
         # plt.xticks(x, st_ids)
         # plt.show()
-
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()

@@ -3,8 +3,8 @@
 
 """Utilities/helpers for testing"""
 
-import sys
 import os
+import sys
 
 
 class HidePrints:

@@ -24,11 +24,10 @@ https://www.iconfinder.com/iconsets/flavour
 """
 
 import argparse
+import matplotlib
 import os
 import platform
 import sys
-
-import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -40,8 +39,8 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QLineEdit, QListView, QAbstractItemView, \
+    QDialog, QApplication, QPixmap, QMessageBox, QSplashScreen, \
+    QActionGroup, QListWidget, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime
@@ -56,7 +55,6 @@ try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude
@@ -64,24 +62,23 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality
+from pylot.core.pick.utils import getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import Metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
+    full_range, readFilterInformation, make_pen, pick_color_plt, \
+    pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
+    transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
     check_all_pylot, real_Bool, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
+    ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget, ProgressBarWidget, AddMetadataWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
@@ -96,6 +93,9 @@ elif sys.version_info.major == 2:
     import icons_rc_2 as icons_rc
 else:
     raise ImportError('Could not determine python version.')
+
+# workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
+icons_rc = icons_rc
 
 locateTool = dict(nll=nll)
 
