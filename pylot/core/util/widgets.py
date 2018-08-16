@@ -1203,7 +1203,8 @@ class PylotCanvas(FigureCanvas):
     def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0,
-                   plot_additional=False, additional_channel=None, scaleToChannel=None):
+                   plot_additional=False, additional_channel=None, scaleToChannel=None,
+                   snr=None):
         ax = self.axes[0]
         ax.cla()
 
@@ -1323,6 +1324,14 @@ class PylotCanvas(FigureCanvas):
             self.setXLims(ax, zoomx)
         if zoomy is not None:
             self.setYLims(ax, zoomy)
+        if snr is not None:
+            if snr < 2:
+                warning = 'LOW SNR'
+                if snr < 1.5:
+                    warning = 'VERY LOW SNR'
+                ax.text(0.1, 0.9, 'WARNING - {}'.format(warning), ha='center', va='center', transform=ax.transAxes,
+                        color='red')
+
         self.draw()
 
     @staticmethod
@@ -2280,6 +2289,12 @@ class PickDlg(QDialog):
             filterphase = 'S'
         return filterphase
 
+    def getNoiseWin(self, phase):
+        twins_phase = {'P': 'tsnrz',
+                       'S': 'tsnrh'}
+
+        return self.parameter.get(twins_phase[phase])[:3]
+
     def setIniPickP(self, gui_event):
         self.setIniPickPS(gui_event, phase='P')
 
@@ -2291,17 +2306,12 @@ class PickDlg(QDialog):
 
         nfac_phase = {'P': 'nfacP',
                       'S': 'nfacS'}
-        twins_phase = {'P': 'tsnrz',
-                       'S': 'tsnrh'}
 
         parameter = self.parameter
         ini_pick = gui_event.xdata
 
         nfac = parameter.get(nfac_phase[phase])
-        twins = parameter.get(twins_phase[phase])
-        noise_win = twins[0]
-        gap_win = twins[1]
-        signal_win = twins[2]
+        noise_win, gap_win, signal_win = self.getNoiseWin(phase)
 
         stime = self.getStartTime()
 
@@ -2355,12 +2365,14 @@ class PickDlg(QDialog):
             trace.data *= noiseScaleFactor
             noiselevels[channel] *= noiseScaleFactor
 
-        x_res = getResolutionWindow(np.mean(snr), parameter.get('extent'))
+        mean_snr = np.mean(snr)
+        x_res = getResolutionWindow(mean_snr, parameter.get('extent'))
 
         xlims = [ini_pick - x_res, ini_pick + x_res]
         ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
 
         title = self.getStation() + ' picking mode'
+        title += ' | SNR: {}'.format(mean_snr)
         if filterphase:
             filtops_str = transformFilteroptions2String(filteroptions)
             title += ' | Filteroptions: {}'.format(filtops_str)
@@ -2375,7 +2387,9 @@ class PickDlg(QDialog):
                                      scaleddata=True,
                                      iniPick=ini_pick,
                                      plot_additional=plot_additional,
-                                     additional_channel=additional_channel)
+                                     additional_channel=additional_channel,
+                                     snr=mean_snr)
+
 
     def setPick(self, gui_event):
 
@@ -2447,6 +2461,11 @@ class PickDlg(QDialog):
         self.zoomAction.setEnabled(True)
         # self.pick_block = self.togglPickBlocker()
         # self.resetZoom()
+        noise_win, gap_win, signal_win = self.getNoiseWin(phase)
+        snr, snrDB, noiselevel = getSNR(wfdata, (noise_win, gap_win, signal_win), pick - stime_diff)
+        print('SNR of final pick: {}'.format(snr))
+        if snr < 1.5:
+            QMessageBox.warning(self, 'SNR too low', 'WARNING! SNR of final pick below 1.5! SNR = {}'.format(snr))
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
