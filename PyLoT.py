@@ -155,6 +155,9 @@ class MainWindow(QMainWindow):
             self.data._new = False
         self.autodata = Data(self)
 
+        self.fnames = None
+        self._stime = None
+
         while True:
             try:
                 if settings.value("user/FullName", None) is None:
@@ -166,6 +169,27 @@ class MainWindow(QMainWindow):
                                                   "Enter authority/institution name:",
                                                   "Authority")
                     settings.setValue("agency_id", agency)
+                structure_setting = settings.value("data/Structure", "PILOT")
+                if not structure_setting:
+                    structure_setting = 'PILOT'
+                self.dataStructure = DATASTRUCTURE[structure_setting]()
+                self.seismicPhase = str(settings.value("phase", "P"))
+                if settings.value("data/dataRoot", None) is None:
+                    dirname = QFileDialog().getExistingDirectory(
+                        caption='Choose data root ...')
+                    settings.setValue("data/dataRoot", dirname)
+                if settings.value('compclass', None) is None:
+                    settings.setValue('compclass', SetChannelComponents())
+                if settings.value('useGuiFilter') is None:
+                    settings.setValue('useGuiFilter', False)
+                if settings.value('output/Format', None) is None:
+                    outformat = QInputDialog.getText(self,
+                                                     "Enter output format (*.xml, *.cnv, *.obs):",
+                                                     "Format")
+                    settings.setValue("output/Format", outformat)
+                if settings.value('autoFilter', None) is None:
+                    settings.setValue('autoFilter', True)
+                settings.sync()
                 break
             except Exception as e:
                 qmb = QMessageBox(self, icon=QMessageBox.Question,
@@ -180,30 +204,6 @@ class MainWindow(QMainWindow):
                 else:
                     sys.exit()
                 print('Settings cleared!')
-
-        self.fnames = None
-        self._stime = None
-        structure_setting = settings.value("data/Structure", "PILOT")
-        if not structure_setting:
-            structure_setting = 'PILOT'
-        self.dataStructure = DATASTRUCTURE[structure_setting]()
-        self.seismicPhase = str(settings.value("phase", "P"))
-        if settings.value("data/dataRoot", None) is None:
-            dirname = QFileDialog().getExistingDirectory(
-                caption='Choose data root ...')
-            settings.setValue("data/dataRoot", dirname)
-        if settings.value('compclass', None) is None:
-            settings.setValue('compclass', SetChannelComponents())
-        if settings.value('useGuiFilter') is None:
-            settings.setValue('useGuiFilter', False)
-        if settings.value('output/Format', None) is None:
-            outformat = QInputDialog.getText(self,
-                                             "Enter output format (*.xml, *.cnv, *.obs):",
-                                             "Format")
-            settings.setValue("output/Format", outformat)
-        if settings.value('autoFilter', None) is None:
-            settings.setValue('autoFilter', True)
-        settings.sync()
 
         # setup UI
         self.setupUi()
