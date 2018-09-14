@@ -78,7 +78,7 @@ class CharacteristicFunction(object):
         return self.cut
 
     def setCut(self, cut):
-        self.cut = cut
+        self.cut = (int(cut[0]), int(cut[1]))
 
     def getTime1(self):
         return self.t1

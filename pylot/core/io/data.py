@@ -15,6 +15,7 @@ from pylot.core.util.event import Event
 from pylot.core.util.utils import fnConstructor, full_range, remove_underscores, check4gaps, check4doubled, \
     check4rotated, trim_station_components
 import pylot.core.loc.velest as velest
+from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
 
 class Data(object):
@@ -43,7 +44,7 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif isinstance(evtdata, str):
+        elif type(evtdata) in [str, unicode]:
             try:
                 cat = read_events(evtdata)
                 if len(cat) is not 1:
@@ -60,6 +61,8 @@ class Data(object):
                         raise NotImplementedError('PILOT location information '
                                                   'read support not yet '
                                                   'implemeted.')
+                    elif 'event.pkl' in evtdata:
+                        evtdata = qml_from_obspyDMT(evtdata)
                     else:
                         raise e
                 else:
@@ -72,6 +75,7 @@ class Data(object):
         self.wforiginal = None
         self.cuttimes = None
         self.dirty = False
+        self.processed = None
 
     def __str__(self):
         return str(self.wfdata)
@@ -281,7 +285,7 @@ class Data(object):
                     mstation_ext = mstation + '_'
                     for k in range(len(picks_copy)):
                         if ((picks_copy[k].waveform_id.station_code == mstation) or
-                                (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
+                            (picks_copy[k].waveform_id.station_code == mstation_ext)) and \
                                 (picks_copy[k].method_id == 'auto'):
                             del picks_copy[k]
                             break
@@ -296,7 +300,7 @@ class Data(object):
                     for i in range(len(picks_copy)):
                         if picks_copy[i].phase_hint[0] == 'P':
                             if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                    (picks_copy[i].time_errors['uncertainty'] is None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[0]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
@@ -308,7 +312,7 @@ class Data(object):
                                 break
                         if picks_copy[i].phase_hint[0] == 'S':
                             if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] == None):
+                                    (picks_copy[i].time_errors['uncertainty'] is None):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[1]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
@@ -368,7 +372,7 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, checkRotated=False, metadata=None, obspy_dmt=False):
+    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
@@ -377,30 +381,31 @@ class Data(object):
         self.wfdata = Stream()
         self.wforiginal = None
         self.wfsyn = Stream()
-        wffnames = None
-        wffnames_syn = None
-        wfdir = 'processed' if 'processed' in [fname.split('/')[-1] for fname in fnames] else 'raw'
-        if obspy_dmt:
-            for fpath in fnames:
-                if fpath.endswith(wfdir):
-                    wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
-                if 'syngine' in fpath.split('/')[-1]:
-                    wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
-        else:
-            wffnames = fnames
-        if wffnames is not None:
-            self.appendWFData(wffnames)
-            if wffnames_syn is not None:
-                self.appendWFData(wffnames_syn, synthetic=True)
+        # if obspy_dmt:
+        #     wfdir = 'raw'
+        #     self.processed = False
+        #     for fname in fnames:
+        #         if fname.endswith('processed'):
+        #             wfdir = 'processed'
+        #             self.processed = True
+        #             break
+        #     for fpath in fnames:
+        #         if fpath.endswith(wfdir):
+        #             wffnames = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+        #         if 'syngine' in fpath.split('/')[-1]:
+        #             wffnames_syn = [os.path.join(fpath, fname) for fname in os.listdir(fpath)]
+        # else:
+        #     wffnames = fnames
+        if fnames is not None:
+            self.appendWFData(fnames)
+            if fnames_syn is not None:
+                self.appendWFData(fnames_syn, synthetic=True)
         else:
             return False
 
         # various pre-processing steps:
         # remove possible underscores in station names
-        self.wfdata = remove_underscores(self.wfdata)
-        # check for gaps and doubled channels
-        check4gaps(self.wfdata)
-        check4doubled(self.wfdata)
+        #self.wfdata = remove_underscores(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)
@@ -411,7 +416,6 @@ class Data(object):
         self.wforiginal = self.getWFData().copy()
         self.dirty = False
         return True
-
 
     def appendWFData(self, fnames, synthetic=False):
         """
@@ -430,7 +434,7 @@ class Data(object):
                             False: self.wfdata}
 
         warnmsg = ''
-        for fname in fnames:
+        for fname in set(fnames):
             try:
                 real_or_syn_data[synthetic] += read(fname)
             except TypeError:
@@ -441,7 +445,7 @@ class Data(object):
             except SacIOError as se:
                 warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:
-            warnmsg = 'WARNING: unable to read\n' + warnmsg
+            warnmsg = 'WARNING in appendWFData: unable to read waveform data\n' + warnmsg
             print(warnmsg)
 
     def getWFData(self):
@@ -502,8 +506,10 @@ class Data(object):
             # check for automatic picks
             print("Writing phases to ObsPy-quakeml file")
             for key in picks:
+                if not picks[key].get('P'):
+                    continue
                 if picks[key]['P']['picker'] == 'auto':
-                    print("Existing picks will be overwritten!")
+                    print("Existing auto-picks will be overwritten in pick-dictionary!")
                     picks = picks_from_picksdict(picks)
                     break
                 else:
@@ -723,6 +729,22 @@ class PilotDataStructure(GenericDataStructure):
         if not fields:
             fields = {'database': '2006.01',
                       'root': '/data/Egelados/EVENT_DATA/LOCAL'}
+
+        GenericDataStructure.__init__(self, **fields)
+
+        self.setExpandFields(['root', 'database'])
+
+
+class ObspyDMTdataStructure(GenericDataStructure):
+    """
+    Object containing the data access information for the old PILOT data
+    structure.
+    """
+
+    def __init__(self, **fields):
+        if not fields:
+            fields = {'database': '',
+                      'root': ''}
 
         GenericDataStructure.__init__(self, **fields)
 

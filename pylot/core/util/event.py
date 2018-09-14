@@ -7,6 +7,7 @@ from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier
 from pylot.core.io.phases import picks_from_picksdict
+from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 
 
 class Event(ObsPyEvent):
@@ -33,6 +34,8 @@ class Event(ObsPyEvent):
         self._testEvent = False
         self._refEvent = False
         self.get_notes()
+        self.get_obspy_event_info()
+        self.dirty = False
 
     def get_notes_path(self):
         """
@@ -42,6 +45,18 @@ class Event(ObsPyEvent):
         """
         notesfile = os.path.join(self.path, 'notes.txt')
         return notesfile
+
+    def get_obspy_event_info(self):
+        infile_pickle = os.path.join(self.path, 'info/event.pkl')
+        if not os.path.isfile(infile_pickle):
+            return
+        try:
+            event_dmt = qml_from_obspyDMT(infile_pickle)
+        except Exception as e:
+            print('Could not get obspy event info: {}'.format(e))
+            return
+        self.magnitudes = event_dmt.magnitudes
+        self.origins = event_dmt.origins
 
     def get_notes(self):
         """
@@ -129,6 +144,7 @@ class Event(ObsPyEvent):
         for index, pick in reversed(list(enumerate(self.picks))):
             if picktype in str(pick.method_id):
                 self.picks.pop(index)
+        self.dirty = True
 
     def addPicks(self, picks):
         """
@@ -143,12 +159,12 @@ class Event(ObsPyEvent):
         # add ObsPy picks (clear old manual and copy all new manual from pylot)
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def addAutopicks(self, autopicks):
         """
         Add automatic picks to event
         :param autopicks: automatic picks to add to event
-        :type autopicks dict:
         :return:
         :rtype: None
         """
@@ -157,6 +173,7 @@ class Event(ObsPyEvent):
         # add ObsPy picks (clear old auto and copy all new auto from pylot)
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def setPick(self, station, pick):
         """
@@ -172,11 +189,13 @@ class Event(ObsPyEvent):
             self.pylot_picks[station] = pick
         else:
             try:
-                self.pylot_picks.pop(station)
+                if station in self.pylot_picks:
+                    self.pylot_picks.pop(station)
             except Exception as e:
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def setPicks(self, picks):
         """
@@ -189,6 +208,7 @@ class Event(ObsPyEvent):
         self.pylot_picks = picks
         self.clearObsPyPicks('manual')
         self.picks += picks_from_picksdict(self.pylot_picks)
+        self.dirty = True
 
     def getPick(self, station):
         """
@@ -223,11 +243,13 @@ class Event(ObsPyEvent):
             self.pylot_autopicks[station] = pick
         else:
             try:
-                self.pylot_autopicks.pop(station)
+                if station in self.pylot_autopicks:
+                    self.pylot_autopicks.pop(station)
             except Exception as e:
                 print('Could not remove pick {} from station {}: {}'.format(pick, station, e))
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def setAutopicks(self, picks):
         """
@@ -240,6 +262,7 @@ class Event(ObsPyEvent):
         self.pylot_autopicks = picks
         self.clearObsPyPicks('auto')
         self.picks += picks_from_picksdict(self.pylot_autopicks)
+        self.dirty = True
 
     def getAutopick(self, station):
         """
@@ -278,6 +301,7 @@ class Event(ObsPyEvent):
         try:
             outfile = open(filename, 'wb')
             cPickle.dump(self, outfile, -1)
+            self.dirty = False
         except Exception as e:
             print('Could not pickle PyLoT event. Reason: {}'.format(e))
 
@@ -296,5 +320,6 @@ class Event(ObsPyEvent):
             import _pickle as cPickle
         infile = open(filename, 'rb')
         event = cPickle.load(infile)
+        event.dirty = False
         print('Loaded %s' % filename)
         return event

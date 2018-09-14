@@ -6,6 +6,7 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
@@ -15,6 +16,7 @@ from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
 from pylot.core.util.utils import common_range, fit_curve
 from scipy import integrate, signal
 from scipy.optimize import curve_fit
+
 
 def richter_magnitude_scaling(delta):
     distance = np.array([0, 10, 20, 25, 30, 35, 40, 45, 50, 60, 70, 75, 85, 90, 100, 110,
@@ -121,7 +123,13 @@ class Magnitude(object):
 
     def net_magnitude(self, magscaling=None):
         if self:
-            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+            if magscaling is None:
+                scaling = False
+            elif magscaling[0] != 0 and magscaling[1] != 0:
+                scaling = False
+            else:
+                scaling = True
+            if scaling:
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(
@@ -140,7 +148,6 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
-        return None
 
 
 class LocalMagnitude(Magnitude):
@@ -219,7 +226,7 @@ class LocalMagnitude(Magnitude):
         sqH = np.sqrt(power_sum)
 
         # get time array
-        th = np.arange(0, len(sqH) * dt, dt)
+        th = np.arange(0, st[0].stats.npts / st[0].stats.sampling_rate, st[0].stats.delta)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         ii = min([iwin[len(iwin) - 1], len(th)])
@@ -239,9 +246,9 @@ class LocalMagnitude(Magnitude):
             ax.plot(th[iwin], sqH[iwin], 'g')
             ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
             ax.set_title('Station %s, Channel %s, RMS Horizontal Trace, '
-                         'WA-peak-to-peak=%6.3f mm' % (st[0].stats.station, 
+                         'WA-peak-to-peak=%6.3f mm' % (st[0].stats.station,
                                                        st[0].stats.channel,
-                                                                        wapp))
+                                                       wapp))
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Displacement [mm]')
             ax = fig.add_subplot(212)
@@ -251,14 +258,15 @@ class LocalMagnitude(Magnitude):
             ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
             ax.set_title('Channel %s, RMS Horizontal Trace, '
                          'WA-peak-to-peak=%6.3f mm' % (st[1].stats.channel,
-                                                                       wapp))
+                                                       wapp))
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Displacement [mm]')
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
-
 
         return wapp, fig
 
@@ -303,7 +311,7 @@ class LocalMagnitude(Magnitude):
                 a0 = a0 * 1e03  # mm to nm (see Havskov & Ottemöller, 2010)
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
                                                      + self.wascaling[0] * np.log10(delta) + self.wascaling[1]
-                                                                                             * delta + self.wascaling[
+                                                     * delta + self.wascaling[
                                                          2])
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
@@ -366,7 +374,7 @@ class MomentMagnitude(Magnitude):
 
     def calc(self):
         for a in self.arrivals:
-            if a.phase not in 'pP': 
+            if a.phase not in 'pP':
                 continue
             # make sure calculating Mo only from reliable onsets
             # NLLoc: time_weight = 0 => do not use onset!
@@ -503,6 +511,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     w0 = None
 
     zdat = select_for_phase(wfstream, "P")
+
+    if len(zdat) == 0:
+        raise IOError('No vertical component found in stream:\n{}'.format(wfstream))
 
     dt = zdat[0].stats.delta
 

@@ -22,17 +22,14 @@ from pylot.styles import style_settings
 from scipy.interpolate import splrep, splev
 from PySide import QtCore, QtGui
 
-try:
-    import pyqtgraph as pg
-except Exception as e:
-    print('PyLoT: Could not import pyqtgraph. {}'.format(e))
-    pg = None
+import pyqtgraph as pg
 
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
+
 
 def getAutoFilteroptions(phase, parameter):
     filtername = {'P': 'bpz2',
@@ -41,8 +38,9 @@ def getAutoFilteroptions(phase, parameter):
         print('autoPickParameter: No filter options for phase {}.'.format(phase))
         return
     freqmin, freqmax = parameter.get(filtername[phase])
-    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4) # order=4 default from obspy
+    filteroptions = FilterOptions(type='bandpass', freq=[freqmin, freqmax], order=4)  # order=4 default from obspy
     return filteroptions
+
 
 def readDefaultFilterInformation(fname):
     """
@@ -118,8 +116,12 @@ def gen_Pool(ncores=0):
     """
     import multiprocessing
 
-    if ncores == 0:
-        ncores = multiprocessing.cpu_count()
+    ncores_max = multiprocessing.cpu_count()
+
+    if ncores == 0 or ncores > ncores_max:
+        ncores = ncores_max
+    if ncores > ncores_max:
+        print('Reduced number of requested CPU slots to available number: {}'.format(ncores))
 
     print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
 
@@ -397,6 +399,10 @@ def full_range(stream):
     :return: minimum start time and maximum end time
     :rtype: (`~maximum start time and minimum end time`, maximum start time and minimum end time)
     """
+    if not stream:
+        print('full_range: Empty Stream!')
+        return None, None
+
     min_start = min([trace.stats.starttime for trace in stream])
     max_end = max([trace.stats.endtime for trace in stream])
 
@@ -454,7 +460,8 @@ def getLogin():
     :return: login ID
     :rtype: str
     """
-    return os.getlogin()
+    import getpass
+    return getpass.getuser()
 
 
 def getOwner(fn):
@@ -536,7 +543,7 @@ def isSorted(iterable):
     False
     """
     assert isIterable(iterable), 'object is not iterable; object: {' \
-                                 '0}'.format(iterable)
+                                 '}'.format(iterable)
     if type(iterable) is str:
         iterable = [s for s in iterable]
     return sorted(iterable) == iterable
@@ -674,7 +681,7 @@ def pick_color(picktype, phase, quality=0):
     bpc = base_phase_colors(picktype, phase)  # returns dict like {'modifier': 'g', 'rgba': (0, 0, 255, 255)}
     rgba = bpc['rgba']
     modifier = bpc['modifier']
-    intensity = 255.*quality/min_quality
+    intensity = 255. * quality / min_quality
     rgba = modify_rgba(rgba, modifier, intensity)
     return rgba
 
@@ -786,6 +793,7 @@ def base_phase_colors(picktype, phase):
     phasecolors = style_settings.phasecolors
     return phasecolors[picktype][phase]
 
+
 def transform_colors_mpl_str(colors, no_alpha=False):
     """
     Transforms rgba color values to a matplotlib string of color values with a range of [0, 1]
@@ -804,6 +812,7 @@ def transform_colors_mpl_str(colors, no_alpha=False):
         colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
     return colors_mpl
 
+
 def transform_colors_mpl(colors):
     """
     Transform rgba colors from [0, 255] to [0, 1]
@@ -816,6 +825,7 @@ def transform_colors_mpl(colors):
     colors_mpl = tuple([color / 255. for color in colors])
     return colors_mpl
 
+
 def remove_underscores(data):
     """
     takes a `obspy.core.stream.Stream` object and removes all underscores
@@ -825,9 +835,9 @@ def remove_underscores(data):
     :return: data stream
     :rtype: `~obspy.core.stream.Stream`
     """
-    for tr in data:
-        # remove underscores
-        tr.stats.station = tr.stats.station.strip('_')
+    #for tr in data:
+    #    # remove underscores
+    #    tr.stats.station = tr.stats.station.strip('_')
     return data
 
 
@@ -857,6 +867,19 @@ def trim_station_components(data, trim_start=True, trim_end=True):
         wf_station.trim(starttime=starttime[trim_start], endtime=endtime[trim_end])
 
     return data
+
+
+def merge_stream(stream):
+    gaps = stream.get_gaps()
+    if gaps:
+        # list of merged stations (seed_ids)
+        merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+        stream.merge()
+        print('Merged the following stations because of gaps:')
+        for merged_station in merged:
+            print(merged_station)
+
+    return stream, gaps
 
 
 def check4gaps(data):
@@ -925,7 +948,10 @@ def get_stations(data):
 
 def check4rotated(data, metadata=None, verbosity=1):
     """
-
+    Check all traces in data. If a trace is not in ZNE rotation (last symbol of channel code is numeric) and the trace
+    is in the metadata with azimuth and dip, rotate it to classical ZNE orientation.
+    Rotating the traces requires them to be of the same length, so, all traces will be trimmed to a common length as a
+    side effect.
     :param data: stream object containing seismic traces
     :type data: `~obspy.core.stream.Stream`
     :param metadata: tuple containing metadata type string and metadata parser object
@@ -942,100 +968,59 @@ def check4rotated(data, metadata=None, verbosity=1):
 
         Azimut and dip are fetched from metadata. To be rotated, traces of a station have to be cut to the same length.
         Returns unrotated traces of no metadata is provided
-        :param wfstream: stream containing seismic traces
+        :param wfstream: stream containing seismic traces of a station
         :type wfstream: `~obspy.core.stream.Stream`
         :param metadata: tuple containing metadata type string and metadata parser object
         :type metadata: (str, `~obspy.io.xseed.parser.Parser`)
         :return: stream object with traditionally oriented traces (ZNE)
         :rtype: `~obspy.core.stream.Stream`
         """
-        try:
-            # indexing fails if metadata is None
-            metadata[0]
-        except TypeError:
-            if verbosity:
-                msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
-                print(msg)
-            return wfstream
-        if metadata[0] is None:
-            # sometimes metadata is (None, (None,))
-            if verbosity:
-                msg = 'Warning: could not rotate traces since no metadata was given\nCheck inventory directory!'
-                print(msg)
-            return wfstream
-        else:
-            parser = metadata[1]
 
-        def get_dip_azimut(parser, trace_id):
-            """
-            Gets azimuth and dip by trace id out of the metadata parser
-            :param parser: metadata parser object
-            :type parser: `~obspy.io.xseed.parser.Parser`
-            :param trace_id: eg. 'BW.RJOB..EHZ',
-            :type trace_id: str
-            :return: tuple containing dip and azimuth of the trace corresponding to trace_id
-            :rtype: (float, float)
-            """
-            dip = None
-            azimut = None
-            try:
-                blockettes = parser._select(trace_id)
-            except SEEDParserException as e:
-                print(e)
-                raise ValueError
-            for blockette_ in blockettes:
-                if blockette_.id != 52:
-                    continue
-                dip = blockette_.dip
-                azimut = blockette_.azimuth
-                break
-            if (dip is None or azimut is None) or (dip == 0 and azimut == 0):
-                error_msg = 'Dip and azimuth not available for trace_id {}'.format(trace_id)
-                raise ValueError(error_msg)
-            return dip, azimut
-
+        # check if any traces in this station need to be rotated
         trace_ids = [trace.id for trace in wfstream]
-        for trace_id in trace_ids:
-            orientation = trace_id[-1]  # last letter if trace id is orientation code, ZNE or 123
-            if orientation.isnumeric():
-                # misaligned channels have a number as orientation
-                azimuts = []
-                dips = []
-                for trace_id in trace_ids:
-                    try:
-                        dip, azimut = get_dip_azimut(parser, trace_id)
-                    except ValueError as e:
-                        print(e)
-                        print('Failed to rotate station {}, no azimuth or dip available in metadata'.format(trace_id))
-                        return wfstream
-                    azimuts.append(azimut)
-                    dips.append(dip)
-                # to rotate all traces must have same length
-                wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
-                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
-                                     wfstream[1], azimuts[1], dips[1],
-                                     wfstream[2], azimuts[2], dips[2])
-                print('check4rotated: rotated station {} to ZNE'.format(trace_id))
-                z_index = dips.index(min(dips))  # get z-trace index (dip is measured from 0 to -90)
-                wfstream[z_index].data = z
-                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
-                del trace_ids[z_index]
-                for trace_id in trace_ids:
-                    dip, az = get_dip_azimut(parser, trace_id)
-                    trace = wfstream.select(id=trace_id)[0]
-                    if az > 315 and az <= 45 or az > 135 and az <= 225:
-                        trace.data = n
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
-                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
-                        trace.data = e
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
-                break
-            else:
-                continue
+        orientations = [trace_id[-1] for trace_id in trace_ids]
+        rotation_required = [orientation.isnumeric() for orientation in orientations]
+        if any(rotation_required):
+            t_start = full_range(wfstream)
+            try:
+                azimuts = [metadata.get_coordinates(tr_id, t_start)['azimuth'] for tr_id in trace_ids]
+                dips = [metadata.get_coordinates(tr_id, t_start)['dip'] for tr_id in trace_ids]
+            except (KeyError, TypeError) as e:
+                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
+                return wfstream
+            if len(wfstream) < 3:
+                print('Failed to rotate Stream {}, not enough components available.'.format(wfstream))
+                return wfstream
+            # to rotate all traces must have same length, so trim them
+            wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
+            z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
+                                 wfstream[1], azimuts[1], dips[1],
+                                 wfstream[2], azimuts[2], dips[2])
+            print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
+            # replace old data with rotated data, change the channel code to ZNE
+            z_index = dips.index(min(
+                dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
+            wfstream[z_index].data = z
+            wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
+            del trace_ids[z_index]
+            for trace_id in trace_ids:
+                coordinates = metadata.get_coordinates(trace_id, t_start)
+                dip, az = coordinates['dip'], coordinates['azimuth']
+                trace = wfstream.select(id=trace_id)[0]
+                if az > 315 or az <= 45 or az > 135 and az <= 225:
+                    trace.data = n
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                elif az > 45 and az <= 135 or az > 225 and az <= 315:
+                    trace.data = e
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'E'
         return wfstream
 
+    if metadata is None:
+        if verbosity:
+            msg = 'Warning: could not rotate traces since no metadata was given\nset Inventory file!'
+            print(msg)
+        return data
     stations = get_stations(data)
-
     for station in stations:  # loop through all stations and rotate data if neccessary
         wf_station = data.select(station=station)
         rotate_components(wf_station, metadata)
@@ -1093,7 +1078,7 @@ def runProgram(cmd, parameter=None):
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
 
 
-def which(program, infile=None):
+def which(program, parameter):
     """
     takes a program name and returns the full path to the executable or None
     modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
@@ -1108,16 +1093,9 @@ def which(program, infile=None):
         for key in settings.allKeys():
             if 'binPath' in key:
                 os.environ['PATH'] += ':{0}'.format(settings.value(key))
-        if infile is None:
-            # use default parameter-file name
-            bpath = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-        else:
-            bpath = os.path.join(os.path.expanduser('~'), '.pylot', infile)
-
-        if os.path.exists(bpath):
-            nllocpath = ":" + PylotParameter(bpath).get('nllocbin')
-            os.environ['PATH'] += nllocpath
-    except ImportError as e:
+        nllocpath = ":" + parameter.get('nllocbin')
+        os.environ['PATH'] += nllocpath
+    except Exception as e:
         print(e.message)
 
     def is_exe(fpath):
@@ -1155,7 +1133,7 @@ def loopIdentifyPhase(phase):
     """
     from pylot.core.util.defaults import ALTSUFFIX
 
-    if phase == None:
+    if phase is None:
         raise NameError('Can not identify phase that is None')
 
     phase_copy = phase
@@ -1205,20 +1183,6 @@ def identifyPhaseID(phase):
     return identifyPhase(loopIdentifyPhase(phase))
 
 
-def has_spe(pick):
-    """
-    Check for 'spe' key (symmetric picking error) in dict and return its value if found, else return None
-    :param pick: pick dictionary
-    :type pick: dict
-    :return: value of 'spe' key
-    :rtype: float or None
-    """
-    if not 'spe' in pick.keys():
-        return None
-    else:
-        return pick['spe']
-
-
 def check_all_obspy(eventlist):
     ev_type = 'obspydmt'
     return check_event_folders(eventlist, ev_type)
@@ -1251,8 +1215,8 @@ def check_event_folder(path):
     folder = path.split('/')[-1]
     # for pylot: select only folders that start with 'e', containin two dots and have length 12
     if (folder.startswith('e')
-        and len(folder.split('.')) == 3
-        and len(folder) == 12):
+            and len(folder.split('.')) == 3
+            and len(folder) == 12):
         ev_type = 'pylot'
     elif check_obspydmt_eventfolder(folder)[0]:
         ev_type = 'obspydmt'
@@ -1263,3 +1227,56 @@ if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
+
+
+class SetChannelComponents(object):
+    def __init__(self):
+        self.setDefaultCompPosition()
+
+    def setDefaultCompPosition(self):
+        # default component order
+        self.compPosition_Map = dict(Z=2, N=1, E=0)
+        self.compName_Map = {'3': 'Z',
+                             '1': 'N',
+                             '2': 'E'}
+
+    def _getCurrentPosition(self, component):
+        for key, value in self.compName_Map.items():
+            if value == component:
+                return key, value
+        errMsg = 'getCurrentPosition: Could not find former position of component {}.'.format(component)
+        raise ValueError(errMsg)
+
+    def _switch(self, component, component_alter):
+        # Without switching, multiple definitions of the same alter_comp are possible
+        old_alter_comp, _ = self._getCurrentPosition(component)
+        old_comp = self.compName_Map[component_alter]
+        if not old_alter_comp == component_alter and not old_comp == component:
+            self.compName_Map[old_alter_comp] = old_comp
+            print('switch: Automatically switched component {} to {}'.format(old_alter_comp, old_comp))
+
+    def setCompPosition(self, component_alter, component, switch=True):
+        component_alter = str(component_alter)
+        if not component_alter in self.compName_Map.keys():
+            errMsg = 'setCompPosition: Unrecognized alternative component {}. Expecting one of {}.'
+            raise ValueError(errMsg.format(component_alter, self.compName_Map.keys()))
+        if not component in self.compPosition_Map.keys():
+            errMsg = 'setCompPosition: Unrecognized target component {}. Expecting one of {}.'
+            raise ValueError(errMsg.format(component, self.compPosition_Map.keys()))
+        print('setCompPosition: set component {} to {}'.format(component_alter, component))
+        if switch:
+            self._switch(component, component_alter)
+        self.compName_Map[component_alter] = component
+
+    def getCompPosition(self, component):
+        return self._getCurrentPosition(component)[0]
+
+    def getPlotPosition(self, component):
+        component = str(component)
+        if component in self.compPosition_Map.keys():
+            return self.compPosition_Map[component]
+        elif component in self.compName_Map.keys():
+            return self.compPosition_Map[self.compName_Map[component]]
+        else:
+            errMsg = 'getCompPosition: Unrecognized component {}. Expecting one of {} or {}.'
+            raise ValueError(errMsg.format(component, self.compPosition_Map.keys(), self.compName_Map.keys()))

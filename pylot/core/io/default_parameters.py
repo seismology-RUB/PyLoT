@@ -63,7 +63,7 @@ defaults = {'rootpath': {'type': str,
 
             'ctrfile': {'type': str,
                         'tooltip': 'name of autoPyLoT-output control file for NLLoc',
-                        'value': 'Insheim_min1d2015_auto.in',
+                        'value': '',
                         'namestring': 'Control filename'},
 
             'ttpatter': {'type': str,
@@ -456,11 +456,11 @@ defaults = {'rootpath': {'type': str,
                              'namestring': 'Wadati tolerance'},
 
             'jackfactor': {'type': float,
-                            'tooltip': 'pick is removed if the variance of the subgroup with the pick removed is larger than the mean variance of all subgroups times safety factor',
-                            'value': 5.0,
-                            'min': 0.,
-                            'max': np.inf,
-                            'namestring': 'Jackknife safety factor'},
+                           'tooltip': 'pick is removed if the variance of the subgroup with the pick removed is larger than the mean variance of all subgroups times safety factor',
+                           'value': 5.0,
+                           'min': 0.,
+                           'max': np.inf,
+                           'namestring': 'Jackknife safety factor'},
 
             'WAscaling': {'type': (float, float, float),
                           'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm] \

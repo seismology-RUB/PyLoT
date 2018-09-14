@@ -13,8 +13,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.core import Stream, UTCDateTime
-from pylot.core.util.utils import real_Bool, real_None
-
+from pylot.core.util.utils import real_Bool, real_None, SetChannelComponents
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -143,13 +142,16 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
         ax.plot(t, x, color=linecolor, linewidth=0.7, label='Data')
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
-        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], color=linecolor, linewidth=0.7, linestyle='dashed', label='Noise Level')
+        ax.plot([t[0], t[int(len(t)) - 1]], [nlevel, nlevel], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='Noise Level')
         ax.plot(t[pis[zc]], np.zeros(len(zc)), '*g',
                 markersize=14, label='Zero Crossings')
         ax.plot([t[0], t[int(len(t)) - 1]], [-nlevel, -nlevel], color=linecolor, linewidth=0.7, linestyle='dashed')
         ax.plot([Pick1, Pick1], [max(x), -max(x)], 'b', linewidth=2, label='mpp')
-        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='lpp')
-        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed', label='epp')
+        ax.plot([LPick, LPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='lpp')
+        ax.plot([EPick, EPick], [max(x) / 2, -max(x) / 2], color=linecolor, linewidth=0.7, linestyle='dashed',
+                label='epp')
         ax.plot([Pick1 + PickError, Pick1 + PickError],
                 [max(x) / 2, -max(x) / 2], 'r--', label='spe')
         ax.plot([Pick1 - PickError, Pick1 - PickError],
@@ -162,8 +164,10 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
         ax.legend(loc=1)
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return EPick, LPick, PickError
@@ -197,9 +201,9 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         iplot = int(iplot)
     except:
         if iplot == True or iplot == 'True':
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
+            iplot = 0
 
     warnings.simplefilter('ignore', np.RankWarning)
 
@@ -226,8 +230,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         # get zero crossings after most likely pick
         # initial onset is assumed to be the first zero crossing
         # first from unfiltered trace
-        zc1 = []
-        zc1.append(Pick)
+        zc1 = [Pick]
         index1 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
@@ -272,8 +275,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
 
         # now using filterd trace
         # next zero crossings after most likely pick
-        zc2 = []
-        zc2.append(Pick)
+        zc2 = [Pick]
         index2 = []
         i = 0
         for j in range(ipick[0][1], ipick[0][len(t[ipick]) - 1]):
@@ -361,8 +363,10 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         ax2.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return FM
@@ -552,8 +556,6 @@ def select_for_phase(st, phase):
     :rtype: `~obspy.core.stream.Stream`
     """
 
-    from pylot.core.util.defaults import SetChannelComponents
-
     sel_st = Stream()
     compclass = SetChannelComponents()
     if phase.upper() == 'P':
@@ -602,14 +604,18 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
     ibad = 0
 
     for key in list(pickdic.keys()):
-        if pickdic[key]['P']['weight'] < 4 and pickdic[key]['S']['weight'] < 4:
+        ppick = pickdic[key].get('P')
+        spick = pickdic[key].get('S')
+        if not ppick or not spick:
+            continue
+        if ppick['weight'] < 4 and spick['weight'] < 4:
             # calculate S-P time
-            spt = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
+            spt = spick['mpp'] - ppick['mpp']
             # add S-P time to dictionary
             pickdic[key]['SPt'] = spt
             # add P onsets and corresponding S-P times to list
-            UTCPpick = UTCDateTime(pickdic[key]['P']['mpp'])
-            UTCSpick = UTCDateTime(pickdic[key]['S']['mpp'])
+            UTCPpick = UTCDateTime(ppick['mpp'])
+            UTCSpick = UTCDateTime(spick['mpp'])
             Ppicks.append(UTCPpick.timestamp)
             Spicks.append(UTCSpick.timestamp)
             SPtimes.append(spt)
@@ -639,11 +645,11 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                 # check, if deviation is larger than adjusted
                 if wddiff > dttolerance:
                     # remove pick from dictionary
-                    pickdic.pop(key)
-                    # # mark onset and downgrade S-weight to 9
+                    # # mark onset and downgrade S-weight to 9, also set SPE to None (disregarded in GUI)
                     # # (not used anymore)
-                    # marker = 'badWadatiCheck'
-                    # pickdic[key]['S']['weight'] = 9
+                    marker = 'badWadatiCheck'
+                    pickdic[key]['S']['weight'] = 9
+                    pickdic[key]['S']['spe'] = None
                     badstations.append(key)
                     ibad += 1
                 else:
@@ -655,8 +661,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
                     checkedSPtime = pickdic[key]['S']['mpp'] - pickdic[key]['P']['mpp']
                     checkedSPtimes.append(checkedSPtime)
 
-                    pickdic[key]['S']['marked'] = marker
-                #pickdic[key]['S']['marked'] = marker
+                pickdic[key]['S']['marked'] = marker
         print("wadaticheck: the following stations failed the check:")
         print(badstations)
 
@@ -684,7 +689,7 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
         wfitflag = 1
 
     # plot results
-    if iplot > 0:
+    if iplot > 0 or fig_dict:
         if fig_dict:
             fig = fig_dict['wadati']
             linecolor = fig_dict['plot_style']['linecolor']['rgba_mpl']
@@ -698,8 +703,8 @@ def wadaticheck(pickdic, dttolerance, iplot=0, fig_dict=None):
             ax.plot(Ppicks, SPtimes, 'ro', label='Skipped S-Picks')
         if wfitflag == 0:
             ax.plot(Ppicks, wdfit, color=linecolor, linewidth=0.7, label='Wadati 1')
-            ax.plot(Ppicks, wdfit+dttolerance, color='0.9', linewidth=0.5, label='Wadati 1 Tolerance')
-            ax.plot(Ppicks, wdfit-dttolerance, color='0.9', linewidth=0.5)
+            ax.plot(Ppicks, wdfit + dttolerance, color='0.9', linewidth=0.5, label='Wadati 1 Tolerance')
+            ax.plot(Ppicks, wdfit - dttolerance, color='0.9', linewidth=0.5)
             ax.plot(checkedPpicks, wdfit2, 'g', label='Wadati 2')
             ax.plot(checkedPpicks, checkedSPtimes, color=linecolor,
                     linewidth=0, marker='o', label='Reliable S-Picks')
@@ -766,9 +771,9 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         iplot = int(iplot)
     except:
         if real_Bool(iplot):
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
+            iplot = 0
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -830,8 +835,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ax.set_yticks([])
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
 
     return returnflag
@@ -865,9 +872,12 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
     Ppicks = []
     stations = []
     for station in pickdic:
-        if pickdic[station]['P']['weight'] < 4:
+        pick = pickdic[station].get('P')
+        if not pick:
+            continue
+        if pick['weight'] < 4:
             # add P onsets to list
-            UTCPpick = UTCDateTime(pickdic[station]['P']['mpp'])
+            UTCPpick = UTCDateTime(pick['mpp'])
             Ppicks.append(UTCPpick.timestamp)
             stations.append(station)
 
@@ -926,7 +936,7 @@ def checkPonsets(pickdic, dttolerance, jackfactor=5, iplot=0, fig_dict=None):
 
     checkedonsets = pickdic
 
-    if iplot > 0:
+    if iplot > 0 or fig_dict:
         if fig_dict:
             fig = fig_dict['jackknife']
             plt_flag = 0
@@ -1056,16 +1066,15 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :return: returnflag; 0 if onset failed test, 1 if onset passed test
     :rtype: int
     """
-    
+
     plt_flag = 0
     try:
         iplot = int(iplot)
     except:
         if real_Bool(iplot):
-           iplot = 2
+            iplot = 2
         else:
-           iplot = 0
-
+            iplot = 0
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
@@ -1167,10 +1176,79 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
         ax.set_xlabel('Time [s] since %s' % zdat[0].stats.starttime)
         if plt_flag == 1:
             fig.show()
-            try: input()
-            except SyntaxError: pass
+            try:
+                input()
+            except SyntaxError:
+                pass
             plt.close(fig)
     return returnflag
+
+
+def getPickQuality(wfdata, picks, inputs, phase, compclass=None):
+    quality = 4
+    components4phases = {'P': ['Z'],
+                         'S': ['N', 'E']}
+    timeErrors4phases = {'P': 'timeerrorsP',
+                         'S': 'timeerrorsS'}
+    tsnr4phases = {'P': 'tsnrz',
+                   'S': 'tsnrh'}
+
+    if not phase in components4phases.keys():
+        raise IOError('getPickQuality: Could not understand phase: {}'.format(phase))
+
+    if not compclass:
+        print('Warning: No settings for channel components found. Using default')
+        compclass = SetChannelComponents()
+
+    picks = picks[phase]
+    mpp = picks.get('mpp')
+    uncertainty = picks.get('spe')
+    if not mpp:
+        print('getPickQuality: No pick found!')
+        return quality
+    if not uncertainty:
+        print('getPickQuality: No pick uncertainty (spe) found!')
+        return quality
+
+    tsnr = inputs[tsnr4phases[phase]]
+    timeErrors = inputs[timeErrors4phases[phase]]
+    snrdb_final = 0
+
+    for component in components4phases[phase]:
+        alter_comp = compclass.getCompPosition(component)
+        st_select = wfdata.select(component=component)
+        st_select += wfdata.select(component=alter_comp)
+        if st_select:
+            trace = st_select[0]
+            _, snrdb, _ = getSNR(st_select, tsnr,
+                                 mpp - trace.stats.starttime)
+        if snrdb > snrdb_final:
+            snrdb_final = snrdb
+
+    quality = getQualityFromUncertainty(uncertainty, timeErrors)
+    quality += getQualityFromSNR(snrdb_final)
+
+    return quality
+
+
+def getQualityFromSNR(snrdb):
+    quality_modifier = 4
+    if not snrdb:
+        print('getQualityFromSNR: No snrdb!')
+        return quality_modifier
+    # MP MP ++++ experimental,
+    # raise pick quality by x classes if snrdb is lower than corresponding key
+    quality4snrdb = {3: 4,
+                     5: 3,
+                     7: 2,
+                     9: 1,
+                     11: 0}
+    # MP MP ---
+    # iterate over all thresholds and check whether snrdb is larger, if so, set new quality_modifier
+    for snrdb_threshold in sorted(list(quality4snrdb.keys())):
+        if snrdb > snrdb_threshold:
+            quality_modifier = quality4snrdb[snrdb_threshold]
+    return quality_modifier
 
 
 def getQualityFromUncertainty(uncertainty, Errors):
@@ -1193,18 +1271,19 @@ def getQualityFromUncertainty(uncertainty, Errors):
     if uncertainty <= Errors[0]:
         quality = 0
     elif (uncertainty > Errors[0]) and \
-         (uncertainty < Errors[1]):
+            (uncertainty <= Errors[1]):
         quality = 1
     elif (uncertainty > Errors[1]) and \
-         (uncertainty < Errors[2]):
+            (uncertainty <= Errors[2]):
         quality = 2
     elif (uncertainty > Errors[2]) and \
-         (uncertainty < Errors[3]):
+            (uncertainty <= Errors[3]):
         quality = 3
     elif uncertainty > Errors[3]:
         quality = 4
 
     return quality
+
 
 if __name__ == '__main__':
     import doctest
