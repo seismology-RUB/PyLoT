@@ -1,31 +1,40 @@
-# Table of contents
+# PyLoT Documentation
 
+- [PyLoT Documentation](#pylot-documentation)
 - [PyLoT GUI](#pylot-gui)
-  * [First start](#first-start)
-  * [Main Screen](#main-screen)
-    + [Waveform Plot](#waveform-plot)
-      - [Mouse controls :](#mouse-controls--)
-    + [Array Map](#array-map)
-    + [Eventlist](#eventlist)
-  * [Usage](#usage)
-    + [Projects](#projects)
-    + [Event folder structure](#event-folder-structure)
-    + [Adding events to project](#adding-events-to-project)
-    + [Saving projects](#saving-projects)
-- [Manual Picking](#manual-picking)
-  * [Picking window](#picking-window)
-    + [Picking Window Settings](#picking-window-settings)
-  * [Filtering](#filtering)
-  * [Export of manual picks](#export-of-manual-picks)
-- [Automatic Picking](#automatic-picking)
-  * [Tuning](#tuning)
-  * [Production run of the autopicker](#production-run-of-the-autopicker)
-  * [Evaluation of automatic picks](#evaluation-of-automatic-picks)
-  * [Export of automatic picks](#export-of-automatic-picks)
+  - [First start](#first-start)
+  - [Main Screen](#main-screen)
+    - [Waveform Plot](#waveform-plot)
+      - [Mouse view controls :](#mouse-view-controls)
+    - [Array Map](#array-map)
+    - [Eventlist](#eventlist)
+  - [Usage](#usage)
+    - [Projects and Events](#projects-and-events)
+    - [Event folder structure](#event-folder-structure)
+    - [Adding events to project](#adding-events-to-project)
+    - [Saving projects](#saving-projects)
+- [Picking](#picking)
+  - [Manual Picking](#manual-picking)
+    - [Picking window](#picking-window)
+      - [Picking Window Settings](#picking-window-settings)
+    - [Filtering](#filtering)
+    - [Export and Import of manual picks](#export-and-import-of-manual-picks)
+      - [Export](#export)
+      - [Import](#import)
+  - [Automatic Picking](#automatic-picking)
+    - [Tuning](#tuning)
+    - [Production run of the autopicker](#production-run-of-the-autopicker)
+    - [Evaluation of automatic picks](#evaluation-of-automatic-picks)
+    - [Export and Import of automatic picks](#export-and-import-of-automatic-picks)
+- [FAQ](#faq)
 
 # PyLoT GUI
 
+This section describes how to use PyLoT graphically to view waveforms and create manual or automatic picks.
+
 ## First start
+
+After opening PyLoT for the first time, the seupt routine asks for the following information:
 
 Questions:
 1. Full Name
@@ -34,12 +43,20 @@ Questions:
 
 ## Main Screen
 
+After entering the [information](#first-start), PyLoTs main window is shown. It defaults to a view of the [Waveform Plot](#waveform-plot), which starts empty.
+
+<img src=images/gui/pylot-main-screen.png alt="Tune autopicks button" title="Tune autopicks button">
+
 Add trace data by [loading a project](#projects) or by [adding event data](#adding-events-to-projects).
 
 ### Waveform Plot
 
+The waveform plot shows a trace list of all stations of an event.
+
+<img src=images/gui/pylot-waveform-plot.png alt="A Waveform Plot showing traces of one event">
+
 Click on any trace to open the stations picking window.
-In the bottom bar the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) is shown.
+In the bottom bar the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) as well as a trace count is shown.
 
 #### Mouse view controls : 
 
@@ -59,7 +76,8 @@ Press right mouse button and click "View All" from the context menu to reset the
 
 The array map will display a color diagram to allow checking the consistency of picks across multiple stations.
 
-![Array Map](images/gui/arraymap.png "Array Map")
+![Array Map](images/gui/arraymap-example.png "Array Map")
+*Beschreibung*
 
 To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. Possible file types are ``.dless``, ``.xml``, ``.resp`` and ``.dseed``.
 
@@ -69,7 +87,7 @@ The eventlist displays event parameters. The displayed parameters are saved in t
 
 ## Usage
 
-### Projects
+### Projects and Events
 
 PyLoT uses projects to categorize different seismic data. A project consists of one or multiple events. Events contain seismic traces from one or multiple stations. An event also contains further information, e.g. origin time, source parameters and automatic and manual picks.
 Projects are used to group events which should be analyzed together. A project could contain all events from a specific region within a timeframe of interest or all recorded events of a seismological experiment.
@@ -94,22 +112,30 @@ Save the current project from the menu with File->Save project or File->Save pro
 PyLoT uses ``.plp`` files to save project information. This file format is not interchangable between different versions of Python interpreters.
 Saved projects contain the automatic and manual picks. Seismic trace data is not included into the ``.plp`` file, but read from its location used when saving the file.
 
-# Manual Picking
+# Picking
+
+PyLoTs automatic and manual pick determination works as following:
+* Using certain parameters, an initial/coarse pick is determined. The first manual pick is determined by visual review of the whole waveform and selection of the most likely onset by the analyst. The first automatic pick is determined by calculation of a characteristic function (CF) for the seismic trace. When a wave arrives, the CFs properties change, which is determined as the signals onset.
+* Afterwards, a refined set of parameters is applied to a small part of the waveform around the initial onset. For manual picks this means a closer view of the trace, for automatic picks this is **** by a recalculated CF with different parameters.
+* This second picking phase results in the precise pick.
+
+## Manual Picking
 
 To create manual picks, you will need to open or create a project that contains seismic trace data (see [Adding events to projects](#adding-events-to-project)). Click on a trace to open the [Picking window](#picking-window).
+Manual picks as well as 
 
-## Picking window
+### Picking window
 
-Open the picking window of a station by leftclicking on any trace in the waveform plot. Here you can create manual picks for the selected station.
+Open the picking window of a station by leftclicking on any trace in the waveform plot. Here you can create manual picks for the selected station. 
 
-### Picking Window Settings
+#### Picking Window Settings
 
 Icon | Shortcut | Menu Alternative | Description
 ---|---|---|---
 <img src="../icons/filter_p.png" alt="Filter P" width="64" height="64"> | 1 or p | Filter->Apply P Filter | Filter all channels according to the options specified in Filter parameter, P Filter section
 <img src="../icons/filter_s.png" alt="Filter S" width="64" height="64"> | 5 or s | Filter->Apply S Filter | Filter all channels according to the options specified in Filter parameter, S Filter section
 <img src="../icons/key_A.png" alt="Filter Automatically" width="64" height="64"> | Ctrl + a | Filter->Automatic Filtering | Select the correct filter option (P, S) depending on the selected phase to be picked
-<img src="images/gui/picking/phase_selection.png" alt="Phase selection" > | 1 or 5 | Picks->P or S | Select phase to pick
+![desc](images/gui/picking/phase_selection.png "Phase selection") | 1 or 5 | Picks->P or S | Select phase to pick
 ![Zoom into](../icons/zoom_in.png "Zoom into waveform") | - | - | Zoom into waveform TODO: expand
 ![Reset zoom](../icons/zoom_0.png "Reset zoom") | - | - | Reset zoom to default view
 ![Delete picks](../icons/delete.png "Delete picks") | - | - | Delete all manual picks on this station
@@ -123,38 +149,43 @@ Menu Command | Shortcut | Description
 ---|---|---
 P Channels and S Channels | - | Select which channels should be treated as P or S channels during picking. When picking a phase, only the corresponding channels will be shown during the precise pick
 
-## Filtering
+### Filtering
 
-Access the Filter options by pressing Ctrl+f on the Waveform plot or by the menu under Edit->Filter Parameter. Here you are able to select filter type, order and frequencies for the P and S pick seperately. These settings are used in the GUI for filtering during manual picking. The values used by PyLoT for automatic picking are displayed next to the manual values.
-By toggling the "Overwrite filteroptions" checkmark you can set whether the manual second pick uses the filter settings for the automatic picker (unchecked) or whether to use the filter options in this dialog (checked).
+Access the Filter options by pressing Ctrl+f on the Waveform plot or by the menu under *Edit*->*Filter Parameter*.
+
+<img src=images/gui/pylot-filter-options.png>
+
+ Here you are able to select filter type, order and frequencies for the P and S pick seperately. These settings are used in the GUI for filtering for displaying the waveform data and during manual picking. The values used by PyLoT for automatic picking are displayed next to the manual values. They can be changed in the [Tune Autopicker dialog](#tuning).  
+ A green value automatic value means the automatic and manual filter parameter is configured the same, read means they are configured differently.
+By toggling the "Overwrite filteroptions" checkmark you can set whether the manual precise/second pick uses the filter settings for the automatic picker (unchecked) or whether it uses the filter options in this dialog (checked).
 To guarantee consistent picking results between automatic and manual picking it is recommended to use the same fiter settings for the determination of automatic and manual picks.
 
-## Export and Import of manual picks
+### Export and Import of manual picks
 
-### Export
+#### Export
 
 After the creation of manual picks they can either be save in the project file (see [Saving projects](#saving-projects)). Alternatively the picks can be exported by pressing the <img src="../icons/savepicks.png" alt="Save event information button" title="Save picks button" height=24 width=24> button above the waveform plot or in the menu File->Save event information (shortcut Ctrl+p). Select the event directory in which to save the file. The filename will be ``PyLoT_[event_folder_name].[filetype selected during first startup]``. TODO: Is the filetype during first startup selected for saving files?
 
 You can rename and copy this file, but PyLoT will then no longer be able to automatically recognize the correct picks for an event and the file will have to be manually selected when loading. 
 
-### Import
+#### Import
 
 To import previously saved picks press the <img src="../icons/openpick.png" alt="Load event information button" width="24" height="24"> button and select the file to load. You are asked to save the current state of your current project if you have not done so before. You can continue without saving by pressing "Discard".
  PyLoT will automaticall load files named after the scheme it uses when saving picks, described in the paragraph above. If it cant file any aptly named files, a file dialog will open and you can select the file you wish to load. 
 
 If you see a warning "Mismatch in event identifiers" and are asked whether to continue loading the picks, this means that PyLoT doesn't recognize the picks in the file as belonging to this specific event. They could have either been saved under a different installation of PyLoT but with the same waveform data, which means they are still compatible and you can continue loading them. Or they could be picks from a different event, in which case loading them is not reccommended. 
 
-# Automatic Picking
+## Automatic Picking
 
-## Tuning
+### Tuning
 
 To adjust the autopicker settings to the characteristics of your data set, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tuning Dialog. In the right hand side of the window the Main Settings and Advanced Settings control the result of the automatic picking. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button in the top right corner. 
 
-## Production run of the autopicker
+### Production run of the autopicker
 
-## Evaluation of automatic picks
+### Evaluation of automatic picks
 
-## Export and Import of automatic picks
+### Export and Import of automatic picks
 
 # FAQ
 

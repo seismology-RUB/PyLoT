@@ -1,5 +1,7 @@
 # AutoPyLoT Tuning
 
+A description of the parameters used for determing automatic picks.
+
 ## Filter parameters and cut times
 
 Parameters applied to the traces before picking algorithm starts.
