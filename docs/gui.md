@@ -13,6 +13,7 @@
     - [Event folder structure](#event-folder-structure)
     - [Adding events to project](#adding-events-to-project)
     - [Saving projects](#saving-projects)
+    - [Adding metadata](#adding-metadata)
 - [Picking](#picking)
   - [Manual Picking](#manual-picking)
     - [Picking window](#picking-window)
@@ -34,7 +35,7 @@ This section describes how to use PyLoT graphically to view waveforms and create
 
 ## First start
 
-After opening PyLoT for the first time, the seupt routine asks for the following information:
+After opening PyLoT for the first time, the setup routine asks for the following information:
 
 Questions:
 1. Full Name
@@ -47,7 +48,7 @@ After entering the [information](#first-start), PyLoTs main window is shown. It 
 
 <img src=images/gui/pylot-main-screen.png alt="Tune autopicks button" title="Tune autopicks button">
 
-Add trace data by [loading a project](#projects) or by [adding event data](#adding-events-to-projects).
+Add trace data by [loading a project](#projects-and-events) or by [adding event data](#adding-events-to-project).
 
 ### Waveform Plot
 
@@ -56,6 +57,7 @@ The waveform plot shows a trace list of all stations of an event.
 <img src=images/gui/pylot-waveform-plot.png alt="A Waveform Plot showing traces of one event">
 
 Click on any trace to open the stations picking window.
+
 In the bottom bar the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) as well as a trace count is shown.
 
 #### Mouse view controls : 
@@ -74,12 +76,17 @@ Press right mouse button and click "View All" from the context menu to reset the
 
 ### Array Map
 
-The array map will display a color diagram to allow checking the consistency of picks across multiple stations.
+The array map will display a color diagram to allow visually checking the consistency of picks across multiple stations. This works by calculating the time difference of every onset to the earliest onset. Then isolines are drawn between stations with the same time difference and the areas between isolines are colored.  
+The result should resemble a color gradient as the wavefront rolls over the network area. Stations where picks are earlier/later than their neighbours can be reviewed by clicking on them, which opens the picking window.
+
+Above the Array Map the picks used can be customized.
+The phase of picks that should be used can be selected, which allows checking the consistency of the P- and S-phase seperately.
+Additionally the pick type can be set to manual, automatic or hybrid, meaning display only manual picks, automatic picks or only display automatic picks for stations where there are no manual ones.
 
 ![Array Map](images/gui/arraymap-example.png "Array Map")
-*Beschreibung*
+*Array Map for an event at the Northern Mid Atlantic Ridge, between North Africa and Mexico (Lat. 22.58, Lon. -45.11). The wavefront moved from west to east over the network area (Alps and Balcan region).*
 
-To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. Possible file types are ``.dless``, ``.xml``, ``.resp`` and ``.dseed``.
+To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. For more information see [Metadata](#adding-metadata).
 
 ### Eventlist
 
@@ -104,6 +111,7 @@ PyLoT expects the following folder structure for seismic data:
 ### Adding events to project
 
 PyLoT GUI starts with an empty project. To add events, use the add event data button. Select one or multiple folders containing events. 
+
 TODO: explain _Directories: Root path, Data path, Database path_
 
 ### Saving projects
@@ -111,6 +119,12 @@ TODO: explain _Directories: Root path, Data path, Database path_
 Save the current project from the menu with File->Save project or File->Save project as.
 PyLoT uses ``.plp`` files to save project information. This file format is not interchangable between different versions of Python interpreters.
 Saved projects contain the automatic and manual picks. Seismic trace data is not included into the ``.plp`` file, but read from its location used when saving the file.
+
+### Adding metadata
+
+TODO: Add picture of metadata "manager" when it is done
+
+PyLoT can handle ``.dless``, ``.xml``, ``.resp`` and ``.dseed`` formats. Metadata files stored on disk can be added to a project by clicking *Edit*->*Manage Inventories*. This opens up a window where the folders that contain metadata files can be selected. PyLoT will then search these files for the station names when it needs the information.
 
 # Picking
 
@@ -177,13 +191,27 @@ If you see a warning "Mismatch in event identifiers" and are asked whether to co
 
 ## Automatic Picking
 
+
+The general workflow for automatic picking is as following:
+- after setting up the project by loading waveforms and metadata, the right parameters for the autopicker have to be determined
+- This tuning is done for single stations with immediate graphical feedback of all picking results
+- afterwards the autopicker can be run for all or a subset of events from the project
+
+For automatic picking PyLoT discerns between tune and test events, which the user has to set as such. Tune events are used to calibrate the autopicking algorithm, test events are then used to test the calibration. The purpose of that is controlling whether the parameters found during tuning are able to reliably pick the "unknown" test events.  
+If this behaviour is not desired and all events should be handled the same, dont mark any events, since this is just a way to group events to compare the picking results nothing else will change.
+
 ### Tuning
 
 To adjust the autopicker settings to the characteristics of your data set, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tuning Dialog. In the right hand side of the window the Main Settings and Advanced Settings control the result of the automatic picking. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button in the top right corner. 
 
+For a description of all the parameters see [the tuning documentation](tuning.md).
+
 ### Production run of the autopicker
 
+
 ### Evaluation of automatic picks
+
+
 
 ### Export and Import of automatic picks
 
