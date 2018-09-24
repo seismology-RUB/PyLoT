@@ -85,8 +85,8 @@ Name | Description
 *minsiglength*, *noisefacor*. *minpercent* | Parameters for checking signal length. In the time window of size *minsiglength* after the initial P pick *minpercent* of samples have to be larger than the RMS value.
 *zfac* | To recognize misattributed S picks, the RMS amplitude of vertical and horizontal traces are compared. The RMS amplitude of the vertical traces has to be at least *zfac* higher than the RMS amplitude on the horizontal traces for the pick to be accepted as a valid P pick.
 *jackfactor* | A P pick is removed if the jackknife pseudo value of the variance of his subgroup ist larger than the variance of all picks multiplied with the *jackfactor*.
-*mdttolerance* | Maximum allowed deviation of P onset times from the median .
-*wdttolerance* | Maximum allowed deviation of S onset times from the line during the Wadati test.
+*mdttolerance* | Maximum allowed deviation of P onset times from the median. Value in seconds.
+*wdttolerance* | Maximum allowed deviation of S onset times from the line during the Wadati test. Value in seconds.
 
 ## Pick quality determination
 

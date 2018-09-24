@@ -26,6 +26,8 @@
     - [Tuning](#tuning)
     - [Production run of the autopicker](#production-run-of-the-autopicker)
     - [Evaluation of automatic picks](#evaluation-of-automatic-picks)
+      - [1. Jackknife check](#1-jackknife-check)
+      - [2. Wadati check](#2-wadati-check)
     - [Export and Import of automatic picks](#export-and-import-of-automatic-picks)
 - [FAQ](#faq)
 
@@ -193,27 +195,56 @@ If you see a warning "Mismatch in event identifiers" and are asked whether to co
 
 
 The general workflow for automatic picking is as following:
-- after setting up the project by loading waveforms and metadata, the right parameters for the autopicker have to be determined
-- This tuning is done for single stations with immediate graphical feedback of all picking results
-- afterwards the autopicker can be run for all or a subset of events from the project
+- After setting up the project by loading waveforms and metadata, the right parameters for the autopicker have to be determined
+- This [tuning](#tuning) is done for single stations with immediate graphical feedback of all picking results
+- Afterwards the autopicker can be run for all or a subset of events from the project
 
 For automatic picking PyLoT discerns between tune and test events, which the user has to set as such. Tune events are used to calibrate the autopicking algorithm, test events are then used to test the calibration. The purpose of that is controlling whether the parameters found during tuning are able to reliably pick the "unknown" test events.  
-If this behaviour is not desired and all events should be handled the same, dont mark any events, since this is just a way to group events to compare the picking results nothing else will change.
+If this behaviour is not desired and all events should be handled the same, dont mark any events. Since this is just a way to group events to compare the picking results, nothing else will change.
 
 ### Tuning
 
-To adjust the autopicker settings to the characteristics of your data set, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tuning Dialog. In the right hand side of the window the Main Settings and Advanced Settings control the result of the automatic picking. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button in the top right corner. 
+Tuning describes the process of adjusting the autopicker settings to the characteristics of your data set. To do this in PyLoT, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tuning Dialog. In the right hand side of the window the *Main Settings* and *Advanced Settings* tabs are shown. They control the result of the automatic picking. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button in the top right corner. 
 
 For a description of all the parameters see [the tuning documentation](tuning.md).
 
+The parameters can be saved in PyLoT input files, which have the file ending *.in*. They are human readable text files, which can also be edited by hand. Saving the parameters allows you to load them again later.
+
 ### Production run of the autopicker
 
+After the settings used during tuning give the desired results, the autopicker can be used on the complete dataset. To invoke the autopicker on the whole set of events, click the <img src=../icons/autopylot_button.png alt="Autopick button" title="Autopick button" height=32> button.
 
 ### Evaluation of automatic picks
 
+PyLoT has to internal consistency checks for automatic picks that were determined for an event:
+1. Jackknife check
+2. Wadati check
 
+#### 1. Jackknife check
+
+The jackknife test in PyLoT checks the consistency of automatically determined P-picks by checking the statistical variance of the picks. The variance of all P-picks is calculated and compared to the variance of subsets, in which one pick is removed.   
+The idea is, that picks that are close together in time should not influence the estimation of the variance much, while picks whose positions deviates from the norm influence the variance to a greater extent. If the estimated variance of a subset with a pick removed differs to much from the estimated variance of all picks, the pick that was removed from the subset will be marked as invalid.   
+The factor by which picks are allowed to skew from the estimation of variance can be configured, it is called *jackfactor*, see [here](tuning.md#Pick-quality-control).
+
+Additionally, the deviation of picks from the median is checked. The median of all P-picks that passed the Jackknife test is calculated. Picks whose onset times deviate from the mean onset time by more than the *mdttolerance* are marked as invalid.
+
+<img src=images/gui/jackknife_plot.png title="Jackknife/Median test diagram">
+
+*The result of both tests (Jackknife and Median) is shown in a diagram afterwards. The onset time is plotted against a running number of stations. Picks that failed either the Jackknife or the median test are colored red. The median is plotted as a green line.* 
+
+The Jackknife and median check are suitable to check for picks that are outside of the expected time window, where maybe another phase was picked.
+
+#### 2. Wadati check
+
+The Wadati check checks the consistency of S picks. For this the SP-time, the time difference between S and P onset is plotted against the P onset time. A line is fitted to the points, which minimizes the error. Then the deviation of single picks to this line is checked. If the deviation in seconds is above the *wdttolerance* parameter ([see here](tuning.md#Pick-quality-control)), the pick is marked as invalid.
+
+<img src=images/gui/wadati_plot.png title="Output diagram of Wadati check">
+
+*The Wadati plot in PyLoT shows the SP onset time difference over the P onset time. A first line is fitted (black). All picks which deviate to much from this line are marked invalid (red). Then a second line is fitted which excludes the invalid picks. From this lines slope, the ratio of P and S wave velocity is determined.*
 
 ### Export and Import of automatic picks
+
+Picks can be saved in *.xml* format.
 
 # FAQ
 
