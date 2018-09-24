@@ -44,6 +44,8 @@ Questions:
 2. Authority: Enter authority/instituiton name
 3. Format: Enter output format (*.xml, *.cnv, *.obs)
 
+TODO: explain what these things mean, where they are used
+
 ## Main Screen
 
 After entering the [information](#first-start), PyLoTs main window is shown. It defaults to a view of the [Waveform Plot](#waveform-plot), which starts empty.
@@ -204,11 +206,25 @@ If this behaviour is not desired and all events should be handled the same, dont
 
 ### Tuning
 
-Tuning describes the process of adjusting the autopicker settings to the characteristics of your data set. To do this in PyLoT, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tuning Dialog. In the right hand side of the window the *Main Settings* and *Advanced Settings* tabs are shown. They control the result of the automatic picking. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button in the top right corner. 
+Tuning describes the process of adjusting the autopicker settings to the characteristics of your data set. To do this in PyLoT, use the <img src=../icons/tune.png height=24 alt="Tune autopicks button" title="Tune autopicks button"> button to open the Tune Autopicker. 
 
-For a description of all the parameters see [the tuning documentation](tuning.md).
+<img src=images/gui/tuning/tune_autopicker.png>
 
-The parameters can be saved in PyLoT input files, which have the file ending *.in*. They are human readable text files, which can also be edited by hand. Saving the parameters allows you to load them again later.
+View of a station in the Tune Autopicker window. 
+1. Select the event to be displayed and processed.
+2. Select the station from the event. 
+3. To pick the currently displayed trace, click the <img src=images/gui/tuning/autopick_trace_button.png alt="Pick trace button" title="Autopick trace button" height=16> button.
+4. These tabs are used to select the current view. __Traces Plot__ contains a plot of the stations traces, where manual picks can be created/edited. __Overview__ contains graphical results of the automatic picking process. The __P and S tabs__ contain the automatic picking results of the P and S phase, while __log__ contains a useful text output of automatic picking.
+5. These buttons are used to load/save/reset settings for automatic picking. The parameters can be saved in PyLoT input files, which have the file ending *.in*. They are human readable text files, which can also be edited by hand. Saving the parameters allows you to load them again later, even on different machines.
+6. These menus control the behaviour of the creation of manual picks from the Tune Autopicker window. Picks allows to select the phase for which a manual pick should be created, Filter allows to filter waveforms and edit the filter parameters. P-Channels and S-Channels allow to select the channels that should be displayed when creating a manual P or S pick. 
+7. The first two buttons toggle wether the waveforms should be displayed filtered with the settings for manual P and S picks respectively. The next button toggles whether selecting a phase to pick also filters the waveform with the parameters for that phase.   
+The next two buttons, __P__ and __S__ select the phase for manual picking. Then two buttons that control the zoom level follow. After that, the __red X__ button deletes all picks from this station. The green button to the right allows to rename a pick phase.  
+The __Manual Onsets__ accepts or reject the manual picks created in the Tune Autopicker window, pressing accept adds them to the manual picks for the event, while reject removes them.   
+When metadata is available for a station/event, the __Estimated Onsets__ plots theoretical arrival times.   
+The __Compare to channel__ allows to select a channel, whose traces are then displayed in the same plot as the other channels. TODO: What is that good for?   
+___Scaling__ allows select a trace to which all other values are scaled. By default every trace is scaled to its own maximum, but with this selection every trace will be scaled relatively to the selected trace.
+8. The traces plot in the center allows creating manual picks and viewing the waveforms.
+9. The parameters which influence the autopicking result are in the Main settings and Advanced settings tabs on the left side. For a description of all the parameters see [the tuning documentation](tuning.md).
 
 ### Production run of the autopicker
 
