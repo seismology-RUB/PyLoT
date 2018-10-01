@@ -58,13 +58,12 @@ Add trace data by [loading a project](#projects-and-events) or by [adding event 
 
 ### Waveform Plot
 
-The waveform plot shows a trace list of all stations of an event.
+The waveform plot shows a trace list of all stations of an event.   
+Click on any trace to open the stations [picking window](#picking-window), where you can review automatic and manual picks.
 
 <img src=images/gui/pylot-waveform-plot.png alt="A Waveform Plot showing traces of one event">
 
-Click on any trace to open the stations picking window.
-
-In the bottom bar the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) as well as a trace count is shown.
+In the bottom bar information about the trace under the mouse cursor is shown. This information includes the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) as well as a trace count.
 
 #### Mouse view controls : 
 
@@ -105,17 +104,17 @@ Icon | Description
 
 ### Array Map
 
-The array map will display a color diagram to allow visually checking the consistency of picks across multiple stations. This works by calculating the time difference of every onset to the earliest onset. Then isolines are drawn between stations with the same time difference and the areas between isolines are colored.  
+The array map will display a color diagram to allow a visual check of the consistency of picks across multiple stations. This works by calculating the time difference of every onset to the earliest onset. Then isolines are drawn between stations with the same time difference and the areas between isolines are colored.  
 The result should resemble a color gradient as the wavefront rolls over the network area. Stations where picks are earlier/later than their neighbours can be reviewed by clicking on them, which opens the picking window.
 
-Above the Array Map the picks used can be customized.
+Above the Array Map the picks that are used to create the map can be customized.
 The phase of picks that should be used can be selected, which allows checking the consistency of the P- and S-phase seperately.
 Additionally the pick type can be set to manual, automatic or hybrid, meaning display only manual picks, automatic picks or only display automatic picks for stations where there are no manual ones.
 
 ![Array Map](images/gui/arraymap-example.png "Array Map")
-*Array Map for an event at the Northern Mid Atlantic Ridge, between North Africa and Mexico (Lat. 22.58, Lon. -45.11). The wavefront moved from west to east over the network area (Alps and Balcan region).*
+*Array Map for an event at the Northern Mid Atlantic Ridge, between North Africa and Mexico (Lat. 22.58, Lon. -45.11). The wavefront moved from west to east over the network area (Alps and Balcan region), with the earliest onsets in blue in the west.*
 
-To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. For more information see [Metadata](#adding-metadata).
+To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. For more information see [Metadata](#adding-metadata). Additionally automatic or manual picks need to be loaded for the current event.
 
 ### Eventlist
 
@@ -134,7 +133,8 @@ PyLoT expects the following folder structure for seismic data:
 * Every event should be in it's own folder with the following naming scheme for the folders:
    ``e[id].[doy].[yy]``, where ``[id]`` is a four-digit numerical id increasing from 0001, ``[doy]`` the three digit day of year and ``[yy]`` the last two digits of the year of the event. This structure has to be created by the user of PyLoT manually.
 * These folders should contain the seismic data for their event as ``.mseed`` or other supported filetype TODO: LINK HERE
-* All automatic and manual picks should be in an ``.xml`` file in their event folder. PyLoT saves picks in this file. This file does not have to be added manually unless there are picks to be imported. The format used to save picks is QUAKEML.
+* All automatic and manual picks should be in an ``.xml`` file in their event folder. PyLoT saves picks in this file. This file does not have to be added manually unless there are picks to be imported. The format used to save picks is QUAKEML.   
+Picks are saved in a file with the same filename as the event folder with ``PyLoT_`` prepended.
 * The file ``notes.txt`` is used for saving analysts comments. Everything saved here will be displayed in the 'Notes' column of the eventlist.
 
 ### Adding events to project
@@ -153,19 +153,18 @@ Saved projects contain the automatic and manual picks. Seismic trace data is not
 
 TODO: Add picture of metadata "manager" when it is done
 
-PyLoT can handle ``.dless``, ``.xml``, ``.resp`` and ``.dseed`` formats. Metadata files stored on disk can be added to a project by clicking *Edit*->*Manage Inventories*. This opens up a window where the folders that contain metadata files can be selected. PyLoT will then search these files for the station names when it needs the information.
+PyLoT can handle ``.dless``, ``.xml``, ``.resp`` and ``.dseed`` file formats for Metada. Metadata files stored on disk can be added to a project by clicking *Edit*->*Manage Inventories*. This opens up a window where the folders that contain metadata files can be selected. PyLoT will then search these files for the station names when it needs the information.
 
 # Picking
 
 PyLoTs automatic and manual pick determination works as following:
-* Using certain parameters, an initial/coarse pick is determined. The first manual pick is determined by visual review of the whole waveform and selection of the most likely onset by the analyst. The first automatic pick is determined by calculation of a characteristic function (CF) for the seismic trace. When a wave arrives, the CFs properties change, which is determined as the signals onset.
-* Afterwards, a refined set of parameters is applied to a small part of the waveform around the initial onset. For manual picks this means a closer view of the trace, for automatic picks this is **** by a recalculated CF with different parameters.
-* This second picking phase results in the precise pick.
+* Using certain parameters, a first initial/coarse pick is determined. The first manual pick is determined by visual review of the whole waveform and selection of the most likely onset by the analyst. The first automatic pick is determined by calculation of a characteristic function (CF) for the seismic trace. When a wave arrives, the CFs properties change, which is determined as the signals onset.
+* Afterwards, a refined set of parameters is applied to a small part of the waveform around the initial onset. For manual picks this means a closer view of the trace, for automatic picks this is done by a recalculated CF with different parameters.
+* This second picking phase results in the precise pick, which is treated as the onset time.
 
 ## Manual Picking
 
 To create manual picks, you will need to open or create a project that contains seismic trace data (see [Adding events to projects](#adding-events-to-project)). Click on a trace to open the [Picking window](#picking-window).
-Manual picks as well as 
 
 ### Picking window
 
@@ -175,22 +174,24 @@ Open the picking window of a station by leftclicking on any trace in the wavefor
 
 Icon | Shortcut | Menu Alternative | Description
 ---|---|---|---
-<img src="../icons/filter_p.png" alt="Filter P" width="64" height="64"> | 1 or p | Filter->Apply P Filter | Filter all channels according to the options specified in Filter parameter, P Filter section
-<img src="../icons/filter_s.png" alt="Filter S" width="64" height="64"> | 5 or s | Filter->Apply S Filter | Filter all channels according to the options specified in Filter parameter, S Filter section
-<img src="../icons/key_A.png" alt="Filter Automatically" width="64" height="64"> | Ctrl + a | Filter->Automatic Filtering | Select the correct filter option (P, S) depending on the selected phase to be picked
-![desc](images/gui/picking/phase_selection.png "Phase selection") | 1 or 5 | Picks->P or S | Select phase to pick
-![Zoom into](../icons/zoom_in.png "Zoom into waveform") | - | - | Zoom into waveform TODO: expand
-![Reset zoom](../icons/zoom_0.png "Reset zoom") | - | - | Reset zoom to default view
-![Delete picks](../icons/delete.png "Delete picks") | - | - | Delete all manual picks on this station
-![Rename a phase](../icons/sync.png "Rename a phase") | - | - | Click this button and then the picked phase to rename it
-![Continue](images/gui/picking/continue.png "Continue") | - | - | If checked, after accepting the manual picks for this station with 'OK'. the picking window for the next station will be opened
-Estimated onsets | - | - | Show the theoretical onsets for this station
-Compare to channel | - | - | Select a data channel to compare against. The selected channel will be displayed in the picking window behind every channel to compare signal correlation
-Scale by | - | - | Normalized means every channel is scaled to it maximum seperately. If a channel is selected here, all channels will be scaled with regards to this channel
+<img src="../icons/filter_p.png" alt="Filter P" width="64" height="64"> | 1 or p | Filter->Apply P Filter | Filter all channels according to the options specified in Filter parameter, P Filter section.
+<img src="../icons/filter_s.png" alt="Filter S" width="64" height="64"> | 5 or s | Filter->Apply S Filter | Filter all channels according to the options specified in Filter parameter, S Filter section.
+<img src="../icons/key_A.png" alt="Filter Automatically" width="64" height="64"> | Ctrl + a | Filter->Automatic Filtering | Select the correct filter option (P, S) depending on the selected phase to be picked.
+![desc](images/gui/picking/phase_selection.png "Phase selection") | 1 or 5 | Picks->P or S | Select phase to pick.
+![Zoom into](../icons/zoom_in.png "Zoom into waveform") | - | - | Zoom into waveform.
+![Reset zoom](../icons/zoom_0.png "Reset zoom") | - | - | Reset zoom to default view.
+![Delete picks](../icons/delete.png "Delete picks") | - | - | Delete all manual picks on this station.
+![Rename a phase](../icons/sync.png "Rename a phase") | - | - | Click this button and then the picked phase to rename it.
+![Continue](images/gui/picking/continue.png "Continue") | - | - | If checked, after accepting the manual picks for this station with 'OK', the picking window for the next station will be opened. This option is useful for fast manual picking of a complete event.
+Estimated onsets | - | - | Show the theoretical onsets for this station. Needs metadata and origin information.
+Compare to channel | - | - | Select a data channel to compare against. The selected channel will be displayed in the picking window behind every channel to compare signal correlation.
+Scale by | - | - | Normalized means every channel is scaled to it maximum seperately. If a channel is selected here, all channels will be scaled with regards to this channel.
  
 Menu Command | Shortcut | Description
 ---|---|---
 P Channels and S Channels | - | Select which channels should be treated as P or S channels during picking. When picking a phase, only the corresponding channels will be shown during the precise pick
+
+TODO: is the above table done?
 
 ### Filtering
 
@@ -249,7 +250,7 @@ When metadata is available for a station/event, the __Estimated Onsets__ plots t
 The __Compare to channel__ allows to select a channel, whose traces are then displayed in the same plot as the other channels. TODO: What is that good for?   
 ___Scaling__ allows select a trace to which all other values are scaled. By default every trace is scaled to its own maximum, but with this selection every trace will be scaled relatively to the selected trace.
 8. The traces plot in the center allows creating manual picks and viewing the waveforms.
-9. The parameters which influence the autopicking result are in the Main settings and Advanced settings tabs on the left side. For a description of all the parameters see [the tuning documentation](tuning.md).
+9. The parameters which influence the autopicking result are in the Main settings and Advanced settings tabs on the left side. For a description of all the parameters see the [tuning documentation](tuning.md).
 
 ### Production run of the autopicker
 
