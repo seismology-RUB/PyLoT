@@ -6,6 +6,7 @@
   - [Main Screen](#main-screen)
     - [Waveform Plot](#waveform-plot)
       - [Mouse view controls :](#mouse-view-controls)
+      - [Buttons](#buttons)
     - [Array Map](#array-map)
     - [Eventlist](#eventlist)
   - [Usage](#usage)
@@ -28,6 +29,7 @@
     - [Evaluation of automatic picks](#evaluation-of-automatic-picks)
       - [1. Jackknife check](#1-jackknife-check)
       - [2. Wadati check](#2-wadati-check)
+    - [Comparison between automatic and manual picks](#comparison-between-automatic-and-manual-picks)
     - [Export and Import of automatic picks](#export-and-import-of-automatic-picks)
 - [FAQ](#faq)
 
@@ -77,6 +79,29 @@ Move the mouse right | Increase time scale
 Move the mouse left | Decrease time scale
 
 Press right mouse button and click "View All" from the context menu to reset the view.
+
+#### Buttons
+
+Icon | Description
+--- | ---
+<img src="../icons/newfile.png" alt="Create new project" width="64" height="64"> | Create a new project, for more information about projects see [Projects and Events](#projects-and-events).
+<img src="../icons/openproject.png" alt="Open project" width="64" height="64"> | Load a project file from disk.
+<img src="../icons/saveproject.png" alt="Save Project" width="64" height="64"> | Save all current events into an associated project file on disk. If there is no project file currently associated, you will be asked to create a new one.
+<img src="../icons/saveprojectas.png" alt="Save Project as" width="64" height="64"> | Save all current events into a new project file on disk. See [Saving projects](#saving-projects).
+<img src="../icons/add.png" alt="Add event data" width="64" height="64"> | Add event data by selecting directories containing waveforms. For more information see [Event folder structure](#event-folder-structure).
+<img src="../icons/openpick.png" alt="Load event information" width="64" height="64"> | Load picks/origins from disk into the currently displayed event. If a pick already exists for a station, the one from file will overwrite the existing one.
+<img src="../icons/openpicks.png" alt="Load information for all events" width="64" height="64"> | Load picks/origins for all events of the current project. PyLoT searches for files within the directory of the event and tries to load them for that event. For this function to work, the files containing picks/origins have to be named as described in [Event folder   structure](#event-folder-structure). If a pick already exists for a station, the one from file will overwrite the existing one.
+<img src="../icons/savepicks.png" alt="Save picks" width="64" height="64"> | Save event information such as picks and origin to file. You will be asked to select a directory in which this information should be saved.
+<img src="../icons/openloc.png" alt="Load location information" width="64" height="64"> | 
+<img src="../icons/Matlab_PILOT_icon.png" alt="Load legacy information" width="64" height="64"> | Load event information from a previous, MatLab based PILOT version.
+<img src="../icons/key_Z.png" alt="Display Z" width="64" height="64"> | Display Z component of streams in waveform plot.
+<img src="../icons/key_N.png" alt="Display N" width="64" height="64"> | Display N component of streams in waveform plot.
+<img src="../icons/key_E.png" alt="Display E" width="64" height="64"> | Display E component of streams in waveform plot.
+<img src="../icons/tune.png" alt="Tune Autopicker" width="64" height="64"> | Open the [Tune Autopicker window](#tuning).
+<img src="../icons/autopylot_button.png" alt="" width="64" height="64"> | Opens a window that allows starting the autopicker for all events ([Production run of the AutoPicker](#production-run-of-the-autopicker)).
+<img src="../icons/compare_button.png" alt="Comparison" width="64" height="64"> | Compare automatic and manual picks, only available if automatic and manual picks for an event exist. See [Comparison between automatic and manual picks](#comparison-between-automatic-and-manual-picks).
+<img src="../icons/locate_button.png" alt="Locate event" width="64" height="64"> | Run a location routine (NonLinLoc) as configured in the settings on the picks.
+
 
 ### Array Map
 
@@ -257,6 +282,8 @@ The Wadati check checks the consistency of S picks. For this the SP-time, the ti
 <img src=images/gui/wadati_plot.png title="Output diagram of Wadati check">
 
 *The Wadati plot in PyLoT shows the SP onset time difference over the P onset time. A first line is fitted (black). All picks which deviate to much from this line are marked invalid (red). Then a second line is fitted which excludes the invalid picks. From this lines slope, the ratio of P and S wave velocity is determined.*
+
+### Comparison between automatic and manual picks
 
 ### Export and Import of automatic picks
 
