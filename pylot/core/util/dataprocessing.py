@@ -274,6 +274,7 @@ class Metadata(object):
         """
         # functions used to read metadata for different file endings (or file types)
         read_functions = {'dless': self._read_dless,
+                          'dataless': self._read_dless,
                           'dseed': self._read_dless,
                           'xml': self._read_inventory_file,
                           'resp': self._read_inventory_file}
@@ -281,6 +282,7 @@ class Metadata(object):
         if file_ending in read_functions.keys():
             robj, exc = read_functions[file_ending](path_to_inventory_filename)
             if exc is not None:
+                print("Nicht None")
                 raise exc
             return file_ending, robj
         # in case file endings did not match the above keys, try and error
