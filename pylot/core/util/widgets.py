@@ -3416,6 +3416,7 @@ class TuneAutopicker(QWidget):
         return str(self.stationBox.currentText()).split('.')[1]
 
     def get_current_station_id(self):
+        print(self.stationBox, self.stationBox.currentText())
         return str(self.stationBox.currentText())
 
     @staticmethod
@@ -3433,7 +3434,15 @@ class TuneAutopicker(QWidget):
             self.pdlg_widget = None
             return
         self.load_wf_data()
-        network, station, location, channel = self.get_current_station_id()
+        try:
+            network, station, location, channel = self.get_current_station_id()
+        except ValueError as e:
+            vmsg = '{0}'.format(e)
+            print(vmsg)
+            station = self.get_current_station()
+            location = None
+            network = None
+
         wfdata = self.data.getWFData()
         metadata = self.parent().metadata
         event = self.get_current_event()
