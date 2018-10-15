@@ -81,7 +81,7 @@ Press right mouse button and click "View All" from the context menu to reset the
 
 #### Buttons
 
-Icon | Description
+Icon &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Description
 --- | ---
 <img src="../icons/newfile.png" alt="Create new project" width="64" height="64"> | Create a new project, for more information about projects see [Projects and Events](#projects-and-events).
 <img src="../icons/openproject.png" alt="Open project" width="64" height="64"> | Load a project file from disk.
