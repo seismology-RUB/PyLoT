@@ -111,7 +111,7 @@ Above the Array Map the picks that are used to create the map can be customized.
 The phase of picks that should be used can be selected, which allows checking the consistency of the P- and S-phase seperately.
 Additionally the pick type can be set to manual, automatic or hybrid, meaning display only manual picks, automatic picks or only display automatic picks for stations where there are no manual ones.
 
-![Array Map](images/gui/arraymap-example.png "Array Map")
+![Array Map](images/gui/arraymap-example.png "Array Map")  
 *Array Map for an event at the Northern Mid Atlantic Ridge, between North Africa and Mexico (Lat. 22.58, Lon. -45.11). The wavefront moved from west to east over the network area (Alps and Balcan region), with the earliest onsets in blue in the west.*
 
 To be able to display an array map PyLoT needs to load an inventory file, where the metadata of seismic stations is kept. For more information see [Metadata](#adding-metadata). Additionally automatic or manual picks need to be loaded for the current event.
