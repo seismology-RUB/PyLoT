@@ -141,7 +141,7 @@ class AddMetadataWidget(QWidget):
         self.setLayout(self.main_layout)
         self.setupUI()
         self.connect_signals()
-        self.resize(600, 800)
+        self.resize(600, 450)
 
         self.metadata = metadata if metadata else Metadata(verbosity=0)
         self.from_metadata()
