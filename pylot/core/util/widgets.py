@@ -214,10 +214,6 @@ class AddMetadataWidget(QWidget):
         self.list_view.setModel(self.list_model)
         self.list_layout.insertWidget(1, self.list_view, 1)
 
-    def refresh_list(self):
-        self.clear_list()
-        for inventory_path in self.inventories.keys():
-            self.add_item(inventory_path)
     def init_accept_cancel_buttons(self):
         self.accept_cancel_layout = QHBoxLayout()
         self.accept_button = self.init_button("Accept", Qt.Key_Return, "Accept changes and close \n(Return)")
