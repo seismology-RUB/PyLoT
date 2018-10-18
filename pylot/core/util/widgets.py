@@ -212,9 +212,6 @@ class AddMetadataWidget(QWidget):
         self.list_view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.list_model = QtGui.QStandardItemModel(self.list_view)
         self.list_view.setModel(self.list_model)
-    def from_metadata(self):
-        for inventory_path in self.metadata.inventories:
-            self.add_item(inventory_path, from_metadata=True)
         self.list_layout.insertWidget(1, self.list_view, 1)
 
     def refresh_list(self):
@@ -234,6 +231,14 @@ class AddMetadataWidget(QWidget):
         self.add_button.clicked.connect(self.add_item_from_box)
         self.remove_button.clicked.connect(self.remove_item)
         self.close_button.clicked.connect(self.hide)
+
+    def from_metadata(self):
+        """
+        already existing metadata folders are added to the visual list of metadata folders
+        """
+        for inventory_path in self.metadata.inventories:
+            item = QtGui.QStandardItem(inventory_path)
+            self.list_model.appendRow(item)
 
     def open_directory(self):
         """
