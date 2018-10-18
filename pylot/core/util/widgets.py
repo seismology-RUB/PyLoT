@@ -223,10 +223,10 @@ class AddMetadataWidget(QWidget):
         self.main_layout.insertLayout(3, self.accept_cancel_layout)
 
     def connect_signals(self):
-        self.selection_button.clicked.connect(self.open_directory)
-        self.add_button.clicked.connect(self.add_item_from_box)
+        self.add_button.clicked.connect(self.add_item_from_dialog)
         self.remove_button.clicked.connect(self.remove_item)
-        self.close_button.clicked.connect(self.hide)
+        self.accept_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.hide)
 
     def from_metadata(self):
         """
