@@ -3200,7 +3200,7 @@ class MainWindow(QMainWindow):
 
     def add_metadata(self):
         self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
-        self.add_metadata_widget.close_button.clicked.connect(self.set_metadata)
+        self.add_metadata_widget.accept_button.clicked.connect(self.set_metadata)
 
     def init_metadata(self, new=False, ask_default=True):
         if hasattr(self.project, 'inventories'):
