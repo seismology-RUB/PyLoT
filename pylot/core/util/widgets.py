@@ -136,6 +136,8 @@ class AddMetadataWidget(QWidget):
     def __init__(self, parent=None, metadata=None, windowflag=1):
         super(AddMetadataWidget, self).__init__(parent, windowflag)
         self.inventories = {}
+        self.inventories_add = []
+        self.inventories_delete = []
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -215,41 +217,71 @@ class AddMetadataWidget(QWidget):
         self.close_button.clicked.connect(self.hide)
 
     def open_directory(self):
-        fninv = QFileDialog.getExistingDirectory(self, self.tr(
-            "Select inventory..."), self.tr("Select folder"))
+        """
+        choosing a directory in the dialog window and returning the path
+        :return: directory path
+        """
+        fninv = QFileDialog.getExistingDirectory(self, self.tr("Select inventory..."), self.tr("Select folder"))
         if not fninv:
             return
-        self.selection_box.setText(fninv)
+        return fninv
 
-    def add_item_from_box(self):
-        inventory_path = self.selection_box.text()
+    def add_item_from_dialog(self):
+        inventory_path = self.open_directory()
         self.add_item(inventory_path)
         self.selection_box.setText('')
 
-    def add_item(self, inventory_path, from_metadata=False):
+    def add_item(self, inventory_path):
+        """
+        checks if the inventory path is already in the list and if it leads to a directory;
+        adds the path to the visible list;
+        adds the path to the list of inventories that get added to the metadata upon accepting all changes
+        :param inventory_path: path of the folder that contains the metadata (unicode string)
+        """
         if not inventory_path:
             return
-        if inventory_path in self.inventories.keys():
-            QMessageBox.warning(self, 'Info', 'Path already in list!')
-            return
+        if inventory_path in self.metadata.inventories or inventory_path in self.inventories_add:
+            if not inventory_path in self.inventories_delete:
+                QMessageBox.warning(self, 'Info', 'Path already in list!')
+                return
         if not os.path.isdir(inventory_path):
             QMessageBox.warning(self, 'Warning', 'Path is no directory!')
             return
         item = QtGui.QStandardItem(inventory_path)
         item.setEditable(False)
-        self.inventories[inventory_path] = item
-        self.list_model.appendRow(item)
-
-        if not from_metadata:
-            self.metadata.add_inventory(inventory_path)
+        self.inventories_add.append(inventory_path)
+        self.list_model.appendRow(item)             # adds path to visible list
 
     def remove_item(self):
+        """
+        removes marked path from the visible list;
+        also adds the path to the list of inventories that get deleted upon accepting all changes or deletes the
+        path from the list of of inventories that get added to the metadata upon accepting all changes
+        """
         for index in reversed(self.list_view.selectionModel().selectedIndexes()):
             item = self.list_model.itemData(index)
-            inventory_path = item[0]
-            del (self.inventories[inventory_path])
+            inventory_path = item[0]                        # marked path
+            self.list_model.removeRow(index.row())          # aus der Anzeige-Liste gelöscht
+            if inventory_path in self.inventories_add:
+                self.inventories_add.remove(inventory_path)
+            else:
+                self.inventories_delete.append(inventory_path)
+
+    def accept(self):
+        """
+        all inventory pathes in the add list get added to the metadata (class) and all inventory pathes in the delete
+        list get deleted from the metadata (class); the lists are emptied and the window closes
+        """
+        for inventory_path in self.inventories_add:
+            self.metadata.add_inventory(inventory_path)
+        for inventory_path in self.inventories_delete:
             self.metadata.remove_inventory(inventory_path)
-            self.list_model.removeRow(index.row())
+        self.clear_lists()
+        self.hide()
+
+    def clear_lists(self):
+        self.inventories_add = []
+        self.inventories_delete = []
 
 
 class ComparisonWidget(QWidget):
