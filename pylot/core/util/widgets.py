@@ -139,6 +139,7 @@ class AddMetadataWidget(QWidget):
         self.inventories_add = []
         self.inventories_delete = []
 
+        self.setWindowTitle("Manage inventory files")
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
         self.setupUI()
@@ -166,49 +167,67 @@ class AddMetadataWidget(QWidget):
         self.move(fm.topLeft())
 
     def setupUI(self):
-        self.init_selection_layout()
-        self.init_add_remove_layout()
+        self.init_list_buttons_layout()
+        self.init_add_remove_buttons()
+        self.init_list_layout()
+        self.init_accept_cancel_buttons()
+
+    def init_list_buttons_layout(self):
+        self.list_buttons_layout = QHBoxLayout()
+        self.main_layout.insertLayout(0, self.list_buttons_layout, 0)
+
+    def init_button(self, label, key, explanation):
+        """
+        generates a button with custom name, label and shortcut
+        :param label: name of the button (str)
+        :param key: shortcut key (PySide.QtCore.Qt.Key)
+        :param explanation: text that shows when hovering over the button
+        :return: QPushButton
+        """
+        button = QPushButton(label)
+        button.setShortcut(QtGui.QKeySequence(key))
+        button.setToolTip(explanation)
+        return button
+
+    def init_add_remove_buttons(self):
+        self.add_remove_layout = QVBoxLayout()
+        self.add_button = self.init_button("Add", Qt.Key_Insert, "Choose a file to add \n(Ins)")
+        self.remove_button = self.init_button("Remove", Qt.Key_Delete, "Remove selected file \n(Del)")
+        self.add_remove_layout.addWidget(self.add_button, 0, QtCore.Qt.AlignBottom)
+        self.add_remove_layout.addWidget(self.remove_button, 0, QtCore.Qt.AlignTop)
+        self.list_buttons_layout.insertLayout(1, self.add_remove_layout, 0)
+
+    def init_list_layout(self):
+        self.list_layout = QVBoxLayout()
+        self.list_buttons_layout.insertLayout(0, self.list_layout, 1)
+        self.init_list_title()
         self.init_list_widget()
-        self.init_close()
 
-    def init_selection_layout(self):
-        self.selection_layout = QHBoxLayout()
-        self.selection_box = QtGui.QLineEdit()
-        self.selection_button = QtGui.QPushButton('...')
-        self.selection_layout.addWidget(self.selection_box, 1)
-        self.selection_layout.addWidget(self.selection_button, 0)
-        self.main_layout.insertLayout(0, self.selection_layout, 0)
-
-    def init_add_remove_layout(self):
-        self.add_remove_layout = QHBoxLayout()
-        self.add_button = QtGui.QPushButton('+')
-        self.add_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Return))
-        self.remove_button = QtGui.QPushButton('-')
-        self.remove_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Delete))
-        self.add_remove_layout.addWidget(self.add_button, 1)
-        self.add_remove_layout.addWidget(self.remove_button, 1)
-        self.main_layout.insertLayout(1, self.add_remove_layout, 0)
+    def init_list_title(self):
+        self.list_title = QtGui.QLabel("Current metadata files:")
+        self.list_layout.insertWidget(0, self.list_title)
 
     def init_list_widget(self):
         self.list_view = QtGui.QListView()
         self.list_view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.list_model = QtGui.QStandardItemModel(self.list_view)
         self.list_view.setModel(self.list_model)
-        self.main_layout.insertWidget(2, self.list_view, 1)
-
-    def init_close(self):
-        self.close_button = QPushButton('Update')
-        self.close_button.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Escape))
-        self.main_layout.addWidget(self.close_button)
-
     def from_metadata(self):
         for inventory_path in self.metadata.inventories:
             self.add_item(inventory_path, from_metadata=True)
+        self.list_layout.insertWidget(1, self.list_view, 1)
 
     def refresh_list(self):
         self.clear_list()
         for inventory_path in self.inventories.keys():
             self.add_item(inventory_path)
+    def init_accept_cancel_buttons(self):
+        self.accept_cancel_layout = QHBoxLayout()
+        self.accept_button = self.init_button("Accept", Qt.Key_Return, "Accept changes and close \n(Return)")
+        self.cancel_button = self.init_button("Cancel", Qt.Key_Escape, "Disregard changes and close \n(Esc)")
+        self.accept_cancel_layout.addWidget(self.accept_button)
+        self.accept_cancel_layout.addWidget(self.cancel_button)
+        self.main_layout.insertLayout(3, self.accept_cancel_layout)
 
     def connect_signals(self):
         self.selection_button.clicked.connect(self.open_directory)
@@ -229,7 +248,6 @@ class AddMetadataWidget(QWidget):
     def add_item_from_dialog(self):
         inventory_path = self.open_directory()
         self.add_item(inventory_path)
-        self.selection_box.setText('')
 
     def add_item(self, inventory_path):
         """
