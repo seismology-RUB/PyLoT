@@ -5,7 +5,7 @@
   - [First start](#first-start)
   - [Main Screen](#main-screen)
     - [Waveform Plot](#waveform-plot)
-      - [Mouse view controls :](#mouse-view-controls)
+      - [Mouse view controls](#mouse-view-controls)
       - [Buttons](#buttons)
     - [Array Map](#array-map)
     - [Eventlist](#eventlist)
@@ -65,7 +65,7 @@ Click on any trace to open the stations [picking window](#picking-window), where
 
 In the bottom bar information about the trace under the mouse cursor is shown. This information includes the station name (station), the absolute UTC time (T) of the point under the mouse cursor and the relative time since the first trace start in seconds (t) as well as a trace count.
 
-#### Mouse view controls : 
+#### Mouse view controls 
 
 Hold left mouse button and drag to pan view.
 
@@ -285,6 +285,37 @@ The Wadati check checks the consistency of S picks. For this the SP-time, the ti
 *The Wadati plot in PyLoT shows the SP onset time difference over the P onset time. A first line is fitted (black). All picks which deviate to much from this line are marked invalid (red). Then a second line is fitted which excludes the invalid picks. From this lines slope, the ratio of P and S wave velocity is determined.*
 
 ### Comparison between automatic and manual picks
+
+Every pick in PyLoT consists of an earliest possible, latest possible and most possible onset time. 
+The earliest and latest possible onset time characterize the uncertainty of a pick. 
+This approach is described in Diel, Kissling and Bormann (2012) - Tutorial for consistent phase picking at local to regional distances. 
+These times are represented as a Probability Density Function (PDF) for every pick. 
+The PDF is implemented as two exponential distributions around the most likely onset as the expected value. 
+
+To compare two single picks, their PDFs are cross correlated to create a new PDF. 
+This corresponds to the subtraction of the automatic pick from the manual pick.
+
+ <img src=images/gui/comparison/comparison_pdf.png title="Comparison between automatic and manual pick">
+
+ *Comparison between an automatic and a manual pick for a station in PyLoT by comparing their PDFs.*  
+ *The upper plot shows the difference between the two single picks that are shown in the lower plot.*
+ *The difference is implemented as a cross correlation between the two PDFs. and results in a new PDF, the comparison PDF.*
+ *The expected value of the comparison PDF corresponds to the time distance between the automatic and manual picks most likely onset.*
+ *The standard deviation corresponds to the combined uncertainty.*
+
+To compare the automatic and manual picks between multiple stations of an event, the properties of all the comparison PDFs are shown in a histogram.
+
+<img src=images/gui/comparison/compare_widget.png title="Comparison between picks of an event">
+
+*Comparison between the automatic and manual picks for an event in PyLoT.*   
+*The top left plot shows the standard deviation of the comparison PDFs for P picks.*
+*The bottom left plot shows the expected values of the comparison PDFs for P picks.*
+*The top right plot shows the standard deviation of the comparison PDFs for S picks.*
+*The bottom right plot shows the expected values of the comparison PDFs for S picks.*
+*The standard deviation plots show that most P picks have an uncertainty between 1 and 2 seconds, while S pick uncertainties have a much larger spread between 1 to 15 seconds.* 
+*The expected values are largely negative, meaning that the algorithm tends to pick earlier than the analyst with the applied settings (Manual - Automatic).*
+*The number of samples mentioned in the plots legends is the amount of station that have an automatic and a manual P pick.*
+
 
 ### Export and Import of automatic picks
 
