@@ -1233,7 +1233,7 @@ class PylotCanvas(FigureCanvas):
         gaps = st_select.get_gaps()
         if gaps:
             merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
-            st_select.merge()
+            st_select.merge(method=1)
             print('Merged the following stations because of gaps:')
             for merged_station in merged:
                 print(merged_station)

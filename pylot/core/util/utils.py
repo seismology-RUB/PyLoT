@@ -870,7 +870,7 @@ def merge_stream(stream):
     if gaps:
         # list of merged stations (seed_ids)
         merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
-        stream.merge()
+        stream.merge(method=1)
         print('Merged the following stations because of gaps:')
         for merged_station in merged:
             print(merged_station)
