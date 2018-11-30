@@ -12,6 +12,7 @@
   - [Usage](#usage)
     - [Projects and Events](#projects-and-events)
     - [Event folder structure](#event-folder-structure)
+    - [Loading event information from CSV file](#loading-event-information-from-csv-file)
     - [Adding events to project](#adding-events-to-project)
     - [Saving projects](#saving-projects)
     - [Adding metadata](#adding-metadata)
@@ -156,6 +157,29 @@ PyLoT expects the following folder structure for seismic data:
 * All automatic and manual picks should be in an ``.xml`` file in their event folder. PyLoT saves picks in this file. This file does not have to be added manually unless there are picks to be imported. The format used to save picks is QUAKEML.   
 Picks are saved in a file with the same filename as the event folder with ``PyLoT_`` prepended.
 * The file ``notes.txt`` is used for saving analysts comments. Everything saved here will be displayed in the 'Notes' column of the eventlist.
+
+### Loading event information from CSV file
+
+Event information can be saved in a ``.csv`` file located in the rootpath. The file is made from one header line, which is followed by one or multiple data lines. Values are separated by comma, while a dot is used as a decimal separator.   
+This information is then shown in the table in the [Eventlist tab](#Eventlist).
+
+One example header and data line is shown below.
+```event,Date,Time,Magnitude,Lat,Long,Depth,Region,Basis Lat,Basis Long,Distance [km],Distance [rad],Distance [deg]```   
+```e0001.024.16,24/01/16,10:30:30,7.1,59.66,-153.45,128,Southern Alaska,46.62,10.26,8104.65,1.27,72.89,7.1```
+
+The meaning of the header entries is:
+
+Header | description
+--- | ---
+event | Event id, has to be the same as the folder name in which waveform data for this event is kept.
+Data | Origin date of the event, format DD/MM/YY or DD/MM/YYYY.
+Time | Origin time of the event. Format HH:MM:SS.
+Lat, Long | Origin latitude and longitude in decimal degrees.
+Region | Flinn-Engdahl region name.
+Basis Lat, Basis Lon | Latitude and longitude of the basis of the station network in decimal degrees.
+Distance [km] | Distance from origin coordinates to basis coordinates in km.
+Distance [rad] | Distance from origin coordinates to basis coordinates in rad.
+
 
 ### Adding events to project
 
