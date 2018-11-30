@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import copy
-import operator
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
-from obspy import read_events
+import operator
+import os
 from obspy.core import AttribDict
-from pylot.core.io.phases import picksdict_from_picks
+
 from pylot.core.util.pdf import ProbabilityDensityFunction
 from pylot.core.util.utils import find_in_list
 from pylot.core.util.version import get_git_version as _getVersionString

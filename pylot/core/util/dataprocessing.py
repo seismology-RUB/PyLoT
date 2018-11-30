@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import glob
+import numpy as np
 import os
 import sys
-
-import numpy as np
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
+
 from pylot.core.util.utils import key_for_set_value, find_in_list, \
-    remove_underscores, gen_Pool
+    gen_Pool
 
 
 class Metadata(object):
@@ -274,6 +274,7 @@ class Metadata(object):
         """
         # functions used to read metadata for different file endings (or file types)
         read_functions = {'dless': self._read_dless,
+                          'dataless': self._read_dless,
                           'dseed': self._read_dless,
                           'xml': self._read_inventory_file,
                           'resp': self._read_inventory_file}
@@ -281,6 +282,7 @@ class Metadata(object):
         if file_ending in read_functions.keys():
             robj, exc = read_functions[file_ending](path_to_inventory_filename)
             if exc is not None:
+                print("Nicht None")
                 raise exc
             return file_ending, robj
         # in case file endings did not match the above keys, try and error
@@ -616,7 +618,7 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
 
     restflag = list()
 
-    #data = remove_underscores(data)
+    # data = remove_underscores(data)
 
     # loop over traces
     input_tuples = []

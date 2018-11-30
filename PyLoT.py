@@ -24,11 +24,10 @@ https://www.iconfinder.com/iconsets/flavour
 """
 
 import argparse
+import matplotlib
 import os
 import platform
 import sys
-
-import matplotlib
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -40,8 +39,8 @@ from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
 from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QErrorMessage, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QLineEdit, QListView, QAbstractItemView, \
+    QDialog, QApplication, QPixmap, QMessageBox, QSplashScreen, \
+    QActionGroup, QListWidget, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime
@@ -56,7 +55,6 @@ try:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude
@@ -64,24 +62,23 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality
+from pylot.core.pick.utils import getQualityFromUncertainty
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
-from pylot.core.util.defaults import FILTERDEFAULTS
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import Metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, trim_station_components, check4gaps, make_pen, pick_color_plt, \
-    pick_linestyle_plt, remove_underscores, check4doubled, identifyPhaseID, excludeQualityClasses, \
-    check4rotated, transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
+    full_range, readFilterInformation, make_pen, pick_color_plt, \
+    pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
+    transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
     check_all_pylot, real_Bool, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    getDataType, ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
+    ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget, ProgressBarWidget, AddMetadataWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
@@ -96,6 +93,9 @@ elif sys.version_info.major == 2:
     import icons_rc_2 as icons_rc
 else:
     raise ImportError('Could not determine python version.')
+
+# workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
+icons_rc = icons_rc
 
 locateTool = dict(nll=nll)
 
@@ -155,6 +155,9 @@ class MainWindow(QMainWindow):
             self.data._new = False
         self.autodata = Data(self)
 
+        self.fnames = None
+        self._stime = None
+
         while True:
             try:
                 if settings.value("user/FullName", None) is None:
@@ -166,6 +169,27 @@ class MainWindow(QMainWindow):
                                                   "Enter authority/institution name:",
                                                   "Authority")
                     settings.setValue("agency_id", agency)
+                structure_setting = settings.value("data/Structure", "PILOT")
+                if not structure_setting:
+                    structure_setting = 'PILOT'
+                self.dataStructure = DATASTRUCTURE[structure_setting]()
+                self.seismicPhase = str(settings.value("phase", "P"))
+                if settings.value("data/dataRoot", None) is None:
+                    dirname = QFileDialog().getExistingDirectory(
+                        caption='Choose data root ...')
+                    settings.setValue("data/dataRoot", dirname)
+                if settings.value('compclass', None) is None:
+                    settings.setValue('compclass', SetChannelComponents())
+                if settings.value('useGuiFilter') is None:
+                    settings.setValue('useGuiFilter', False)
+                if settings.value('output/Format', None) is None:
+                    outformat = QInputDialog.getText(self,
+                                                     "Enter output format (*.xml, *.cnv, *.obs):",
+                                                     "Format")
+                    settings.setValue("output/Format", outformat)
+                if settings.value('autoFilter', None) is None:
+                    settings.setValue('autoFilter', True)
+                settings.sync()
                 break
             except Exception as e:
                 qmb = QMessageBox(self, icon=QMessageBox.Question,
@@ -180,30 +204,6 @@ class MainWindow(QMainWindow):
                 else:
                     sys.exit()
                 print('Settings cleared!')
-
-        self.fnames = None
-        self._stime = None
-        structure_setting = settings.value("data/Structure", "PILOT")
-        if not structure_setting:
-            structure_setting = 'PILOT'
-        self.dataStructure = DATASTRUCTURE[structure_setting]()
-        self.seismicPhase = str(settings.value("phase", "P"))
-        if settings.value("data/dataRoot", None) is None:
-            dirname = QFileDialog().getExistingDirectory(
-                caption='Choose data root ...')
-            settings.setValue("data/dataRoot", dirname)
-        if settings.value('compclass', None) is None:
-            settings.setValue('compclass', SetChannelComponents())
-        if settings.value('useGuiFilter') is None:
-            settings.setValue('useGuiFilter', False)
-        if settings.value('output/Format', None) is None:
-            outformat = QInputDialog.getText(self,
-                                             "Enter output format (*.xml, *.cnv, *.obs):",
-                                             "Format")
-            settings.setValue("output/Format", outformat)
-        if settings.value('autoFilter', None) is None:
-            settings.setValue('autoFilter', True)
-        settings.sync()
 
         # setup UI
         self.setupUi()
@@ -542,6 +542,7 @@ class MainWindow(QMainWindow):
         self.updateFileMenu()
 
         self.editMenu = self.menuBar().addMenu('&Edit')
+
         editActions = (self.filterActionP, self.filterActionS, filterEditAction, None,
                        # self.selectPAction, self.selectSAction, None,
                        self.inventoryAction, self.initMapAction, None,
@@ -552,6 +553,7 @@ class MainWindow(QMainWindow):
         self.pickMenu = self.menuBar().addMenu('&Picking')
         self.autoPickMenu = self.pickMenu.addMenu(self.autopicksicon_small, 'Automatic picking')
         self.autoPickMenu.setEnabled(False)
+
 
         autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
@@ -684,6 +686,7 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
+
 
     def init_wfWidget(self):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
@@ -830,8 +833,9 @@ class MainWindow(QMainWindow):
                                                  s_filter['order'])}
 
     def updateFileMenu(self):
-
+        settings = QSettings()
         self.fileMenu.clear()
+        self.recentProjectsMenu = self.fileMenu.addMenu('Recent Projects')
         for action in self.fileMenuActions[:-1]:
             if action is None:
                 self.fileMenu.addSeparator()
@@ -848,7 +852,6 @@ class MainWindow(QMainWindow):
                 recentEvents.append(eventID)
                 recentEvents.reverse()
                 self.recentfiles = recentEvents[0:5]
-                settings = QSettings()
                 settings.setValue()
         if recentEvents:
             for i, eventID in enumerate(recentEvents):
@@ -863,6 +866,18 @@ class MainWindow(QMainWindow):
                 self.fileMenu.addAction(action)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.fileMenuActions[-1])
+
+        # add recent projects
+        recentProjects = settings.value('recentProjects', [])
+        if not type(recentProjects) == list:
+            recentProjects = [recentProjects]
+        for project in reversed(recentProjects):
+            action = self.createAction(self, project,
+                                       lambda fnm=project: self.loadProject(fnm),
+                                       None, None)
+
+            self.recentProjectsMenu.addAction(action)
+
 
     @property
     def inputs(self):
@@ -3273,10 +3288,13 @@ class MainWindow(QMainWindow):
             return
         if not fnm:
             dlg = QFileDialog(parent=self)
-            fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')
+            fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')[0]
             if not fnm:
                 return
-            fnm = fnm[0]
+        if not os.path.exists(fnm):
+            QMessageBox.warning(self, 'Could not open file',
+                                'Could not open project file {}. File does not exist.'.format(fnm))
+            return
         if fnm:
             self.project = Project.load(fnm)
             if hasattr(self.project, 'parameter'):
@@ -3292,8 +3310,24 @@ class MainWindow(QMainWindow):
             self.setDirty(False)
             self.init_metadata()
 
+            message = 'Opened project file {}.'.format(fnm)
+            print(message)
+            self.update_status(message)
+
             self.init_array_tab()
             self.set_metadata()
+            self.add2recentProjects(fnm)
+
+    def add2recentProjects(self, fnm):
+        settings = QtCore.QSettings()
+        recent = settings.value('recentProjects', [])
+        if not type(recent) == list:
+            recent = [recent]
+        if not fnm in recent:
+            recent.append(fnm)
+        new_recent = recent[-5:]
+        settings.setValue('recentProjects', new_recent)
+        settings.sync()
 
     def saveProjectAs(self, exists=False):
         '''
@@ -3312,6 +3346,7 @@ class MainWindow(QMainWindow):
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
+        self.add2recentProjects(filename)
         return True
 
     def saveProject(self, new=False):
@@ -3445,7 +3480,7 @@ class Project(object):
             eventID, date, time, mag, lat, lon, depth = line.split(separator)[:7]
             # skip first line
             try:
-                month, day, year = date.split('/')
+                day, month, year = date.split('/')
             except:
                 continue
             year = int(year)
@@ -3459,7 +3494,7 @@ class Project(object):
                 print(e, datetime, filename)
                 continue
             for event in self.eventlist:
-                if eventID in str(event.resource_id) or event.origins:
+                if eventID in str(event.resource_id) or eventID in event.origins:
                     if event.origins:
                         origin = event.origins[0]  # should have only one origin
                         if origin.time == datetime:

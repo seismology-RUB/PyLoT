@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import os
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
+import os
 import scipy.io as sio
+import warnings
 from obspy.core import UTCDateTime
 from obspy.core.event import read_events
 from obspy.core.util import AttribDict
+
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
 from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilteroptions2String, \
-    transformFilterString4Export, backtransformFilterString
+from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilterString4Export, \
+    backtransformFilterString
 
 
 def add_amplitudes(event, amplitudes):

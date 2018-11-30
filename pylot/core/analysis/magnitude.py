@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
+from scipy import integrate, signal
+from scipy.optimize import curve_fit
+
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
-from scipy import integrate, signal
-from scipy.optimize import curve_fit
 
 
 def richter_magnitude_scaling(delta):

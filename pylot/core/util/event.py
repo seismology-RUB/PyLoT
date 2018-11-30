@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier
+
 from pylot.core.io.phases import picks_from_picksdict
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 

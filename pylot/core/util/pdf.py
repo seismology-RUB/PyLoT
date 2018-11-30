@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import warnings
-
 import numpy as np
+import warnings
 from obspy import UTCDateTime
+
 from pylot.core.util.utils import fit_curve, clims
 from pylot.core.util.version import get_git_version as _getVersionString
 

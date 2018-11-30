@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import traceback
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
+import traceback
 from PySide import QtGui
-from mpl_toolkits.basemap import Basemap
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from pylot.core.util.widgets import PickDlg, PylotCanvas
+from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import griddata
+
+from pylot.core.util.widgets import PickDlg, PylotCanvas
 
 plt.interactive(False)
 
@@ -30,6 +31,8 @@ class Array_map(QtGui.QWidget):
         self.autopicks_dict = None
         self.eventLoc = None
         self.figure = figure
+        self.picks_rel = {}
+        self.marked_stations = []
         self.init_graphics()
         self.init_stations()
         self.init_basemap(resolution='l')
@@ -45,7 +48,6 @@ class Array_map(QtGui.QWidget):
                 hybrids_dict[station] = pick
         return hybrids_dict
 
-
     def init_map(self):
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
@@ -57,8 +59,56 @@ class Array_map(QtGui.QWidget):
     def onpick(self, event):
         ind = event.ind
         button = event.mouseevent.button
-        if ind == [] or not button == 1:
+        if ind == []:
             return
+        if button == 1:
+            self.openPickDlg(ind)
+        elif button == 2:
+            self.deletePick(ind)
+        elif button == 3:
+            self.pickInfo(ind)
+
+    def deletePick(self, ind):
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            try:
+                phase = self.comboBox_phase.currentText()
+                picks = self.current_picks_dict()[station]
+                pick = picks.get(phase)
+                if pick:
+                    picker = pick['picker']
+                    message = 'Deleted {} pick for phase {}, station {}.{} at timestamp {}'
+                    message = message.format(picker, phase, network, station,
+                                             pick['mpp'])
+                    if picker == 'auto':
+                        del (self.autopicks_dict[station])
+                    elif picker == 'manual':
+                        del (self.picks_dict[station])
+                    else:
+                        raise TypeError('Unknown "picker" {}'.format(picker))
+                    print(message)
+                    pyl_mw = self._parent
+                    pyl_mw.setDirty(True)
+                    pyl_mw.update_status(message)
+                    self._refresh_drawings()
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+            except Exception as e:
+                print('Could not delete pick for station {}.{}: {}'.format(network, station, e))
+
+    def pickInfo(self, ind):
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            dic = self.current_picks_dict()[station]
+            for phase, picks in dic.items():
+                # because of wadati...
+                if phase == 'SPt':
+                    continue
+                print('{} - Pick:'.format(phase))
+                for key, info in picks.items():
+                    print('{}: {}'.format(key, info))
+
+    def openPickDlg(self, ind):
         data = self._parent.get_data().getWFData()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
@@ -297,9 +347,49 @@ class Array_map(QtGui.QWidget):
         return picks, latitudes, longitudes
 
     def draw_contour_filled(self, nlevel='50'):
+        # self.test_gradient()
+
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
                                               levels, latlon=True, zorder=9, alpha=0.5)
+
+    def test_gradient(self):
+        st_ids = self.picks_rel.keys()
+        x, y = np.gradient(self.picksgrid_active)
+        gradient_modulus = np.sqrt(x ** 2 + y ** 2)
+        global_mean_gradient = np.nanmean(gradient_modulus)
+        delta_gradient = []
+        for st_id in st_ids:
+            pick_item = self.picks_rel.pop(st_id)
+            self.init_picksgrid()
+            x, y = np.gradient(self.picksgrid_active)
+            gradient_modulus = np.sqrt(x ** 2 + y ** 2)
+            mean_gradient = np.nanmean(gradient_modulus)
+            dgradient = global_mean_gradient - mean_gradient
+            # print('station: {}, mean gradient: {}'.format(st_id, dgradient))
+            delta_gradient.append(dgradient)
+            self.picks_rel[st_id] = pick_item
+        global_std_gradient = np.nanstd(delta_gradient)
+        marked_stations = []
+        for st_id, dg in zip(st_ids, delta_gradient):
+            if abs(dg) > global_std_gradient:
+                marked_stations.append(st_id)
+        self.marked_stations = marked_stations
+        self.init_picksgrid()
+
+        # fig = plt.figure()
+        # x = list(range(len(st_ids)))
+        # gradients = zip(x, delta_gradient)
+        # gradients.sort(key=lambda a: a[1])
+        # plt.plot(gradients[0], gradients[1])
+
+        # global_var_gradient = np.nanvar(delta_gradient)
+        # plt.plot(x, delta_gradient)
+        # plt.axhline(global_std_gradient, color='green')
+        # plt.axhline(2 * global_std_gradient, color='blue')
+        # plt.axhline(global_var_gradient, color='red')
+        # plt.xticks(x, st_ids)
+        # plt.show()
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
@@ -318,21 +408,32 @@ class Array_map(QtGui.QWidget):
             return
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, edgecolors='white',
                                                   c=picks[0], latlon=True, zorder=11, label='Picked')
         if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, edgecolors='white',
                                                   c=picks[1], latlon=True, zorder=11)
         else:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=50, facecolor='white',
+            self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white',
                                                   c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
         self.annotations = []
         stations, xs, ys = self.get_st_x_y_for_plot()
+        # MP MP testing station highlighting if they have high impact on mean gradient of color map
+        # if self.picks_rel:
+        #    self.test_gradient()
+        color_marked = {True: 'red',
+                        False: 'white'}
         for st, x, y in zip(stations, xs, ys):
+            if st in self.picks_rel:
+                color = 'white'
+            else:
+                color = 'lightgrey'
+            if st in self.marked_stations:
+                color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize='x-small', color='white', zorder=12))
+                                                          fontsize='x-small', color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
@@ -381,6 +482,7 @@ class Array_map(QtGui.QWidget):
         self.canvas.draw()
 
     def remove_drawings(self):
+        self.remove_annotations()
         if hasattr(self, 'cbar'):
             self.cbar.remove()
             self.cbax_bg.remove()

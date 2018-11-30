@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys, os, traceback
 import multiprocessing
+import os
+import sys
+import traceback
+
 from PySide.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
+from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
 
 
 class Thread(QThread):
@@ -40,7 +43,6 @@ class Thread(QThread):
 
     def showProgressbar(self):
         if self.progressText:
-
             # # generate widget if not given in init
             # if not self.pb_widget:
             #     self.pb_widget = ProgressBarWidget(self.parent())

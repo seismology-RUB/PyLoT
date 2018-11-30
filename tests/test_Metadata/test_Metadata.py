@@ -1,9 +1,9 @@
-import unittest
 import os
-
+import unittest
 from obspy import UTCDateTime
-from obspy.io.xseed.utils import SEEDParserException
 from obspy.io.xseed import Parser
+from obspy.io.xseed.utils import SEEDParserException
+
 from pylot.core.util.dataprocessing import Metadata
 from tests.utils import HidePrints
 

@@ -19,11 +19,11 @@ calculated after Diehl & Kissling (2009).
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
 
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 from scipy.signal import argrelmax, argrelmin
+
 from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.utils import getnoisewin, getsignalwin
 
@@ -265,7 +265,7 @@ class AICPicker(AutoPicker):
             else:
                 islope = np.where((self.Tcf <= min([self.Pick + tslope, self.Tcf[-1]])) \
                                   & (
-                                              self.Tcf >= self.Pick + tsafety))  # TODO: put this in a seperate function like getsignalwin
+                                          self.Tcf >= self.Pick + tsafety))  # TODO: put this in a seperate function like getsignalwin
             # find maximum within slope determination window
             # 'cause slope should be calculated up to first local minimum only!
             try:
