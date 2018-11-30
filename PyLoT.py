@@ -3480,7 +3480,7 @@ class Project(object):
             eventID, date, time, mag, lat, lon, depth = line.split(separator)[:7]
             # skip first line
             try:
-                month, day, year = date.split('/')
+                day, month, year = date.split('/')
             except:
                 continue
             year = int(year)
