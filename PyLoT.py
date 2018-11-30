@@ -3475,43 +3475,43 @@ class Project(object):
         File structure (each row): event, date, time, magnitude, latitude, longitude, depth
         separated by :param:separator each.
         '''
-        infile = open(filename, 'r')
-        for line in infile.readlines():
-            eventID, date, time, mag, lat, lon, depth = line.split(separator)[:7]
-            # skip first line
-            try:
-                day, month, year = date.split('/')
-            except:
-                continue
-            year = int(year)
-            # hardcoded, if year only consists of 2 digits (e.g. 16 instead of 2016)
-            if year < 100:
-                year += 2000
-            datetime = '{}-{}-{}T{}'.format(year, month, day, time)
-            try:
-                datetime = UTCDateTime(datetime)
-            except Exception as e:
-                print(e, datetime, filename)
-                continue
-            for event in self.eventlist:
-                if eventID in str(event.resource_id) or eventID in event.origins:
-                    if event.origins:
-                        origin = event.origins[0]  # should have only one origin
-                        if origin.time == datetime:
-                            origin.latitude = float(lat)
-                            origin.longitude = float(lon)
-                            origin.depth = float(depth)
-                        else:
-                            continue
-                    elif not event.origins:
-                        origin = Origin(resource_id=event.resource_id,
-                                        time=datetime, latitude=float(lat),
-                                        longitude=float(lon), depth=float(depth))
-                        event.origins.append(origin)
-                    event.magnitudes.append(Magnitude(resource_id=event.resource_id,
-                                                      mag=float(mag),
-                                                      mag_type='M'))
-                    break
+        with open(filename, 'r') as infile:
+            for line in infile.readlines():
+                eventID, date, time, mag, lat, lon, depth = line.split(separator)[:7]
+                # skip first line
+                try:
+                    day, month, year = date.split('/')
+                except:
+                    continue
+                year = int(year)
+                # hardcoded, if year only consists of 2 digits (e.g. 16 instead of 2016)
+                if year < 100:
+                    year += 2000
+                datetime = '{}-{}-{}T{}'.format(year, month, day, time)
+                try:
+                    datetime = UTCDateTime(datetime)
+                except Exception as e:
+                    print(e, datetime, filename)
+                    continue
+                for event in self.eventlist:
+                    if eventID in str(event.resource_id) or eventID in event.origins:
+                        if event.origins:
+                            origin = event.origins[0]  # should have only one origin
+                            if origin.time == datetime:
+                                origin.latitude = float(lat)
+                                origin.longitude = float(lon)
+                                origin.depth = float(depth)
+                            else:
+                                continue
+                        elif not event.origins:
+                            origin = Origin(resource_id=event.resource_id,
+                                            time=datetime, latitude=float(lat),
+                                            longitude=float(lon), depth=float(depth))
+                            event.origins.append(origin)
+                        event.magnitudes.append(Magnitude(resource_id=event.resource_id,
+                                                          mag=float(mag),
+                                                          mag_type='M'))
+                        break
 
     def search_eventfile_info(self):
         '''
