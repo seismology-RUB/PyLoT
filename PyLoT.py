@@ -3494,7 +3494,7 @@ class Project(object):
                 print(e, datetime, filename)
                 continue
             for event in self.eventlist:
-                if eventID in str(event.resource_id) or event.origins:
+                if eventID in str(event.resource_id) or eventID in event.origins:
                     if event.origins:
                         origin = event.origins[0]  # should have only one origin
                         if origin.time == datetime:
