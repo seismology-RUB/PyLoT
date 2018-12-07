@@ -52,7 +52,7 @@ class Metadata(object):
         :return: None
         """
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
-        if not path_to_inventory in self.inventories:
+        if path_to_inventory not in self.inventories:
             self.inventories.append(path_to_inventory)
 
     def add_inventory_file(self, path_to_inventory_file):
@@ -64,7 +64,7 @@ class Metadata(object):
         """
         assert (os.path.isfile(path_to_inventory_file)), '{} is no file'.format(path_to_inventory_file)
         self.add_inventory(os.path.split(path_to_inventory_file)[0])
-        if not path_to_inventory_file in self.inventory_files.keys():
+        if path_to_inventory_file not in self.inventory_files.keys():
             self.read_single_file(path_to_inventory_file)
 
     def remove_all_inventories(self):
@@ -133,7 +133,9 @@ class Metadata(object):
         """
         Read all metadata files found in all inventories
         """
+        # iterate over all inventory folders
         for inventory in self.inventories:
+            # iterate over all inventory files in the current folder
             for inv_fname in os.listdir(inventory):
                 inv_fname = os.path.join(inventory, inv_fname)
                 if not self.read_single_file(inv_fname):
