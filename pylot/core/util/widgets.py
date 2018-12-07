@@ -3435,8 +3435,9 @@ class TuneAutopicker(QWidget):
             return
         self.load_wf_data()
         try:
-            network, station, location, channel = self.get_current_station_id()
+            network, station, location, channel = self.get_current_station_id().split(".")
         except ValueError as e:
+            # not enough values to unpack, initialize default values
             vmsg = '{0}'.format(e)
             print(vmsg)
             station = self.get_current_station()
