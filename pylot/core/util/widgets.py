@@ -50,7 +50,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents
+    identifyPhaseID, real_Bool, pick_color, getAutoFilteroptions, SetChannelComponents, station_id_remove_channel
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
@@ -3304,6 +3304,13 @@ class TuneAutopicker(QWidget):
         self.stationBox.activated.connect(self.fill_tabs)
 
     def catch_station_ids(self):
+        """
+        Fill self.station_ids dictionary.
+        The dict keys are the strings of the station ids in format network.station.location, the values are lists of
+        filenames, which contain traces of that station.
+        E.g. if file A.mseed and B.mseed contain traces from station X.Y.Z, then the dict would contain
+        {"X.Y.Z" : ["/full/path/to/A.mseed", "/full/path/to/B.mseed"]}
+        """
         self.station_ids = {}
         eventpath = self.get_current_event_fp()
         self.wftype = 'processed' if self.obspy_dmt else ''
@@ -3320,6 +3327,7 @@ class TuneAutopicker(QWidget):
                 continue
             for trace in st:
                 station_id = trace.get_id()
+                station_id = station_id_remove_channel(station_id)
                 if not station_id in self.station_ids:
                     self.station_ids[station_id] = []
                 self.station_ids[station_id].append(filename)

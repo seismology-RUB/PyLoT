@@ -1219,6 +1219,21 @@ def check_event_folder(path):
     return ev_type
 
 
+def station_id_remove_channel(station_id):
+    """
+    Remove the channel from a SEED station id and return Network.Station.Location.
+    >>> station_id_remove_channel("BW.MANZ..EHZ")
+    'BW.MANZ.'
+    >>> station_id_remove_channel("BW.MANZ.A.EHZ")
+    'BW.MANZ.A'
+
+    :param station_id:
+    :return: station id with channel removed
+    """
+    # split at the last occuring dot and keep the left part
+    station_id = station_id.rpartition('.')[0]
+    return station_id
+
 if __name__ == "__main__":
     import doctest
 
