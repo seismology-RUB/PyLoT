@@ -85,6 +85,9 @@ class Metadata(object):
         for seed_id in self.seed_ids.keys():
             if self.seed_ids[seed_id].startswith(path_to_inventory):
                 del (self.seed_ids[seed_id])
+        # have to clean self.stations_dict as well
+        # this will be rebuilt for the next init of the arraymap anyway, so just reset it
+        self.stations_dict = {}
 
     def get_metadata(self, seed_id, time=None):
         """

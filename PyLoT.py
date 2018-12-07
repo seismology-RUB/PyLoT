@@ -2906,6 +2906,10 @@ class MainWindow(QMainWindow):
         self.get_metadata will be called.
         '''
         self.tabs.setCurrentIndex(1)
+        # if there is no metadata (invetories is an empty list), just initialize the default empty tab
+        if not self.metadata.inventories:
+            self.init_array_tab()
+            return
         if hasattr(self, 'metadata_widget'):
             if self.metadata_widget:
                 self.metadata_widget.setParent(None)
