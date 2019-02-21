@@ -189,7 +189,8 @@ class Metadata(object):
                 if not station_name in self.stations_dict.keys():
                     st_id = '{}.{}'.format(network_name, station_name)
                     self.stations_dict[st_id] = {'latitude': station[0].latitude,
-                                                 'longitude': station[0].longitude}
+                                                 'longitude': station[0].longitude,
+                                                 'elevation': station[0].elevation}
 
         def stat_info_from_inventory(inventory):
             for network in inventory.networks:
@@ -199,8 +200,8 @@ class Metadata(object):
                     if not station_name in self.stations_dict.keys():
                         st_id = '{}.{}'.format(network_name, station_name)
                         self.stations_dict[st_id] = {'latitude': station[0].latitude,
-                                                     'longitude': station[0].longitude}
-
+                                                     'longitude': station[0].longitude,
+                                                     'elevation': station[0].elevation}
         read_stat = {'xml': stat_info_from_inventory,
                      'dless': stat_info_from_parser}
 
@@ -240,7 +241,7 @@ class Metadata(object):
         Search for metadata for a specific station iteratively.
         """
         station, network, location, channel = station_seed_id.split('.')
-        # seach for station seed id in filenames in invetory
+        # search for station seed id in filenames in inventory
         fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
         if not fnames:
             # search for station name in filename

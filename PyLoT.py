@@ -2253,15 +2253,20 @@ class MainWindow(QMainWindow):
         plot_dict = self.getPlotWidget().getPlotDict()
         return plot_dict.get(wfID)
 
+    def getNetworkName(self, wfID):
+        plot_dict = self.getPlotWidget().getPlotDict()
+        if wfID in plot_dict.keys():
+            return plot_dict[wfID].split('.')[0]
+
     def getStationName(self, wfID):
         plot_dict = self.getPlotWidget().getPlotDict()
         if wfID in plot_dict.keys():
             return plot_dict[wfID].split('.')[1]
 
-    def getNetworkName(self, wfID):
+    def getLocationName(self, wfID):
         plot_dict = self.getPlotWidget().getPlotDict()
         if wfID in plot_dict.keys():
-            return plot_dict[wfID].split('.')[0]
+            return plot_dict[wfID].split('.')[2]
 
     def alterPhase(self):
         pass
@@ -2328,11 +2333,12 @@ class MainWindow(QMainWindow):
 
         network = self.getNetworkName(wfID)
         station = self.getStationName(wfID)
+        location = self.getLocationName(wfID)
         seed_id = self.getTraceID(wfID)
         if button == 1:
             self.pickDialog(wfID, seed_id)
         elif button == 4:
-            self.toggle_station_color(wfID, network, station)
+            self.toggle_station_color(wfID, network, station, location)
 
     def toggle_station_color(self, wfID, network, station, location):
         black_pen = pg.mkPen((0, 0, 0))
