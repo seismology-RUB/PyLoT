@@ -793,8 +793,7 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
         ilen = len(x1)
         rms = abs(x1)
 
-    t = np.arange(0, ilen / X[0].stats.sampling_rate,
-                  X[0].stats.delta)
+    t = np.linspace(0, X[0].stats.delta * ilen, ilen)
 
     # get noise window in front of pick plus saftey gap
     inoise = getnoisewin(t, pick, TSNR[0], TSNR[1])
