@@ -2395,8 +2395,11 @@ class MainWindow(QMainWindow):
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
                           filteroptions=self.filteroptions, wftype=wftype)
-        if self.filterActionP.isChecked() or self.filterActionS.isChecked():
-            pickDlg.currentPhase = self.getSeismicPhase()
+        if self.filterActionP.isChecked():
+            pickDlg.currentPhase = "P"
+            pickDlg.filterWFData()
+        elif self.filterActionS.isChecked():
+            pickDlg.currentPhase = "S"
             pickDlg.filterWFData()
         pickDlg.nextStation.setChecked(self.nextStation)
         pickDlg.nextStation.stateChanged.connect(self.toggle_next_station)
@@ -3197,6 +3200,11 @@ class MainWindow(QMainWindow):
             self.initMapAction.setEnabled(True)
             self.inventory_label.setText('Inventory set!')
             self.setDirty(True)
+        if not self.metadata.inventories:
+            self.init_map_button.setEnabled(False)
+            self.initMapAction.setEnabled(False)
+            self.inventory_label.setText("No inventory set...")
+            #self.setDirty(False)
 
     def add_metadata(self):
         self.add_metadata_widget = AddMetadataWidget(self, metadata=self.metadata)
