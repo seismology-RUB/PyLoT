@@ -113,6 +113,7 @@ class Array_map(QtGui.QWidget):
         data = self._parent.get_data().getWFData()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
+            pyl_mw = self._parent
             try:
                 data = data.select(station=station)
                 if not data:
@@ -122,14 +123,14 @@ class Array_map(QtGui.QWidget):
                                   data=data, network=network, station=station,
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
-                                  filteroptions=self._parent.filteroptions)
+                                  filteroptions=self._parent.filteroptions, metadata=self.metadata,
+                                  event=pyl_mw.get_current_event())
             except Exception as e:
                 message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
                 print(traceback.format_exc())
                 return
-            pyl_mw = self._parent
             try:
                 if pickDlg.exec_():
                     pyl_mw.setDirty(True)

@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import time
+import traceback
 
 matplotlib.use('QT4Agg')
 
@@ -1617,6 +1618,7 @@ class PickDlg(QDialog):
                 self.activateArrivalsButton(False)
         except Exception as e:
             print('Warning: Could not init expected picks from taup: {}'.format(e))
+            print(traceback.format_exc())
             self.activateArrivalsButton(False)
 
         # init pick delete (with middle mouse click)
@@ -1870,7 +1872,14 @@ class PickDlg(QDialog):
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
         s_phases = settings.value('s_phases')
-        phases = p_phases + ',' + s_phases
+        if not p_phases and not s_phases:
+            print('No phases for TauPy selected in Preferences.')
+        if p_phases and s_phases:
+            phases = p_phases + ',' + s_phases
+        elif p_phases and not s_phases:
+            phases = p_phases
+        elif s_phases and not p_phases:
+            phases = s_phases
         phases = phases.split(',')
         phases = [phase.strip() for phase in phases]
         return phases
