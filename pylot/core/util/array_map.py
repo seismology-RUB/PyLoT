@@ -88,6 +88,7 @@ class Array_map(QtGui.QWidget):
                         raise TypeError('Unknown "picker" {}'.format(picker))
                     print(message)
                     pyl_mw = self._parent
+                    pyl_mw.addPicks(station, {}, type=picker)
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status(message)
                     self._refresh_drawings()

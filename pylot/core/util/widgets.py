@@ -1619,7 +1619,7 @@ class PickDlg(QDialog):
             print('Warning: Could not init expected picks from taup: {}'.format(e))
             self.activateArrivalsButton(False)
 
-        # init pick delete (with right click)
+        # init pick delete (with middle mouse click)
         self.connect_pick_delete()
         self.connect_mouse_motion()
         self.setWindowTitle('Pickwindow on station: {}'.format(self.getStation()))
@@ -2673,7 +2673,7 @@ class PickDlg(QDialog):
         if pick_rel is None:
             return
         # delete the value from corresponding dictionary
-        allpicks[picktype].pop(phase)
+        removed_pick = allpicks[picktype].pop(phase)
         # delete line from vlines dictionary
         if phase in self.phaseLines.keys():
             del (self.phaseLines[phase])

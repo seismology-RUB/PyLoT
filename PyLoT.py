@@ -3311,7 +3311,6 @@ class MainWindow(QMainWindow):
                     event.dirty = False
             self.tabs.setCurrentIndex(0)  # implemented to prevent double-loading of waveform data
             self.init_events(new=True)
-            self.setDirty(False)
             self.init_metadata()
 
             message = 'Opened project file {}.'.format(fnm)
@@ -3321,6 +3320,7 @@ class MainWindow(QMainWindow):
             self.init_array_tab()
             self.set_metadata()
             self.add2recentProjects(fnm)
+            self.setDirty(False)
 
     def add2recentProjects(self, fnm):
         settings = QtCore.QSettings()
