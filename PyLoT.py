@@ -2986,7 +2986,7 @@ class MainWindow(QMainWindow):
 
         def cell_clicked(row=None, column=None):
             table = self.project._table
-            event = self.project.getEventFromPath(table[row][1].text())
+            event = self.project.getEventFromPath(table[row][1].text().split('*')[0])
             if column == 0:
                 self.remove_event(event)
 
@@ -2994,7 +2994,7 @@ class MainWindow(QMainWindow):
             # connected to cell changes in event table
             # changes attributes of the corresponding event
             table = self.project._table
-            event = self.project.getEventFromPath(table[row][1].text())
+            event = self.project.getEventFromPath(table[row][1].text().split('*')[0])
             if column == 9 or column == 10:
                 # toggle checked states (exclusive)
                 item_ref = table[row][9]
