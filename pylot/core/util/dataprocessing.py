@@ -231,7 +231,7 @@ class Metadata(object):
             resp = metadata['data'].get_response(seed_id, time)
             return resp.get_paz(seed_id)
 
-    def _read_inventory_data(self, seed_id=None):
+    def _read_inventory_data(self, seed_id):
         for inventory in self.inventories:
             if self._read_metadata_iterator(path_to_inventory=inventory, station_seed_id=seed_id):
                 return
@@ -240,8 +240,8 @@ class Metadata(object):
         """
         Search for metadata for a specific station iteratively.
         """
-        station, network, location, channel = station_seed_id.split('.')
-        # search for station seed id in filenames in inventory
+        network, station, location, channel = station_seed_id.split('.')
+        # seach for station seed id in filenames in invetory
         fnames = glob.glob(os.path.join(path_to_inventory, '*' + station_seed_id + '*'))
         if not fnames:
             # search for station name in filename
