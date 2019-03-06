@@ -3037,6 +3037,9 @@ class MainWindow(QMainWindow):
                 event.addNotes(notes)
                 self.fill_eventbox()
 
+            event.dirty = True
+            self.setDirty(True)
+
         current_event = self.get_current_event()
 
         # generate delete icon
