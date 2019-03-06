@@ -1088,6 +1088,15 @@ class MainWindow(QMainWindow):
         if ed.exec_():
             eventlist = ed.selectedFiles()
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
+            # small hack: if a file "eventlist.txt" is found in the basepath use only those events specified inside
+            eventlist_file = os.path.join(basepath, 'eventlist.txt')
+            if os.path.isfile(eventlist_file):
+                with open(eventlist_file, 'r') as infile:
+                    eventlist_subset = [os.path.join(basepath, filename.split('\n')[0]) for filename in infile.readlines()]
+                    msg = 'Found file "eventlist.txt" in database path. WILL ONLY USE SELECTED EVENTS out of {} events ' \
+                          'contained in this subset'
+                    print(msg.format(len(eventlist_subset)))
+                    eventlist = [eventname for eventname in eventlist if eventname in eventlist_subset]
             if check_obspydmt_structure(basepath):
                 print('Recognized obspyDMT structure in selected files. Settings Datastructure to ObspyDMT')
                 self.dataStructure = DATASTRUCTURE['obspyDMT']()
@@ -1727,6 +1736,8 @@ class MainWindow(QMainWindow):
                 if not plotted and self._eventChanged[0]:
                     # newWF(plot=False) = load data without plotting
                     self.newWF(plot=False)
+                self.update_obspy_dmt()
+                self.refresh_array_map()
 
     def newWF(self, event=None, plot=True):
         '''
@@ -1963,7 +1974,10 @@ class MainWindow(QMainWindow):
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
-        # TODO: Quick and dirty, improve this on later iteration
+        # TODO: Quick and dirty, improve this later
+        self.update_obspy_dmt()
+
+    def update_obspy_dmt(self):
         if self.obspy_dmt:
             invpath = os.path.join(self.get_current_event_path(), 'resp')
             if not invpath in self.metadata.inventories:

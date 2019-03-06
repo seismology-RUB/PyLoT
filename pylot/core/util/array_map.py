@@ -49,12 +49,15 @@ class Array_map(QtGui.QWidget):
         return hybrids_dict
 
     def init_map(self):
-        self.init_lat_lon_dimensions()
-        self.init_lat_lon_grid()
-        self.init_x_y_dimensions()
+        self.init_colormap()
         self.connectSignals()
         self.draw_everything()
         self.canvas.setZoomBorders2content()
+
+    def init_colormap(self):
+        self.init_lat_lon_dimensions()
+        self.init_lat_lon_grid()
+        self.init_x_y_dimensions()
 
     def onpick(self, event):
         ind = event.ind
@@ -461,6 +464,8 @@ class Array_map(QtGui.QWidget):
 
     def _refresh_drawings(self):
         self.remove_drawings()
+        self.init_stations()
+        self.init_colormap()
         self.draw_everything()
 
     def draw_everything(self):
