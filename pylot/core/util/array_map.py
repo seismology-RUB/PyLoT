@@ -146,6 +146,7 @@ class Array_map(QtGui.QWidget):
                 message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
                 self._warn(message)
                 print(message, e)
+                print(traceback.format_exc())
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
@@ -486,8 +487,11 @@ class Array_map(QtGui.QWidget):
     def remove_drawings(self):
         self.remove_annotations()
         if hasattr(self, 'cbar'):
-            self.cbar.remove()
-            self.cbax_bg.remove()
+            try:
+                self.cbar.remove()
+                self.cbax_bg.remove()
+            except Exception as e:
+                print('Warning: could not remove color bar or color bar bg.\nReason: {}'.format(e))
             del (self.cbar, self.cbax_bg)
         if hasattr(self, 'sc_picked'):
             self.sc_picked.remove()

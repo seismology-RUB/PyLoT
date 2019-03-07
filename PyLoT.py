@@ -1723,6 +1723,7 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() == 1:
             if self._eventChanged[1]:
                 self.refresh_array_map()
+                self.fill_eventbox()
                 if not plotted and self._eventChanged[0]:
                     # newWF(plot=False) = load data without plotting
                     self.newWF(plot=False)
