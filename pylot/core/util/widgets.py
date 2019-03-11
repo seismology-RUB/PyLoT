@@ -135,7 +135,6 @@ class ProgressBarWidget(QtGui.QWidget):
 class AddMetadataWidget(QWidget):
     def __init__(self, parent=None, metadata=None, windowflag=1):
         super(AddMetadataWidget, self).__init__(parent, windowflag)
-        self.inventories = {}
         self.inventories_add = []
         self.inventories_delete = []
 
