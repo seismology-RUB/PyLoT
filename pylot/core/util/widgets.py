@@ -167,16 +167,29 @@ class AddMetadataWidget(QWidget):
         self.move(fm.topLeft())
 
     def setupUI(self):
+        self.init_lineedit()
         self.init_list_buttons_layout()
         self.init_add_remove_buttons()
         self.init_list_layout()
         self.init_accept_cancel_buttons()
 
+    def init_lineedit(self):
+        self.selection_layout = QVBoxLayout()
+        self.lineedit_title = QtGui.QLabel("Choose metadata file to add:")
+        self.selection_layout.insertWidget(0, self.lineedit_title)
+        self.lineedit_layout = QHBoxLayout()
+        self.selection_box = QtGui.QLineEdit()
+        self.browse_button = self.init_button("Browse", explanation="Browse the file explorer")
+        self.lineedit_layout.addWidget(self.selection_box)
+        self.lineedit_layout.addWidget(self.browse_button)
+        self.selection_layout.insertLayout(1, self.lineedit_layout)
+        self.main_layout.insertLayout(0, self.selection_layout)
+
     def init_list_buttons_layout(self):
         self.list_buttons_layout = QHBoxLayout()
-        self.main_layout.insertLayout(0, self.list_buttons_layout, 0)
+        self.main_layout.insertLayout(1, self.list_buttons_layout, 0)
 
-    def init_button(self, label, key, explanation):
+    def init_button(self, label, key=None, explanation=None):
         """
         generates a button with custom name, label and shortcut
         :param label: name of the button (str)
@@ -185,8 +198,10 @@ class AddMetadataWidget(QWidget):
         :return: QPushButton
         """
         button = QPushButton(label)
-        button.setShortcut(QtGui.QKeySequence(key))
-        button.setToolTip(explanation)
+        if key is not None:
+            button.setShortcut(QtGui.QKeySequence(key))
+        if explanation is not None:
+            button.setToolTip(explanation)
         return button
 
     def init_add_remove_buttons(self):
@@ -223,7 +238,8 @@ class AddMetadataWidget(QWidget):
         self.main_layout.insertLayout(3, self.accept_cancel_layout)
 
     def connect_signals(self):
-        self.add_button.clicked.connect(self.add_item_from_dialog)
+        self.browse_button.clicked.connect(self.directory_to_lineedit)
+        self.add_button.clicked.connect(self.add_item_from_lineedit)
         self.remove_button.clicked.connect(self.remove_item)
         self.accept_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.hide)
@@ -236,6 +252,10 @@ class AddMetadataWidget(QWidget):
             item = QtGui.QStandardItem(inventory_path)
             self.list_model.appendRow(item)
 
+    def directory_to_lineedit(self):
+        inventory_path = self.open_directory()
+        self.selection_box.setText(inventory_path)
+
     def open_directory(self):
         """
         choosing a directory in the dialog window and returning the path
@@ -246,17 +266,14 @@ class AddMetadataWidget(QWidget):
             return
         return fninv
 
-    def add_item_from_dialog(self):
-        inventory_path = self.open_directory()
-        self.add_item(inventory_path)
-
-    def add_item(self, inventory_path):
+    def add_item_from_lineedit(self):
         """
         checks if the inventory path is already in the list and if it leads to a directory;
         adds the path to the visible list;
         adds the path to the list of inventories that get added to the metadata upon accepting all changes
         :param inventory_path: path of the folder that contains the metadata (unicode string)
         """
+        inventory_path = self.selection_box.text()
         if not inventory_path:
             return
         if inventory_path in self.metadata.inventories or inventory_path in self.inventories_add:
@@ -270,6 +287,7 @@ class AddMetadataWidget(QWidget):
         item.setEditable(False)
         self.inventories_add.append(inventory_path)
         self.list_model.appendRow(item)             # adds path to visible list
+        self.selection_box.setText("")
 
     def remove_item(self):
         """
