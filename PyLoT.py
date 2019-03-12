@@ -942,7 +942,9 @@ class MainWindow(QMainWindow):
         data = Data(self, event)
         try:
             data_new = Data(self, evtdata=str(fname))
-            data += data_new
+            # MP MP uncommented because adding several picks might cause inconsistencies
+            data = data_new
+            #data += data_new
         except ValueError:
             qmb = QMessageBox(self, icon=QMessageBox.Question,
                               text='Warning: Missmatch in event identifiers {} and {}. Continue?'.format(
