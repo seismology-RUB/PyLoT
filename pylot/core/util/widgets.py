@@ -227,6 +227,8 @@ class AddMetadataWidget(QWidget):
         self.list_model = QtGui.QStandardItemModel(self.list_view)
         self.list_view.setModel(self.list_model)
         self.list_layout.insertWidget(1, self.list_view, 1)
+        self.sel_model = self.list_view.selectionModel()
+        self.sel_model.selectionChanged.connect(self.on_clicked)
 
     def init_accept_cancel_buttons(self):
         self.accept_cancel_layout = QHBoxLayout()
@@ -264,6 +266,18 @@ class AddMetadataWidget(QWidget):
         if not fninv:
             return
         return fninv
+
+    def on_clicked(self):
+        #for index in self.list_view.selectionModel().selectedIndexes():
+        #    item = self.list_model.itemData(index)
+        #    inventory_path = item[0]
+        indices = self.list_view.selectionModel().selectedIndexes()
+        try:
+            item = self.list_model.itemData(indices[-1])
+            inventory_path = item[0]
+        except IndexError:
+            inventory_path = ""
+        self.selection_box.setText(inventory_path)
 
     def add_item_from_lineedit(self):
         """
