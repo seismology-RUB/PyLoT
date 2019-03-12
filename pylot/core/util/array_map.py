@@ -33,6 +33,7 @@ class Array_map(QtGui.QWidget):
         self.figure = figure
         self.picks_rel = {}
         self.marked_stations = []
+        self.highlighted_stations = []
         self.init_graphics()
         self.init_stations()
         self.init_basemap(resolution='l')
@@ -94,11 +95,23 @@ class Array_map(QtGui.QWidget):
                     pyl_mw.addPicks(station, {}, type=picker)
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status(message)
-                    self._refresh_drawings()
+                    if self.auto_refresh_box.isChecked():
+                        self._refresh_drawings()
+                    else:
+                        self.highlight_station(network, station, color='red')
                     pyl_mw.drawPicks(station)
                     pyl_mw.draw()
             except Exception as e:
                 print('Could not delete pick for station {}.{}: {}'.format(network, station, e))
+
+    def highlight_station(self, network, station, color):
+        stat_dict = self.stations_dict['{}.{}'.format(network, station)]
+        lat = stat_dict['latitude']
+        lon = stat_dict['longitude']
+        self.highlighted_stations.append(self.basemap.scatter(lon, lat, s=50, edgecolors=color,
+                                                              facecolors='none', latlon=True,
+                                                              zorder=12, label='deleted'))
+        self.canvas.draw()
 
     def pickInfo(self, ind):
         for index in ind:
@@ -140,7 +153,10 @@ class Array_map(QtGui.QWidget):
                     pyl_mw.update_status('picks accepted ({0})'.format(station))
                     pyl_mw.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
                     pyl_mw.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
-                    self._refresh_drawings()
+                    if self.auto_refresh_box.isChecked():
+                        self._refresh_drawings()
+                    else:
+                        self.highlight_station(network, station, color='yellow')
                     pyl_mw.drawPicks(station)
                     pyl_mw.draw()
                 else:
@@ -212,15 +228,23 @@ class Array_map(QtGui.QWidget):
         self.comboBox_am.insertItem(1, 'manual')
         self.comboBox_am.insertItem(2, 'auto')
 
+        self.auto_refresh_box = QtGui.QCheckBox('Automatic refresh')
+        self.auto_refresh_box.setChecked(True)
+        self.refresh_button = QtGui.QPushButton('Refresh')
+
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1, 1)  # set stretch of item 1 to 1
         self.top_row.addWidget(QtGui.QLabel('Pick type: '))
         self.top_row.addWidget(self.comboBox_am)
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
+        self.top_row.addWidget(self.auto_refresh_box)
+        self.top_row.addWidget(self.refresh_button)
 
         self.main_box.addWidget(self.canvas, 1)
         self.main_box.addWidget(self.status_label, 0)
+
+        self.refresh_button.clicked.connect(self._refresh_drawings)
 
     def init_stations(self):
         self.stations_dict = self.metadata.get_all_coordinates()
@@ -491,6 +515,9 @@ class Array_map(QtGui.QWidget):
 
     def remove_drawings(self):
         self.remove_annotations()
+        for item in reversed(self.highlighted_stations):
+            item.remove()
+            self.highlighted_stations.remove(item)
         if hasattr(self, 'cbar'):
             try:
                 self.cbar.remove()
