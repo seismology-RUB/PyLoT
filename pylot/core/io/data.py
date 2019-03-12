@@ -86,9 +86,17 @@ class Data(object):
         if other.isNew() and not self.isNew():
             picks_to_add = other.get_evt_data().picks
             old_picks = self.get_evt_data().picks
-            for pick in picks_to_add:
-                if pick not in old_picks:
-                    old_picks.append(pick)
+            wf_ids_old = [pick.waveform_id for pick in old_picks]
+            for new_pick in picks_to_add:
+                wf_id = new_pick.waveform_id
+                if wf_id in wf_ids_old:
+                    for old_pick in old_picks:
+                        comparison = [old_pick.waveform_id == new_pick.waveform_id,
+                                      old_pick.phase_hint == new_pick.phase_hint,
+                                      old_pick.method_id == new_pick.method_id]
+                        if all(comparison):
+                            del(old_pick)
+                old_picks.append(new_pick)
         elif not other.isNew() and self.isNew():
             new = other + self
             self.evtdata = new.get_evt_data()
