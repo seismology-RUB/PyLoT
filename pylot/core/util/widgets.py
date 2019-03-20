@@ -3491,7 +3491,7 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
 
     def get_current_event(self):
-        path = self.eventBox.currentText()
+        path = self.eventBox.currentText().split('*')[0]
         # the path sometimes contains the star that shows that the event has been modified
         # It would be cleaner to find out why/where the star is added to the eventbox and make this a visual only effect
         if path[-1] == "*" : path = path[:-1]
