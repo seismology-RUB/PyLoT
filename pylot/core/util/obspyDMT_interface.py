@@ -39,6 +39,8 @@ def qml_from_obspyDMT(path):
     event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
 
     ev = Event(resource_id=event_dmt['event_id'])
+    #small bugfix "unhashable type: 'newstr' "
+    event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
     origin = Origin(resource_id=event_dmt['origin_id'], time=event_dmt['datetime'], longitude=event_dmt['longitude'],
                     latitude=event_dmt['latitude'], depth=event_dmt['depth'])
     mag = Magnitude(mag=event_dmt['magnitude'], magnitude_type=event_dmt['magnitude_type'],
