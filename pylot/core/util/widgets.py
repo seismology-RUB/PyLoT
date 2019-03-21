@@ -268,9 +268,6 @@ class AddMetadataWidget(QWidget):
         return fninv
 
     def on_clicked(self):
-        #for index in self.list_view.selectionModel().selectedIndexes():
-        #    item = self.list_model.itemData(index)
-        #    inventory_path = item[0]
         indices = self.list_view.selectionModel().selectedIndexes()
         try:
             item = self.list_model.itemData(indices[-1])
