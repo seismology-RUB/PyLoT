@@ -308,7 +308,7 @@ class AddMetadataWidget(QWidget):
         also adds the path to the list of inventories that get deleted upon accepting all changes or deletes the
         path from the list of of inventories that get added to the metadata upon accepting all changes
         """
-        for index in reversed(self.list_view.selectionModel().selectedIndexes()):
+        for index in reversed(sorted(self.list_view.selectionModel().selectedIndexes())):
             item = self.list_model.itemData(index)
             inventory_path = item[0]                        # marked path
             self.list_model.removeRow(index.row())          # aus der Anzeige-Liste gelöscht
