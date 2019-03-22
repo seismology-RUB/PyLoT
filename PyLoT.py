@@ -2810,6 +2810,11 @@ class MainWindow(QMainWindow):
                             spe_l = pg.PlotDataItem([mpp - spe, mpp - spe], ylims, pen=pen,
                                                     name='{}-SPE'.format(phase))
                             spe_r = pg.PlotDataItem([mpp + spe, mpp + spe], ylims, pen=pen)
+                            # Ugly fix: spe_l/r.curve.path is initialized to None and can't be accessed, causing the
+                            # Warning: drawPicks: Could not create fill for symmetric pick error
+                            # this generates them
+                            spe_l.curve.shape()
+                            spe_r.curve.shape()
                             try:
                                 color = pen.color()
                                 color.setAlpha(100.)
