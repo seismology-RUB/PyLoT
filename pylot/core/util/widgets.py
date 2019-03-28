@@ -4223,9 +4223,9 @@ class PylotParaBox(QtGui.QWidget):
         if fname[0]:
             try:
                 self.params_from_gui()
-                self.parameter.export2File(fname[0])
+                self.parameter.export2File(fname[0] + ".in")
             except Exception as e:
-                self._warn('Could not save file {}:\n{}'.format(fname[0], e))
+                self._warn('Could not save file {}:\n{}'.format(fname[0]+ ".in", e))
                 return
 
     def restoreDefaults(self):
