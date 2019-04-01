@@ -22,6 +22,8 @@ class Metadata(object):
         # seed id as key, path to file as value
         self.seed_ids = {}
         self.stations_dict = {}
+        # saves which metadata files are from obspy dmt
+        self.obspy_dmt_invs = []
         if inventory:
             if os.path.isdir(inventory):
                 self.add_inventory(inventory)
@@ -44,7 +46,7 @@ class Metadata(object):
     def __repr__(self):
         return self.__str__()
 
-    def add_inventory(self, path_to_inventory):
+    def add_inventory(self, path_to_inventory, obspy_dmt_inv = False):
         """
         Add path to list of inventories.
         :param path_to_inventory: Path to a folder
@@ -54,6 +56,8 @@ class Metadata(object):
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
         if path_to_inventory not in self.inventories:
             self.inventories.append(path_to_inventory)
+        if obspy_dmt_inv == True:
+            self.obspy_dmt_invs.append(path_to_inventory)
 
     def add_inventory_file(self, path_to_inventory_file):
         """
@@ -88,6 +92,11 @@ class Metadata(object):
         # have to clean self.stations_dict as well
         # this will be rebuilt for the next init of the arraymap anyway, so just reset it
         self.stations_dict = {}
+
+    def clear_inventory(self):
+        for inv in self.obspy_dmt_invs:
+            self.remove_inventory(inv)
+        self.obspy_dmt_invs = []
 
     def get_metadata(self, seed_id, time=None):
         """
