@@ -196,6 +196,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     sstop = pickparam.get('sstop')
     use_taup = real_Bool(pickparam.get('use_taup'))
     taup_model = pickparam.get('taup_model')
+    taup_phases = pickparam.get('taup_phases')
     bph1 = pickparam.get('bph1')
     bph2 = pickparam.get('bph2')
     tsnrh = pickparam.get('tsnrh')
@@ -302,12 +303,15 @@ def autopickstation(wfstream, pickparam, verbose=False,
                 if station_coords and origin:
                     source_origin = origin[0]
                     model = TauPyModel(taup_model)
+                    # for backward compatibility of older input files
+                    taup_phases = 'ttall' if not taup_phases or taup_phases=='None' else taup_phases
                     arrivals = model.get_travel_times_geo(
                         source_origin.depth,
                         source_origin.latitude,
                         source_origin.longitude,
                         station_coords['latitude'],
-                        station_coords['longitude']
+                        station_coords['longitude'],
+                        phase_list=[item.strip() for item in taup_phases.split(',')],
                     )
                     phases = {'P': [],
                               'S': []}
@@ -315,8 +319,12 @@ def autopickstation(wfstream, pickparam, verbose=False,
                         phases[identifyPhaseID(arr.phase.name)].append(arr)
 
                     # get first P and S onsets from arrivals list
-                    arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
-                    arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
+                    estFirstP =  0
+                    estFirstS = 0
+                    if len(phases['P']) > 0:
+                        arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
+                    if len(phases['S']) > 0:
+                        arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
                     print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
                           ' origin time using TauPy'.format(estFirstP, estFirstS))
 

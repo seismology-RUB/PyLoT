@@ -4636,6 +4636,7 @@ class PhasesTab(PropTab):
         self.pickDefaultsButton = QtGui.QPushButton('Choose default phases...')
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
+        notes_label = QLabel('Note: Selected phases only apply on manual picking. ')
 
         settings = QSettings()
         Pphases = settings.value('p_phases')
@@ -4651,8 +4652,10 @@ class PhasesTab(PropTab):
 
         layout.addWidget(self.PphasesEdit, 0, 1)
         layout.addWidget(self.SphasesEdit, 1, 1)
+
+        layout.addWidget(self.pickDefaultsButton, 2, 0)
+        layout.addWidget(notes_label, 2, 1)
         self.main_layout.addLayout(layout)
-        self.main_layout.addWidget(self.pickDefaultsButton)
         self.setLayout(self.main_layout)
 
         self.connectSignals()
