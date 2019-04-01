@@ -4219,13 +4219,15 @@ class PylotParaBox(QtGui.QWidget):
     def saveFile(self):
         fd = QtGui.QFileDialog()
         fname = fd.getSaveFileName(self, 'Browse for settings file.',
-                                   filter='PyLoT input file (*.in)')
-        if fname[0]:
+                                   filter='PyLoT input file (*.in)')[0]
+        if fname:
+            if not fname.endswith('.in'):
+                fname += '.in'
             try:
                 self.params_from_gui()
-                self.parameter.export2File(fname[0] + ".in")
+                self.parameter.export2File(fname)
             except Exception as e:
-                self._warn('Could not save file {}:\n{}'.format(fname[0]+ ".in", e))
+                self._warn('Could not save file {}:\n{}'.format(fname, e))
                 return
 
     def restoreDefaults(self):
