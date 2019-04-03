@@ -191,7 +191,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             if fnames == 'None' and parameter['eventID'] is '*':
                 # multiple event processing
                 # read each event in database
-                events = [events for events in glob.glob(os.path.join(datapath, '*')) if os.path.isdir(events)]
+                events = [event for event in glob.glob(os.path.join(datapath, '*')) if
+                          (os.path.isdir(event) and not event.endswith('EVENTS-INFO'))]
             elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
                 # single event processing
                 events = glob.glob(os.path.join(datapath, parameter['eventID']))

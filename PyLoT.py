@@ -1088,7 +1088,7 @@ class MainWindow(QMainWindow):
             self.createNewProject()
         ed = getExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
-            eventlist = ed.selectedFiles()
+            eventlist = [event for event in ed.selectedFiles() if not event.endswith('EVENTS-INFO')]
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
             # small hack: if a file "eventlist.txt" is found in the basepath use only those events specified inside
             eventlist_file = os.path.join(basepath, 'eventlist.txt')
