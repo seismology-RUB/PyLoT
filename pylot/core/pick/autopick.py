@@ -251,6 +251,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
     Ao = None  # Wood-Anderson peak-to-peak amplitude
     picker = 'auto'  # type of picks
 
+    # TODO: REMOVE HARDCODED CHANNEL MAPPING
     # split components
     zdat = wfstream.select(component="Z")
     if len(zdat) == 0:  # check for other components
@@ -298,7 +299,7 @@ def autopickstation(wfstream, pickparam, verbose=False,
             if not metadata:
                 print('Warning: Could not use TauPy to estimate onsets as there are no metadata given.')
             else:
-                station_id = wfstream[0].get_id()
+                station_id = zdat[0].get_id()
                 station_coords = metadata.get_coordinates(station_id, time=wfstream[0].stats.starttime)
                 if station_coords and origin:
                     source_origin = origin[0]
