@@ -111,6 +111,8 @@ class MainWindow(QMainWindow):
 
         self._props = None
 
+        self.gain = 1.
+
         self.dirty = False
         self.project = Project()
         self.project.parameter = self._inputs
@@ -726,12 +728,39 @@ class MainWindow(QMainWindow):
             self._ctrl = True
         if event.key() == QtCore.Qt.Key.Key_Shift:
             self._shift = True
+        if event.key() == QtCore.Qt.Key.Key_Plus:
+            self.increase_gain()
+        if event.key() == QtCore.Qt.Key.Key_Minus:
+            self.decrease_gain()
+        if event.key() == QtCore.Qt.Key.Key_R:
+            self.reset_gain()
+
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Control:
             self._ctrl = False
         if event.key() == QtCore.Qt.Key.Key_Shift:
             self._shift = False
+
+    def increase_gain(self, factor=1.3):
+        self.modify_gain('+', factor)
+
+    def decrease_gain(self, factor=1.3):
+        self.modify_gain('-', factor)
+
+    def reset_gain(self):
+        self.gain = 1
+        self.plotWaveformDataThread(filter=False)
+
+    def modify_gain(self, direction, factor):
+        assert (direction in ['+', '-']), 'unknown direction'
+        if self._ctrl:
+            factor = factor**3
+        if direction == '+':
+            self.gain *= factor
+        elif direction == '-':
+            self.gain /= factor
+        self.plotWaveformDataThread(filter=False)
 
     def init_styles(self):
         self._styles = {}
@@ -1841,6 +1870,8 @@ class MainWindow(QMainWindow):
         nth_sample = int(settings.value("nth_sample")) if settings.value("nth_sample") else 1
         npts_max = 1e7
         npts = self.get_npts_to_plot()
+        if npts == 0:
+            return False
         npts2plot = npts / nth_sample
         if npts2plot < npts_max:
             settings.setValue('large_dataset', False)
@@ -1848,6 +1879,7 @@ class MainWindow(QMainWindow):
             settings.setValue('large_dataset', True)
             self.update_status('Dataset is very large. Using fast plotting method (MIN/MAX)', 10000)
         settings.sync()
+        return True
         # nth_sample_new = int(np.ceil(npts/npts_max))
         # message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
         #           "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
@@ -1868,6 +1900,8 @@ class MainWindow(QMainWindow):
         #     settings.sync()
 
     def get_npts_to_plot(self):
+        if not hasattr(self.data, 'wfdata'):
+            return 0
         return sum(trace.stats.npts for trace in self.data.getWFData())
 
     def connectWFplotEvents(self):
@@ -2055,7 +2089,9 @@ class MainWindow(QMainWindow):
         '''
         Open a modal thread to plot current waveform data.
         '''
-        self.check_plot_quantity()
+        if self.check_plot_quantity() == False:
+            print('Nothing to plot.')
+            return
         self.clearWaveformDataPlot(refresh_plot=True)
         self.wfp_thread = Thread(self, self.plotWaveformData,
                                  arg=filter,
@@ -2090,7 +2126,7 @@ class MainWindow(QMainWindow):
         else:
             self.plot_method = 'normal'
         rval = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
-                                     nth_sample=int(nth_sample), method=self.plot_method)
+                                     nth_sample=int(nth_sample), method=self.plot_method, gain=self.gain)
         plots, gaps = rval if rval else ([], [])
         return plots, gaps
 
@@ -3423,7 +3459,8 @@ class MainWindow(QMainWindow):
             self.dataPlot.setPermText(1, ' MIN/MAX plot ', color='red')
         else:
             self.dataPlot.setPermText(1)
-        self.dataPlot.setPermText(0, '| Number of traces: {} |'.format(len(self.getPlotWidget().getPlotDict())))
+        self.dataPlot.setPermText(0, '| Number of traces: {} | Gain: {}'.format(len(self.getPlotWidget().getPlotDict()),
+                                  self.gain))
 
     def _setDirty(self):
         self.setDirty(True)

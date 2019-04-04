@@ -792,7 +792,7 @@ class WaveformWidgetPG(QtGui.QWidget):
     def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0,
-                   method='normal'):
+                   method='normal', gain=1.):
         if not wfdata:
             print('Nothing to plot.')
             return
@@ -876,7 +876,7 @@ class WaveformWidgetPG(QtGui.QWidget):
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
                 times_syn = np.array(
                     [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
-                trace.data = np.array([datum + n for index, datum in enumerate(trace.data) if not index % nth_sample])
+                trace.data = np.array([datum * gain + n for index, datum in enumerate(trace.data) if not index % nth_sample])
                 trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
                                            if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
