@@ -2867,6 +2867,7 @@ class PickDlg(QDialog):
                                      scaleToChannel=scale_channel)
         self.setPlotLabels()
         self.drawAllPicks()
+        self.drawArrivals()
         self.draw()
 
     def filterP(self):
@@ -2946,7 +2947,6 @@ class PickDlg(QDialog):
             phase = 'S'
             filter = True
         self.plotWFData(phase=phase, filter=filter)
-        self.drawArrivals()
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
