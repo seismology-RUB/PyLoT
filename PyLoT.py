@@ -43,7 +43,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QActionGroup, QListWidget, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
-from obspy import UTCDateTime
+from obspy import UTCDateTime, read_events
 from obspy.core.event import Magnitude, Origin
 from obspy.core.util import AttribDict
 

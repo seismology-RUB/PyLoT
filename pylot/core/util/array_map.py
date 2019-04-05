@@ -170,6 +170,8 @@ class Array_map(QtGui.QWidget):
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
+        self.cmaps_box.currentIndexChanged.connect(self._refresh_drawings)
+        self.refresh_button.clicked.connect(self._refresh_drawings)
         self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
         # self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
 
@@ -231,6 +233,11 @@ class Array_map(QtGui.QWidget):
         self.auto_refresh_box = QtGui.QCheckBox('Automatic refresh')
         self.auto_refresh_box.setChecked(True)
         self.refresh_button = QtGui.QPushButton('Refresh')
+        self.cmaps_box = QtGui.QComboBox()
+        self.cmaps_box.setMaxVisibleItems(20)
+        [self.cmaps_box.addItem(map_name) for map_name in sorted(plt.colormaps())]
+        # try to set to hsv as default
+        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('hsv'))
 
         self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
@@ -238,13 +245,12 @@ class Array_map(QtGui.QWidget):
         self.top_row.addWidget(QtGui.QLabel('Pick type: '))
         self.top_row.addWidget(self.comboBox_am)
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
+        self.top_row.addWidget(self.cmaps_box)
         self.top_row.addWidget(self.auto_refresh_box)
         self.top_row.addWidget(self.refresh_button)
 
         self.main_box.addWidget(self.canvas, 1)
         self.main_box.addWidget(self.status_label, 0)
-
-        self.refresh_button.clicked.connect(self._refresh_drawings)
 
     def init_stations(self):
         self.stations_dict = self.metadata.get_all_coordinates()
@@ -381,7 +387,10 @@ class Array_map(QtGui.QWidget):
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
         self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
-                                              levels, latlon=True, zorder=9, alpha=0.5)
+                                              levels, latlon=True, zorder=9, alpha=0.7, cmap=self.get_colormap())
+
+    def get_colormap(self):
+        return plt.get_cmap(self.cmaps_box.currentText())
 
     def test_gradient(self):
         st_ids = self.picks_rel.keys()
@@ -436,15 +445,17 @@ class Array_map(QtGui.QWidget):
         picks, lats, lons = self.get_picks_lat_lon()
         if len(lons) < 1 and len(lats) < 1:
             return
+
+        cmap = self.get_colormap()
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, edgecolors='white',
-                                                  c=picks[0], latlon=True, zorder=11, label='Picked')
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, edgecolors='white', cmap=cmap,
+                                                  c=picks[0], latlon=True, zorder=11)
         if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, edgecolors='white',
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, edgecolors='white', cmap=cmap,
                                                   c=picks[1], latlon=True, zorder=11)
         else:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white',
+            self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white', cmap=cmap,
                                                   c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
