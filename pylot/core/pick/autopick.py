@@ -773,20 +773,21 @@ class AutopickStation(object):
         # Quality check initial pick with minimum signal length
         z_copy[0].data = tr_filt.data  # save filtered, tapered trace in z_copy stream object
         zne = z_copy
+        minsiglength = self.pickparams["minsiglength"]
         if len(self.nstream) == 0 or len(self.estream) == 0:
             msg = 'One or more horizontal component(s) missing!\n' \
                   'Signal length only checked on vertical component!\n' \
                   'Decreasing minsiglengh from {0} to {1}'\
-                  .format(self.signal_length_params.minsiglength, self.signal_length_params.minsiglength / 2)
+                  .format(minsiglength, minsiglength / 2)
             self.vprint(msg)
-            minsiglength = self.signal_length_params.minsiglength / 2
+            minsiglength = minsiglength / 2
         else:
             # filter, taper other traces as well since signal length is compared on all traces
             trH1_filt, _ = self.prepare_wfstream(self.estream, freqmin=self.pickparams["bph1"][0], freqmax=self.pickparams["bph1"][1])
             trH2_filt, _ = self.prepare_wfstream(self.nstream, freqmin=self.pickparams["bph1"][0], freqmax=self.pickparams["bph1"][1])
             zne += trH1_filt
             zne += trH2_filt
-            minsiglength = self.signal_length_params.minsiglength
+            minsiglength = minsiglength
         Pflag = checksignallength(zne, aicpick.getpick(), minsiglength, self.pickparams,
                                   self.iplot, self.current_figure, self.current_linecolor)
         if Pflag == 0:
