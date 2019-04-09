@@ -161,35 +161,6 @@ def get_source_coords(parser, station_id):
     return station_coords
 
 
-class PickingParameters(object):
-    """
-    Stores parameters used for picking a single station.
-    @DynamicAttrs (mark class so that PyCharm doesnt warn when accessing dynamically added attributes)
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Add dictionaries given as positional arguments and the keyword argument dictionary to the instance
-        as attributes. Positional arguments with types differing from dict are ignored.
-        """
-        # add entries from dictionaries given as positional arguments
-        for arg in args:
-            if type(arg) == dict:
-                self.add_params_from_dict(arg)
-        # add values given as keyword arguments
-        self.add_params_from_dict(kwargs)
-
-    def add_params_from_dict(self, d):
-        """
-        Add all key-value pairs from dictionary d to the class namespace as attributes.
-        :param d:
-        :type d: dict
-        :rtype: None
-        """
-        for key, value in d.items():
-            setattr(self, key, value)
-
-
 class PickingResults(dict):
     """
     Used to store picking results.
@@ -313,8 +284,6 @@ class AutopickStation(object):
         self.s_data = PickingContainer()
 
         # extract additional information
-        pickparams = self.extract_pickparams(pickparam)
-        self.p_params, self.s_params, self.first_motion_params, self.signal_length_params = pickparams
         # TODO get channelorder from the pylot preferences
         self.channelorder = {'Z': 3, 'N': 1, 'E': 2}
         self.station_name = wfstream[0].stats.station
@@ -350,35 +319,6 @@ class AutopickStation(object):
         """Only print statement if verbose picking is set to true."""
         if self.verbose:
             print(s)
-
-    def extract_pickparams(self, pickparam):
-        """
-        Get parameter names out of pickparam dictionary into PickingParameters objects and return them.
-        :return: PickingParameters objects containing 1. p pick parameters, 2. s pick parameters, 3. first motion determinatiion
-        parameters, 4. signal length parameters
-        :rtype: (PickingParameters, PickingParameters, PickingParameters,  PickingParameters)
-        """
-        # Define names of all parameters in different groups
-        p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP'.split(
-            ' ')
-        s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac'.split(
-            ' ')
-        first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
-        signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
-        # Get list of values from pickparam by name
-        p_parameter_values = map(pickparam.get, p_parameter_names)
-        s_parameter_values = map(pickparam.get, s_parameter_names)
-        fm_parameter_values = map(pickparam.get, first_motion_names)
-        sl_parameter_values = map(pickparam.get, signal_length_names)
-        # construct dicts from names and values
-        p_params = dict(zip(p_parameter_names, p_parameter_values))
-        s_params = dict(zip(s_parameter_names, s_parameter_values))
-        first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
-        signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
-
-        p_params['use_taup'] = real_Bool(p_params['use_taup'])
-
-        return PickingParameters(p_params), PickingParameters(s_params), PickingParameters(first_motion_params), PickingParameters(signal_length_params)
 
     def get_components_from_waveformstream(self):
         """
