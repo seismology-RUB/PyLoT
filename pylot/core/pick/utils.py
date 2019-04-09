@@ -1065,7 +1065,7 @@ def jackknife(X, phi, h=1):
     return PHI_jack, PHI_pseudo, PHI_sub
 
 
-def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
+def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
     """
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
@@ -1082,11 +1082,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :type X: `~obspy.core.stream.Stream`
     :param pick: initial (AIC) P onset time
     :type pick: float
-    :param zfac:  factor for threshold determination, vertical energy must
-     exceed coda level times zfac to declare a pick as P onset
-    :type zfac: float
-    :param checkwin: window length [s] for calculating P-coda engergy content
-    :type checkwin: float
+    :param pickparams: PylotParameter instance that holds the current picker settings loaded from a .in file
+    :type pickparams: PylotParameter
     :param iplot: if iplot > 1, energy content and threshold are shown
     :type iplot: int
     :param fig: Matplotlib figure to plot results in
@@ -1096,6 +1093,17 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :return: returnflag; 0 if onset failed test, 1 if onset passed test
     :rtype: int
     """
+
+    """
+    Extract required parameters from pickparams
+    :param zfac:  factor for threshold determination, vertical energy must
+     exceed coda level times zfac to declare a pick as P onset
+    :type zfac: float
+    :param checkwin: window length [s] for calculating P-coda engergy content
+    :type checkwin: float
+    """
+    zfac = pickparams["zfac"]
+    checkwin = pickparams["tsnrz"][2]
 
     plt_flag = 0
     try:

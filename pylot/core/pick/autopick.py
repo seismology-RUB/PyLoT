@@ -800,7 +800,7 @@ class AutopickStation(object):
             return 1
 
         if self.iplot > 1: self.set_current_figure('checkZ4s')
-        Pflag = checkZ4S(zne, aicpick.getpick(), self.s_params.zfac, self.p_params.tsnrz[2], self.iplot,
+        Pflag = checkZ4S(zne, aicpick.getpick(), self.pickparams, self.iplot,
                          self.current_figure, self.current_linecolor)
         if Pflag == 0:
             self.p_results.marked = 'SinsteadP'
