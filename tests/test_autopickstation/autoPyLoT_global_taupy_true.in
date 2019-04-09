@@ -91,9 +91,9 @@ ARH                                                #algoS#          %choose algo
 #quality assessment#
 4.0 8.0 12.0 16.0                                  #timeerrorsP#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for P                           
 4.0 8.0 12.0 16.0                                  #timeerrorsS#    %discrete time errors [s] corresponding to picking weights [0 1 2 3] for S                           
-0.01                                                #minAICPslope#   %below this slope [counts/s] the initial P pick is rejected                                          
+0.01                                               #minAICPslope#   %below this slope [counts/s] the initial P pick is rejected                                          
 1.1                                                #minAICPSNR#     %below this SNR the initial P pick is rejected                                                       
-0.01                                                #minAICSslope#   %below this slope [counts/s] the initial S pick is rejected                                          
+0.01                                               #minAICSslope#   %below this slope [counts/s] the initial S pick is rejected                                          
 1.1                                                #minAICSSNR#     %below this SNR the initial S pick is rejected                                                       
 12.0                                               #minsiglength#   %length of signal part for which amplitudes must exceed noiselevel [s]                               
 1.1                                                #noisefactor#    %noiselevel*noisefactor=threshold                                                                    
