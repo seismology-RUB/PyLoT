@@ -834,7 +834,7 @@ class AutopickStation(object):
 
         # calculate first CF
         if self.p_params.algoP == 'HOS':
-            self.cf1 = HOScf(z_copy, cuttimes, self.p_params.tlta, self.p_params.hosorder)
+            self.cf1 = HOScf(z_copy, cuttimes, self.pickparams)
         elif self.p_params.algoP == 'ARZ':
             self.cf1 = ARZcf(z_copy, cuttimes, self.p_params.tpred1z, self.p_params.Parorder, self.p_params.tdet1z,
                         self.p_params.addnoise)
@@ -884,7 +884,7 @@ class AutopickStation(object):
         # determine new times around initial onset
         cuttimes2 = self._calculate_cuttimes('P', 2)
         if self.p_params.algoP == 'HOS':
-            self.cf2 = HOScf(z_copy, cuttimes2, self.p_params.tlta, self.p_params.hosorder)
+            self.cf2 = HOScf(z_copy, cuttimes2, self.pickparams)
         elif self.p_params.algoP == 'ARZ':
             self.cf2 = ARZcf(z_copy, cuttimes2, self.p_params.tpred2z, self.p_params.Parorder, self.p_params.tdet2z, self.p_params.addnoise)
         else:

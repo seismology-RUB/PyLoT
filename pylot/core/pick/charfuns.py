@@ -243,6 +243,13 @@ class AICcf(CharacteristicFunction):
 
 class HOScf(CharacteristicFunction):
 
+    def __init__(self, data, cut, pickparams):
+        """
+        Call parent constructor while extracting the right parameters:
+        :param pickparams: PylotParameters instance
+        """
+        super(HOScf, self).__init__(data, cut, pickparams["tlta"], pickparams["hosorder"])
+
     def calcCF(self, data):
         """
         Function to calculate skewness (statistics of order 3) or kurtosis
