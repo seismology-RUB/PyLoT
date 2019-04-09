@@ -297,7 +297,7 @@ class AutopickStation(object):
         """
         # save given parameters
         self.wfstream = wfstream
-        self.pickparam = pickparam
+        self.pickparams = pickparam
         self.verbose = verbose
         self.iplot = correct_iplot(iplot)
         self.fig_dict = real_None(fig_dict)
@@ -520,10 +520,11 @@ class AutopickStation(object):
             """If taupy failed to calculate theoretical starttimes, picking continues.
             For this a clean exit is required, since the P starttime is no longer relative to the theoretic onset but
             to the vertical trace starttime, eg. it can't be < 0."""
-            if self.p_params.pstart < 0:
-                self.p_params.pstart = 0
+            if self.pickparams["pstart"] < 0:
+                # TODO here the pickparams is modified, instead of a copy
+                self.pickparams["pstart"] = 0
 
-        if self.p_params.use_taup is False or not self.origin or not self.metadata:
+        if self.pickparams["use_taup"] is False or not self.origin or not self.metadata:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
             exit_taupy()
@@ -536,16 +537,16 @@ class AutopickStation(object):
         if not self.origin:
             raise AttributeError('No source origins given!')
 
-        arrivals = create_arrivals(self.metadata, self.origin, self.p_params.taup_model)
+        arrivals = create_arrivals(self.metadata, self.origin, self.pickparams["taup_model"])
         estFirstP, estFirstS = first_PS_onsets(arrivals)
         # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
-        self.p_params.pstart += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
-        self.p_params.pstop += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
+        self.pickparams["pstart"] += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
+        self.pickparams["pstop"] += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
         print('autopick: CF calculation times respectively:'
-              ' pstart: {} s, pstop: {} s'.format(self.p_params.pstart, self.p_params.pstop))
+              ' pstart: {} s, pstop: {} s'.format(self.pickparams["pstart"], self.pickparams["pstop"]))
         # make sure pstart and pstop are inside the starttime/endtime of vertical trace
-        self.p_params.pstart = max(self.p_params.pstart, 0)
-        self.p_params.pstop = min(self.p_params.pstop, len(self.ztrace) * self.ztrace.stats.delta)
+        self.pickparams["pstart"] = max(self.pickparams["pstart"], 0)
+        self.pickparams["pstop"] = min(self.pickparams["pstop"], len(self.ztrace) * self.ztrace.stats.delta)
 
     def autopickstation(self):
         """
@@ -589,8 +590,8 @@ class AutopickStation(object):
         else:
             # dummy values (start of seismic trace) in order to derive
             # theoretical onset times for iterative picking
-            self.p_results.lpp = self.ztrace.stats.starttime + self.p_params.timeerrorsP[3]
-            self.p_results.epp = self.ztrace.stats.starttime - self.p_params.timeerrorsP[3]
+            self.p_results.lpp = self.ztrace.stats.starttime + self.pickparams["timeerrorsP"][3]
+            self.p_results.epp = self.ztrace.stats.starttime - self.pickparams["timeerrorsP"][3]
             self.p_results.mpp = self.ztrace.stats.starttime
 
         self.p_results.channel = self.ztrace.stats.channel
@@ -766,7 +767,7 @@ class AutopickStation(object):
         if aicpick.getpick() is None:
             msg = "Bad initial (AIC) P-pick, skipping this onset!\nAIC-SNR={0}, AIC-Slope={1}counts/s\n " \
                   "(min. AIC-SNR={2}, min. AIC-Slope={3}counts/s)"
-            msg = msg.format(aicpick.getSNR(), aicpick.getSlope(), self.p_params.minAICPSNR, self.p_params.minAICPslope)
+            msg = msg.format(aicpick.getSNR(), aicpick.getSlope(), self.pickparams["minAICPSNR"], self.pickparams["minAICPslope"])
             self.vprint(msg)
             return 0
         # Quality check initial pick with minimum signal length
@@ -820,7 +821,7 @@ class AutopickStation(object):
               'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
         self.vprint(msg)
 
-        tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.p_params.bpz1[0], self.p_params.bpz1[1])
+        tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.pickparams["bpz1"][0], self.pickparams["bpz1"][1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
         try:
@@ -833,29 +834,29 @@ class AutopickStation(object):
         cuttimes = self._calculate_cuttimes('P', 1)
 
         # calculate first CF
-        if self.p_params.algoP == 'HOS':
+        if self.pickparams["algoP"] == 'HOS':
             self.cf1 = HOScf(z_copy, cuttimes, self.pickparams)
-        elif self.p_params.algoP == 'ARZ':
+        elif self.pickparams["algoP"] == 'ARZ':
             self.cf1 = ARZcf(z_copy, cuttimes, self.pickparams["tdet1z"], self.pickparams["tpred1z"], self.pickparams)
         else:
             self.cf1 = None
         assert isinstance(self.cf1, CharacteristicFunction), 'cf1 is not set correctly: maybe the algorithm name ({})' \
-                                                             ' is corrupted'.format(self.p_params.algoP)
+                                                             ' is corrupted'.format(self.pickparams["algoP"])
         # calculate AIC cf from first cf (either HOS or ARZ)
-        z_copy[0].data =  self.cf1.getCF()
+        z_copy[0].data = self.cf1.getCF()
         aiccf = AICcf(z_copy, cuttimes)
         # get preliminary onset time from AIC-CF
         self.set_current_figure('aicFig')
-        aicpick = AICPicker(aiccf, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot,
-                            Tsmooth=self.p_params.aictsmooth, fig=self.current_figure, linecolor=self.current_linecolor)
+        aicpick = AICPicker(aiccf, self.pickparams["tsnrz"], self.pickparams["pickwinP"], self.iplot,
+                            Tsmooth=self.pickparams["aictsmooth"], fig=self.current_figure, linecolor=self.current_linecolor)
         # save aicpick for plotting later
         self.p_data.aicpick = aicpick
         # add pstart and pstop to aic plot
         if self.current_figure:
             # TODO remove plotting from picking, make own plot function
             for ax in self.current_figure.axes:
-                ax.vlines(self.p_params.pstart, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
-                ax.vlines(self.p_params.pstop, ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
+                ax.vlines(self.pickparams["pstart"], ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P start')
+                ax.vlines(self.pickparams["pstop"], ax.get_ylim()[0], ax.get_ylim()[1], color='c', linestyles='dashed', label='P stop')
                 ax.legend(loc=1)
 
         Pflag = self._pick_p_quality_control(aicpick, z_copy, tr_filt)
@@ -865,11 +866,11 @@ class AutopickStation(object):
         # todo why did picking fail was saved in the pick dictionary, should this be reimplemented?
         if Pflag != 1:
             raise PickingFailedException('AIC P onset quality control failed')
-        if slope <= self.p_params.minAICPslope:
-            error_msg = 'AIC P onset slope to small: got {}, min {}'.format(slope, self.p_params.minAICPslope)
+        if slope <= self.pickparams["minAICPslope"]:
+            error_msg = 'AIC P onset slope to small: got {}, min {}'.format(slope, self.pickparams["minAICPslope"])
             raise PickingFailedException(error_msg)
-        if aicpick.getSNR() < self.p_params.minAICPSNR:
-            error_msg = 'AIC P onset SNR to small: got {}, min {}'.format(aicpick.getSNR(), self.p_params.minAICPSNR)
+        if aicpick.getSNR() < self.pickparams["minAICPSNR"]:
+            error_msg = 'AIC P onset SNR to small: got {}, min {}'.format(aicpick.getSNR(), self.pickparams["minAICPSNR"])
             raise PickingFailedException(error_msg)
 
         self.p_data.p_aic_plot_flag = 1
@@ -877,44 +878,44 @@ class AutopickStation(object):
               'autopickstation: re-filtering vertical trace...'.format(aicpick.getSlope(), aicpick.getSNR())
         self.vprint(msg)
         # refilter waveform with larger bandpass
-        tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.p_params.bpz2[0], freqmax=self.p_params.bpz2[1])
+        tr_filt, z_copy = self.prepare_wfstream(self.zstream, freqmin=self.pickparams["bpz2"][0], freqmax=self.pickparams["bpz2"][1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
         # determine new times around initial onset
         cuttimes2 = self._calculate_cuttimes('P', 2)
-        if self.p_params.algoP == 'HOS':
+        if self.pickparams["algoP"] == 'HOS':
             self.cf2 = HOScf(z_copy, cuttimes2, self.pickparams)
-        elif self.p_params.algoP == 'ARZ':
+        elif self.pickparams["algoP"] == 'ARZ':
             self.cf2 = ARZcf(z_copy, cuttimes2, self.pickparams["tdet2z"], self.pickparams["tpred2z"], self.pickparams)
         else:
             self.cf2 = None
         assert isinstance(self.cf2, CharacteristicFunction), 'cf2 is not set correctly: maybe the algorithm name () is ' \
-                                                        'corrupted'.format(self.p_params.algoP)
+                                                        'corrupted'.format(self.pickparams["algoP"])
         self.set_current_figure('refPpick')
         # get refined onset time from CF2
-        refPpick = PragPicker(self.cf2, self.p_params.tsnrz, self.p_params.pickwinP, self.iplot, self.p_params.ausP,
-                              self.p_params.tsmoothP, aicpick.getpick(), self.current_figure, self.current_linecolor)
+        refPpick = PragPicker(self.cf2, self.pickparams["tsnrz"], self.pickparams["pickwinP"], self.iplot, self.pickparams["ausP"],
+                              self.pickparams["tsmoothP"], aicpick.getpick(), self.current_figure, self.current_linecolor)
         # save PragPicker result for plotting
         self.p_data.refPpick = refPpick
         self.p_results.mpp = refPpick.getpick()
         if self.p_results.mpp is None:
             msg = 'Bad initial (AIC) P-pick, skipping this onset!\n AIC-SNR={}, AIC-Slope={}counts/s\n' \
                   '(min. AIC-SNR={}, min. AIC-Slope={}counts/s)'
-            msg.format(aicpick.getSNR(), aicpick.getSlope(), self.p_params.minAICPSNR, self.p_params.minAICPslope)
+            msg.format(aicpick.getSNR(), aicpick.getSlope(), self.pickparams["minAICPSNR"], self.pickparams["minAICPslope"])
             self.vprint(msg)
             self.s_data.Sflag = 0
             raise PickingFailedException(msg)
         # quality assessment, get earliest/latest pick and symmetrized uncertainty
         #todo quality assessment in own function
         self.set_current_figure('el_Ppick')
-        elpicker_results = earllatepicker(z_copy, self.p_params.nfacP, self.p_params.tsnrz, self.p_results.mpp,
+        elpicker_results = earllatepicker(z_copy, self.pickparams["nfacP"], self.pickparams["tsnrz"], self.p_results.mpp,
                                           self.iplot, fig=self.current_figure, linecolor=self.current_linecolor)
         self.p_results.epp, self.p_results.lpp, self.p_results.spe = elpicker_results
-        snr_results = getSNR(z_copy, self.p_params.tsnrz, self.p_results.mpp)
+        snr_results = getSNR(z_copy, self.pickparams["tsnrz"], self.p_results.mpp)
         self.p_results.snr, self.p_results.snrdb, _ = snr_results
 
         # weight P-onset using symmetric error
-        self.p_results.weight = get_quality_class(self.p_results.spe, self.p_params.timeerrorsP)
+        self.p_results.weight = get_quality_class(self.p_results.spe, self.pickparams["timeerrorsP"])
         if self.p_results.weight <= self.first_motion_params.minfmweight and self.p_results.snr >= self.first_motion_params.minFMSNR:
             # if SNR is low enough, try to determine first motion of onset
             self.set_current_figure('fm_picker')
@@ -939,20 +940,24 @@ class AutopickStation(object):
         :return: tuple of (starttime, endtime) in seconds
         :rtype: (int, int)
         """
+        # extract parameters
+        Precalcwin = self.pickparams["Precalcwin"]
+        Srecalcwin = self.pickparams["Srecalcwin"]
+
         if type.upper() == 'P':
             if iteration == 1:
-                return [self.p_params.pstart, self.p_params.pstop]
+                return [self.pickparams["pstart"], self.pickparams["pstop"]]
             if iteration == 2:
-                starttime2 = round(max(self.p_data.aicpick.getpick() - self.p_params.Precalcwin, 0))
+                starttime2 = round(max(self.p_data.aicpick.getpick() - Precalcwin, 0))
                 endtime2 = round(
-                    min(len(self.ztrace.data) * self.ztrace.stats.delta, self.p_data.aicpick.getpick() + self.p_params.Precalcwin))
+                    min(len(self.ztrace.data) * self.ztrace.stats.delta, self.p_data.aicpick.getpick() + Precalcwin))
                 return [starttime2, endtime2]
         elif type.upper() == 'S':
             if iteration == 1:
                 # Calculate start times for preliminary S onset
-                start = round(max(self.p_results.mpp + self.s_params.sstart, 0))  # limit start time to >0 seconds
+                start = round(max(self.p_results.mpp + self.pickparams["sstart"], 0))  # limit start time to >0 seconds
                 stop = round(min([
-                    self.p_results.mpp + self.s_params.sstop,
+                    self.p_results.mpp + self.pickparams["sstop"],
                     self.etrace.stats.endtime - self.etrace.stats.starttime,
                     self.ntrace.stats.endtime - self.ntrace.stats.starttime
                 ]))
@@ -962,8 +967,8 @@ class AutopickStation(object):
                 return cuttimesh
             if iteration == 2:
                 # recalculate cf from refiltered trace in vicinity of initial onset
-                start = round(self.aicarhpick.getpick() - self.s_params.Srecalcwin)
-                stop = round(self.aicarhpick.getpick() + self.s_params.Srecalcwin)
+                start = round(self.aicarhpick.getpick() - Srecalcwin)
+                stop = round(self.aicarhpick.getpick() + Srecalcwin)
                 return (start, stop)
         else:
             raise ValueError('Wrong type given, can only be P or S')
