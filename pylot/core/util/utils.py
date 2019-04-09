@@ -1222,7 +1222,7 @@ def correct_iplot(iplot):
     try:
         iplot = int(iplot)
     except ValueError:
-        if iplot is True or iplot == 'True':
+        if real_Bool(iplot):
             iplot = 2
         else:
             iplot = 0
