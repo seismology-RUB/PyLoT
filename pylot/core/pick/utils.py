@@ -757,7 +757,7 @@ def RMS(X):
     return np.sqrt(np.sum(np.power(X, 2)) / len(X))
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None, linecolor='k'):
+def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, linecolor='k'):
     """
     Function to detect spuriously picked noise peaks.
 
@@ -768,14 +768,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     :type X: `~obspy.core.stream.Stream`
     :param pick: initial (AIC) P onset time
     :type pick: float
-    :param TSNR: length of time windows around initial pick [s]
-    :type TSNR: (T_noise, T_gap, T_signal)
     :param minsiglength: minium required signal length [s] to declare pick as P onset
     :type minsiglength: float
-    :param nfac: noise factor (nfac * noise level = threshold)
-    :type nfac: float
-    :param minpercent: minimum required percentage of samples above calculated threshold
-    :type minpercent: float
+    :param pickparams: PylotParameter instance that holds the current picker settings loaded from a .in file
+    :type pickparams: PylotParameter
     :param iplot: iplot, if iplot > 1, results are shown in figure
     :type iplot: int
     :param fig: Matplotlib figure to plot results in
@@ -786,6 +782,19 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     required length
     :rtype: int
     """
+
+    """
+    Extract additional parameters from pickparams
+    :param TSNR: length of time windows around initial pick [s]
+    :type TSNR: (T_noise, T_gap, T_signal)
+    :param nfac: noise factor (nfac * noise level = threshold)
+    :type nfac: float
+    :param minpercent: minimum required percentage of samples above calculated threshold
+    :type minpercent: float
+    """
+    TSNR = pickparams["tsnrz"]
+    nfac = pickparams["noisefactor"]
+    minpercent = pickparams["minpercent"]
 
     plt_flag = 0
     try:

@@ -786,8 +786,7 @@ class AutopickStation(object):
             zne += trH1_filt
             zne += trH2_filt
             minsiglength = self.signal_length_params.minsiglength
-        Pflag = checksignallength(zne, aicpick.getpick(), self.p_params.tsnrz, minsiglength,
-                                  self.signal_length_params.noisefactor, self.signal_length_params.minpercent,
+        Pflag = checksignallength(zne, aicpick.getpick(), minsiglength, self.pickparams,
                                   self.iplot, self.current_figure, self.current_linecolor)
         if Pflag == 0:
             self.p_results.marked = 'shortsignallength'
