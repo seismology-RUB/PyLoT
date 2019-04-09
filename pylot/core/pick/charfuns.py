@@ -306,6 +306,9 @@ class HOScf(CharacteristicFunction):
 
 class ARZcf(CharacteristicFunction):
 
+    def __init__(self, data, cut, t1, t2, pickparams):
+        super(ARZcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Parorder"], fnoise=pickparams["addnoise"])
+
     def calcCF(self, data):
         """
         function used to calculate the AR prediction error from a single vertical trace. Can be used to pick
