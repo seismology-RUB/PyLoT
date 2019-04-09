@@ -916,11 +916,11 @@ class AutopickStation(object):
 
         # weight P-onset using symmetric error
         self.p_results.weight = get_quality_class(self.p_results.spe, self.pickparams["timeerrorsP"])
-        if self.p_results.weight <= self.first_motion_params.minfmweight and self.p_results.snr >= self.first_motion_params.minFMSNR:
+        if self.p_results.weight <= self.pickparams["minfmweight"] and self.p_results.snr >= self.pickparams["minFMSNR"]:
             # if SNR is low enough, try to determine first motion of onset
             self.set_current_figure('fm_picker')
-            self.p_results.fm = fmpicker(self.zstream, z_copy, self.first_motion_params.fmpickwin,
-                                         self.p_results.mpp, self.iplot, self.current_figure, self.current_linecolor)
+            self.p_results.fm = fmpicker(self.zstream, z_copy, self.pickparams["fmpickwin"], self.p_results.mpp,
+                                         self.iplot, self.current_figure, self.current_linecolor)
         msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
         msg = msg.format(self.p_results.weight, self.p_results.snr, self.p_results.snrdb, self.p_results.fm)
         print(msg)
