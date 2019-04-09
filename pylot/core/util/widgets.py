@@ -2867,6 +2867,7 @@ class PickDlg(QDialog):
                                      scaleToChannel=scale_channel)
         self.setPlotLabels()
         self.drawAllPicks()
+        self.drawArrivals()
         self.draw()
 
     def filterP(self):
@@ -2946,7 +2947,6 @@ class PickDlg(QDialog):
             phase = 'S'
             filter = True
         self.plotWFData(phase=phase, filter=filter)
-        self.drawArrivals()
 
     def resetZoom(self):
         ax = self.multicompfig.axes[0]
@@ -4219,13 +4219,15 @@ class PylotParaBox(QtGui.QWidget):
     def saveFile(self):
         fd = QtGui.QFileDialog()
         fname = fd.getSaveFileName(self, 'Browse for settings file.',
-                                   filter='PyLoT input file (*.in)')
-        if fname[0]:
+                                   filter='PyLoT input file (*.in)')[0]
+        if fname:
+            if not fname.endswith('.in'):
+                fname += '.in'
             try:
                 self.params_from_gui()
-                self.parameter.export2File(fname[0])
+                self.parameter.export2File(fname)
             except Exception as e:
-                self._warn('Could not save file {}:\n{}'.format(fname[0], e))
+                self._warn('Could not save file {}:\n{}'.format(fname, e))
                 return
 
     def restoreDefaults(self):
@@ -4636,6 +4638,7 @@ class PhasesTab(PropTab):
         self.pickDefaultsButton = QtGui.QPushButton('Choose default phases...')
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
+        notes_label = QLabel('Note: Selected phases only apply on manual picking. ')
 
         settings = QSettings()
         Pphases = settings.value('p_phases')
@@ -4651,8 +4654,10 @@ class PhasesTab(PropTab):
 
         layout.addWidget(self.PphasesEdit, 0, 1)
         layout.addWidget(self.SphasesEdit, 1, 1)
+
+        layout.addWidget(self.pickDefaultsButton, 2, 0)
+        layout.addWidget(notes_label, 2, 1)
         self.main_layout.addLayout(layout)
-        self.main_layout.addWidget(self.pickDefaultsButton)
         self.setLayout(self.main_layout)
 
         self.connectSignals()
