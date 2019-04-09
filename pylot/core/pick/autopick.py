@@ -992,7 +992,7 @@ class AutopickStation(object):
 
         # calculate initial CF based on autoregression
         if self.s_params.algoS == 'ARH':
-            arhcf1 = ARHcf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
+            arhcf1 = ARHcf(h_copy, cuttimesh, self.s_params.tdet1h, self.s_params.tpred1h, self.pickparams)
         elif self.s_params.algoS == 'AR3':
             arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
         return arhcf1
@@ -1053,7 +1053,7 @@ class AutopickStation(object):
 
         # calculate second cf
         if self.s_params.algoS == 'ARH':
-            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+            arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tdet2h, self.s_params.tpred2h, self.pickparams)
         elif self.s_params.algoS == 'AR3':
             arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
         # save cf for later plotting

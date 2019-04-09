@@ -441,6 +441,9 @@ class ARZcf(CharacteristicFunction):
 
 class ARHcf(CharacteristicFunction):
 
+    def __init__(self, data, cut, t1, t2, pickparams):
+        super(ARHcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"], fnoise=pickparams["addnoise"])
+
     def calcCF(self, data):
         """
         Function to calculate a characteristic function using autoregressive modelling of the waveform of
