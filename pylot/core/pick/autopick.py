@@ -994,7 +994,7 @@ class AutopickStation(object):
         if self.s_params.algoS == 'ARH':
             arhcf1 = ARHcf(h_copy, cuttimesh, self.s_params.tdet1h, self.s_params.tpred1h, self.pickparams)
         elif self.s_params.algoS == 'AR3':
-            arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tpred1h, self.s_params.Sarorder, self.s_params.tdet1h, self.p_params.addnoise)
+            arhcf1 = AR3Ccf(h_copy, cuttimesh, self.s_params.tdet1h, self.s_params.tpred1h, self.pickparams)
         return arhcf1
 
     def _calculate_aic_cf_s_pick(self, cuttimesh):
@@ -1055,7 +1055,7 @@ class AutopickStation(object):
         if self.s_params.algoS == 'ARH':
             arhcf2 = ARHcf(h_copy, cuttimesh2, self.s_params.tdet2h, self.s_params.tpred2h, self.pickparams)
         elif self.s_params.algoS == 'AR3':
-            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tpred2h, self.s_params.Sarorder, self.s_params.tdet2h, self.p_params.addnoise)
+            arhcf2 = AR3Ccf(h_copy, cuttimesh2, self.s_params.tdet2h, self.s_params.tpred2h, self.pickparams)
         # save cf for later plotting
         self.arhcf2 = arhcf2
 
