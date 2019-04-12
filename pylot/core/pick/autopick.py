@@ -430,11 +430,16 @@ class AutopickStation(object):
             # TODO raise when metadata.get_coordinates returns None
             source_origin = origin[0]
             model = TauPyModel(taup_model)
+            taup_phases = self.pickparams['taup_phases']
+            # for backward compatibility of older input files
+            taup_phases = 'ttall' if not taup_phases or taup_phases == 'None' else taup_phases
+            phase_list = [item.strip() for item in taup_phases.split(',')]
             arrivals = model.get_travel_times_geo(source_depth_in_km=source_origin.depth,
                                                   source_latitude_in_deg=source_origin.latitude,
                                                   source_longitude_in_deg=source_origin.longitude,
                                                   receiver_latitude_in_deg=station_coords['latitude'],
-                                                  receiver_longitude_in_deg=station_coords['longitude'])
+                                                  receiver_longitude_in_deg=station_coords['longitude'],
+                                                  phase_list=phase_list)
             return arrivals
 
         def first_PS_onsets(arrivals):
@@ -450,8 +455,12 @@ class AutopickStation(object):
             for arr in arrivals:
                 phases[identifyPhaseID(arr.phase.name)].append(arr)
             # get first P and S onsets from arrivals list
-            arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
-            arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
+            estFirstP = 0
+            estFirstS = 0
+            if len(phases['P']) > 0:
+                arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
+            if len(phases['S']) > 0:
+                arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
             print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
                   ' origin time using TauPy'.format(estFirstP, estFirstS))
             return estFirstP, estFirstS
