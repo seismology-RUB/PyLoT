@@ -474,7 +474,8 @@ class PragPicker(AutoPicker):
             cfpick_l = 0
             lpickwindow = int(round(self.PickWindow / self.dt))
             for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
-                if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                # local minimum
+                if self.cf[i + 1] > self.cf[i] <= self.cf[i - 1]:
                     if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
                         if cfpick1 >= self.cf[i]:
                             pick_r = self.Tcf[i]
@@ -486,7 +487,8 @@ class PragPicker(AutoPicker):
             # now we look to the left
             if len(self.cf) > ipick1 + 1:
                 for i in range(ipick1, max([ipick1 - lpickwindow + 1, 2]), -1):
-                    if self.cf[i + 1] > self.cf[i] and self.cf[i - 1] >= self.cf[i]:
+                    # local minimum
+                    if self.cf[i + 1] > self.cf[i] >= self.cf[i - 1]:
                         if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
                             if cfpick1 >= self.cf[i]:
                                 pick_l = self.Tcf[i]
