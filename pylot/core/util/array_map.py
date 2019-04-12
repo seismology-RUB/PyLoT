@@ -382,12 +382,12 @@ class Array_map(QtGui.QWidget):
             longitudes.append(self.stations_dict[st_id]['longitude'])
         return picks, latitudes, longitudes
 
-    def draw_contour_filled(self, nlevel='50'):
+    def draw_contour_filled(self, nlevel='75'):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
-        self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active,
-                                              levels, latlon=True, zorder=9, alpha=0.7, cmap=self.get_colormap())
+        self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active,
+                                             levels, latlon=True, zorder=9, alpha=0.7, cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
