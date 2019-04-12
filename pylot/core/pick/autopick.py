@@ -217,11 +217,6 @@ class PickingResults(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-                    # get first P and S onsets from arrivals list
-                    arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
-                    arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
-                    print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
-                          ' origin time using TauPy'.format(estFirstP, estFirstS))
 
 class PickingContainer:
     """
