@@ -62,7 +62,7 @@ from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
-from pylot.core.pick.utils import getQualityFromUncertainty
+from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality, get_quality_class
 from pylot.core.io.phases import picksdict_from_picks
 import pylot.core.loc.nll as nll
 from pylot.core.util.errors import DatastructureError, \

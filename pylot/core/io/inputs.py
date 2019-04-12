@@ -127,9 +127,7 @@ class PylotParameter(object):
         :return:
         :rtype: bool
         """
-        if parameter in self.__parameter.keys():
-            return True
-        return False
+        return parameter in self.__parameter.keys()
 
     def get(self, *args):
         """

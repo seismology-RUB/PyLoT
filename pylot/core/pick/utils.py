@@ -10,7 +10,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
+from scipy.signal import argrelmax
 from obspy.core import Stream, UTCDateTime
 
 from pylot.core.util.utils import real_Bool, real_None, SetChannelComponents
@@ -417,9 +417,9 @@ def getSNR(X, TSNR, t1, tracenum=0):
 
     assert isinstance(X, Stream), "%s is not a stream object" % str(X)
 
-    SNR = None
-    SNRdB = None
-    noiselevel = None
+    SNR = -1
+    SNRdB = -1
+    noiselevel = -1
 
     x = X[tracenum].data
     npts = X[tracenum].stats.npts
@@ -489,13 +489,13 @@ def getsignalwin(t, t1, tsignal):
     Function to extract data out of time series for signal level calculation.
     Returns an array of indices.
     :param t: array of time stamps
-    :type t: `numpy.ndarray`
+    :type t: `~numpy.ndarray`
     :param t1: time from which relative to it signal window is extracted
     :type t1: float
     :param tsignal: length of time window [s] for signal level calculation
     :type tsignal: float
-    :return: indices of signal window i t
-    :rtype: `numpy.ndarray`
+    :return: indices of signal window in t
+    :rtype: `~numpy.ndarray`
     """
 
     # get signal window
@@ -506,6 +506,26 @@ def getsignalwin(t, t1, tsignal):
 
     return isignal
 
+
+def getslopewin(Tcf, Pick, tslope):
+    """
+    Function to extract slope window out of time series
+
+    >>> (np.arange(15., 85.), 30.0, 10.0)
+    array([15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
+
+    :param Tcf:
+    :type Tcf:
+    :param Pick:
+    :type Pick:
+    :param tslope:a
+    :type tslope:
+    :return:
+    :rtype: `numpy.ndarray`
+    """
+    # TODO: fill out docstring
+    slope = np.where( (Tcf <= min(Pick + tslope, Tcf[-1])) & (Tcf >= Pick) )
+    return slope[0]
 
 def getResolutionWindow(snr, extent):
     """
@@ -736,7 +756,7 @@ def RMS(X):
     return np.sqrt(np.sum(np.power(X, 2)) / len(X))
 
 
-def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fig=None, linecolor='k'):
+def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, linecolor='k'):
     """
     Function to detect spuriously picked noise peaks.
 
@@ -747,14 +767,10 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     :type X: `~obspy.core.stream.Stream`
     :param pick: initial (AIC) P onset time
     :type pick: float
-    :param TSNR: length of time windows around initial pick [s]
-    :type TSNR: (T_noise, T_gap, T_signal)
     :param minsiglength: minium required signal length [s] to declare pick as P onset
     :type minsiglength: float
-    :param nfac: noise factor (nfac * noise level = threshold)
-    :type nfac: float
-    :param minpercent: minimum required percentage of samples above calculated threshold
-    :type minpercent: float
+    :param pickparams: PylotParameter instance that holds the current picker settings loaded from a .in file
+    :type pickparams: PylotParameter
     :param iplot: iplot, if iplot > 1, results are shown in figure
     :type iplot: int
     :param fig: Matplotlib figure to plot results in
@@ -765,6 +781,19 @@ def checksignallength(X, pick, TSNR, minsiglength, nfac, minpercent, iplot=0, fi
     required length
     :rtype: int
     """
+
+    """
+    Extract additional parameters from pickparams
+    :param TSNR: length of time windows around initial pick [s]
+    :type TSNR: (T_noise, T_gap, T_signal)
+    :param nfac: noise factor (nfac * noise level = threshold)
+    :type nfac: float
+    :param minpercent: minimum required percentage of samples above calculated threshold
+    :type minpercent: float
+    """
+    TSNR = pickparams["tsnrz"]
+    nfac = pickparams["noisefactor"]
+    minpercent = pickparams["minpercent"]
 
     plt_flag = 0
     try:
@@ -1034,7 +1063,7 @@ def jackknife(X, phi, h=1):
     return PHI_jack, PHI_pseudo, PHI_sub
 
 
-def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
+def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
     """
     Function to compare energy content of vertical trace with
     energy content of horizontal traces to detect spuriously
@@ -1051,11 +1080,8 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :type X: `~obspy.core.stream.Stream`
     :param pick: initial (AIC) P onset time
     :type pick: float
-    :param zfac:  factor for threshold determination, vertical energy must
-     exceed coda level times zfac to declare a pick as P onset
-    :type zfac: float
-    :param checkwin: window length [s] for calculating P-coda engergy content
-    :type checkwin: float
+    :param pickparams: PylotParameter instance that holds the current picker settings loaded from a .in file
+    :type pickparams: PylotParameter
     :param iplot: if iplot > 1, energy content and threshold are shown
     :type iplot: int
     :param fig: Matplotlib figure to plot results in
@@ -1065,6 +1091,17 @@ def checkZ4S(X, pick, zfac, checkwin, iplot, fig=None, linecolor='k'):
     :return: returnflag; 0 if onset failed test, 1 if onset passed test
     :rtype: int
     """
+
+    """
+    Extract required parameters from pickparams
+    :param zfac:  factor for threshold determination, vertical energy must
+     exceed coda level times zfac to declare a pick as P onset
+    :type zfac: float
+    :param checkwin: window length [s] for calculating P-coda engergy content
+    :type checkwin: float
+    """
+    zfac = pickparams["zfac"]
+    checkwin = pickparams["tsnrz"][2]
 
     plt_flag = 0
     try:
@@ -1250,7 +1287,7 @@ def getQualityFromSNR(snrdb):
     return quality_modifier
 
 
-def getQualityFromUncertainty(uncertainty, Errors):
+def get_quality_class(uncertainty, weight_classes):
     """
     Script to transform uncertainty into quality classes 0-4 regarding adjusted time errors
     :param uncertainty: symmetric picking error of picks
@@ -1260,7 +1297,182 @@ def getQualityFromUncertainty(uncertainty, Errors):
     :return: quality of pick (0-4)
     :rtype: int
     """
+    try:
+        # create generator expression containing all indices of values in weight classes that are >= than uncertainty.
+        # call next on it once to receive first value
+        quality = next(i for i, v in enumerate(weight_classes) if v >= uncertainty)
+    except StopIteration:
+        # raised when uncertainty is larger than all values in weight_classes
+        # set quality to max possible value
+        quality = len(weight_classes)
+    return quality
 
+def set_NaNs_to(data, nan_value):
+    """
+    Replace all NaNs in data with nan_value
+    :param data: array holding data
+    :type data: `~numpy.ndarray`
+    :param nan_value: value which all NaNs are set to
+    :type nan_value: float, int
+    :return: data array with all NaNs replaced with nan_value
+    :rtype: `~numpy.ndarray`
+    """
+    nn = np.isnan(data)
+    if np.any(nn):
+        data[nn] = nan_value
+    return data
+
+def taper_cf(cf):
+    """
+    Taper cf data to get rid off of side maximas
+    :param cf: characteristic function data
+    :type cf: `~numpy.ndarray`
+    :return: tapered cf
+    :rtype: `~numpy.ndarray`
+    """
+    tap = np.hanning(len(cf))
+    return tap * cf
+
+def cf_positive(cf):
+    """
+    Shifts cf so that all values are positive
+    :param cf:
+    :type cf: `~numpy.ndarray`
+    :return:
+    :rtype: `~numpy.ndarray`
+    """
+    return cf + max(abs(cf))
+
+def smooth_cf(cf, t_smooth, delta):
+    """
+    Smooth cf by taking samples over t_smooth length
+    :param cf: characteristic function data
+    :type cf: `~numpy.ndarray`
+    :param t_smooth: Time from which samples for smoothing will be taken (s)
+    :type t_smooth: float
+    :param delta: Sample rate of cf
+    :type delta: float
+    :return: smoothed cf data
+    :rtype: `~numpy.ndarray`
+    """
+
+    ismooth = int(round(t_smooth / delta))  # smooth values this many indexes apart
+    cf_smooth = np.zeros(len(cf))
+
+    if len(cf) < ismooth:
+        raise ValueError
+    for i in range(1, len(cf)):
+        if i > ismooth:
+            ii1 = i - ismooth
+            cf_smooth[i] = cf_smooth[i - 1] + (cf[i] - cf[ii1]) / ismooth
+        else:
+            cf_smooth[i] = np.mean(cf[1: i])
+    offset = abs(min(cf) - min(cf_smooth))
+    cf_smooth -= offset  # remove offset from smoothed function
+    return cf_smooth
+
+def check_counts_ms(data):
+    """
+    check if data is in counts or m/s
+    :param data: data array
+    :type data: `~numpy.ndarray`
+    :return:
+    :rtype: `~numpy.ndarray`
+    """
+    # this is quick and dirty, better solution?
+    if max(data < 1e-3) and max(data >= 1e-6):
+        data = data * 1000000.
+    elif max(data < 1e-6):
+        data = data * 1e13
+    return data
+
+
+def calcSlope(Data, datasmooth, Tcf, Pick, TSNR):
+    """
+    Calculate Slope for Data around a given time Pick.
+
+    :param Data: trace containing data for which a slope will be calculated
+    :type Data: `~obspy.core.trace.Trace`
+    :param datasmooth: smoothed data array
+    :type datasmooth: ~numpy.ndarray`
+    :param Tcf: array of time indices for Data array
+    :type Tcf: ~numpy.ndarray`
+    :param Pick: onset time around which the slope should be calculated
+    :type Pick: float
+    :param TSNR: tuple containing (tnoise, tsafety, tsignal, tslope). Slope will be calculated in time
+    window tslope around the onset
+    :type TSNR: (float, float, float, float)
+    :return: tuple containing (slope of onset, slope index array, data fit information)
+    :rtype: (float, `~numpy.ndarray`, `~numpy.ndarray`
+    """
+    islope = getslopewin(Tcf, Pick, TSNR[3])
+    try:
+        dataslope = Data[0].data[islope]
+    except IndexError as e:
+        print("Slope Calculation: empty array islope, check signal window")
+        raise e
+    if len(dataslope) <= 1:
+        print('Slope window outside data. No or not enough data in slope window found!')
+        raise ValueError
+    # find maximum within slope determination window
+    # 'cause slope should be calculated up to first local minimum only!
+    imaxs, = argrelmax(dataslope)
+    if imaxs.size:
+        imax = imaxs[0]
+    else:
+        imax = np.argmax(dataslope)
+    iislope = islope[0:imax + 1]  # cut index so it contains only the first maximum
+    if len(iislope) < 2:
+        # calculate slope from initial onset to maximum of AIC function
+        print("AICPicker: Not enough data samples left for slope calculation!")
+        print("Calculating slope from initial onset to maximum of AIC function ...")
+        imax = np.argmax(datasmooth[islope])
+        if imax == 0:
+            print("AICPicker: Maximum for slope determination right at the beginning of the window!")
+            print("Choose longer slope determination window!")
+            raise  IndexError
+        iislope = islope[0][0:imax + 1]  # cut index so it contains only the first maximum
+    dataslope = Data[0].data[iislope] # slope will only be calculated to the first maximum
+    # calculate slope as polynomal fit of order 1
+    xslope = np.arange(0, len(dataslope))
+    P = np.polyfit(xslope, dataslope, 1)
+    datafit = np.polyval(P, xslope)
+    if datafit[0] >= datafit[-1]:
+        print('AICPicker: Negative slope, bad onset skipped!')
+        raise ValueError
+
+    slope = 1 / (len(dataslope) * Data[0].stats.delta) * (datafit[-1] - datafit[0])
+    return slope, iislope, datafit
+
+
+def get_pickparams(pickparam):
+    """
+    Get parameter names out of pickparam into dictionaries and return them
+    :return: dictionaries containing 1. p pick parameters, 2. s pick parameters, 3. first motion determinatiion
+    parameters, 4. signal length parameters
+    :rtype: (dict, dict, dict, dict)
+    """
+    # Define names of all parameters in different groups
+    p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(' ')
+    s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(' ')
+    first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
+    signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
+    # Get list of values from pickparam by name
+    p_parameter_values = map(pickparam.get, p_parameter_names)
+    s_parameter_values = map(pickparam.get, s_parameter_names)
+    fm_parameter_values = map(pickparam.get, first_motion_names)
+    sl_parameter_values = map(pickparam.get, signal_length_names)
+    # construct dicts from names and values
+    p_params = dict(zip(p_parameter_names, p_parameter_values))
+    s_params = dict(zip(s_parameter_names, s_parameter_values))
+    first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
+    signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
+
+    p_params['use_taup'] = real_Bool(p_params['use_taup'])
+
+    return p_params, s_params, first_motion_params, signal_length_params
+
+def getQualityFromUncertainty(uncertainty, Errors):
     # set initial quality to 4 (worst) and change only if one condition is hit
     quality = 4
 
@@ -1282,7 +1494,6 @@ def getQualityFromUncertainty(uncertainty, Errors):
         quality = 4
 
     return quality
-
 
 if __name__ == '__main__':
     import doctest

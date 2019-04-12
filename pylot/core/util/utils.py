@@ -139,7 +139,7 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
     :return: dictionary containing only picks above the excluded quality class(es)
     :rtype: dict
     """
-    from pylot.core.pick.utils import getQualityFromUncertainty
+    from pylot.core.pick.utils import get_quality_class
 
     if type(qClasses) in [int, float]:
         qClasses = [qClasses]
@@ -154,7 +154,7 @@ def excludeQualityClasses(picks, qClasses, timeerrorsP, timeerrorsS):
             if not type(pick) in [AttribDict, dict]:
                 continue
             pickerror = phaseError[identifyPhaseID(phase)]
-            quality = getQualityFromUncertainty(pick['spe'], pickerror)
+            quality = get_quality_class(pick['spe'], pickerror)
             if not quality in qClasses:
                 if not station in picksdict_new:
                     picksdict_new[station] = {}
@@ -1217,6 +1217,25 @@ def check_event_folder(path):
     elif check_obspydmt_eventfolder(folder)[0]:
         ev_type = 'obspydmt'
     return ev_type
+
+
+def correct_iplot(iplot):
+    """
+    iplot should be in range 0...2, but it can be given as True or 'True' as well, which should be converted
+    to an integer. Both will be converted to 2.
+    :type iplot: Bool or int
+    :return: iplot as an integer
+    :rtype: int
+    """
+    # TODO this is a hack, there should never be the ability to pass anything else but an int
+    try:
+        iplot = int(iplot)
+    except ValueError:
+        if real_Bool(iplot):
+            iplot = 2
+        else:
+            iplot = 0
+    return iplot
 
 
 def station_id_remove_channel(station_id):

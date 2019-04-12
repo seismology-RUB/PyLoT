@@ -451,7 +451,7 @@ class PragPicker(AutoPicker):
             ipick1 = np.argmin(abs(self.Tcf - self.getpick1()))
             cfpick1 = 2 * self.cf[ipick1]
 
-            # check trend of CF, i.e. differences of CF and adjust aus ("artificial uplift 
+            # check trend of CF, i.e. differences of CF and adjust aus ("artificial uplift
             # of picks") regarding this trend
             # prominent trend: decrease aus
             # flat: use given aus

@@ -243,6 +243,13 @@ class AICcf(CharacteristicFunction):
 
 class HOScf(CharacteristicFunction):
 
+    def __init__(self, data, cut, pickparams):
+        """
+        Call parent constructor while extracting the right parameters:
+        :param pickparams: PylotParameters instance
+        """
+        super(HOScf, self).__init__(data, cut, pickparams["tlta"], pickparams["hosorder"])
+
     def calcCF(self, data):
         """
         Function to calculate skewness (statistics of order 3) or kurtosis
@@ -298,6 +305,9 @@ class HOScf(CharacteristicFunction):
 
 
 class ARZcf(CharacteristicFunction):
+
+    def __init__(self, data, cut, t1, t2, pickparams):
+        super(ARZcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Parorder"], fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """
@@ -430,6 +440,9 @@ class ARZcf(CharacteristicFunction):
 
 
 class ARHcf(CharacteristicFunction):
+
+    def __init__(self, data, cut, t1, t2, pickparams):
+        super(ARHcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"], fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """
@@ -579,6 +592,9 @@ class ARHcf(CharacteristicFunction):
 
 
 class AR3Ccf(CharacteristicFunction):
+
+    def __init__(self, data, cut, t1, t2, pickparams):
+        super(AR3Ccf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"], fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """
