@@ -67,8 +67,10 @@ class Event(ObsPyEvent):
         notesfile = self.get_notes_path()
         if os.path.isfile(notesfile):
             with open(notesfile) as infile:
-                path = str(infile.readlines()[0].split('\n')[0])
-                text = '[eventInfo: ' + path + ']'
+                lines = infile.readlines()
+                if not lines:
+                    return
+                text = lines[0]
                 self.addNotes(text)
                 try:
                     datetime = UTCDateTime(path.split('/')[-1])
