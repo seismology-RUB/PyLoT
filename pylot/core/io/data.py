@@ -259,6 +259,10 @@ class Data(object):
                      'supported'.format(e, fnext)
             raise FormatError(errmsg)
 
+        if hasattr(self.get_evt_data(), 'notes'):
+            with open(os.path.join(os.path.dirname(fnout), 'notes.txt'), 'w') as notes_file:
+                notes_file.write(self.get_evt_data().notes)
+
         # check for already existing xml-file
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
@@ -275,7 +279,7 @@ class Data(object):
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
             self.get_evt_data().write(fnout + fnext, format=evtformat)
-        # try exporting event  
+        # try exporting event
         else:
             evtdata_org = self.get_evt_data()
             picks = evtdata_org.picks

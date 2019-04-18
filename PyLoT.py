@@ -2824,6 +2824,8 @@ class MainWindow(QMainWindow):
                 #                          stat_picks, self._inputs, phaseID,
                 #                          compclass)
 
+                if not picks['mpp']: continue
+
                 mpp = picks['mpp'] - stime
                 if picks['epp'] and picks['lpp']:
                     epp = picks['epp'] - stime

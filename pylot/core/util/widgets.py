@@ -2591,8 +2591,8 @@ class PickDlg(QDialog):
                             or type(self.getPicks(picktype)[phase]) is AttribDict):
                         picks = self.getPicks(picktype)[phase]
                 elif phase is None:
-                    for phase in self.getPicks(picktype):
-                        self.drawPicks(phase, picktype, textOnly)
+                    for phase, picks in self.getPicks(picktype).items():
+                        self.drawPicks(phase, picktype, textOnly, picks)
                     return
                 else:
                     return
