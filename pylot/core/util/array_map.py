@@ -517,7 +517,8 @@ class Array_map(QtGui.QWidget):
         self.scatter_all_stations()
         if picks_available:
             self.scatter_picked_stations()
-            self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
+            if hasattr(self, 'sc_picked'):
+                self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
             self.comboBox_phase.setEnabled(True)
         else:
             self.comboBox_phase.setEnabled(False)
