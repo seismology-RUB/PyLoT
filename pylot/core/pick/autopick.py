@@ -8,6 +8,8 @@ function conglomerate utils.
 
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
+import copy
+
 import matplotlib.pyplot as plt
 import numpy as np
 import traceback
@@ -268,7 +270,7 @@ class AutopickStation(object):
         """
         # save given parameters
         self.wfstream = wfstream
-        self.pickparams = pickparam
+        self.pickparams = copy.deepcopy(pickparam)
         self.verbose = verbose
         self.iplot = correct_iplot(iplot)
         self.fig_dict = real_None(fig_dict)
