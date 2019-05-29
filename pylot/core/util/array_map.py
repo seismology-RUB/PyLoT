@@ -92,7 +92,7 @@ class Array_map(QtGui.QWidget):
                         raise TypeError('Unknown "picker" {}'.format(picker))
                     print(message)
                     pyl_mw = self._parent
-                    pyl_mw.addPicks(station, {}, type=picker)
+                    pyl_mw.deletePicks(station, pick, type=picker)
                     pyl_mw.setDirty(True)
                     pyl_mw.update_status(message)
                     if self.auto_refresh_box.isChecked():

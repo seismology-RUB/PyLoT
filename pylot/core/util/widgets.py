@@ -1620,6 +1620,7 @@ class PickDlg(QDialog):
         self.arrivalsText = []
         self.cidpick = []
         self.cidpress = None
+        self.removed_picks = []
         settings = QSettings()
         pylot_user = getpass.getuser()
         self._user = settings.value('user/Login', pylot_user)
@@ -2804,6 +2805,8 @@ class PickDlg(QDialog):
         msg = 'Deleted {} pick for phase {}, station {} at timestamp {} (relative time: {} s)'
         print(msg.format(picktype, phase, '{}.{}'.format(self.network, self.station),
                          self.getStartTime() + pick_rel, pick_rel))
+        removed_pick['station'] = self.station
+        self.removed_picks.append(removed_pick)
         self.setDirty(True)
 
     def identify_selected_picks(self, x):

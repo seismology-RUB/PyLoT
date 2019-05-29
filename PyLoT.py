@@ -29,6 +29,9 @@ import os
 import platform
 import sys
 
+import json
+from datetime import datetime
+
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 matplotlib.rcParams['savefig.dpi'] = 300
@@ -159,6 +162,9 @@ class MainWindow(QMainWindow):
 
         self.fnames = None
         self._stime = None
+
+        # track deleted picks for logging
+        self.deleted_picks = {}
 
         while True:
             try:
@@ -1520,6 +1526,11 @@ class MainWindow(QMainWindow):
             if not event.dirty:
                 continue
             self.get_data().setEvtData(event)
+            # save deleted picks to json file
+            try:
+                self.dump_deleted_picks(event.path)
+            except Exception as e:
+                print('WARNING! Could not save information on deleted picks {}. Reason: {}'.format(event.path, e))
             try:
                 self.saveData(event, event.path, outformats)
                 event.dirty = False
@@ -2451,6 +2462,8 @@ class MainWindow(QMainWindow):
                 self.update_status('picks accepted ({0})'.format(station))
                 self.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
                 self.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
+                if pickDlg.removed_picks:
+                    self.log_deleted_picks(pickDlg.removed_picks)
                 self.enableSaveEventAction()
                 self.comparable = self.checkEvents4comparison()
                 if True in self.comparable.values():
@@ -2733,29 +2746,57 @@ class MainWindow(QMainWindow):
         # dictionary consisting of set station only
         automanu[type](station=station, pick=picks)
         return rval
-        # if not stat_picks:
-        #     stat_picks = picks
-        # else:
-        #     msgBox = QMessageBox(self)
-        #     msgBox.setText("The picks for station {0} have been "
-        #                    "changed.".format(station))
-        #     msgBox.setDetailedText("Old picks:\n"
-        #                            "{old_picks}\n\n"
-        #                            "New picks:\n"
-        #                            "{new_picks}".format(old_picks=stat_picks,
-        #                                                 new_picks=picks))
-        #     msgBox.setInformativeText("Do you want to save your changes?")
-        #     msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-        #     msgBox.setDefaultButton(QMessageBox.Save)
-        #     ret = msgBox.exec_()
-        #     if ret == QMessageBox.Save:
-        #         stat_picks = picks
-        #         rval = True
-        #     elif ret == QMessageBox.Cancel:
-        #         pass
-        #     else:
-        #         raise Exception('FATAL: Should never occur!')
-        # MP MP prompt redundant because new picks have to be accepted in the first place closing PickDlg
+
+    def deletePicks(self, station, deleted_pick, type):
+        deleted_pick['station'] = station
+        self.addPicks(station, {}, type=type)
+        self.log_deleted_picks([deleted_pick])
+
+    def log_deleted_picks(self, deleted_picks, event_path=None):
+        ''' Log deleted picks to list self.deleted_picks '''
+        if not event_path:
+            event_path = self.get_current_event_path()
+        for deleted_pick in deleted_picks:
+            deleted_pick = dict(deleted_pick)
+            if not event_path in self.deleted_picks.keys():
+                self.deleted_picks[event_path] = []
+            for key, value in deleted_pick.items():
+                if type(value) == UTCDateTime:
+                    deleted_pick[key] = str(value)
+            deleted_pick['deletion_logtime'] = str(datetime.now())
+            self.deleted_picks[event_path].append(deleted_pick)
+
+    def dump_deleted_picks(self, event_path):
+        ''' Save deleted picks to json file for event in event_path. Load old file before and merge'''
+        deleted_picks_from_file = self.load_deleted_picks(event_path)
+        deleted_picks_event = self.deleted_picks[event_path]
+
+        for pick in deleted_picks_from_file:
+            if not pick in deleted_picks_event:
+                deleted_picks_event.append(pick)
+
+        # if there are no picks to save
+        if not deleted_picks_event:
+            return
+
+        fpath = self.get_deleted_picks_fpath(event_path)
+        with open(fpath, 'w') as outfile:
+            json.dump(self.deleted_picks[event_path], outfile)
+
+        # clear entry for this event
+        self.deleted_picks[event_path] = []
+
+    def load_deleted_picks(self, event_path):
+        ''' Load a list with deleted picks for event in event_path from file '''
+        fpath = self.get_deleted_picks_fpath(event_path)
+        if not os.path.isfile(fpath):
+            return []
+        with open(fpath, 'r') as infile:
+            deleted_picks = json.load(infile)
+        return deleted_picks
+
+    def get_deleted_picks_fpath(self, event_path):
+        return os.path.join(event_path, 'deleted_picks.json')
 
     def updatePicks(self, type='manual', event=None):
         if not event:
