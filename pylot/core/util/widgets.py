@@ -1489,6 +1489,39 @@ class PylotCanvas(FigureCanvas):
         self.draw()
 
 
+class FileExtensionDialog(QtGui.QDialog):
+    def __init__(self, parent=None, default_extension='.xml'):
+        super(FileExtensionDialog, self).__init__(parent)
+        self.default_extension = default_extension
+        self.setButtons()
+        self.connectSignals()
+        self.setupUi()
+
+    def setupUi(self):
+        self.main_layout = QtGui.QVBoxLayout()
+        self.sub_layout = QtGui.QHBoxLayout()
+        #
+        self.setLayout(self.main_layout)
+        self.textLabel = QtGui.QLabel('Specify file extension: ')
+        self.file_extension = QtGui.QLineEdit(self.default_extension)
+
+        self.sub_layout.addWidget(self.textLabel)
+        self.sub_layout.addWidget(self.file_extension)
+
+        self.main_layout.addLayout(self.sub_layout)
+        self.main_layout.addWidget(self._buttonbox)
+
+    def setButtons(self):
+        self._buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
+
+    def connectSignals(self):
+        self._buttonbox.accepted.connect(self.accept)
+        self._buttonbox.rejected.connect(self.reject)
+
+
+
+
 class PhaseDefaults(QtGui.QDialog):
     def __init__(self, parent=None, nrow=10,
                  phase_defaults=['P', 'S'],
