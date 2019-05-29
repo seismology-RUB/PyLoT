@@ -79,7 +79,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, FileExtensionDialog
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -941,7 +941,11 @@ class MainWindow(QMainWindow):
             return
         refresh = False
         events = self.project.eventlist
-        fext = '.xml'
+        fed = FileExtensionDialog()
+        if not fed.exec_():
+            return
+        fext = fed.file_extension.text()
+        #fext = '.xml'
         for event in events:
             path = event.path
             eventname = path.split('/')[-1]  # or event.pylot_id

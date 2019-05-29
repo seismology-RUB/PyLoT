@@ -327,7 +327,7 @@ def picks_from_picksdict(picks, creation_info=None):
                 filter_id = phase['filteroptions']
                 filter_id = transformFilterString4Export(filter_id)
             except KeyError as e:
-                warnings.warn(e.message, RuntimeWarning)
+                warnings.warn(str(e), RuntimeWarning)
                 filter_id = ''
             pick.filter_id = filter_id
             try:
