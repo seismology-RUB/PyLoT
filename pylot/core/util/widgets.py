@@ -1937,7 +1937,9 @@ class PickDlg(QDialog):
         if origins:
             source_origin = origins[0]
         else:
-            raise ValueError('No source origin given.')
+            print('get_arrivals: No source origin given. Return!')
+            return
+            # raise ValueError('No source origin given.')
         arrivals = func[plot](source_origin.depth,
                               source_origin.latitude,
                               source_origin.longitude,
