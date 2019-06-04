@@ -288,7 +288,6 @@ class Metadata(object):
         if file_ending in read_functions.keys():
             robj, exc = read_functions[file_ending](path_to_inventory_filename)
             if exc is not None:
-                print("Nicht None")
                 raise exc
             return file_ending, robj
         # in case file endings did not match the above keys, try and error
@@ -590,6 +589,7 @@ def restitute_trace(input_tuple):
         if invtype in ['resp', 'dless']:
             try:
                 tr.simulate(**kwargs)
+                print("Done")
             except ValueError as e:
                 vmsg = '{0}'.format(e)
                 print(vmsg)
