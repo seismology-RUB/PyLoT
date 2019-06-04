@@ -542,6 +542,9 @@ class Data(object):
             information on the event to the actual data
             :param event:
             """
+            if event is None:
+                print("applyEvent: Received None")
+                return
             if self.isNew():
                 self.setEvtData(event)
             else:

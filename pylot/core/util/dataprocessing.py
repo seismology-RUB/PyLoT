@@ -644,11 +644,11 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
 
-    # if len(restflag) > 0:
-    #     restflag = bool(np.all(restflag))
-    # else:
-    #     restflag = False
-    return data
+    if len(restflag) > 0:
+        restflag = bool(np.all(restflag))
+    else:
+        restflag = False
+    return data, restflag
 
 
 def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):

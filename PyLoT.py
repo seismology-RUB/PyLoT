@@ -2974,7 +2974,7 @@ class MainWindow(QMainWindow):
         #    os.remove(phasefile)
 
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
-        # self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
+        self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
 
     def init_array_tab(self):
         '''
@@ -3312,19 +3312,23 @@ class MainWindow(QMainWindow):
             return None
 
         wf_copy = self.get_data().getWFData().copy()
-        corr_wf = restitute_data(wf_copy, *self.metadata)
-        # if not rest_flag:
-        #     raise ProcessingError('Restitution of waveform data failed!')
-        if type == 'ML':
-            local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                       self.inputs.get('WAScaling'), verbosity=True)
-            return local_mag.updated_event()
-        elif type == 'Mw':
-            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
-                                         self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
-            return moment_mag.updated_event()
-        else:
+        corr_wf, rest_flag = restitute_data(wf_copy, self.metadata)
+
+        if not rest_flag:
+            # raise ProcessingError('Restitution of waveform data failed!')
+            print('Restitution of waveform data failed!')
             return None
+        else:
+            if type == 'ML':
+                local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
+                                           self.inputs.get('WAScaling'), verbosity=True)
+                return local_mag.updated_event()
+            elif type == 'Mw':
+                moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
+                                             self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
+                return moment_mag.updated_event()
+            else:
+                return None
 
     def check4Loc(self):
         return self.picksNum() >= 4
