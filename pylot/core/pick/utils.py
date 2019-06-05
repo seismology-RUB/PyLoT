@@ -72,7 +72,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
               ' relative to most likely pick ...')
 
     x = X[0].data
-    t = np.linspace(0, X[0].stats.npts / X[0].stats.sampling_rate,
+    t = np.linspace(0, X[0].stats.endtime - X[0].stats.starttime,
                   X[0].stats.npts)
 
     inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
@@ -218,7 +218,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
 
         xraw = Xraw[0].data
         xfilt = Xfilt[0].data
-        t = np.linspace(0, Xraw[0].stats.npts / Xraw[0].stats.sampling_rate,
+        t = np.linspace(0, Xraw[0].stats.endtime - Xraw[0].stats.starttime,
                       Xraw[0].stats.npts)
         # get pick window
         ipick = np.where((t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
@@ -824,7 +824,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         ilen = len(x1)
         rms = abs(x1)
 
-    t = np.linspace(0, X[0].stats.delta * ilen, ilen)
+    t = np.linspace(0, X[0].stats.endtime - X[0].stats.starttime, ilen)
     if pick >= t[np.size(t)-1]: # it might happen, that for individual stations cut times
                                 # are set to zero because of too small time series 
                                 # => pick time has to be reduced for pstart
@@ -1196,7 +1196,7 @@ def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
         for i, key in enumerate(['Z', 'N', 'E']):
             rms = rms_dict[key]
             trace = traces_dict[key]
-            t = np.linspace(diff_dict[key], trace.stats.npts / trace.stats.sampling_rate + diff_dict[key],
+            t = np.linspace(diff_dict[key], trace.stats.endtime - trace.stats.starttime + diff_dict[key],
                           trace.stats.npts)
             if i == 0:
                 if real_None(fig) is None:

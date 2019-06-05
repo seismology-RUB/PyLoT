@@ -589,7 +589,7 @@ class AutopickStation(object):
                 plt_flag = 0
             fig._tight = True
             ax1 = fig.add_subplot(311)
-            tdata = np.linspace(start=0, stop=self.ztrace.stats.npts*self.ztrace.stats.delta, num=self.ztrace.stats.npts)
+            tdata = np.linspace(start=0, stop=self.ztrace.stats.endtime-self.ztrace.stats.starttime, num=self.ztrace.stats.npts)
             # plot tapered trace filtered with bpz2 filter settings
             ax1.plot(tdata, self.tr_filt_z_bpz2.data/max(self.tr_filt_z_bpz2.data), color=linecolor, linewidth=0.7, label='Data')
             if self.p_results.weight < 4:
@@ -632,7 +632,7 @@ class AutopickStation(object):
             if self.horizontal_traces_exist() and self.s_data.Sflag == 1:
                 # plot E trace
                 ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
-                th1data = np.linspace(0, self.etrace.stats.npts*self.etrace.stats.delta, self.etrace.stats.npts)
+                th1data = np.linspace(0, self.etrace.stats.endtime-self.etrace.stats.starttime, self.etrace.stats.npts)
                 # plot filtered and tapered waveform
                 ax2.plot(th1data, self.etrace.data / max(self.etrace.data), color=linecolor, linewidth=0.7, label='Data')
                 if self.p_results.weight < 4:
@@ -668,7 +668,7 @@ class AutopickStation(object):
 
                 # plot N trace
                 ax3 = fig.add_subplot(3, 1, 3, sharex=ax1)
-                th2data= np.linspace(0, self.ntrace.stats.npts*self.ntrace.stats.delta, self.ntrace.stats.npts)
+                th2data= np.linspace(0, self.ntrace.stats.endtime-self.ntrace.stats.starttime, self.ntrace.stats.npts)
                 # plot trace
                 ax3.plot(th2data, self.ntrace.data / max(self.ntrace.data), color=linecolor, linewidth=0.7, label='Data')
                 if self.p_results.weight < 4:
