@@ -6,7 +6,7 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
-import pdb
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope

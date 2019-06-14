@@ -9,7 +9,6 @@ function conglomerate utils.
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
 import copy
-
 import matplotlib.pyplot as plt
 import numpy as np
 import traceback
