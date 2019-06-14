@@ -381,13 +381,13 @@ class MomentMagnitude(Magnitude):
             # NLLoc: time_weight = 0 => do not use onset!
             if a.time_weight == 0:
                 continue
+            pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
             if len(self.stream) <= 2:
-                print("Station:", station)
-                print("WARNING: No instrument corrected data available, \
-                       no magnitude calculation possible! Go on.")
+                print("Station:" '{0}'.format(station))
+                print("WARNING: No instrument corrected data available,"
+                      " no magnitude calculation possible! Go on.")
                 continue
-            pick = a.pick_id.get_referred_object()
             scopy = self.stream.copy()
             wf = scopy.select(station=station)
             if not wf:
