@@ -158,6 +158,8 @@ class CharacteristicFunction(object):
                 zz = self.orig_data.copy()
                 z1 = zz[0].copy()
                 zz[0].data = z1.data[int(start):int(stop)]
+                if zz[0].stats.npts == 0: # cut times do not fit data length!
+                    zz[0].data = z1.data  # take entire data
                 data = zz
                 return data
             elif len(self.orig_data) == 2:
