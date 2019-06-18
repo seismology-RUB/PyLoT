@@ -622,8 +622,6 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     :return: corrected data stream
     """
 
-    restflag = list()
-
     # data = remove_underscores(data)
 
     # loop over traces
@@ -644,11 +642,7 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     # better try restitution for smaller subsets of data (e.g. station by
     # station)
 
-    if len(restflag) > 0:
-        restflag = bool(np.all(restflag))
-    else:
-        restflag = False
-    return data, restflag
+    return data
 
 
 def get_prefilt(trace, tlow=(0.5, 0.9), thi=(5., 2.), verbosity=0):
