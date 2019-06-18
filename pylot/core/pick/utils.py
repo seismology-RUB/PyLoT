@@ -74,7 +74,6 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
     x = X[0].data
     t = np.linspace(0, X[0].stats.endtime - X[0].stats.starttime,
                   X[0].stats.npts)
-
     inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
     # get signal window
     isignal = getsignalwin(t, Pick1, TSNR[2])
@@ -825,10 +824,6 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         rms = abs(x1)
 
     t = np.linspace(0, X[0].stats.endtime - X[0].stats.starttime, ilen)
-    if pick >= t[np.size(t)-1]: # it might happen, that for individual stations cut times
-                                # are set to zero because of too small time series 
-                                # => pick time has to be reduced for pstart
-        pick = pick - pickparams["pstart"]
 
     # get noise window in front of pick plus saftey gap
     inoise = getnoisewin(t, pick, TSNR[0], TSNR[1])
@@ -1145,11 +1140,6 @@ def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
                    ndat[0].stats.delta)
     te = np.arange(0, edat[0].stats.npts / edat[0].stats.sampling_rate,
                    edat[0].stats.delta)
-
-    if pick >= tz[np.size(tz)-1]: # it might happen, that for individual stations cut times
-                                  # are set to zero because of too small time series 
-                                  # => pick time has to be reduced for pstart
-        pick = pick - pickparams["pstart"]
 
     zdiff = (zdat[0].stats.starttime - min_t)
     ndiff = (ndat[0].stats.starttime - min_t)
