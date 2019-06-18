@@ -2628,6 +2628,8 @@ class PickDlg(QDialog):
                         picks = self.getPicks(picktype)[phase]
                 elif phase is None:
                     for phase, picks in self.getPicks(picktype).items():
+                        if phase == 'SPt':
+                            continue
                         self.drawPicks(phase, picktype, textOnly, picks)
                     return
                 else:
