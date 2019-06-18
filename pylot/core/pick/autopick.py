@@ -775,13 +775,30 @@ class AutopickStation(object):
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.pickparams["bpz1"][0], self.pickparams["bpz1"][1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
-        try:
-            # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
-            self.modify_starttimes_taupy()
-        except AttributeError as ae:
-            print(ae)
-        except MissingTraceException as mte:
-            print(mte)
+
+        if self.pickparams['use_taup'] is True and self.origin is not None:
+            Lc = np.inf
+            try:
+                # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
+                self.modify_starttimes_taupy()
+            except AttributeError as ae:
+                print(ae)
+            except MissingTraceException as mte:
+                print(mte)
+        else:
+            Lc = self.pickparams['pstop'] - self.pickparams['pstart']
+
+        Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
+        if Lwf < 0:
+            raise PickingFailedException('autopickstation: empty trace! Return!')
+
+        Ldiff = Lwf - abs(Lc)
+        if Ldiff < 0 or self.pickparams['pstop'] <= self.pickparams['pstart']:
+            msg = 'autopickstation: Cutting times are too large for actual waveform!\nUsing entire waveform instead!'
+            self.vprint(msg)
+            self.pickparams['pstart'] = 0
+            self.pickparams['pstop'] = len(self.ztrace.data) * self.ztrace.stats.delta
+
         cuttimes = self._calculate_cuttimes('P', 1)
 
         # calculate first CF
