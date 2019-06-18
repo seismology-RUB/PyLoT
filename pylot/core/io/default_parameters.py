@@ -34,7 +34,7 @@ defaults = {'rootpath': {'type': str,
             'invdir': {'type': str,
                        'tooltip': 'full path to  inventory or dataless-seed file',
                        'value': '',
-                       'namestring': 'Inversion dir'},
+                       'namestring': 'Inventory directory'},
 
             'datastructure': {'type': str,
                               'tooltip': 'choose data structure',
