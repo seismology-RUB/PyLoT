@@ -2781,7 +2781,7 @@ class MainWindow(QMainWindow):
 
         fpath = self.get_deleted_picks_fpath(event_path)
         with open(fpath, 'w') as outfile:
-            json.dump(self.deleted_picks[event_path], outfile)
+            json.dump(deleted_picks_event[event_path], outfile)
 
         # clear entry for this event
         self.deleted_picks[event_path] = []
