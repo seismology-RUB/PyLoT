@@ -621,17 +621,16 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             print("calcsourcespec: Determined w0-value: %e m/Hz, \n"
                   "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
 
-            # use of conventional fitting
-            # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+        # use of conventional fitting
+        # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
-            # get w0 and fc as median of both
-            # source spectrum fits
-            # w0 = np.median([w01, w02])
-            # fc = np.median([fc1, fc2])
-            # if verbosity:
-            #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-            #    w0, fc))
-
+        # get w0 and fc as median of both
+        # source spectrum fits
+        # w0 = np.median([w01, w02])
+        # fc = np.median([fc1, fc2])
+        # if verbosity:
+        #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+        #    w0, fc))
     if iplot > 1:
         f1 = plt.figure()
         tLdat = np.arange(0, len(Ldat) * dt, dt)
@@ -666,6 +665,12 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
+            plt.show()
+            try:
+                input()
+            except SyntaxError:
+                pass
+            plt.close(f1)
 
     return w0, fc
 
@@ -773,7 +778,6 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     if verbosity:
         print(
             "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
-
     if iplot > 1:
         plt.figure()  # iplot)
         plt.loglog(f, S, 'k')
@@ -797,5 +801,11 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         plt.plot(f[il:ir], stdfc, '*')
         plt.title('Standard Deviations of Corner Frequencies')
         plt.xlabel('Corner Frequencies [Hz]')
+        plt.show()
+        try:
+            input()
+        except SyntaxError:
+            pass
+        plt.close()
 
     return w0, fc
