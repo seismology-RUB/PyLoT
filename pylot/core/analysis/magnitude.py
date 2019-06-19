@@ -314,6 +314,10 @@ class LocalMagnitude(Magnitude):
                                                      + self.wascaling[0] * np.log10(delta) + self.wascaling[1]
                                                      * delta + self.wascaling[
                                                          2])
+            if self.verbose:
+                print(
+                    "Local Magnitude for station {0}: ML = {1:3.1f}".format(
+                       station, magnitude.mag))
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
