@@ -8,7 +8,6 @@
    :author: Ludger Kueperkoch, BESTEC GmbH
 """
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import argrelmax
@@ -503,6 +502,7 @@ def getsignalwin(t, t1, tsignal):
     isignal, = np.where((t <= min([t1 + tsignal, t[-1]]))
                         & (t >= t1))
     if np.size(isignal) < 1:
+        isignal = None
         print("getsignalwin: Empty array isignal, check signal window!")
 
     return isignal
@@ -829,21 +829,27 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
     inoise = getnoisewin(t, pick, TSNR[0], TSNR[1])
     # get signal window
     isignal = getsignalwin(t, pick, minsiglength)
-    # calculate minimum adjusted signal level
-    minsiglevel = np.mean(rms[inoise]) * nfac
-    # minimum adjusted number of samples over minimum signal level
-    minnum = len(isignal) * minpercent / 100
-    # get number of samples above minimum adjusted signal level
-    numoverthr = len(np.where(rms[isignal] >= minsiglevel)[0])
-
-    if numoverthr >= minnum:
-        print("checksignallength: Signal reached required length.")
-        returnflag = 1
-    else:
-        print("checksignallength: Signal shorter than required minimum signal length!")
+    if isignal is None:
+        print("checksignallength: Empty array after pick!")
         print("Presumably picked noise peak, pick is rejected!")
         print("(min. signal length required: %s s)" % minsiglength)
         returnflag = 0
+    else:    
+        # calculate minimum adjusted signal level
+        minsiglevel = np.mean(rms[inoise]) * nfac
+        # minimum adjusted number of samples over minimum signal level
+        minnum = len(isignal) * minpercent / 100
+        # get number of samples above minimum adjusted signal level
+        numoverthr = len(np.where(rms[isignal] >= minsiglevel)[0])
+
+        if numoverthr >= minnum:
+            print("checksignallength: Signal reached required length.")
+            returnflag = 1
+        else:
+            print("checksignallength: Signal shorter than required minimum signal length!")
+            print("Presumably picked noise peak, pick is rejected!")
+            print("(min. signal length required: %s s)" % minsiglength)
+            returnflag = 0
 
     if iplot > 1:
         if real_None(fig) is None:
