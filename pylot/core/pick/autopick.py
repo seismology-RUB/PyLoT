@@ -543,7 +543,6 @@ class AutopickStation(object):
             self.p_results.lpp = self.ztrace.stats.starttime + self.pickparams["timeerrorsP"][3]
             self.p_results.epp = self.ztrace.stats.starttime - self.pickparams["timeerrorsP"][3]
             self.p_results.mpp = self.ztrace.stats.starttime
-
         self.p_results.channel = self.ztrace.stats.channel
         self.p_results.network = self.ztrace.stats.network
         #
@@ -793,7 +792,7 @@ class AutopickStation(object):
             raise PickingFailedException('autopickstation: empty trace! Return!')
 
         Ldiff = Lwf - abs(Lc)
-        if Ldiff < 0 or self.pickparams['pstop'] <= self.pickparams['pstart']:
+        if Ldiff < self.pickparams['tlta'] or self.pickparams['pstop'] <= self.pickparams['pstart']:
             msg = 'autopickstation: Cutting times are too large for actual waveform!\nUsing entire waveform instead!'
             self.vprint(msg)
             self.pickparams['pstart'] = 0
