@@ -27,6 +27,7 @@ import argparse
 import matplotlib
 import os
 import platform
+import shutil
 import sys
 
 import json
@@ -2768,7 +2769,13 @@ class MainWindow(QMainWindow):
 
     def dump_deleted_picks(self, event_path):
         ''' Save deleted picks to json file for event in event_path. Load old file before and merge'''
-        deleted_picks_from_file = self.load_deleted_picks(event_path)
+        try:
+            deleted_picks_from_file = self.load_deleted_picks(event_path)
+        except Exception as e:
+            msg = 'WARNING! Deleted picks file could not be loaded: {}' \
+                  ' Check deleted picks file in path {} before continuing'
+            print(msg.format(e, event_path))
+            self.safetyCopy(event_path)
         deleted_picks_event = self.deleted_picks[event_path]
 
         for pick in deleted_picks_from_file:
@@ -2781,10 +2788,15 @@ class MainWindow(QMainWindow):
 
         fpath = self.get_deleted_picks_fpath(event_path)
         with open(fpath, 'w') as outfile:
-            json.dump(deleted_picks_event[event_path], outfile)
+            json.dump(deleted_picks_event, outfile)
 
         # clear entry for this event
         self.deleted_picks[event_path] = []
+
+    def safetyCopy(self, event_path):
+        fpath = self.get_deleted_picks_fpath(event_path)
+        fpath_new =  fpath.split('.json')[0] + '_copy_{}.json'.format(datetime.now()).replace(' ', '_')
+        shutil.move(fpath, fpath_new)
 
     def load_deleted_picks(self, event_path):
         ''' Load a list with deleted picks for event in event_path from file '''
