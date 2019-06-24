@@ -119,7 +119,9 @@ class Magnitude(object):
         pass
 
     def updated_event(self, magscaling=None):
-        self.event.magnitudes.append(self.net_magnitude(magscaling))
+        net_ml = self.net_magnitude(magscaling)
+        if net_ml:
+            self.event.magnitudes.append(net_ml)
         return self.event
 
     def net_magnitude(self, magscaling=None):
