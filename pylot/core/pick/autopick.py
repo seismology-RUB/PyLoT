@@ -20,7 +20,7 @@ from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck, get_pickparams, get_quality_class
 from pylot.core.util.utils import getPatternLine, gen_Pool,\
-    real_Bool, identifyPhaseID, real_None, correct_iplot
+    get_Bool, identifyPhaseID, get_None, correct_iplot
 
 from obspy.taup import TauPyModel
 from obspy import Trace
@@ -272,7 +272,7 @@ class AutopickStation(object):
         self.pickparams = copy.deepcopy(pickparam)
         self.verbose = verbose
         self.iplot = correct_iplot(iplot)
-        self.fig_dict = real_None(fig_dict)
+        self.fig_dict = get_None(fig_dict)
         self.metadata = metadata
         self.origin = origin
 
@@ -779,7 +779,7 @@ class AutopickStation(object):
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
 
-        if real_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
+        if get_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
             Lc = np.inf
             try:
                 # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing

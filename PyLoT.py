@@ -77,7 +77,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, make_pen, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, real_Bool, SetChannelComponents
+    check_all_pylot, get_Bool, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -2137,7 +2137,7 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
-        if real_Bool(settings.value('large_dataset')) == True:
+        if get_Bool(settings.value('large_dataset')) == True:
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'

@@ -315,7 +315,7 @@ def fnConstructor(s):
     return fn
 
 
-def real_None(value):
+def get_None(value):
     """
     Convert "None" to None
     :param value:
@@ -329,7 +329,7 @@ def real_None(value):
         return value
 
 
-def real_Bool(value):
+def get_Bool(value):
     """
     Convert string representations of bools to their true boolean value
     :param value:
@@ -1231,7 +1231,7 @@ def correct_iplot(iplot):
     try:
         iplot = int(iplot)
     except ValueError:
-        if real_Bool(iplot):
+        if get_Bool(iplot):
             iplot = 2
         else:
             iplot = 0

@@ -27,7 +27,7 @@ from pylot.core.util.dataprocessing import restitute_data, Metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import real_None, trim_station_components, check4gaps, check4doubled, \
+from pylot.core.util.utils import get_None, trim_station_components, check4gaps, check4doubled, \
     check4rotated
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -89,9 +89,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                               sp=sp_info)
     print(splash)
 
-    parameter = real_None(parameter)
-    inputfile = real_None(inputfile)
-    eventid = real_None(eventid)
+    parameter = get_None(parameter)
+    inputfile = get_None(inputfile)
+    eventid = get_None(eventid)
 
     fig_dict = None
     fig_dict_wadatijack = None
@@ -152,7 +152,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available and all stations are used
-        if real_None(parameter['nllocbin']) and station == 'all':
+        if get_None(parameter['nllocbin']) and station == 'all':
             locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')
