@@ -477,6 +477,10 @@ class AutopickStation(object):
         if self.pickparams["use_taup"] is False or not self.origin or not self.metadata:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
+            if not self.origin:
+                print('Requested use_taup but no origin given. Exit taupy.')
+            if not self.metadata:
+                print('Requested use_taup but no metadata given. Exit taupy.')
             exit_taupy()
             return
 
@@ -775,7 +779,7 @@ class AutopickStation(object):
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
 
-        if self.pickparams['use_taup'] is True and self.origin is not None:
+        if real_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
             Lc = np.inf
             try:
                 # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
