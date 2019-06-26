@@ -382,7 +382,7 @@ class Array_map(QtGui.QWidget):
             longitudes.append(self.stations_dict[st_id]['longitude'])
         return picks, latitudes, longitudes
 
-    def draw_contour_filled(self, nlevel='75'):
+    def draw_contour_filled(self, nlevel='100'):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
