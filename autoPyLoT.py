@@ -227,7 +227,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
         allpicks = {}
         glocflag = locflag
-        for eventpath in events:
+
+        nEvents = len(events)
+        for index, eventpath in enumerate(events):
+            print('Working on: {} ({}/{})'.format(eventpath, index + 1, nEvents))
             evID = os.path.split(eventpath)[-1]
             event_datapath = os.path.join(eventpath, wfpath_extension)
             fext = '.xml'
@@ -295,7 +298,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     corr_dat = restitute_data(wfdat.copy(), metadata, ncores=ncores)
             if not corr_dat and locflag:
                 locflag = 2
-            print('Working on event %s. Stations: %s' % (eventpath, station))
+            print('Stations: %s' % (station))
             print(wfdat)
             ##########################################################
             # !automated picking starts here!
