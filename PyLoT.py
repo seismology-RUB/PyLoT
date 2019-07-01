@@ -83,7 +83,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, FileExtensionDialog
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -166,6 +166,10 @@ class MainWindow(QMainWindow):
 
         # track deleted picks for logging
         self.deleted_picks = {}
+
+        # headers for event table
+        self.table_headers = ['', 'Event', 'Time', 'Lat', 'Lon', 'Depth', 'Mag', '[N] MP', '[N] AP', 'Tuning Set',
+                              'Test Set', 'Notes']
 
         while True:
             try:
@@ -387,6 +391,10 @@ class MainWindow(QMainWindow):
                                                                  " source origin and magnitude.")
         self.disableSaveEventAction()
 
+        self.exportProjectTableAction = self.createAction(self, "Export Project table...",
+                                                          self.exportProjectTableDialogs, None,
+                                                          None, "Export Project table (csv)")
+
         self.addEventDataAction = self.createAction(self, "Add &events ...",
                                                     self.add_events,
                                                     "Ctrl+E", addIcon,
@@ -546,6 +554,7 @@ class MainWindow(QMainWindow):
                                 self.saveProjectAsAction, None,
                                 self.addEventDataAction,
                                 self.openEventAction, self.saveEventAction, None,
+                                self.exportProjectTableAction, None,
                                 quitAction)
         self.fileMenu.aboutToShow.connect(self.updateFileMenu)
         self.updateFileMenu()
@@ -948,10 +957,10 @@ class MainWindow(QMainWindow):
             return
         refresh = False
         events = self.project.eventlist
-        fed = FileExtensionDialog()
-        if not fed.exec_():
+        sld = SingleTextLineDialog(label='Specify file extension: ', default_text='.xml')
+        if not sld.exec_():
             return
-        fext = fed.file_extension.text()
+        fext = sld.lineEdit.text()
         #fext = '.xml'
         for event in events:
             path = event.path
@@ -3146,6 +3155,7 @@ class MainWindow(QMainWindow):
             self.setDirty(True)
 
         current_event = self.get_current_event()
+        scroll_item = None
 
         # generate delete icon
         del_icon = QIcon()
@@ -3160,18 +3170,7 @@ class MainWindow(QMainWindow):
         self.event_table = QtGui.QTableWidget(self)
         self.event_table.setColumnCount(12)
         self.event_table.setRowCount(len(eventlist))
-        self.event_table.setHorizontalHeaderLabels(['',
-                                                    'Event',
-                                                    'Time',
-                                                    'Lat',
-                                                    'Lon',
-                                                    'Depth',
-                                                    'Mag',
-                                                    '[N] MP',
-                                                    '[N] AP',
-                                                    'Tuning Set',
-                                                    'Test Set',
-                                                    'Notes'])
+        self.event_table.setHorizontalHeaderLabels(self.table_headers)
 
         # iterate through eventlist and generate items for table rows
         self.project._table = []
@@ -3257,6 +3256,9 @@ class MainWindow(QMainWindow):
 
             self.setItemColor(column, index, event, current_event)
 
+            if event == current_event:
+                scroll_item = item_path
+
             # manipulate items
             item_ref.setBackground(self._ref_test_colors['ref'])
             item_test.setBackground(self._ref_test_colors['test'])
@@ -3277,6 +3279,55 @@ class MainWindow(QMainWindow):
         self.events_layout.addWidget(self.event_table)
         self.tabs.setCurrentIndex(tabindex)
 
+        self.event_table.scrollToItem(scroll_item)
+
+    def exportProjectTableDialogs(self):
+        if not self.project or not self.project._table:
+            QMessageBox.warning(self, 'Nothing to export', 'No project or no project table to export yet!')
+            return
+
+        sld = SingleTextLineDialog(label='Specify separator (do not use within notes!): ', default_text=';')
+        if not sld.exec_():
+            return
+        separator = sld.lineEdit.text()
+
+        fd = QtGui.QFileDialog()
+        fname = fd.getSaveFileName(self, 'Browse for file.',
+                                   filter='Table (*.csv)')[0]
+        if not fname: return
+
+        if not fname.endswith('.csv'):
+            fname += '.csv'
+
+        try:
+            self.exportProjectTable(fname, separator)
+        except Exception as e:
+            QMessageBox.warning(self, 'Could not save file',
+                                'Could not save file {}.'.format(fname))
+            return
+
+    def exportProjectTable(self, filename, separator=';'):
+        with open(filename, 'w') as outfile:
+            for header in self.table_headers[1:12]:
+                outfile.write('{}{}'.format(header, separator))
+            outfile.write('\n')
+
+            for row in self.project._table:
+                row = row[1:12]
+                event, time, lat, lon, depth, mag, nmp, nap, tune, test, notes = row
+                row_str = ''
+                for index in range(len(row)):
+                    row_str += '{}'+'{}'.format(separator)
+
+                row_str = row_str.format(event.text(), time.text(), lat.text(), lon.text(), depth.text(), mag.text(),
+                                         nmp.text(), nap.text(), bool(tune.checkState()), bool(test.checkState()),
+                                         notes.text())
+                outfile.write(row_str + '\n')
+
+        message = 'Wrote table to file: {}'.format(filename)
+        print(message)
+        self.update_status(message)
+
     def setItemColor(self, item_list, index, event, current_event):
         def set_background_color(items, color):
             for item in items:
@@ -3294,6 +3345,7 @@ class MainWindow(QMainWindow):
 
         if event == current_event:
             set_background_color(item_list, QtGui.QColor(*(0, 143, 143, 255)))
+
 
     def set_metadata(self):
         self.project.inventories = self.metadata.inventories

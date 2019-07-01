@@ -17,7 +17,7 @@ plt.interactive(False)
 
 
 class Array_map(QtGui.QWidget):
-    def __init__(self, parent, figure=None):
+    def __init__(self, parent, figure=None, pointsize=30.):
         '''
         Create a map of the array.
         :param parent: PyLoT Mainwindow class
@@ -26,6 +26,7 @@ class Array_map(QtGui.QWidget):
         QtGui.QWidget.__init__(self)
         self._parent = parent
         self.metadata = parent.metadata
+        self.pointsize = pointsize
         self.picks = None
         self.picks_dict = None
         self.autopicks_dict = None
@@ -432,7 +433,7 @@ class Array_map(QtGui.QWidget):
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
-        self.sc = self.basemap.scatter(lons, lats, s=50, facecolor='none', latlon=True,
+        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True,
                                        zorder=10, picker=True, edgecolor='m', label='Not Picked')
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
@@ -449,10 +450,10 @@ class Array_map(QtGui.QWidget):
         cmap = self.get_colormap()
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=50, edgecolors='white', cmap=cmap,
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=self.pointsize, edgecolors='white', cmap=cmap,
                                                   c=picks[0], latlon=True, zorder=11)
         if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=50, edgecolors='white', cmap=cmap,
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=self.pointsize, edgecolors='white', cmap=cmap,
                                                   c=picks[1], latlon=True, zorder=11)
         else:
             self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white', cmap=cmap,
@@ -474,7 +475,8 @@ class Array_map(QtGui.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize='x-small', color=color, zorder=14))
+                                                          fontsize='x-small', fontweight='semibold',
+                                                          color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
