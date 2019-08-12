@@ -196,7 +196,7 @@ class Metadata(object):
             for network in inventory.networks:
                 for station in network.stations:
                     station_name = station.code
-                    network_name = network_name.code
+                    network_name = network.code
                     if not station_name in self.stations_dict.keys():
                         st_id = '{}.{}'.format(network_name, station_name)
                         self.stations_dict[st_id] = {'latitude': station[0].latitude,
