@@ -206,7 +206,7 @@ class AddMetadataWidget(QWidget):
     def init_add_remove_buttons(self):
         self.add_remove_layout = QVBoxLayout()
         self.add_button = self.init_button("Add", Qt.Key_Insert, "Choose a file to add \n(Ins)")
-        self.remove_button = self.init_button("Remove", Qt.Key_Delete, "Remove selected file \n(Del)")
+        self.remove_button = self.init_button("Remove", Qt.Key_Delete, "Remove selected file(s) \n(Del)")
         self.add_remove_layout.addWidget(self.add_button, 0, QtCore.Qt.AlignBottom)
         self.add_remove_layout.addWidget(self.remove_button, 0, QtCore.Qt.AlignTop)
         self.list_buttons_layout.insertLayout(1, self.add_remove_layout, 0)
@@ -252,6 +252,8 @@ class AddMetadataWidget(QWidget):
         for inventory_path in self.metadata.inventories:
             item = QtGui.QStandardItem(inventory_path)
             self.list_model.appendRow(item)
+            if inventory_path in self.metadata.obspy_dmt_invs:
+                item.setFlags(Qt.NoItemFlags)
 
     def directory_to_lineedit(self):
         inventory_path = self.open_directory()

@@ -2039,10 +2039,11 @@ class MainWindow(QMainWindow):
         self.update_obspy_dmt()
 
     def update_obspy_dmt(self):
+        self.metadata.clear_inventory()
         if self.obspy_dmt:
             invpath = os.path.join(self.get_current_event_path(), 'resp')
             if not invpath in self.metadata.inventories:
-                self.metadata.add_inventory(invpath)
+                self.metadata.add_inventory(invpath, obspy_dmt_inv = True)
             # check if directory is empty
             if os.listdir(invpath):
                 self.init_map_button.setEnabled(True)
@@ -3527,6 +3528,7 @@ class MainWindow(QMainWindow):
         '''
         Save back project to new pickle file.
         '''
+        self.metadata.clear_inventory()
         dlg = QFileDialog(self)
         fnm = dlg.getSaveFileName(self, 'Create a new project file...', filter='Pylot project (*.plp)')
         filename = fnm[0]
@@ -3541,6 +3543,7 @@ class MainWindow(QMainWindow):
         self.saveProjectAsAction.setEnabled(True)
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
         self.add2recentProjects(filename)
+        self.update_obspy_dmt()
         return True
 
     def saveProject(self, new=False):
@@ -3553,9 +3556,11 @@ class MainWindow(QMainWindow):
                     self.setDirty(True)
                     return False
             else:
+                self.metadata.clear_inventory()
                 self.project.parameter = self._inputs
                 self.exportEvents()
                 self.project.save()
+                self.update_obspy_dmt()
             if not self.project.dirty:
                 self.setDirty(False)
                 self.update_status('Saved back project to file:\n{}'.format(self.project.location), duration=5000)
