@@ -878,7 +878,7 @@ def merge_stream(stream):
     return stream, gaps
 
 
-def check4gaps(data):
+def check4gapsAndRemove(data):
     """
     check for gaps in Stream and remove them
     :param data: stream of seismic data
@@ -894,6 +894,25 @@ def check4gaps(data):
             for trace in wf_station:
                 data.remove(trace)
             print('check4gaps: Found gaps and removed station {} from waveform data.'.format(station))
+
+    return data
+
+
+def check4gapsAndMerge(data):
+    """
+    check for gaps in Stream and merge if gaps are found
+    :param data: stream of seismic data
+    :type data: `~obspy.core.stream.Stream`
+    :return: data stream
+    :rtype: `~obspy.core.stream.Stream`
+    """
+    gaps = data.get_gaps()
+    if gaps:
+        merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
+        data.merge(method=1)
+        print('Merged the following stations because of gaps:')
+        for merged_station in merged:
+            print(merged_station)
 
     return data
 

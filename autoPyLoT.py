@@ -27,7 +27,7 @@ from pylot.core.util.dataprocessing import restitute_data, Metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import get_None, trim_station_components, check4gaps, check4doubled, \
+from pylot.core.util.utils import get_None, trim_station_components, check4gapsAndRemove, check4doubled, \
     check4rotated
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -278,7 +278,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     return
             #wfdat = remove_underscores(wfdat)
             # trim components for each station to avoid problems with different trace starttimes for one station
-            wfdat = check4gaps(wfdat)
+            wfdat = check4gapsAndRemove(wfdat)
             wfdat = check4doubled(wfdat)
             wfdat = trim_station_components(wfdat, trim_start=True, trim_end=False)
             if not wfpath_extension:

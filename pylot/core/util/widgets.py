@@ -1312,14 +1312,6 @@ class PylotCanvas(FigureCanvas):
         if mapping:
             plot_positions = self.calcPlotPositions(st_select, compclass)
 
-        gaps = st_select.get_gaps()
-        if gaps:
-            merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
-            st_select.merge(method=1)
-            print('Merged the following stations because of gaps:')
-            for merged_station in merged:
-                print(merged_station)
-
         # list containing tuples of network, station, channel and plot position (for sorting)
         nslc = []
         for plot_pos, trace in enumerate(st_select):
