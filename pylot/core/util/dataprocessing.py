@@ -301,9 +301,15 @@ class Metadata(object):
             return file_ending, robj
         # in case file endings did not match the above keys, try and error
         for file_type in ['dless', 'xml']:
-            robj, exc = read_functions[file_type](path_to_inventory_filename)
-            if exc is None:
-                return file_type, robj
+            try:
+                robj, exc = read_functions[file_type](path_to_inventory_filename)
+                if exc is None:
+                    if self.verbosity:
+                        print('Read file {} as {}'.format(path_to_inventory_filename, file_type))
+                    return file_type, robj
+            except Exception as e:
+                if self.verbosity:
+                    print('Could not read file {} as {}'.format(path_to_inventory_filename, file_type))
         return None, None
 
     @staticmethod
