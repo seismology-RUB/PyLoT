@@ -991,7 +991,7 @@ class MainWindow(QMainWindow):
         data = Data(self, event)
         try:
             data_new = Data(self, evtdata=str(fname))
-            # MP MP uncommented because adding several picks might cause inconsistencies
+            # MP MP commented because adding several picks might cause inconsistencies
             data = data_new
             #data += data_new
         except ValueError:
@@ -1014,8 +1014,7 @@ class MainWindow(QMainWindow):
         print(message)
         self.update_status(message)
         if not loc:
-            self.updatePicks(type='auto', event=event)
-            self.updatePicks(type='manual', event=event)
+            self.updatePicks(event=event)
         if draw:
             if self.get_current_event().pylot_picks or self.get_current_event().pylot_autopicks:
                 self.refreshEvents()
@@ -2820,15 +2819,14 @@ class MainWindow(QMainWindow):
     def get_deleted_picks_fpath(self, event_path):
         return os.path.join(event_path, 'deleted_picks.json')
 
-    def updatePicks(self, type='manual', event=None):
+    def updatePicks(self, event=None):
         if not event:
             event = self.get_current_event()
+        event.pylot_picks = {}
+        event.pylot_autopicks = {}
         picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data())
-        if type == 'manual':
-            event.addPicks(picksdict['manual'])
-            # event.picks.update(picks) MP MP idea
-        elif type == 'auto':
-            event.addAutopicks(picksdict['auto'])
+        event.addPicks(picksdict['manual'])
+        event.addAutopicks(picksdict['auto'])
 
     def drawPicks(self, station=None, picktype=None, stime=None):
         # if picktype not specified, draw both
