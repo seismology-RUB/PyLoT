@@ -780,7 +780,6 @@ class AutopickStation(object):
         self.tr_filt_z_bpz2 = tr_filt
 
         if get_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
-            Lc = np.inf
             try:
                 # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
                 self.modify_starttimes_taupy()
@@ -788,8 +787,8 @@ class AutopickStation(object):
                 print(ae)
             except MissingTraceException as mte:
                 print(mte)
-        else:
-            Lc = self.pickparams['pstop'] - self.pickparams['pstart']
+
+        Lc = self.pickparams['pstop'] - self.pickparams['pstart']
 
         Lwf = self.ztrace.stats.endtime - self.ztrace.stats.starttime
         if Lwf < 0:
