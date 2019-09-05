@@ -17,7 +17,7 @@ plt.interactive(False)
 
 
 class Array_map(QtGui.QWidget):
-    def __init__(self, parent, figure=None, pointsize=30.):
+    def __init__(self, parent, metadata, figure=None, pointsize=30., width=5e6, height=2e6):
         '''
         Create a map of the array.
         :param parent: PyLoT Mainwindow class
@@ -25,8 +25,10 @@ class Array_map(QtGui.QWidget):
         '''
         QtGui.QWidget.__init__(self)
         self._parent = parent
-        self.metadata = parent.metadata
+        self.metadata = metadata
         self.pointsize = pointsize
+        self.width = width
+        self.height = height
         self.picks = None
         self.picks_dict = None
         self.autopicks_dict = None
@@ -39,7 +41,7 @@ class Array_map(QtGui.QWidget):
         self.init_stations()
         self.init_basemap(resolution='l')
         self.init_map()
-        self._style = parent._style
+        self._style = None if not hasattr(parent, '_style') else parent._style
         # self.show()
 
     @property
@@ -213,6 +215,7 @@ class Array_map(QtGui.QWidget):
         self.status_label = QtGui.QLabel()
 
         self.main_ax = self.figure.add_subplot(111)
+        self.main_ax.set_facecolor('0.7')
         self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
                                   panZoomX=False, panZoomY=False)
 
@@ -313,10 +316,8 @@ class Array_map(QtGui.QWidget):
 
     def init_basemap(self, resolution='l'):
         # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
-        width = 5e6
-        height = 2e6
         basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax,
-                          width=width, height=height,
+                          width=self.width, height=self.height,
                           lat_0=(self.latmin + self.latmax) / 2.,
                           lon_0=(self.lonmin + self.lonmax) / 2.)
 

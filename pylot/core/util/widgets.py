@@ -981,7 +981,12 @@ class PylotCanvas(FigureCanvas):
 
         self.axes = figure.axes
         self.figure = figure
-        self.figure.set_facecolor(parent._style['background']['rgba_mpl'])
+        if hasattr(parent, '_style'):
+            self.style = parent._style
+        else:
+            self.style = None
+        if self.style:
+            self.figure.set_facecolor(self.style['background']['rgba_mpl'])
         # attribute plotdict is a dictionary connecting position and a name
         self.plotdict = dict()
         # initialize super class
@@ -990,10 +995,11 @@ class PylotCanvas(FigureCanvas):
         self.orig_parent = parent
 
         if multicursor:
+            color_cursor = (0., 0., 0., 1.) if not self.style else self.style['multicursor']['rgba_mpl']
             # add a cursor for station selection
             self.multiCursor = MultiCursor(self.figure.canvas, self.axes,
                                            horizOn=True, useblit=True,
-                                           color=parent._style['multicursor']['rgba_mpl'], lw=1)
+                                           color=color_cursor, lw=1)
 
         # initialize panning attributes
         self.press = None
@@ -1322,8 +1328,7 @@ class PylotCanvas(FigureCanvas):
         nslc.sort()
         nslc.reverse()
 
-        style = self.orig_parent._style
-        linecolor = style['linecolor']['rgba_mpl']
+        linecolor = (0., 0., 0., 1.) if not self.style else self.style['linecolor']['rgba_mpl']
 
         for n, seed_id in enumerate(nslc):
             network, station, location, channel = seed_id.split('.')

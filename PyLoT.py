@@ -3056,7 +3056,7 @@ class MainWindow(QMainWindow):
                 self.init_metadata()
                 if not self.metadata:
                     return
-        self.array_map = Array_map(self)
+        self.array_map = Array_map(self, self.metadata)
         # self.array_map_thread()
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
