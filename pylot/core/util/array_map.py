@@ -215,7 +215,7 @@ class Array_map(QtGui.QWidget):
         self.status_label = QtGui.QLabel()
 
         self.main_ax = self.figure.add_subplot(111)
-        self.main_ax.set_facecolor('0.7')
+        #self.main_ax.set_facecolor('0.7')
         self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
                                   panZoomX=False, panZoomY=False)
 
