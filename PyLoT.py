@@ -3377,21 +3377,13 @@ class MainWindow(QMainWindow):
         wf_copy = self.get_data().getWFData().copy()
         corr_wf = restitute_data(wf_copy, self.metadata)
 
-        #if not rest_flag:
-        #    # raise ProcessingError('Restitution of waveform data failed!')
-        #    print('Restitution of waveform data failed!')
-        #    return None
-        #else:
-        #if type == 'ML':
-        # calculate local magnitude
-        local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                   self.inputs.get('WAscaling'), verbosity=True)
-        #return local_mag.updated_event()
-        #elif type == 'Mw':
-        #if type == 'Mw':
         # calculate moment magnitude
         moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
                                      self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
+        # calculate local magnitude
+        local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
+                                   self.inputs.get('WAscaling'), verbosity=True)
+
         return local_mag.updated_event(), moment_mag.updated_event()
        # else:
        #     return None
