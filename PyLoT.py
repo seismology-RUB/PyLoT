@@ -3375,18 +3375,20 @@ class MainWindow(QMainWindow):
             return None
 
         wf_copy = self.get_data().getWFData().copy()
-        corr_wf = restitute_data(wf_copy, self.metadata)
+        # restitute only picked traces
+        for picks in self.getPicks():
+            station = picks
+            wf_select = wf_copy.select(station=station)
+            corr_wf = restitute_data(wf_select, self.metadata)
 
-        # calculate moment magnitude
-        moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
-                                     self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
-        # calculate local magnitude
-        local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                   self.inputs.get('WAscaling'), verbosity=True)
+            # calculate moment magnitude
+            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
+                                         self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
+            # calculate local magnitude
+            local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
+                                       self.inputs.get('WAscaling'), verbosity=True)
 
         return local_mag.updated_event(), moment_mag.updated_event()
-       # else:
-       #     return None
 
     def check4Loc(self):
         return self.picksNum() >= 4
