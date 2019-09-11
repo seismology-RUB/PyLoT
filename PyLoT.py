@@ -3376,8 +3376,7 @@ class MainWindow(QMainWindow):
 
         wf_copy = self.get_data().getWFData().copy()
         # restitute only picked traces
-        for picks in self.getPicks():
-            station = picks
+        for station in self.getPicks():
             wf_select = wf_copy.select(station=station)
             corr_wf = restitute_data(wf_select, self.metadata)
 
