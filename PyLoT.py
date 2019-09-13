@@ -3379,7 +3379,6 @@ class MainWindow(QMainWindow):
         for station in self.getPicks():
             wf_select = wf_copy.select(station=station)
             corr_wf = restitute_data(wf_select, self.metadata)
-
             # calculate moment magnitude
             moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
                                          self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)

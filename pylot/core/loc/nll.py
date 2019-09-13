@@ -95,10 +95,15 @@ def locate(fnin, parameter=None):
 
 def read_location(fn):
     path, file = os.path.split(fn)
-    file = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
-    if len(file) > 1:
-        raise IOError('ambiguous location name {0}'.format(file))
-    fn = os.path.join(path, file[0])
+    nllfile = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
+    if len(nllfile) > 1:
+        # get most recent file
+        print("Found several location files matching pattern!")
+        print("Using the most recent one ...")
+        files_to_search = '{0}/{1}'.format(path, file) + '.[0-9]*.grid0.loc.hyp'
+        fn = max(glob.glob(files_to_search), key=os.path.getctime)
+    else:
+        fn = os.path.join(path, nllfile[0])
     return read_events(fn)[0]
 
 
