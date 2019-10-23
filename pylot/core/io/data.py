@@ -454,7 +454,10 @@ class Data(object):
                 try:
                     real_or_syn_data[synthetic] += read(fname, format='GSE2')
                 except Exception as e:
-                    warnmsg += '{0}\n{1}\n'.format(fname, e)
+                    try:
+                        real_or_syn_data[synthetic] += read(fname, format='SEGY')
+                    except Exception as e:
+                        warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
                 warnmsg += '{0}\n{1}\n'.format(fname, se)
         if warnmsg:

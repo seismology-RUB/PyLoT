@@ -17,7 +17,7 @@ plt.interactive(False)
 
 
 class Array_map(QtGui.QWidget):
-    def __init__(self, parent, metadata, figure=None, pointsize=30., width=5e6, height=2e6):
+    def __init__(self, parent, metadata, figure=None, pointsize=30., linewidth=1.5, width=5e6, height=2e6):
         '''
         Create a map of the array.
         :param parent: PyLoT Mainwindow class
@@ -27,6 +27,7 @@ class Array_map(QtGui.QWidget):
         self._parent = parent
         self.metadata = metadata
         self.pointsize = pointsize
+        self.linewidth = linewidth
         self.width = width
         self.height = height
         self.picks = None
@@ -111,7 +112,7 @@ class Array_map(QtGui.QWidget):
         stat_dict = self.stations_dict['{}.{}'.format(network, station)]
         lat = stat_dict['latitude']
         lon = stat_dict['longitude']
-        self.highlighted_stations.append(self.basemap.scatter(lon, lat, s=50, edgecolors=color,
+        self.highlighted_stations.append(self.basemap.scatter(lon, lat, s=self.pointsize, edgecolors=color,
                                                               facecolors='none', latlon=True,
                                                               zorder=12, label='deleted'))
         self.canvas.draw()
@@ -388,8 +389,9 @@ class Array_map(QtGui.QWidget):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
-        self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active,
-                                             levels, latlon=True, zorder=9, alpha=0.7, cmap=self.get_colormap())
+        self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active, levels,
+                                             linewidths=self.linewidth, latlon=True, zorder=9, alpha=0.7,
+                                             cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
@@ -440,7 +442,7 @@ class Array_map(QtGui.QWidget):
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.sc_event = self.basemap.scatter(lons, lats, s=100, facecolor='red',
+            self.sc_event = self.basemap.scatter(lons, lats, s=2*self.pointsize, facecolor='red',
                                                  latlon=True, zorder=11, label='Event (might be outside map region)')
 
     def scatter_picked_stations(self):
@@ -456,8 +458,8 @@ class Array_map(QtGui.QWidget):
         if len(lons) == 2 and len(lats) == 2:
             self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=self.pointsize, edgecolors='white', cmap=cmap,
                                                   c=picks[1], latlon=True, zorder=11)
-        else:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=50, edgecolors='white', cmap=cmap,
+        if len(lons) > 2 and len(lats) > 2:
+            self.sc_picked = self.basemap.scatter(lons, lats, s=self.pointsize, edgecolors='white', cmap=cmap,
                                                   c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
@@ -476,7 +478,7 @@ class Array_map(QtGui.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize='x-small', fontweight='semibold',
+                                                          fontsize=self.pointsize/6., fontweight='semibold',
                                                           color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))

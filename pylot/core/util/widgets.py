@@ -2645,6 +2645,10 @@ class PickDlg(QDialog):
             quality = get_quality_class(picks['spe'], self.parameter['timeerrorsS'])
             phaseID = 'S'
 
+        # if no mpp is there, return
+        if not picks['mpp']:
+            return
+
         mpp = picks['mpp'] - self.getStartTime()
         if picks['epp'] and picks['lpp'] and not textOnly:
             epp = picks['epp'] - self.getStartTime()
@@ -2823,6 +2827,8 @@ class PickDlg(QDialog):
             picks = allpicks[picktype]
             for phase in picks:
                 if not type(picks[phase]) in [dict, AttribDict]:
+                    continue
+                if not picks[phase]['mpp']:
                     continue
                 pick_rel = picks[phase]['mpp'] - starttime
                 # add relative pick time, phaseID and picktype index

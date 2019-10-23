@@ -2606,9 +2606,9 @@ class MainWindow(QMainWindow):
             # init event selection options for autopick
             self.pickoptions = [('current event', self.get_current_event, None),
                                 ('tune events', self.get_ref_events, self._style['ref']['rgba']),
-                                ('test events', self.get_test_events, self._style['test']['rgba']),
-                                ('all (picked) events', self.get_manu_picked_events, None),
-                                ('all events', self.get_all_events, None)]
+                                ('test events', self.get_test_events, self._style['test']['rgba']),]
+                                #('all (picked) events', self.get_manu_picked_events, None),
+                                #('all events', self.get_all_events, None)]
 
             self.listWidget = QListWidget()
             self.setDirty(True)
