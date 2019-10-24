@@ -47,7 +47,7 @@ from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
     QActionGroup, QListWidget, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
-from obspy import UTCDateTime, read_events
+from obspy import UTCDateTime, Stream
 from obspy.core.event import Magnitude, Origin
 from obspy.core.util import AttribDict
 
@@ -2026,10 +2026,10 @@ class MainWindow(QMainWindow):
         event = self.get_current_event()
         if event.pylot_picks:
             self.drawPicks(picktype='manual')
-            self.locateEventAction.setEnabled(True)
-            self.qualities_action.setEnabled(True)
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
+        if event.pylot_picks or event.pylot_autopicks:
+            self.locateEventAction.setEnabled(True)
             self.qualities_action.setEnabled(True)
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
@@ -2994,7 +2994,8 @@ class MainWindow(QMainWindow):
         #    os.remove(phasefile)
 
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
-        self.get_data().applyEVTData(self.calc_magnitude(), typ='event')
+        for event in self.calc_magnitude():
+            self.get_data().applyEVTData(event, typ='event')
 
     def init_array_tab(self):
         '''
@@ -3375,18 +3376,36 @@ class MainWindow(QMainWindow):
             return None
 
         wf_copy = self.get_data().getWFData().copy()
-        # restitute only picked traces
-        for station in self.getPicks():
-            wf_select = wf_copy.select(station=station)
-            corr_wf = restitute_data(wf_select, self.metadata)
-            # calculate moment magnitude
-            moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
-                                         self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
-            # calculate local magnitude
-            local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
-                                       self.inputs.get('WAscaling'), verbosity=True)
 
-        return local_mag.updated_event(), moment_mag.updated_event()
+        wf_select = Stream()
+        # restitute only picked traces
+        for station in np.unique(self.getPicks('manual').keys() + self.getPicks('auto').keys()):
+            wf_select += wf_copy.select(station=station)
+
+        corr_wf = restitute_data(wf_select, self.metadata)
+        # calculate moment magnitude
+        moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
+                                     self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
+        # calculate local magnitude
+        local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
+                                   self.inputs.get('WAscaling'), verbosity=True)
+
+        magscaling = self.inputs.get('magscaling')
+        event_loc_mag = local_mag.updated_event(magscaling)
+        net_ml = local_mag.net_magnitude(magscaling)
+        if net_ml:
+            print("Network local magnitude: %4.1f" % net_ml.mag)
+        if magscaling is None:
+            scaling = False
+        elif magscaling[0] != 0 and magscaling[1] != 0:
+            scaling = False
+        else:
+            scaling = True
+        if scaling:
+            print("Network local magnitude scaled with:")
+            print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
+
+        return event_loc_mag, moment_mag.updated_event()
 
     def check4Loc(self):
         return self.picksNum() >= 4
