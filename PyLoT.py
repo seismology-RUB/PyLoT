@@ -3386,6 +3386,10 @@ class MainWindow(QMainWindow):
         # calculate moment magnitude
         moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
                                      self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
+        event_moment_mag = moment_mag.net_magnitude()
+        if event_moment_mag is not None:
+            print("Network moment magnitude: %4.1f" % event_moment_mag.mag)
+
         # calculate local magnitude
         local_mag = LocalMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('sstop'),
                                    self.inputs.get('WAscaling'), verbosity=True)
@@ -3405,7 +3409,7 @@ class MainWindow(QMainWindow):
             print("Network local magnitude scaled with:")
             print("%f * Ml + %f" % (magscaling[0], magscaling[1]))
 
-        return event_loc_mag, moment_mag.updated_event()
+        return event_loc_mag, event_moment_mag
 
     def check4Loc(self):
         return self.picksNum() >= 4
