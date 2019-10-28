@@ -466,7 +466,7 @@ defaults = {'rootpath': {'type': str,
                           'tooltip': 'Scaling relation (log(Ao)+Alog(r)+Br+C) of Wood-Anderson amplitude Ao [nm] \
                           If zeros are set, original Richter magnitude is calculated!',
                           'value': (0., 0., 0.),
-                          'min': (0., 0., 0.),
+                          'min': (-np.inf, -np.inf, -np.inf),
                           'max': (np.inf, np.inf, np.inf),
                           'namestring': ('Wood-Anderson scaling', '', '', '')},
 
@@ -474,7 +474,7 @@ defaults = {'rootpath': {'type': str,
                            'tooltip': 'Scaling relation for derived local magnitude [a*Ml+b]. \
                            If zeros are set, no scaling of network magnitude is applied!',
                            'value': (0., 0.),
-                           'min': (0., 0.),
+                           'min': (0., -np.inf),
                            'max': (np.inf, np.inf),
                            'namestring': ('Local mag. scaling', '', '')},
 
