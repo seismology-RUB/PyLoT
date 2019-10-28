@@ -3511,6 +3511,9 @@ class MainWindow(QMainWindow):
             self.project = Project.load(fnm)
             if hasattr(self.project, 'parameter'):
                 if self.project.parameter:
+                    # do this step to update default parameter on older PyLoT projects
+                    self.project.parameter.reinit_default_parameters()
+
                     self._inputs = self.project.parameter
                     self.updateFilteroptions()
             # added for backwards compatibility with older events not having a 'dirty' attribute
