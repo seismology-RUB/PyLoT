@@ -194,6 +194,9 @@ class PylotParameter(object):
         all_names += self.get_special_para_names()['quality']
         return all_names
 
+    def reinit_default_parameters(self):
+        self.__init_default_paras()
+
     @staticmethod
     def check_range(value, max_value, min_value):
         """
