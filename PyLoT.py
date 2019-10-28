@@ -3386,8 +3386,8 @@ class MainWindow(QMainWindow):
         # calculate moment magnitude
         moment_mag = MomentMagnitude(corr_wf, self.get_data().get_evt_data(), self.inputs.get('vp'),
                                      self.inputs.get('Qp'), self.inputs.get('rho'), verbosity=True)
-        moment_mag = moment_mag.net_magnitude()
-        event_moment_mag = moment_mag.updated_event()
+        moment_mag.updated_event()
+        event_moment_mag = moment_mag.net_magnitude()
         if event_moment_mag is not None:
             print("Network moment magnitude: %4.1f" % event_moment_mag.mag)
 
