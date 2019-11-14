@@ -14,7 +14,8 @@ from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
-from pylot.core.util.utils import fnConstructor, full_range, check4rotated, check4gapsAndMerge, trim_station_components
+from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
+    check4gapsAndMerge, trim_station_components
 
 
 class Data(object):

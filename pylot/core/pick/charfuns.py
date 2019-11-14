@@ -18,6 +18,7 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 
 import numpy as np
+from scipy import signal
 from obspy.core import Stream
 
 
@@ -225,6 +226,8 @@ class AICcf(CharacteristicFunction):
         ind = np.where(~np.isnan(xnp))[0]
         if ind.size:
             xnp[:ind[0]] = xnp[ind[0]]
+        xnp = signal.tukey(len(xnp), alpha=0.05) * xnp
+        xnp = xnp - np.mean(xnp)
         datlen = len(xnp)
         k = np.arange(1, datlen)
         cf = np.zeros(datlen)
@@ -238,7 +241,7 @@ class AICcf(CharacteristicFunction):
         ff = np.where(inf is True)
         if len(ff) >= 1:
             cf[ff] = 0
-
+      
         self.cf = cf - np.mean(cf)
         self.xcf = x
 
@@ -302,6 +305,7 @@ class HOScf(CharacteristicFunction):
         if ind.size:
             first = ind[0]
             LTA[:first] = LTA[first]
+        
         self.cf = LTA
         self.xcf = x
 
