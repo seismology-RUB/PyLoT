@@ -241,7 +241,7 @@ class Data(object):
         for pick in self.get_evt_data().picks:
             if picktype in str(pick.method_id.id):
                 picks.append(pick)
-
+                
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
         """
         Export event to file
