@@ -8,6 +8,8 @@ from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.io.sac import SacIOError
 
+from PySide.QtGui import QMessageBox
+
 import pylot.core.loc.velest as velest
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks
@@ -108,7 +110,7 @@ class Data(object):
             return self + other
         else:
             raise ValueError("both Data objects have differing "
-                             "unique Event identifiers")
+              "unique Event identifiers")
         return self
 
     def getPicksStr(self):
@@ -275,8 +277,8 @@ class Data(object):
                     raise IOError('No event information in file {}'.format(fnout + fnext))
                 event = cat[0]
                 if not event.resource_id == self.get_evt_data().resource_id:
-                    raise IOError("Missmatching event resource id's: {} and {}".format(event.resource_id,
-                                                                                       self.get_evt_data().resource_id))
+                    QMessageBox.warning(self, 'Warning', 'Different resource IDs!')
+                    return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
             self.get_evt_data().write(fnout + fnext, format=evtformat)
