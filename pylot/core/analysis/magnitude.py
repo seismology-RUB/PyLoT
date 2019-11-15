@@ -229,7 +229,7 @@ class LocalMagnitude(Magnitude):
         sqH = np.sqrt(power_sum)
 
         # get time array
-        th = np.arange(0, st[0].stats.npts / st[0].stats.sampling_rate, st[0].stats.delta)
+        th = np.arange(0, st[0].stats.npts / st[0].stats.sampling_rate, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         ii = min([iwin[len(iwin) - 1], len(th)])
@@ -449,17 +449,18 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
 
     if verbosity:
         print(
-            "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(
-                tr.stats.station))
+            "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw \
+                for station {0} ...".format(tr.stats.station))
 
     # additional common parameters for calculating Mo
-    rP = 2 / np.sqrt(
-        15)  # average radiation pattern of P waves (Aki & Richards, 1980)
+    # average radiation pattern of P waves (Aki & Richards, 1980)
+    rP = 2 / np.sqrt(15)  
     freesurf = 2.0  # free surface correction, assuming vertical incidence
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf)
 
-    # Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    # Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979),
+    # defined for [dyn*cm]!
     Mw = np.log10(Mo) * 2 / 3 - 6.7  # for metric units
 
     if verbosity:
@@ -513,13 +514,13 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             iplot = 2
         else:
             iplot = 0
-
+    
     # get Q value
     Q, A = qp
 
     dist = delta * 1000  # hypocentral distance in [m]
 
-    fc = None
+    Fc = None
     w0 = None
 
     zdat = select_for_phase(wfstream, "P")
@@ -575,9 +576,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             print("calcsourcespec: Something is wrong with the waveform, "
                   "no zero crossings derived!\n")
             print("No calculation of source spectrum possible!")
-        plotflag = 0
     else:
-        plotflag = 1
         index = min([3, len(zc) - 1])
         calcwin = (zc[index] - zc[0]) * dt
         iwin = getsignalwin(t, rel_onset, calcwin)
@@ -585,9 +584,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
         # fft
         fny = freq / 2
-        l = len(xdat) / freq
+        #l = len(xdat) / freq
         # number of fft bins after Bath
-        n = freq * l
+        #n = freq * l
         # find next power of 2 of data length
         m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
         N = int(np.power(m, 2))
@@ -619,25 +618,23 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         # use of implicit scipy otimization function
         fit = synthsourcespec(F, w0in, Fcin)
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
-        w0 = optspecfit[0]
-        fc = optspecfit[1]
-        # w01 = optspecfit[0]
-        # fc1 = optspecfit[1]
+        w01 = optspecfit[0]
+        fc1 = optspecfit[1]
         if verbosity:
             print("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                  "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
+                  "calcsourcespec: Determined corner frequency: %f Hz" % (w01, fc1))
 
         # use of conventional fitting
-        # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, 2, verbosity)
 
         # get w0 and fc as median of both
         # source spectrum fits
-        # w0 = np.median([w01, w02])
-        # fc = np.median([fc1, fc2])
-        # if verbosity:
-        #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-        #    w0, fc))
-    if iplot > 1:
+        w0 = np.median([w01, w02])
+        Fc = np.median([fc1, fc2])
+        if verbosity:
+           print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+              w0, Fc))
+    if iplot >= 1:
         f1 = plt.figure()
         tLdat = np.arange(0, len(Ldat) * dt, dt)
         plt.subplot(2, 1, 1)
@@ -645,7 +642,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         p1, = plt.plot(t, np.multiply(inttrz, 1000), 'k')
         p2, = plt.plot(tLdat, np.multiply(Ldat, 1000))
         plt.legend([p1, p2], ['Displacement', 'Rotated Displacement'])
-        if plotflag == 1:
+        if iplot == 1:
             plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
             plt.title('Seismogram and P Pulse, Station %s-%s' \
                       % (zdat[0].stats.station, zdat[0].stats.channel))
@@ -655,19 +652,19 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         plt.xlabel('Time since %s' % zdat[0].stats.starttime)
         plt.ylabel('Displacement [mm]')
 
-        if plotflag == 1:
+        if iplot >= 1:
             plt.subplot(2, 1, 2)
             p1, = plt.loglog(f, Y.real, 'k')
             p2, = plt.loglog(F, YY.real)
             p3, = plt.loglog(F, YYcor, 'r')
             p4, = plt.loglog(F, fit, 'g')
-            plt.loglog([fc, fc], [w0 / 100, w0], 'g')
+            plt.loglog([Fc, Fc], [w0 / 100, w0], 'g')
             plt.legend([p1, p2, p3, p4], ['Raw Spectrum',
                                           'Used Raw Spectrum',
                                           'Q-Corrected Spectrum',
                                           'Fit to Spectrum'])
             plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
-                      % (w0, fc))
+                      % (w0, Fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
@@ -678,7 +675,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
                 pass
             plt.close(f1)
 
-    return w0, fc
+    return w0, Fc
 
 
 def synthsourcespec(f, omega0, fcorner):
@@ -725,7 +722,7 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
             iplot = 2
         else:
             iplot = 0
-
+    
     w0 = []
     stdw0 = []
     fc = []
@@ -776,42 +773,43 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
 
     # get best found w0 anf fc from minimum
     if len(STD) > 0:
-        fc = fc[np.argmin(STD)]
+        Fc = fc[np.argmin(STD)]
         w0 = w0[np.argmin(STD)]
     elif len(STD) == 0:
-        fc = fc0
+        Fc = fc0
         w0 = max(S)
     if verbosity:
         print(
             "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
-    if iplot > 1:
+    if iplot > 0:
         plt.figure()  # iplot)
         plt.loglog(f, S, 'k')
-        plt.loglog([f[0], fc], [w0, w0], 'g')
-        plt.loglog([fc, fc], [w0 / 100, w0], 'g')
+        plt.loglog([f[0], Fc], [w0, w0], 'g')
+        plt.loglog([Fc, Fc], [w0 / 100, w0], 'g')
         plt.title('Calculated Source Spectrum, Omega0=%e m/Hz, fc=%6.2f Hz' \
-                  % (w0, fc))
+                  % (w0, Fc))
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/Hz]')
         plt.grid()
-        plt.figure()  # iplot + 1)
-        plt.subplot(311)
-        plt.plot(f[il:ir], STD, '*')
-        plt.title('Common Standard Deviations')
-        plt.xticks([])
-        plt.subplot(312)
-        plt.plot(f[il:ir], stdw0, '*')
-        plt.title('Standard Deviations of w0-Values')
-        plt.xticks([])
-        plt.subplot(313)
-        plt.plot(f[il:ir], stdfc, '*')
-        plt.title('Standard Deviations of Corner Frequencies')
-        plt.xlabel('Corner Frequencies [Hz]')
-        plt.show()
+        if iplot == 2:
+            plt.figure()  # iplot + 1)
+            plt.subplot(311)
+            plt.plot(fc, STD, '*')
+            plt.title('Common Standard Deviations')
+            plt.xticks([])
+            plt.subplot(312)
+            plt.plot(fc, stdw0, '*')
+            plt.title('Standard Deviations of w0-Values')
+            plt.xticks([])
+            plt.subplot(313)
+            plt.plot(fc, stdfc, '*')
+            plt.title('Standard Deviations of Corner Frequencies')
+            plt.xlabel('Corner Frequencies [Hz]')
+            plt.show()
         try:
             input()
         except SyntaxError:
             pass
         plt.close()
 
-    return w0, fc
+    return w0, Fc
