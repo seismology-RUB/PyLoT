@@ -625,7 +625,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
                   "calcsourcespec: Determined corner frequency: %f Hz" % (w01, fc1))
 
         # use of conventional fitting
-        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, 2, verbosity)
+        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
         # get w0 and fc as median of both
         # source spectrum fits
@@ -652,7 +652,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         plt.xlabel('Time since %s' % zdat[0].stats.starttime)
         plt.ylabel('Displacement [mm]')
 
-        if iplot >= 1:
+        if iplot > 1:
             plt.subplot(2, 1, 2)
             p1, = plt.loglog(f, Y.real, 'k')
             p2, = plt.loglog(F, YY.real)
@@ -780,8 +780,8 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         w0 = max(S)
     if verbosity:
         print(
-            "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
-    if iplot > 0:
+            "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(Fc, w0))
+    if iplot >= 1:
         plt.figure()  # iplot)
         plt.loglog(f, S, 'k')
         plt.loglog([f[0], Fc], [w0, w0], 'g')
