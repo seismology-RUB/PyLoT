@@ -483,7 +483,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                     saveEvtPath = eventpath
                 else:
                     saveEvtPath = savepath
-                fnqml = '%s/PyLoT_%s' % (saveEvtPath, evID)
+                fnqml = '%s/PyLoT_%s_autopylot' % (saveEvtPath, evID)
                 data.exportEvent(fnqml, fnext='.xml', fcheck=['auto', 'magnitude', 'origin'])
             if locflag == 1:
                 # HYPO71

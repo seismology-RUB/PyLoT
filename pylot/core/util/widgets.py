@@ -3793,7 +3793,7 @@ class TuneAutopicker(QWidget):
                 'savexml': False,
                 'obspyDMT_wfpath': wfpath}
         event = self.get_current_event()
-        self.parent().saveData(event, event.path, '.xml')
+        #self.parent().saveData(event, event.path, '.xml') MP MP uncommented because overwriting pick files in tune mode
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
