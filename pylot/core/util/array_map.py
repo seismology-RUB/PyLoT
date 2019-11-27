@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -33,6 +34,7 @@ class Array_map(QtGui.QWidget):
         self.picks = None
         self.picks_dict = None
         self.autopicks_dict = None
+        self.hybrids_dict = None
         self.eventLoc = None
         self.figure = figure
         self.picks_rel = {}
@@ -45,13 +47,12 @@ class Array_map(QtGui.QWidget):
         self._style = None if not hasattr(parent, '_style') else parent._style
         # self.show()
 
-    @property
-    def hybrids_dict(self):
-        hybrids_dict = self.picks_dict.copy()
+    def update_hybrids_dict(self):
+        self.hybrids_dict = self.picks_dict.copy()
         for station, pick in self.autopicks_dict.items():
-            if not station in hybrids_dict.keys():
-                hybrids_dict[station] = pick
-        return hybrids_dict
+            if not station in self.hybrids_dict.keys():
+                self.hybrids_dict[station] = pick
+        return self.hybrids_dict
 
     def init_map(self):
         self.init_colormap()
@@ -77,6 +78,7 @@ class Array_map(QtGui.QWidget):
             self.pickInfo(ind)
 
     def deletePick(self, ind):
+        self.update_hybrids_dict()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
             try:
@@ -118,6 +120,7 @@ class Array_map(QtGui.QWidget):
         self.canvas.draw()
 
     def pickInfo(self, ind):
+        self.update_hybrids_dict()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
             dic = self.current_picks_dict()[station]
@@ -266,6 +269,7 @@ class Array_map(QtGui.QWidget):
 
     def init_picks(self):
         def get_picks(station_dict):
+            self.update_hybrids_dict()
             picks = {}
             # selected phase
             phase = self.comboBox_phase.currentText()

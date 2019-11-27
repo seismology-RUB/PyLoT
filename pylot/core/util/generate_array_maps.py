@@ -63,5 +63,5 @@ def array_map_worker(input_dict):
 
 if __name__ == '__main__':
     #main('/home/marcel/pylot_m7_mantle_correlated.plp', f_ext='_0.5Hz')
-    main('/home/marcel/alparray_m7_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
+    main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     #main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
