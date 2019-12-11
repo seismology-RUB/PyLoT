@@ -13,29 +13,36 @@ from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import griddata
 
 from pylot.core.util.widgets import PickDlg, PylotCanvas
+from pylot.core.pick.utils import get_quality_class
 
 plt.interactive(False)
 
 
 class Array_map(QtGui.QWidget):
-    def __init__(self, parent, metadata, figure=None, pointsize=30., linewidth=1.5, width=5e6, height=2e6):
+    def __init__(self, parent, metadata, parameter=None, figure=None, annotate=True, pointsize=25.,
+                 linewidth=1.5, width=5e6, height=2e6):
         '''
         Create a map of the array.
-        :param parent: PyLoT Mainwindow class
+        :param parent: object of PyLoT Mainwindow class
+        :param parameter: object of PyLoT parameter class
         :param figure:
         '''
         QtGui.QWidget.__init__(self)
+        assert (parameter != None or parent != None), 'either parent or parameter has to be set'
         self._parent = parent
         self.metadata = metadata
         self.pointsize = pointsize
         self.linewidth = linewidth
         self.width = width
         self.height = height
+        self.annotate = annotate
         self.picks = None
         self.picks_dict = None
+        self.uncertainties = None
         self.autopicks_dict = None
         self.hybrids_dict = None
         self.eventLoc = None
+        self.parameter = parameter if parameter else parent._inputs
         self.figure = figure
         self.picks_rel = {}
         self.marked_stations = []
@@ -142,7 +149,7 @@ class Array_map(QtGui.QWidget):
                 if not data:
                     self._warn('No data for station {}'.format(station))
                     return
-                pickDlg = PickDlg(self._parent, parameter=self._parent._inputs,
+                pickDlg = PickDlg(self._parent, parameter=self.parameter,
                                   data=data, network=network, station=station,
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
@@ -178,6 +185,7 @@ class Array_map(QtGui.QWidget):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
         self.cmaps_box.currentIndexChanged.connect(self._refresh_drawings)
+        self.annotations_box.stateChanged.connect(self.switch_annotations)
         self.refresh_button.clicked.connect(self._refresh_drawings)
         self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
         # self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
@@ -238,6 +246,8 @@ class Array_map(QtGui.QWidget):
         self.comboBox_am.insertItem(1, 'manual')
         self.comboBox_am.insertItem(2, 'auto')
 
+        self.annotations_box = QtGui.QCheckBox('Annotate')
+        self.annotations_box.setChecked(True)
         self.auto_refresh_box = QtGui.QCheckBox('Automatic refresh')
         self.auto_refresh_box.setChecked(True)
         self.refresh_button = QtGui.QPushButton('Refresh')
@@ -254,6 +264,7 @@ class Array_map(QtGui.QWidget):
         self.top_row.addWidget(self.comboBox_am)
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
         self.top_row.addWidget(self.cmaps_box)
+        self.top_row.addWidget(self.annotations_box)
         self.top_row.addWidget(self.auto_refresh_box)
         self.top_row.addWidget(self.refresh_button)
 
@@ -271,6 +282,7 @@ class Array_map(QtGui.QWidget):
         def get_picks(station_dict):
             self.update_hybrids_dict()
             picks = {}
+            uncertainties = {}
             # selected phase
             phase = self.comboBox_phase.currentText()
             for st_id in station_dict.keys():
@@ -282,11 +294,12 @@ class Array_map(QtGui.QWidget):
                         if not pick['spe']:
                             continue
                     picks[st_id] = pick['mpp']
+                    uncertainties[st_id] = pick['spe']
                 except KeyError:
                     continue
                 except Exception as e:
                     print('Cannot display pick for station {}. Reason: {}'.format(station_name, e))
-            return picks
+            return picks, uncertainties
 
         def get_picks_rel(picks):
             picks_rel = {}
@@ -302,7 +315,7 @@ class Array_map(QtGui.QWidget):
                     picks_rel[st_id] = pick
             return picks_rel
 
-        self.picks = get_picks(self.stations_dict)
+        self.picks, self.uncertainties = get_picks(self.stations_dict)
         self.picks_rel = get_picks_rel(self.picks)
 
     def init_lat_lon_dimensions(self):
@@ -352,7 +365,7 @@ class Array_map(QtGui.QWidget):
         self.longrid, self.latgrid = np.meshgrid(lonaxis, lataxis)
 
     def init_picksgrid(self):
-        picks, lats, lons = self.get_picks_lat_lon()
+        picks, uncertainties, lats, lons = self.get_picks_lat_lon()
         try:
             self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid),
                                              method='linear')
@@ -381,13 +394,15 @@ class Array_map(QtGui.QWidget):
 
     def get_picks_lat_lon(self):
         picks = []
+        uncertainties = []
         latitudes = []
         longitudes = []
         for st_id, pick in self.picks_rel.items():
             picks.append(pick)
+            uncertainties.append(self.uncertainties.get(st_id))
             latitudes.append(self.stations_dict[st_id]['latitude'])
             longitudes.append(self.stations_dict[st_id]['longitude'])
-        return picks, latitudes, longitudes
+        return picks, uncertainties, latitudes, longitudes
 
     def draw_contour_filled(self, nlevel='100'):
         # self.test_gradient()
@@ -440,8 +455,8 @@ class Array_map(QtGui.QWidget):
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
-        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True,
-                                       zorder=10, picker=True, edgecolor='m', label='Not Picked')
+        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
+                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
@@ -450,20 +465,25 @@ class Array_map(QtGui.QWidget):
                                                  latlon=True, zorder=11, label='Event (might be outside map region)')
 
     def scatter_picked_stations(self):
-        picks, lats, lons = self.get_picks_lat_lon()
+        picks, uncertainties, lats, lons = self.get_picks_lat_lon()
         if len(lons) < 1 and len(lats) < 1:
             return
+
+        phase = self.comboBox_phase.currentText()
+        timeerrors = self.parameter['timeerrors{}'.format(phase)]
+        sizes = np.array([self.pointsize * ((5. - get_quality_class(uncertainty, timeerrors)))
+                          for uncertainty in uncertainties])
 
         cmap = self.get_colormap()
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=self.pointsize, edgecolors='white', cmap=cmap,
+            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=sizes, edgecolors='white', cmap=cmap,
                                                   c=picks[0], latlon=True, zorder=11)
         if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=self.pointsize, edgecolors='white', cmap=cmap,
+            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=sizes, edgecolors='white', cmap=cmap,
                                                   c=picks[1], latlon=True, zorder=11)
         if len(lons) > 2 and len(lats) > 2:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=self.pointsize, edgecolors='white', cmap=cmap,
+            self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
                                                   c=picks, latlon=True, zorder=11, label='Picked')
 
     def annotate_ax(self):
@@ -512,6 +532,13 @@ class Array_map(QtGui.QWidget):
         self.init_colormap()
         self.draw_everything()
 
+    def switch_annotations(self):
+        if self.annotations_box.isChecked():
+            self.annotate = True
+        else:
+            self.annotate = False
+        self._refresh_drawings()
+
     def draw_everything(self):
         picktype = self.comboBox_am.currentText()
         picks_available = (self.picks_dict and picktype == 'manual') \
@@ -531,7 +558,8 @@ class Array_map(QtGui.QWidget):
             self.comboBox_phase.setEnabled(True)
         else:
             self.comboBox_phase.setEnabled(False)
-        self.annotate_ax()
+        if self.annotate:
+            self.annotate_ax()
         self.canvas.draw()
 
     def remove_drawings(self):
@@ -575,6 +603,7 @@ class Array_map(QtGui.QWidget):
     def remove_annotations(self):
         for annotation in self.annotations:
             annotation.remove()
+        self.annotations = []
 
     def zoom(self, event):
         map = self.basemap
