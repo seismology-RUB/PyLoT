@@ -4608,8 +4608,8 @@ class InputsTab(PropTab):
         self.tstopBox = QSpinBox()
         for spinbox in [self.tstartBox, self.tstopBox]:
             spinbox.setRange(-99999, 99999)
-        self.tstartBox.setValue(settings.value('tstart') if get_None(settings.value('tstart')) else 0)
-        self.tstopBox.setValue(settings.value('tstop') if get_None(settings.value('tstop')) else 0)
+        self.tstartBox.setValue(float(settings.value('tstart')) if get_None(settings.value('tstart')) else 0)
+        self.tstopBox.setValue(float(settings.value('tstop')) if get_None(settings.value('tstop')) else 0)
         self.cuttimesLayout.addWidget(self.tstartBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
         self.cuttimesLayout.addWidget(self.tstopBox, 10)
