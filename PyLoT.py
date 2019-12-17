@@ -67,7 +67,7 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.utils import symmetrize_error, getQualityFromUncertainty, getPickQuality, get_quality_class
-from pylot.core.io.phases import picksdict_from_picks
+from pylot.core.io.phases import picksdict_from_picks, picks_from_picksdict
 import pylot.core.loc.nll as nll
 from pylot.core.util.errors import DatastructureError, \
     OverwriteError
@@ -290,6 +290,8 @@ class MainWindow(QMainWindow):
         prefIcon.addPixmap(QPixmap(':/icons/preferences.png'))
         paraIcon = QIcon()
         paraIcon.addPixmap(QPixmap(':/icons/parameter.png'))
+        deleteIcon = QIcon()
+        deleteIcon.addPixmap(QPixmap(':/icons/delete.png'))
         self.inventoryIcon = QIcon()
         self.inventoryIcon.addPixmap(QPixmap(':/icons/inventory.png'))
         self.mapIcon = QIcon()
@@ -412,6 +414,10 @@ class MainWindow(QMainWindow):
                                                  self.setParameter,
                                                  None, paraIcon,
                                                  "Modify Parameter")
+        self.deleteAutopicksAction = self.createAction(self, "Delete Autopicks",
+                                                 self.deleteAllAutopicks,
+                                                 None, deleteIcon,
+                                                 "Delete all automatic picks from Project.")
         self.filterActionP = createAction(parent=self, text='Apply P Filter',
                                           slot=self.filterP,
                                           icon=self.filter_icon_p,
@@ -567,7 +573,7 @@ class MainWindow(QMainWindow):
                        prefsEventAction)
         # printAction) #TODO: print event?
 
-        pickMenuActions = (self.parameterAction,)
+        pickMenuActions = (self.parameterAction, self.deleteAutopicksAction)
         self.pickMenu = self.menuBar().addMenu('&Picking')
         self.autoPickMenu = self.pickMenu.addMenu(self.autopicksicon_small, 'Automatic picking')
         self.autoPickMenu.setEnabled(False)
@@ -3628,6 +3634,22 @@ class MainWindow(QMainWindow):
         if show:
             self.paraBox.params_to_gui()
             self.paraBox.show()
+
+    def deleteAllAutopicks(self):
+        qmb = QMessageBox(self, icon=QMessageBox.Question,
+                          text='Are you sure you want to delete all automatic picks?')
+        qmb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        qmb.setDefaultButton(QMessageBox.Yes)
+        ret = qmb.exec_()
+        if not ret == qmb.Yes:
+            return
+        for event in self.project.eventlist:
+            event.pylot_autopicks = {}
+            for index, pick in reversed(list(enumerate(event.picks))):
+                if pick.method_id.id.endswith('auto'):
+                    event.picks.pop(index)
+        self.refreshEvents()
+
 
     def PyLoTprefs(self):
         if not self._props:

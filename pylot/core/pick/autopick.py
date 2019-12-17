@@ -770,9 +770,14 @@ class AutopickStation(object):
         :raises:
             MissingTraceException: If vertical trace is missing.
         """
+        try:
+            stream_string_repr = str(self.zstream)
+        except Exception as e:
+            stream_string_repr = None
+            print('Could not get string representation of Stream: {}'.format(e))
         msg = '##################################################\nautopickstation:' \
               ' Working on P onset of station {station}\nFiltering vertical ' \
-              'trace ...\n{data}'.format(station=self.station_name, data=str(self.zstream))
+              'trace ...\n{data}'.format(station=self.station_name, data=stream_string_repr)
         self.vprint(msg)
 
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.pickparams["bpz1"][0], self.pickparams["bpz1"][1])
