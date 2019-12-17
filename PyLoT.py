@@ -1855,8 +1855,8 @@ class MainWindow(QMainWindow):
             origin_time = curr_event.origins[0].time
             tstart = settings.value('tstart') if get_None(settings.value('tstart')) else 0
             tstop = settings.value('tstop') if get_None(settings.value('tstop')) else 0
-            tstart = origin_time + tstart
-            tstop = origin_time + tstop
+            tstart = origin_time + float(tstart)
+            tstop = origin_time + float(tstop)
         else:
             tstart = None
             tstop = None
