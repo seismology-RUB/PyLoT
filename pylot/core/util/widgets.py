@@ -32,7 +32,7 @@ from obspy import read
 from PySide import QtCore, QtGui
 from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
-    QGridLayout, QIcon, QLabel, QLineEdit, QMessageBox, \
+    QGridLayout, QFormLayout, QIcon, QLabel, QLineEdit, QMessageBox, \
     QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog, QKeySequence
 from PySide.QtCore import QSettings, Qt, QUrl, Signal
@@ -51,7 +51,8 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, get_Bool, pick_color, getAutoFilteroptions, SetChannelComponents, station_id_remove_channel
+    identifyPhaseID, get_Bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents,\
+    station_id_remove_channel
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
@@ -4464,6 +4465,7 @@ class PropertiesDlg(QDialog):
 
         self.infile = infile
         self.inputs = inputs
+        self.dirty = False
 
         self.setWindowTitle("PyLoT Properties")
         self.tabWidget = QTabWidget()
@@ -4490,6 +4492,12 @@ class PropertiesDlg(QDialog):
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         self.buttonBox.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self.restore)
 
+    def setDirty(self, level=1):
+        if type(self.dirty) == int:
+            if level < self.dirty:
+                return
+        self.dirty = level
+
     def getinfile(self):
         return self.infile
 
@@ -4500,6 +4508,8 @@ class PropertiesDlg(QDialog):
     def apply(self):
         for widint in range(self.tabWidget.count()):
             curwid = self.tabWidget.widget(widint)
+            if curwid.dirty:
+                self.setDirty(curwid.dirty)
             values = curwid.getValues()
             if values is not None:
                 self.setValues(values)
@@ -4570,6 +4580,7 @@ class InputsTab(PropTab):
     def __init__(self, parent, infile=None):
         super(InputsTab, self).__init__(parent)
 
+        self.dirty = False
         settings = QSettings()
         pylot_user = getpass.getuser()
         fulluser = settings.value("user/FullName")
@@ -4587,12 +4598,22 @@ class InputsTab(PropTab):
         # information about data structure
         dataroot = settings.value("data/dataRoot")
         curstructure = settings.value("data/Structure")
-        dataDirLabel = QLabel("data root directory: ")
         self.dataDirEdit = QLineEdit()
         self.dataDirEdit.setText(dataroot)
         self.dataDirEdit.selectAll()
-        structureLabel = QLabel("data structure: ")
         self.structureSelect = QComboBox()
+        self.cutLabel = QLabel
+        self.cuttimesLayout = QHBoxLayout()
+        self.tstartBox = QSpinBox()
+        self.tstopBox = QSpinBox()
+        for spinbox in [self.tstartBox, self.tstopBox]:
+            spinbox.setRange(-99999, 99999)
+        self.tstartBox.setValue(settings.value('tstart') if get_None(settings.value('tstart')) else 0)
+        self.tstopBox.setValue(settings.value('tstop') if get_None(settings.value('tstop')) else 0)
+        self.cuttimesLayout.addWidget(self.tstartBox, 10)
+        self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
+        self.cuttimesLayout.addWidget(self.tstopBox, 10)
+        self.cuttimesLayout.addWidget(QLabel('[s]'), 0)
 
         from pylot.core.util.structure import DATASTRUCTURE
 
@@ -4602,20 +4623,38 @@ class InputsTab(PropTab):
 
         self.structureSelect.setCurrentIndex(dsind)
 
-        layout = QGridLayout()
-        layout.addWidget(dataDirLabel, 0, 0)
-        layout.addWidget(self.dataDirEdit, 0, 1)
-        layout.addWidget(fullNameLabel, 1, 0)
-        layout.addWidget(self.fullNameEdit, 1, 1)
-        layout.addWidget(structureLabel, 2, 0)
-        layout.addWidget(self.structureSelect, 2, 1)
+        layout = QFormLayout()
+        layout.addRow("Data root directory: ", self.dataDirEdit)
+        layout.addRow("Full name for user '{0}': ".format(pylot_user), self.fullNameEdit)
+        layout.addRow("Data structure: ", self.structureSelect)
+        layout.addRow('Cut waveforms between (relative to source origin time if given): ', self.cuttimesLayout)
 
         self.setLayout(layout)
+        self.connectSignals()
+
+    def connectSignals(self):
+        self.tstartBox.valueChanged.connect(self.checkSpinboxStop)
+        self.tstopBox.valueChanged.connect(self.checkSpinboxStart)
+        self.tstartBox.valueChanged.connect(self.setDirty)
+        self.tstopBox.valueChanged.connect(self.setDirty)
+
+    def setDirty(self):
+        self.dirty = 2
+
+    def checkSpinboxStop(self):
+        if self.tstopBox.value() < self.tstartBox.value():
+            self.tstopBox.setValue(self.tstartBox.value())
+
+    def checkSpinboxStart(self):
+        if self.tstopBox.value() < self.tstartBox.value():
+            self.tstartBox.setValue(self.tstopBox.value())
 
     def getValues(self):
         values = {"data/dataRoot": self.dataDirEdit.text(),
                   "user/FullName": self.fullNameEdit.text(),
-                  "data/Structure": self.structureSelect.currentText()}
+                  "data/Structure": self.structureSelect.currentText(),
+                  "tstart": self.tstartBox.value(),
+                  "tstop": self.tstopBox.value()}
         return values
 
     def resetValues(self, infile):
@@ -4641,6 +4680,7 @@ class OutputsTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(OutputsTab, self).__init__(parent)
 
+        self.dirty = False
         settings = QSettings()
         curval = settings.value("output/Format", None)
 
@@ -4671,6 +4711,7 @@ class PhasesTab(PropTab):
     def __init__(self, parent=None, inputs=None):
         super(PhasesTab, self).__init__(parent)
         self.inputs = inputs
+        self.dirty = False
 
         self.Pphases = 'P, Pg, Pn, PmP, P1, P2, P3'
         self.Sphases = 'S, Sg, Sn, SmS, S1, S2, S3'
@@ -4765,6 +4806,7 @@ class PhasesTab(PropTab):
 class GraphicsTab(PropTab):
     def __init__(self, parent=None):
         super(GraphicsTab, self).__init__(parent)
+        self.dirty = False
         self.pylot_mainwindow = parent._pylot_mainwindow
         self.init_layout()
         # self.add_pg_cb()
@@ -4802,6 +4844,10 @@ class GraphicsTab(PropTab):
         self.spinbox_nth_sample.setValue(int(nth_sample))
         self.main_layout.addWidget(label, 1, 0)
         self.main_layout.addWidget(self.spinbox_nth_sample, 1, 1)
+        self.spinbox_nth_sample.valueChanged.connect(self.setDirty)
+
+    def setDirty(self):
+        self.dirty = 1
 
     def set_current_style(self):
         selected_style = self.style_cb.currentText()
@@ -4820,6 +4866,7 @@ class ChannelOrderTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(ChannelOrderTab, self).__init__(parent)
 
+        self.dirty = False
         settings = QSettings()
         compclass = settings.value('compclass')
         if not compclass:
@@ -4861,6 +4908,12 @@ class ChannelOrderTab(PropTab):
         self.ChannelOrderZEdit.textEdited.connect(self.checkDoubleZ)
         self.ChannelOrderNEdit.textEdited.connect(self.checkDoubleN)
         self.ChannelOrderEEdit.textEdited.connect(self.checkDoubleE)
+        self.ChannelOrderZEdit.textEdited.connect(self.setDirty)
+        self.ChannelOrderNEdit.textEdited.connect(self.setDirty)
+        self.ChannelOrderEEdit.textEdited.connect(self.setDirty)
+
+    def setDirty(self):
+        self.dirty = 1
 
     def checkDoubleZ(self, text):
         self.checkDouble(text, 'Z')
@@ -4907,6 +4960,7 @@ class LocalisationTab(PropTab):
     def __init__(self, parent=None, infile=None):
         super(LocalisationTab, self).__init__(parent)
 
+        self.dirty = False
         settings = QSettings()
         curtool = settings.value("loc/tool", None)
 

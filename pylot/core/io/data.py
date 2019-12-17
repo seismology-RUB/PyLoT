@@ -386,7 +386,7 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None):
+    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None, tstart=0, tstop=0):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
@@ -395,6 +395,11 @@ class Data(object):
         self.wfdata = Stream()
         self.wforiginal = None
         self.wfsyn = Stream()
+        if tstart == tstop:
+            tstart = tstop = None
+        self.tstart = tstart
+        self.tstop = tstop
+
         # if obspy_dmt:
         #     wfdir = 'raw'
         #     self.processed = False
@@ -452,13 +457,13 @@ class Data(object):
         warnmsg = ''
         for fname in set(fnames):
             try:
-                real_or_syn_data[synthetic] += read(fname)
+                real_or_syn_data[synthetic] += read(fname, starttime=self.tstart, endtime=self.tstop)
             except TypeError:
                 try:
-                    real_or_syn_data[synthetic] += read(fname, format='GSE2')
+                    real_or_syn_data[synthetic] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
                 except Exception as e:
                     try:
-                        real_or_syn_data[synthetic] += read(fname, format='SEGY')
+                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart, endtime=self.tstop)
                     except Exception as e:
                         warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:

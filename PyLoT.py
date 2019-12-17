@@ -77,7 +77,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, make_pen, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, get_Bool, SetChannelComponents
+    check_all_pylot, get_Bool, get_None, SetChannelComponents
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
@@ -1849,10 +1849,24 @@ class MainWindow(QMainWindow):
         # else:
         #     ans = False
 
+        settings = QSettings()
+        curr_event = self.get_current_event()
+        if len(curr_event.origins) > 0:
+            origin_time = curr_event.origins[0].time
+            tstart = settings.value('tstart') if get_None(settings.value('tstart')) else 0
+            tstop = settings.value('tstop') if get_None(settings.value('tstop')) else 0
+            tstart = origin_time + tstart
+            tstop = origin_time + tstop
+        else:
+            tstart = None
+            tstop = None
+
         self.data.setWFData(self.fnames,
                             self.fnames_syn,
                             checkRotated=True,
-                            metadata=self.metadata)
+                            metadata=self.metadata,
+                            tstart=tstart,
+                            tstop=tstop,)
 
     def prepareObspyDMT_data(self, eventpath):
         qcbox_processed = self.dataPlot.qcombo_processed
@@ -3655,9 +3669,15 @@ class MainWindow(QMainWindow):
         if not self._props:
             self._props = PropertiesDlg(self, infile=self.infile,
                                         inputs=self._inputs)
+        else:
+            self._props.setDirty(False)
 
         if self._props.exec_():
-            self.init_wfWidget()
+            if self._props.dirty == 1:
+                if self.get_current_event():
+                    self.plotWaveformDataThread()
+            elif self._props.dirty == 2:
+                self.refreshEvents()
             return
 
     def helpHelp(self):
