@@ -20,8 +20,8 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
         #if not eventdir.endswith('20170908_044946.a'):
         #    continue
         # MP MP ----
-        kwargs = dict(event=event, nEvents=nEvents, index=index, manual=manual, auto=auto, file_format=file_format,
-                      f_ext=f_ext)
+        kwargs = dict(project=project, event=event, nEvents=nEvents, index=index, manual=manual, auto=auto,
+                      file_format=file_format, f_ext=f_ext)
         input_list.append(kwargs)
 
     if ncores == 1:
@@ -51,7 +51,8 @@ def array_map_worker(input_dict):
         # create figure to plot on
         fig = plt.figure(figsize=(16,9))
         # create array map object
-        map = Array_map(None, metadata, figure=fig, width=2.13e6, height=1.2e6, pointsize=15., linewidth=1.0)
+        map = Array_map(None, metadata, parameter=input_dict['project'].parameter, figure=fig,
+                        width=2.13e6, height=1.2e6, pointsize=15., linewidth=1.0)
         # set combobox to auto/manual to plot correct pick type
         map.comboBox_am.setCurrentIndex(map.comboBox_am.findText(pick_type))
         # add picks to map and save file
@@ -62,6 +63,6 @@ def array_map_worker(input_dict):
         print('Wrote file: {}'.format(fpath_out))
 
 if __name__ == '__main__':
-    #main('/home/marcel/pylot_m7_mantle_correlated.plp', f_ext='_0.5Hz')
-    main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
+    main('/home/marcel/alparray_m6.0-6.4_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz', ncores=40)
+    #main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     #main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
