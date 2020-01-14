@@ -9,13 +9,13 @@ import pyqtgraph as pg
 import re
 import subprocess
 import warnings
-from PySide import QtCore
 from obspy import UTCDateTime, read
 from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
 from scipy.interpolate import splrep, splev
 
 from pylot.core.io.inputs import PylotParameter, FilterOptions
+from pylot.core.util.gui import pick_linestyle_pg
 from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
 from pylot.styles import style_settings
 
@@ -727,30 +727,6 @@ def pick_linestyle_plt(picktype, key):
     return linestyles[picktype][key]
 
 
-def pick_linestyle_pg(picktype, key):
-    """
-    Get Qt line style by  picktype and pick parameter (earliest/latest possible pick, symmetric picking error or
-    most probable pick)
-    :param picktype: 'manual' or 'automatic'
-    :type picktype: str
-    :param key: which pick parameter should be plotted, 'mpp', 'epp', 'lpp' or 'spe'
-    :type key: str
-    :return: Qt line style parameters
-    :rtype:
-    """
-    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2.),
-                       'epp': (QtCore.Qt.DashLine, 1.),
-                       'lpp': (QtCore.Qt.DashLine, 1.),
-                       'spe': (QtCore.Qt.DashLine, 1.)}
-    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 2.),
-                       'epp': (QtCore.Qt.DashDotLine, 1.),
-                       'lpp': (QtCore.Qt.DashDotLine, 1.),
-                       'spe': (QtCore.Qt.DashDotLine, 1.)}
-    linestyles = {'manual': linestyles_manu,
-                  'auto': linestyles_auto}
-    return linestyles[picktype][key]
-
-
 def modify_rgba(rgba, modifier, intensity):
     """
     Modify rgba color by adding the given intensity to the modifier color
@@ -1091,48 +1067,6 @@ def runProgram(cmd, parameter=None):
         cmd += ' %s 2>&1' % parameter
 
     subprocess.check_output('{} | tee /dev/stderr'.format(cmd), shell=True)
-
-
-def which(program, parameter):
-    """
-    takes a program name and returns the full path to the executable or None
-    modified after: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-    :param program: name of the desired external program
-    :type program: str
-    :return: full path of the executable file
-    :rtype: str
-    """
-    try:
-        from PySide.QtCore import QSettings
-        settings = QSettings()
-        for key in settings.allKeys():
-            if 'binPath' in key:
-                os.environ['PATH'] += ':{0}'.format(settings.value(key))
-        nllocpath = ":" + parameter.get('nllocbin')
-        os.environ['PATH'] += nllocpath
-    except Exception as e:
-        print(e.message)
-
-    def is_exe(fpath):
-        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
-
-    def ext_candidates(fpath):
-        yield fpath
-        for ext in os.environ.get("PATHEXT", "").split(os.pathsep):
-            yield fpath + ext
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            for candidate in ext_candidates(exe_file):
-                if is_exe(candidate):
-                    return candidate
-
-    return None
 
 
 def loopIdentifyPhase(phase):
