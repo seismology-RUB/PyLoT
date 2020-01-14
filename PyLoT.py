@@ -76,10 +76,11 @@ from pylot.core.util.errors import DatastructureError, \
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import Metadata, restitute_data
 from pylot.core.util.utils import fnConstructor, getLogin, \
-    full_range, readFilterInformation, make_pen, pick_color_plt, \
+    full_range, readFilterInformation, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
     check_all_pylot, get_Bool, get_None, SetChannelComponents
+from pylot.core.util.gui import make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \

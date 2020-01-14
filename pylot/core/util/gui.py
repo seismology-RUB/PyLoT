@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import pyqtgraph as pg
 from PySide import QtCore
+
+from pylot.core.util.utils import pick_color
 
 
 def pick_linestyle_pg(picktype, key):
@@ -68,3 +71,25 @@ def which(program, parameter):
                     return candidate
 
     return None
+
+
+def make_pen(picktype, phase, key, quality):
+    """
+    Make  PyQtGraph.QPen
+    :param picktype: 'manual' or 'automatic'
+    :type picktype: str
+    :param phase: 'P' or 'S'
+    :type phase: str
+    :param key: 'mpp', 'epp', 'lpp' or 'spe', (earliest/latest possible pick, symmetric picking error or
+     most probable pick)
+    :type key: str
+    :param quality: quality class of pick, decides color modifier
+    :type quality: int
+    :return: PyQtGraph QPen
+    :rtype: `~QPen`
+    """
+    if pg:
+        rgba = pick_color(picktype, phase, quality)
+        linestyle, width = pick_linestyle_pg(picktype, key)
+        pen = pg.mkPen(rgba, width=width, style=linestyle)
+        return pen

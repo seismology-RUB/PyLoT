@@ -5,7 +5,6 @@ import hashlib
 import numpy as np
 import os
 import platform
-import pyqtgraph as pg
 import re
 import subprocess
 import warnings
@@ -15,7 +14,6 @@ from obspy.signal.rotate import rotate2zne
 from scipy.interpolate import splrep, splev
 
 from pylot.core.io.inputs import PylotParameter, FilterOptions
-from pylot.core.util.gui import pick_linestyle_pg
 from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
 from pylot.styles import style_settings
 
@@ -634,28 +632,6 @@ def find_horizontals(data):
         else:
             rval.append(tr.stats.channel[-1].upper())
     return rval
-
-
-def make_pen(picktype, phase, key, quality):
-    """
-    Make  PyQtGraph.QPen
-    :param picktype: 'manual' or 'automatic'
-    :type picktype: str
-    :param phase: 'P' or 'S'
-    :type phase: str
-    :param key: 'mpp', 'epp', 'lpp' or 'spe', (earliest/latest possible pick, symmetric picking error or
-     most probable pick)
-    :type key: str
-    :param quality: quality class of pick, decides color modifier
-    :type quality: int
-    :return: PyQtGraph QPen
-    :rtype: `~QPen`
-    """
-    if pg:
-        rgba = pick_color(picktype, phase, quality)
-        linestyle, width = pick_linestyle_pg(picktype, key)
-        pen = pg.mkPen(rgba, width=width, style=linestyle)
-        return pen
 
 
 def pick_color(picktype, phase, quality=0):
