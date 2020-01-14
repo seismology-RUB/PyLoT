@@ -30,6 +30,8 @@ import platform
 import shutil
 import sys
 
+import traceback
+
 import json
 from datetime import datetime
 
@@ -1546,6 +1548,7 @@ class MainWindow(QMainWindow):
                 self.dump_deleted_picks(event.path)
             except Exception as e:
                 print('WARNING! Could not save information on deleted picks {}. Reason: {}'.format(event.path, e))
+                print(traceback.format_exc())
             try:
                 self.saveData(event, event.path, outformats)
                 event.dirty = False
@@ -1712,7 +1715,6 @@ class MainWindow(QMainWindow):
         self.test_event_button.setChecked(False)
         self.get_current_event().setTestEvent(False)
         self.get_current_event().setRefEvent(ref)
-        self.fill_eventbox()
         self.refreshTabs()
         if self.tap:
             self.tap.fill_eventbox()
@@ -1725,7 +1727,6 @@ class MainWindow(QMainWindow):
         self.ref_event_button.setChecked(False)
         self.get_current_event().setRefEvent(False)
         self.get_current_event().setTestEvent(test)
-        self.fill_eventbox()
         self.refreshTabs()
         if self.tap:
             self.tap.fill_eventbox()
@@ -1771,6 +1772,7 @@ class MainWindow(QMainWindow):
         # Loading an existing project from array_tab leads to two calls of newWF
         # which will read in data input twice. Therefore current tab is changed to 0
         # in loadProject before calling this function.
+        self.fill_eventbox()
         plotted = False
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
@@ -1793,7 +1795,6 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() == 1:
             if self._eventChanged[1]:
                 self.refresh_array_map()
-                self.fill_eventbox()
                 if not plotted and self._eventChanged[0]:
                     # newWF(plot=False) = load data without plotting
                     self.newWF(plot=False)
@@ -2805,7 +2806,9 @@ class MainWindow(QMainWindow):
                   ' Check deleted picks file in path {} before continuing'
             print(msg.format(e, event_path))
             self.safetyCopy(event_path)
-        deleted_picks_event = self.deleted_picks[event_path]
+        deleted_picks_event = self.deleted_picks.get(event_path)
+        if deleted_picks_event is None:
+            return
 
         for pick in deleted_picks_from_file:
             if not pick in deleted_picks_event:
@@ -3270,11 +3273,11 @@ class MainWindow(QMainWindow):
             else:
                 item_test.setCheckState(QtCore.Qt.Unchecked)
 
-            column = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_mag,
+            row = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_mag,
                       item_nmp, item_nap, item_ref, item_test, item_notes]
-            self.project._table.append(column)
+            self.project._table.append(row)
 
-            self.setItemColor(column, index, event, current_event)
+            self.setItemColor(row, index, event, current_event)
 
             if event == current_event:
                 scroll_item = item_path
@@ -3662,7 +3665,8 @@ class MainWindow(QMainWindow):
             for index, pick in reversed(list(enumerate(event.picks))):
                 if pick.method_id.id.endswith('auto'):
                     event.picks.pop(index)
-        self.refreshEvents()
+        self.plotWaveformDataThread()
+        self.refreshTabs()
 
 
     def PyLoTprefs(self):

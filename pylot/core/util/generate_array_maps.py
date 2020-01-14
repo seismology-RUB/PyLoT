@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# small script that creates array maps for each event within a previously generated PyLoT project
 
 import os
 import multiprocessing
@@ -42,12 +43,14 @@ def array_map_worker(input_dict):
     autopicks = event.getAutopicks()
     # prepare event and get metadata
     metadata_path = os.path.join(eventdir, 'resp')
-    metadata = Metadata(inventory=metadata_path, verbosity=0)
+    metadata = None
     for pick_type in ['manual', 'auto']:
         if pick_type == 'manual' and (not manualpicks or not input_dict['manual']):
             continue
         if pick_type == 'auto' and (not autopicks or not input_dict['auto']):
             continue
+        if not metadata:
+            metadata = Metadata(inventory=metadata_path, verbosity=0)
         # create figure to plot on
         fig = plt.figure(figsize=(16,9))
         # create array map object
@@ -63,6 +66,10 @@ def array_map_worker(input_dict):
         print('Wrote file: {}'.format(fpath_out))
 
 if __name__ == '__main__':
-    main('/home/marcel/alparray_m6.0-6.4_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz', ncores=40)
+    dataroot = '/home/marcel'
+    infiles=['alparray_all_events_0.03-0.5_mantle_correlated_v3_revised.plp']
+
+    for infile in infiles:
+        main(os.path.join(dataroot, infile), f_ext='_correlated_0.5Hz', ncores=20)
     #main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     #main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')

@@ -409,7 +409,7 @@ class Array_map(QtGui.QWidget):
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
         self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                             linewidths=self.linewidth, latlon=True, zorder=9, alpha=0.7,
+                                             linewidths=self.linewidth, latlon=True, zorder=8, alpha=0.7,
                                              cmap=self.get_colormap())
 
     def get_colormap(self):
@@ -502,7 +502,7 @@ class Array_map(QtGui.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize=self.pointsize/6., fontweight='semibold',
+                                                          fontsize=self.pointsize/4., fontweight='semibold',
                                                           color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
