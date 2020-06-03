@@ -1969,6 +1969,10 @@ class PickDlg(QDialog):
         starttime = trace.stats.starttime
         station_coords = self.metadata.get_coordinates(station_id, starttime)
         origins = self.pylot_event.origins
+        if phases == ['None', 'None']:
+            print("get_arrivals: Creation info (manual or auto) not available!")
+            print("Return!")
+            return
         if origins:
             source_origin = origins[0]
         else:
