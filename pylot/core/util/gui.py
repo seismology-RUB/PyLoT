@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-import pyqtgraph as pg
-from PySide import QtCore
+
+try:
+    import pyqtgraph as pg
+except Exception as e:
+    print('Warning: Could not import module pyqtgraph.')
+try:
+    from PySide import QtCore
+except Exception as e:
+    print('Warning: Could not import module QtCore.')
+
 
 from pylot.core.util.utils import pick_color
 

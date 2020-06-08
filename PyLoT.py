@@ -1293,12 +1293,15 @@ class MainWindow(QMainWindow):
         paths_exist = [os.path.exists(event.path) for event in self.project.eventlist]
         if all(paths_exist):
             return True
+        elif not any(paths_exist):
+            return False
         else:
             info_str = ''
             for event, path_exists in zip(self.project.eventlist, paths_exist):
-                info_str += '\n{} exists: {}'.format(event.path, path_exists)
+                if not path_exists:
+                    info_str += '\n{} exists: {}'.format(event.path, path_exists)
             print('Unable to find certain event paths:{}'.format(info_str))
-            return False
+            return True
 
     def modify_project_path(self, new_rootpath):
         self.project.rootpath = new_rootpath
@@ -3581,7 +3584,10 @@ class MainWindow(QMainWindow):
         if not filename.split('.')[-1] == 'plp':
             filename = fnm[0] + '.plp'
         self.project.parameter = self._inputs
-        self.exportEvents()
+        settings = QSettings()
+        autosaveXML = get_Bool(settings.value('autosaveXML', True))
+        if autosaveXML:
+            self.exportEvents()
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
@@ -3602,7 +3608,10 @@ class MainWindow(QMainWindow):
             else:
                 self.metadata.clear_inventory()
                 self.project.parameter = self._inputs
-                self.exportEvents()
+                settings = QSettings()
+                autosaveXML = get_Bool(settings.value('autosaveXML', True))
+                if autosaveXML:
+                    self.exportEvents()
                 self.project.save()
                 self.update_obspy_dmt()
             if not self.project.dirty:

@@ -67,9 +67,9 @@ def array_map_worker(input_dict):
 
 if __name__ == '__main__':
     dataroot = '/home/marcel'
-    infiles=['alparray_all_events_0.03-0.5_mantle_correlated_v3_revised.plp']
+    infiles=['alparray_all_events_0.03-0.1_mantle_correlated_v3.plp']
 
     for infile in infiles:
-        main(os.path.join(dataroot, infile), f_ext='_correlated_0.5Hz', ncores=20)
+        main(os.path.join(dataroot, infile), f_ext='_correlated_0.1Hz', ncores=10)
     #main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     #main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')

@@ -57,6 +57,7 @@ from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
 
+
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
 elif sys.version_info.major == 2:
@@ -4473,7 +4474,7 @@ class PropertiesDlg(QDialog):
 
         self.setWindowTitle("PyLoT Properties")
         self.tabWidget = QTabWidget()
-        self.tabWidget.addTab(InputsTab(self), "Inputs")
+        self.tabWidget.addTab(InputsTab(self), "Main")
         # self.tabWidget.addTab(OutputsTab(self), "Outputs")
         self.tabWidget.addTab(PhasesTab(self, inputs), "Phases")
         self.tabWidget.addTab(GraphicsTab(self), "Graphics")
@@ -4608,6 +4609,7 @@ class InputsTab(PropTab):
         self.structureSelect = QComboBox()
         self.cutLabel = QLabel
         self.cuttimesLayout = QHBoxLayout()
+        self.autosaveXML_checkbox = QCheckBox()
         self.tstartBox = QSpinBox()
         self.tstopBox = QSpinBox()
         for spinbox in [self.tstartBox, self.tstopBox]:
@@ -4618,6 +4620,8 @@ class InputsTab(PropTab):
         self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
         self.cuttimesLayout.addWidget(self.tstopBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s]'), 0)
+
+
 
         from pylot.core.util.structure import DATASTRUCTURE
 
@@ -4632,6 +4636,7 @@ class InputsTab(PropTab):
         layout.addRow("Full name for user '{0}': ".format(pylot_user), self.fullNameEdit)
         layout.addRow("Data structure: ", self.structureSelect)
         layout.addRow('Cut waveforms between (relative to source origin time if given): ', self.cuttimesLayout)
+        layout.addRow('Automatically save events as XML when saving Project: ', self.autosaveXML_checkbox)
 
         self.setLayout(layout)
         self.connectSignals()
@@ -4641,6 +4646,7 @@ class InputsTab(PropTab):
         self.tstopBox.valueChanged.connect(self.checkSpinboxStart)
         self.tstartBox.valueChanged.connect(self.setDirty)
         self.tstopBox.valueChanged.connect(self.setDirty)
+        self.autosaveXML_checkbox.stateChanged.connect(self.setDirty)
 
     def setDirty(self):
         self.dirty = 2
@@ -4658,7 +4664,8 @@ class InputsTab(PropTab):
                   "user/FullName": self.fullNameEdit.text(),
                   "data/Structure": self.structureSelect.currentText(),
                   "tstart": self.tstartBox.value(),
-                  "tstop": self.tstopBox.value()}
+                  "tstop": self.tstopBox.value(),
+                  "autosaveXML": self.autosaveXML_checkbox.isChecked()}
         return values
 
     def resetValues(self, infile):
@@ -4668,15 +4675,18 @@ class InputsTab(PropTab):
             index = 0
         else:
             index = 2
-        datapath = para.get('datapath')
-        rootpath = para.get('rootpath')
-        database = para.get('database')
+        datapath = para.get('datapath') if not para.get('datapath') is None else ''
+        rootpath = para.get('rootpath') if not para.get('rootpath') is None else ''
+        database = para.get('database') if not para.get('database') is None else ''
         if isinstance(database, int):
             database = str(database)
         path = os.path.join(os.path.expanduser('~'), rootpath, datapath, database)
         values = {"data/dataRoot": self.dataDirEdit.setText("%s" % path),
                   "user/FullName": self.fullNameEdit.text(),
-                  "data/Structure": self.structureSelect.setCurrentIndex(index)}
+                  "data/Structure": self.structureSelect.setCurrentIndex(index),
+                  "tstart": self.tstartBox.setValue(0),
+                  "tstop": self.tstopBox.setValue(10000.),
+                  "autosaveXML": self.autosaveXML_checkbox.setChecked(True),}
         return values
 
 
@@ -4726,7 +4736,9 @@ class PhasesTab(PropTab):
         self.pickDefaultsButton = QtGui.QPushButton('Choose default phases...')
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
-        notes_label = QLabel('Note: Selected phases only apply on manual picking. ')
+        notes_label = QLabel(
+            'Note: Only for manual picking. '
+            'Defaults depend on parameter "Array extent"')
 
         settings = QSettings()
         Pphases = settings.value('p_phases')

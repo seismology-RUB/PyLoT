@@ -349,11 +349,11 @@ class Array_map(QtGui.QWidget):
         parallels = np.arange(-90, 90, 5.)
         parallels_small = np.arange(-90, 90, 2.5)
         basemap.drawparallels(parallels_small, linewidth=0.5, zorder=7)
-        basemap.drawparallels(parallels, zorder=7)
+        basemap.drawparallels(parallels, zorder=7)#, labels=[1, 1, 0, 0])
         meridians = np.arange(-180, 180, 5.)
         meridians_small = np.arange(-180, 180, 2.5)
         basemap.drawmeridians(meridians_small, linewidth=0.5, zorder=7)
-        basemap.drawmeridians(meridians, zorder=7)
+        basemap.drawmeridians(meridians, zorder=7)#, labels=[0, 0, 1, 1])
         self.basemap = basemap
         self.figure._tight = True
         self.figure.tight_layout()
