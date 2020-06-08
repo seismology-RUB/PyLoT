@@ -582,10 +582,8 @@ def restitute_trace(input_tuple):
             fname = Parser(find_in_list(inobj, seed_id))
         else:
             fname = inobj
-        seedresp = dict(filename=fname,
-                        date=stime,
-                        units=unit)
-        kwargs = dict(pre_filt=prefilt, seedresp=seedresp)
+        paz = fname.get_paz(tr.id, datetime=tr.stats.starttime)
+        kwargs = dict(pre_filt=prefilt, paz_remove=paz, remove_sensitivity=True)
     elif invtype == 'xml':
         invlist = inobj
         if len(invlist) > 1:
