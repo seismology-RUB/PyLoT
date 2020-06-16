@@ -804,7 +804,7 @@ class WaveformWidgetPG(QtGui.QWidget):
 
         settings = QSettings()
         compclass = settings.value('compclass')
-        if not compclass:
+        if not type(compclass) == SetChannelComponents:
             print('Warning: No settings for channel components found. Using default')
             compclass = SetChannelComponents()
 
