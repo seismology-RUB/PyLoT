@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
     __version__ = _getVersionString()
     closing = Signal()
 
-    def __init__(self, parent=None, infile=None):
+    def __init__(self, parent=None, infile=None, reset_qsettings=False):
         super(MainWindow, self).__init__(parent)
 
         self.init_config_files(infile)
@@ -152,6 +152,8 @@ class MainWindow(QMainWindow):
         self.createAction = createAction
         # read settings
         settings = QSettings()
+        if reset_qsettings:
+            settings.clear()
         self.recentfiles = settings.value("data/recentEvents", [])
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
 
@@ -3909,6 +3911,7 @@ def main(args=None):
             project_filename = args.project_filename
         if args.input_filename:
             pylot_infile = args.input_filename
+        reset_qsettings = args.reset_qsettings
 
     # create the Qt application
     pylot_app, app_created = create_window()
@@ -3921,7 +3924,7 @@ def main(args=None):
     app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
     # create the main window
-    pylot_form = MainWindow(infile=pylot_infile)
+    pylot_form = MainWindow(infile=pylot_infile, reset_qsettings=reset_qsettings)
     pylot_form.setWindowIcon(app_icon)
     pylot_form.setIconSize(QSize(60, 60))
 
@@ -3954,5 +3957,7 @@ if __name__ == "__main__":
                         default=None)
     parser.add_argument('-in', dest='input_filename', help='set pylot input file',
                         default=None)
+    parser.add_argument('--reset_qsettings', default=False, action='store_true',
+                        help='reset qsettings (debug option)')
     args = parser.parse_args()
     sys.exit(main(args))

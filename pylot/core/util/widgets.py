@@ -4615,7 +4615,7 @@ class InputsTab(PropTab):
         for spinbox in [self.tstartBox, self.tstopBox]:
             spinbox.setRange(-99999, 99999)
         self.tstartBox.setValue(float(settings.value('tstart')) if get_None(settings.value('tstart')) else 0)
-        self.tstopBox.setValue(float(settings.value('tstop')) if get_None(settings.value('tstop')) else 0)
+        self.tstopBox.setValue(float(settings.value('tstop')) if get_None(settings.value('tstop')) else 1e6)
         self.cuttimesLayout.addWidget(self.tstartBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
         self.cuttimesLayout.addWidget(self.tstopBox, 10)
@@ -4685,7 +4685,7 @@ class InputsTab(PropTab):
                   "user/FullName": self.fullNameEdit.text(),
                   "data/Structure": self.structureSelect.setCurrentIndex(index),
                   "tstart": self.tstartBox.setValue(0),
-                  "tstop": self.tstopBox.setValue(10000.),
+                  "tstop": self.tstopBox.setValue(1e6),
                   "autosaveXML": self.autosaveXML_checkbox.setChecked(True),}
         return values
 
