@@ -196,8 +196,6 @@ class MainWindow(QMainWindow):
                     dirname = QFileDialog().getExistingDirectory(
                         caption='Choose data root ...')
                     settings.setValue("data/dataRoot", dirname)
-                if settings.value('compclass', None) is None:
-                    settings.setValue('compclass', SetChannelComponents())
                 if settings.value('useGuiFilter') is None:
                     settings.setValue('useGuiFilter', False)
                 if settings.value('output/Format', None) is None:

@@ -1182,11 +1182,6 @@ def station_id_remove_channel(station_id):
     station_id = station_id.rpartition('.')[0]
     return station_id
 
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
-
 
 class SetChannelComponents(object):
     def __init__(self):
@@ -1206,15 +1201,16 @@ class SetChannelComponents(object):
         errMsg = 'getCurrentPosition: Could not find former position of component {}.'.format(component)
         raise ValueError(errMsg)
 
-    def _switch(self, component, component_alter):
+    def _switch(self, component, component_alter, verbosity=0):
         # Without switching, multiple definitions of the same alter_comp are possible
         old_alter_comp, _ = self._getCurrentPosition(component)
         old_comp = self.compName_Map[component_alter]
         if not old_alter_comp == component_alter and not old_comp == component:
             self.compName_Map[old_alter_comp] = old_comp
-            print('switch: Automatically switched component {} to {}'.format(old_alter_comp, old_comp))
+            if verbosity > 0:
+                print('switch: Automatically switched component {} to {}'.format(old_alter_comp, old_comp))
 
-    def setCompPosition(self, component_alter, component, switch=True):
+    def setCompPosition(self, component_alter, component, switch=True, verbosity=1):
         component_alter = str(component_alter)
         if not component_alter in self.compName_Map.keys():
             errMsg = 'setCompPosition: Unrecognized alternative component {}. Expecting one of {}.'
@@ -1222,9 +1218,10 @@ class SetChannelComponents(object):
         if not component in self.compPosition_Map.keys():
             errMsg = 'setCompPosition: Unrecognized target component {}. Expecting one of {}.'
             raise ValueError(errMsg.format(component, self.compPosition_Map.keys()))
-        print('setCompPosition: set component {} to {}'.format(component_alter, component))
+        if verbosity > 0:
+            print('setCompPosition: set component {} to {}'.format(component_alter, component))
         if switch:
-            self._switch(component, component_alter)
+            self._switch(component, component_alter, verbosity)
         self.compName_Map[component_alter] = component
 
     def getCompPosition(self, component):
@@ -1239,3 +1236,23 @@ class SetChannelComponents(object):
         else:
             errMsg = 'getCompPosition: Unrecognized component {}. Expecting one of {} or {}.'
             raise ValueError(errMsg.format(component, self.compPosition_Map.keys(), self.compName_Map.keys()))
+
+    @staticmethod
+    def from_qsettings(settings):
+        scc = SetChannelComponents()
+        for value in ['Z', 'N', 'E']:
+            key = settings.value(value, None)
+            if not key:
+                print('Could not get channel component map from QSettings. Writing default channel order to QSettings.')
+                scc.setDefaultCompPosition()
+                for value in ['Z', 'N', 'E']:
+                    settings.setValue(value, scc.getCompPosition(value))
+                return scc
+            scc.setCompPosition(key, value, verbosity=0)
+        return scc
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

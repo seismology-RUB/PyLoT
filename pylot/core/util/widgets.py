@@ -803,10 +803,7 @@ class WaveformWidgetPG(QtGui.QWidget):
         nmax = 0
 
         settings = QSettings()
-        compclass = settings.value('compclass')
-        if not type(compclass) == SetChannelComponents:
-            print('Warning: No settings for channel components found. Using default')
-            compclass = SetChannelComponents()
+        compclass = SetChannelComponents.from_qsettings(settings)
 
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
@@ -1303,10 +1300,7 @@ class PylotCanvas(FigureCanvas):
         nmax = 0
 
         settings = QSettings()
-        compclass = settings.value('compclass')
-        if not compclass:
-            print('Warning: No settings for channel components found. Using default')
-            compclass = SetChannelComponents()
+        compclass = SetChannelComponents.from_qsettings(settings)
 
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
@@ -2951,7 +2945,7 @@ class PickDlg(QDialog):
     def getChannelSettingsP(channel):
         settings = QSettings()
         rval = get_Bool(settings.value('p_channel_{}'.format(channel)))
-        compclass = settings.value('compclass')
+        compclass = SetChannelComponents.from_qsettings(settings)
         components = ['Z']
         for component in components[:]:
             components.append(compclass.getCompPosition(component))
@@ -2966,7 +2960,7 @@ class PickDlg(QDialog):
     def getChannelSettingsS(channel):
         settings = QSettings()
         rval = get_Bool(settings.value('s_channel_{}'.format(channel)))
-        compclass = settings.value('compclass')
+        compclass = SetChannelComponents.from_qsettings(settings)
         components = ['N', 'E']
         for component in components[:]:
             components.append(compclass.getCompPosition(component))
@@ -4549,23 +4543,13 @@ class PropertiesDlg(QDialog):
     @staticmethod
     def setValues(tabValues):
         settings = QSettings()
-        compclass = settings.value('compclass')
-        if not compclass:
-            print('Warning: No settings for channel components found. Using default')
-            compclass = SetChannelComponents()
+        compclass = SetChannelComponents.from_qsettings(settings)
 
         for setting, value in tabValues.items():
             settings.setValue(setting, value)
             if value is not None:
-                if setting.startswith('Channel Z'):
-                    component = 'Z'
-                    compclass.setCompPosition(value, component, False)
-                elif setting.startswith('Channel E'):
-                    component = 'E'
-                    compclass.setCompPosition(value, component, False)
-                elif setting.startswith('Channel N'):
-                    component = 'N'
-                    compclass.setCompPosition(value, component, False)
+                if setting in ['Z', 'N', 'E']:
+                    compclass.setCompPosition(value, setting, False)
 
         settings.sync()
 
@@ -4884,10 +4868,7 @@ class ChannelOrderTab(PropTab):
 
         self.dirty = False
         settings = QSettings()
-        compclass = settings.value('compclass')
-        if not compclass:
-            print('Warning: No settings for channel components found. Using default')
-            compclass = SetChannelComponents()
+        compclass = SetChannelComponents.from_qsettings(settings)
 
         ChannelOrderLabelZ = QLabel("Channel Z [up/down, default=3]")
         ChannelOrderLabelN = QLabel("Channel N [north/south, default=1]")
@@ -4953,18 +4934,18 @@ class ChannelOrderTab(PropTab):
                 channelOrderEdits[key].setText('')
 
     def getValues(self):
-        values = {"Channel Z [up/down, default=3]": int(self.ChannelOrderZEdit.text()),
-                  "Channel N [north/south, default=1]": int(self.ChannelOrderNEdit.text()),
-                  "Channel E [east/west, default=2]": int(self.ChannelOrderEEdit.text())}
+        values = {"Z": int(self.ChannelOrderZEdit.text()),
+                  "N": int(self.ChannelOrderNEdit.text()),
+                  "E": int(self.ChannelOrderEEdit.text())}
         return values
 
     def resetValues(self, infile=None):
         Zdefault = 3
         Ndefault = 1
         Edefault = 2
-        values = {"Channel Z [up/down, default=3]": self.ChannelOrderZEdit.setText("%d" % Zdefault),
-                  "Channel N [north/south, default=1]": self.ChannelOrderNEdit.setText("%d" % Ndefault),
-                  "Channel E [east/west, default=2]": self.ChannelOrderEEdit.setText("%d" % Edefault)}
+        values = {"Z": self.ChannelOrderZEdit.setText("%d" % Zdefault),
+                  "N": self.ChannelOrderNEdit.setText("%d" % Ndefault),
+                  "E": self.ChannelOrderEEdit.setText("%d" % Edefault)}
         return values
 
         # MP MP: No idea why this function exists!?
