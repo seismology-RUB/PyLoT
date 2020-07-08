@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
     __version__ = _getVersionString()
     closing = Signal()
 
-    def __init__(self, parent=None, infile=None, reset_qsettings=False):
+    def __init__(self, parent=None, infile=None):
         super(MainWindow, self).__init__(parent)
 
         self.init_config_files(infile)
@@ -152,8 +152,6 @@ class MainWindow(QMainWindow):
         self.createAction = createAction
         # read settings
         settings = QSettings()
-        if reset_qsettings:
-            settings.clear()
         self.recentfiles = settings.value("data/recentEvents", [])
         self.dispComponent = str(settings.value("plotting/dispComponent", "Z"))
 
@@ -196,6 +194,8 @@ class MainWindow(QMainWindow):
                     dirname = QFileDialog().getExistingDirectory(
                         caption='Choose data root ...')
                     settings.setValue("data/dataRoot", dirname)
+                if settings.value('compclass', None) is None:
+                    settings.setValue('compclass', SetChannelComponents())
                 if settings.value('useGuiFilter') is None:
                     settings.setValue('useGuiFilter', False)
                 if settings.value('output/Format', None) is None:
@@ -1293,15 +1293,12 @@ class MainWindow(QMainWindow):
         paths_exist = [os.path.exists(event.path) for event in self.project.eventlist]
         if all(paths_exist):
             return True
-        elif not any(paths_exist):
-            return False
         else:
             info_str = ''
             for event, path_exists in zip(self.project.eventlist, paths_exist):
-                if not path_exists:
-                    info_str += '\n{} exists: {}'.format(event.path, path_exists)
+                info_str += '\n{} exists: {}'.format(event.path, path_exists)
             print('Unable to find certain event paths:{}'.format(info_str))
-            return True
+            return False
 
     def modify_project_path(self, new_rootpath):
         self.project.rootpath = new_rootpath
@@ -3584,10 +3581,7 @@ class MainWindow(QMainWindow):
         if not filename.split('.')[-1] == 'plp':
             filename = fnm[0] + '.plp'
         self.project.parameter = self._inputs
-        settings = QSettings()
-        autosaveXML = get_Bool(settings.value('autosaveXML', True))
-        if autosaveXML:
-            self.exportEvents()
+        self.exportEvents()
         self.project.save(filename)
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
@@ -3608,10 +3602,7 @@ class MainWindow(QMainWindow):
             else:
                 self.metadata.clear_inventory()
                 self.project.parameter = self._inputs
-                settings = QSettings()
-                autosaveXML = get_Bool(settings.value('autosaveXML', True))
-                if autosaveXML:
-                    self.exportEvents()
+                self.exportEvents()
                 self.project.save()
                 self.update_obspy_dmt()
             if not self.project.dirty:
@@ -3909,7 +3900,6 @@ def main(args=None):
             project_filename = args.project_filename
         if args.input_filename:
             pylot_infile = args.input_filename
-        reset_qsettings = args.reset_qsettings
 
     # create the Qt application
     pylot_app, app_created = create_window()
@@ -3922,7 +3912,7 @@ def main(args=None):
     app_icon.addPixmap(QPixmap(':/icons/pylot.png'))
 
     # create the main window
-    pylot_form = MainWindow(infile=pylot_infile, reset_qsettings=reset_qsettings)
+    pylot_form = MainWindow(infile=pylot_infile)
     pylot_form.setWindowIcon(app_icon)
     pylot_form.setIconSize(QSize(60, 60))
 
@@ -3955,7 +3945,5 @@ if __name__ == "__main__":
                         default=None)
     parser.add_argument('-in', dest='input_filename', help='set pylot input file',
                         default=None)
-    parser.add_argument('--reset_qsettings', default=False, action='store_true',
-                        help='reset qsettings (debug option)')
     args = parser.parse_args()
     sys.exit(main(args))
