@@ -132,7 +132,7 @@ class Magnitude(object):
                 scaling = False
             else:
                 scaling = True
-            if scaling:
+            if scaling == True:
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(

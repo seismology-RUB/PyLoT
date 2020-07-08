@@ -3426,7 +3426,7 @@ class MainWindow(QMainWindow):
             print("Network local magnitude: %4.1f" % net_ml.mag)
         if magscaling is None:
             scaling = False
-        elif magscaling[0] != 0 and magscaling[1] != 0:
+        elif magscaling[0] == 0.0 and magscaling[1] == 0.0:
             scaling = False
         else:
             scaling = True
