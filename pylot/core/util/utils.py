@@ -960,26 +960,31 @@ def check4rotated(data, metadata=None, verbosity=1):
                 return wfstream
             # to rotate all traces must have same length, so trim them
             wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
-            z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
-                                 wfstream[1], azimuts[1], dips[1],
-                                 wfstream[2], azimuts[2], dips[2])
-            print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
-            # replace old data with rotated data, change the channel code to ZNE
-            z_index = dips.index(min(
-                dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
-            wfstream[z_index].data = z
-            wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
-            del trace_ids[z_index]
-            for trace_id in trace_ids:
-                coordinates = metadata.get_coordinates(trace_id, t_start)
-                dip, az = coordinates['dip'], coordinates['azimuth']
-                trace = wfstream.select(id=trace_id)[0]
-                if az > 315 or az <= 45 or az > 135 and az <= 225:
-                    trace.data = n
-                    trace.stats.channel = trace.stats.channel[0:-1] + 'N'
-                elif az > 45 and az <= 135 or az > 225 and az <= 315:
-                    trace.data = e
-                    trace.stats.channel = trace.stats.channel[0:-1] + 'E'
+            try:
+                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
+                                     wfstream[1], azimuts[1], dips[1],
+                                     wfstream[2], azimuts[2], dips[2])
+                print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
+                # replace old data with rotated data, change the channel code to ZNE
+                z_index = dips.index(min(
+                    dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
+                wfstream[z_index].data = z
+                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
+                del trace_ids[z_index]
+                for trace_id in trace_ids:
+                    coordinates = metadata.get_coordinates(trace_id, t_start)
+                    dip, az = coordinates['dip'], coordinates['azimuth']
+                    trace = wfstream.select(id=trace_id)[0]
+                    if az > 315 or az <= 45 or az > 135 and az <= 225:
+                        trace.data = n
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
+                        trace.data = e
+                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
+            except (ValueError) as e:
+                print(e)
+                return wfstream
+
         return wfstream
 
     if metadata is None:
