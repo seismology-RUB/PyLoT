@@ -326,14 +326,17 @@ class AICPicker(AutoPicker):
             dataslope = aicsmooth[pickindex: iaicmax]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
-            P = np.polyfit(xslope, dataslope, 1)
-            datafit = np.polyval(P, xslope)
-            if datafit[0] >= datafit[-1]:
-                print('AICPicker: Negative slope, bad onset skipped!')
-            else:
-                self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
-                # normalize slope to maximum of cf to make it unit independent
-                self.slope /= aicsmooth[iaicmax]
+            try:
+                P = np.polyfit(xslope, dataslope, 1)
+                datafit = np.polyval(P, xslope)
+                if datafit[0] >= datafit[-1]:
+                    print('AICPicker: Negative slope, bad onset skipped!')
+                else:
+                    self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
+                    # normalize slope to maximum of cf to make it unit independent
+                    self.slope /= aicsmooth[iaicmax]
+            except ValueError as e:
+                print("AICPicker: Problems with data fitting! {}".format(e))
 
         else:
             self.SNR = None

@@ -270,8 +270,13 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             islope1 = np.where((t >= Pick) & (t <= Pick + t[imax1]))
             # calculate slope as polynomal fit of order 1
             xslope1 = np.arange(0, len(xraw[islope1]), 1)
-            P1 = np.polyfit(xslope1, xraw[islope1], 1)
-            datafit1 = np.polyval(P1, xslope1)
+            try:
+                P1 = np.polyfit(xslope1, xraw[islope1], 1)
+                datafit1 = np.polyval(P1, xslope1)
+            except ValueError as e:
+                print("fmpicker: Problems with data fit! {}".format(e))
+                print("Skip first motion determination!")
+                return FM
 
         # now using filterd trace
         # next zero crossings after most likely pick
