@@ -15,7 +15,7 @@ from obspy.core.util import AttribDict
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
-from pylot.core.pick.utils import select_for_phase
+from pylot.core.pick.utils import select_for_phase, get_quality_class
 from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilterString4Export, \
     backtransformFilterString
 
@@ -232,7 +232,10 @@ def picksdict_from_picks(evt):
     for pick in evt.picks:
         phase = {}
         station = pick.waveform_id.station_code
-        channel = pick.waveform_id.channel_code
+        if pick.waveform_id.channel_code == None:
+            channel = ''
+        else:
+            channel = pick.waveform_id.channel_code
         network = pick.waveform_id.network_code
         mpp = pick.time
         spe = pick.time_errors.uncertainty
@@ -246,8 +249,11 @@ def picksdict_from_picks(evt):
                 picker = picker.split('smi:local/')[1]
         except IndexError:
             picker = 'manual'  # MP MP TODO maybe improve statement
+        if picker == 'None':
+            picker = 'manual'
         try:
-            onsets = picksdict[picker][station]
+            #onsets = picksdict[picker][station]
+            onsets = picksdict[station]
         except KeyError as e:
             # print(e)
             onsets = {}
@@ -263,18 +269,29 @@ def picksdict_from_picks(evt):
                 msg = str(e) + ',\n falling back to symmetric uncertainties'
                 lpp = mpp + spe
                 epp = mpp - spe
+                # get onset weight from uncertainty
+                infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+                print('Using default input file {}'.format(infile))
+                parameter = PylotParameter(infile)
+                if pick.phase_hint == 'P':
+                    errors = parameter['timeerrorsP']
+                elif pick.phase_hint == 'S':
+                    errors = parameter['timeerrorsS']
+                weight = get_quality_class(spe, errors)
             warnings.warn(msg)
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp
         phase['spe'] = spe
+        phase['weight'] = weight
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
         phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
-        picksdict[picker][station] = onsets.copy()
+        #picksdict[picker][station] = onsets.copy()
+        picksdict[station] = onsets.copy()
     return picksdict
 
 
@@ -702,6 +719,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
             cns, eventsource['longitude'], cew, eventsource['depth'], eventinfo.magnitudes[0]['mag'], ifx))
         n = 0
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -930,8 +953,8 @@ def merge_picks(event, picks):
 def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
     """
     Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
-   Uncertainties are tranformed into quality classes and visualized via histogram if desired.
-   Ludger Küperkoch, BESTEC GmbH, 07/2017
+    Uncertainties are tranformed into quality classes and visualized via histogram if desired.
+    Ludger Küperkoch, BESTEC GmbH, 07/2017
     :param xmlnames: list of xml obspy event files containing picks
     :type xmlnames: list
     :param ErrorsP: time errors of P waves for the four discrete quality classes
