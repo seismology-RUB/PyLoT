@@ -287,6 +287,7 @@ def picksdict_from_picks(evt):
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
+        phase['fm'] = 'N'
         phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
@@ -481,7 +482,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
 
-    HYPO71, NLLoc, VELEST, HYPOSAT, and hypoDD
+    HYPO71, NLLoc, VELEST, HYPOSAT, FOCMEC, and hypoDD
 
     :param arrivals:dictionary containing all phase information including
      station ID, phase, first motion, weight (uncertainty), ...
@@ -489,7 +490,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
 
     :param fformat: chosen file format (location routine),
     choose between NLLoc, HYPO71, HYPOSAT, VELEST,
-    HYPOINVERSE, and hypoDD
+    HYPOINVERSE, FOCMEC, and hypoDD
     :type fformat: str
 
     :param filename: full path and name of phase file
@@ -799,6 +800,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                              eventsource['depth'] / 1000,
                                                                              eventinfo.magnitudes[0]['mag']))
         picks = eventinfo.picks
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
         for key in arrivals:
             if arrivals[key].has_key('P'):
                 if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:

@@ -11,8 +11,9 @@ from obspy.io.sac import SacIOError
 from PySide.QtGui import QMessageBox
 
 import pylot.core.loc.velest as velest
+import pylot.core.loc.focmec as focmec
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
-    picksdict_from_pilot, merge_picks
+    picksdict_from_pilot, merge_picks, PylotParameter
 from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
@@ -246,7 +247,7 @@ class Data(object):
         """
         Export event to file
         :param fnout: basename of file
-        :param fnext: file extension, xml, cnv, obs
+        :param fnext: file extension, xml, cnv, obs, focmec
         :param fcheck: check and delete existing information
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
@@ -356,6 +357,15 @@ class Data(object):
             if fnext == '.cnv':
                 try:
                     velest.export(picks_copy, fnout + fnext, eventinfo=self.get_evt_data())
+                except KeyError as e:
+                    raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+            if fnext == '.focmec':
+                try:
+                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+                    print('Using default input file {}'.format(infile))
+                    parameter = PylotParameter(infile)
+                    focmec.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))

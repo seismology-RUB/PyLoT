@@ -36,6 +36,7 @@ TIMEERROR_DEFAULTS = os.path.join(os.path.expanduser('~'),
 
 OUTPUTFORMATS = {'.xml': 'QUAKEML',
                  '.cnv': 'CNV',
-                 '.obs': 'NLLOC_OBS'}
+                 '.obs': 'NLLOC_OBS',
+                 '.focmec': 'FOCMEC'}
 
 LOCTOOLS = dict(nll=nll, hyposat=hyposat, velest=velest, hypo71=hypo71, hypodd=hypodd)
