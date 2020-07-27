@@ -587,10 +587,9 @@ def restitute_trace(input_tuple):
     elif invtype == 'xml':
         invlist = inobj
         if len(invlist) > 1:
-            finv = find_in_list(invlist, seed_id)
+            inventory = find_in_list(invlist, seed_id)
         else:
-            finv = invlist[0]
-        inventory = read_inventory(finv, format='STATIONXML')
+            inventory = invlist[0]
     elif invtype is None:
         return no_metadata(tr, seed_id)
     else:
@@ -608,9 +607,14 @@ def restitute_trace(input_tuple):
                 print(vmsg)
 
         else:
-            tr.attach_response(inventory)
-            tr.remove_response(output=unit,
-                               pre_filt=prefilt)
+            try:
+                tr.attach_response(inventory)
+                tr.remove_response(output=unit,
+                                   pre_filt=prefilt)
+            except UnboundLocalError as e:
+                vmsg = '{0}'.format(e)
+                print(vmsg)
+
     except ValueError as e:
         msg0 = 'Response for {0} not found in Parser'.format(seed_id)
         msg1 = 'evalresp failed to calculate response'
