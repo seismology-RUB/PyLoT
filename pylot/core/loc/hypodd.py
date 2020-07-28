@@ -25,4 +25,4 @@ def export(picks, fnout, parameter, eventinfo):
     :type eventinfo:  list object
     '''
     # write phases to hypoDD-phase file
-    writephases(picks, 'hypoDD', fnout, parameter, eventinfo)
+    writephases(picks, 'HYPODD', fnout, parameter, eventinfo)

@@ -12,6 +12,7 @@ from PySide.QtGui import QMessageBox
 
 import pylot.core.loc.velest as velest
 import pylot.core.loc.focmec as focmec
+import pylot.core.loc.hypodd as hypodd
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks, PylotParameter
 from pylot.core.util.errors import FormatError, OverwriteError
@@ -232,22 +233,27 @@ class Data(object):
         picks = event.picks
         # remove existing picks
         for j, pick in reversed(list(enumerate(picks))):
-            if picktype in str(pick.method_id.id):
-                picks.pop(j)
-                checkflag = 1
+            try:
+                if picktype in str(pick.method_id.id):
+                    picks.pop(j)
+                    checkflag = 1
+            except AttributeError as e:
+                msg = '{}'.format(e)
+                print(e)
+                checkflag = 0
         if checkflag:
             print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
 
-        # append new picks
-        for pick in self.get_evt_data().picks:
-            if picktype in str(pick.method_id.id):
-                picks.append(pick)
+            # append new picks
+            for pick in self.get_evt_data().picks:
+                if picktype in str(pick.method_id.id):
+                    picks.append(pick)
                 
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
         """
         Export event to file
         :param fnout: basename of file
-        :param fnext: file extension, xml, cnv, obs, focmec
+        :param fnext: file extensions xml, cnv, obs, focmec, or/and pha
         :param fcheck: check and delete existing information
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
@@ -366,6 +372,15 @@ class Data(object):
                     print('Using default input file {}'.format(infile))
                     parameter = PylotParameter(infile)
                     focmec.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
+                except KeyError as e:
+                    raise KeyError('''{0} export format
+                                     not implemented: {1}'''.format(evtformat, e))
+            if fnext == '.pha':
+                try:
+                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+                    print('Using default input file {}'.format(infile))
+                    parameter = PylotParameter(infile)
+                    hypodd.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))

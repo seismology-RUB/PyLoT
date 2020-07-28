@@ -291,7 +291,6 @@ def picksdict_from_picks(evt):
         phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
-        #picksdict[picker][station] = onsets.copy()
         picksdict[station] = onsets.copy()
     return picksdict
 
@@ -757,7 +756,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                         fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))
         fid.close()
 
-    elif fformat == 'hypoDD':
+    elif fformat == 'HYPODD':
         print("Writing phases to %s for hypoDD" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for hypoDD-phase file
@@ -770,6 +769,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
             eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
             eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
         for key in arrivals:
             if arrivals[key].has_key('P'):
                 # P onsets
