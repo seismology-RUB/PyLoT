@@ -526,7 +526,9 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     zdat = select_for_phase(wfstream, "P")
 
     if len(zdat) == 0:
-        raise IOError('No vertical component found in stream:\n{}'.format(wfstream))
+        print("No vertical component found in stream:\n{}".format(wfstream))
+        print("No calculation of source spectrum possible!")
+        return w0, Fc
 
     dt = zdat[0].stats.delta
 
