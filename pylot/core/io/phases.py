@@ -269,21 +269,24 @@ def picksdict_from_picks(evt):
                 msg = str(e) + ',\n falling back to symmetric uncertainties'
                 lpp = mpp + spe
                 epp = mpp - spe
-                # get onset weight from uncertainty
-                infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-                print('Using default input file {}'.format(infile))
-                parameter = PylotParameter(infile)
-                if pick.phase_hint == 'P':
-                    errors = parameter['timeerrorsP']
-                elif pick.phase_hint == 'S':
-                    errors = parameter['timeerrorsS']
-                weight = get_quality_class(spe, errors)
             warnings.warn(msg)
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp
         phase['spe'] = spe
-        phase['weight'] = weight
+        try:
+            phase['weight'] = weight
+        except:
+            # get onset weight from uncertainty
+            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+            print('Using default input file {}'.format(infile))
+            parameter = PylotParameter(infile)
+            if pick.phase_hint == 'P':
+                errors = parameter['timeerrorsP']
+            elif pick.phase_hint == 'S':
+                errors = parameter['timeerrorsS']
+            weight = get_quality_class(spe, errors)
+            phase['weight'] = weight
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
@@ -782,7 +785,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     Ponset = arrivals[key]['P']['mpp']
                     Prt = Ponset - stime  # onset time relative to source time
                     fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-                    # S onsets
+            if arrivals[key].has_key('S'):
+                # S onsets
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
                     Srt = Sonset - stime  # onset time relative to source time

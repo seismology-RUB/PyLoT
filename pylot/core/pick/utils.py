@@ -316,8 +316,13 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             islope2 = np.where((t >= Pick) & (t <= Pick + t[imax2]))
             # calculate slope as polynomal fit of order 1
             xslope2 = np.arange(0, len(xfilt[islope2]), 1)
-            P2 = np.polyfit(xslope2, xfilt[islope2], 1)
-            datafit2 = np.polyval(P2, xslope2)
+            try:
+                P2 = np.polyfit(xslope2, xfilt[islope2], 1)
+                datafit2 = np.polyval(P2, xslope2)
+            except ValueError as e:
+                emsg = 'fmpicker: polyfit failed: {}'.format(e)
+                print(emsg)
+                return FM
 
         # compare results
         if P1 is not None and P2 is not None:
