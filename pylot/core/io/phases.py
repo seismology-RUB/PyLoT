@@ -547,9 +547,10 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                                            ss_ms,
                                                                                            pweight))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']:
+            if arrivals[key].has_key('S') and arrivals[key]['S']['mpp'] is not None:
                 fm = '?'
                 onset = arrivals[key]['S']['mpp']
+                print(onset)
                 year = onset.year
                 month = onset.month
                 day = onset.day
