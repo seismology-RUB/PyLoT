@@ -210,7 +210,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
     assert isinstance(Xraw, Stream), "%s is not a stream object" % str(Xraw)
     assert isinstance(Xfilt, Stream), "%s is not a stream object" % str(Xfilt)
 
-    FM = None
+    FM = 'N'
     if Pick is not None:
         print("fmpicker: Get first motion (polarity) of onset using unfiltered seismogram...")
 
