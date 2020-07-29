@@ -80,7 +80,8 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 Version {version} 2017\n
                 \n
                 Authors:\n
-                L. Kueperkoch (BESTEC GmbH, Landau i. d. Pfalz)\n
+                L. Kueperkoch (BESTEC GmbH, Landau i. d. Pfalz, \n
+                   now at igem GmbH, Mainz)
                 M. Paffrath (Ruhr-Universitaet Bochum)\n
                 S. Wehling-Benatelli (Ruhr-Universitaet Bochum)\n
                 
