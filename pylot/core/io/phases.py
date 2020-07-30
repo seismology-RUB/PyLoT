@@ -886,7 +886,6 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         try:
             eventsource = eventinfo.origins[0]
         except:
-            print("No source origin given! Locate event first!")
             print("No source origin calculated yet, thus no cnv-file creation possible!")
             return
         eventsource = eventinfo.origins[0]

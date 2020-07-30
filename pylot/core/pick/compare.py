@@ -117,14 +117,17 @@ class Comparison(object):
 
         pdf_a = self.get('auto').generate_pdf_data(type)
         pdf_b = self.get('manu').generate_pdf_data(type)
-
+        
         for station, phases in pdf_a.items():
             if station in pdf_b.keys():
                 compare_pdf = dict()
                 for phase in phases:
                     if phase in pdf_b[station].keys():
-                        compare_pdf[phase] = phases[phase] - pdf_b[station][
-                            phase]
+                        try:
+                            compare_pdf[phase] = phases[phase] - pdf_b[station][
+                                phase]
+                        except:
+                            compare_pdf = None
                 if compare_pdf is not None:
                     compare_pdfs[station] = compare_pdf
 
