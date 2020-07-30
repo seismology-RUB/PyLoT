@@ -550,7 +550,6 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             if arrivals[key].has_key('S') and arrivals[key]['S']['mpp'] is not None:
                 fm = '?'
                 onset = arrivals[key]['S']['mpp']
-                print(onset)
                 year = onset.year
                 month = onset.month
                 day = onset.day
@@ -660,7 +659,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
         for key in arrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
+            if arrivals[key].has_key('P') and arrivals[key]['P']['mpp'] is not None:
                 if arrivals[key]['P']['weight'] < 4:
                     Ponset = arrivals[key]['P']['mpp']
                     pyear = Ponset.year
@@ -674,10 +673,22 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     # use symmetrized picking error as std
                     # (read the HYPOSAT manual)
                     pstd = arrivals[key]['P']['spe']
+                    if pstd is None:
+                        errorsP = parameter.get('timeerrorsP')
+                        if arrivals[key]['P']['weight'] == 0:
+                            pstd = errorsP[0]
+                        elif arrivals[key]['P']['weight'] == 1:
+                            pstd = errorsP[1]
+                        elif arrivals[key]['P']['weight'] == 2:
+                            pstd = errorsP[2]
+                        elif arrivals[key]['P']['weight'] == 3:
+                            psrd = errorsP[3]
+                        else:
+                            pstd = errorsP[4]
                     fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']:
+            if arrivals[key].has_key('S') and arrivals[key]['S']['mpp'] is not None:
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
                     syear = Sonset.year
@@ -689,6 +700,18 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     sms = Sonset.microsecond
                     Sss = sss + sms / 1000000.0
                     sstd = arrivals[key]['S']['spe']
+                    if pstd is None:
+                        errorsS = parameter.get('timeerrorsS')
+                        if arrivals[key]['S']['weight'] == 0:
+                            pstd = errorsS[0]
+                        elif arrivals[key]['S']['weight'] == 1:
+                            pstd = errorsS[1]
+                        elif arrivals[key]['S']['weight'] == 2:
+                            pstd = errorsS[2]
+                        elif arrivals[key]['S']['weight'] == 3:
+                            psrd = errorsS[3]
+                        else:
+                            pstd = errorsP[4]
                     fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, syear, smonth, sday, shh, smm, Sss, sstd))
         fid.close()
