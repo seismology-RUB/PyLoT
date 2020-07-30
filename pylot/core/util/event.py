@@ -233,7 +233,7 @@ class Event(ObsPyEvent):
 
     def setAutopick(self, station, pick):
         """
-        Set pick at station
+        Set autopylot pick at station
         :param station: station name
         :type station: str
         :param pick:
@@ -255,7 +255,7 @@ class Event(ObsPyEvent):
 
     def setAutopicks(self, picks):
         """
-        Set pylot picks and delete and overwrite all existing
+        Set autopylot picks and delete and overwrite all existing
         :param picks:  new picks
         :type picks: dict
         :return:
