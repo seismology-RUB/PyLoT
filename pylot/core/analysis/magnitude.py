@@ -751,7 +751,6 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # check difference of il and ir in order to
     # keep calculation time acceptable
     idiff = ir - il
-    print(idiff)
     if idiff > 100000:
         increment = 1000
     elif idiff <= 100000 and idiff > 10000:
@@ -760,7 +759,6 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
         increment = 1
     else:
         increment = 10
-    print(increment)
     for i in range(il, ir, increment):
         FC = f[i]
         indexdc = np.where((f > 0) & (f <= FC))
