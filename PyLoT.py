@@ -22,7 +22,7 @@ https://www.iconfinder.com/iconsets/flavour
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
 """
-import pdb
+
 import argparse
 import matplotlib
 import os

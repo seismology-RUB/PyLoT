@@ -787,7 +787,11 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for hypoDD" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for hypoDD-phase file
-        eventsource = eventinfo.origins[0]
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
+            return
         stime = eventsource['time']
         event = parameter.get('eventID')
         hddID = event.split('.')[0][1:5]
@@ -822,7 +826,11 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for FOCMEC" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for FOCMEC-input file
-        eventsource = eventinfo.origins[0]
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no FOCMEC-infile creation possible!")
+            return
         stime = eventsource['time']
         # write header line including event information
         fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (parameter.get('eventID'),
@@ -875,6 +883,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for HASH for HASH-driver 2" % filename2)
         fid2 = open("%s" % filename2, 'w')
         # get event information needed for HASH-input file
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin given! Locate event first!")
+            print("No source origin calculated yet, thus no cnv-file creation possible!")
+            return
         eventsource = eventinfo.origins[0]
         event = parameter.get('eventID')
         hashID = event.split('.')[0][1:5]
