@@ -2468,8 +2468,10 @@ class MainWindow(QMainWindow):
     def pickDialog(self, wfID, seed_id=None):
         if not seed_id:
             seed_id = self.getTraceID(wfID)
-        network, station, location = seed_id.split('.')[:3]
-        if not station or not network:
+        try:
+           network, station, location = seed_id.split('.')[:3]
+        except:
+            print("Warning! No network, station, and location info available!")
             return
         self.update_status('picking on station {0}'.format(station))
         data = self.get_data().getOriginalWFData().copy()
