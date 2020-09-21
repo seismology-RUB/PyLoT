@@ -522,7 +522,6 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
     Fc = None
     w0 = None
-
     zdat = select_for_phase(wfstream, "P")
 
     if len(zdat) == 0:
@@ -537,7 +536,6 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     # trim traces to common range (for rotation)
     trstart, trend = common_range(wfstream)
     wfstream.trim(trstart, trend)
-
     # rotate into LQT (ray-coordindate-) system using Obspy's rotate
     # L: P-wave direction
     # Q: SV-wave direction
@@ -591,7 +589,8 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         #n = freq * l
         # find next power of 2 of data length
         m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
-        N = int(np.power(m, 2))
+        N = min(int(np.power(m, 2)), 16384)
+        #N = int(np.power(m, 2))
         y = dt * np.fft.fft(xdat, N)
         Y = abs(y[: N / 2])
         L = (N - 1) / freq
