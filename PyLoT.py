@@ -3807,13 +3807,16 @@ class Project(object):
                 datapaths.append(event.datapath)
         for datapath in datapaths:
             datapath = os.path.join(self.rootpath, datapath)
-            for filename in os.listdir(datapath):
-                filename = os.path.join(datapath, filename)
-                if os.path.isfile(filename) and filename.endswith(fext):
-                    try:
-                        self.read_eventfile_info(filename)
-                    except Exception as e:
-                        print('Failed on reading eventfile info from file {}: {}'.format(filename, e))
+            if os.path.isdir(datapath):
+                for filename in os.listdir(datapath):
+                    filename = os.path.join(datapath, filename)
+                    if os.path.isfile(filename) and filename.endswith(fext):
+                        try:
+                            self.read_eventfile_info(filename)
+                        except Exception as e:
+                            print('Failed on reading eventfile info from file {}: {}'.format(filename, e))
+            else:
+                print("Directory %s does not exist!" % datapath)
 
     def getPaths(self):
         '''
