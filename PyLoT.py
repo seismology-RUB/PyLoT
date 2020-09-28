@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         self.deleted_picks = {}
 
         # headers for event table
-        self.table_headers = ['', 'Event', 'Time', 'Lat', 'Lon', 'Depth', 'Mag', '[N] MP', '[N] AP', 'Tuning Set',
+        self.table_headers = ['', 'Event', 'Time', 'Lat', 'Lon', 'Depth', 'Ml', 'Mw', '[N] MP', '[N] AP', 'Tuning Set',
                               'Test Set', 'Notes']
 
         while True:
@@ -1380,9 +1380,11 @@ class MainWindow(QMainWindow):
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
-            if len(event.magnitudes) == 1:
-                magnitude = event.magnitudes[0]
-                mag = magnitude.mag
+            if len(event.magnitudes) >= 1:
+                moment_magnitude = event.magnitudes[0]
+                local_magnitude = event.magnitudes[1]
+                localmag = '%4.1f' % local_magnitude.mag
+                momentmag = '%4.1f'% moment_magnitude.mag
 
             # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             # text = text.format(path=event_path,
@@ -1398,7 +1400,8 @@ class MainWindow(QMainWindow):
             item_lat = QtGui.QStandardItem('{}'.format(lat))
             item_lon = QtGui.QStandardItem('{}'.format(lon))
             item_depth = QtGui.QStandardItem('{}'.format(depth))
-            item_mag = QtGui.QStandardItem('{}'.format(mag))
+            item_localmag = QtGui.QStandardItem('{}'.format(localmag))
+            item_momentmag = QtGui.QStandardItem('{}'.format(momentmag))
             item_nmp = QtGui.QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
             item_nap = QtGui.QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
@@ -1425,7 +1428,7 @@ class MainWindow(QMainWindow):
             # item2.setForeground(QtGui.QColor('black'))
             # item2.setFont(font)
             itemlist = [item_path, item_time, item_lat, item_lon, item_depth,
-                        item_mag, item_nmp, item_nap, item_ref, item_test, item_notes]
+                        item_localmag, item_momentmag, item_nmp, item_nap, item_ref, item_test, item_notes]
             for item in itemlist:
                 item.setTextAlignment(Qt.AlignCenter)
             if event_test and select_events == 'ref' or self.isEmpty(event_path):
@@ -3236,7 +3239,8 @@ class MainWindow(QMainWindow):
             item_lat = QtGui.QTableWidgetItem()
             item_lon = QtGui.QTableWidgetItem()
             item_depth = QtGui.QTableWidgetItem()
-            item_mag = QtGui.QTableWidgetItem()
+            item_momentmag = QtGui.QTableWidgetItem()
+            item_localmag = QtGui.QTableWidgetItem()
             item_nmp = QtGui.QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
             item_nap = QtGui.QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
@@ -3259,8 +3263,12 @@ class MainWindow(QMainWindow):
                     item_depth.setText(str(origin.depth))
             if hasattr(event, 'magnitudes'):
                 if event.magnitudes:
-                    magnitude = event.magnitudes[0]
-                    item_mag.setText(str(magnitude.mag))
+                    moment_magnitude = event.magnitudes[0]
+                    moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                    local_magnitude = event.magnitudes[1]
+                    local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                    item_momentmag.setText(str(moment_magnitude.mag))
+                    item_localmag.setText(str(local_magnitude.mag))
             item_notes.setText(event.notes)
 
             set_enabled(item_path, True, False)
@@ -3283,8 +3291,8 @@ class MainWindow(QMainWindow):
             else:
                 item_test.setCheckState(QtCore.Qt.Unchecked)
 
-            row = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_mag,
-                      item_nmp, item_nap, item_ref, item_test, item_notes]
+            row = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_localmag,
+                      item_momentmag, item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(row)
 
             self.setItemColor(row, index, event, current_event)
