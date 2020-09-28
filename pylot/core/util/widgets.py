@@ -46,6 +46,7 @@ from pylot.core.io.inputs import FilterOptions, PylotParameter
 from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
     getResolutionWindow, get_quality_class
 from pylot.core.pick.compare import Comparison
+from pylot.core.pick.autopick import fmpicker
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
     pick_linestyle_plt, pick_color_plt, \
@@ -2564,6 +2565,16 @@ class PickDlg(QDialog):
                                          pick - stime_diff, verbosity=1)
 
         mpp = stime + pick
+
+        # get first motion and quality classes
+        if self.getPhaseID(phase) == 'P':
+            # get first motion quality of P onset is sufficeint
+            minFMweight = parameter.get('minfmweight')
+            minFMSNR = parameter.get('minFMSNR')
+            quality = get_quality_class(spe, parameter.get('timeerrorsP'))
+            if quality <= minFMweight:
+                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'), mpp)
+
         if epp:
             epp = stime + epp + stime_diff
         if lpp:
