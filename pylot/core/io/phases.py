@@ -290,7 +290,16 @@ def picksdict_from_picks(evt):
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = picker
-        phase['fm'] = 'N'
+        try:
+            if pick.polarity == 'positive':
+                phase['fm'] = 'U'
+            elif pick.polarity == 'negative':
+                phase['fm'] = 'D'
+            else:
+                phase['fm'] = 'N'
+        except:
+            print("No FM info available!")
+            phase['fm'] = 'N'
         phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
@@ -350,19 +359,25 @@ def picks_from_picksdict(picks, creation_info=None):
                 warnings.warn(str(e), RuntimeWarning)
                 filter_id = ''
             pick.filter_id = filter_id
+
             try:
-                polarity = phase['fm']
+                polarity = picks[station][label]['fm']
                 if polarity == 'U' or '+':
                     pick.polarity = 'positive'
                 elif polarity == 'D' or '-':
                     pick.polarity = 'negative'
                 else:
                     pick.polarity = 'undecidable'
-            except KeyError as e:
-                if 'fm' in str(e):  # no polarity information found for this phase
-                    pass
-                else:
-                    raise e
+            except:
+                pick.polarity = 'undecidable'
+                print("No polarity information available!")
+            #except KeyError as e:
+            #    if 'fm' in str(e):  # no polarity information found for this phase
+                #if 'polarity' in str(e):  # no polarity information found for this phase
+            #        print("No polarity information available!")
+            #        pass
+            #    else:
+            #        raise e
             picks_list.append(pick)
     return picks_list
 

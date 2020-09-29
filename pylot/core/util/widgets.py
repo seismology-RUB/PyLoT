@@ -2566,22 +2566,31 @@ class PickDlg(QDialog):
 
         mpp = stime + pick
 
-        # get first motion and quality classes
-        if self.getPhaseID(phase) == 'P':
-            # get first motion quality of P onset is sufficeint
-            minFMweight = parameter.get('minfmweight')
-            minFMSNR = parameter.get('minFMSNR')
-            quality = get_quality_class(spe, parameter.get('timeerrorsP'))
-            if quality <= minFMweight:
-                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'), mpp)
-
         if epp:
             epp = stime + epp + stime_diff
         if lpp:
             lpp = stime + lpp + stime_diff
 
+        noise_win, gap_win, signal_win = self.getNoiseWin(phase)
+        snr, snrDB, noiselevel = getSNR(wfdata, (noise_win, gap_win, signal_win), pick - stime_diff)
+        print('SNR of final pick: {}'.format(snr))
+        if snr < 1.5:
+            QMessageBox.warning(self, 'SNR too low', 'WARNING! SNR of final pick below 1.5! SNR = {}'.format(snr))
+
+        # get first motion and quality classes
+        FM = ''
+        if self.getPhaseID(phase) == 'P':
+            # get first motion quality of P onset is sufficeint
+            minFMweight = parameter.get('minfmweight')
+            minFMSNR = parameter.get('minFMSNR')
+            quality = get_quality_class(spe, parameter.get('timeerrorsP'))
+            if quality <= minFMweight and snr >= minFMSNR:
+                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'), 
+                               pick -stime_diff)
+
+
         # save pick times for actual phase
-        phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe,
+        phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe, fm=FM,
                           picker='manual', channel=channel,
                           network=wfdata[0].stats.network,
                           filteroptions=transformFilteroptions2String(filteroptions))
@@ -2595,11 +2604,7 @@ class PickDlg(QDialog):
         self.zoomAction.setEnabled(True)
         # self.pick_block = self.togglPickBlocker()
         # self.resetZoom()
-        noise_win, gap_win, signal_win = self.getNoiseWin(phase)
-        snr, snrDB, noiselevel = getSNR(wfdata, (noise_win, gap_win, signal_win), pick - stime_diff)
-        print('SNR of final pick: {}'.format(snr))
-        if snr < 1.5:
-            QMessageBox.warning(self, 'SNR too low', 'WARNING! SNR of final pick below 1.5! SNR = {}'.format(snr))
+
         self.leave_picking_mode()
 
     def savePick(self, phase, phasepicks):
