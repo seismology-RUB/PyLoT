@@ -362,22 +362,15 @@ def picks_from_picksdict(picks, creation_info=None):
 
             try:
                 polarity = picks[station][label]['fm']
-                if polarity == 'U' or '+':
+                if polarity == 'U' or polarity == '+':
                     pick.polarity = 'positive'
-                elif polarity == 'D' or '-':
+                elif polarity == 'D' or polarity == '-':
                     pick.polarity = 'negative'
                 else:
                     pick.polarity = 'undecidable'
             except:
                 pick.polarity = 'undecidable'
                 print("No polarity information available!")
-            #except KeyError as e:
-            #    if 'fm' in str(e):  # no polarity information found for this phase
-                #if 'polarity' in str(e):  # no polarity information found for this phase
-            #        print("No polarity information available!")
-            #        pass
-            #    else:
-            #        raise e
             picks_list.append(pick)
     return picks_list
 
