@@ -27,7 +27,7 @@ defaults = {'rootpath': {'type': str,
                         'namestring': 'Event ID'},
 
             'extent': {'type': str,
-                       'tooltip': 'extent of array ("local", "regional" or "global")',
+                       'tooltip': 'extent of array ("active", "local", "regional" or "global")',
                        'value': 'local',
                        'namestring': 'Array extent'},
 
