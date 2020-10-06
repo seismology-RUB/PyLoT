@@ -548,13 +548,14 @@ def getResolutionWindow(snr, extent):
     see also Diehl et al. 2009
     :param snr: Signal to noise ration which decides the witdth of the resolution window
     :type snr: float
-    :param extent: can be 'local', 'regional', 'global'
+    :param extent: can be 'active', 'local', 'regional', 'global'
     :type extent: str
     :return: half width of the resolution window
     :rtype: float
     """
 
     res_wins = {
+        'active': {'HRW': .02, 'MRW': .05, 'LRW': .1, 'VLRW': .15},
         'regional': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
         'local': {'HRW': 2., 'MRW': 5., 'LRW': 10., 'VLRW': 15.},
         'global': {'HRW': 40., 'MRW': 100., 'LRW': 200., 'VLRW': 300.}
