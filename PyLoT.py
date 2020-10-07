@@ -1373,7 +1373,7 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
-            time = lat = lon = depth = mag = None
+            time = lat = lon = depth = localmag = momentmag = None
             if len(event.origins) == 1:
                 origin = event.origins[0]
                 time = origin.time + 0  # add 0 because there was an exception for time = 0s
