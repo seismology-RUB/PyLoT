@@ -840,8 +840,15 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             print("No source origin calculated yet, thus no FOCMEC-infile creation possible!")
             return
         stime = eventsource['time']
+
+        # avoid printing '*' in focmec-input file
+        if parameter.get('eventid') == '*' or parameter.get('eventid') is None:
+            evID = 'e0000'
+        else:
+            evID = parameter.get('eventid')
+
         # write header line including event information
-        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (parameter.get('eventID'),
+        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (evID,
                                                                              stime.year, stime.month, stime.day,
                                                                              stime.hour, stime.minute, stime.second,
                                                                              eventsource['latitude'],
