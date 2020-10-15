@@ -366,7 +366,7 @@ class Data(object):
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
-            if fnext == '.focmec':
+            if fnext == '_focmec.in':
                 try:
                     infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
                     print('Using default input file {}'.format(infile))

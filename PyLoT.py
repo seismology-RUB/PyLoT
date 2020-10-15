@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
                     settings.setValue('useGuiFilter', False)
                 if settings.value('output/Format', None) is None:
                     outformat = QInputDialog.getText(self,
-                                                     "Enter output format (*.xml, *.cnv, *.obs, *.focmec, *.pha):",
+                                                     "Enter output format (*.xml, *.cnv, *.obs, *_focmec.in, *.pha):",
                                                      "Format")
                     settings.setValue("output/Format", outformat)
                 if settings.value('autoFilter', None) is None:
@@ -1484,7 +1484,7 @@ class MainWindow(QMainWindow):
             self.set_fname(self.get_data().getEventFileName(), type)
         return self.get_fnames(type)
 
-    def saveData(self, event=None, directory=None, outformats=['.xml', '.cnv', '.obs', '.focmec', '.pha']):
+    def saveData(self, event=None, directory=None, outformats=['.xml', '.cnv', '.obs', '_focmec.in', '.pha']):
         '''
         Save event data to directory with specified output formats.
         :param event: PyLoT Event, if not set current event will be used
