@@ -572,7 +572,9 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                         sweight = 0  # do not use pick
                 except KeyError as e:
                     print(str(e) + '; no weight set during processing')
-                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                Ao = arrivals[key]['S']['Ao'] # peak-to-peak amplitude
+                #fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
                                                                                            fm,
                                                                                            year,
                                                                                            month,
@@ -580,6 +582,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                                            hh,
                                                                                            mm,
                                                                                            ss_ms,
+                                                                                           Ao,
                                                                                            sweight))
 
         fid.close()
