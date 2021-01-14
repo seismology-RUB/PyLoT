@@ -1297,13 +1297,17 @@ class MainWindow(QMainWindow):
             return False
         else:
             info_str = ''
+            new_eventlist = []
             i = 0
             for event, path_exists in zip(self.project.eventlist, paths_exist):
                 if not path_exists:
                     info_str += '\n{} exists: {}'.format(event.path, path_exists)
-                    del self.project.eventlist[i]
                 else:
-                    i += 1
+                    new_eventlist.append(self.project.eventlist[i])
+                i += 1
+            if len(new_eventlist) > 0:
+                # adopt changes in event listings
+                self.project.eventlist = new_eventlist
             print('Unable to find certain event paths:{}'.format(info_str))
             print("Removed these event paths from project eventlist!")
             return True
