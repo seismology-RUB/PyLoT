@@ -1389,7 +1389,7 @@ class MainWindow(QMainWindow):
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
-            if len(event.magnitudes) >= 1:
+            if len(event.magnitudes) > 1:
                 moment_magnitude = event.magnitudes[0]
                 local_magnitude = event.magnitudes[1]
                 localmag = '%4.1f' % local_magnitude.mag
