@@ -1297,10 +1297,19 @@ class MainWindow(QMainWindow):
             return False
         else:
             info_str = ''
+            new_eventlist = []
+            i = 0
             for event, path_exists in zip(self.project.eventlist, paths_exist):
                 if not path_exists:
                     info_str += '\n{} exists: {}'.format(event.path, path_exists)
+                else:
+                    new_eventlist.append(self.project.eventlist[i])
+                i += 1
+            if len(new_eventlist) > 0:
+                # adopt changes in event listings
+                self.project.eventlist = new_eventlist
             print('Unable to find certain event paths:{}'.format(info_str))
+            print("Removed these event paths from project eventlist!")
             return True
 
     def modify_project_path(self, new_rootpath):
@@ -1380,7 +1389,7 @@ class MainWindow(QMainWindow):
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
-            if len(event.magnitudes) >= 1:
+            if len(event.magnitudes) > 1:
                 moment_magnitude = event.magnitudes[0]
                 local_magnitude = event.magnitudes[1]
                 localmag = '%4.1f' % local_magnitude.mag
