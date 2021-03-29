@@ -21,7 +21,6 @@ from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
     check4gapsAndMerge, trim_station_components
 
-
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
@@ -258,7 +257,7 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
-
+        
         if not type(fcheck) == list:
             fcheck = [fcheck]
 
@@ -276,7 +275,7 @@ class Data(object):
         # check for already existing xml-file
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
-                print("xml-file already exists! Check content ...")
+            	print("xml-file already exists! Check content ...")
                 cat = read_events(fnout + fnext)
                 if len(cat) > 1:
                     raise IOError('Ambigious event information in file {}'.format(fnout + fnext))
@@ -288,7 +287,9 @@ class Data(object):
                     return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
+		
             self.get_evt_data().write(fnout + fnext, format=evtformat)
+
         # try exporting event
         else:
             evtdata_org = self.get_evt_data()
