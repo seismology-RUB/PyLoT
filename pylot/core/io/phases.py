@@ -805,7 +805,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             return
         stime = eventsource['time']
         event = parameter.get('eventID')
-	hddID = event.split('.')[0][1:5]	
+        hddID = event.split('.')[0][1:5]        
         # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,

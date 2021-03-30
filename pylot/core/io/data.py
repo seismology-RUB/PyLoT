@@ -275,7 +275,7 @@ class Data(object):
         # check for already existing xml-file
         if fnext == '.xml':
             if os.path.isfile(fnout + fnext):
-            	print("xml-file already exists! Check content ...")
+                print("xml-file already exists! Check content ...")
                 cat = read_events(fnout + fnext)
                 if len(cat) > 1:
                     raise IOError('Ambigious event information in file {}'.format(fnout + fnext))
@@ -287,7 +287,7 @@ class Data(object):
                     return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
-		
+                
             self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event

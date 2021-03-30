@@ -1501,11 +1501,11 @@ class MainWindow(QMainWindow):
         :param outformats: str/list of output formats
         :return:
         '''
-	if not event:
+        if not event:
             event = self.get_current_event()
         if not type(outformats) == list:
             outformats = [outformats]
-	def getSavePath(event, directory, outformats):
+        def getSavePath(event, directory, outformats):
             if not directory:
                 title = 'Save event data as {} to directory ...'.format(outformats)
                 directory = QFileDialog.getExistingDirectory(self,
@@ -1523,8 +1523,8 @@ class MainWindow(QMainWindow):
 
         uppererrorP = self._inputs['timeerrorsP']
         uppererrorS = self._inputs['timeerrorsS']
-	# Inserted to prevent Bug in Eventlist
-	self.get_data().setEvtData(event)
+        # Inserted to prevent Bug in Eventlist
+        self.get_data().setEvtData(event)
         try:
             self.get_data().applyEVTData(event, typ='event')  # getPicks())
         except OverwriteError:
@@ -3023,7 +3023,7 @@ class MainWindow(QMainWindow):
         outfile = parameter['outpatter']
         eventname = self.get_current_event_name()
         obsdir = os.path.join(self._inputs['rootpath'], self._inputs['datapath'], self._inputs['database'], eventname)
-	self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
+        self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
         filename = 'PyLoT_' + eventname
         locpath = os.path.join(locroot, 'loc', filename)
         phasefile = os.path.join(obsdir, filename + '.obs')
@@ -3756,7 +3756,7 @@ class Project(object):
         self.search_eventfile_info()
 
     def remove_event(self, event):
-	self.eventlist.remove(event)
+        self.eventlist.remove(event)
 
     def remove_event_by_id(self, eventID):
         for event in self.eventlist:
@@ -3765,7 +3765,7 @@ class Project(object):
                 break
 
     def read_eventfile_info(self, filename, separator=','):
-	'''
+        '''
         Try to read event information from file (:param:filename) comparing specific event datetimes.
         File structure (each row): event, date, time, magnitude, latitude, longitude, depth
         separated by :param:separator each.

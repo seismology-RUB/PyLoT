@@ -221,15 +221,15 @@ class LocalMagnitude(Magnitude):
 
         power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
                  in 'Z3']
-	# checking horizontal count and calculating power_sum accordingly
-	if len(power) == 1:
-		print ('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
-		power_sum = power[0]
-	elif len(power) == 2:
-		power_sum = power[0] + power[1]
-	else: 
-		raise ValueError('Wood-Anderson aomplitude defintion only valid for'
-			' up to two horizontals: {0} given'.format(len(power)))
+        # checking horizontal count and calculating power_sum accordingly
+        if len(power) == 1:
+                print ('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
+                power_sum = power[0]
+        elif len(power) == 2:
+                power_sum = power[0] + power[1]
+        else: 
+                raise ValueError('Wood-Anderson aomplitude defintion only valid for'
+                        ' up to two horizontals: {0} given'.format(len(power)))
  
         sqH = np.sqrt(power_sum)
 
