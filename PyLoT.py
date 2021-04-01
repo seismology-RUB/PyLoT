@@ -470,7 +470,8 @@ class MainWindow(QMainWindow):
                                                   icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
         # MP MP not yet implemented, therefore hide:
-        self.qualities_action.setVisible(False)
+        # LK will be implemented soon, basic script has already (03/2021) been finished
+        self.qualities_action.setVisible(True)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
