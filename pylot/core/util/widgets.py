@@ -22,22 +22,23 @@ matplotlib.use('QT4Agg')
 from matplotlib.figure import Figure
 
 try:
-    from matplotlib.backends.backend_qt4agg import FigureCanvas
+    from matplotlib.backends.backend_qt5agg import FigureCanvas
 except ImportError:
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from obspy import read
 
-from PySide import QtCore, QtGui
-from PySide.QtGui import QAction, QApplication, QCheckBox, QComboBox, \
+from PySide2 import QtCore, QtGui
+from PySide2.QtGui import QIcon, QPixmap, QKeySequence
+from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
-    QGridLayout, QFormLayout, QIcon, QLabel, QLineEdit, QMessageBox, \
-    QPixmap, QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
-    QPushButton, QFileDialog, QInputDialog, QKeySequence
-from PySide.QtCore import QSettings, Qt, QUrl, Signal
-from PySide.QtWebKit import QWebView
-from obspy import Stream, Trace, UTCDateTime
+    QGridLayout, QLabel, QLineEdit, QMessageBox, \
+    QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
+    QPushButton, QFileDialog, QInputDialog
+from PySide2.QtCore import QSettings, Qt, QUrl, Signal, Slot
+from PySide2.QtWebEngineWidgets import QWebEngineView as QWebView
+from obspy import Stream, UTCDateTime
 from obspy.core.util import AttribDict
 from obspy.taup import TauPyModel
 from obspy.taup.utils import get_phase_names
@@ -67,7 +68,7 @@ else:
     raise ImportError('Could not determine python version.')
 
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
-icons_rc = icons_rc
+# icons_rc = icons_rc
 
 
 def getDataType(parent):

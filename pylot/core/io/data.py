@@ -8,7 +8,7 @@ from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.io.sac import SacIOError
 
-from PySide.QtGui import QMessageBox
+from PySide2.QtWidgets import QMessageBox
 
 import pylot.core.loc.velest as velest
 import pylot.core.loc.focmec as focmec
@@ -21,14 +21,18 @@ from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
     check4gapsAndMerge, trim_station_components
 
+try:
+    str_TypeLst = [str, unicode]  # if python 2.X
+except NameError:
+    str_TypeLst = [str]  # if python 3.*
 
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
 
-    :type parent: PySide.QtGui.QWidget object, optional
-    :param parent: A PySide.QtGui.QWidget object utilized when
-    called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
+    :type parent: PySide2.QtWidgets.QWidget object, optional
+    :param parent: A PySide2.QtWidgets.QWidget object utilized when
+    called by a GUI to display a PySide2.QtWidgets.QMessageBox instead of printing
     to standard out.
     :type evtdata: ~obspy.core.event.Event object, optional
     :param evtdata ~obspy.core.event.Event object containing all derived or
@@ -48,7 +52,7 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif type(evtdata) in [str, unicode]:
+        elif type(evtdata) in str_TypeLst:
             try:
                 cat = read_events(evtdata)
                 if len(cat) is not 1:

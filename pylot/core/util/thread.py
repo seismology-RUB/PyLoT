@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
+import sys, os, traceback
 import multiprocessing
-import os
-import sys
-import traceback
-
-from PySide.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
+from PySide2.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
+from PySide2.QtWidgets import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
 
 
 class Thread(QThread):
@@ -49,7 +46,23 @@ class Thread(QThread):
             #     self.pb_widget.setWindowFlags(Qt.SplashScreen)
             #     self.pb_widget.setModal(True)
 
-            self.pb_widget.label.setText(self.progressText)
+            # generate widget if not given in init
+            if not self.pb_widget:
+                self.pb_widget = QDialog(self.parent())
+                self.pb_widget.setWindowFlags(Qt.SplashScreen)
+                self.pb_widget.setModal(True)
+
+            # add button
+            delete_button = QPushButton('X')
+            delete_button.clicked.connect(self.exit)
+            hl = QHBoxLayout()
+            pb = QProgressBar()
+            pb.setRange(0, 0)
+            hl.addWidget(pb)
+            hl.addWidget(QLabel(self.progressText))
+            if self.abortButton:
+                hl.addWidget(delete_button)
+            self.pb_widget.setLayout(hl)
             self.pb_widget.show()
 
     def hideProgressbar(self):
@@ -89,9 +102,9 @@ class Worker(QRunnable):
         try:
             result = self.fun(self.args)
         except:
-            exctype, value = sys.exc_info()[:2]
+            exctype, value = sys.exc_info ()[:2]
             print(exctype, value, traceback.format_exc())
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            self.signals.error.emit ((exctype, value, traceback.format_exc ()))
         else:
             self.signals.result.emit(result)
         finally:

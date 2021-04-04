@@ -35,18 +35,18 @@ import traceback
 import json
 from datetime import datetime
 
-matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4'] = 'PySide'
-matplotlib.rcParams['savefig.dpi'] = 300
+matplotlib.use('Qt5Agg')
+# matplotlib.rcParams['backend.qt4'] = 'PySide'
+# matplotlib.rcParams['savefig.dpi'] = 300
 
-
-from PySide import QtGui, QtCore
-from PySide.QtCore import QCoreApplication, QSettings, Signal, QFile, \
+from PySide2 import QtGui, QtCore, QtWidgets
+from PySide2.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
-from PySide.QtGui import QMainWindow, QInputDialog, QIcon, QFileDialog, \
-    QWidget, QHBoxLayout, QVBoxLayout, QStyle, QKeySequence, QLabel, QFrame, QAction, \
-    QDialog, QApplication, QPixmap, QMessageBox, QSplashScreen, \
-    QActionGroup, QListWidget, QListView, QAbstractItemView, \
+from PySide2.QtGui import QIcon, QKeySequence, QPixmap
+from PySide2.QtWidgets import QMainWindow, QInputDialog, QFileDialog, \
+    QWidget, QHBoxLayout, QVBoxLayout, QStyle, QLabel, QFrame, QAction, \
+    QDialog, QErrorMessage, QApplication, QMessageBox, QSplashScreen, \
+    QActionGroup, QListWidget, QLineEdit, QListView, QAbstractItemView, \
     QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
 import numpy as np
 from obspy import UTCDateTime, Stream
@@ -58,9 +58,10 @@ from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
 import pyqtgraph as pg
 
 try:
-    from matplotlib.backends.backend_qt4agg import FigureCanvas
+    from matplotlib.backends.backend_qt5agg import FigureCanvas
 except ImportError:
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude

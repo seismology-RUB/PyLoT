@@ -6,11 +6,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import obspy
 import traceback
-from PySide import QtGui
+from PySide2 import QtWidgets
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import griddata
+
+import cartopy.crs as ccrs
+import cartopy.feature as cf
+from cartopy.feature import ShapelyFeature
+from cartopy.io.shapereader import Reader
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
 
 from pylot.core.util.widgets import PickDlg, PylotCanvas
 from pylot.core.pick.utils import get_quality_class
@@ -18,7 +25,7 @@ from pylot.core.pick.utils import get_quality_class
 plt.interactive(False)
 
 
-class Array_map(QtGui.QWidget):
+class Array_map(QtWidgets.QWidget):
     def __init__(self, parent, metadata, parameter=None, figure=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
         '''
@@ -27,7 +34,7 @@ class Array_map(QtGui.QWidget):
         :param parameter: object of PyLoT parameter class
         :param figure:
         '''
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         assert (parameter != None or parent != None), 'either parent or parameter has to be set'
         self._parent = parent
         self.metadata = metadata
@@ -210,7 +217,9 @@ class Array_map(QtGui.QWidget):
             return
         x = event.xdata
         y = event.ydata
-        lat, lon = self.basemap(x, y, inverse=True)
+        # lat, lon = self.basemap(x, y, inverse=True)
+        lat = y
+        lon = x
         self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
 
     def current_picks_dict(self):
@@ -224,43 +233,43 @@ class Array_map(QtGui.QWidget):
         if not self.figure:
             self.figure = Figure()
 
-        self.status_label = QtGui.QLabel()
+        self.status_label = QtWidgets.QLabel()
 
         self.main_ax = self.figure.add_subplot(111)
         #self.main_ax.set_facecolor('0.7')
         self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
                                   panZoomX=False, panZoomY=False)
 
-        self.main_box = QtGui.QVBoxLayout()
+        self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
 
-        self.top_row = QtGui.QHBoxLayout()
+        self.top_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.top_row, 1)
 
-        self.comboBox_phase = QtGui.QComboBox()
+        self.comboBox_phase = QtWidgets.QComboBox()
         self.comboBox_phase.insertItem(0, 'P')
         self.comboBox_phase.insertItem(1, 'S')
 
-        self.comboBox_am = QtGui.QComboBox()
+        self.comboBox_am = QtWidgets.QComboBox()
         self.comboBox_am.insertItem(0, 'hybrid (prefer manual)')
         self.comboBox_am.insertItem(1, 'manual')
         self.comboBox_am.insertItem(2, 'auto')
 
-        self.annotations_box = QtGui.QCheckBox('Annotate')
+        self.annotations_box = QtWidgets.QCheckBox('Annotate')
         self.annotations_box.setChecked(True)
-        self.auto_refresh_box = QtGui.QCheckBox('Automatic refresh')
+        self.auto_refresh_box = QtWidgets.QCheckBox('Automatic refresh')
         self.auto_refresh_box.setChecked(True)
-        self.refresh_button = QtGui.QPushButton('Refresh')
-        self.cmaps_box = QtGui.QComboBox()
+        self.refresh_button = QtWidgets.QPushButton('Refresh')
+        self.cmaps_box = QtWidgets.QComboBox()
         self.cmaps_box.setMaxVisibleItems(20)
         [self.cmaps_box.addItem(map_name) for map_name in sorted(plt.colormaps())]
         # try to set to hsv as default
         self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('hsv'))
 
-        self.top_row.addWidget(QtGui.QLabel('Select a phase: '))
+        self.top_row.addWidget(QtWidgets.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
         self.top_row.setStretch(1, 1)  # set stretch of item 1 to 1
-        self.top_row.addWidget(QtGui.QLabel('Pick type: '))
+        self.top_row.addWidget(QtWidgets.QLabel('Pick type: '))
         self.top_row.addWidget(self.comboBox_am)
         self.top_row.setStretch(3, 1)  # set stretch of item 1 to 1
         self.top_row.addWidget(self.cmaps_box)
@@ -332,31 +341,52 @@ class Array_map(QtGui.QWidget):
         self.xdim = self.get_max_from_stations('x') - self.get_min_from_stations('x')
         self.ydim = self.get_max_from_stations('y') - self.get_min_from_stations('y')
 
-    def init_basemap(self, resolution='l'):
-        # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
-        basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax,
-                          width=self.width, height=self.height,
-                          lat_0=(self.latmin + self.latmax) / 2.,
-                          lon_0=(self.lonmin + self.lonmax) / 2.)
+    def init_basemap(self):
+        # initialize cartopy coordinate reference system
+        proj = ccrs.PlateCarree(central_longitude=(self.lonmin + self.lonmax) / 2.)
+        crtpy_map = plt.axes(projection=proj)
+        mapxtent = [self.lonmin, self.lonmax, self.latmin, self.latmax]  # add conditional buffer
+        crtpy_map.set_extent(mapxtent)  # find way to directly open zoomed map on area
 
-        # basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
-        basemap.drawmapboundary(zorder=2)  # fill_color='darkblue')
-        basemap.shadedrelief(zorder=3)
-        basemap.drawcountries(zorder=4)
-        basemap.drawstates(zorder=5)
-        basemap.drawcoastlines(zorder=6)
-        # labels = [left,right,top,bottom]
-        parallels = np.arange(-90, 90, 5.)
-        parallels_small = np.arange(-90, 90, 2.5)
-        basemap.drawparallels(parallels_small, linewidth=0.5, zorder=7)
-        basemap.drawparallels(parallels, zorder=7)#, labels=[1, 1, 0, 0])
-        meridians = np.arange(-180, 180, 5.)
-        meridians_small = np.arange(-180, 180, 2.5)
-        basemap.drawmeridians(meridians_small, linewidth=0.5, zorder=7)
-        basemap.drawmeridians(meridians, zorder=7)#, labels=[0, 0, 1, 1])
-        self.basemap = basemap
+        # add features (option for plate boundaries)
+        crtpy_map.add_feature(cf.LAND)  # replace with background map
+        crtpy_map.add_feature(cf.OCEAN)
+        crtpy_map.add_feature(cf.BORDERS, linestyle=':')  # include province borders
+        crtpy_map.add_feature(cf.COASTLINE)
+        # fname = 'PB2002_plates.shp'
+        # plateBoundaries = ShapelyFeature(Reader(fname).geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='r')
+        # crtpy_map.add_feature(plateBoundaries)
+
+        # parallels and meridians
+        gridlines = crtpy_map.gridlines(draw_labels=True, alpha=0.5, zorder=7)
+        gridlines.xformatter = LONGITUDE_FORMATTER
+        gridlines.yformatter = LATITUDE_FORMATTER
+
+        self.basemap = crtpy_map
         self.figure._tight = True
         self.figure.tight_layout()
+
+        # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
+        # basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax, width=self.width, height=self.height, lat_0=(self.latmin + self.latmax) / 2., lon_0=(self.lonmin + self.lonmax) / 2.)
+        #
+        # basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
+        # basemap.drawmapboundary(zorder=2)  # fill_color='darkblue')
+        # basemap.shadedrelief(zorder=3)
+        # basemap.drawcountries(zorder=4)
+        # basemap.drawstates(zorder=5)
+        # basemap.drawcoastlines(zorder=6)
+        # labels = [left,right,top,bottom]
+        # parallels = np.arange(-90, 90, 5.)
+        # parallels_small = np.arange(-90, 90, 2.5)
+        # basemap.drawparallels(parallels_small, linewidth=0.5, zorder=7)
+        # basemap.drawparallels(parallels, zorder=7)#, labels=[1, 1, 0, 0])
+        # meridians = np.arange(-180, 180, 5.)
+        # meridians_small = np.arange(-180, 180, 2.5)
+        # basemap.drawmeridians(meridians_small, linewidth=0.5, zorder=7)
+        # basemap.drawmeridians(meridians, zorder=7)#, labels=[0, 0, 1, 1])
+        # self.basemap = basemap
+        # self.figure._tight = True
+        # self.figure.tight_layout()
 
     def init_lat_lon_grid(self, nstep=250):
         # create a regular grid to display colormap
@@ -408,9 +438,12 @@ class Array_map(QtGui.QWidget):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
-        self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                             linewidths=self.linewidth, latlon=True, zorder=8, alpha=0.7,
-                                             cmap=self.get_colormap())
+        # self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active, levels,
+        #                                      linewidths=self.linewidth, latlon=True, zorder=8, alpha=0.7,
+        #                                      cmap=self.get_colormap())
+
+        plt.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,  linewidths=self.linewidth,
+                     transform=ccrs.PlateCarree(), alpha=0.7, zorder=8)
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
@@ -455,14 +488,18 @@ class Array_map(QtGui.QWidget):
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
+        #self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
+        #                               zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
+
         self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
-                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
+                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked', transform=ccrs.PlateCarree())
+
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
             self.sc_event = self.basemap.scatter(lons, lats, s=2*self.pointsize, facecolor='red',
-                                                 latlon=True, zorder=11, label='Event (might be outside map region)')
+                                                 latlon=True, zorder=11, label='Event (might be outside map region)', transform=ccrs.PlateCarree())
 
     def scatter_picked_stations(self):
         picks, uncertainties, lats, lons = self.get_picks_lat_lon()
@@ -478,13 +515,13 @@ class Array_map(QtGui.QWidget):
         # workaround because of an issue with latlon transformation of arrays with len <3
         if len(lons) <= 2 and len(lats) <= 2:
             self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks[0], latlon=True, zorder=11)
+                                                  c=picks[0], latlon=True, zorder=11, transform=ccrs.PlateCarree())
         if len(lons) == 2 and len(lats) == 2:
             self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks[1], latlon=True, zorder=11)
+                                                  c=picks[1], latlon=True, zorder=11, transform=ccrs.PlateCarree())
         if len(lons) > 2 and len(lats) > 2:
             self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks, latlon=True, zorder=11, label='Picked')
+                                                  c=picks, latlon=True, zorder=11, label='Picked', transform=ccrs.PlateCarree())
 
     def annotate_ax(self):
         self.annotations = []
@@ -607,8 +644,8 @@ class Array_map(QtGui.QWidget):
 
     def zoom(self, event):
         map = self.basemap
-        xlim = map.ax.get_xlim()
-        ylim = map.ax.get_ylim()
+        xlim = map.get_xlim()
+        ylim = map.get_ylim()
         x, y = event.xdata, event.ydata
         zoom = {'up': 1. / 2.,
                 'down': 2.}
@@ -628,11 +665,11 @@ class Array_map(QtGui.QWidget):
             if xl < map.xmin or yb < map.ymin or xr > map.xmax or yt > map.ymax:
                 xl, xr = map.xmin, map.xmax
                 yb, yt = map.ymin, map.ymax
-            map.ax.set_xlim(xl, xr)
-            map.ax.set_ylim(yb, yt)
-            map.ax.figure.canvas.draw()
+            map.set_xlim(xl, xr)
+            map.set_ylim(yb, yt)
+            map.figure.canvas.draw()
 
     def _warn(self, message):
-        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+        self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
                                      'Warning', message)
         self.qmb.show()
