@@ -7,7 +7,7 @@ try:
 except Exception as e:
     print('Warning: Could not import module pyqtgraph.')
 try:
-    from PySide import QtCore
+    from PySide2 import QtCore
 except Exception as e:
     print('Warning: Could not import module QtCore.')
 

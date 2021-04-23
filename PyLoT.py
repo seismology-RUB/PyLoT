@@ -42,12 +42,12 @@ matplotlib.use('Qt5Agg')
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtCore import QCoreApplication, QSettings, Signal, QFile, \
     QFileInfo, Qt, QSize
-from PySide2.QtGui import QIcon, QKeySequence, QPixmap
+from PySide2.QtGui import QIcon, QKeySequence, QPixmap, QStandardItem
 from PySide2.QtWidgets import QMainWindow, QInputDialog, QFileDialog, \
     QWidget, QHBoxLayout, QVBoxLayout, QStyle, QLabel, QFrame, QAction, \
     QDialog, QErrorMessage, QApplication, QMessageBox, QSplashScreen, \
     QActionGroup, QListWidget, QLineEdit, QListView, QAbstractItemView, \
-    QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout
+    QTreeView, QComboBox, QTabWidget, QPushButton, QGridLayout, QTableWidgetItem, QTableWidget
 import numpy as np
 from obspy import UTCDateTime, Stream
 from obspy.core.event import Magnitude, Origin
@@ -56,6 +56,7 @@ from obspy.core.util import AttribDict
 from pylot.core.util.obspyDMT_interface import check_obspydmt_structure
 
 import pyqtgraph as pg
+
 
 try:
     from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -115,8 +116,21 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None, infile=None, reset_qsettings=False):
         super(MainWindow, self).__init__(parent)
 
-        self.init_config_files(infile)
+        # check for default pylot.in-file
+        if not infile:
+            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
+            print('Using default input file {}'.format(infile))
+        if os.path.isfile(infile) == False:
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
 
+            if not os.path.exists(infile[0]):
+                QMessageBox.warning(self, "PyLoT Warning",
+                                    "No PyLoT-input file declared!")
+                sys.exit(0)
+            self.infile = infile[0]
+        else:
+            self.infile = infile
+        self._inputs = PylotParameter(infile)
         self._props = None
 
         self.gain = 1.
@@ -674,9 +688,9 @@ class MainWindow(QMainWindow):
         self.init_wfWidget()
 
         # init main widgets for main tabs
-        wf_tab = QtGui.QWidget(self)
-        array_tab = QtGui.QWidget(self)
-        events_tab = QtGui.QWidget(self)
+        wf_tab = QtWidgets.QWidget(self)
+        array_tab = QtWidgets.QWidget(self)
+        events_tab = QtWidgets.QWidget(self)
 
         # init main widgets layouts
         self.wf_layout = QtGui.QVBoxLayout()
@@ -1338,13 +1352,13 @@ class MainWindow(QMainWindow):
         if not eventBox:
             eventBox = self.eventBox
         index = eventBox.currentIndex()
-        tv = QtGui.QTableView()
+        tv = QtWidgets.QTableView()
         header = tv.horizontalHeader()
-        header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         header.hide()
         tv.verticalHeader().hide()
-        tv.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        tv.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         current_event = self.get_current_event()
 
@@ -1405,24 +1419,24 @@ class MainWindow(QMainWindow):
             event_str = '{path:{plen}}'.format(path=event_path, plen=plmax)
             if event.dirty:
                 event_str += '*'
-            item_path = QtGui.QStandardItem(event_str)
-            item_time = QtGui.QStandardItem('{}'.format(time))
-            item_lat = QtGui.QStandardItem('{}'.format(lat))
-            item_lon = QtGui.QStandardItem('{}'.format(lon))
-            item_depth = QtGui.QStandardItem('{}'.format(depth))
-            item_localmag = QtGui.QStandardItem('{}'.format(localmag))
-            item_momentmag = QtGui.QStandardItem('{}'.format(momentmag))
-            item_nmp = QtGui.QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
+            item_path = QStandardItem(event_str)
+            item_time = QStandardItem('{}'.format(time))
+            item_lat = QStandardItem('{}'.format(lat))
+            item_lon = QStandardItem('{}'.format(lon))
+            item_depth = QStandardItem('{}'.format(depth))
+            item_localmag = QStandardItem('{}'.format(localmag))
+            item_momentmag = QStandardItem('{}'.format(momentmag))
+            item_nmp = QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
+            item_nap = QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
-            item_ref = QtGui.QStandardItem()  # str(event_ref))
-            item_test = QtGui.QStandardItem()  # str(event_test))
+            item_ref = QStandardItem()  # str(event_ref))
+            item_test = QStandardItem()  # str(event_test))
             if event_ref:
                 item_ref.setBackground(self._ref_test_colors['ref'])
             if event_test:
                 item_test.setBackground(self._ref_test_colors['test'])
-            item_notes = QtGui.QStandardItem(event.notes)
+            item_notes = QStandardItem(event.notes)
 
             openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
             item_path.setIcon(openIcon)
@@ -2604,7 +2618,7 @@ class MainWindow(QMainWindow):
         self.init_fig_dict()
         # if not self.tap:
         # init TuneAutopicker object
-        self.tap = TuneAutopicker(self, self.obspy_dmt)
+        self.tap = TuneAutopicker(self)
         # first call of update to init tabs with empty canvas
         self.update_autopicker()
         # connect update signal of TuneAutopicker with update function
@@ -2926,7 +2940,7 @@ class MainWindow(QMainWindow):
 
                 phaseID = self.getPhaseID(phase)
                 # get quality classes
-                if  phaseID == 'P':
+                if phaseID == 'P':
                     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
                 elif phaseID == 'S':
                     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
@@ -3213,7 +3227,7 @@ class MainWindow(QMainWindow):
             self.events_layout.removeWidget(self.event_table)
 
         # init new qtable
-        self.event_table = QtGui.QTableWidget(self)
+        self.event_table = QTableWidget(self)
         self.event_table.setColumnCount(12)
         self.event_table.setRowCount(len(eventlist))
         self.event_table.setHorizontalHeaderLabels(self.table_headers)
@@ -3242,22 +3256,22 @@ class MainWindow(QMainWindow):
                             ma_count_total[ma] += 1
 
             # init table items for current row
-            item_delete = QtGui.QTableWidgetItem()
+            item_delete = QTableWidgetItem()
             item_delete.setIcon(del_icon)
-            item_path = QtGui.QTableWidgetItem()
-            item_time = QtGui.QTableWidgetItem()
-            item_lat = QtGui.QTableWidgetItem()
-            item_lon = QtGui.QTableWidgetItem()
-            item_depth = QtGui.QTableWidgetItem()
-            item_momentmag = QtGui.QTableWidgetItem()
-            item_localmag = QtGui.QTableWidgetItem()
-            item_nmp = QtGui.QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
+            item_path = QTableWidgetItem()
+            item_time = QTableWidgetItem()
+            item_lat = QTableWidgetItem()
+            item_lon = QTableWidgetItem()
+            item_depth = QTableWidgetItem()
+            item_momentmag = QTableWidgetItem()
+            item_localmag = QTableWidgetItem()
+            item_nmp = QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QtGui.QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
+            item_nap = QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
-            item_ref = QtGui.QTableWidgetItem()
-            item_test = QtGui.QTableWidgetItem()
-            item_notes = QtGui.QTableWidgetItem()
+            item_ref = QTableWidgetItem()
+            item_test = QTableWidgetItem()
+            item_notes = QTableWidgetItem()
 
             event_str = event.path
             if event.dirty:
@@ -3316,13 +3330,13 @@ class MainWindow(QMainWindow):
 
         for r_index, row in enumerate(self.project._table):
             for c_index, item in enumerate(row):
-                if type(item) == QtGui.QTableWidgetItem:
+                if type(item) == QTableWidgetItem:
                     self.event_table.setItem(r_index, c_index, item)
-                elif type(item) in [QtGui.QWidget, QtGui.QPushButton]:
+                elif type(item) in [QWidget, QPushButton]:
                     self.event_table.setCellWidget(r_index, c_index, item)
 
         header = self.event_table.horizontalHeader()
-        header.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         self.event_table.cellChanged[int, int].connect(cell_changed)
         self.event_table.cellClicked[int, int].connect(cell_clicked)
@@ -3679,7 +3693,7 @@ class MainWindow(QMainWindow):
 
     def setParameter(self, show=True):
         if not self.paraBox:
-            self.paraBox = PylotParaBox(self._inputs, parent=self, windowflag=1)
+            self.paraBox = PylotParaBox(self._inputs, parent=self)
             self.paraBox.accepted.connect(self._setDirty)
             self.paraBox.accepted.connect(self.filterOptionsFromParameter)
         if show:

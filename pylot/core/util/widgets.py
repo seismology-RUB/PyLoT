@@ -17,7 +17,7 @@ import sys
 import time
 import traceback
 
-matplotlib.use('QT4Agg')
+matplotlib.use('QT5Agg')
 
 from matplotlib.figure import Figure
 
@@ -29,7 +29,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.widgets import MultiCursor
 from obspy import read
 
-from PySide2 import QtCore, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtGui import QIcon, QPixmap, QKeySequence
 from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
@@ -38,7 +38,7 @@ from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QPushButton, QFileDialog, QInputDialog
 from PySide2.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide2.QtWebEngineWidgets import QWebEngineView as QWebView
-from obspy import Stream, UTCDateTime
+from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
 from obspy.taup import TauPyModel
 from obspy.taup.utils import get_phase_names
@@ -107,7 +107,7 @@ def plot_pdf(_axes, x, y, annotation, bbox_props, xlabel=None, ylabel=None,
 def createAction(parent, text, slot=None, shortcut=None, icon=None,
                  tip=None, checkable=False):
     """
-    :rtype : ~PySide.QtGui.QAction
+    :rtype : ~PyQt5.QtWidgets.QAction
     """
     action = QAction(text, parent)
     if icon is not None:
@@ -138,7 +138,7 @@ class ProgressBarWidget(QtGui.QWidget):
 
 class AddMetadataWidget(QWidget):
     def __init__(self, parent=None, metadata=None, windowflag=1):
-        super(AddMetadataWidget, self).__init__(parent, windowflag)
+        super(AddMetadataWidget, self).__init__(parent, Qt.Window)
         self.inventories_add = []
         self.inventories_delete = []
 
@@ -1574,9 +1574,8 @@ class PhaseDefaults(QtGui.QDialog):
             checkbox.setChecked(bool(phase in self.current_phases))
             row += 1
 
-    @staticmethod
-    def create_phase_box(phase_name):
-        checkbox = QtGui.QCheckBox(phase_name)
+    def create_phase_box(self, phase_name):
+        checkbox = QtWidgets.QCheckBox(phase_name)
         return checkbox
 
     def update_selected_phases(self):
@@ -1587,7 +1586,7 @@ class PhaseDefaults(QtGui.QDialog):
 
     def accept(self):
         self.update_selected_phases()
-        QtGui.QDialog.accept(self)
+        QtWidgets.QDialog.accept(self)
 
 
 class PickDlg(QDialog):
@@ -1596,7 +1595,7 @@ class PickDlg(QDialog):
     def __init__(self, parent=None, data=None, station=None, network=None, location=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
                  event=None, filteroptions=None, model='iasp91', wftype=None):
-        super(PickDlg, self).__init__(parent, 1)
+        super(PickDlg, self).__init__(parent, Qt.Window)
         self.orig_parent = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
 
@@ -1641,14 +1640,14 @@ class PickDlg(QDialog):
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
-        self.nextStation = QtGui.QCheckBox('Continue with next station ')
+        self.nextStation = QtWidgets.QCheckBox('Continue with next station ')
 
         # comparison channel
-        self.compareChannel = QtGui.QComboBox()
+        self.compareChannel = QtWidgets.QComboBox()
         self.compareChannel.activated.connect(self.resetPlot)
 
         # scale channel
-        self.scaleChannel = QtGui.QComboBox()
+        self.scaleChannel = QtWidgets.QComboBox()
         self.scaleChannel.activated.connect(self.resetPlot)
 
         # initialize panning attributes
@@ -1837,7 +1836,7 @@ class PickDlg(QDialog):
         self.statusbar = QtGui.QStatusBar(self)
 
         # add hotkeys
-        self._shortcut_space = QtGui.QShortcut(QtGui.QKeySequence(' '), self)
+        self._shortcut_space = QtWidgets.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
         # button shortcuts (1 for P-button, 2 for S-button)
         # self.p_button.setShortcut(QKeySequence('1'))
@@ -1879,15 +1878,15 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtGui.QLabel('Compare to channel: '))
+        _dialtoolbar.addWidget(QtWidgets.QLabel('Compare to channel: '))
         _dialtoolbar.addWidget(self.compareChannel)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtGui.QLabel('Scaling: '))
+        _dialtoolbar.addWidget(QtWidgets.QLabel('Scaling: '))
         _dialtoolbar.addWidget(self.scaleChannel)
 
         # layout the innermost widget
         _innerlayout = QVBoxLayout()
-        _innerinnerlayout = QtGui.QHBoxLayout()
+        _innerinnerlayout = QtWidgets.QHBoxLayout()
         _lowerlayout = QHBoxLayout()
         _innerinnerlayout.addWidget(self.multicompfig)
         _innerinnerlayout.addWidget(self.phaseplot)
@@ -2446,7 +2445,7 @@ class PickDlg(QDialog):
         data = self.getPickPhases(data, phase)
         data.normalize()
         if not data:
-            QtGui.QMessageBox.warning(self, 'No channel to plot',
+            QtWidgets.QMessageBox.warning(self, 'No channel to plot',
                                       'No channel to plot for phase: {}.'.format(phase))
             self.leave_picking_mode()
             return
@@ -2460,7 +2459,7 @@ class PickDlg(QDialog):
                 data.filter(**filteroptions)
                 # wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
-                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
                                              'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
                 self.qmb.show()
 
@@ -2545,7 +2544,7 @@ class PickDlg(QDialog):
                 wfdata.detrend('linear')
                 wfdata.filter(**filteroptions)
             except ValueError as e:
-                self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+                self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
                                              'Denied', 'setPick: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
@@ -3061,7 +3060,7 @@ class PickDlg(QDialog):
             QDialog.reject(self)
         else:
             self.refreshPlot()
-            self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+            self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
                                          'Denied', 'New picks rejected!')
             self.qmb.show()
 
@@ -3070,7 +3069,7 @@ class PickDlg(QDialog):
         if not self._embedded:
             QDialog.accept(self)
         else:
-            self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Information,
+            self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
                                          'Accepted', 'New picks applied!')
             self.qmb.show()
 
@@ -3089,9 +3088,9 @@ class CanvasWidget(QWidget):
     '''
 
     def __init__(self, parent, canvas):
-        QtGui.QWidget.__init__(self, parent)  # , 1)
+        QtWidgets.QWidget.__init__(self, parent)#, 1)
         canvas = canvas
-        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(canvas)
         canvas.setZoomBorders2content()
@@ -3104,7 +3103,7 @@ class MultiEventWidget(QWidget):
     '''
 
     def __init__(self, options=None, parent=None, windowflag=1):
-        QtGui.QWidget.__init__(self, parent, windowflag)
+        QtWidgets.QWidget.__init__(self, parent, windowflag)
 
         self.options = options
         self.setupUi()
@@ -3121,16 +3120,16 @@ class MultiEventWidget(QWidget):
 
     def setupUi(self):
         # init main layout
-        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
         # init main splitter
-        self.main_splitter = QtGui.QSplitter()
+        self.main_splitter = QtWidgets.QSplitter()
         self.main_splitter.setChildrenCollapsible(False)
 
         self.init_checkboxes()
 
-        self.eventbox = QtGui.QComboBox()
-        self.button_clear = QtGui.QPushButton('Clear')
+        self.eventbox = QtWidgets.QComboBox()
+        self.button_clear = QtWidgets.QPushButton('Clear')
 
         self.main_layout.insertWidget(1, self.main_splitter)
 
@@ -3140,14 +3139,14 @@ class MultiEventWidget(QWidget):
         self.main_splitter.setStretchFactor(1, 2)
 
     def init_checkboxes(self):
-        self.rb_layout = QtGui.QHBoxLayout()
+        self.rb_layout = QtWidgets.QHBoxLayout()
 
         self.rb_dict = {}
 
-        self.start_button = QtGui.QPushButton('Start')
+        self.start_button = QtWidgets.QPushButton('Start')
 
         for index, (key, func, color) in enumerate(self.options):
-            rb = QtGui.QRadioButton(key)
+            rb = QtWidgets.QRadioButton(key)
             rb.toggled.connect(self.check_rb_selection)
             if color:
                 color = 'rgba{}'.format(color)
@@ -3221,7 +3220,7 @@ class AutoPickWidget(MultiEventWidget):
     '''
 
     def __init__(self, parent, options):
-        MultiEventWidget.__init__(self, options, parent, 1)
+        MultiEventWidget.__init__(self, options, parent, Qt.Window)
         self.events2plot = {}
         self.connect_buttons()
         self.init_plot_layout()
@@ -3236,21 +3235,21 @@ class AutoPickWidget(MultiEventWidget):
 
     def init_plot_layout(self):
         # init tab widget
-        self.tab_plots = QtGui.QTabWidget()
-        self.gb_plots = QtGui.QGroupBox('Plots')
+        self.tab_plots = QtWidgets.QTabWidget()
+        self.gb_plots = QtWidgets.QGroupBox('Plots')
         self.gb_plots.setMinimumSize(100, 100)
         self.main_splitter.insertWidget(1, self.gb_plots)
-        self.plot_layout = QtGui.QVBoxLayout()
+        self.plot_layout = QtWidgets.QVBoxLayout()
         self.plot_layout.insertWidget(1, self.tab_plots)
         self.gb_plots.setLayout(self.plot_layout)
 
     def init_log_layout(self):
-        self.gb_log = QtGui.QGroupBox('Log')
+        self.gb_log = QtWidgets.QGroupBox('Log')
         self.gb_log.setMinimumSize(100, 100)
         self.main_splitter.insertWidget(0, self.gb_log)
 
     def insert_log_widget(self, widget):
-        vl = QtGui.QVBoxLayout()
+        vl = QtWidgets.QVBoxLayout()
         vl.addWidget(widget)
         self.gb_log.setLayout(vl)
 
@@ -3278,7 +3277,7 @@ class AutoPickWidget(MultiEventWidget):
     def update_plots(self):
         self.refresh_plot_tabs()
         if len(self.events2plot) > 0:
-            self.eventbox_layout = QtGui.QHBoxLayout()
+            self.eventbox_layout = QtWidgets.QHBoxLayout()
             self.generate_combobox()
             self.eventbox_layout.addWidget(self.eventbox)
             self.eventbox_layout.addWidget(self.button_clear)
@@ -3292,7 +3291,7 @@ class AutoPickWidget(MultiEventWidget):
     def reinitEvents2plot(self):
         for eventID, eventDict in self.events2plot.items():
             for widget_key, widget in eventDict.items():
-                del widget
+                widget.setParent(None)
         self.events2plot = {}
         self.eventbox.clear()
         self.refresh_plot_tabs()
@@ -3313,7 +3312,7 @@ class CompareEventsWidget(MultiEventWidget):
         MultiEventWidget.__init__(self, options, parent, 1)
         self.eventdict = eventdict
         self.comparisons = comparisons
-        self.compare_widget = QtGui.QWidget()
+        self.compare_widget = QtWidgets.QWidget()
         self.init_eventbox()
         self.init_event_area()
         self.fill_eventbox()
@@ -3341,7 +3340,7 @@ class CompareEventsWidget(MultiEventWidget):
         self.main_layout.insertWidget(1, self.event_area)
 
     def init_eventbox(self):
-        self.eventbox_layout = QtGui.QHBoxLayout()
+        self.eventbox_layout = QtWidgets.QHBoxLayout()
         self.eventbox_layout.addWidget(self.eventbox)
         self.eventbox.currentIndexChanged.connect(self.update_comparison)
 
@@ -3383,7 +3382,7 @@ class TuneAutopicker(QWidget):
     '''
 
     def __init__(self, parent, obspy_dmt=False):
-        QtGui.QWidget.__init__(self, parent, 1)
+        QtWidgets.QWidget.__init__(self, parent, Qt.Window)
         self._style = parent._style
         self.setWindowTitle('PyLoT - Tune Autopicker')
         self.parameter = self.parent()._inputs
@@ -3416,8 +3415,8 @@ class TuneAutopicker(QWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -3428,10 +3427,10 @@ class TuneAutopicker(QWidget):
         self.fig_dict = fig_dict
 
     def init_main_layouts(self):
-        self.main_layout = QtGui.QVBoxLayout()
-        self.tune_layout = QtGui.QHBoxLayout()
-        self.trace_layout = QtGui.QHBoxLayout()
-        self.parameter_layout = QtGui.QVBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.tune_layout = QtWidgets.QHBoxLayout()
+        self.trace_layout = QtWidgets.QHBoxLayout()
+        self.parameter_layout = QtWidgets.QVBoxLayout()
 
         self.main_layout.addLayout(self.trace_layout)
         self.main_layout.addLayout(self.tune_layout)
@@ -3444,7 +3443,7 @@ class TuneAutopicker(QWidget):
         self.trace_layout.addWidget(self.eventBox)
 
     def init_stationlist(self):
-        self.stationBox = QtGui.QComboBox()
+        self.stationBox = QtWidgets.QComboBox()
         self.stationBox.setMaxVisibleItems(42)
         self.trace_layout.addWidget(self.stationBox)
         self.fill_stationbox()
@@ -3516,7 +3515,7 @@ class TuneAutopicker(QWidget):
             trim_station_components(wfdat, trim_start=True, trim_end=False)
 
     def init_figure_tabs(self):
-        self.figure_tabs = QtGui.QTabWidget()
+        self.figure_tabs = QtWidgets.QTabWidget()
         self.fill_figure_tabs()
 
     def init_pbwidget(self):
@@ -3527,7 +3526,7 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.paraBox = PylotParaBox(self.parameter, parent=self, windowflag=0)
+        self.paraBox = PylotParaBox(self.parameter, parent=self, windowflag=Qt.Widget)
         self.paraBox.set_tune_mode(True)
         self.update_eventID()
         self.parameter_layout.addWidget(self.paraBox)
@@ -3535,17 +3534,17 @@ class TuneAutopicker(QWidget):
         self.tune_layout.insertLayout(1, self.parameter_layout)
 
     def add_buttons(self):
-        self.pick_button = QtGui.QPushButton('Pick Trace')
+        self.pick_button = QtWidgets.QPushButton('Pick Trace')
         self.pick_button.setStyleSheet('QPushButton{border-color: rgba(110, 200, 0, 255)}')
         self.pick_button.clicked.connect(self.call_picker)
-        self.close_button = QtGui.QPushButton('Close')
+        self.close_button = QtWidgets.QPushButton('Close')
         self.close_button.clicked.connect(self.hide)
         self.trace_layout.addWidget(self.pick_button)
         self.trace_layout.setStretch(0, 1)
         self.parameter_layout.addWidget(self.close_button)
 
     def add_log(self):
-        self.listWidget = QtGui.QListWidget()
+        self.listWidget = QtWidgets.QListWidget()
         self.figure_tabs.insertTab(4, self.listWidget, 'log')
 
     def add_log_item(self, text):
@@ -3553,10 +3552,7 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
 
     def get_current_event(self):
-        path = self.eventBox.currentText().split('*')[0]
-        # the path sometimes contains the star that shows that the event has been modified
-        # It would be cleaner to find out why/where the star is added to the eventbox and make this a visual only effect
-        if path[-1] == "*" : path = path[:-1]
+        path = self.eventBox.currentText()
         return self.parent().project.getEventFromPath(path)
 
     def get_current_event_name(self):
@@ -3584,8 +3580,8 @@ class TuneAutopicker(QWidget):
 
     @staticmethod
     def gen_tab_widget(name, canvas):
-        widget = QtGui.QWidget()
-        v_layout = QtGui.QVBoxLayout()
+        widget = QtWidgets.QWidget()
+        v_layout = QtWidgets.QVBoxLayout()
         v_layout.addWidget(canvas)
         widget.setLayout(v_layout)
         return widget
@@ -3628,8 +3624,8 @@ class TuneAutopicker(QWidget):
         self.pickDlg.update_picks.connect(lambda: self.parent().setDirty(True))
         self.pickDlg.update_picks.connect(self.parent().enableSaveEventAction)
         self.pickDlg.update_picks.connect(self.plot_manual_picks_to_figs)
-        self.pdlg_widget = QtGui.QWidget(self)
-        hl = QtGui.QHBoxLayout()
+        self.pdlg_widget = QtWidgets.QWidget(self)
+        hl = QtWidgets.QHBoxLayout()
         self.pdlg_widget.setLayout(hl)
         hl.addWidget(self.pickDlg)
 
@@ -3706,9 +3702,9 @@ class TuneAutopicker(QWidget):
 
         y_top = 0.9 * ax.get_ylim()[1]
         y_bot = 0.9 * ax.get_ylim()[0]
-        self._manual_pick_plots.append(ax.axvline(mpp, y_bot, y_top,
-                                                  color=color, linewidth=2,
-                                                  label='manual {} Onset (quality: {})'.format(phase, quality)))
+        self._manual_pick_plots.append(ax.vlines(mpp, y_bot, y_top,
+                                                 color=color, linewidth=2,
+                                                 label='manual {} Onset (quality: {})'.format(phase, quality)))
         self._manual_pick_plots.append(ax.plot([mpp - 0.5, mpp + 0.5],
                                                [y_bot, y_bot], linewidth=2,
                                                color=color))
@@ -3759,8 +3755,8 @@ class TuneAutopicker(QWidget):
 
     def fill_figure_tabs(self):
         self.clear_all()
-        self.p_tabs = QtGui.QTabWidget()
-        self.s_tabs = QtGui.QTabWidget()
+        self.p_tabs = QtWidgets.QTabWidget()
+        self.s_tabs = QtWidgets.QTabWidget()
         self.tune_layout.insertWidget(0, self.figure_tabs)
         self.init_tab_names()
 
@@ -3887,17 +3883,17 @@ class TuneAutopicker(QWidget):
         self.figure_tabs.setTabEnabled(3, bool)
 
     def _warn(self, message, info=None):
-        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+        self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
                                      'Warning', message)
         self.qmb.setDetailedText(str(info))
         self.qmb.show()
 
 
-class PylotParaBox(QtGui.QWidget):
+class PylotParaBox(QtWidgets.QWidget):
     accepted = QtCore.Signal(str)
     rejected = QtCore.Signal(str)
 
-    def __init__(self, parameter, parent=None, windowflag=1):
+    def __init__(self, parameter, parent=None, windowflag=Qt.Window):
         '''
         Generate Widget containing parameters for PyLoT.
 
@@ -3905,10 +3901,10 @@ class PylotParaBox(QtGui.QWidget):
         :type: PylotParameter (object)
 
         '''
-        QtGui.QWidget.__init__(self, parent, windowflag)
+        QtWidgets.QWidget.__init__(self, parent, windowflag)
         self.parameter = parameter
-        self.tabs = QtGui.QTabWidget()
-        self.layout = QtGui.QVBoxLayout()
+        self.tabs = QtWidgets.QTabWidget()
+        self.layout = QtWidgets.QVBoxLayout()
         self._init_save_buttons()
         self._init_tabs()
         self._init_dialog_buttons()
@@ -3936,15 +3932,15 @@ class PylotParaBox(QtGui.QWidget):
         self.move(fm.topLeft())
 
     def _init_sublayouts(self):
-        self._main_layout = QtGui.QVBoxLayout()
-        self._advanced_layout = QtGui.QVBoxLayout()
+        self._main_layout = QtWidgets.QVBoxLayout()
+        self._advanced_layout = QtWidgets.QVBoxLayout()
         self._create_advanced_cb()
 
     def _init_save_buttons(self):
-        self._buttons_layout = QtGui.QHBoxLayout()
-        self.loadButton = QtGui.QPushButton('&Load settings')
-        self.saveButton = QtGui.QPushButton('&Save settings')
-        self.defaultsButton = QtGui.QPushButton('&Defaults')
+        self._buttons_layout = QtWidgets.QHBoxLayout()
+        self.loadButton = QtWidgets.QPushButton('&Load settings')
+        self.saveButton = QtWidgets.QPushButton('&Save settings')
+        self.defaultsButton = QtWidgets.QPushButton('&Defaults')
         self._buttons_layout.addWidget(self.loadButton)
         self._buttons_layout.addWidget(self.saveButton)
         self._buttons_layout.addWidget(self.defaultsButton)
@@ -3957,10 +3953,10 @@ class PylotParaBox(QtGui.QWidget):
         self.layout.addWidget(self.tabs)
 
     def _init_dialog_buttons(self):
-        self._dialog_buttons = QtGui.QHBoxLayout()
-        self._okay = QtGui.QPushButton('Ok')
-        self._close = QtGui.QPushButton('Close')
-        self._apply = QtGui.QPushButton('Apply')
+        self._dialog_buttons = QtWidgets.QHBoxLayout()
+        self._okay = QtWidgets.QPushButton('Ok')
+        self._close = QtWidgets.QPushButton('Close')
+        self._apply = QtWidgets.QPushButton('Apply')
         self._dialog_buttons.addWidget(self._okay)
         self._dialog_buttons.addWidget(self._close)
         self._dialog_buttons.addWidget(self._apply)
@@ -3971,7 +3967,7 @@ class PylotParaBox(QtGui.QWidget):
         self.layout.addLayout(self._dialog_buttons)
 
     def _create_advanced_cb(self):
-        self._advanced_cb = QtGui.QCheckBox('Enable Advanced Settings')
+        self._advanced_cb = QtWidgets.QCheckBox('Enable Advanced Settings')
         self._advanced_layout.insertWidget(0, self._advanced_cb)
         self._advanced_cb.toggled.connect(self._toggle_advanced_settings)
 
@@ -4006,7 +4002,7 @@ class PylotParaBox(QtGui.QWidget):
             self._close.show()
 
     def init_boxes(self, parameter_names):
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
             default_item = self.parameter.get_defaults()[name]
@@ -4028,39 +4024,37 @@ class PylotParaBox(QtGui.QWidget):
                 self.boxes[name] = boxes
                 namestring = default_item['namestring'][0]
             text = namestring + ' [?]'
-            label = QtGui.QLabel(text)
+            label = QtWidgets.QLabel(text)
             self.labels[name] = label
             label.setToolTip(tooltip)
             grid.addWidget(label, index1, 1)
             grid.addWidget(box, index1, 2)
         return grid
 
-    @staticmethod
-    def create_box(typ, tooltip):
+    def create_box(self, typ, tooltip):
         if typ == str:
-            box = QtGui.QLineEdit()
+            box = QtWidgets.QLineEdit()
         elif typ == float:
-            box = QtGui.QDoubleSpinBox()
+            box = QtWidgets.QDoubleSpinBox()
             box.setDecimals(4)
             box.setRange(-10e4, 10e4)
         elif typ == int:
-            box = QtGui.QSpinBox()
+            box = QtWidgets.QSpinBox()
         elif typ == bool:
-            box = QtGui.QCheckBox()
+            box = QtWidgets.QCheckBox()
         else:
             raise TypeError('Unrecognized type {}'.format(typ))
         return box
 
-    @staticmethod
-    def create_multi_box(boxes, headline=None):
-        box = QtGui.QWidget()
-        gl = QtGui.QGridLayout()
+    def create_multi_box(self, boxes, headline=None):
+        box = QtWidgets.QWidget()
+        gl = QtWidgets.QGridLayout()
         column = 0
         if headline:
             for index, item in enumerate(headline):
                 if not item:
                     continue
-                gl.addWidget(QtGui.QLabel(item), index, 0, 2)
+                gl.addWidget(QtWidgets.QLabel(item), index, 0, Qt.Alignment(2))
                 column = 1
         for index, b in enumerate(boxes):
             gl.addWidget(b, index, column)
@@ -4068,8 +4062,8 @@ class PylotParaBox(QtGui.QWidget):
         return box, column
 
     def add_tab(self, layout, name):
-        widget = QtGui.QWidget()
-        scrollA = QtGui.QScrollArea()
+        widget = QtWidgets.QWidget()
+        scrollA = QtWidgets.QScrollArea()
         scrollA.setWidgetResizable(True)
         scrollA.setWidget(widget)
         widget.setLayout(layout)
@@ -4120,8 +4114,8 @@ class PylotParaBox(QtGui.QWidget):
             layout.insertWidget(position, groupbox)
 
     def get_groupbox_exclusive(self, name):
-        widget = QtGui.QWidget(self, 1)
-        layout = QtGui.QVBoxLayout()
+        widget = QtWidgets.QWidget(self, Qt.WindowFlags(1))
+        layout = QtWidgets.QVBoxLayout()
         widget.setLayout(layout)
         layout.addWidget(self.groupboxes[name])
         self._exclusive_widgets.append(widget)
@@ -4129,10 +4123,10 @@ class PylotParaBox(QtGui.QWidget):
 
     def get_groupbox_dialog(self, name):
         widget = self.get_groupbox_exclusive(name)
-        dialog = QtGui.QDialog(self.parent())
-        layout = QtGui.QVBoxLayout()
+        dialog = QtWidgets.QDialog(self.parent())
+        layout = QtWidgets.QVBoxLayout()
         dialog.setLayout(layout)
-        buttonbox = QtGui.QDialogButtonBox(QDialogButtonBox.Ok |
+        buttonbox = QtWidgets.QDialogButtonBox(QDialogButtonBox.Ok |
                                            QDialogButtonBox.Cancel)
         buttonbox.accepted.connect(dialog.accept)
         buttonbox.accepted.connect(self.refresh)
@@ -4146,7 +4140,7 @@ class PylotParaBox(QtGui.QWidget):
         return dialog
 
     def add_to_layout(self, layout, name, items, position):
-        groupbox = QtGui.QGroupBox(name)
+        groupbox = QtWidgets.QGroupBox(name)
         groupbox._position = position
         groupbox._parentLayout = layout
         self.groupboxes[name] = groupbox
@@ -5296,8 +5290,8 @@ class FilterOptionsWidget(QWidget):
 
         self.freqGroupBox = QGroupBox("Frequency range")
         self.freqGroupLayout = QGridLayout()
-        self.freqGroupLayout.addWidget(self.manuLabel, 0, 1, 80)
-        self.freqGroupLayout.addWidget(self.autoLabel, 0, 2, 80)
+        self.freqGroupLayout.addWidget(self.manuLabel, 0, 1)
+        self.freqGroupLayout.addWidget(self.autoLabel, 0, 2)
         self.freqGroupLayout.addWidget(self.freqminLabel, 1, 0)
         self.freqGroupLayout.addWidget(self.freqminSpinBox, 1, 1)
         self.freqGroupLayout.addWidget(self.autoMinFreq, 1, 2)
