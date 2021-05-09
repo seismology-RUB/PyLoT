@@ -2496,7 +2496,7 @@ class MainWindow(QMainWindow):
         if not seed_id:
             seed_id = self.getTraceID(wfID)
         try:
-           network, station, location = seed_id.split('.')[:3]
+            network, station, location = seed_id.split('.')[:3]
         except:
             print("Warning! No network, station, and location info available!")
             return
@@ -3692,8 +3692,9 @@ class MainWindow(QMainWindow):
             # QMainWindow.closeEvent(self, event)
 
     def setParameter(self, show=True):
+        show = True
         if not self.paraBox:
-            self.paraBox = PylotParaBox(self._inputs, parent=self)
+            self.paraBox = PylotParaBox(self._inputs, parent=self, windowflag=Qt.Window)
             self.paraBox.accepted.connect(self._setDirty)
             self.paraBox.accepted.connect(self.filterOptionsFromParameter)
         if show:

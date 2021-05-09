@@ -123,11 +123,11 @@ def createAction(parent, text, slot=None, shortcut=None, icon=None,
     return action
 
 
-class ProgressBarWidget(QtGui.QWidget):
+class ProgressBarWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(ProgressBarWidget, self).__init__(parent)
-        self.hlayout = QtGui.QHBoxLayout()
-        self.pb = QtGui.QProgressBar()
+        self.hlayout = QtWidgets.QHBoxLayout()
+        self.pb = QtWidgets.QProgressBar()
         self.pb.setRange(0, 0)
         self.label = QLabel()
         self.hlayout.addWidget(self.pb)
@@ -164,8 +164,8 @@ class AddMetadataWidget(QWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -178,10 +178,10 @@ class AddMetadataWidget(QWidget):
 
     def init_lineedit(self):
         self.selection_layout = QVBoxLayout()
-        self.lineedit_title = QtGui.QLabel("Choose metadata file to add:")
+        self.lineedit_title = QtWidgets.QLabel("Choose metadata file to add:")
         self.selection_layout.insertWidget(0, self.lineedit_title)
         self.lineedit_layout = QHBoxLayout()
-        self.selection_box = QtGui.QLineEdit()
+        self.selection_box = QtWidgets.QLineEdit()
         self.browse_button = self.init_button("Browse", explanation="Browse the file explorer")
         self.lineedit_layout.addWidget(self.selection_box)
         self.lineedit_layout.addWidget(self.browse_button)
@@ -222,12 +222,12 @@ class AddMetadataWidget(QWidget):
         self.init_list_widget()
 
     def init_list_title(self):
-        self.list_title = QtGui.QLabel("Current metadata files:")
+        self.list_title = QtWidgets.QLabel("Current metadata files:")
         self.list_layout.insertWidget(0, self.list_title)
 
     def init_list_widget(self):
-        self.list_view = QtGui.QListView()
-        self.list_view.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.list_view = QtWidgets.QListView()
+        self.list_view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.list_model = QtGui.QStandardItemModel(self.list_view)
         self.list_view.setModel(self.list_model)
         self.list_layout.insertWidget(1, self.list_view, 1)
@@ -3926,8 +3926,8 @@ class PylotParaBox(QtWidgets.QWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -4230,13 +4230,13 @@ class PylotParaBox(QtWidgets.QWidget):
             self.setValue(box, value)
 
     def setValue(self, box, value):
-        if type(box) == QtGui.QLineEdit:
+        if type(box) == QtWidgets.QLineEdit:
             box.setText(str(value))
-        elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
+        elif type(box) == QtWidgets.QSpinBox or type(box) == QtWidgets.QDoubleSpinBox:
             if not value:
                 value = 0.
             box.setValue(value)
-        elif type(box) == QtGui.QCheckBox:
+        elif type(box) == QtWidgets.QCheckBox:
             if value == 'True':
                 value = True
             if value == 'False' or value is None:
@@ -4247,11 +4247,11 @@ class PylotParaBox(QtWidgets.QWidget):
                 self.setValue(b, value[index])
 
     def getValue(self, box):
-        if type(box) == QtGui.QLineEdit:
+        if type(box) == QtWidgets.QLineEdit:
             value = str(box.text())
-        elif type(box) == QtGui.QSpinBox or type(box) == QtGui.QDoubleSpinBox:
+        elif type(box) == QtWidgets.QSpinBox or type(box) == QtWidgets.QDoubleSpinBox:
             value = box.value()
-        elif type(box) == QtGui.QCheckBox:
+        elif type(box) == QtWidgets.QCheckBox:
             value = box.isChecked()
         elif type(box) == list:
             value = []
@@ -4261,7 +4261,7 @@ class PylotParaBox(QtWidgets.QWidget):
         return value
 
     def openFile(self):
-        fd = QtGui.QFileDialog()
+        fd = QtWidgets.QFileDialog()
         fname = fd.getOpenFileName(self, 'Browse for settings file.',
                                    filter='PyLoT input file (*.in)')
         if fname[0]:
@@ -4273,7 +4273,7 @@ class PylotParaBox(QtWidgets.QWidget):
                 return
 
     def saveFile(self):
-        fd = QtGui.QFileDialog()
+        fd = QtWidgets.QFileDialog()
         fname = fd.getSaveFileName(self, 'Browse for settings file.',
                                    filter='PyLoT input file (*.in)')[0]
         if fname:
@@ -4300,17 +4300,17 @@ class PylotParaBox(QtWidgets.QWidget):
         if hasattr(self, '_exclusive_dialog'):
             self._exclusive_dialog.close()
         self._exclusive_widgets = []
-        QtGui.QWidget.show(self)
+        QtWidgets.QWidget.show(self)
 
     def close(self):
         self.rejected.emit('reject')
-        QtGui.QWidget.close(self)
+        QtWidgets.QWidget.close(self)
 
     def accept(self):
         self.accepted.emit('accept')
 
     def _warn(self, message):
-        self.qmb = QtGui.QMessageBox(QtGui.QMessageBox.Icon.Warning,
+        self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
                                      'Warning', message)
         self.qmb.show()
 
