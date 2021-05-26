@@ -3902,9 +3902,10 @@ class Project(object):
         try:
             import cPickle
         except ImportError:
-            import _pickle as cPickle
+            import pickle as cPickle
         infile = open(filename, 'rb')
         project = cPickle.load(infile)
+        infile.close()
         project.location = filename
         print('Loaded %s' % filename)
         return project

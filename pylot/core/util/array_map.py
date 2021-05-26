@@ -18,7 +18,6 @@ from cartopy.feature import ShapelyFeature
 from cartopy.io.shapereader import Reader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-
 from pylot.core.util.widgets import PickDlg, PylotCanvas
 from pylot.core.pick.utils import get_quality_class
 
@@ -56,10 +55,10 @@ class Array_map(QtWidgets.QWidget):
         self.highlighted_stations = []
         self.init_graphics()
         self.init_stations()
-        self.init_basemap(resolution='l')
+        self.init_basemap()
         self.init_map()
         self._style = None if not hasattr(parent, '_style') else parent._style
-        # self.show()
+        self.show()
 
     def update_hybrids_dict(self):
         self.hybrids_dict = self.picks_dict.copy()
@@ -77,7 +76,7 @@ class Array_map(QtWidgets.QWidget):
     def init_colormap(self):
         self.init_lat_lon_dimensions()
         self.init_lat_lon_grid()
-        self.init_x_y_dimensions()
+        # self.init_x_y_dimensions()
 
     def onpick(self, event):
         ind = event.ind
@@ -129,8 +128,8 @@ class Array_map(QtWidgets.QWidget):
         lat = stat_dict['latitude']
         lon = stat_dict['longitude']
         self.highlighted_stations.append(self.basemap.scatter(lon, lat, s=self.pointsize, edgecolors=color,
-                                                              facecolors='none', latlon=True,
-                                                              zorder=12, label='deleted'))
+                                                              facecolors='none', zorder=12, label='deleted'))
+
         self.canvas.draw()
 
     def pickInfo(self, ind):
@@ -332,59 +331,31 @@ class Array_map(QtWidgets.QWidget):
         self.londim = self.lonmax - self.lonmin
         self.latdim = self.latmax - self.latmin
 
-    def init_x_y_dimensions(self):
-        # transformation of lat/lon to ax coordinate system
-        for st_id, coords in self.stations_dict.items():
-            lat, lon = coords['latitude'], coords['longitude']
-            coords['x'], coords['y'] = self.basemap(lon, lat)
-
-        self.xdim = self.get_max_from_stations('x') - self.get_min_from_stations('x')
-        self.ydim = self.get_max_from_stations('y') - self.get_min_from_stations('y')
-
     def init_basemap(self):
         # initialize cartopy coordinate reference system
-        proj = ccrs.PlateCarree(central_longitude=(self.lonmin + self.lonmax) / 2.)
-        crtpy_map = plt.axes(projection=proj)
+        proj = ccrs.Mercator()  # PlateCarree(central_longitude=self.lonmin + abs(self.lonmax - self.lonmin) / 2.)
+        # crtpy_map = self.figure.axes
+        self.main_ax = plt.axes(projection=proj)
         mapxtent = [self.lonmin, self.lonmax, self.latmin, self.latmax]  # add conditional buffer
-        crtpy_map.set_extent(mapxtent)  # find way to directly open zoomed map on area
+        self.main_ax.set_extent(mapxtent)  # find way to directly open zoomed map on area
+        # self.main_ax.set_global()
 
         # add features (option for plate boundaries)
-        crtpy_map.add_feature(cf.LAND)  # replace with background map
-        crtpy_map.add_feature(cf.OCEAN)
-        crtpy_map.add_feature(cf.BORDERS, linestyle=':')  # include province borders
-        crtpy_map.add_feature(cf.COASTLINE)
+        self.main_ax.add_feature(cf.LAND, edgecolor='face', facecolor=cf.COLORS['land'])  # replace with background map
+        self.main_ax.add_feature(cf.OCEAN, edgecolor='face', facecolor=cf.COLORS['water'])
+        self.main_ax.add_feature(cf.BORDERS, linestyle=':', edgecolor='k')  # include province borders
+        self.main_ax.add_feature(cf.COASTLINE, color='gray', linewidth=1)
         # fname = 'PB2002_plates.shp'
         # plateBoundaries = ShapelyFeature(Reader(fname).geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='r')
         # crtpy_map.add_feature(plateBoundaries)
 
         # parallels and meridians
-        gridlines = crtpy_map.gridlines(draw_labels=True, alpha=0.5, zorder=7)
+        gridlines = self.main_ax.gridlines(draw_labels=True, alpha=0.5, zorder=7)
         gridlines.xformatter = LONGITUDE_FORMATTER
         gridlines.yformatter = LATITUDE_FORMATTER
 
-        self.basemap = crtpy_map
-        self.figure._tight = True
-        self.figure.tight_layout()
-
-        # basemap = Basemap(projection=projection, resolution = resolution, ax=self.main_ax)
-        # basemap = Basemap(projection='lcc', resolution=resolution, ax=self.main_ax, width=self.width, height=self.height, lat_0=(self.latmin + self.latmax) / 2., lon_0=(self.lonmin + self.lonmax) / 2.)
-        #
-        # basemap.fillcontinents(color=None, lake_color='aqua',zorder=1)
-        # basemap.drawmapboundary(zorder=2)  # fill_color='darkblue')
-        # basemap.shadedrelief(zorder=3)
-        # basemap.drawcountries(zorder=4)
-        # basemap.drawstates(zorder=5)
-        # basemap.drawcoastlines(zorder=6)
-        # labels = [left,right,top,bottom]
-        # parallels = np.arange(-90, 90, 5.)
-        # parallels_small = np.arange(-90, 90, 2.5)
-        # basemap.drawparallels(parallels_small, linewidth=0.5, zorder=7)
-        # basemap.drawparallels(parallels, zorder=7)#, labels=[1, 1, 0, 0])
-        # meridians = np.arange(-180, 180, 5.)
-        # meridians_small = np.arange(-180, 180, 2.5)
-        # basemap.drawmeridians(meridians_small, linewidth=0.5, zorder=7)
-        # basemap.drawmeridians(meridians, zorder=7)#, labels=[0, 0, 1, 1])
-        # self.basemap = basemap
+        self.basemap = self.main_ax
+        # plt.show()
         # self.figure._tight = True
         # self.figure.tight_layout()
 
@@ -397,8 +368,7 @@ class Array_map(QtWidgets.QWidget):
     def init_picksgrid(self):
         picks, uncertainties, lats, lons = self.get_picks_lat_lon()
         try:
-            self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid),
-                                             method='linear')
+            self.picksgrid_active = griddata((lats, lons), picks, (self.latgrid, self.longrid), method='linear')
         except Exception as e:
             self._warn('Could not init picksgrid: {}'.format(e))
 
@@ -412,16 +382,6 @@ class Array_map(QtWidgets.QWidget):
             longitudes.append(coords['longitude'])
         return stations, latitudes, longitudes
 
-    def get_st_x_y_for_plot(self):
-        stations = []
-        xs = []
-        ys = []
-        for st_id, coords in self.stations_dict.items():
-            stations.append(st_id)
-            xs.append(coords['x'])
-            ys.append(coords['y'])
-        return stations, xs, ys
-
     def get_picks_lat_lon(self):
         picks = []
         uncertainties = []
@@ -434,72 +394,34 @@ class Array_map(QtWidgets.QWidget):
             longitudes.append(self.stations_dict[st_id]['longitude'])
         return picks, uncertainties, latitudes, longitudes
 
-    def draw_contour_filled(self, nlevel='100'):
+    def draw_contour_filled(self, nlevel=100):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
-        # self.contourf = self.basemap.contour(self.longrid, self.latgrid, self.picksgrid_active, levels,
-        #                                      linewidths=self.linewidth, latlon=True, zorder=8, alpha=0.7,
-        #                                      cmap=self.get_colormap())
 
-        plt.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,  linewidths=self.linewidth,
-                     transform=ccrs.PlateCarree(), alpha=0.7, zorder=8)
+        self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
+                                              linewidths=self.linewidth, transform=ccrs.PlateCarree(),
+                                              alpha=0.7, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
-
-    def test_gradient(self):
-        st_ids = self.picks_rel.keys()
-        x, y = np.gradient(self.picksgrid_active)
-        gradient_modulus = np.sqrt(x ** 2 + y ** 2)
-        global_mean_gradient = np.nanmean(gradient_modulus)
-        delta_gradient = []
-        for st_id in st_ids:
-            pick_item = self.picks_rel.pop(st_id)
-            self.init_picksgrid()
-            x, y = np.gradient(self.picksgrid_active)
-            gradient_modulus = np.sqrt(x ** 2 + y ** 2)
-            mean_gradient = np.nanmean(gradient_modulus)
-            dgradient = global_mean_gradient - mean_gradient
-            # print('station: {}, mean gradient: {}'.format(st_id, dgradient))
-            delta_gradient.append(dgradient)
-            self.picks_rel[st_id] = pick_item
-        global_std_gradient = np.nanstd(delta_gradient)
-        marked_stations = []
-        for st_id, dg in zip(st_ids, delta_gradient):
-            if abs(dg) > global_std_gradient:
-                marked_stations.append(st_id)
-        self.marked_stations = marked_stations
-        self.init_picksgrid()
-
-        # fig = plt.figure()
-        # x = list(range(len(st_ids)))
-        # gradients = zip(x, delta_gradient)
-        # gradients.sort(key=lambda a: a[1])
-        # plt.plot(gradients[0], gradients[1])
-
-        # global_var_gradient = np.nanvar(delta_gradient)
-        # plt.plot(x, delta_gradient)
-        # plt.axhline(global_std_gradient, color='green')
-        # plt.axhline(2 * global_std_gradient, color='blue')
-        # plt.axhline(global_var_gradient, color='red')
-        # plt.xticks(x, st_ids)
-        # plt.show()
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
         #self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
         #                               zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
 
-        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
-                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked', transform=ccrs.PlateCarree())
+        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', marker='.',
+                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
+                                       transform=ccrs.PlateCarree())
 
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.sc_event = self.basemap.scatter(lons, lats, s=2*self.pointsize, facecolor='red',
-                                                 latlon=True, zorder=11, label='Event (might be outside map region)', transform=ccrs.PlateCarree())
+            self.sc_event = self.basemap.scatter(lons, lats, s=2*self.pointsize, facecolor='red', zorder=11,
+                                                 label='Event (might be outside map region)',
+                                                 transform=ccrs.PlateCarree())
 
     def scatter_picked_stations(self):
         picks, uncertainties, lats, lons = self.get_picks_lat_lon()
@@ -508,24 +430,26 @@ class Array_map(QtWidgets.QWidget):
 
         phase = self.comboBox_phase.currentText()
         timeerrors = self.parameter['timeerrors{}'.format(phase)]
-        sizes = np.array([self.pointsize * ((5. - get_quality_class(uncertainty, timeerrors)))
+        sizes = np.array([self.pointsize * (5. - get_quality_class(uncertainty, timeerrors))
                           for uncertainty in uncertainties])
 
         cmap = self.get_colormap()
+        self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
+                                              c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
         # workaround because of an issue with latlon transformation of arrays with len <3
-        if len(lons) <= 2 and len(lats) <= 2:
-            self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks[0], latlon=True, zorder=11, transform=ccrs.PlateCarree())
-        if len(lons) == 2 and len(lats) == 2:
-            self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks[1], latlon=True, zorder=11, transform=ccrs.PlateCarree())
-        if len(lons) > 2 and len(lats) > 2:
-            self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks, latlon=True, zorder=11, label='Picked', transform=ccrs.PlateCarree())
+        # if len(lons) <= 2 and len(lats) <= 2:
+        #    self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=sizes, edgecolors='white', cmap=cmap,
+        #                                          c=picks[0], zorder=11, transform=ccrs.PlateCarree())
+        # if len(lons) == 2 and len(lats) == 2:
+        #    self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=sizes, edgecolors='white', cmap=cmap,
+        #                                          c=picks[1], zorder=11, transform=ccrs.PlateCarree())
+        # if len(lons) > 2 and len(lats) > 2:
+        #     self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
+        #                                           c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
 
     def annotate_ax(self):
         self.annotations = []
-        stations, xs, ys = self.get_st_x_y_for_plot()
+        stations, xs, ys = self.get_st_lat_lon_for_plot()
         # MP MP testing station highlighting if they have high impact on mean gradient of color map
         # if self.picks_rel:
         #    self.test_gradient()
@@ -538,9 +462,8 @@ class Array_map(QtWidgets.QWidget):
                 color = 'lightgrey'
             if st in self.marked_stations:
                 color = 'red'
-            self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y),
-                                                          fontsize=self.pointsize/4., fontweight='semibold',
-                                                          color=color, zorder=14))
+            self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y), fontsize=self.pointsize/4.,
+                                                          fontweight='semibold', color=color, zorder=14))
         self.legend = self.main_ax.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
@@ -557,6 +480,7 @@ class Array_map(QtWidgets.QWidget):
         self.cbax_bg.xaxis.set_ticks([])
         self.cbax_bg.patch.set_facecolor((1, 1, 1, 0.75))
         return cbar
+
 
     def refresh_drawings(self, picks=None, autopicks=None):
         self.picks_dict = picks
@@ -673,3 +597,8 @@ class Array_map(QtWidgets.QWidget):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
                                      'Warning', message)
         self.qmb.show()
+
+
+
+
+
