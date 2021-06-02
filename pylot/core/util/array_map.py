@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import matplotlib
+matplotlib.use('Qt5Agg')
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -11,6 +15,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 # from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import griddata
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import cartopy.crs as ccrs
 import cartopy.feature as cf
@@ -71,7 +76,7 @@ class Array_map(QtWidgets.QWidget):
         self.init_colormap()
         self.connectSignals()
         self.draw_everything()
-        self.canvas.setZoomBorders2content()
+        # self.canvas.setZoomBorders2content()
 
     def init_colormap(self):
         self.init_lat_lon_dimensions()
@@ -194,7 +199,7 @@ class Array_map(QtWidgets.QWidget):
         self.annotations_box.stateChanged.connect(self.switch_annotations)
         self.refresh_button.clicked.connect(self._refresh_drawings)
         self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
-        # self.zoom_id = self.basemap.ax.figure.canvas.mpl_connect('scroll_event', self.zoom)
+        self.canvas.mpl_connect('scroll_event', self.zoom)
 
     def _from_dict(self, function, key):
         return function(self.stations_dict.values(), key=lambda x: x[key])[key]
@@ -230,14 +235,15 @@ class Array_map(QtWidgets.QWidget):
 
     def init_graphics(self):
         if not self.figure:
-            self.figure = Figure()
+            self.figure = plt.figure()
 
         self.status_label = QtWidgets.QLabel()
 
         self.main_ax = self.figure.add_subplot(111)
         #self.main_ax.set_facecolor('0.7')
-        self.canvas = PylotCanvas(self.figure, parent=self._parent, multicursor=True,
-                                  panZoomX=False, panZoomY=False)
+        self.canvas = FigureCanvas(self.figure)
+
+                                   # parent=self._parent, multicursor=True, panZoomX=False, panZoomY=False)
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -356,6 +362,7 @@ class Array_map(QtWidgets.QWidget):
 
         self.basemap = self.main_ax
         # plt.show()
+        # self.show()
         # self.figure._tight = True
         # self.figure.tight_layout()
 
@@ -567,17 +574,21 @@ class Array_map(QtWidgets.QWidget):
         self.annotations = []
 
     def zoom(self, event):
-        map = self.basemap
-        xlim = map.get_xlim()
-        ylim = map.get_ylim()
-        x, y = event.xdata, event.ydata
+        if not event.inaxes == self.canvas.axes:
+            return
+
         zoom = {'up': 1. / 2.,
                 'down': 2.}
 
-        if not event.xdata or not event.ydata:
-            return
+        # if not event.xdata or not event.ydata:
+        #    return
 
         if event.button in zoom:
+            m = self.basemap
+            xlim = m.get_xlim()
+            ylim = m.get_ylim()
+            x, y = event.xdata, event.ydata
+
             factor = zoom[event.button]
             xdiff = (xlim[1] - xlim[0]) * factor
             xl = x - 0.5 * xdiff
@@ -586,12 +597,12 @@ class Array_map(QtWidgets.QWidget):
             yb = y - 0.5 * ydiff
             yt = y + 0.5 * ydiff
 
-            if xl < map.xmin or yb < map.ymin or xr > map.xmax or yt > map.ymax:
-                xl, xr = map.xmin, map.xmax
-                yb, yt = map.ymin, map.ymax
-            map.set_xlim(xl, xr)
-            map.set_ylim(yb, yt)
-            map.figure.canvas.draw()
+            #if xl < map.xmin or yb < map.ymin or xr > map.xmax or yt > map.ymax:
+            #    xl, xr = map.xmin, map.xmax
+            #    yb, yt = map.ymin, map.ymax
+            m.set_xlim(xl, xr)
+            m.set_ylim(yb, yt)
+            m.figure.canvas.draw_idle()
 
     def _warn(self, message):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
