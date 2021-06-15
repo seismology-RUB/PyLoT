@@ -543,6 +543,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 try:
                     if arrivals[key]['P']['weight'] >= 4:
                         pweight = 0  # do not use pick
+                        print("Station {}: Uncertain pick, do not use it!".format(key))
                 except KeyError as e:
                     print(e.message + '; no weight set during processing')
                 fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,

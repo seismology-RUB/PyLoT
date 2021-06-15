@@ -282,12 +282,13 @@ class LocalMagnitude(Magnitude):
         for a in self.arrivals:
             if a.phase not in 'sS':
                 continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
             # make sure calculating Ml only from reliable onsets
             # NLLoc: time_weight = 0 => do not use onset!
             if a.time_weight == 0:
+                print("Uncertain pick at Station {}, do not use it!".format(station))
                 continue
-            pick = a.pick_id.get_referred_object()
-            station = pick.waveform_id.station_code
             wf = select_for_phase(self.stream.select(
                 station=station), a.phase)
             if not wf:
@@ -399,7 +400,13 @@ class MomentMagnitude(Magnitude):
                 print("WARNING: No instrument corrected data available,"
                       " no magnitude calculation possible! Go on.")
                 continue
-            scopy = self.stream.copy()
+            try:
+                scopy = self.stream.copy()
+            except AssertionError:
+                print("WARNING: Something's wrong with the data,"
+                      "station {},"
+                      "no calculation of moment magnitude possible! Go on.".format(station))
+                continue
             wf = scopy.select(station=station)
             if not wf:
                 continue
