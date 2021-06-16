@@ -1,45 +1,47 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import os
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 
-
-import matplotlib.pyplot as plt
-import numpy as np
-import obspy
-import traceback
-from PySide2 import QtWidgets
-from matplotlib.figure import Figure
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-# from mpl_toolkits.basemap import Basemap
-from scipy.interpolate import griddata
+from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
 
 import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 import cartopy.feature as cf
-from cartopy.feature import ShapelyFeature
 from cartopy.io.shapereader import Reader
+from cartopy.feature import ShapelyFeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-from pylot.core.util.widgets import PickDlg, PylotCanvas
+import traceback
+import obspy
+import numpy as np
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from scipy.interpolate import griddata
+from pylot.core.util.widgets import PickDlg
 from pylot.core.pick.utils import get_quality_class
 
-plt.interactive(False)
+class MplCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        self.fig = plt.figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
+        super(MplCanvas, self).__init__(self.fig)
 
 
 class Array_map(QtWidgets.QWidget):
     def __init__(self, parent, metadata, parameter=None, figure=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
-        '''
-        Create a map of the array.
-        :param parent: object of PyLoT Mainwindow class
-        :param parameter: object of PyLoT parameter class
-        :param figure:
-        '''
-        QtWidgets.QWidget.__init__(self)
-        assert (parameter != None or parent != None), 'either parent or parameter has to be set'
+        super(Array_map, self).__init__(parent)
+
+        # set properties
         self._parent = parent
         self.metadata = metadata
         self.pointsize = pointsize
@@ -54,196 +56,32 @@ class Array_map(QtWidgets.QWidget):
         self.hybrids_dict = None
         self.eventLoc = None
         self.parameter = parameter if parameter else parent._inputs
-        self.figure = figure
+
         self.picks_rel = {}
         self.marked_stations = []
         self.highlighted_stations = []
+
+        # call functions to draw everything
         self.init_graphics()
         self.init_stations()
-        self.init_basemap()
-        self.init_map()
+        self.init_crtpyMap()
+        self.init_colormap()
+        self.draw_everything()
+
         self._style = None if not hasattr(parent, '_style') else parent._style
+
         self.show()
 
-    def update_hybrids_dict(self):
-        self.hybrids_dict = self.picks_dict.copy()
-        for station, pick in self.autopicks_dict.items():
-            if not station in self.hybrids_dict.keys():
-                self.hybrids_dict[station] = pick
-        return self.hybrids_dict
-
-    def init_map(self):
-        self.init_colormap()
-        self.connectSignals()
-        self.draw_everything()
-        # self.canvas.setZoomBorders2content()
-
-    def init_colormap(self):
-        self.init_lat_lon_dimensions()
-        self.init_lat_lon_grid()
-        # self.init_x_y_dimensions()
-
-    def onpick(self, event):
-        ind = event.ind
-        button = event.mouseevent.button
-        if ind == []:
-            return
-        if button == 1:
-            self.openPickDlg(ind)
-        elif button == 2:
-            self.deletePick(ind)
-        elif button == 3:
-            self.pickInfo(ind)
-
-    def deletePick(self, ind):
-        self.update_hybrids_dict()
-        for index in ind:
-            network, station = self._station_onpick_ids[index].split('.')[:2]
-            try:
-                phase = self.comboBox_phase.currentText()
-                picks = self.current_picks_dict()[station]
-                pick = picks.get(phase)
-                if pick:
-                    picker = pick['picker']
-                    message = 'Deleted {} pick for phase {}, station {}.{} at timestamp {}'
-                    message = message.format(picker, phase, network, station,
-                                             pick['mpp'])
-                    if picker == 'auto':
-                        del (self.autopicks_dict[station])
-                    elif picker == 'manual':
-                        del (self.picks_dict[station])
-                    else:
-                        raise TypeError('Unknown "picker" {}'.format(picker))
-                    print(message)
-                    pyl_mw = self._parent
-                    pyl_mw.deletePicks(station, pick, type=picker)
-                    pyl_mw.setDirty(True)
-                    pyl_mw.update_status(message)
-                    if self.auto_refresh_box.isChecked():
-                        self._refresh_drawings()
-                    else:
-                        self.highlight_station(network, station, color='red')
-                    pyl_mw.drawPicks(station)
-                    pyl_mw.draw()
-            except Exception as e:
-                print('Could not delete pick for station {}.{}: {}'.format(network, station, e))
-
-    def highlight_station(self, network, station, color):
-        stat_dict = self.stations_dict['{}.{}'.format(network, station)]
-        lat = stat_dict['latitude']
-        lon = stat_dict['longitude']
-        self.highlighted_stations.append(self.basemap.scatter(lon, lat, s=self.pointsize, edgecolors=color,
-                                                              facecolors='none', zorder=12, label='deleted'))
-
-        self.canvas.draw()
-
-    def pickInfo(self, ind):
-        self.update_hybrids_dict()
-        for index in ind:
-            network, station = self._station_onpick_ids[index].split('.')[:2]
-            dic = self.current_picks_dict()[station]
-            for phase, picks in dic.items():
-                # because of wadati...
-                if phase == 'SPt':
-                    continue
-                print('{} - Pick:'.format(phase))
-                for key, info in picks.items():
-                    print('{}: {}'.format(key, info))
-
-    def openPickDlg(self, ind):
-        data = self._parent.get_data().getWFData()
-        for index in ind:
-            network, station = self._station_onpick_ids[index].split('.')[:2]
-            pyl_mw = self._parent
-            try:
-                data = data.select(station=station)
-                if not data:
-                    self._warn('No data for station {}'.format(station))
-                    return
-                pickDlg = PickDlg(self._parent, parameter=self.parameter,
-                                  data=data, network=network, station=station,
-                                  picks=self._parent.get_current_event().getPick(station),
-                                  autopicks=self._parent.get_current_event().getAutopick(station),
-                                  filteroptions=self._parent.filteroptions, metadata=self.metadata,
-                                  event=pyl_mw.get_current_event())
-            except Exception as e:
-                message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
-                self._warn(message)
-                print(message, e)
-                print(traceback.format_exc())
-                return
-            try:
-                if pickDlg.exec_():
-                    pyl_mw.setDirty(True)
-                    pyl_mw.update_status('picks accepted ({0})'.format(station))
-                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
-                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
-                    if self.auto_refresh_box.isChecked():
-                        self._refresh_drawings()
-                    else:
-                        self.highlight_station(network, station, color='yellow')
-                    pyl_mw.drawPicks(station)
-                    pyl_mw.draw()
-                else:
-                    pyl_mw.update_status('picks discarded ({0})'.format(station))
-            except Exception as e:
-                message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
-                self._warn(message)
-                print(message, e)
-                print(traceback.format_exc())
-
-    def connectSignals(self):
-        self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
-        self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
-        self.cmaps_box.currentIndexChanged.connect(self._refresh_drawings)
-        self.annotations_box.stateChanged.connect(self.switch_annotations)
-        self.refresh_button.clicked.connect(self._refresh_drawings)
-        self.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
-        self.canvas.mpl_connect('scroll_event', self.zoom)
-
-    def _from_dict(self, function, key):
-        return function(self.stations_dict.values(), key=lambda x: x[key])[key]
-
-    def get_min_from_stations(self, key):
-        return self._from_dict(min, key)
-
-    def get_max_from_stations(self, key):
-        return self._from_dict(max, key)
-
-    def get_min_from_picks(self):
-        return min(self.picks_rel.values())
-
-    def get_max_from_picks(self):
-        return max(self.picks_rel.values())
-
-    def mouse_moved(self, event):
-        if not event.inaxes == self.main_ax:
-            return
-        x = event.xdata
-        y = event.ydata
-        # lat, lon = self.basemap(x, y, inverse=True)
-        lat = y
-        lon = x
-        self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
-
-    def current_picks_dict(self):
-        picktype = self.comboBox_am.currentText().split(' ')[0]
-        auto_manu = {'auto': self.autopicks_dict,
-                     'manual': self.picks_dict,
-                     'hybrid': self.hybrids_dict}
-        return auto_manu[picktype]
-
     def init_graphics(self):
-        if not self.figure:
-            self.figure = plt.figure()
+        """
+        Initializes all GUI components and figure elements to be populeted by other functions
+        """
+        # initialize figure elements
+        self.canvas = MplCanvas(self)
+        self.plotWidget = FigureCanvas(self.canvas.fig)
 
+        # initialize GUI elements
         self.status_label = QtWidgets.QLabel()
-
-        self.main_ax = self.figure.add_subplot(111)
-        #self.main_ax.set_facecolor('0.7')
-        self.canvas = FigureCanvas(self.figure)
-
-                                   # parent=self._parent, multicursor=True, panZoomX=False, panZoomY=False)
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -282,8 +120,184 @@ class Array_map(QtWidgets.QWidget):
         self.top_row.addWidget(self.auto_refresh_box)
         self.top_row.addWidget(self.refresh_button)
 
-        self.main_box.addWidget(self.canvas, 1)
-        self.main_box.addWidget(self.status_label, 0)
+        self.main_box.addWidget(self.plotWidget, 1)
+        self.main_box.addWidget(NavigationToolbar(self.plotWidget, self), 0)
+        #self.main_box.addWidget(self.status_label, 0)
+
+        self.connectSignals()
+
+    def init_colormap(self):
+        self.init_lat_lon_dimensions()
+        self.init_lat_lon_grid()
+
+    def init_crtpyMap(self):
+        self.canvas.axes.cla()
+        self.canvas.axes = plt.axes(projection=ccrs.PlateCarree())
+        self.canvas.axes.add_feature(cf.LAND)
+        self.canvas.axes.add_feature(cf.OCEAN)
+        self.canvas.axes.add_feature(cf.COASTLINE, linewidth=1, edgecolor='gray')
+        self.canvas.axes.add_feature(cf.BORDERS, alpha=0.7)
+
+        # parallels and meridians
+        gridlines = self.canvas.axes.gridlines(draw_labels=True, alpha=0.5, zorder=7)
+        gridlines.xformatter = LONGITUDE_FORMATTER
+        gridlines.yformatter = LATITUDE_FORMATTER
+
+        # self.canvas.axes.set_global()
+        self.canvas.fig.tight_layout()
+        # self.plotWidget.draw_idle()
+
+    def connectSignals(self):
+        self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
+        self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
+        self.cmaps_box.currentIndexChanged.connect(self._refresh_drawings)
+        self.annotations_box.stateChanged.connect(self.switch_annotations)
+        self.refresh_button.clicked.connect(self._refresh_drawings)
+        self.plotWidget.mpl_connect('motion_notify_event', self.mouse_moved)
+        self.plotWidget.mpl_connect('scroll_event', self.mouse_scroll)
+        self.plotWidget.mpl_connect('button_press_event', self.mouseLeftPress)
+        self.plotWidget.mpl_connect('button_release_event', self.mouseLeftRelease)
+
+    # set mouse events -----------------------------------------------------
+    def mouse_moved(self, event):
+        if not event.inaxes == self.canvas.axes:
+            return
+
+        lat = event.ydata
+        lon = event.xdata
+        self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
+
+    def mouse_scroll(self, event):
+        if not event.inaxes == self.canvas.axes:
+            return
+
+        zoom = {'up': 1. / 2., 'down': 2.}
+
+        if event.button in zoom:
+            xlim = self.canvas.axes.get_xlim()
+            ylim = self.canvas.axes.get_ylim()
+
+            x, y = event.xdata, event.ydata
+
+            factor = zoom[event.button]
+            xdiff = (xlim[1] - xlim[0]) * factor
+            xl = x - 0.5 * xdiff
+            xr = x + 0.5 * xdiff
+            ydiff = (ylim[1] - ylim[0]) * factor
+            yb = y - 0.5 * ydiff
+            yt = y + 0.5 * ydiff
+
+            self.canvas.axes.set_xlim(xl, xr)
+            self.canvas.axes.set_ylim(yb, yt)
+            self.canvas.axes.figure.canvas.draw_idle()
+
+    def mouseLeftPress(self, event):
+        if not event.inaxes == self.canvas.axes:
+            return
+        self.map_x = event.xdata
+        self.map_y = event.ydata
+        self.map_xlim = self.canvas.axes.get_xlim()
+        self.map_ylim = self.canvas.axes.get_ylim()
+
+    def mouseLeftRelease(self, event):
+        if not event.inaxes == self.canvas.axes:
+            return
+        new_x = event.xdata
+        new_y = event.ydata
+
+        dx = new_x - self.map_x
+        dy = new_y - self.map_y
+
+        self.canvas.axes.set_xlim((self.map_xlim[0] - dx, self.map_xlim[1] - dx))
+        self.canvas.axes.set_ylim(self.map_ylim[0] - dy, self.map_ylim[1] - dy)
+        self.canvas.axes.figure.canvas.draw_idle()
+
+    def onpick(self, event):
+        ind = event.ind
+        button = event.mouseevent.button
+        if ind == []:
+            return
+        if button == 1:
+            self.openPickDlg(ind)
+        elif button == 2:
+            self.deletePick(ind)
+        elif button == 3:
+            self.pickInfo(ind)
+    # data handling -----------------------------------------------------
+    def update_hybrids_dict(self):
+        self.hybrids_dict = self.picks_dict.copy()
+        for station, pick in self.autopicks_dict.items():
+            if not station in self.hybrids_dict.keys():
+                self.hybrids_dict[station] = pick
+        return self.hybrids_dict
+
+    def deletePick(self, ind):
+        self.update_hybrids_dict()
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            try:
+                phase = self.comboBox_phase.currentText()
+                picks = self.current_picks_dict()[station]
+                pick = picks.get(phase)
+                if pick:
+                    picker = pick['picker']
+                    message = 'Deleted {} pick for phase {}, station {}.{} at timestamp {}'
+                    message = message.format(picker, phase, network, station,
+                                             pick['mpp'])
+                    if picker == 'auto':
+                        del (self.autopicks_dict[station])
+                    elif picker == 'manual':
+                        del (self.picks_dict[station])
+                    else:
+                        raise TypeError('Unknown "picker" {}'.format(picker))
+                    print(message)
+                    pyl_mw = self._parent
+                    pyl_mw.deletePicks(station, pick, type=picker)
+                    pyl_mw.setDirty(True)
+                    pyl_mw.update_status(message)
+                    if self.auto_refresh_box.isChecked():
+                        self._refresh_drawings()
+                    else:
+                        self.highlight_station(network, station, color='red')
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+            except Exception as e:
+                print('Could not delete pick for station {}.{}: {}'.format(network, station, e))
+
+    def pickInfo(self, ind):
+        self.update_hybrids_dict()
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            dic = self.current_picks_dict()[station]
+            for phase, picks in dic.items():
+                # because of wadati...
+                if phase == 'SPt':
+                    continue
+                print('{} - Pick:'.format(phase))
+                for key, info in picks.items():
+                    print('{}: {}'.format(key, info))
+
+    def _from_dict(self, function, key):
+        return function(self.stations_dict.values(), key=lambda x: x[key])[key]
+
+    def get_min_from_stations(self, key):
+        return self._from_dict(min, key)
+
+    def get_max_from_stations(self, key):
+        return self._from_dict(max, key)
+
+    def get_min_from_picks(self):
+        return min(self.picks_rel.values())
+
+    def get_max_from_picks(self):
+        return max(self.picks_rel.values())
+
+    def current_picks_dict(self):
+        picktype = self.comboBox_am.currentText().split(' ')[0]
+        auto_manu = {'auto': self.autopicks_dict,
+                     'manual': self.picks_dict,
+                     'hybrid': self.hybrids_dict}
+        return auto_manu[picktype]
 
     def init_stations(self):
         self.stations_dict = self.metadata.get_all_coordinates()
@@ -337,35 +351,6 @@ class Array_map(QtWidgets.QWidget):
         self.londim = self.lonmax - self.lonmin
         self.latdim = self.latmax - self.latmin
 
-    def init_basemap(self):
-        # initialize cartopy coordinate reference system
-        proj = ccrs.Mercator()  # PlateCarree(central_longitude=self.lonmin + abs(self.lonmax - self.lonmin) / 2.)
-        # crtpy_map = self.figure.axes
-        self.main_ax = plt.axes(projection=proj)
-        mapxtent = [self.lonmin, self.lonmax, self.latmin, self.latmax]  # add conditional buffer
-        self.main_ax.set_extent(mapxtent)  # find way to directly open zoomed map on area
-        # self.main_ax.set_global()
-
-        # add features (option for plate boundaries)
-        self.main_ax.add_feature(cf.LAND, edgecolor='face', facecolor=cf.COLORS['land'])  # replace with background map
-        self.main_ax.add_feature(cf.OCEAN, edgecolor='face', facecolor=cf.COLORS['water'])
-        self.main_ax.add_feature(cf.BORDERS, linestyle=':', edgecolor='k')  # include province borders
-        self.main_ax.add_feature(cf.COASTLINE, color='gray', linewidth=1)
-        # fname = 'PB2002_plates.shp'
-        # plateBoundaries = ShapelyFeature(Reader(fname).geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='r')
-        # crtpy_map.add_feature(plateBoundaries)
-
-        # parallels and meridians
-        gridlines = self.main_ax.gridlines(draw_labels=True, alpha=0.5, zorder=7)
-        gridlines.xformatter = LONGITUDE_FORMATTER
-        gridlines.yformatter = LATITUDE_FORMATTER
-
-        self.basemap = self.main_ax
-        # plt.show()
-        # self.show()
-        # self.figure._tight = True
-        # self.figure.tight_layout()
-
     def init_lat_lon_grid(self, nstep=250):
         # create a regular grid to display colormap
         lataxis = np.linspace(self.latmin, self.latmax, nstep)
@@ -401,34 +386,90 @@ class Array_map(QtWidgets.QWidget):
             longitudes.append(self.stations_dict[st_id]['longitude'])
         return picks, uncertainties, latitudes, longitudes
 
+    # plotting -----------------------------------------------------
+    def init_colormap(self):
+        self.init_lat_lon_dimensions()
+        self.init_lat_lon_grid()
+
+    def highlight_station(self, network, station, color):
+        stat_dict = self.stations_dict['{}.{}'.format(network, station)]
+        lat = stat_dict['latitude']
+        lon = stat_dict['longitude']
+        self.highlighted_stations.append(self.canvas.axes.scatter(lon, lat, s=self.pointsize, edgecolors=color,
+                                                                  facecolors='none', zorder=12, label='deleted'))
+
+        self.canvas.idle_draw()
+
+    def openPickDlg(self, ind):
+        data = self._parent.get_data().getWFData()
+        for index in ind:
+            network, station = self._station_onpick_ids[index].split('.')[:2]
+            pyl_mw = self._parent
+            try:
+                data = data.select(station=station)
+                if not data:
+                    self._warn('No data for station {}'.format(station))
+                    return
+                pickDlg = PickDlg(self._parent, parameter=self.parameter,
+                                  data=data, network=network, station=station,
+                                  picks=self._parent.get_current_event().getPick(station),
+                                  autopicks=self._parent.get_current_event().getAutopick(station),
+                                  filteroptions=self._parent.filteroptions, metadata=self.metadata,
+                                  event=pyl_mw.get_current_event())
+            except Exception as e:
+                message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)
+                self._warn(message)
+                print(message, e)
+                print(traceback.format_exc())
+                return
+            try:
+                if pickDlg.exec_():
+                    pyl_mw.setDirty(True)
+                    pyl_mw.update_status('picks accepted ({0})'.format(station))
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='manual'), type='manual')
+                    pyl_mw.addPicks(station, pickDlg.getPicks(picktype='auto'), type='auto')
+                    if self.auto_refresh_box.isChecked():
+                        self._refresh_drawings()
+                    else:
+                        self.highlight_station(network, station, color='yellow')
+                    pyl_mw.drawPicks(station)
+                    pyl_mw.draw()
+                else:
+                    pyl_mw.update_status('picks discarded ({0})'.format(station))
+            except Exception as e:
+                message = 'Could not save picks for station {st}.\n{er}'.format(st=station, er=e)
+                self._warn(message)
+                print(message, e)
+                print(traceback.format_exc())
+
     def draw_contour_filled(self, nlevel=100):
         # self.test_gradient()
 
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
 
-        self.contourf = self.basemap.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                              linewidths=self.linewidth, transform=ccrs.PlateCarree(),
-                                              alpha=0.7, zorder=8, cmap=self.get_colormap())
+        self.contourf = self.canvas.axes.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
+                                                  linewidths=self.linewidth, transform=ccrs.PlateCarree(),
+                                                  alpha=0.7, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
-        #self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
+        # self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
         #                               zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
 
-        self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', marker='.',
-                                       zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
-                                       transform=ccrs.PlateCarree())
+        self.sc = self.canvas.axes.scatter(lons, lats, s=self.pointsize, facecolor='none', marker='.',
+                                           zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
+                                           transform=ccrs.PlateCarree())
 
         self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.sc_event = self.basemap.scatter(lons, lats, s=2*self.pointsize, facecolor='red', zorder=11,
-                                                 label='Event (might be outside map region)',
-                                                 transform=ccrs.PlateCarree())
+            self.sc_event = self.canvas.axes.scatter(lons, lats, s=2 * self.pointsize, facecolor='red', zorder=11,
+                                                     label='Event (might be outside map region)',
+                                                     transform=ccrs.PlateCarree())
 
     def scatter_picked_stations(self):
         picks, uncertainties, lats, lons = self.get_picks_lat_lon()
@@ -441,18 +482,9 @@ class Array_map(QtWidgets.QWidget):
                           for uncertainty in uncertainties])
 
         cmap = self.get_colormap()
-        self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
-                                              c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
-        # workaround because of an issue with latlon transformation of arrays with len <3
-        # if len(lons) <= 2 and len(lats) <= 2:
-        #    self.sc_picked = self.basemap.scatter(lons[0], lats[0], s=sizes, edgecolors='white', cmap=cmap,
-        #                                          c=picks[0], zorder=11, transform=ccrs.PlateCarree())
-        # if len(lons) == 2 and len(lats) == 2:
-        #    self.sc_picked = self.basemap.scatter(lons[1], lats[1], s=sizes, edgecolors='white', cmap=cmap,
-        #                                          c=picks[1], zorder=11, transform=ccrs.PlateCarree())
-        # if len(lons) > 2 and len(lats) > 2:
-        #     self.sc_picked = self.basemap.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
-        #                                           c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
+        self.sc_picked = self.canvas.axes.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
+                                                  c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
+
 
     def annotate_ax(self):
         self.annotations = []
@@ -469,15 +501,15 @@ class Array_map(QtWidgets.QWidget):
                 color = 'lightgrey'
             if st in self.marked_stations:
                 color = 'red'
-            self.annotations.append(self.main_ax.annotate(' %s' % st, xy=(x, y), fontsize=self.pointsize/4.,
-                                                          fontweight='semibold', color=color, zorder=14))
-        self.legend = self.main_ax.legend(loc=1)
+            self.annotations.append(self.canvas.axes.annotate(' %s' % st, xy=(x, y), fontsize=self.pointsize / 4.,
+                                                              fontweight='semibold', color=color, zorder=14))
+        self.legend = self.canvas.axes.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
     def add_cbar(self, label):
-        self.cbax_bg = inset_axes(self.main_ax, width="6%", height="75%", loc=5)
-        cbax = inset_axes(self.main_ax, width='2%', height='70%', loc=5)
-        cbar = self.main_ax.figure.colorbar(self.sc_picked, cax=cbax)
+        self.cbax_bg = inset_axes(self.canvas.axes, width="6%", height="75%", loc=5)
+        cbax = inset_axes(self.canvas.axes, width='2%', height='70%', loc=5)
+        cbar = self.canvas.axes.figure.colorbar(self.sc_picked, cax=cbax)
         cbar.set_label(label)
         cbax.yaxis.tick_left()
         cbax.yaxis.set_label_position('left')
@@ -488,7 +520,7 @@ class Array_map(QtWidgets.QWidget):
         self.cbax_bg.patch.set_facecolor((1, 1, 1, 0.75))
         return cbar
 
-
+    # handle drawings -----------------------------------------------------
     def refresh_drawings(self, picks=None, autopicks=None):
         self.picks_dict = picks
         self.autopicks_dict = autopicks
@@ -573,41 +605,77 @@ class Array_map(QtWidgets.QWidget):
             annotation.remove()
         self.annotations = []
 
-    def zoom(self, event):
-        if not event.inaxes == self.canvas.axes:
-            return
-
-        zoom = {'up': 1. / 2.,
-                'down': 2.}
-
-        # if not event.xdata or not event.ydata:
-        #    return
-
-        if event.button in zoom:
-            m = self.basemap
-            xlim = m.get_xlim()
-            ylim = m.get_ylim()
-            x, y = event.xdata, event.ydata
-
-            factor = zoom[event.button]
-            xdiff = (xlim[1] - xlim[0]) * factor
-            xl = x - 0.5 * xdiff
-            xr = x + 0.5 * xdiff
-            ydiff = (ylim[1] - ylim[0]) * factor
-            yb = y - 0.5 * ydiff
-            yt = y + 0.5 * ydiff
-
-            #if xl < map.xmin or yb < map.ymin or xr > map.xmax or yt > map.ymax:
-            #    xl, xr = map.xmin, map.xmax
-            #    yb, yt = map.ymin, map.ymax
-            m.set_xlim(xl, xr)
-            m.set_ylim(yb, yt)
-            m.figure.canvas.draw_idle()
-
     def _warn(self, message):
-        self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
-                                     'Warning', message)
+        self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, 'Warning', message)
         self.qmb.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
