@@ -678,7 +678,7 @@ class MainWindow(QMainWindow):
         self._main_layout.addWidget(self.mainProgressBarWidget)
 
         # add scroll area used in case number of traces gets too high
-        self.wf_scroll_area = QtGui.QScrollArea(self)
+        self.wf_scroll_area = QtWidgets.QScrollArea(self)
         self.wf_scroll_area.setVisible(False)
         self.no_data_label = QLabel('No Data')
         self.no_data_label.setStyleSheet('color: red')
@@ -693,9 +693,9 @@ class MainWindow(QMainWindow):
         events_tab = QtWidgets.QWidget(self)
 
         # init main widgets layouts
-        self.wf_layout = QtGui.QVBoxLayout()
-        self.array_layout = QtGui.QVBoxLayout()
-        self.events_layout = QtGui.QVBoxLayout()
+        self.wf_layout = QtWidgets.QVBoxLayout()
+        self.array_layout = QtWidgets.QVBoxLayout()
+        self.events_layout = QtWidgets.QVBoxLayout()
         wf_tab.setLayout(self.wf_layout)
         array_tab.setLayout(self.array_layout)
         events_tab.setLayout(self.events_layout)
@@ -746,8 +746,8 @@ class MainWindow(QMainWindow):
         '''
         Initiate/create buttons for assigning events containing manual picks to reference or test set.
         '''
-        self.ref_event_button = QtGui.QPushButton('Tune')
-        self.test_event_button = QtGui.QPushButton('Test')
+        self.ref_event_button = QtWidgets.QPushButton('Tune')
+        self.test_event_button = QtWidgets.QPushButton('Test')
         self.ref_event_button.setMinimumWidth(100)
         self.test_event_button.setMinimumWidth(100)
         self.ref_event_button.setToolTip('Set manual picks of current ' +
@@ -1299,7 +1299,7 @@ class MainWindow(QMainWindow):
         tabindex = self.tabs.currentIndex()
 
     def user_modify_path(self, reason=''):
-        dialog = QtGui.QInputDialog(parent=self)
+        dialog = QtWidgets.QInputDialog(parent=self)
         new_path, executed = dialog.getText(self, 'Change Project rootpath',
                                             '{}Rename project path {}:'.format(reason, self.project.rootpath))
         return new_path, executed
@@ -3356,7 +3356,7 @@ class MainWindow(QMainWindow):
             return
         separator = sld.lineEdit.text()
 
-        fd = QtGui.QFileDialog()
+        fd = QtWidgets.QFileDialog()
         fname = fd.getSaveFileName(self, 'Browse for file.',
                                    filter='Table (*.csv)')[0]
         if not fname: return
