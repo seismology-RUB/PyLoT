@@ -355,8 +355,8 @@ class ComparisonWidget(QWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -671,9 +671,9 @@ class PlotWidget(FigureCanvas):
         return self._parent
 
 
-class WaveformWidgetPG(QtGui.QWidget):
+class WaveformWidgetPG(QtWidgets.QWidget):
     def __init__(self, parent, title='Title'):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         self.pg = self.parent().pg
         # added because adding widget to scrollArea will set scrollArea to parent
         self.orig_parent = parent
@@ -684,8 +684,8 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.ylabel = None
         self.title = None
         # create plot
-        self.main_layout = QtGui.QVBoxLayout()
-        self.label_layout = QtGui.QHBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.label_layout = QtWidgets.QHBoxLayout()
         self.add_labels()
         self.connect_signals()
         self.plotWidget = self.pg.PlotWidget(self.parent(), title=title)
@@ -751,13 +751,13 @@ class WaveformWidgetPG(QtGui.QWidget):
         self.label_layout.setStretch(5, 1)
 
     def add_labels(self):
-        self.status_label = QtGui.QLabel()
+        self.status_label = QtWidgets.QLabel()
         self.perm_labels = []
         for index in range(3):
-            label = QtGui.QLabel()
+            label = QtWidgets.QLabel()
             self.perm_labels.append(label)
-        self.qcombo_processed = QtGui.QComboBox()
-        self.syn_checkbox = QtGui.QCheckBox('synthetics')
+        self.qcombo_processed = QtWidgets.QComboBox()
+        self.syn_checkbox = QtWidgets.QCheckBox('synthetics')
         self.addQCboxItem('processed', 'green')
         self.addQCboxItem('raw', 'black')
         # self.perm_qcbox_right.setAlignment(2)
@@ -1125,7 +1125,7 @@ class PylotCanvas(FigureCanvas):
 
     def saveFigure(self):
         if self.figure:
-            fd = QtGui.QFileDialog()
+            fd = QtWidgets.QFileDialog()
             fname, filter = fd.getSaveFileName(self.parent(), filter='Images (*.png *.svg *.jpg)')
             if not fname:
                 return
@@ -1486,7 +1486,7 @@ class PylotCanvas(FigureCanvas):
         self.draw()
 
 
-class SingleTextLineDialog(QtGui.QDialog):
+class SingleTextLineDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, label='Text: ', default_text='.xml'):
         super(SingleTextLineDialog, self).__init__(parent)
         self.default_text = default_text
@@ -1496,12 +1496,12 @@ class SingleTextLineDialog(QtGui.QDialog):
         self.setupUi()
 
     def setupUi(self):
-        self.main_layout = QtGui.QVBoxLayout()
-        self.sub_layout = QtGui.QHBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.sub_layout = QtWidgets.QHBoxLayout()
         #
         self.setLayout(self.main_layout)
-        self.textLabel = QtGui.QLabel(self.label)
-        self.lineEdit = QtGui.QLineEdit(self.default_text)
+        self.textLabel = QtWidgets.QLabel(self.label)
+        self.lineEdit = QtWidgets.QLineEdit(self.default_text)
 
         self.sub_layout.addWidget(self.textLabel)
         self.sub_layout.addWidget(self.lineEdit)
@@ -1520,15 +1520,15 @@ class SingleTextLineDialog(QtGui.QDialog):
 
 
 
-class PhaseDefaults(QtGui.QDialog):
+class PhaseDefaults(QtWidgets.QDialog):
     def __init__(self, parent=None, nrow=10,
                  phase_defaults=['P', 'S'],
                  current_phases=[]):
         super(PhaseDefaults, self).__init__(parent)
         self.nrow = nrow
         self.checktoggle = True
-        self.main_layout = QtGui.QVBoxLayout()
-        self.sub_layout = QtGui.QGridLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.sub_layout = QtWidgets.QGridLayout()
         self.phase_names = phase_defaults
         self.current_phases = current_phases
         self.setButtons()
@@ -1538,7 +1538,7 @@ class PhaseDefaults(QtGui.QDialog):
         self.selected_phases = []
 
     def setButtons(self):
-        self._check_all_button = QtGui.QPushButton('Check/Uncheck all')
+        self._check_all_button = QtWidgets.QPushButton('Check/Uncheck all')
         self._buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
                                            QDialogButtonBox.Cancel)
 
@@ -1738,10 +1738,10 @@ class PickDlg(QDialog):
         self.setWindowState(QtCore.Qt.WindowMaximized)
 
     def setupUi(self):
-        menuBar = QtGui.QMenuBar(self)
+        menuBar = QtWidgets.QMenuBar(self)
         if not self._embedded:
             exitMenu = menuBar.addMenu('File')
-            exitAction = QtGui.QAction('Close', self)
+            exitAction = QtWidgets.QAction('Close', self)
             exitAction.triggered.connect(self.close)
             exitMenu.addAction(exitAction)
 
@@ -1833,10 +1833,10 @@ class PickDlg(QDialog):
         self.reject_button = QPushButton('&Reject')
         self.disable_ar_buttons()
 
-        self.statusbar = QtGui.QStatusBar(self)
+        self.statusbar = QtWidgets.QStatusBar(self)
 
         # add hotkeys
-        self._shortcut_space = QtWidgets.QShortcut(QtGui.QKeySequence(' '), self)
+        self._shortcut_space = QtWidgets.QShortcut(QtWidgets.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
         # button shortcuts (1 for P-button, 2 for S-button)
         # self.p_button.setShortcut(QKeySequence('1'))
@@ -2616,7 +2616,7 @@ class PickDlg(QDialog):
         return True
 
     def warn_unknown_phase(self, phase=None):
-        QtGui.QMessageBox.warning(self, 'Unknown phase ID',
+        QtWidgets.QMessageBox.warning(self, 'Unknown phase ID',
                                   'Could not identify phase ID: {}.'.format(phase))
 
     def disconnectPressEvent(self):
@@ -2754,7 +2754,7 @@ class PickDlg(QDialog):
         y = event.y
         y = self.size().height() - y
         pt = self.mapToGlobal(QtCore.QPoint(x, y))
-        QtGui.QToolTip.showText(pt, message)
+        QtWidgets.QToolTip.showText(pt, message)
 
     def onpick_info(self, event):
         if not event.mouseevent.button == 1:
@@ -2788,13 +2788,13 @@ class PickDlg(QDialog):
         allpicks = {'manual': self.picks,
                     'auto': self.autopicks}
         picks = allpicks[picktype]
-        dialog = QtGui.QInputDialog(parent=self)
+        dialog = QtWidgets.QInputDialog(parent=self)
         new_phase, executed = dialog.getText(self, 'Rename phase', 'Rename phase {} to:'.format(phase))
         if executed:
             try:
                 self.renamePhaseInDict(picks, phase, new_phase)
             except KeyError as e:
-                QtGui.QMessageBox.warning(self, 'Could not rename phase',
+                QtWidgets.QMessageBox.warning(self, 'Could not rename phase',
                                           'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
         self.leave_rename_phase()
         self.refreshPlot()
@@ -3113,8 +3113,8 @@ class MultiEventWidget(QWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -3165,12 +3165,12 @@ class MultiEventWidget(QWidget):
             self.rb_layout.insertWidget(index, rb)
             self.rb_layout.setStretch(index, 0)
 
-        self.pb = QtGui.QProgressBar()
+        self.pb = QtWidgets.QProgressBar()
         self.pb.setRange(0, 0)
         self.pb.setVisible(False)
 
         # space holder for progressbar
-        self._pb_space = QtGui.QWidget()
+        self._pb_space = QtWidgets.QWidget()
 
         self.rb_layout.addWidget(self.start_button)
 
@@ -3323,8 +3323,8 @@ class CompareEventsWidget(MultiEventWidget):
 
     def center(self):
         fm = self.frameGeometry()
-        screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
-        centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+        screen = QtWidgets.QApplication.desktop().screenNumber(QtWidgets.QApplication.desktop().cursor().pos())
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
         fm.moveCenter(centerPoint)
         self.move(fm.topLeft())
 
@@ -4730,7 +4730,7 @@ class PhasesTab(PropTab):
         self.PphasesEdit = QLineEdit()
         self.SphasesEdit = QLineEdit()
 
-        self.pickDefaultsButton = QtGui.QPushButton('Choose default phases...')
+        self.pickDefaultsButton = QtWidgets.QPushButton('Choose default phases...')
         PphasesLabel = QLabel("P Phases to pick")
         SphasesLabel = QLabel("S Phases to pick")
         notes_label = QLabel(
@@ -4744,7 +4744,7 @@ class PhasesTab(PropTab):
         self.PphasesEdit.setText("%s" % Pphases)
         self.SphasesEdit.setText("%s" % Sphases)
 
-        self.main_layout = QtGui.QHBoxLayout()
+        self.main_layout = QtWidgets.QHBoxLayout()
         layout = QGridLayout()
         layout.addWidget(PphasesLabel, 0, 0)
         layout.addWidget(SphasesLabel, 1, 0)
@@ -4833,7 +4833,7 @@ class GraphicsTab(PropTab):
     def add_style_settings(self):
         styles = self.pylot_mainwindow._styles
         active_stylename = self.pylot_mainwindow._stylename
-        label = QtGui.QLabel('Application style (might require Application restart):')
+        label = QtWidgets.QLabel('Application style (might require Application restart):')
         self.style_cb = QComboBox()
         for stylename, style in styles.items():
             self.style_cb.addItem(stylename, style)
@@ -4849,7 +4849,7 @@ class GraphicsTab(PropTab):
         if not nth_sample:
             nth_sample = 1
 
-        self.spinbox_nth_sample = QtGui.QSpinBox()
+        self.spinbox_nth_sample = QtWidgets.QSpinBox()
         label = QLabel('nth sample')
         label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.spinbox_nth_sample.setMinimum(1)
@@ -5132,10 +5132,10 @@ class FilterOptionsDialog(QDialog):
         self.connectButtons()
 
     def setupUi(self):
-        self.main_layout = QtGui.QVBoxLayout()
-        self.filter_layout = QtGui.QHBoxLayout()
-        self.groupBoxes = {'P': QtGui.QGroupBox('P Filter'),
-                           'S': QtGui.QGroupBox('S Filter')}
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.filter_layout = QtWidgets.QHBoxLayout()
+        self.groupBoxes = {'P': QtWidgets.QGroupBox('P Filter'),
+                           'S': QtWidgets.QGroupBox('S Filter')}
 
         settings = QSettings()
         overwriteFilter = get_Bool(settings.value('useGuiFilter'))
@@ -5150,7 +5150,7 @@ class FilterOptionsDialog(QDialog):
 
         for phase in ['P', 'S']:
             groupbox = self.groupBoxes[phase]
-            box_layout = QtGui.QVBoxLayout()
+            box_layout = QtWidgets.QVBoxLayout()
             groupbox.setLayout(box_layout)
 
             self.filter_layout.addWidget(groupbox)
