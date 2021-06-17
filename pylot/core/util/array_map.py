@@ -12,6 +12,7 @@ from PySide2.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+import matplotlib.patheffects as PathEffects
 
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -39,8 +40,10 @@ class MplCanvas(FigureCanvas):
 class Array_map(QtWidgets.QWidget):
     def __init__(self, parent, metadata, parameter=None, figure=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
-        super(Array_map, self).__init__(parent)
+        # super(Array_map, self).__init__(parent)
+        QtWidgets.QWidget.__init__(self)
 
+        assert (parameter != None or parent != None), 'either parent or parameter has to be set'
         # set properties
         self._parent = parent
         self.metadata = metadata
@@ -65,12 +68,19 @@ class Array_map(QtWidgets.QWidget):
         self.init_graphics()
         self.init_stations()
         self.init_crtpyMap()
-        self.init_colormap()
-        self.draw_everything()
+        self.init_map()
+        # set original map limits to fall back on when home button is pressed
+        self.org_xlim = self.canvas.axes.get_xlim()
+        self.org_ylim = self.canvas.axes.get_ylim()
 
         self._style = None if not hasattr(parent, '_style') else parent._style
 
         self.show()
+
+    def init_map(self):
+        self.init_colormap()
+        self.connectSignals()
+        self.draw_everything()
 
     def init_graphics(self):
         """
@@ -82,6 +92,8 @@ class Array_map(QtWidgets.QWidget):
 
         # initialize GUI elements
         self.status_label = QtWidgets.QLabel()
+        self.map_reset_button = QtWidgets.QPushButton('Reset Map View')
+        self.map_reset_button.resize(150, 50)
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -121,10 +133,15 @@ class Array_map(QtWidgets.QWidget):
         self.top_row.addWidget(self.refresh_button)
 
         self.main_box.addWidget(self.plotWidget, 1)
-        self.main_box.addWidget(NavigationToolbar(self.plotWidget, self), 0)
-        #self.main_box.addWidget(self.status_label, 0)
+        # self.main_box.addWidget(self.map_reset_button, 0)
+        # self.main_box.addWidget(NavigationToolbar(self.plotWidget, self), 0)
+        # self.main_box.addWidget(self.status_label, 0)
 
-        self.connectSignals()
+        self.bot_row = QtWidgets.QHBoxLayout()
+        self.main_box.addLayout(self.bot_row, 0.3)
+        self.bot_row.addWidget(self.map_reset_button)
+        self.bot_row.addWidget(self.status_label)
+        # self.connectSignals()
 
     def init_colormap(self):
         self.init_lat_lon_dimensions()
@@ -139,13 +156,34 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.axes.add_feature(cf.BORDERS, alpha=0.7)
 
         # parallels and meridians
-        gridlines = self.canvas.axes.gridlines(draw_labels=True, alpha=0.5, zorder=7)
-        gridlines.xformatter = LONGITUDE_FORMATTER
-        gridlines.yformatter = LATITUDE_FORMATTER
+        self.add_merid_paral()
 
         # self.canvas.axes.set_global()
         self.canvas.fig.tight_layout()
         # self.plotWidget.draw_idle()
+
+    def add_merid_paral(self):
+        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.5, zorder=7)
+        # current cartopy version does not support label removal. Devs are working on it.
+        # Should be fixed with next cartopy version
+        # self.gridlines.xformatter = LONGITUDE_FORMATTER
+        # self.gridlines.yformatter = LATITUDE_FORMATTER
+
+    def remove_merid_paral(self):
+        if len(self.gridlines.xline_artists):
+            for i in self.gridlines.xline_artists:
+                i.remove()
+            # self.gridlines.xline_artists[0].remove()
+            # self.gridlines.yline_artists[0].remove()
+
+    def org_map_view(self):
+        self.canvas.axes.set_xlim(self.org_xlim[0], self.org_xlim[1])
+        self.canvas.axes.set_ylim(self.org_ylim[0], self.org_ylim[1])
+        # parallels and meridians
+        self.remove_merid_paral()
+        self.add_merid_paral()
+
+        self.canvas.axes.figure.canvas.draw_idle()
 
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
@@ -153,6 +191,8 @@ class Array_map(QtWidgets.QWidget):
         self.cmaps_box.currentIndexChanged.connect(self._refresh_drawings)
         self.annotations_box.stateChanged.connect(self.switch_annotations)
         self.refresh_button.clicked.connect(self._refresh_drawings)
+        self.map_reset_button.clicked.connect(self.org_map_view)
+
         self.plotWidget.mpl_connect('motion_notify_event', self.mouse_moved)
         self.plotWidget.mpl_connect('scroll_event', self.mouse_scroll)
         self.plotWidget.mpl_connect('button_press_event', self.mouseLeftPress)
@@ -162,7 +202,6 @@ class Array_map(QtWidgets.QWidget):
     def mouse_moved(self, event):
         if not event.inaxes == self.canvas.axes:
             return
-
         lat = event.ydata
         lon = event.xdata
         self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
@@ -189,6 +228,10 @@ class Array_map(QtWidgets.QWidget):
 
             self.canvas.axes.set_xlim(xl, xr)
             self.canvas.axes.set_ylim(yb, yt)
+            # parallels and meridians
+            self.remove_merid_paral()
+            self.add_merid_paral()
+
             self.canvas.axes.figure.canvas.draw_idle()
 
     def mouseLeftPress(self, event):
@@ -210,6 +253,10 @@ class Array_map(QtWidgets.QWidget):
 
         self.canvas.axes.set_xlim((self.map_xlim[0] - dx, self.map_xlim[1] - dx))
         self.canvas.axes.set_ylim(self.map_ylim[0] - dy, self.map_ylim[1] - dy)
+        # parallels and meridians
+        self.remove_merid_paral()
+        self.add_merid_paral()
+
         self.canvas.axes.figure.canvas.draw_idle()
 
     def onpick(self, event):
@@ -223,6 +270,7 @@ class Array_map(QtWidgets.QWidget):
             self.deletePick(ind)
         elif button == 3:
             self.pickInfo(ind)
+
     # data handling -----------------------------------------------------
     def update_hybrids_dict(self):
         self.hybrids_dict = self.picks_dict.copy()
@@ -387,18 +435,15 @@ class Array_map(QtWidgets.QWidget):
         return picks, uncertainties, latitudes, longitudes
 
     # plotting -----------------------------------------------------
-    def init_colormap(self):
-        self.init_lat_lon_dimensions()
-        self.init_lat_lon_grid()
-
     def highlight_station(self, network, station, color):
         stat_dict = self.stations_dict['{}.{}'.format(network, station)]
         lat = stat_dict['latitude']
         lon = stat_dict['longitude']
         self.highlighted_stations.append(self.canvas.axes.scatter(lon, lat, s=self.pointsize, edgecolors=color,
-                                                                  facecolors='none', zorder=12, label='deleted'))
+                                                                  facecolors='none', zorder=12,
+                                                                  transform=ccrs.PlateCarree(), label='deleted'))
 
-        self.canvas.idle_draw()
+        # self.canvas.idle_draw()
 
     def openPickDlg(self, ind):
         data = self._parent.get_data().getWFData()
@@ -463,7 +508,7 @@ class Array_map(QtWidgets.QWidget):
                                            zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
                                            transform=ccrs.PlateCarree())
 
-        self.cid = self.canvas.mpl_connect('pick_event', self.onpick)
+        self.cid = self.plotWidget.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
@@ -485,10 +530,9 @@ class Array_map(QtWidgets.QWidget):
         self.sc_picked = self.canvas.axes.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
                                                   c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
 
-
     def annotate_ax(self):
         self.annotations = []
-        stations, xs, ys = self.get_st_lat_lon_for_plot()
+        stations, ys, xs = self.get_st_lat_lon_for_plot()
         # MP MP testing station highlighting if they have high impact on mean gradient of color map
         # if self.picks_rel:
         #    self.test_gradient()
@@ -502,7 +546,9 @@ class Array_map(QtWidgets.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(self.canvas.axes.annotate(' %s' % st, xy=(x, y), fontsize=self.pointsize / 4.,
-                                                              fontweight='semibold', color=color, zorder=14))
+                                                              fontweight='semibold', color=color,
+                                                              transform=ccrs.PlateCarree(), zorder=14,
+                                                              path_effects=[PathEffects.withStroke(linewidth=self.pointsize / 4., foreground='k')]))
         self.legend = self.canvas.axes.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
@@ -560,7 +606,7 @@ class Array_map(QtWidgets.QWidget):
             self.comboBox_phase.setEnabled(False)
         if self.annotate:
             self.annotate_ax()
-        self.canvas.draw()
+        self.plotWidget.draw_idle()
 
     def remove_drawings(self):
         self.remove_annotations()
@@ -584,7 +630,7 @@ class Array_map(QtWidgets.QWidget):
             self.remove_contourf()
             del self.contourf
         if hasattr(self, 'cid'):
-            self.canvas.mpl_disconnect(self.cid)
+            self.plotWidget.mpl_disconnect(self.cid)
             del self.cid
         try:
             self.sc.remove()
@@ -594,7 +640,7 @@ class Array_map(QtWidgets.QWidget):
             self.legend.remove()
         except Exception as e:
             print('Warning: could not remove legend. Reason: {}'.format(e))
-        self.canvas.draw()
+        self.plotWidget.draw_idle()
 
     def remove_contourf(self):
         for item in self.contourf.collections:
