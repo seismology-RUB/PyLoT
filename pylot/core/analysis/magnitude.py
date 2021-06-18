@@ -400,30 +400,28 @@ class MomentMagnitude(Magnitude):
                 print("WARNING: No instrument corrected data available,"
                       " no magnitude calculation possible! Go on.")
                 continue
+            wf = self.stream.select(station=station)
+            if not wf:
+                continue
             try:
-                scopy = self.stream.copy()
+               scopy = wf.copy()
             except AssertionError:
                 print("WARNING: Something's wrong with the data,"
                       "station {},"
                       "no calculation of moment magnitude possible! Go on.".format(station))
                 continue
-            wf = scopy.select(station=station)
-            if not wf:
-                continue
             onset = pick.time
             distance = degrees2kilometers(a.distance)
             azimuth = a.azimuth
             incidence = a.takeoff_angle
-            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
+            w0, fc = calcsourcespec(scopy, onset, self.p_velocity, distance,
                                     azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
-            WF = select_for_phase(self.stream.select(
-                station=station), a.phase)
-            WF = select_for_phase(WF, "P")
+            WF = select_for_phase(scopy, "P")
             m0, mw = calcMoMw(WF, w0, self.rock_density, self.p_velocity,
                               distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))

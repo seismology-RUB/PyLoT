@@ -7,6 +7,7 @@
 
    :author: Ludger Kueperkoch, BESTEC GmbH
 """
+
 import warnings
 import matplotlib.pyplot as plt
 import numpy as np
@@ -595,6 +596,8 @@ def select_for_phase(st, phase):
         alter_comp = compclass.getCompPosition(comp)
         alter_comp = str(alter_comp[0])
         sel_st += st.select(component=comp)
+        if len(sel_st) < 1:
+            sel_st += st.select(component="Q")
         sel_st += st.select(component=alter_comp)
     elif phase.upper() == 'S':
         comps = 'NE'
