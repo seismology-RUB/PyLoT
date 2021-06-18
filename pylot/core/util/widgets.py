@@ -2703,8 +2703,11 @@ class PickDlg(QDialog):
                 ax.plot(mpp, ylims[0], color=color, marker='^', zorder=baseorder + 3)
         # append phase text (if textOnly: draw with current ylims)
         self.phaseText.append(ax.text(mpp, ylims[1], phase, color=color, zorder=baseorder + 10))
-        # indicate first motion 
-        self.phaseText.append(ax.text(mpp - 0.03 * mpp, ylims[1] - ylims[1] / 12, picks['fm'], color=color, zorder=baseorder + 10))
+        # indicate first motion
+        fm = picks.get('fm')
+        if fm:
+            self.phaseText.append(ax.text(mpp - 0.03 * mpp, ylims[1] - ylims[1] / 12, fm, color=color,
+                                          zorder=baseorder + 10))
         ax.legend(loc=1)
 
     def connect_mouse_motion(self):
