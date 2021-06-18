@@ -93,7 +93,8 @@ class Array_map(QtWidgets.QWidget):
         # initialize GUI elements
         self.status_label = QtWidgets.QLabel()
         self.map_reset_button = QtWidgets.QPushButton('Reset Map View')
-        self.map_reset_button.resize(150, 50)
+        self.save_map_button = QtWidgets.QPushButton('Save Map')
+        # self.map_reset_button.resize(150, 50)
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -140,6 +141,7 @@ class Array_map(QtWidgets.QWidget):
         self.bot_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.bot_row, 0.3)
         self.bot_row.addWidget(self.map_reset_button)
+        self.bot_row.addWidget(self.save_map_button)
         self.bot_row.addWidget(self.status_label)
         # self.connectSignals()
 
@@ -171,10 +173,10 @@ class Array_map(QtWidgets.QWidget):
 
     def remove_merid_paral(self):
         if len(self.gridlines.xline_artists):
-            for i in self.gridlines.xline_artists:
-                i.remove()
-            # self.gridlines.xline_artists[0].remove()
-            # self.gridlines.yline_artists[0].remove()
+            #for i in self.gridlines.xline_artists:
+            #    i.remove()
+            self.gridlines.xline_artists[0].remove()
+            self.gridlines.yline_artists[0].remove()
 
     def org_map_view(self):
         self.canvas.axes.set_xlim(self.org_xlim[0], self.org_xlim[1])
