@@ -1836,7 +1836,7 @@ class PickDlg(QDialog):
         self.statusbar = QtWidgets.QStatusBar(self)
 
         # add hotkeys
-        self._shortcut_space = QtWidgets.QShortcut(QtWidgets.QKeySequence(' '), self)
+        self._shortcut_space = QtWidgets.QShortcut(QtGui.QKeySequence(' '), self)
         self._shortcut_space.activated.connect(self.accept_button.clicked)
         # button shortcuts (1 for P-button, 2 for S-button)
         # self.p_button.setShortcut(QKeySequence('1'))

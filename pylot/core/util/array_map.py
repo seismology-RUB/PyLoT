@@ -17,7 +17,7 @@ import matplotlib.patheffects as PathEffects
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cf
-from cartopy.io.shapereader import Reader
+import cartopy.io.shapereader as shpr
 from cartopy.feature import ShapelyFeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
@@ -156,6 +156,8 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.axes.add_feature(cf.OCEAN)
         self.canvas.axes.add_feature(cf.COASTLINE, linewidth=1, edgecolor='gray')
         self.canvas.axes.add_feature(cf.BORDERS, alpha=0.7)
+        self.canvas.axes.add_feature(cf.LAKES, alpha=0.7)
+        self.canvas.axes.add_feature(cf.RIVERS, linewidth=0.8)
 
         # parallels and meridians
         self.add_merid_paral()
