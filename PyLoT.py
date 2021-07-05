@@ -3269,12 +3269,24 @@ class MainWindow(QMainWindow):
                     item_depth.setText(str(origin.depth))
             if hasattr(event, 'magnitudes'):
                 if event.magnitudes:
-                    moment_magnitude = event.magnitudes[0]
-                    moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
-                    local_magnitude = event.magnitudes[1]
-                    local_magnitude.mag = '%4.1f' % local_magnitude.mag
-                    item_momentmag.setText(str(moment_magnitude.mag))
-                    item_localmag.setText(str(local_magnitude.mag))
+                    if len(event.magnitudes) > 1:
+                        moment_magnitude = event.magnitudes[0]
+                        moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                        item_momentmag.setText(str(moment_magnitude.mag))
+                        local_magnitude = event.magnitudes[1]
+                        local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                        item_localmag.setText(str(local_magnitude.mag))
+                    else:
+                        # check type of magnitude
+                        if event.magnitudes[0].magnitude_type == 'Mw':
+                            moment_magnitude = event.magnitudes[0]
+                            moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                            item_momentmag.setText(str(moment_magnitude.mag))
+                        elif event.magnitudes[0].magnitude_type == 'ML':
+                            local_magnitude = event.magnitudes[0]
+                            local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                            item_localmag.setText(str(local_magnitude.mag))
+
             item_notes.setText(event.notes)
 
             set_enabled(item_path, True, False)
