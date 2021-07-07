@@ -1594,7 +1594,7 @@ class PickDlg(QDialog):
 
     def __init__(self, parent=None, data=None, station=None, network=None, location=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
-                 event=None, filteroptions=None, model='iasp91', wftype=None):
+                 event=None, filteroptions=None, model=None, wftype=None):
         super(PickDlg, self).__init__(parent, 1)
         self.orig_parent = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -1719,7 +1719,7 @@ class PickDlg(QDialog):
 
         # init expected picks using obspy Taup
         try:
-            if self.metadata:
+            if self.metadata and model is not None:
                 self.model = TauPyModel(model)
                 self.get_arrivals()
                 self.drawArrivals()
