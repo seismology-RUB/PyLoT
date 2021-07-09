@@ -508,7 +508,7 @@ class Array_map(QtWidgets.QWidget):
         # self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
         #                               zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
 
-        self.sc = self.canvas.axes.scatter(lons, lats, s=self.pointsize, facecolor='none', marker='.',
+        self.sc = self.canvas.axes.scatter(lons, lats, s=self.pointsize * 3, facecolor='none', marker='.',
                                            zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
                                            transform=ccrs.PlateCarree())
 
@@ -549,7 +549,7 @@ class Array_map(QtWidgets.QWidget):
                 color = 'lightgrey'
             if st in self.marked_stations:
                 color = 'red'
-            self.annotations.append(self.canvas.axes.annotate(' %s' % st, xy=(x, y), fontsize=self.pointsize / 4.,
+            self.annotations.append(self.canvas.axes.annotate(' %s' % st, xy=(x+0.003, y+0.003), fontsize=self.pointsize / 4.,
                                                               fontweight='semibold', color=color,
                                                               transform=ccrs.PlateCarree(), zorder=14,
                                                               path_effects=[PathEffects.withStroke(linewidth=self.pointsize / 4., foreground='k')]))
