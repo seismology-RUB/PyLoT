@@ -3096,11 +3096,12 @@ class MainWindow(QMainWindow):
         self.metadata_widget.setLayout(grid_layout)
         self.array_layout.addWidget(self.metadata_widget)
 
-    def init_array_map(self, index=1):
+    def init_array_map(self, checked=0, index=1):
         '''
         Try to init array map widget. If no metadata are given,
         self.get_metadata will be called.
         '''
+        if checked: pass # dummy argument for QAction trigger signal
         self.tabs.setCurrentIndex(1)
         # if there is no metadata (invetories is an empty list), just initialize the default empty tab
         if not self.metadata.inventories:
