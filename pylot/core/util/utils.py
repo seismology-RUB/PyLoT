@@ -964,7 +964,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
                                      wfstream[1], azimuts[1], dips[1],
                                      wfstream[2], azimuts[2], dips[2])
-                print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
+                print('check4rotated: rotated trace {} to ZNE'.format(trace_ids))
                 # replace old data with rotated data, change the channel code to ZNE
                 z_index = dips.index(min(
                     dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)

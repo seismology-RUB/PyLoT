@@ -49,7 +49,7 @@ def which(program, parameter):
     :rtype: str
     """
     try:
-        from PySide.QtCore import QSettings
+        from PySide2.QtCore import QSettings
         settings = QSettings()
         for key in settings.allKeys():
             if 'binPath' in key:

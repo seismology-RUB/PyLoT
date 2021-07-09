@@ -157,7 +157,7 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.axes.add_feature(cf.COASTLINE, linewidth=1, edgecolor='gray')
         self.canvas.axes.add_feature(cf.BORDERS, alpha=0.7)
         self.canvas.axes.add_feature(cf.LAKES, alpha=0.7)
-        self.canvas.axes.add_feature(cf.RIVERS, linewidth=0.8)
+        self.canvas.axes.add_feature(cf.RIVERS, linewidth=1)
 
         # parallels and meridians
         self.add_merid_paral()

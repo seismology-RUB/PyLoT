@@ -719,7 +719,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
             station = self.orig_parent.getTraceID(wfID)
             abstime = self.wfstart + x
             if self.orig_parent.get_current_event():
-                self.status_label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
+                self.status_label.setText("station = {}, T = {}, t = {} [s], sampling rate = ".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
@@ -4618,8 +4618,6 @@ class InputsTab(PropTab):
         self.cuttimesLayout.addWidget(self.tstopBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s]'), 0)
 
-
-
         from pylot.core.util.structure import DATASTRUCTURE
 
         self.structureSelect.addItems(list(DATASTRUCTURE.keys()))
@@ -4628,7 +4626,7 @@ class InputsTab(PropTab):
 
         self.structureSelect.setCurrentIndex(dsind)
 
-        layout = QFormLayout()
+        layout = QtWidgets.QFormLayout()
         layout.addRow("Data root directory: ", self.dataDirEdit)
         layout.addRow("Full name for user '{0}': ".format(pylot_user), self.fullNameEdit)
         layout.addRow("Data structure: ", self.structureSelect)

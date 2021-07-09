@@ -11,6 +11,7 @@ from pylot.core.util.array_map import Array_map
 
 import matplotlib.pyplot as plt
 
+
 def main(project_file_path, manual=False, auto=True, file_format='png', f_ext='', ncores=None):
     project = Project.load(project_file_path)
     nEvents = len(project.eventlist)
@@ -18,7 +19,7 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
 
     for index, event in enumerate(project.eventlist):
         # MP MP TESTING +++
-        #if not eventdir.endswith('20170908_044946.a'):
+        # if not eventdir.endswith('20170908_044946.a'):
         #    continue
         # MP MP ----
         kwargs = dict(project=project, event=event, nEvents=nEvents, index=index, manual=manual, auto=auto,
@@ -33,6 +34,7 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
         result = pool.map(array_map_worker, input_list)
         pool.close()
         pool.join()
+
 
 def array_map_worker(input_dict):
     event = input_dict['event']
@@ -52,7 +54,7 @@ def array_map_worker(input_dict):
         if not metadata:
             metadata = Metadata(inventory=metadata_path, verbosity=0)
         # create figure to plot on
-        fig = plt.figure(figsize=(16,9))
+        fig = plt.figure(figsize=(16, 9))
         # create array map object
         map = Array_map(None, metadata, parameter=input_dict['project'].parameter, figure=fig,
                         width=2.13e6, height=1.2e6, pointsize=15., linewidth=1.0)
@@ -65,11 +67,12 @@ def array_map_worker(input_dict):
         fig.savefig(fpath_out, dpi=300.)
         print('Wrote file: {}'.format(fpath_out))
 
+
 if __name__ == '__main__':
     dataroot = '/home/marcel'
-    infiles=['alparray_all_events_0.03-0.1_mantle_correlated_v3.plp']
+    infiles = ['alparray_all_events_0.03-0.1_mantle_correlated_v3.plp']
 
     for infile in infiles:
         main(os.path.join(dataroot, infile), f_ext='_correlated_0.1Hz', ncores=10)
-    #main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
-    #main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
+    # main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
+    # main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')

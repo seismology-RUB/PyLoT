@@ -73,7 +73,7 @@ class Event(ObsPyEvent):
                 text = lines[0]
                 self.addNotes(text)
                 try:
-                    datetime = UTCDateTime(path.split('/')[-1])
+                    datetime = UTCDateTime(self.path.split('/')[-1])
                     origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0, depth=0)
                     self.origins.append(origin)
                 except:
