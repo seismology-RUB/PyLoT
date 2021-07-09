@@ -296,13 +296,13 @@ class Event(ObsPyEvent):
         :rtype: None
         """
         try:
-            import cPickle
+            import pickle
         except ImportError:
-            import _pickle as cPickle
+            import _pickle as pickle
 
         try:
             outfile = open(filename, 'wb')
-            cPickle.dump(self, outfile, -1)
+            pickle.dump(self, outfile, -1)
             self.dirty = False
         except Exception as e:
             print('Could not pickle PyLoT event. Reason: {}'.format(e))
@@ -317,11 +317,11 @@ class Event(ObsPyEvent):
         :rtype: Event
         """
         try:
-            import cPickle
+            import pickle
         except ImportError:
-            import _pickle as cPickle
+            import _pickle as pickle
         infile = open(filename, 'rb')
-        event = cPickle.load(infile)
+        event = pickle.load(infile)
         event.dirty = False
         print('Loaded %s' % filename)
         return event

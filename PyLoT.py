@@ -29,6 +29,7 @@ import os
 import platform
 import shutil
 import sys
+import copy
 
 import traceback
 
@@ -3192,24 +3193,24 @@ class MainWindow(QMainWindow):
             # changes attributes of the corresponding event
             table = self.project._table
             event = self.project.getEventFromPath(table[row][1].text().split('*')[0])
-            if column == 9 or column == 10:
+            if column == 10 or column == 11:
                 # toggle checked states (exclusive)
-                item_ref = table[row][9]
-                item_test = table[row][10]
-                if column == 9 and item_ref.checkState():
+                item_ref = table[row][10]
+                item_test = table[row][11]
+                if column == 10 and item_ref.checkState():
                     item_test.setCheckState(QtCore.Qt.Unchecked)
                     event.setRefEvent(True)
-                elif column == 9 and not item_ref.checkState():
+                elif column == 10 and not item_ref.checkState():
                     event.setRefEvent(False)
-                elif column == 10 and item_test.checkState():
+                elif column == 11 and item_test.checkState():
                     item_ref.setCheckState(QtCore.Qt.Unchecked)
                     event.setTestEvent(True)
-                elif column == 10 and not item_test.checkState():
+                elif column == 11 and not item_test.checkState():
                     event.setTestEvent(False)
                 self.fill_eventbox()
-            elif column == 11:
+            elif column == 12:
                 # update event notes
-                notes = table[row][11].text()
+                notes = table[row][12].text()
                 event.addNotes(notes)
                 self.fill_eventbox()
 
@@ -3230,7 +3231,7 @@ class MainWindow(QMainWindow):
 
         # init new qtable
         self.event_table = QTableWidget(self)
-        self.event_table.setColumnCount(12)
+        self.event_table.setColumnCount(len(self.table_headers))
         self.event_table.setRowCount(len(eventlist))
         self.event_table.setHorizontalHeaderLabels(self.table_headers)
 
@@ -3318,7 +3319,7 @@ class MainWindow(QMainWindow):
                 item_test.setCheckState(QtCore.Qt.Unchecked)
 
             row = [item_delete, item_path, item_time, item_lat, item_lon, item_depth, item_localmag,
-                      item_momentmag, item_nmp, item_nap, item_ref, item_test, item_notes]
+                   item_momentmag, item_nmp, item_nap, item_ref, item_test, item_notes]
             self.project._table.append(row)
 
             self.setItemColor(row, index, event, current_event)
@@ -3375,20 +3376,20 @@ class MainWindow(QMainWindow):
 
     def exportProjectTable(self, filename, separator=';'):
         with open(filename, 'w') as outfile:
-            for header in self.table_headers[1:12]:
+            for header in self.table_headers[1:13]:
                 outfile.write('{}{}'.format(header, separator))
             outfile.write('\n')
 
             for row in self.project._table:
-                row = row[1:12]
-                event, time, lat, lon, depth, mag, nmp, nap, tune, test, notes = row
+                row = row[1:13]
+                event, time, lat, lon, depth, ml, mw, nmp, nap, tune, test, notes = row
                 row_str = ''
                 for index in range(len(row)):
                     row_str += '{}'+'{}'.format(separator)
 
-                row_str = row_str.format(event.text(), time.text(), lat.text(), lon.text(), depth.text(), mag.text(),
-                                         nmp.text(), nap.text(), bool(tune.checkState()), bool(test.checkState()),
-                                         notes.text())
+                row_str = row_str.format(event.text(), time.text(), lat.text(), lon.text(), depth.text(), ml.text(),
+                                         mw.text(), nmp.text(), nap.text(), bool(tune.checkState()),
+                                         bool(test.checkState()), notes.text())
                 outfile.write(row_str + '\n')
 
         message = 'Wrote table to file: {}'.format(filename)
@@ -3628,7 +3629,7 @@ class MainWindow(QMainWindow):
         autosaveXML = get_Bool(settings.value('autosaveXML', True))
         if autosaveXML:
             self.exportEvents()
-        self.project.save(filename)
+        if not self.project.save(filename): return False
         self.setDirty(False)
         self.saveProjectAsAction.setEnabled(True)
         self.update_status('Saved new project to {}'.format(filename), duration=5000)
@@ -3652,7 +3653,7 @@ class MainWindow(QMainWindow):
                 autosaveXML = get_Bool(settings.value('autosaveXML', True))
                 if autosaveXML:
                     self.exportEvents()
-                self.project.save()
+                if not self.project.save(): return False
                 self.update_obspy_dmt()
             if not self.project.dirty:
                 self.setDirty(False)
@@ -3879,34 +3880,37 @@ class Project(object):
         Can be loaded by using project.load(filename).
         '''
         try:
-            import cPickle
+            import pickle
         except ImportError:
-            import _pickle as cPickle
+            import _pickle as pickle
 
         if filename:
             self.location = filename
         else:
             filename = self.location
 
+        table = self._table # MP: see below
         try:
             outfile = open(filename, 'wb')
-            cPickle.dump(self, outfile, -1)
+            self._table = [] # MP: Workaround as long as table cannot be saved as part of project
+            pickle.dump(self, outfile, protocol=pickle.HIGHEST_PROTOCOL)
             self.setDirty(False)
+            self._table = table # MP: see above
+            return True
         except Exception as e:
             print('Could not pickle PyLoT project. Reason: {}'.format(e))
             self.setDirty()
+            self._table = table # MP: see above
+            return False
 
     @staticmethod
     def load(filename):
         '''
         Load project from filename.
         '''
-        try:
-            import cPickle
-        except ImportError:
-            import pickle as cPickle
+        import pickle
         infile = open(filename, 'rb')
-        project = cPickle.load(infile)
+        project = pickle.load(infile)
         infile.close()
         project.location = filename
         print('Loaded %s' % filename)
