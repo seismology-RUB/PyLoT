@@ -3692,8 +3692,8 @@ class MainWindow(QMainWindow):
             # self.closing.emit()
             # QMainWindow.closeEvent(self, event)
 
-    def setParameter(self, show=True):
-        show = True
+    def setParameter(self, checked=0, show=True):
+        if checked: pass # dummy argument to receive trigger signal (checked) if called by QAction
         if not self.paraBox:
             self.paraBox = PylotParaBox(self._inputs, parent=self, windowflag=Qt.Window)
             self.paraBox.accepted.connect(self._setDirty)
