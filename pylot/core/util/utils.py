@@ -950,10 +950,13 @@ def check4rotated(data, metadata=None, verbosity=1):
         if any(rotation_required):
             t_start = full_range(wfstream)
             try:
-                azimuts = [metadata.get_coordinates(tr_id, t_start)['azimuth'] for tr_id in trace_ids]
-                dips = [metadata.get_coordinates(tr_id, t_start)['dip'] for tr_id in trace_ids]
+                azimuts = []
+                dips = []
+                for tr_id in trace_ids:
+                    azimuts.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
+                    dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
             except (KeyError, TypeError) as e:
-                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
+                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(tr_id))
                 return wfstream
             if len(wfstream) < 3:
                 print('Failed to rotate Stream {}, not enough components available.'.format(wfstream))

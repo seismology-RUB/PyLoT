@@ -3292,8 +3292,11 @@ class MainWindow(QMainWindow):
                 if event.magnitudes:
                     moment_magnitude = event.magnitudes[0]
                     moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
-                    local_magnitude = event.magnitudes[1]
-                    local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                    if len(event.magnitudes) > 1:
+                        local_magnitude = event.magnitudes[1]
+                        local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                    else:
+                        local_magnitude = moment_magnitude # MP MP small workaround in case there is no local magnitude, todo: improve this
                     item_momentmag.setText(str(moment_magnitude.mag))
                     item_localmag.setText(str(local_magnitude.mag))
             item_notes.setText(event.notes)

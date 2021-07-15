@@ -719,7 +719,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
             station = self.orig_parent.getTraceID(wfID)
             abstime = self.wfstart + x
             if self.orig_parent.get_current_event():
-                self.status_label.setText("station = {}, T = {}, t = {} [s], sampling rate = ".format(station, abstime, x))
+                self.status_label.setText("station = {}, T = {}, t = {} [s]".format(station, abstime, x))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
@@ -895,7 +895,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         '''
         npixel = self.orig_parent.width()
         ndata = len(trace.data)
-        pts_per_pixel = ndata / npixel
+        pts_per_pixel = ndata // npixel
         if pts_per_pixel < 2:
             return trace.data, time_ax
         remaining_samples = ndata % pts_per_pixel
