@@ -83,10 +83,10 @@ class Metadata(object):
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
         self.inventories.remove(path_to_inventory)
-        for filename in self.inventory_files.keys():
+        for filename in list(self.inventory_files.keys()):
             if filename.startswith(path_to_inventory):
                 del (self.inventory_files[filename])
-        for seed_id in self.seed_ids.keys():
+        for seed_id in list(self.seed_ids.keys()):
             if self.seed_ids[seed_id].startswith(path_to_inventory):
                 del (self.seed_ids[seed_id])
         # have to clean self.stations_dict as well

@@ -1315,6 +1315,7 @@ def get_quality_class(uncertainty, weight_classes):
     :return: quality of pick (0-4)
     :rtype: int
     """
+    if not uncertainty: return max(weight_classes)
     try:
         # create generator expression containing all indices of values in weight classes that are >= than uncertainty.
         # call next on it once to receive first value

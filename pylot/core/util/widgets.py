@@ -5453,7 +5453,7 @@ class LoadDataDlg(QDialog):
 class HelpForm(QDialog):
     def __init__(self, parent=None,
                  page=QUrl('https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/')):
-        super(HelpForm, self).__init__(parent, 1)
+        super(HelpForm, self).__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAttribute(Qt.WA_GroupLeader)
 

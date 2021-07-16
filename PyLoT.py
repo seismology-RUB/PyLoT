@@ -1174,7 +1174,7 @@ class MainWindow(QMainWindow):
                     print(msg.format(len(eventlist_subset)))
                     eventlist = [eventname for eventname in eventlist if eventname in eventlist_subset]
             if check_obspydmt_structure(basepath):
-                print('Recognized obspyDMT structure in selected files. Settings Datastructure to ObspyDMT')
+                print('Recognized obspyDMT structure in selected files. Setting Datastructure to ObspyDMT')
                 self.dataStructure = DATASTRUCTURE['obspyDMT']()
                 eventlist = check_all_obspy(eventlist)
             else:
@@ -1399,18 +1399,19 @@ class MainWindow(QMainWindow):
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
 
-            time = lat = lon = depth = localmag = momentmag = None
+            time = lat = lon = depth = localmag = None
             if len(event.origins) == 1:
                 origin = event.origins[0]
                 time = origin.time + 0  # add 0 because there was an exception for time = 0s
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
+            moment_magnitude = event.magnitudes[0]
+            momentmag = '%4.1f' % moment_magnitude.mag
             if len(event.magnitudes) > 1:
-                moment_magnitude = event.magnitudes[0]
                 local_magnitude = event.magnitudes[1]
                 localmag = '%4.1f' % local_magnitude.mag
-                momentmag = '%4.1f'% moment_magnitude.mag
+
 
             # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             # text = text.format(path=event_path,
@@ -1885,6 +1886,10 @@ class MainWindow(QMainWindow):
 
         settings = QSettings()
         curr_event = self.get_current_event()
+        if not curr_event:
+            print('Could not find current event. Try reload?')
+            return
+        
         if len(curr_event.origins) > 0:
             origin_time = curr_event.origins[0].time
             tstart = settings.value('tstart') if get_None(settings.value('tstart')) else 0
@@ -3292,13 +3297,15 @@ class MainWindow(QMainWindow):
                 if event.magnitudes:
                     moment_magnitude = event.magnitudes[0]
                     moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                    moment_mag = str(moment_magnitude.mag)
                     if len(event.magnitudes) > 1:
                         local_magnitude = event.magnitudes[1]
                         local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                        local_mag = str(local_magnitude.mag)
                     else:
-                        local_magnitude = moment_magnitude # MP MP small workaround in case there is no local magnitude, todo: improve this
-                    item_momentmag.setText(str(moment_magnitude.mag))
-                    item_localmag.setText(str(local_magnitude.mag))
+                        local_mag = None
+                    item_momentmag.setText(moment_mag)
+                    item_localmag.setText(local_mag)
             item_notes.setText(event.notes)
 
             set_enabled(item_path, True, False)
