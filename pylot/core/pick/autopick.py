@@ -474,13 +474,9 @@ class AutopickStation(object):
                 # TODO here the pickparams is modified, instead of a copy
                 self.pickparams["pstart"] = 0
 
-        if self.pickparams["use_taup"] is False or not self.origin or not self.metadata:
+        if self.pickparams["use_taup"] is False:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
-            if not self.origin:
-                print('Requested use_taup but no origin given. Exit taupy.')
-            if not self.metadata:
-                print('Requested use_taup but no metadata given. Exit taupy.')
             exit_taupy()
             return
 
