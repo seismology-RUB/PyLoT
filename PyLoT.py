@@ -3250,8 +3250,8 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
-            ma_count_total = {'manual': 0,
-                              'auto': 0}
+            #ma_count_total = {'manual': 0,
+            #                  'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -3261,7 +3261,7 @@ class MainWindow(QMainWindow):
                                 continue
                             if pick.get('spe'):
                                 ma_count[ma] += 1
-                            ma_count_total[ma] += 1
+                            #ma_count_total[ma] += 1
 
             # init table items for current row
             item_delete = QTableWidgetItem()
@@ -3273,9 +3273,9 @@ class MainWindow(QMainWindow):
             item_depth = QTableWidgetItem()
             item_momentmag = QTableWidgetItem()
             item_localmag = QTableWidgetItem()
-            item_nmp = QTableWidgetItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
+            item_nmp = QTableWidgetItem('{}'.format(ma_count['manual']))#, ma_count_total['manual']))
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QTableWidgetItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
+            item_nap = QTableWidgetItem('{}'.format(ma_count['auto']))#, ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
             item_ref = QTableWidgetItem()
             item_test = QTableWidgetItem()
