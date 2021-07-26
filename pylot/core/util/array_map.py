@@ -29,6 +29,7 @@ from scipy.interpolate import griddata
 from pylot.core.util.widgets import PickDlg
 from pylot.core.pick.utils import get_quality_class
 
+
 class MplCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
@@ -72,6 +73,9 @@ class Array_map(QtWidgets.QWidget):
         # set original map limits to fall back on when home button is pressed
         self.org_xlim = self.canvas.axes.get_xlim()
         self.org_ylim = self.canvas.axes.get_ylim()
+        # initial map without event
+        self.canvas.axes.set_xlim(self.org_xlim[0], self.org_xlim[1])
+        self.canvas.axes.set_ylim(self.org_ylim[0], self.org_ylim[1])
 
         self._style = None if not hasattr(parent, '_style') else parent._style
 
@@ -94,6 +98,7 @@ class Array_map(QtWidgets.QWidget):
         self.status_label = QtWidgets.QLabel()
         self.map_reset_button = QtWidgets.QPushButton('Reset Map View')
         self.save_map_button = QtWidgets.QPushButton('Save Map')
+        self.go2eq_button = QtWidgets.QPushButton('Go to Event Location')
         # self.map_reset_button.resize(150, 50)
 
         self.main_box = QtWidgets.QVBoxLayout()
@@ -141,6 +146,7 @@ class Array_map(QtWidgets.QWidget):
         self.bot_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.bot_row, 0.3)
         self.bot_row.addWidget(self.map_reset_button)
+        self.bot_row.addWidget(self.go2eq_button)
         self.bot_row.addWidget(self.save_map_button)
         self.bot_row.addWidget(self.status_label)
         # self.connectSignals()
@@ -175,7 +181,7 @@ class Array_map(QtWidgets.QWidget):
 
     def remove_merid_paral(self):
         if len(self.gridlines.xline_artists):
-            #for i in self.gridlines.xline_artists:
+            # for i in self.gridlines.xline_artists:
             #    i.remove()
             self.gridlines.xline_artists[0].remove()
             self.gridlines.yline_artists[0].remove()
@@ -189,6 +195,20 @@ class Array_map(QtWidgets.QWidget):
 
         self.canvas.axes.figure.canvas.draw_idle()
 
+    def go2eq(self):
+        if self.eventLoc:
+            lats, lons = self.eventLoc
+            self.canvas.axes.set_xlim(lons - 10, lons + 10)
+            self.canvas.axes.set_ylim(lats - 5, lats + 5)
+            # parallels and meridians
+            self.remove_merid_paral()
+            self.add_merid_paral()
+
+            self.canvas.axes.figure.canvas.draw_idle()
+
+        else:
+            self.status_label.setText('No event information available')
+
     def connectSignals(self):
         self.comboBox_phase.currentIndexChanged.connect(self._refresh_drawings)
         self.comboBox_am.currentIndexChanged.connect(self._refresh_drawings)
@@ -196,6 +216,7 @@ class Array_map(QtWidgets.QWidget):
         self.annotations_box.stateChanged.connect(self.switch_annotations)
         self.refresh_button.clicked.connect(self._refresh_drawings)
         self.map_reset_button.clicked.connect(self.org_map_view)
+        self.go2eq_button.clicked.connect(self.go2eq)
 
         self.plotWidget.mpl_connect('motion_notify_event', self.mouse_moved)
         self.plotWidget.mpl_connect('scroll_event', self.mouse_scroll)
@@ -516,8 +537,9 @@ class Array_map(QtWidgets.QWidget):
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.sc_event = self.canvas.axes.scatter(lons, lats, s=2 * self.pointsize, facecolor='red', zorder=11,
-                                                     label='Event (might be outside map region)',
+            self.sc_event = self.canvas.axes.scatter(lons, lats, s=5 * self.pointsize, facecolor='red', zorder=11,
+                                                     label='Event (might be outside map region)', marker='*',
+                                                     edgecolors='black',
                                                      transform=ccrs.PlateCarree())
 
     def scatter_picked_stations(self):
@@ -549,10 +571,12 @@ class Array_map(QtWidgets.QWidget):
                 color = 'lightgrey'
             if st in self.marked_stations:
                 color = 'red'
-            self.annotations.append(self.canvas.axes.annotate(' %s' % st, xy=(x+0.003, y+0.003), fontsize=self.pointsize / 4.,
-                                                              fontweight='semibold', color=color,
-                                                              transform=ccrs.PlateCarree(), zorder=14,
-                                                              path_effects=[PathEffects.withStroke(linewidth=self.pointsize / 4., foreground='k')]))
+            self.annotations.append(
+                self.canvas.axes.annotate(' %s' % st, xy=(x + 0.003, y + 0.003), fontsize=self.pointsize / 5.,
+                                          fontweight='semibold', color=color, alpha=0.8,
+                                          transform=ccrs.PlateCarree(), zorder=14,
+                                          path_effects=[
+                                              PathEffects.withStroke(linewidth=self.pointsize / 6., foreground='k')]))
         self.legend = self.canvas.axes.legend(loc=1)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
 
@@ -658,76 +682,3 @@ class Array_map(QtWidgets.QWidget):
     def _warn(self, message):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, 'Warning', message)
         self.qmb.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
