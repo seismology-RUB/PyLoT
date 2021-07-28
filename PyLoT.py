@@ -1406,12 +1406,18 @@ class MainWindow(QMainWindow):
                 lat = origin.latitude
                 lon = origin.longitude
                 depth = origin.depth
-            moment_magnitude = event.magnitudes[0]
-            momentmag = '%4.1f' % moment_magnitude.mag
-            if len(event.magnitudes) > 1:
-                local_magnitude = event.magnitudes[1]
-                localmag = '%4.1f' % local_magnitude.mag
+            if len(event.magnitudes):  # if magnitude information exists, i.e., event.magnitudes has at least 1 entry
+                moment_magnitude = event.magnitudes[0]
+                momentmag = '%4.1f' % moment_magnitude.mag
+                if len(event.magnitudes) > 1:
+                    local_magnitude = event.magnitudes[1]
+                    localmag = '%4.1f' % local_magnitude.mag
+                else:
+                    localmag = ' '
 
+            else:
+                momentmag = ' '
+                localmag = ' '
 
             # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
             # text = text.format(path=event_path,
