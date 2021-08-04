@@ -15,6 +15,7 @@ from pylot.core.util.dataprocessing import Metadata
 from pylot.core.util.array_map import Array_map
 
 import matplotlib.pyplot as plt
+import argparse
 
 
 def main(project_file_path, manual=False, auto=True, file_format='png', f_ext='', ncores=None):
@@ -75,10 +76,14 @@ def array_map_worker(input_dict):
 
 
 if __name__ == '__main__':
-    dataroot = '/home/kaan/master_thesis/waveformData/dmt_dir_proj'
-    infiles = ['mag_8_sym_proj.plp']
+    cl = argparse.ArgumentParser()
+    cl.add_argument('--dataroot', help='Directory containing the PyLoT .plp file', type=str)
+    cl.add_argument('--infiles', help='.plp files to use', nargs='+')
+    args = cl.parse_args()
+    #dataroot = '/home/kaan/master_thesis/waveformData/dmt_dir_proj'
+    #infiles = ['mag_8_sym_proj.plp']
 
-    for infile in infiles:
-        main(os.path.join(dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=1)
+    for infile in args.infiles:
+        main(os.path.join(args.dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=1)
     # main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     # main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
