@@ -4,6 +4,11 @@
 
 import os
 import multiprocessing
+import sys
+import glob
+import matplotlib
+matplotlib.use('Qt5Agg')
+sys.path.append(os.path.join('/'.join(sys.argv[0].split('/')[:-1]), '../../..'))
 
 from PyLoT import Project
 from pylot.core.util.dataprocessing import Metadata
@@ -16,12 +21,8 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
     project = Project.load(project_file_path)
     nEvents = len(project.eventlist)
     input_list = []
-
+    print('\n')
     for index, event in enumerate(project.eventlist):
-        # MP MP TESTING +++
-        # if not eventdir.endswith('20170908_044946.a'):
-        #    continue
-        # MP MP ----
         kwargs = dict(project=project, event=event, nEvents=nEvents, index=index, manual=manual, auto=auto,
                       file_format=file_format, f_ext=f_ext)
         input_list.append(kwargs)
@@ -31,7 +32,7 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
             array_map_worker(item)
     else:
         pool = multiprocessing.Pool(ncores)
-        result = pool.map(array_map_worker, input_list)
+        pool.map(array_map_worker, input_list)
         pool.close()
         pool.join()
 
@@ -40,6 +41,10 @@ def array_map_worker(input_dict):
     event = input_dict['event']
     eventdir = event.path
     print('Working on event: {} ({}/{})'.format(eventdir, input_dict['index'] + 1, input_dict['nEvents']))
+    xml_picks = glob.glob(os.path.join(eventdir, f'*{input_dict["f_ext"]}.xml'))
+    if not len(xml_picks):
+        print('Event {} does not have any picks associated with event file extension {}'. format(eventdir, input_dict['f_ext']))
+        return
     # check for picks
     manualpicks = event.getPicks()
     autopicks = event.getAutopicks()
@@ -53,11 +58,12 @@ def array_map_worker(input_dict):
             continue
         if not metadata:
             metadata = Metadata(inventory=metadata_path, verbosity=0)
+
         # create figure to plot on
-        fig = plt.figure(figsize=(16, 9))
+        fig, ax = plt.subplots(figsize=(16, 9))
         # create array map object
-        map = Array_map(None, metadata, parameter=input_dict['project'].parameter, figure=fig,
-                        width=2.13e6, height=1.2e6, pointsize=15., linewidth=1.0)
+        map = Array_map(None, metadata, parameter=input_dict['project'].parameter, axes=ax,
+                        width=2.13e6, height=1.2e6, pointsize=25., linewidth=1.0)
         # set combobox to auto/manual to plot correct pick type
         map.comboBox_am.setCurrentIndex(map.comboBox_am.findText(pick_type))
         # add picks to map and save file
@@ -69,10 +75,10 @@ def array_map_worker(input_dict):
 
 
 if __name__ == '__main__':
-    dataroot = '/home/marcel'
-    infiles = ['alparray_all_events_0.03-0.1_mantle_correlated_v3.plp']
+    dataroot = '/home/kaan/master_thesis/waveformData/dmt_dir_proj'
+    infiles = ['mag_8_sym_proj.plp']
 
     for infile in infiles:
-        main(os.path.join(dataroot, infile), f_ext='_correlated_0.1Hz', ncores=10)
+        main(os.path.join(dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=1)
     # main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
     # main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')

@@ -32,14 +32,19 @@ from pylot.core.pick.utils import get_quality_class
 
 class MplCanvas(FigureCanvas):
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        self.fig = plt.figure(figsize=(width, height), dpi=dpi)
-        self.axes = self.fig.add_subplot(111)
+    def __init__(self, parent=None, extern_axes=None, width=5, height=4, dpi=100):
+        if extern_axes is None:
+            self.fig = plt.figure(figsize=(width, height), dpi=dpi)
+            self.axes = self.fig.add_subplot(111)
+        else:
+            self.fig = extern_axes.figure
+            self.axes = extern_axes
+
         super(MplCanvas, self).__init__(self.fig)
 
 
 class Array_map(QtWidgets.QWidget):
-    def __init__(self, parent, metadata, parameter=None, figure=None, annotate=True, pointsize=25.,
+    def __init__(self, parent, metadata, parameter=None, axes=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
         # super(Array_map, self).__init__(parent)
         QtWidgets.QWidget.__init__(self)
@@ -50,6 +55,7 @@ class Array_map(QtWidgets.QWidget):
         self.metadata = metadata
         self.pointsize = pointsize
         self.linewidth = linewidth
+        self.extern_plot_axes = axes
         self.width = width
         self.height = height
         self.annotate = annotate
@@ -91,8 +97,15 @@ class Array_map(QtWidgets.QWidget):
         Initializes all GUI components and figure elements to be populeted by other functions
         """
         # initialize figure elements
-        self.canvas = MplCanvas(self)
-        self.plotWidget = FigureCanvas(self.canvas.fig)
+
+        if self.extern_plot_axes is None:
+            self.canvas = MplCanvas(self)
+            self.plotWidget = FigureCanvas(self.canvas.fig)
+        else:
+            self.canvas = MplCanvas(self, extern_axes=self.extern_plot_axes)
+            #self.canvas.axes = self.extern_plot_axes
+            #self.canvas.fig = self.extern_plot_axes.figure
+            self.plotWidget = FigureCanvas(self.canvas.fig)
 
         # initialize GUI elements
         self.status_label = QtWidgets.QLabel()
@@ -173,7 +186,7 @@ class Array_map(QtWidgets.QWidget):
         # self.plotWidget.draw_idle()
 
     def add_merid_paral(self):
-        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.5, zorder=7)
+        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.8, color='dimgray', linewidth=self.linewidth, zorder=7)
         # current cartopy version does not support label removal. Devs are working on it.
         # Should be fixed with next cartopy version
         # self.gridlines.xformatter = LONGITUDE_FORMATTER
@@ -572,13 +585,14 @@ class Array_map(QtWidgets.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(
-                self.canvas.axes.annotate(' %s' % st, xy=(x + 0.003, y + 0.003), fontsize=self.pointsize / 5.,
+                self.canvas.axes.annotate(' %s' % st, xy=(x + 0.003, y + 0.003), fontsize=self.pointsize / 4.,
                                           fontweight='semibold', color=color, alpha=0.8,
                                           transform=ccrs.PlateCarree(), zorder=14,
-                                          path_effects=[
-                                              PathEffects.withStroke(linewidth=self.pointsize / 6., foreground='k')]))
-        self.legend = self.canvas.axes.legend(loc=1)
-        self.legend.get_frame().set_facecolor((1, 1, 1, 0.75))
+                                          path_effects=[PathEffects.withStroke(
+                                              linewidth=self.pointsize / 15., foreground='k')]))
+
+        self.legend = self.canvas.axes.legend(loc=1, framealpha=1)
+        self.legend.get_frame().set_facecolor((1, 1, 1, 0.95))
 
     def add_cbar(self, label):
         self.cbax_bg = inset_axes(self.canvas.axes, width="6%", height="75%", loc=5)

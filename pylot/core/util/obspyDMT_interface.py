@@ -34,17 +34,25 @@ def qml_from_obspyDMT(path):
 
     if not os.path.exists(path):
         return IOError('Could not find Event at {}'.format(path))
-    infile = open(path, 'rb')
-    event_dmt = pickle.load(infile)#, fix_imports=True)
+
+    with open(path, 'rb') as infile:
+        event_dmt = pickle.load(infile)#, fix_imports=True)
+
     event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
 
     ev = Event(resource_id=event_dmt['event_id'])
     #small bugfix "unhashable type: 'newstr' "
     event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
-    origin = Origin(resource_id=event_dmt['origin_id'], time=event_dmt['datetime'], longitude=event_dmt['longitude'],
-                    latitude=event_dmt['latitude'], depth=event_dmt['depth'])
-    mag = Magnitude(mag=event_dmt['magnitude'], magnitude_type=event_dmt['magnitude_type'],
+
+    origin = Origin(resource_id=event_dmt['origin_id'],
+                    time=event_dmt['datetime'],
+                    longitude=event_dmt['longitude'],
+                    latitude=event_dmt['latitude'],
+                    depth=event_dmt['depth'])
+    mag = Magnitude(mag=event_dmt['magnitude'],
+                    magnitude_type=event_dmt['magnitude_type'],
                     origin_id=event_dmt['origin_id'])
+
     ev.magnitudes.append(mag)
     ev.origins.append(origin)
     return ev
