@@ -167,9 +167,8 @@ class Data(object):
 
     def checkEvent(self, event, fcheck, forceOverwrite=False):
         """
-        Check information in supplied event and own event and replace own
-        information with supplied information if own information not exiisting
-        or forced by forceOverwrite
+        Check information in supplied event and own event and replace with own
+        information if no other information are given or forced by forceOverwrite
         :param event: Event that supplies information for comparison
         :type event: pylot.core.util.event.Event
         :param fcheck: check and delete existing information
@@ -225,7 +224,7 @@ class Data(object):
 
     def replacePicks(self, event, picktype):
         """
-        Replace own picks with the one in event
+        Replace picks in event with own picks
         :param event: Event that supplies information for comparison
         :type event: pylot.core.util.event.Event
         :param picktype: 'auto' or 'manual' picks
@@ -233,20 +232,23 @@ class Data(object):
         :return:
         :rtype: None
         """
-        checkflag = 0
+        checkflag = 1
         picks = event.picks
         # remove existing picks
         for j, pick in reversed(list(enumerate(picks))):
             try:
                 if picktype in str(pick.method_id.id):
                     picks.pop(j)
-                    checkflag = 1
+                    checkflag = 2
             except AttributeError as e:
                 msg = '{}'.format(e)
                 print(e)
                 checkflag = 0
-        if checkflag:
-            print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
+        if checkflag > 0:
+            if checkflag == 1:
+                print("Write new %s picks to catalog." % picktype)
+            if checkflag == 2:
+                print("Found %s pick(s), remove them and append new picks to catalog." % picktype)
 
             # append new picks
             for pick in self.get_evt_data().picks:
@@ -274,8 +276,11 @@ class Data(object):
             raise FormatError(errmsg)
 
         if hasattr(self.get_evt_data(), 'notes'):
-            with open(os.path.join(os.path.dirname(fnout), 'notes.txt'), 'w') as notes_file:
-                notes_file.write(self.get_evt_data().notes)
+            try:
+                with open(os.path.join(os.path.dirname(fnout), 'notes.txt'), 'w') as notes_file:
+                    notes_file.write(self.get_evt_data().notes)
+            except Exception as e:
+                print('Warning: Could not save notes.txt: ', str(e))
 
         # check for already existing xml-file
         if fnext == '.xml':
@@ -532,7 +537,7 @@ class Data(object):
     def setEvtData(self, event):
         self.evtdata = event
 
-    def applyEVTData(self, data, typ='pick', authority_id='rub'):
+    def applyEVTData(self, data, typ='pick'):
         """
         Either takes an `obspy.core.event.Event` object and applies all new
         information on the event to the actual data if typ is 'event or

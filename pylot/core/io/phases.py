@@ -244,13 +244,13 @@ def picksdict_from_picks(evt):
         else:
             filter_id = None
         try:
-            picker = str(pick.method_id)
-            if picker.startswith('smi:local/'):
-                picker = picker.split('smi:local/')[1]
+            pick_method = str(pick.method_id)
+            if pick_method.startswith('smi:local/'):
+                pick_method = pick_method.split('smi:local/')[1]
         except IndexError:
-            picker = 'manual'  # MP MP TODO maybe improve statement
-        if picker == 'None':
-            picker = 'manual'
+            pick_method = 'manual'  # MP MP TODO maybe improve statement
+        if pick_method == 'None':
+            pick_method = 'manual'
         try:
             #onsets = picksdict[picker][station]
             onsets = picksdict[station]
@@ -289,7 +289,7 @@ def picksdict_from_picks(evt):
             phase['weight'] = weight
         phase['channel'] = channel
         phase['network'] = network
-        phase['picker'] = picker
+        phase['picker'] = pick_method
         try:
             if pick.polarity == 'positive':
                 phase['fm'] = 'U'
@@ -303,7 +303,7 @@ def picksdict_from_picks(evt):
         phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
-        picksdict[station] = onsets.copy()
+        picksdict[pick_method][station] = onsets.copy()
     return picksdict
 
 
