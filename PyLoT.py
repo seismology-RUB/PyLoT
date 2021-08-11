@@ -487,7 +487,8 @@ class MainWindow(QMainWindow):
                                                   icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
         # MP MP not yet implemented, therefore hide:
-        self.qualities_action.setVisible(False)
+        # LK will be implemented soon, basic script has already (03/2021) been finished
+        self.qualities_action.setVisible(True)
 
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
@@ -1529,7 +1530,6 @@ class MainWindow(QMainWindow):
             event = self.get_current_event()
         if not type(outformats) == list:
             outformats = [outformats]
-
         def getSavePath(event, directory, outformats):
             if not directory:
                 title = 'Save event data as {} to directory ...'.format(outformats)
@@ -1548,13 +1548,13 @@ class MainWindow(QMainWindow):
 
         uppererrorP = self._inputs['timeerrorsP']
         uppererrorS = self._inputs['timeerrorsS']
-
+        # Inserted to prevent Bug in Eventlist
+        self.get_data().setEvtData(event)
         try:
             self.get_data().applyEVTData(event, typ='event')  # getPicks())
         except OverwriteError:
             self.get_data().resetPicks()
             return self.saveData(event, directory, outformats)
-
         fcheck = ['auto', 'manual', 'origins', 'magnitude']
 
         saved_as = str()
@@ -1570,7 +1570,6 @@ class MainWindow(QMainWindow):
         msg = 'Event {} saved as {} in format(s) {}'.format(event.pylot_id, fbasename, saved_as.strip())
         self.update_status(msg)
         print(msg)
-
         event.dirty = False
         self.fill_eventbox()
         return True
@@ -3045,7 +3044,6 @@ class MainWindow(QMainWindow):
             self.locate_event()
 
         ctrfile = os.path.join(locroot, 'run', parameter['ctrfile'])
-
         ttt = parameter['ttpatter']
         outfile = parameter['outpatter']
         eventname = self.get_current_event_name()
@@ -3061,7 +3059,6 @@ class MainWindow(QMainWindow):
             print(e.message)
         # finally:
         #    os.remove(phasefile)
-
         self.get_data().applyEVTData(lt.read_location(locpath), typ='event')
         for event in self.calc_magnitude():
             self.get_data().applyEVTData(event, typ='event')
@@ -3244,7 +3241,7 @@ class MainWindow(QMainWindow):
 
         # iterate through eventlist and generate items for table rows
         self.project._table = []
-        for index, event in enumerate(eventlist):
+        for index, event in enumerate(eventlist):   
             phaseErrors = {'P': self._inputs['timeerrorsP'],
                            'S': self._inputs['timeerrorsS']}
 
@@ -3297,17 +3294,24 @@ class MainWindow(QMainWindow):
                     item_depth.setText(str(origin.depth))
             if hasattr(event, 'magnitudes'):
                 if event.magnitudes:
-                    moment_magnitude = event.magnitudes[0]
-                    moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
-                    moment_mag = str(moment_magnitude.mag)
                     if len(event.magnitudes) > 1:
+                        moment_magnitude = event.magnitudes[0]
+                        moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                        item_momentmag.setText(str(moment_magnitude.mag))
                         local_magnitude = event.magnitudes[1]
                         local_magnitude.mag = '%4.1f' % local_magnitude.mag
-                        local_mag = str(local_magnitude.mag)
+                        item_localmag.setText(str(local_magnitude.mag))
                     else:
-                        local_mag = None
-                    item_momentmag.setText(moment_mag)
-                    item_localmag.setText(local_mag)
+                        # check type of magnitude
+                        if event.magnitudes[0].magnitude_type == 'Mw':
+                            moment_magnitude = event.magnitudes[0]
+                            moment_magnitude.mag = '%4.1f' % moment_magnitude.mag
+                            item_momentmag.setText(str(moment_magnitude.mag))
+                        elif event.magnitudes[0].magnitude_type == 'ML':
+                            local_magnitude = event.magnitudes[0]
+                            local_magnitude.mag = '%4.1f' % local_magnitude.mag
+                            item_localmag.setText(str(local_magnitude.mag))
+
             item_notes.setText(event.notes)
 
             set_enabled(item_path, True, False)

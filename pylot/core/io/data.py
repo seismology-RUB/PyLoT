@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pyth n
 # -*- coding: utf-8 -*-
 
 import copy
@@ -264,7 +264,7 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
-
+        
         if not type(fcheck) == list:
             fcheck = [fcheck]
 
@@ -297,7 +297,9 @@ class Data(object):
                     return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
+                
             self.get_evt_data().write(fnout + fnext, format=evtformat)
+
         # try exporting event
         else:
             evtdata_org = self.get_evt_data()
@@ -361,6 +363,14 @@ class Data(object):
                     header = '# EQEVENT:  Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' % evid
                     nllocfile = open(fnout + fnext)
                     l = nllocfile.readlines()
+                    # Adding A0/Generic Amplitude to .obs file
+                    #l2 = []
+                    #for li in l:
+                    #    for amp in evtdata_org.amplitudes:
+                    #        if amp.waveform_id.station_code == li[0:5].strip():
+                    #            li = li[0:64] + '{:0.2e}'.format(amp.generic_amplitude) + li[73:-1] + '\n'
+                    #            l2.append(li)
+                    #l = l2
                     nllocfile.close()
                     l.insert(0, header)
                     nllocfile = open(fnout + fnext, 'w')

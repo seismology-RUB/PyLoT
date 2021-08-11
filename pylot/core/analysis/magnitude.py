@@ -221,11 +221,16 @@ class LocalMagnitude(Magnitude):
 
         power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
                  in 'Z3']
-        if len(power) != 2:
-            raise ValueError('Wood-Anderson amplitude defintion only valid for '
-                             'two horizontals: {0} given'.format(len(power)))
-        power_sum = power[0] + power[1]
-        #
+        # checking horizontal count and calculating power_sum accordingly
+        if len(power) == 1:
+                print ('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
+                power_sum = power[0]
+        elif len(power) == 2:
+                power_sum = power[0] + power[1]
+        else: 
+                raise ValueError('Wood-Anderson aomplitude defintion only valid for'
+                        ' up to two horizontals: {0} given'.format(len(power)))
+ 
         sqH = np.sqrt(power_sum)
 
         # get time array
@@ -277,12 +282,13 @@ class LocalMagnitude(Magnitude):
         for a in self.arrivals:
             if a.phase not in 'sS':
                 continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
             # make sure calculating Ml only from reliable onsets
             # NLLoc: time_weight = 0 => do not use onset!
             if a.time_weight == 0:
+                print("Uncertain pick at Station {}, do not use it!".format(station))
                 continue
-            pick = a.pick_id.get_referred_object()
-            station = pick.waveform_id.station_code
             wf = select_for_phase(self.stream.select(
                 station=station), a.phase)
             if not wf:
@@ -394,24 +400,28 @@ class MomentMagnitude(Magnitude):
                 print("WARNING: No instrument corrected data available,"
                       " no magnitude calculation possible! Go on.")
                 continue
-            scopy = self.stream.copy()
-            wf = scopy.select(station=station)
+            wf = self.stream.select(station=station)
             if not wf:
+                continue
+            try:
+               scopy = wf.copy()
+            except AssertionError:
+                print("WARNING: Something's wrong with the data,"
+                      "station {},"
+                      "no calculation of moment magnitude possible! Go on.".format(station))
                 continue
             onset = pick.time
             distance = degrees2kilometers(a.distance)
             azimuth = a.azimuth
             incidence = a.takeoff_angle
-            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
+            w0, fc = calcsourcespec(scopy, onset, self.p_velocity, distance,
                                     azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
-            WF = select_for_phase(self.stream.select(
-                station=station), a.phase)
-            WF = select_for_phase(WF, "P")
+            WF = select_for_phase(scopy, "P")
             m0, mw = calcMoMw(WF, w0, self.rock_density, self.p_velocity,
                               distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
