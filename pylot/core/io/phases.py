@@ -252,8 +252,7 @@ def picksdict_from_picks(evt):
         if pick_method == 'None':
             pick_method = 'manual'
         try:
-            #onsets = picksdict[picker][station]
-            onsets = picksdict[station]
+            onsets = picksdict[pick_method][station]
         except KeyError as e:
             # print(e)
             onsets = {}
