@@ -5,8 +5,6 @@ import sys
 import os
 import matplotlib
 
-matplotlib.use('Qt5Agg')
-
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -29,6 +27,9 @@ from scipy.interpolate import griddata
 from pylot.core.util.widgets import PickDlg
 from pylot.core.pick.utils import get_quality_class
 
+matplotlib.use('Qt5Agg')
+
+
 
 class MplCanvas(FigureCanvas):
 
@@ -49,7 +50,7 @@ class Array_map(QtWidgets.QWidget):
         # super(Array_map, self).__init__(parent)
         QtWidgets.QWidget.__init__(self)
 
-        assert (parameter != None or parent != None), 'either parent or parameter has to be set'
+        assert (parameter is not None or parent is not None), 'either parent or parameter has to be set'
         # set properties
         self._parent = parent
         self.metadata = metadata

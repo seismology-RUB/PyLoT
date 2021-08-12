@@ -55,7 +55,7 @@ class Data(object):
         elif type(evtdata) in str_TypeLst:
             try:
                 cat = read_events(evtdata)
-                if len(cat) is not 1:
+                if len(cat) != 1:
                     raise ValueError('ambiguous event information for file: '
                                      '{file}'.format(file=evtdata))
                 evtdata = cat[0]
@@ -322,7 +322,7 @@ class Data(object):
                             del picks_copy[k]
                             break
             lendiff = len(picks) - len(picks_copy)
-            if lendiff is not 0:
+            if lendiff != 0:
                 print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
 
             if upperErrors:

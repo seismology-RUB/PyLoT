@@ -232,7 +232,7 @@ def picksdict_from_picks(evt):
     for pick in evt.picks:
         phase = {}
         station = pick.waveform_id.station_code
-        if pick.waveform_id.channel_code == None:
+        if pick.waveform_id.channel_code is None:
             channel = ''
         else:
             channel = pick.waveform_id.channel_code
@@ -774,7 +774,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     Ponset = arrivals[key]['P']['mpp']
                     Pweight = arrivals[key]['P']['weight']
                     Prt = Ponset - stime  # onset time relative to source time
-                    if n % 6 is not 0:
+                    if n % 6 != 0:
                         fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
                     else:
                         fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
@@ -788,7 +788,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     Sonset = arrivals[key]['S']['mpp']
                     Sweight = arrivals[key]['S']['weight']
                     Srt = Ponset - stime  # onset time relative to source time
-                    if n % 6 is not 0:
+                    if n % 6 != 0:
                         fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
                     else:
                         fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))
@@ -1080,7 +1080,7 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                             del mpick
                             break
         lendiff = len(arrivals) - len(arrivals_copy)
-        if lendiff is not 0:
+        if lendiff != 0:
             print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
 
         for Pick in arrivals_copy:

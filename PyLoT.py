@@ -1492,7 +1492,7 @@ class MainWindow(QMainWindow):
         wf_dir = wf_stat[self.data.processed]
         if wf_dir is not None:
             wf_path = os.path.join(event_path, wf_dir)
-            if wf_dir is 'processed' and not os.path.exists(wf_path):
+            if wf_dir == 'processed' and not os.path.exists(wf_path):
                 wf_path = os.path.join(event_path, 'raw')
         else:
             wf_path = event_path

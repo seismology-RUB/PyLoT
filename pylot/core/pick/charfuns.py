@@ -150,7 +150,7 @@ class CharacteristicFunction(object):
                 if self.cut[0] == 0 and self.cut[1] == 0:
                     start = 0
                     stop = len(self.orig_data[0])
-                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                elif self.cut[0] == 0 and self.cut[1] != 0:
                     start = 0
                     stop = self.cut[1] / self.dt
                 else:
@@ -167,7 +167,7 @@ class CharacteristicFunction(object):
                 if self.cut[0] == 0 and self.cut[1] == 0:
                     start = 0
                     stop = min([len(self.orig_data[0]), len(self.orig_data[1])])
-                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                elif self.cut[0] == 0 and self.cut[1] != 0:
                     start = 0
                     stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
                                 len(self.orig_data[1])])
@@ -187,7 +187,7 @@ class CharacteristicFunction(object):
                     start = 0
                     stop = min([self.cut[1] / self.dt, len(self.orig_data[0]),
                                 len(self.orig_data[1]), len(self.orig_data[2])])
-                elif self.cut[0] == 0 and self.cut[1] is not 0:
+                elif self.cut[0] == 0 and self.cut[1] != 0:
                     start = 0
                     stop = self.cut[1] / self.dt
                 else:

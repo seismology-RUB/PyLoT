@@ -145,7 +145,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
         exf = ['root', 'dpath', 'dbase']
 
-        if parameter['eventID'] is not '*' and fnames == 'None':
+        if parameter['eventID'] != '*' and fnames == 'None':
             dsfields['eventID'] = parameter['eventID']
             exf.append('eventID')
 
@@ -189,12 +189,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
-            if fnames == 'None' and parameter['eventID'] is '*':
+            if fnames == 'None' and parameter['eventID'] != '*':
                 # multiple event processing
                 # read each event in database
                 events = [event for event in glob.glob(os.path.join(datapath, '*')) if
                           (os.path.isdir(event) and not event.endswith('EVENTS-INFO'))]
-            elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
+            elif fnames == 'None' and parameter['eventID'] != '*' and not type(parameter['eventID']) == list:
                 # single event processing
                 events = glob.glob(os.path.join(datapath, parameter['eventID']))
             elif fnames == 'None' and type(parameter['eventID']) == list:

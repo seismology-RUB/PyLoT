@@ -227,7 +227,7 @@ def findComboBoxIndex(combo_box, val):
     :type val: basestring
     :return: index value of item with name val or 0
     """
-    return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
+    return combo_box.findText(val) if combo_box.findText(val) != -1 else 0
 
 
 def find_in_list(list, str):
@@ -1016,7 +1016,7 @@ def scaleWFData(data, factor=None, components='all'):
     :return:  scaled waveform data
     :rtype: `~obspy.core.stream.Stream` object
     """
-    if components is not 'all':
+    if components != 'all':
         for comp in components:
             if factor is None:
                 max_val = np.max(np.abs(data.select(component=comp)[0].data))
