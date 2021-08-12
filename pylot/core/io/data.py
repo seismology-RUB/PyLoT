@@ -1,4 +1,4 @@
-#!/usr/bin/env pyth n
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import copy
@@ -21,10 +21,6 @@ from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
     check4gapsAndMerge, trim_station_components
 
-try:
-    str_TypeLst = [str, unicode]  # if python 2.X
-except NameError:
-    str_TypeLst = [str]  # if python 3.*
 
 class Data(object):
     """
@@ -52,7 +48,7 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif type(evtdata) in str_TypeLst:
+        elif isinstance(evtdata, str):
             try:
                 cat = read_events(evtdata)
                 if len(cat) != 1:

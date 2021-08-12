@@ -36,10 +36,6 @@ import traceback
 import json
 from datetime import datetime
 
-# set environment variables to use Qt5 and don't convert to Qt4 syntax
-# os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-# os.environ["QT_API"] = "pyqt5"
-
 matplotlib.use('Qt5Agg')
 
 from PySide2 import QtGui, QtCore, QtWidgets
@@ -3249,8 +3245,6 @@ class MainWindow(QMainWindow):
                         'auto': event.pylot_autopicks}
             ma_count = {'manual': 0,
                         'auto': 0}
-            #ma_count_total = {'manual': 0,
-            #                  'auto': 0}
 
             for ma in ma_props.keys():
                 if ma_props[ma]:
@@ -3260,7 +3254,6 @@ class MainWindow(QMainWindow):
                                 continue
                             if pick.get('spe'):
                                 ma_count[ma] += 1
-                            #ma_count_total[ma] += 1
 
             # init table items for current row
             item_delete = QTableWidgetItem()

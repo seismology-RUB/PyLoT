@@ -53,12 +53,11 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, get_Bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents,\
+    identifyPhaseID, get_Bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
     station_id_remove_channel
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
-
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
@@ -66,6 +65,7 @@ elif sys.version_info.major == 2:
     import icons_rc_2 as icons_rc
 else:
     raise ImportError('Could not determine python version.')
+
 
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
 # icons_rc = icons_rc
@@ -302,7 +302,7 @@ class AddMetadataWidget(QWidget):
         item = QtGui.QStandardItem(inventory_path)
         item.setEditable(False)
         self.inventories_add.append(inventory_path)
-        self.list_model.appendRow(item)             # adds path to visible list
+        self.list_model.appendRow(item)  # adds path to visible list
         self.selection_box.setText("")
 
     def remove_item(self):
@@ -313,8 +313,8 @@ class AddMetadataWidget(QWidget):
         """
         for index in reversed(sorted(self.list_view.selectionModel().selectedIndexes())):
             item = self.list_model.itemData(index)
-            inventory_path = item[0]                        # marked path
-            self.list_model.removeRow(index.row())          # aus der Anzeige-Liste gelöscht
+            inventory_path = item[0]  # marked path
+            self.list_model.removeRow(index.row())  # aus der Anzeige-Liste gelöscht
             if inventory_path in self.inventories_add:
                 self.inventories_add.remove(inventory_path)
             else:
@@ -876,7 +876,8 @@ class WaveformWidgetPG(QtWidgets.QWidget):
                 times = np.array([time for index, time in enumerate(time_ax) if not index % nth_sample])
                 times_syn = np.array(
                     [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
-                trace.data = np.array([datum * gain + n for index, datum in enumerate(trace.data) if not index % nth_sample])
+                trace.data = np.array(
+                    [datum * gain + n for index, datum in enumerate(trace.data) if not index % nth_sample])
                 trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
                                            if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
@@ -1516,8 +1517,6 @@ class SingleTextLineDialog(QtWidgets.QDialog):
     def connectSignals(self):
         self._buttonbox.accepted.connect(self.accept)
         self._buttonbox.rejected.connect(self.reject)
-
-
 
 
 class PhaseDefaults(QtWidgets.QDialog):
@@ -2236,7 +2235,6 @@ class PickDlg(QDialog):
             self.draw()
         else:
             self.draw()
-        # self.pick_block = self.togglePickBlocker()
         self.disconnect_pick_delete()
 
     def deactivatePicking(self):
@@ -2447,7 +2445,7 @@ class PickDlg(QDialog):
         data.normalize()
         if not data:
             QtWidgets.QMessageBox.warning(self, 'No channel to plot',
-                                      'No channel to plot for phase: {}.'.format(phase))
+                                          'No channel to plot for phase: {}.'.format(phase))
             self.leave_picking_mode()
             return
 
@@ -2461,7 +2459,8 @@ class PickDlg(QDialog):
                 # wfdata.filter(**filteroptions)# MP MP removed filtering of original data
             except ValueError as e:
                 self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
-                                             'Denied', 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
+                                                 'Denied',
+                                                 'setIniPick{}: Could not filter waveform: {}'.format(phase, e))
                 self.qmb.show()
 
         snr = []
@@ -2546,7 +2545,7 @@ class PickDlg(QDialog):
                 wfdata.filter(**filteroptions)
             except ValueError as e:
                 self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
-                                             'Denied', 'setPick: Could not filter waveform: {}'.format(e))
+                                                 'Denied', 'setPick: Could not filter waveform: {}'.format(e))
                 self.qmb.show()
 
         # get earliest and latest possible pick and symmetric pick error
@@ -2586,9 +2585,8 @@ class PickDlg(QDialog):
             minFMSNR = parameter.get('minFMSNR')
             quality = get_quality_class(spe, parameter.get('timeerrorsP'))
             if quality <= minFMweight and snr >= minFMSNR:
-                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'), 
-                               pick -stime_diff)
-
+                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'),
+                              pick - stime_diff)
 
         # save pick times for actual phase
         phasepicks = dict(epp=epp, lpp=lpp, mpp=mpp, spe=spe, fm=FM,
@@ -2603,8 +2601,6 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.enable_ar_buttons()
         self.zoomAction.setEnabled(True)
-        # self.pick_block = self.togglPickBlocker()
-        # self.resetZoom()
 
         self.leave_picking_mode()
 
@@ -2618,7 +2614,7 @@ class PickDlg(QDialog):
 
     def warn_unknown_phase(self, phase=None):
         QtWidgets.QMessageBox.warning(self, 'Unknown phase ID',
-                                  'Could not identify phase ID: {}.'.format(phase))
+                                      'Could not identify phase ID: {}.'.format(phase))
 
     def disconnectPressEvent(self):
         self.multicompfig.mpl_disconnect(self.cidpress)
@@ -2799,7 +2795,7 @@ class PickDlg(QDialog):
                 self.renamePhaseInDict(picks, phase, new_phase)
             except KeyError as e:
                 QtWidgets.QMessageBox.warning(self, 'Could not rename phase',
-                                          'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
+                                              'Could not rename phase {} to {}: {}'.format(phase, new_phase, e))
         self.leave_rename_phase()
         self.refreshPlot()
 
@@ -2905,11 +2901,6 @@ class PickDlg(QDialog):
             filtoptions = None
             if phase:
                 filtoptions = self.getFilterOptions(self.getPhaseID(phase), gui_filter=True).parseFilterOptions()
-
-            # if self.filterActionP.isChecked() or self.filterActionS.isChecked():
-            #     if not phase:
-            #         filtoptions = FilterOptionsDialog.getFilterObject()
-            #         filtoptions = filtoptions.parseFilterOptions()
 
             if filtoptions is not None:
                 data.detrend('linear')
@@ -3029,8 +3020,6 @@ class PickDlg(QDialog):
 
         # set channel labels
         self.multicompfig.setYTickLabels(pos, labels)
-        # self.multicompfig.setXLims(ax, self.getXLims())
-        # self.multicompfig.setYLims(ax, self.getYLims())
 
     def zoom(self):
         if self.zoomAction.isChecked() and self.pick_block:
@@ -3065,7 +3054,7 @@ class PickDlg(QDialog):
         else:
             self.refreshPlot()
             self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
-                                         'Denied', 'New picks rejected!')
+                                             'Denied', 'New picks rejected!')
             self.qmb.show()
 
     def accept(self):
@@ -3074,7 +3063,7 @@ class PickDlg(QDialog):
             QDialog.accept(self)
         else:
             self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
-                                         'Accepted', 'New picks applied!')
+                                             'Accepted', 'New picks applied!')
             self.qmb.show()
 
 
@@ -3092,7 +3081,7 @@ class CanvasWidget(QWidget):
     '''
 
     def __init__(self, parent, canvas):
-        QtWidgets.QWidget.__init__(self, parent)#, 1)
+        QtWidgets.QWidget.__init__(self, parent)  # , 1)
         canvas = canvas
         self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -3812,7 +3801,7 @@ class TuneAutopicker(QWidget):
                 'savexml': False,
                 'obspyDMT_wfpath': wfpath}
         event = self.get_current_event()
-        #self.parent().saveData(event, event.path, '.xml') MP MP uncommented because overwriting pick files in tune mode
+        # self.parent().saveData(event, event.path, '.xml') MP MP uncommented because overwriting pick files in tune mode
         for key in self.fig_dict.keys():
             if not key == 'plot_style':
                 self.fig_dict[key].clear()
@@ -3888,7 +3877,7 @@ class TuneAutopicker(QWidget):
 
     def _warn(self, message, info=None):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
-                                     'Warning', message)
+                                         'Warning', message)
         self.qmb.setDetailedText(str(info))
         self.qmb.show()
 
@@ -4131,7 +4120,7 @@ class PylotParaBox(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         dialog.setLayout(layout)
         buttonbox = QtWidgets.QDialogButtonBox(QDialogButtonBox.Ok |
-                                           QDialogButtonBox.Cancel)
+                                               QDialogButtonBox.Cancel)
         buttonbox.accepted.connect(dialog.accept)
         buttonbox.accepted.connect(self.refresh)
         buttonbox.accepted.connect(self.params_from_gui)
@@ -4315,7 +4304,7 @@ class PylotParaBox(QtWidgets.QWidget):
 
     def _warn(self, message):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
-                                     'Warning', message)
+                                         'Warning', message)
         self.qmb.show()
 
 
@@ -4685,7 +4674,7 @@ class InputsTab(PropTab):
                   "data/Structure": self.structureSelect.setCurrentIndex(index),
                   "tstart": self.tstartBox.setValue(0),
                   "tstop": self.tstopBox.setValue(1e6),
-                  "autosaveXML": self.autosaveXML_checkbox.setChecked(True),}
+                  "autosaveXML": self.autosaveXML_checkbox.setChecked(True), }
         return values
 
 

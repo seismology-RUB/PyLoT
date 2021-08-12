@@ -8,16 +8,12 @@ import matplotlib
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
 import matplotlib.patheffects as PathEffects
 
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cf
-import cartopy.io.shapereader as shpr
-from cartopy.feature import ShapelyFeature
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from cartopy.mpl.gridliner import LongitudeFormatter, LatitudeFormatter
 
 import traceback
 import obspy
@@ -28,7 +24,6 @@ from pylot.core.util.widgets import PickDlg
 from pylot.core.pick.utils import get_quality_class
 
 matplotlib.use('Qt5Agg')
-
 
 
 class MplCanvas(FigureCanvas):
@@ -47,7 +42,6 @@ class MplCanvas(FigureCanvas):
 class Array_map(QtWidgets.QWidget):
     def __init__(self, parent, metadata, parameter=None, axes=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
-        # super(Array_map, self).__init__(parent)
         QtWidgets.QWidget.__init__(self)
 
         assert (parameter is not None or parent is not None), 'either parent or parameter has to be set'
@@ -95,7 +89,7 @@ class Array_map(QtWidgets.QWidget):
 
     def init_graphics(self):
         """
-        Initializes all GUI components and figure elements to be populeted by other functions
+        Initializes all GUI components and figure elements to be populated by other functions
         """
         # initialize figure elements
 
@@ -111,7 +105,6 @@ class Array_map(QtWidgets.QWidget):
         self.map_reset_button = QtWidgets.QPushButton('Reset Map View')
         self.save_map_button = QtWidgets.QPushButton('Save Map')
         self.go2eq_button = QtWidgets.QPushButton('Go to Event Location')
-        # self.map_reset_button.resize(150, 50)
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -151,7 +144,6 @@ class Array_map(QtWidgets.QWidget):
         self.top_row.addWidget(self.refresh_button)
 
         self.main_box.addWidget(self.plotWidget, 1)
-        # self.main_box.addWidget(NavigationToolbar(self.plotWidget, self), 0)
 
         self.bot_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.bot_row, 0.3)
@@ -177,21 +169,17 @@ class Array_map(QtWidgets.QWidget):
         # parallels and meridians
         self.add_merid_paral()
 
-        # self.canvas.axes.set_global()
         self.canvas.fig.tight_layout()
-        # self.plotWidget.draw_idle()
 
     def add_merid_paral(self):
         self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.8, color='gray', linewidth=self.linewidth/2, zorder=7)
-        # current cartopy version does not support label removal. Devs are working on it.
-        # Should be fixed with next cartopy version
+        # TODO: current cartopy version does not support label removal. Devs are working on it.
+        #  Should be fixed with next cartopy version
         # self.gridlines.xformatter = LONGITUDE_FORMATTER
         # self.gridlines.yformatter = LATITUDE_FORMATTER
 
     def remove_merid_paral(self):
         if len(self.gridlines.xline_artists):
-            # for i in self.gridlines.xline_artists:
-            #    i.remove()
             self.gridlines.xline_artists[0].remove()
             self.gridlines.yline_artists[0].remove()
 
@@ -476,8 +464,6 @@ class Array_map(QtWidgets.QWidget):
         self.highlighted_stations.append(self.canvas.axes.scatter(lon, lat, s=self.pointsize, edgecolors=color,
                                                                   facecolors='none', zorder=12,
                                                                   transform=ccrs.PlateCarree(), label='deleted'))
-
-        # self.canvas.idle_draw()
 
     def openPickDlg(self, ind):
         data = self._parent.get_data().getWFData()
