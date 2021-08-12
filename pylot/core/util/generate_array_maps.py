@@ -79,11 +79,9 @@ if __name__ == '__main__':
     cl = argparse.ArgumentParser()
     cl.add_argument('--dataroot', help='Directory containing the PyLoT .plp file', type=str)
     cl.add_argument('--infiles', help='.plp files to use', nargs='+')
+    cl.add_argument('--ncores', hepl='Specify number of parallel processes', type=int, default=1)
     args = cl.parse_args()
-    #dataroot = '/home/kaan/master_thesis/waveformData/dmt_dir_proj'
-    #infiles = ['mag_8_sym_proj.plp']
 
     for infile in args.infiles:
-        main(os.path.join(args.dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=1)
-    # main('E:\Shared\AlpArray\\test_aa.plp', f_ext='_correlated_0.5Hz', ncores=1)
-    # main('/home/marcel/alparray_m6.5-6.9_mantle_correlated_v3.plp', f_ext='_correlated_0.5Hz')
+        main(os.path.join(args.dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=args.ncores)
+

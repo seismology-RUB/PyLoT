@@ -104,8 +104,6 @@ class Array_map(QtWidgets.QWidget):
             self.plotWidget = FigureCanvas(self.canvas.fig)
         else:
             self.canvas = MplCanvas(self, extern_axes=self.extern_plot_axes)
-            #self.canvas.axes = self.extern_plot_axes
-            #self.canvas.fig = self.extern_plot_axes.figure
             self.plotWidget = FigureCanvas(self.canvas.fig)
 
         # initialize GUI elements
@@ -153,9 +151,7 @@ class Array_map(QtWidgets.QWidget):
         self.top_row.addWidget(self.refresh_button)
 
         self.main_box.addWidget(self.plotWidget, 1)
-        # self.main_box.addWidget(self.map_reset_button, 0)
         # self.main_box.addWidget(NavigationToolbar(self.plotWidget, self), 0)
-        # self.main_box.addWidget(self.status_label, 0)
 
         self.bot_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.bot_row, 0.3)
@@ -163,7 +159,6 @@ class Array_map(QtWidgets.QWidget):
         self.bot_row.addWidget(self.go2eq_button)
         self.bot_row.addWidget(self.save_map_button)
         self.bot_row.addWidget(self.status_label)
-        # self.connectSignals()
 
     def init_colormap(self):
         self.init_lat_lon_dimensions()
@@ -187,7 +182,7 @@ class Array_map(QtWidgets.QWidget):
         # self.plotWidget.draw_idle()
 
     def add_merid_paral(self):
-        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.8, color='dimgray', linewidth=self.linewidth, zorder=7)
+        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.8, color='gray', linewidth=self.linewidth/2, zorder=7)
         # current cartopy version does not support label removal. Devs are working on it.
         # Should be fixed with next cartopy version
         # self.gridlines.xformatter = LONGITUDE_FORMATTER
@@ -526,22 +521,18 @@ class Array_map(QtWidgets.QWidget):
                 print(message, e)
                 print(traceback.format_exc())
 
-    def draw_contour_filled(self, nlevel=100):
-        # self.test_gradient()
-
+    def draw_contour_filled(self, nlevel=50):
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
 
         self.contourf = self.canvas.axes.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                                  linewidths=self.linewidth, transform=ccrs.PlateCarree(),
-                                                  alpha=0.7, zorder=8, cmap=self.get_colormap())
+                                                  linewidths=self.linewidth*4, transform=ccrs.PlateCarree(),
+                                                  alpha=0.4, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
 
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
-        # self.sc = self.basemap.scatter(lons, lats, s=self.pointsize, facecolor='none', latlon=True, marker='.',
-        #                               zorder=10, picker=True, edgecolor='0.5', label='Not Picked')
 
         self.sc = self.canvas.axes.scatter(lons, lats, s=self.pointsize * 3, facecolor='none', marker='.',
                                            zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
@@ -593,6 +584,7 @@ class Array_map(QtWidgets.QWidget):
                                               linewidth=self.pointsize / 15., foreground='k')]))
 
         self.legend = self.canvas.axes.legend(loc=1, framealpha=1)
+        self.legend.set_zorder(100)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.95))
 
     def add_cbar(self, label):

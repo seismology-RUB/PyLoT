@@ -1988,6 +1988,7 @@ class PickDlg(QDialog):
         settings = QtCore.QSettings()
         p_phases = settings.value('p_phases')
         s_phases = settings.value('s_phases')
+        phases = ''
         if not p_phases and not s_phases:
             print('No phases for TauPy selected in Preferences.')
         if p_phases and s_phases:
