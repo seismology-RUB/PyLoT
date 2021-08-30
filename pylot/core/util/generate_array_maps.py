@@ -3,6 +3,14 @@
 # small script that creates array maps for each event within a previously generated PyLoT project
 
 import os
+num_thread = "16"
+os.environ["OMP_NUM_THREADS"] = num_thread
+os.environ["OPENBLAS_NUM_THREADS"] = num_thread
+os.environ["MKL_NUM_THREADS"] = num_thread
+os.environ["VECLIB_MAXIMUM_THREADS"] = num_thread
+os.environ["NUMEXPR_NUM_THREADS"] = num_thread
+os.environ["NUMEXPR_MAX_THREADS"] = num_thread
+
 import multiprocessing
 import sys
 import glob
@@ -61,7 +69,7 @@ def array_map_worker(input_dict):
             metadata = Metadata(inventory=metadata_path, verbosity=0)
 
         # create figure to plot on
-        fig, ax = plt.subplots(figsize=(16, 9))
+        fig, ax = plt.subplots(figsize=(15, 9))
         # create array map object
         map = Array_map(None, metadata, parameter=input_dict['project'].parameter, axes=ax,
                         width=2.13e6, height=1.2e6, pointsize=25., linewidth=1.0)

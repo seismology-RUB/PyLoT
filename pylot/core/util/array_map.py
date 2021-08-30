@@ -172,9 +172,9 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.fig.tight_layout()
 
     def add_merid_paral(self):
-        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.8, color='gray', linewidth=self.linewidth/2, zorder=7)
+        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.6, color='gray', linewidth=self.linewidth/2, zorder=7)
         # TODO: current cartopy version does not support label removal. Devs are working on it.
-        #  Should be fixed with next cartopy version
+        #  Should be fixed in coming cartopy versions
         # self.gridlines.xformatter = LONGITUDE_FORMATTER
         # self.gridlines.yformatter = LATITUDE_FORMATTER
 
@@ -511,7 +511,7 @@ class Array_map(QtWidgets.QWidget):
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
 
         self.contourf = self.canvas.axes.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                                  linewidths=self.linewidth*4, transform=ccrs.PlateCarree(),
+                                                  linewidths=self.linewidth*5, transform=ccrs.PlateCarree(),
                                                   alpha=0.4, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):

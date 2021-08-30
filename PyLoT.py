@@ -96,10 +96,9 @@ from pylot.styles import style_settings
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
-elif sys.version_info.major == 2:
-    import icons_rc_2 as icons_rc
 else:
-    raise ImportError('Could not determine python version.')
+    raise ImportError(f'Python version {sys.version_info.major} of current interpreter not supported.'
+                      f'\nPlease use Python 3+.')
 
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
 icons_rc = icons_rc
@@ -189,6 +188,7 @@ class MainWindow(QMainWindow):
         self.table_headers = ['', 'Event', 'Time', 'Lat', 'Lon', 'Depth', 'Ml', 'Mw', '[N] MP', '[N] AP', 'Tuning Set',
                               'Test Set', 'Notes']
 
+        # TODO: refactor rootpath to datapath
         while True:
             try:
                 if settings.value("user/FullName", None) is None:
@@ -496,11 +496,6 @@ class MainWindow(QMainWindow):
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
 
-        # phaseToolBar = self.addToolBar("PhaseTools")
-        # phaseToolActions = (self.selectPAction, self.selectSAction)
-        # phaseToolBar.setObjectName("PhaseTools")
-        # self.addActions(phaseToolBar, phaseToolActions)
-
         # create button group for component selection
 
         componentGroup = QActionGroup(self)
@@ -727,7 +722,6 @@ class MainWindow(QMainWindow):
         _widget.showFullScreen()
 
         self.setCentralWidget(_widget)
-
 
     def init_wfWidget(self):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
@@ -1195,13 +1189,14 @@ class MainWindow(QMainWindow):
             if system_name in ["Linux", "Darwin"]:
                 dirs = {
                     'database': path.split('/')[-2],
-                    'datapath': path.split('/')[-3],
+                    'datapath': os.path.split(path)[0],  # path.split('/')[-3],
                     'rootpath': '/' + os.path.join(*path.split('/')[:-3])
                 }
             elif system_name == "Windows":
                 rootpath = path.split('/')[:-3]
                 rootpath[0] += '/'
                 dirs = {
+                    # TODO: Arrange path to meet Win standards
                     'database': path.split('/')[-2],
                     'datapath': path.split('/')[-3],
                     'rootpath': os.path.join(*rootpath)
@@ -1215,7 +1210,7 @@ class MainWindow(QMainWindow):
             print('Warning: Could not automatically init folder structure. ({})'.format(e))
 
         settings = QSettings()
-        settings.setValue("data/dataRoot", dirs['rootpath'])
+        settings.setValue("data/dataRoot", dirs['datapath'])  #d irs['rootpath'])
         settings.sync()
 
         if not self.project.eventlist:
@@ -1233,14 +1228,16 @@ class MainWindow(QMainWindow):
             if not dirs_box.exec_():
                 return
             self.project.rootpath = dirs['rootpath']
+            self.project.datapath = dirs['datapath']
         else:
-            if hasattr(self.project, 'rootpath'):
-                if not self.project.rootpath == dirs['rootpath']:
+            if hasattr(self.project, 'datapath'):
+                if not self.project.datapath == dirs['datapath']:
                     QMessageBox.warning(self, "PyLoT Warning",
-                                        'Rootpath missmatch to current project!')
+                                        'Datapath missmatch to current project!')
                     return
             else:
                 self.project.rootpath = dirs['rootpath']
+                self.project.datapath = dirs['datapath']
 
         self.project.add_eventlist(eventlist)
         self.init_events()
@@ -3758,11 +3755,12 @@ class Project(object):
     '''
     Pickable class containing information of a PyLoT project, like event lists and file locations.
     '''
-
+    # TODO: remove rootpath
     def __init__(self):
         self.eventlist = []
         self.location = None
         self.rootpath = None
+        self.datapath = None
         self.dirty = False
         self.parameter = None
         self._table = None
@@ -3851,7 +3849,7 @@ class Project(object):
             if not event.datapath in datapaths:
                 datapaths.append(event.datapath)
         for datapath in datapaths:
-            datapath = os.path.join(self.rootpath, datapath)
+            # datapath = os.path.join(self.rootpath, datapath)
             if os.path.isdir(datapath):
                 for filename in os.listdir(datapath):
                     filename = os.path.join(datapath, filename)
