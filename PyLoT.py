@@ -2866,10 +2866,7 @@ class MainWindow(QMainWindow):
         event.pylot_autopicks = {}
         picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data())
         event.addPicks(picksdict['manual'])
-        if picksdict['auto'] == {}:
-            event.addAutopicks(picksdict)
-        else:
-            event.addAutopicks(picksdict['auto'])
+        event.addAutopicks(picksdict['auto'])
 
 
     def drawPicks(self, station=None, picktype=None, stime=None):
