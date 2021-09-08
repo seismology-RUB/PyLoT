@@ -380,7 +380,7 @@ def check_time(datetime):
     except ValueError:
         return False
 
-
+# TODO: change root to datapath
 def get_file_list(root_dir):
     """
     Function uses a directorie to get all the *.gse files from it.

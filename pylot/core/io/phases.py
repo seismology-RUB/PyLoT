@@ -376,7 +376,7 @@ def picks_from_picksdict(picks, creation_info=None):
 
 def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
     import glob
-
+    # TODO: change root to datapath
     db_root = os.path.join(root_dir, db_dir)
     evt_list = glob.glob1(db_root, 'e????.???.??')
 
@@ -391,6 +391,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
 
     from pylot.core.io.inputs import PylotParameter
     from pylot.core.pick.utils import earllatepicker
+    # TODO: change root to datapath
 
     if fn_param is None:
         fn_param = defaults.AUTOMATIC_DEFAULTS
@@ -483,7 +484,6 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
             os.makedirs(out_dir)
         fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
-    # evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
 def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):

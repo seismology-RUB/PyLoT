@@ -1324,6 +1324,7 @@ class MainWindow(QMainWindow):
             return True
 
     def modify_project_path(self, new_rootpath):
+        # TODO: change root to datapath
         self.project.rootpath = new_rootpath
         for event in self.project.eventlist:
             event.rootpath = new_rootpath

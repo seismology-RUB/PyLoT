@@ -61,10 +61,9 @@ from pylot.core.util.dataprocessing import Metadata
 
 if sys.version_info.major == 3:
     import icons_rc_3 as icons_rc
-elif sys.version_info.major == 2:
-    import icons_rc_2 as icons_rc
 else:
-    raise ImportError('Could not determine python version.')
+    raise ImportError(f'Python version {sys.version_info.major} of current interpreter not supported.'
+                      f'\nPlease use Python 3+.')
 
 
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
@@ -4589,7 +4588,7 @@ class InputsTab(PropTab):
             self.fullNameEdit.setText(fulluser)
         except TypeError as e:
             self.fullNameEdit.setText(fulluser[0])
-
+        # TODO: check settings and substitute datapath for root
         # information about data structure
         dataroot = settings.value("data/dataRoot")
         curstructure = settings.value("data/Structure")

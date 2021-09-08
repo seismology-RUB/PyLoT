@@ -400,6 +400,7 @@ class PDFstatistics(object):
     This object can be used to get various statistic values from probability density functions.
     Takes a path as argument.
     """
+    # TODO: change root to datapath
 
     def __init__(self, directory):
         """Initiates some values needed when dealing with pdfs later"""

@@ -794,8 +794,8 @@ class PilotDataStructure(GenericDataStructure):
 
     def __init__(self, **fields):
         if not fields:
-            fields = {'database': '2006.01',
-                      'root': '/data/Egelados/EVENT_DATA/LOCAL'}
+            fields = {'database': '',
+                      'root': ''}
 
         GenericDataStructure.__init__(self, **fields)
 
