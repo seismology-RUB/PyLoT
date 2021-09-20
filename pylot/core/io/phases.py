@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import pdb
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
@@ -252,8 +252,7 @@ def picksdict_from_picks(evt):
         if pick_method == 'None':
             pick_method = 'manual'
         try:
-            #onsets = picksdict[picker][station]
-            onsets = picksdict[station]
+            onsets = picksdict[pick_method][station]
         except KeyError as e:
             # print(e)
             onsets = {}
@@ -764,30 +763,38 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
+        # check for automatic and manual picks
+        # prefer manual picks
+        if arrivals['auto'] and arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        elif arrivals['auto']:
+            usedarrivals = arrivals['auto']
+        elif arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        for key in usedarrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4:
+            if usedarrivals[key].has_key('P'):
+                if usedarrivals[key]['P']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Ponset = arrivals[key]['P']['mpp']
-                    Pweight = arrivals[key]['P']['weight']
+                    Ponset = usedarrivals[key]['P']['mpp']
+                    Pweight = usedarrivals[key]['P']['weight']
                     Prt = Ponset - stime  # onset time relative to source time
                     if n % 6 is not 0:
                         fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
                     else:
                         fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
                         # S onsets
-            if arrivals[key].has_key('S'):
-                if arrivals[key]['S']['weight'] < 4:
+            if usedarrivals[key].has_key('S'):
+                if usedarrivals[key]['S']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Sonset = arrivals[key]['S']['mpp']
-                    Sweight = arrivals[key]['S']['weight']
+                    Sonset = usedarrivals[key]['S']['mpp']
+                    Sweight = usedarrivals[key]['S']['weight']
                     Srt = Ponset - stime  # onset time relative to source time
                     if n % 6 is not 0:
                         fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
@@ -818,17 +825,25 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
+        # check for automatic and manual picks
+        # prefer manual picks
+        if arrivals['auto'] and arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        elif arrivals['auto']:
+            usedarrivals = arrivals['auto']
+        elif arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        for key in usedarrivals:
+            if usedarrivals[key].has_key('P'):
                 # P onsets
-                if arrivals[key]['P']['weight'] < 4:
-                    Ponset = arrivals[key]['P']['mpp']
+                if usedarrivals[key]['P']['weight'] < 4:
+                    Ponset = usedarrivals[key]['P']['mpp']
                     Prt = Ponset - stime  # onset time relative to source time
                     fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-            if arrivals[key].has_key('S'):
+            if usedarrivals[key].has_key('S'):
                 # S onsets
-                if arrivals[key]['S']['weight'] < 4:
-                    Sonset = arrivals[key]['S']['mpp']
+                if usedarrivals[key]['S']['weight'] < 4:
+                    Sonset = usedarrivals[key]['S']['mpp']
                     Srt = Sonset - stime  # onset time relative to source time
                     fid.write('%-5s    %6.3f  1  S\n' % (key, Srt))
 
@@ -866,9 +881,17 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
+        # check for automatic and manual picks
+        # prefer manual picks
+        if arrivals['auto'] and arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        elif arrivals['auto']:
+            usedarrivals = arrivals['auto']
+        elif arrivals['manual']:
+            usedarrivals = arrivals['manual']
+        for key in usedarrivals:
+            if usedarrivals[key].has_key('P'):
+                if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
                         station = picks[i].waveform_id.station_code
@@ -887,7 +910,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                     fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
                                                                            az,
                                                                            inz,
-                                                                           arrivals[key]['P']['fm']))
+                                                                           usedarrivals[key]['P']['fm']))
                                     break
 
         fid.close()
