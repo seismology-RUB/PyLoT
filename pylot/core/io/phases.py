@@ -573,6 +573,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 except KeyError as e:
                     print(str(e) + '; no weight set during processing')
                 Ao = arrivals[key]['S']['Ao'] # peak-to-peak amplitude
+                if Ao == None:
+                    Ao = 0.0
                 #fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
                                                                                            fm,
@@ -765,6 +767,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
+        if len(arrivals.keys()) > 2:
+            arrivals = {'manual': {}, 'auto': arrivals}
         if arrivals['auto'] and arrivals['manual']:
             usedarrivals = arrivals['manual']
         elif arrivals['auto']:
@@ -812,7 +816,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
             return
         stime = eventsource['time']
-        event = parameter.get('eventID')
+        event = eventinfo['pylot_id']
         hddID = event.split('.')[0][1:5]        
         # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
@@ -827,6 +831,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
+        if len(arrivals.keys()) > 2:
+            arrivals = {'manual': {}, 'auto': arrivals} 
         if arrivals['auto'] and arrivals['manual']:
             usedarrivals = arrivals['manual']
         elif arrivals['auto']:
@@ -883,6 +889,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
+        if len(arrivals.keys()) > 2:
+            arrivals = {'manual': {}, 'auto': arrivals}
         if arrivals['auto'] and arrivals['manual']:
             usedarrivals = arrivals['manual']
         elif arrivals['auto']:
