@@ -511,14 +511,14 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     :param eventinfo: optional, needed for VELEST-cnv file
             and FOCMEC- and HASH-input files 
     :type eventinfo: `obspy.core.event.Event` object
-    """
-
+    """    
     if fformat == 'NLLoc':
         print("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
                   (parameter.get('database'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -594,6 +594,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('                                                                %s\n' %
                   parameter.get('eventID'))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
@@ -670,6 +671,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P') and arrivals[key]['P']['mpp'] is not None:
@@ -767,14 +769,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        if len(arrivals.keys()) > 2:
-            arrivals = {'manual': {}, 'auto': arrivals}
-        if arrivals['auto'] and arrivals['manual']:
-            usedarrivals = arrivals['manual']
-        elif arrivals['auto']:
-            usedarrivals = arrivals['auto']
-        elif arrivals['manual']:
-            usedarrivals = arrivals['manual']
+        usedarrivals = chooseArrival(arrivals) 
         for key in usedarrivals:
             # P onsets
             if usedarrivals[key].has_key('P'):
@@ -816,8 +811,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
             return
         stime = eventsource['time']
-        event = eventinfo['pylot_id']
-        hddID = event.split('.')[0][1:5]        
+        try:
+            event = eventinfo['pylot_id']
+            hddID = event.split('.')[0][1:5]
+        except:
+            print ("Error 1111111!")
+            hddID = "00000"       
         # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
@@ -831,14 +830,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        if len(arrivals.keys()) > 2:
-            arrivals = {'manual': {}, 'auto': arrivals} 
-        if arrivals['auto'] and arrivals['manual']:
-            usedarrivals = arrivals['manual']
-        elif arrivals['auto']:
-            usedarrivals = arrivals['auto']
-        elif arrivals['manual']:
-            usedarrivals = arrivals['manual']
+        usedarrivals = chooseArrival(arrivals)
         for key in usedarrivals:
             if usedarrivals[key].has_key('P'):
                 # P onsets
@@ -889,14 +881,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        if len(arrivals.keys()) > 2:
-            arrivals = {'manual': {}, 'auto': arrivals}
-        if arrivals['auto'] and arrivals['manual']:
-            usedarrivals = arrivals['manual']
-        elif arrivals['auto']:
-            usedarrivals = arrivals['auto']
-        elif arrivals['manual']:
-            usedarrivals = arrivals['manual']
+        usedarrivals = chooseArrival(arrivals)
         for key in usedarrivals:
             if usedarrivals[key].has_key('P'):
                 if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
@@ -976,7 +961,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 eventsource['quality']['used_phase_count'],
                 erh, erz, eventinfo.magnitudes[0]['mag'],
                 hashID))
-
+        # Prefer Manual Picks over automatic ones if possible
+        arrivals = chooseArrivals(arrivals)
         # write phase lines
         for key in arrivals:
             if arrivals[key].has_key('P'):
@@ -1022,6 +1008,25 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid1.write('                                    %s' % hashID)
         fid1.close()
         fid2.close()
+
+def chooseArrival(arrivals):
+    """
+    takes arrivals and returns the manual picks if manual and automatic ones are there
+    returns automatic picks if only automatic picks are there
+    :param arrivals: 'dictionary' with automatic and or manual arrivals
+    :return: arrivals but with the manual picks prefered if possible
+    """
+    # If len of arrivals is greater than 2 it comes from autopicking so only autopicks are available
+    print("=== CHOOSE ===")
+    if len(arrivals) > 2:
+        return arrivals
+    if arrivals['auto'] and arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    elif arrivals['auto']:
+        usedarrivals = arrivals['auto']
+    elif arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    return usedarrivals
 
 
 def merge_picks(event, picks):
