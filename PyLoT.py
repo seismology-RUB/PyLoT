@@ -91,6 +91,8 @@ from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
+from pylot.core.io.getEventListFromXML import geteventlistfromxml 
+from pylot.core.io.getQualitiesfromxml import getQualitiesfromxml
 
 from pylot.styles import style_settings
 
@@ -333,6 +335,9 @@ class MainWindow(QMainWindow):
         compare_icon.addPixmap(QPixmap(':/icons/compare_button.png'))
         qualities_icon = QIcon()
         qualities_icon.addPixmap(QPixmap(':/icons/pick_qualities_button.png'))
+        eventlist_xml_icon = QIcon()
+        eventlist_xml_icon.addPixmap(QPixmap(':/icons/eventlist_xml_button.png'))
+
         self.newProjectAction = self.createAction(self, "&New project ...",
                                                   self.createNewProject,
                                                   QKeySequence.New, newIcon,
@@ -473,6 +478,11 @@ class MainWindow(QMainWindow):
         # LK will be implemented soon, basic script has already (03/2021) been finished
         self.qualities_action.setVisible(True)
 
+        self.eventlist_xml_action = self.createAction(parent=self, text='Create Eventlist from XML',
+                                                  slot=self.eventlistXml, shortcut='Alt+X',
+                                                  icon=eventlist_xml_icon, tip='Create an Eventlist from a XML File')
+        self.eventlist_xml_action.setEnabled(False)
+
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
                                         print_icon,
@@ -541,7 +551,7 @@ class MainWindow(QMainWindow):
                                                                                   ' the complete project on grid engine.')
         self.auto_pick_sge.setEnabled(False)
 
-        pickActions = (self.auto_tune, self.auto_pick, self.compare_action, self.qualities_action)
+        pickActions = (self.auto_tune, self.auto_pick, self.compare_action, self.qualities_action, self.eventlist_xml_action)
 
         # pickToolBar = self.addToolBar("PickTools")
         # pickToolActions = (selectStation, )
@@ -1628,6 +1638,14 @@ class MainWindow(QMainWindow):
         self.cmpw.show()
 
     def pickQualities(self):
+        path = self._inputs['rootpath'] + '/'  + self._inputs['datapath'] + '/' + self._inputs['database']
+        getQualitiesfromxml(path)
+        return
+
+    def eventlistXml(self):
+        path = self._inputs['rootpath'] + '/'  + self._inputs['datapath'] + '/' + self._inputs['database']
+        outpath = self.project.location[:self.project.location.rfind('/')]
+        geteventlistfromxml(path, outpath) 
         return
 
     def compareMulti(self):
@@ -2067,6 +2085,7 @@ class MainWindow(QMainWindow):
         if event.pylot_picks or event.pylot_autopicks:
             self.locateEventAction.setEnabled(True)
             self.qualities_action.setEnabled(True)
+            self.eventlist_xml_action.setEnabled(True)
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
@@ -2139,6 +2158,7 @@ class MainWindow(QMainWindow):
         self.loadpilotevent.setEnabled(False)
         self.compare_action.setEnabled(False)
         self.qualities_action.setEnabled(False)
+        self.eventlist_xml_action.setEnabled(False)
         self.locateEventAction.setEnabled(False)
         if not refresh_plot:
             self.wf_scroll_area.setVisible(False)
