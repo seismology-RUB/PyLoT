@@ -2539,7 +2539,13 @@ class MainWindow(QMainWindow):
                 self.drawPicks(station)
                 self.draw()
             if self.nextStation:
+                if not self.get_loc_flag() and self.check4Loc():
+                    self.locateEventAction.setEnabled(True)
+                    self.set_loc_flag(True)
+                elif self.get_loc_flag() and not self.check4Loc():
+                    self.set_loc_flag(False)
                 self.pickDialog(wfID - 1)
+
         else:
             self.update_status('picks discarded ({0})'.format(station))
         if not self.get_loc_flag() and self.check4Loc():
