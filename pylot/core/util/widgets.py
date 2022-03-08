@@ -82,6 +82,57 @@ class QDoubleSpinBox(QtWidgets.QDoubleSpinBox):
         event.ignore()
 
 
+class TextLogWidget(QtWidgets.QTextEdit):
+    highlight = Signal()
+
+    def __init__(self, parent, highlight_input=False):
+        super(TextLogWidget, self).__init__(parent)
+        self.highlight_input = highlight_input
+
+    def write(self, text):
+        self.append(text)
+        if self.highlight_input:
+            self.highlight.emit()
+
+
+class LogWidget(QtWidgets.QWidget):
+    def __init__(self, parent):
+        super(LogWidget, self).__init__(parent, Qt.Window)
+        self.current_active_error = False
+        self.qmb = None
+        self.setWindowTitle('PyLoT Log')
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(600)
+
+        self.stdout = TextLogWidget(self)
+        self.stderr = TextLogWidget(self, highlight_input=True)
+        self.stderr.highlight.connect(self.active_error)
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.stdout, 'Log')
+        self.tabs.addTab(self.stderr, 'Errors')
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.textfield = QtWidgets.QTextEdit()
+        self.setLayout(self.layout)
+        self.layout.addWidget(self.tabs)
+
+    def active_error(self):
+        if self.current_active_error == False:
+            self.current_active_error = True
+            self.show()
+            self.activateWindow()
+            self.tabs.setCurrentWidget(self.stderr)
+            self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,
+                                             'Error', 'Error occurred. Please check log!')
+            self.qmb.buttonClicked.connect(self.reset_error)
+            self.qmb.show()
+
+    def reset_error(self):
+        # used to make sure that write errors is finished before raising new Message box etc.
+        self.current_active_error = False
+
+
 def getDataType(parent):
     type = QInputDialog().getItem(parent, "Select phases type", "Type:",
                                   ["manual", "automatic"])

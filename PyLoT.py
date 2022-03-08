@@ -86,7 +86,7 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -731,6 +731,11 @@ class MainWindow(QMainWindow):
         _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
+        self.logwidget = LogWidget(parent=None)
+        self.logwidget.show()
+        sys.stdout = self.logwidget.stdout
+        sys.stderr = self.logwidget.stderr
+
         self.setCentralWidget(_widget)
 
     def init_wfWidget(self):
@@ -777,7 +782,6 @@ class MainWindow(QMainWindow):
             self.decrease_gain()
         if event.key() == QtCore.Qt.Key.Key_R:
             self.reset_gain()
-
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Control:
