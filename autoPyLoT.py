@@ -189,7 +189,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
-            if fnames == 'None' and parameter['eventID'] != '*':
+            if fnames == 'None' and parameter['eventID'] == '*':
                 # multiple event processing
                 # read each event in database
                 events = [event for event in glob.glob(os.path.join(datapath, '*')) if
