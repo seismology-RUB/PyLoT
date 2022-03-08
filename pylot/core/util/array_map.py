@@ -147,10 +147,11 @@ class Array_map(QtWidgets.QWidget):
 
         self.bot_row = QtWidgets.QHBoxLayout()
         self.main_box.addLayout(self.bot_row, 0.3)
-        self.bot_row.addWidget(self.map_reset_button)
-        self.bot_row.addWidget(self.go2eq_button)
-        self.bot_row.addWidget(self.save_map_button)
-        self.bot_row.addWidget(self.status_label)
+        self.bot_row.addWidget(QtWidgets.QLabel(''), 5)
+        self.bot_row.addWidget(self.map_reset_button, 2)
+        self.bot_row.addWidget(self.go2eq_button, 2)
+        self.bot_row.addWidget(self.save_map_button, 2)
+        self.bot_row.addWidget(self.status_label, 5)
 
     def init_colormap(self):
         self.init_lat_lon_dimensions()
@@ -226,7 +227,7 @@ class Array_map(QtWidgets.QWidget):
             return
         lat = event.ydata
         lon = event.xdata
-        self.status_label.setText('Latitude: {}, Longitude: {}'.format(lat, lon))
+        self.status_label.setText('Latitude: {:3.5f}, Longitude: {:3.5f}'.format(lat, lon))
 
     def mouse_scroll(self, event):
         if not event.inaxes == self.canvas.axes:
