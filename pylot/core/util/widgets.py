@@ -1218,7 +1218,7 @@ class PylotCanvas(FigureCanvas):
             parent.refreshPhaseText()
 
     def keyPressHandler(self, gui_event):
-        if gui_event.key == 'ctrl+s':
+        if gui_event.key == 'ctrl+p':
             self.saveFigure()
 
     def connectEvents(self):

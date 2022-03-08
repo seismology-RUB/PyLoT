@@ -215,6 +215,7 @@ class Array_map(QtWidgets.QWidget):
         self.refresh_button.clicked.connect(self._refresh_drawings)
         self.map_reset_button.clicked.connect(self.org_map_view)
         self.go2eq_button.clicked.connect(self.go2eq)
+        self.save_map_button.clicked.connect(self.saveFigure)
 
         self.plotWidget.mpl_connect('motion_notify_event', self.mouse_moved)
         self.plotWidget.mpl_connect('scroll_event', self.mouse_scroll)
@@ -672,6 +673,16 @@ class Array_map(QtWidgets.QWidget):
         for annotation in self.annotations:
             annotation.remove()
         self.annotations = []
+
+    def saveFigure(self):
+        if self.canvas.fig:
+            fd = QtWidgets.QFileDialog()
+            fname, filter = fd.getSaveFileName(self.parent(), filter='Images (*.png *.svg *.jpg)')
+            if not fname:
+                return
+            if not any([fname.endswith(item) for item in ['.png', '.svg', '.jpg']]):
+                fname += '.png'
+            self.canvas.fig.savefig(fname)
 
     def _warn(self, message):
         self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, 'Warning', message)
