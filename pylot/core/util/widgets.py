@@ -34,7 +34,7 @@ from PySide2.QtGui import QIcon, QPixmap, QKeySequence
 from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QDateTimeEdit, QDialog, QDialogButtonBox, QDoubleSpinBox, QGroupBox, \
     QGridLayout, QLabel, QLineEdit, QMessageBox, \
-    QSpinBox, QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
+    QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog
 from PySide2.QtCore import QSettings, Qt, QUrl, Signal, Slot
 from PySide2.QtWebEngineWidgets import QWebEngineView as QWebView
@@ -68,6 +68,18 @@ else:
 
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
 # icons_rc = icons_rc
+
+
+class QSpinBox(QtWidgets.QSpinBox):
+    ''' Custom SpinBox, insensitive to Mousewheel (prevents accidental changes when scrolling through parameters) '''
+    def wheelEvent(self, event):
+        event.ignore()
+
+
+class QDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    ''' Custom DoubleSpinBox, insensitive to Mousewheel (prevents accidental changes when scrolling through parameters) '''
+    def wheelEvent(self, event):
+        event.ignore()
 
 
 def getDataType(parent):
@@ -4027,11 +4039,11 @@ class PylotParaBox(QtWidgets.QWidget):
         if typ == str:
             box = QtWidgets.QLineEdit()
         elif typ == float:
-            box = QtWidgets.QDoubleSpinBox()
+            box = QDoubleSpinBox()
             box.setDecimals(4)
             box.setRange(-10e4, 10e4)
         elif typ == int:
-            box = QtWidgets.QSpinBox()
+            box = QSpinBox()
         elif typ == bool:
             box = QtWidgets.QCheckBox()
         else:
@@ -4224,7 +4236,7 @@ class PylotParaBox(QtWidgets.QWidget):
     def setValue(self, box, value):
         if type(box) == QtWidgets.QLineEdit:
             box.setText(str(value))
-        elif type(box) == QtWidgets.QSpinBox or type(box) == QtWidgets.QDoubleSpinBox:
+        elif type(box) == QSpinBox or type(box) == QDoubleSpinBox:
             if not value:
                 value = 0.
             box.setValue(value)
@@ -4241,7 +4253,7 @@ class PylotParaBox(QtWidgets.QWidget):
     def getValue(self, box):
         if type(box) == QtWidgets.QLineEdit:
             value = str(box.text())
-        elif type(box) == QtWidgets.QSpinBox or type(box) == QtWidgets.QDoubleSpinBox:
+        elif type(box) == QSpinBox or type(box) == QDoubleSpinBox:
             value = box.value()
         elif type(box) == QtWidgets.QCheckBox:
             value = box.isChecked()
@@ -4839,7 +4851,7 @@ class GraphicsTab(PropTab):
         if not nth_sample:
             nth_sample = 1
 
-        self.spinbox_nth_sample = QtWidgets.QSpinBox()
+        self.spinbox_nth_sample = QSpinBox()
         label = QLabel('nth sample')
         label.setToolTip('Plot every nth sample (to speed up plotting)')
         self.spinbox_nth_sample.setMinimum(1)

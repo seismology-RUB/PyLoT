@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import pdb
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
@@ -511,14 +511,14 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     :param eventinfo: optional, needed for VELEST-cnv file
             and FOCMEC- and HASH-input files 
     :type eventinfo: `obspy.core.event.Event` object
-    """
-
+    """    
     if fformat == 'NLLoc':
         print("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
                   (parameter.get('database'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -573,6 +573,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 except KeyError as e:
                     print(str(e) + '; no weight set during processing')
                 Ao = arrivals[key]['S']['Ao'] # peak-to-peak amplitude
+                if Ao == None:
+                    Ao = 0.0
                 #fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
                                                                                            fm,
@@ -592,6 +594,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('                                                                %s\n' %
                   parameter.get('eventID'))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
@@ -668,6 +671,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P') and arrivals[key]['P']['mpp'] is not None:
@@ -763,30 +767,33 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrival(arrivals) 
+        for key in usedarrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4:
+            if usedarrivals[key].has_key('P'):
+                if usedarrivals[key]['P']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Ponset = arrivals[key]['P']['mpp']
-                    Pweight = arrivals[key]['P']['weight']
+                    Ponset = usedarrivals[key]['P']['mpp']
+                    Pweight = usedarrivals[key]['P']['weight']
                     Prt = Ponset - stime  # onset time relative to source time
                     if n % 6 != 0:
                         fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
                     else:
                         fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
                         # S onsets
-            if arrivals[key].has_key('S'):
-                if arrivals[key]['S']['weight'] < 4:
+            if usedarrivals[key].has_key('S'):
+                if usedarrivals[key]['S']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Sonset = arrivals[key]['S']['mpp']
-                    Sweight = arrivals[key]['S']['weight']
+                    Sonset = usedarrivals[key]['S']['mpp']
+                    Sweight = usedarrivals[key]['S']['weight']
                     Srt = Ponset - stime  # onset time relative to source time
                     if n % 6 != 0:
                         fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
@@ -804,8 +811,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
             return
         stime = eventsource['time']
-        event = parameter.get('eventID')
-        hddID = event.split('.')[0][1:5]        
+        try:
+            event = eventinfo['pylot_id']
+            hddID = event.split('.')[0][1:5]
+        except:
+            print ("Error 1111111!")
+            hddID = "00000"       
         # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
@@ -817,17 +828,20 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrival(arrivals)
+        for key in usedarrivals:
+            if usedarrivals[key].has_key('P'):
                 # P onsets
-                if arrivals[key]['P']['weight'] < 4:
-                    Ponset = arrivals[key]['P']['mpp']
+                if usedarrivals[key]['P']['weight'] < 4:
+                    Ponset = usedarrivals[key]['P']['mpp']
                     Prt = Ponset - stime  # onset time relative to source time
                     fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-            if arrivals[key].has_key('S'):
+            if usedarrivals[key].has_key('S'):
                 # S onsets
-                if arrivals[key]['S']['weight'] < 4:
-                    Sonset = arrivals[key]['S']['mpp']
+                if usedarrivals[key]['S']['weight'] < 4:
+                    Sonset = usedarrivals[key]['S']['mpp']
                     Srt = Sonset - stime  # onset time relative to source time
                     fid.write('%-5s    %6.3f  1  S\n' % (key, Srt))
 
@@ -865,9 +879,12 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
             arrivals = picksdict_from_picks(evt)
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrival(arrivals)
+        for key in usedarrivals:
+            if usedarrivals[key].has_key('P'):
+                if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
                         station = picks[i].waveform_id.station_code
@@ -886,7 +903,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                     fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
                                                                            az,
                                                                            inz,
-                                                                           arrivals[key]['P']['fm']))
+                                                                           usedarrivals[key]['P']['fm']))
                                     break
 
         fid.close()
@@ -944,7 +961,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 eventsource['quality']['used_phase_count'],
                 erh, erz, eventinfo.magnitudes[0]['mag'],
                 hashID))
-
+        # Prefer Manual Picks over automatic ones if possible
+        arrivals = chooseArrivals(arrivals)
         # write phase lines
         for key in arrivals:
             if arrivals[key].has_key('P'):
@@ -990,6 +1008,25 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid1.write('                                    %s' % hashID)
         fid1.close()
         fid2.close()
+
+def chooseArrival(arrivals):
+    """
+    takes arrivals and returns the manual picks if manual and automatic ones are there
+    returns automatic picks if only automatic picks are there
+    :param arrivals: 'dictionary' with automatic and or manual arrivals
+    :return: arrivals but with the manual picks prefered if possible
+    """
+    # If len of arrivals is greater than 2 it comes from autopicking so only autopicks are available
+    print("=== CHOOSE ===")
+    if len(arrivals) > 2:
+        return arrivals
+    if arrivals['auto'] and arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    elif arrivals['auto']:
+        usedarrivals = arrivals['auto']
+    elif arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    return usedarrivals
 
 
 def merge_picks(event, picks):
