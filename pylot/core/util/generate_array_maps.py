@@ -3,6 +3,7 @@
 # small script that creates array maps for each event within a previously generated PyLoT project
 
 import os
+
 num_thread = "16"
 os.environ["OMP_NUM_THREADS"] = num_thread
 os.environ["OPENBLAS_NUM_THREADS"] = num_thread
@@ -15,6 +16,7 @@ import multiprocessing
 import sys
 import glob
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 sys.path.append(os.path.join('/'.join(sys.argv[0].split('/')[:-1]), '../../..'))
 
@@ -52,7 +54,8 @@ def array_map_worker(input_dict):
     print('Working on event: {} ({}/{})'.format(eventdir, input_dict['index'] + 1, input_dict['nEvents']))
     xml_picks = glob.glob(os.path.join(eventdir, f'*{input_dict["f_ext"]}.xml'))
     if not len(xml_picks):
-        print('Event {} does not have any picks associated with event file extension {}'. format(eventdir, input_dict['f_ext']))
+        print('Event {} does not have any picks associated with event file extension {}'.format(eventdir,
+                                                                                                input_dict['f_ext']))
         return
     # check for picks
     manualpicks = event.getPicks()
@@ -92,4 +95,3 @@ if __name__ == '__main__':
 
     for infile in args.infiles:
         main(os.path.join(args.dataroot, infile), f_ext='_correlated_0.03-0.1', ncores=args.ncores)
-

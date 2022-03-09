@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import numpy as np
 import os
 import platform
 import re
 import subprocess
 import warnings
+
+import numpy as np
 from obspy import UTCDateTime, read
 from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne

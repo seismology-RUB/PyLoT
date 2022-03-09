@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glob
+import os
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
-import os
 import scipy.io as sio
-import warnings
 from obspy.core import UTCDateTime
 from obspy.core.event import read_events
 from obspy.core.util import AttribDict
@@ -507,14 +508,14 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     :param eventinfo: optional, needed for VELEST-cnv file
             and FOCMEC- and HASH-input files 
     :type eventinfo: `obspy.core.event.Event` object
-    """    
+    """
     if fformat == 'NLLoc':
         print("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
                   (parameter.get('database'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals) # MP MP what is chooseArrivals? It is not defined anywhere
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -568,20 +569,20 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                         sweight = 0  # do not use pick
                 except KeyError as e:
                     print(str(e) + '; no weight set during processing')
-                Ao = arrivals[key]['S']['Ao'] # peak-to-peak amplitude
+                Ao = arrivals[key]['S']['Ao']  # peak-to-peak amplitude
                 if Ao == None:
                     Ao = 0.0
-                #fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                # fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
                 fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
-                                                                                           fm,
-                                                                                           year,
-                                                                                           month,
-                                                                                           day,
-                                                                                           hh,
-                                                                                           mm,
-                                                                                           ss_ms,
-                                                                                           Ao,
-                                                                                           sweight))
+                                                                                               fm,
+                                                                                               year,
+                                                                                               month,
+                                                                                               day,
+                                                                                               hh,
+                                                                                               mm,
+                                                                                               ss_ms,
+                                                                                               Ao,
+                                                                                               sweight))
 
         fid.close()
     elif fformat == 'HYPO71':
@@ -590,7 +591,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('                                                                %s\n' %
                   parameter.get('eventID'))
-        arrivals = chooseArrivals(arrivals) # MP MP what is chooseArrivals? It is not defined anywhere
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
@@ -765,7 +766,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        usedarrivals = chooseArrival(arrivals) 
+        usedarrivals = chooseArrival(arrivals)
         for key in usedarrivals:
             # P onsets
             if usedarrivals[key].has_key('P'):
@@ -811,9 +812,9 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             event = eventinfo['pylot_id']
             hddID = event.split('.')[0][1:5]
         except:
-            print ("Error 1111111!")
-            hddID = "00000"       
-        # write header
+            print("Error 1111111!")
+            hddID = "00000"
+            # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
             eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
@@ -1004,6 +1005,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid1.write('                                    %s' % hashID)
         fid1.close()
         fid2.close()
+
 
 def chooseArrival(arrivals):
     """

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import numpy as np
 import os
 import sys
+
+import numpy as np
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
 
@@ -46,7 +47,7 @@ class Metadata(object):
     def __repr__(self):
         return self.__str__()
 
-    def add_inventory(self, path_to_inventory, obspy_dmt_inv = False):
+    def add_inventory(self, path_to_inventory, obspy_dmt_inv=False):
         """
         Add path to list of inventories.
         :param path_to_inventory: Path to a folder
@@ -211,6 +212,7 @@ class Metadata(object):
                         self.stations_dict[st_id] = {'latitude': station[0].latitude,
                                                      'longitude': station[0].longitude,
                                                      'elevation': station[0].elevation}
+
         read_stat = {'xml': stat_info_from_inventory,
                      'dless': stat_info_from_parser}
 
@@ -379,6 +381,7 @@ def check_time(datetime):
         return True
     except ValueError:
         return False
+
 
 # TODO: change root to datapath
 def get_file_list(root_dir):

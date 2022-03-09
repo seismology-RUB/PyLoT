@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from obspy import UTCDateTime
 
 
@@ -36,12 +37,12 @@ def qml_from_obspyDMT(path):
         return IOError('Could not find Event at {}'.format(path))
 
     with open(path, 'rb') as infile:
-        event_dmt = pickle.load(infile)#, fix_imports=True)
+        event_dmt = pickle.load(infile)  # , fix_imports=True)
 
     event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
 
     ev = Event(resource_id=event_dmt['event_id'])
-    #small bugfix "unhashable type: 'newstr' "
+    # small bugfix "unhashable type: 'newstr' "
     event_dmt['origin_id'].id = str(event_dmt['origin_id'].id)
 
     origin = Origin(resource_id=event_dmt['origin_id'],

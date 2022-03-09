@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import os
-import matplotlib
-
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCore import Qt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.patheffects as PathEffects
+import traceback
 
 import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
 import cartopy.feature as cf
-from cartopy.mpl.gridliner import LongitudeFormatter, LatitudeFormatter
-
-import traceback
-import obspy
+import matplotlib
+import matplotlib.patheffects as PathEffects
+import matplotlib.pyplot as plt
 import numpy as np
+import obspy
+from PySide2 import QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy.interpolate import griddata
-from pylot.core.util.widgets import PickDlg
+
 from pylot.core.pick.utils import get_quality_class
+from pylot.core.util.widgets import PickDlg
 
 matplotlib.use('Qt5Agg')
 
@@ -173,7 +168,8 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.fig.tight_layout()
 
     def add_merid_paral(self):
-        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.6, color='gray', linewidth=self.linewidth/2, zorder=7)
+        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.6, color='gray',
+                                                    linewidth=self.linewidth / 2, zorder=7)
         # TODO: current cartopy version does not support label removal. Devs are working on it.
         #  Should be fixed in coming cartopy versions
         # self.gridlines.xformatter = LONGITUDE_FORMATTER
@@ -513,7 +509,7 @@ class Array_map(QtWidgets.QWidget):
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
 
         self.contourf = self.canvas.axes.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                                  linewidths=self.linewidth*5, transform=ccrs.PlateCarree(),
+                                                  linewidths=self.linewidth * 5, transform=ccrs.PlateCarree(),
                                                   alpha=0.4, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):

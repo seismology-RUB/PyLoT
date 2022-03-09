@@ -3,16 +3,16 @@
 
 import copy
 import os
+
+from PySide2.QtWidgets import QMessageBox
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.io.sac import SacIOError
 
-from PySide2.QtWidgets import QMessageBox
-
-import pylot.core.loc.velest as velest
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hypodd as hypodd
+import pylot.core.loc.velest as velest
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks, PylotParameter
 from pylot.core.util.errors import FormatError, OverwriteError
@@ -100,7 +100,7 @@ class Data(object):
                                       old_pick.phase_hint == new_pick.phase_hint,
                                       old_pick.method_id == new_pick.method_id]
                         if all(comparison):
-                            del(old_pick)
+                            del (old_pick)
                 old_picks.append(new_pick)
         elif not other.isNew() and self.isNew():
             new = other + self
@@ -112,7 +112,7 @@ class Data(object):
             return self + other
         else:
             raise ValueError("both Data objects have differing "
-              "unique Event identifiers")
+                             "unique Event identifiers")
         return self
 
     def getPicksStr(self):
@@ -250,7 +250,7 @@ class Data(object):
             for pick in self.get_evt_data().picks:
                 if picktype in str(pick.method_id.id):
                     picks.append(pick)
-                
+
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
         """
         Export event to file
@@ -260,7 +260,7 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
-        
+
         if not type(fcheck) == list:
             fcheck = [fcheck]
 
@@ -293,7 +293,7 @@ class Data(object):
                     return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
-                
+
             self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event
@@ -360,13 +360,13 @@ class Data(object):
                     nllocfile = open(fnout + fnext)
                     l = nllocfile.readlines()
                     # Adding A0/Generic Amplitude to .obs file
-                    #l2 = []
-                    #for li in l:
+                    # l2 = []
+                    # for li in l:
                     #    for amp in evtdata_org.amplitudes:
                     #        if amp.waveform_id.station_code == li[0:5].strip():
                     #            li = li[0:64] + '{:0.2e}'.format(amp.generic_amplitude) + li[73:-1] + '\n'
                     #            l2.append(li)
-                    #l = l2
+                    # l = l2
                     nllocfile.close()
                     l.insert(0, header)
                     nllocfile = open(fnout + fnext, 'w')
@@ -503,7 +503,8 @@ class Data(object):
                     real_or_syn_data[synthetic] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
                 except Exception as e:
                     try:
-                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart, endtime=self.tstop)
+                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart,
+                                                            endtime=self.tstop)
                     except Exception as e:
                         warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:

@@ -8,14 +8,15 @@ Created on Wed Mar 19 11:27:35 2014
 import copy
 import datetime
 import getpass
-import matplotlib
 import multiprocessing
-import numpy as np
 import os
 import subprocess
 import sys
 import time
 import traceback
+
+import matplotlib
+import numpy as np
 
 matplotlib.use('QT5Agg')
 
@@ -36,7 +37,7 @@ from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QGridLayout, QLabel, QLineEdit, QMessageBox, \
     QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog
-from PySide2.QtCore import QSettings, Qt, QUrl, Signal, Slot
+from PySide2.QtCore import QSettings, Qt, QUrl, Signal
 from PySide2.QtWebEngineWidgets import QWebEngineView as QWebView
 from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
@@ -65,19 +66,20 @@ else:
     raise ImportError(f'Python version {sys.version_info.major} of current interpreter not supported.'
                       f'\nPlease use Python 3+.')
 
-
 # workaround to prevent PyCharm from deleting icons_rc import when optimizing imports
-# icons_rc = icons_rc
+icons_rc = icons_rc
 
 
 class QSpinBox(QtWidgets.QSpinBox):
     ''' Custom SpinBox, insensitive to Mousewheel (prevents accidental changes when scrolling through parameters) '''
+
     def wheelEvent(self, event):
         event.ignore()
 
 
 class QDoubleSpinBox(QtWidgets.QDoubleSpinBox):
     ''' Custom DoubleSpinBox, insensitive to Mousewheel (prevents accidental changes when scrolling through parameters) '''
+
     def wheelEvent(self, event):
         event.ignore()
 
@@ -131,7 +133,7 @@ class LogWidget(QtWidgets.QWidget):
     def reset_error(self):
         # used to make sure that write errors is finished before raising new Message box etc.
         self.current_active_error = False
-        self.stderr.append(60*'#' + '\n\n')
+        self.stderr.append(60 * '#' + '\n\n')
 
 
 def getDataType(parent):

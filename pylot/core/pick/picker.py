@@ -19,9 +19,10 @@ calculated after Diehl & Kissling (2009).
 :author: MAGS2 EP3 working group / Ludger Kueperkoch
 """
 
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
 from scipy.signal import argrelmax, argrelmin
 
 from pylot.core.pick.charfuns import CharacteristicFunction
@@ -476,7 +477,7 @@ class PragPicker(AutoPicker):
             cfpick_r = 0
             cfpick_l = 0
             lpickwindow = int(round(self.PickWindow / self.dt))
-            #for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
+            # for i in range(max(np.insert(ipick, 0, 2)), min([ipick1 + lpickwindow + 1, len(self.cf) - 1])):
             #    # local minimum
             #    if self.cf[i + 1] > self.cf[i] <= self.cf[i - 1]:
             #        if cfsmooth[i - 1] * (1 + aus1) >= cfsmooth[i]:
@@ -509,7 +510,7 @@ class PragPicker(AutoPicker):
                 self.Pick = pick_l
                 pickflag = 1
             elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
-                self.Pick = pick_r # MP MP there is no pick_r defined, commented out after commit of LK on 29.07.2020 (see above)
+                self.Pick = pick_r  # MP MP there is no pick_r defined, commented out after commit of LK on 29.07.2020 (see above)
                 pickflag = 1
             elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
                 self.Pick = pick_l

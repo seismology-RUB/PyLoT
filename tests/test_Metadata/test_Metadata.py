@@ -1,5 +1,6 @@
 import os
 import unittest
+
 from obspy import UTCDateTime
 from obspy.io.xseed import Parser
 from obspy.io.xseed.utils import SEEDParserException
@@ -27,7 +28,7 @@ class TestMetadata(unittest.TestCase):
         result = {}
         for channel in ('Z', 'N', 'E'):
             with HidePrints():
-                coords = self.m.get_coordinates(self.station_id+channel, time=self.time)
+                coords = self.m.get_coordinates(self.station_id + channel, time=self.time)
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
@@ -42,7 +43,7 @@ class TestMetadata(unittest.TestCase):
         result = {}
         for channel in ('Z', 'N', 'E'):
             with HidePrints():
-                coords = self.m.get_coordinates(self.station_id+channel)
+                coords = self.m.get_coordinates(self.station_id + channel)
             result[channel] = coords
             self.assertDictEqual(result[channel], expected[channel])
 
@@ -145,7 +146,7 @@ class TestMetadata_read_single_file(unittest.TestCase):
 
     def test_read_single_file(self):
         """Test if reading a single file works"""
-        fname = os.path.join(self.metadata_folders[0], 'DATALESS.'+self.station_id)
+        fname = os.path.join(self.metadata_folders[0], 'DATALESS.' + self.station_id)
         with HidePrints():
             res = self.m.read_single_file(fname)
         # method should return true if file is successfully read
@@ -172,7 +173,7 @@ class TestMetadata_read_single_file(unittest.TestCase):
 
     def test_read_single_file_multiple_times(self):
         """Test if reading a file twice doesnt add it twice to the metadata object"""
-        fname = os.path.join(self.metadata_folders[0], 'DATALESS.'+self.station_id)
+        fname = os.path.join(self.metadata_folders[0], 'DATALESS.' + self.station_id)
         with HidePrints():
             res1 = self.m.read_single_file(fname)
             res2 = self.m.read_single_file(fname)
@@ -197,7 +198,8 @@ class TestMetadataMultipleTime(unittest.TestCase):
     def setUp(self):
         self.seed_id = 'LE.ROTT..HN'
         path = os.path.dirname(__file__)  # gets path to currently running script
-        metadata = os.path.join('test_data', 'dless_multiple_times', 'MAGS2_LE_ROTT.dless')  # specific subfolder of test data
+        metadata = os.path.join('test_data', 'dless_multiple_times',
+                                'MAGS2_LE_ROTT.dless')  # specific subfolder of test data
         metadata_path = os.path.join(path, metadata)
         self.m = Metadata(metadata_path)
         self.p = Parser(metadata_path)
@@ -299,7 +301,8 @@ Channels:
     def setUp(self):
         self.seed_id = 'KB.TMO07.00.HHZ'
         path = os.path.dirname(__file__)  # gets path to currently running script
-        metadata = os.path.join('test_data', 'dless_multiple_instruments', 'MAGS2_KB_TMO07.dless')  # specific subfolder of test data
+        metadata = os.path.join('test_data', 'dless_multiple_instruments',
+                                'MAGS2_KB_TMO07.dless')  # specific subfolder of test data
         metadata_path = os.path.join(path, metadata)
         self.m = Metadata(metadata_path)
         self.p = Parser(metadata_path)

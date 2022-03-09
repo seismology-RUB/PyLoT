@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import copy
-import matplotlib.pyplot as plt
-import numpy as np
 import operator
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 from obspy.core import AttribDict
 
 from pylot.core.util.pdf import ProbabilityDensityFunction
@@ -117,7 +118,7 @@ class Comparison(object):
 
         pdf_a = self.get('auto').generate_pdf_data(type)
         pdf_b = self.get('manu').generate_pdf_data(type)
-        
+
         for station, phases in pdf_a.items():
             if station in pdf_b.keys():
                 compare_pdf = dict()
@@ -400,6 +401,7 @@ class PDFstatistics(object):
     This object can be used to get various statistic values from probability density functions.
     Takes a path as argument.
     """
+
     # TODO: change root to datapath
 
     def __init__(self, directory):

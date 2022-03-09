@@ -18,8 +18,8 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 """
 
 import numpy as np
-from scipy import signal
 from obspy.core import Stream
+from scipy import signal
 
 
 class CharacteristicFunction(object):
@@ -159,7 +159,7 @@ class CharacteristicFunction(object):
                 zz = self.orig_data.copy()
                 z1 = zz[0].copy()
                 zz[0].data = z1.data[int(start):int(stop)]
-                if zz[0].stats.npts == 0: # cut times do not fit data length!
+                if zz[0].stats.npts == 0:  # cut times do not fit data length!
                     zz[0].data = z1.data  # take entire data
                 data = zz
                 return data
@@ -241,7 +241,7 @@ class AICcf(CharacteristicFunction):
         ff = np.where(inf is True)
         if len(ff) >= 1:
             cf[ff] = 0
-      
+
         self.cf = cf - np.mean(cf)
         self.xcf = x
 
@@ -305,7 +305,7 @@ class HOScf(CharacteristicFunction):
         if ind.size:
             first = ind[0]
             LTA[:first] = LTA[first]
-        
+
         self.cf = LTA
         self.xcf = x
 
@@ -313,7 +313,8 @@ class HOScf(CharacteristicFunction):
 class ARZcf(CharacteristicFunction):
 
     def __init__(self, data, cut, t1, t2, pickparams):
-        super(ARZcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Parorder"], fnoise=pickparams["addnoise"])
+        super(ARZcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Parorder"],
+                                    fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """
@@ -448,7 +449,8 @@ class ARZcf(CharacteristicFunction):
 class ARHcf(CharacteristicFunction):
 
     def __init__(self, data, cut, t1, t2, pickparams):
-        super(ARHcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"], fnoise=pickparams["addnoise"])
+        super(ARHcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"],
+                                    fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """
@@ -600,7 +602,8 @@ class ARHcf(CharacteristicFunction):
 class AR3Ccf(CharacteristicFunction):
 
     def __init__(self, data, cut, t1, t2, pickparams):
-        super(AR3Ccf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"], fnoise=pickparams["addnoise"])
+        super(AR3Ccf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"],
+                                     fnoise=pickparams["addnoise"])
 
     def calcCF(self, data):
         """

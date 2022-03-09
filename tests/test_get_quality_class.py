@@ -1,4 +1,5 @@
 import unittest
+
 from pylot.core.pick.utils import get_quality_class
 
 
@@ -51,6 +52,7 @@ class TestQualityClassFromUncertainty(unittest.TestCase):
     def test_in_class3(self):
         # Error exactly in class 3
         self.assertEqual(3, get_quality_class(5.6, self.error_classes))
+
 
 if __name__ == '__main__':
     unittest.main()

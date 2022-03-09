@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier

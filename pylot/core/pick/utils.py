@@ -9,10 +9,11 @@
 """
 
 import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import argrelmax
 from obspy.core import Stream, UTCDateTime
+from scipy.signal import argrelmax
 
 from pylot.core.util.utils import get_Bool, get_None, SetChannelComponents
 
@@ -73,7 +74,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
 
     x = X[0].data
     t = np.linspace(0, X[0].stats.endtime - X[0].stats.starttime,
-                  X[0].stats.npts)
+                    X[0].stats.npts)
     inoise = getnoisewin(t, Pick1, TSNR[0], TSNR[1])
     # get signal window
     isignal = getsignalwin(t, Pick1, TSNR[2])
@@ -218,7 +219,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         xraw = Xraw[0].data
         xfilt = Xfilt[0].data
         t = np.linspace(0, Xraw[0].stats.endtime - Xraw[0].stats.starttime,
-                      Xraw[0].stats.npts)
+                        Xraw[0].stats.npts)
         # get pick window
         ipick = np.where((t <= min([Pick + pickwin, len(Xraw[0])])) & (t >= Pick))
         if len(ipick[0]) <= 1:
@@ -536,8 +537,9 @@ def getslopewin(Tcf, Pick, tslope):
     :rtype: `numpy.ndarray`
     """
     # TODO: fill out docstring
-    slope = np.where( (Tcf <= min(Pick + tslope, Tcf[-1])) & (Tcf >= Pick) )
+    slope = np.where((Tcf <= min(Pick + tslope, Tcf[-1])) & (Tcf >= Pick))
     return slope[0]
+
 
 def getResolutionWindow(snr, extent):
     """
@@ -848,7 +850,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         print("Presumably picked noise peak, pick is rejected!")
         print("(min. signal length required: %s s)" % minsiglength)
         returnflag = 0
-    else:    
+    else:
         # calculate minimum adjusted signal level
         minsiglevel = np.mean(rms[inoise]) * nfac
         # minimum adjusted number of samples over minimum signal level
@@ -1207,7 +1209,7 @@ def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
             rms = rms_dict[key]
             trace = traces_dict[key]
             t = np.linspace(diff_dict[key], trace.stats.endtime - trace.stats.starttime + diff_dict[key],
-                          trace.stats.npts)
+                            trace.stats.npts)
             if i == 0:
                 if get_None(fig) is None:
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
@@ -1329,6 +1331,7 @@ def get_quality_class(uncertainty, weight_classes):
         quality = len(weight_classes)
     return quality
 
+
 def set_NaNs_to(data, nan_value):
     """
     Replace all NaNs in data with nan_value
@@ -1344,6 +1347,7 @@ def set_NaNs_to(data, nan_value):
         data[nn] = nan_value
     return data
 
+
 def taper_cf(cf):
     """
     Taper cf data to get rid off of side maximas
@@ -1355,6 +1359,7 @@ def taper_cf(cf):
     tap = np.hanning(len(cf))
     return tap * cf
 
+
 def cf_positive(cf):
     """
     Shifts cf so that all values are positive
@@ -1364,6 +1369,7 @@ def cf_positive(cf):
     :rtype: `~numpy.ndarray`
     """
     return cf + max(abs(cf))
+
 
 def smooth_cf(cf, t_smooth, delta):
     """
@@ -1392,6 +1398,7 @@ def smooth_cf(cf, t_smooth, delta):
     offset = abs(min(cf) - min(cf_smooth))
     cf_smooth -= offset  # remove offset from smoothed function
     return cf_smooth
+
 
 def check_counts_ms(data):
     """
@@ -1452,9 +1459,9 @@ def calcSlope(Data, datasmooth, Tcf, Pick, TSNR):
         if imax == 0:
             print("AICPicker: Maximum for slope determination right at the beginning of the window!")
             print("Choose longer slope determination window!")
-            raise  IndexError
+            raise IndexError
         iislope = islope[0][0:imax + 1]  # cut index so it contains only the first maximum
-    dataslope = Data[0].data[iislope] # slope will only be calculated to the first maximum
+    dataslope = Data[0].data[iislope]  # slope will only be calculated to the first maximum
     # calculate slope as polynomal fit of order 1
     xslope = np.arange(0, len(dataslope))
     P = np.polyfit(xslope, dataslope, 1)
@@ -1475,8 +1482,10 @@ def get_pickparams(pickparam):
     :rtype: (dict, dict, dict, dict)
     """
     # Define names of all parameters in different groups
-    p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(' ')
-    s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(' ')
+    p_parameter_names = 'algoP pstart pstop use_taup taup_model tlta tsnrz hosorder bpz1 bpz2 pickwinP aictsmooth tsmoothP ausP nfacP tpred1z tdet1z Parorder addnoise Precalcwin minAICPslope minAICPSNR timeerrorsP checkwindowP minfactorP'.split(
+        ' ')
+    s_parameter_names = 'algoS sstart sstop bph1 bph2 tsnrh pickwinS tpred1h tdet1h tpred2h tdet2h Sarorder aictsmoothS tsmoothS ausS minAICSslope minAICSSNR Srecalcwin nfacS timeerrorsS zfac checkwindowS minfactorS'.split(
+        ' ')
     first_motion_names = 'minFMSNR fmpickwin minfmweight'.split(' ')
     signal_length_names = 'minsiglength minpercent noisefactor'.split(' ')
     # Get list of values from pickparam by name
@@ -1493,6 +1502,7 @@ def get_pickparams(pickparam):
     p_params['use_taup'] = get_Bool(p_params['use_taup'])
 
     return p_params, s_params, first_motion_params, signal_length_params
+
 
 def getQualityFromUncertainty(uncertainty, Errors):
     # set initial quality to 4 (worst) and change only if one condition is hit
@@ -1516,6 +1526,7 @@ def getQualityFromUncertainty(uncertainty, Errors):
         quality = 4
 
     return quality
+
 
 if __name__ == '__main__':
     import doctest

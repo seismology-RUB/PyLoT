@@ -9,15 +9,15 @@
    Edited for usage in PyLoT: Jeldrik Gaal, igem, 01/2022
 """
 
-import argparse
-import numpy as np
-import matplotlib.pyplot as plt
-from obspy.core.event import read_events
 import glob
 
-def getQualitiesfromxml(path):
+import matplotlib.pyplot as plt
+import numpy as np
+from obspy.core.event import read_events
 
-    # uncertainties 
+
+def getQualitiesfromxml(path):
+    # uncertainties
     ErrorsP = [0.02, 0.04, 0.08, 0.16]
     ErrorsS = [0.04, 0.08, 0.16, 0.32]
 
@@ -31,48 +31,48 @@ def getQualitiesfromxml(path):
     Sw2 = []
     Sw3 = []
     Sw4 = []
-    
+
     # data path
     dp = path + '/e*/*.xml'
     # list of all available xml-files
     xmlnames = glob.glob(dp)
 
     # read all onset weights
-    for names in xmlnames: 
+    for names in xmlnames:
         print("Getting onset weights from {}".format(names))
         cat = read_events(names)
         arrivals = cat.events[0].picks
         for Pick in arrivals:
             if Pick.phase_hint[0] == 'P':
-                if Pick.time_errors.uncertainty <= ErrorsP[0]:     
-                    Pw0.append(Pick.time_errors.uncertainty)      
+                if Pick.time_errors.uncertainty <= ErrorsP[0]:
+                    Pw0.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsP[0] and \
-                     Pick.time_errors.uncertainty <= ErrorsP[1]:
-                     Pw1.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsP[1]:
+                    Pw1.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsP[1] and \
-                     Pick.time_errors.uncertainty <= ErrorsP[2]:
-                     Pw2.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsP[2]:
+                    Pw2.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsP[2] and \
-                     Pick.time_errors.uncertainty <= ErrorsP[3]:
-                     Pw3.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsP[3]:
+                    Pw3.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsP[3]:
-                     Pw4.append(Pick.time_errors.uncertainty)      
+                    Pw4.append(Pick.time_errors.uncertainty)
                 else:
                     pass
             elif Pick.phase_hint[0] == 'S':
-                if Pick.time_errors.uncertainty <= ErrorsS[0]:     
-                     Sw0.append(Pick.time_errors.uncertainty)      
+                if Pick.time_errors.uncertainty <= ErrorsS[0]:
+                    Sw0.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsS[0] and \
-                     Pick.time_errors.uncertainty <= ErrorsS[1]:
-                     Sw1.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsS[1]:
+                    Sw1.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsS[1] and \
-                     Pick.time_errors.uncertainty <= ErrorsS[2]:
-                     Sw2.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsS[2]:
+                    Sw2.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsS[2] and \
-                     Pick.time_errors.uncertainty <= ErrorsS[3]:
-                     Sw3.append(Pick.time_errors.uncertainty)      
+                        Pick.time_errors.uncertainty <= ErrorsS[3]:
+                    Sw3.append(Pick.time_errors.uncertainty)
                 elif Pick.time_errors.uncertainty > ErrorsS[3]:
-                     Sw4.append(Pick.time_errors.uncertainty)      
+                    Sw4.append(Pick.time_errors.uncertainty)
                 else:
                     pass
             else:
@@ -133,7 +133,6 @@ def getQualitiesfromxml(path):
     plt.xticks(y_pos, weights)
     plt.xlim([-0.5, 4.5])
     plt.xlabel('Qualities')
-    plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights)) 
+    plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights))
     plt.legend([p1, p2], ['P-Weights', 'S-Weights'])
     plt.show()
-

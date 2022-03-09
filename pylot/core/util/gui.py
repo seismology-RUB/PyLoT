@@ -11,7 +11,6 @@ try:
 except Exception as e:
     print('Warning: Could not import module QtCore.')
 
-
 from pylot.core.util.utils import pick_color
 
 
@@ -53,7 +52,7 @@ def which(program, parameter):
         settings = QSettings()
         for key in settings.allKeys():
             if 'binPath' in key:
-                os.environ['PATH'] += ':{0}'.format(settings.value(key))	
+                os.environ['PATH'] += ':{0}'.format(settings.value(key))
         nllocpath = ":" + parameter.get('nllocbin')
         os.environ['PATH'] += nllocpath
     except Exception as e:
@@ -73,7 +72,7 @@ def which(program, parameter):
             return program
     else:
         for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program) 
+            exe_file = os.path.join(path, program)
             for candidate in ext_candidates(exe_file):
                 if is_exe(candidate):
                     return candidate
@@ -101,4 +100,3 @@ def make_pen(picktype, phase, key, quality):
         linestyle, width = pick_linestyle_pg(picktype, key)
         pen = pg.mkPen(rgba, width=width, style=linestyle)
         return pen
-
