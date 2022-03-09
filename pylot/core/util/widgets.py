@@ -200,8 +200,8 @@ class ProgressBarWidget(QtWidgets.QWidget):
 
 
 class AddMetadataWidget(QWidget):
-    def __init__(self, parent=None, metadata=None, windowflag=1):
-        super(AddMetadataWidget, self).__init__(parent, Qt.Window)
+    def __init__(self, parent=None, metadata=None, windowflag=Qt.Window):
+        super(AddMetadataWidget, self).__init__(parent, windowflag)
         self.inventories_add = []
         self.inventories_delete = []
 
@@ -401,7 +401,7 @@ class AddMetadataWidget(QWidget):
 
 
 class ComparisonWidget(QWidget):
-    def __init__(self, c, parent=None, windowflag=1):
+    def __init__(self, c, parent=None, windowflag=Qt.Window):
         self._data = c
         self._stats = c.stations
         self._canvas = PlotWidget(self)
@@ -3158,7 +3158,7 @@ class MultiEventWidget(QWidget):
 
     '''
 
-    def __init__(self, options=None, parent=None, windowflag=1):
+    def __init__(self, options=None, parent=None, windowflag=Qt.Window):
         QtWidgets.QWidget.__init__(self, parent, windowflag)
 
         self.options = options
@@ -3365,7 +3365,7 @@ class CompareEventsWidget(MultiEventWidget):
     '''
 
     def __init__(self, parent, options, eventdict, comparisons):
-        MultiEventWidget.__init__(self, options, parent, 1)
+        MultiEventWidget.__init__(self, options, parent, Qt.Window)
         self.eventdict = eventdict
         self.comparisons = comparisons
         self.compare_widget = QtWidgets.QWidget()
@@ -3410,10 +3410,10 @@ class CompareEventsWidget(MultiEventWidget):
         self.eventbox.clear()
         self.fill_eventbox()
 
-    def update_comparison(self, index=0):
+    def update_comparison(self):
         self.compare_widget.setParent(None)
         self.compare_widget = ComparisonWidget(
-            self.comparisons[self.eventbox.currentText()], self, 0)
+            self.comparisons[self.eventbox.currentText()], self, Qt.Widget)
         self.event_layout.insertWidget(1, self.compare_widget)
         self.set_main_stretch()
 
