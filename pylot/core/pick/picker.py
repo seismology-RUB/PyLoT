@@ -509,7 +509,7 @@ class PragPicker(AutoPicker):
                 self.Pick = pick_l
                 pickflag = 1
             elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
-                self.Pick = pick_r
+                self.Pick = pick_r # MP MP there is no pick_r defined, commented out after commit of LK on 29.07.2020 (see above)
                 pickflag = 1
             elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
                 self.Pick = pick_l

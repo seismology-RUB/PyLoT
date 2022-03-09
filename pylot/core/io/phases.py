@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import pdb
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
@@ -393,9 +392,6 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
     from pylot.core.pick.utils import earllatepicker
     # TODO: change root to datapath
 
-    if fn_param is None:
-        fn_param = defaults.AUTOMATIC_DEFAULTS
-
     default = PylotParameter(fn_param, verbosity)
 
     search_base = os.path.join(root_dir, db_dir, event_id)
@@ -518,7 +514,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
                   (parameter.get('database'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)
+        arrivals = chooseArrivals(arrivals) # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P'):
@@ -594,7 +590,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('                                                                %s\n' %
                   parameter.get('eventID'))
-        arrivals = chooseArrivals(arrivals)
+        arrivals = chooseArrivals(arrivals) # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
@@ -671,7 +667,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
             if arrivals[key].has_key('P') and arrivals[key]['P']['mpp'] is not None:
@@ -962,7 +958,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 erh, erz, eventinfo.magnitudes[0]['mag'],
                 hashID))
         # Prefer Manual Picks over automatic ones if possible
-        arrivals = chooseArrivals(arrivals)
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         # write phase lines
         for key in arrivals:
             if arrivals[key].has_key('P'):

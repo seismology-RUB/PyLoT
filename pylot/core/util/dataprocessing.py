@@ -351,25 +351,25 @@ def check_time(datetime):
     :type datetime: list
     :return: returns True if Values are in supposed range, returns False otherwise
 
-    >>> check_time([1999, 01, 01, 23, 59, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 59, 59, 999000])
     True
-    >>> check_time([1999, 01, 01, 23, 59, 60, 999000])
+    >>> check_time([1999, 1, 1, 23, 59, 60, 999000])
     False
-    >>> check_time([1999, 01, 01, 23, 59, 59, 1000000])
+    >>> check_time([1999, 1, 1, 23, 59, 59, 1000000])
     False
-    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 60, 59, 999000])
     False
-    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 60, 59, 999000])
     False
-    >>> check_time([1999, 01, 01, 24, 59, 59, 999000])
+    >>> check_time([1999, 1, 1, 24, 59, 59, 999000])
     False
-    >>> check_time([1999, 01, 31, 23, 59, 59, 999000])
+    >>> check_time([1999, 1, 31, 23, 59, 59, 999000])
     True
-    >>> check_time([1999, 02, 30, 23, 59, 59, 999000])
+    >>> check_time([1999, 2, 30, 23, 59, 59, 999000])
     False
-    >>> check_time([1999, 02, 29, 23, 59, 59, 999000])
+    >>> check_time([1999, 2, 29, 23, 59, 59, 999000])
     False
-    >>> check_time([2000, 02, 29, 23, 59, 59, 999000])
+    >>> check_time([2000, 2, 29, 23, 59, 59, 999000])
     True
     >>> check_time([2000, 13, 29, 23, 59, 59, 999000])
     False
@@ -444,7 +444,7 @@ def evt_head_check(root_dir, out_dir=None):
     """
     if not out_dir:
         print('WARNING files are going to be overwritten!')
-        inp = str(raw_input('Continue? [y/N]'))
+        inp = str(input('Continue? [y/N]'))
         if not inp == 'y':
             sys.exit()
     filelist = get_file_list(root_dir)

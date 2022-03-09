@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 try:
+    # noinspection PyUnresolvedReferences
     from urllib2 import urlopen
 except:
     from urllib.request import urlopen
 
 
-def checkurl(url='https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/'):
+def checkurl(url='https://git.geophysik.ruhr-uni-bochum.de/marcel/pylot/'):
     """
     check if URL is available
     :param url: url

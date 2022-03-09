@@ -86,26 +86,25 @@ Press right mouse button and click "View All" from the context menu to reset the
 
 [//]: <> (Hack: We need these invisible spaces to add space to the first column, otherwise )
 
-Icon &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Description
---- | ---
-<img src="../icons/newfile.png" alt="Create new project" width="64" height="64"> | Create a new project, for more information about projects see [Projects and Events](#projects-and-events).
-<img src="../icons/openproject.png" alt="Open project" width="64" height="64"> | Load a project file from disk.
-<img src="../icons/saveproject.png" alt="Save Project" width="64" height="64"> | Save all current events into an associated project file on disk. If there is no project file currently associated, you will be asked to create a new one.
-<img src="../icons/saveprojectas.png" alt="Save Project as" width="64" height="64"> | Save all current events into a new project file on disk. See [Saving projects](#saving-projects).
-<img src="../icons/add.png" alt="Add event data" width="64" height="64"> | Add event data by selecting directories containing waveforms. For more information see [Event folder structure](#event-folder-structure).
-<img src="../icons/openpick.png" alt="Load event information" width="64" height="64"> | Load picks/origins from disk into the currently displayed event. If a pick already exists for a station, the one from file will overwrite the existing one.
-<img src="../icons/openpicks.png" alt="Load information for all events" width="64" height="64"> | Load picks/origins for all events of the current project. PyLoT searches for files within the directory of the event and tries to load them for that event. For this function to work, the files containing picks/origins have to be named as described in [Event folder   structure](#event-folder-structure). If a pick already exists for a station, the one from file will overwrite the existing one.
-<img src="../icons/savepicks.png" alt="Save picks" width="64" height="64"> | Save event information such as picks and origin to file. You will be asked to select a directory in which this information should be saved.
-<img src="../icons/openloc.png" alt="Load location information" width="64" height="64"> | Load location information from disk,
-<img src="../icons/Matlab_PILOT_icon.png" alt="Load legacy information" width="64" height="64"> | Load event information from a previous, MatLab based PILOT version.
-<img src="../icons/key_Z.png" alt="Display Z" width="64" height="64"> | Display Z component of streams in waveform plot.
-<img src="../icons/key_N.png" alt="Display N" width="64" height="64"> | Display N component of streams in waveform plot.
-<img src="../icons/key_E.png" alt="Display E" width="64" height="64"> | Display E component of streams in waveform plot.
-<img src="../icons/tune.png" alt="Tune Autopicker" width="64" height="64"> | Open the [Tune Autopicker window](#tuning).
-<img src="../icons/autopylot_button.png" alt="" width="64" height="64"> | Opens a window that allows starting the autopicker for all events ([Production run of the AutoPicker](#production-run-of-the-autopicker)).
-<img src="../icons/compare_button.png" alt="Comparison" width="64" height="64"> | Compare automatic and manual picks, only available if automatic and manual picks for an event exist. See [Comparison between automatic and manual picks](#comparison-between-automatic-and-manual-picks).
-<img src="../icons/locate_button.png" alt="Locate event" width="64" height="64"> | Run a location routine (NonLinLoc) as configured in the settings on the picks. See [Location determination](#location-determination).
-
+| Icon &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Description                                                                                                                                                                                                                                                                                                                                                                                                |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| <img src="../icons/newfile.png" alt="Create new project" width="64" height="64">                                                                                                   | Create a new project, for more information about projects see [Projects and Events](#projects-and-events).                                                                                                                                                                                                                                                                                                 |
+| <img src="../icons/openproject.png" alt="Open project" width="64" height="64">                                                                                                     | Load a project file from disk.                                                                                                                                                                                                                                                                                                                                                                             |
+| <img src="../icons/saveproject.png" alt="Save Project" width="64" height="64">                                                                                                     | Save all current events into an associated project file on disk. If there is no project file currently associated, you will be asked to create a new one.                                                                                                                                                                                                                                                  |
+| <img src="../icons/saveprojectas.png" alt="Save Project as" width="64" height="64">                                                                                                | Save all current events into a new project file on disk. See [Saving projects](#saving-projects).                                                                                                                                                                                                                                                                                                          |
+| <img src="../icons/add.png" alt="Add event data" width="64" height="64">                                                                                                           | Add event data by selecting directories containing waveforms. For more information see [Event folder structure](#event-folder-structure).                                                                                                                                                                                                                                                                  |
+| <img src="../icons/openpick.png" alt="Load event information" width="64" height="64">                                                                                              | Load picks/origins from disk into the currently displayed event. If a pick already exists for a station, the one from file will overwrite the existing one.                                                                                                                                                                                                                                                |
+| <img src="../icons/openpicks.png" alt="Load information for all events" width="64" height="64">                                                                                    | Load picks/origins for all events of the current project. PyLoT searches for files within the directory of the event and tries to load them for that event. For this function to work, the files containing picks/origins have to be named as described in [Event folder   structure](#event-folder-structure). If a pick already exists for a station, the one from file will overwrite the existing one. |
+| <img src="../icons/savepicks.png" alt="Save picks" width="64" height="64">                                                                                                         | Save event information such as picks and origin to file. You will be asked to select a directory in which this information should be saved.                                                                                                                                                                                                                                                                |
+| <img src="../icons/openloc.png" alt="Load location information" width="64" height="64">                                                                                            | Load location information from disk,                                                                                                                                                                                                                                                                                                                                                                       |
+| <img src="../icons/Matlab_PILOT_icon.png" alt="Load legacy information" width="64" height="64">                                                                                    | Load event information from a previous, MatLab based PILOT version.                                                                                                                                                                                                                                                                                                                                        |
+| <img src="../icons/key_Z.png" alt="Display Z" width="64" height="64">                                                                                                              | Display Z component of streams in waveform plot.                                                                                                                                                                                                                                                                                                                                                           |
+| <img src="../icons/key_N.png" alt="Display N" width="64" height="64">                                                                                                              | Display N component of streams in waveform plot.                                                                                                                                                                                                                                                                                                                                                           |
+| <img src="../icons/key_E.png" alt="Display E" width="64" height="64">                                                                                                              | Display E component of streams in waveform plot.                                                                                                                                                                                                                                                                                                                                                           |
+| <img src="../icons/tune.png" alt="Tune Autopicker" width="64" height="64">                                                                                                         | Open the [Tune Autopicker window](#tuning).                                                                                                                                                                                                                                                                                                                                                                |
+| <img src="../icons/autopylot_button.png" alt="" width="64" height="64">                                                                                                            | Opens a window that allows starting the autopicker for all events ([Production run of the AutoPicker](#production-run-of-the-autopicker)).                                                                                                                                                                                                                                                                 |
+| <img src="../icons/compare_button.png" alt="Comparison" width="64" height="64">                                                                                                    | Compare automatic and manual picks, only available if automatic and manual picks for an event exist. See [Comparison between automatic and manual picks](#comparison-between-automatic-and-manual-picks).                                                                                                                                                                                                  |
+| <img src="../icons/locate_button.png" alt="Locate event" width="64" height="64">                                                                                                   | Run a location routine (NonLinLoc) as configured in the settings on the picks. See [Location determination](#location-determination).                                                                                                                                                                                                                                                                      |
 
 ### Array Map
 
@@ -127,19 +126,19 @@ The eventlist displays event parameters. The displayed parameters are saved in t
 
 <img src="images/gui/eventlist.png" alt="Eventlist">
 
-Column | Description
---- | ---
-Event | Full path to the events folder.
-Time | Time of event.
-Lat | Latitude in degrees of event location.
-Lon | Longitude in degrees of event location.
-Depth | Depth in km of event.
-Mag | Magnitude of event.
-[N] MP | Number of manual picks.
-[N] AP | Number of automatic picks.
-Tuning Set | Select whether this event is a Tuning event. See [Automatic Picking](#automatic-picking).
-Test Set | Select whether this event is a Test event. See [Automatic Picking](#automatic-picking).
-Notes | Free form text field for notes regarding this event. Text will be saved in the notes.txt file in the event folder.
+| Column     | Description                                                                                                        |
+|------------|--------------------------------------------------------------------------------------------------------------------|
+| Event      | Full path to the events folder.                                                                                    |
+| Time       | Time of event.                                                                                                     |
+| Lat        | Latitude in degrees of event location.                                                                             |
+| Lon        | Longitude in degrees of event location.                                                                            |
+| Depth      | Depth in km of event.                                                                                              |
+| Mag        | Magnitude of event.                                                                                                |
+| [N] MP     | Number of manual picks.                                                                                            |
+| [N] AP     | Number of automatic picks.                                                                                         |
+| Tuning Set | Select whether this event is a Tuning event. See [Automatic Picking](#automatic-picking).                          |
+| Test Set   | Select whether this event is a Test event. See [Automatic Picking](#automatic-picking).                            |
+| Notes      | Free form text field for notes regarding this event. Text will be saved in the notes.txt file in the event folder. |
 
 ## Usage
 
@@ -169,17 +168,16 @@ One example header and data line is shown below.
 
 The meaning of the header entries is:
 
-Header | description
---- | ---
-event | Event id, has to be the same as the folder name in which waveform data for this event is kept.
-Data | Origin date of the event, format DD/MM/YY or DD/MM/YYYY.
-Time | Origin time of the event. Format HH:MM:SS.
-Lat, Long | Origin latitude and longitude in decimal degrees.
-Region | Flinn-Engdahl region name.
-Basis Lat, Basis Lon | Latitude and longitude of the basis of the station network in decimal degrees.
-Distance [km] | Distance from origin coordinates to basis coordinates in km.
-Distance [rad] | Distance from origin coordinates to basis coordinates in rad.
-
+| Header               | description                                                                                    |
+|----------------------|------------------------------------------------------------------------------------------------|
+| event                | Event id, has to be the same as the folder name in which waveform data for this event is kept. |
+| Data                 | Origin date of the event, format DD/MM/YY or DD/MM/YYYY.                                       |
+| Time                 | Origin time of the event. Format HH:MM:SS.                                                     |
+| Lat, Long            | Origin latitude and longitude in decimal degrees.                                              |
+| Region               | Flinn-Engdahl region name.                                                                     |
+| Basis Lat, Basis Lon | Latitude and longitude of the basis of the station network in decimal degrees.                 |
+| Distance [km]        | Distance from origin coordinates to basis coordinates in km.                                   |
+| Distance [rad]       | Distance from origin coordinates to basis coordinates in rad.                                  |
 
 ### Adding events to project
 
@@ -220,24 +218,24 @@ Open the picking window of a station by leftclicking on any trace in the wavefor
 
 #### Picking Window Settings
 
-Icon | Shortcut | Menu Alternative | Description
----|---|---|---
-<img src="../icons/filter_p.png" alt="Filter P" width="64" height="64"> | p | Filter->Apply P Filter | Filter all channels according to the options specified in Filter parameter, P Filter section.
-<img src="../icons/filter_s.png" alt="Filter S" width="64" height="64"> | s | Filter->Apply S Filter | Filter all channels according to the options specified in Filter parameter, S Filter section.
-<img src="../icons/key_A.png" alt="Filter Automatically" width="64" height="64"> | Ctrl + a | Filter->Automatic Filtering | If enabled, automatically select the correct filter option (P, S) depending on the selected phase to be picked.
-![desc](images/gui/picking/phase_selection.png "Phase selection") | 1 (P) or 5 (S) | Picks->P or S | Select phase to pick. If Automatic Filtering is enabled, this will apply the appropriate filter depending on the phase.
-![Zoom into](../icons/zoom_in.png "Zoom into waveform") | - | - | Zoom into waveform.
-![Reset zoom](../icons/zoom_0.png "Reset zoom") | - | - | Reset zoom to default view.
-![Delete picks](../icons/delete.png "Delete picks") | - | - | Delete all manual picks on this station.
-![Rename a phase](../icons/sync.png "Rename a phase") | - | - | Click this button and then the picked phase to rename it.
-![Continue](images/gui/picking/continue.png "Continue with next station") | - | - | If checked, after accepting the manual picks for this station with 'OK', the picking window for the next station will be opened. This option is useful for fast manual picking of a complete event.
-Estimated onsets | - | - | Show the theoretical onsets for this station. Needs metadata and origin information.
-Compare to channel | - | - | Select a data channel to compare against. The selected channel will be displayed in the picking window behind every channel allowing the analyst to visually compare signal correlation between different channels.
-Scaling | - | - | Individual means every channel is scaled to its own maximum. If a channel is selected here, all channels will be scaled relatively to this channel.
+| Icon                                                                             | Shortcut       | Menu Alternative            | Description                                                                                                                                                                                                         |
+|----------------------------------------------------------------------------------|----------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| <img src="../icons/filter_p.png" alt="Filter P" width="64" height="64">          | p              | Filter->Apply P Filter      | Filter all channels according to the options specified in Filter parameter, P Filter section.                                                                                                                       |
+| <img src="../icons/filter_s.png" alt="Filter S" width="64" height="64">          | s              | Filter->Apply S Filter      | Filter all channels according to the options specified in Filter parameter, S Filter section.                                                                                                                       |
+| <img src="../icons/key_A.png" alt="Filter Automatically" width="64" height="64"> | Ctrl + a       | Filter->Automatic Filtering | If enabled, automatically select the correct filter option (P, S) depending on the selected phase to be picked.                                                                                                     |
+| ![desc](images/gui/picking/phase_selection.png "Phase selection")                | 1 (P) or 5 (S) | Picks->P or S               | Select phase to pick. If Automatic Filtering is enabled, this will apply the appropriate filter depending on the phase.                                                                                             |
+| ![Zoom into](../icons/zoom_in.png "Zoom into waveform")                          | -              | -                           | Zoom into waveform.                                                                                                                                                                                                 |
+| ![Reset zoom](../icons/zoom_0.png "Reset zoom")                                  | -              | -                           | Reset zoom to default view.                                                                                                                                                                                         |
+| ![Delete picks](../icons/delete.png "Delete picks")                              | -              | -                           | Delete all manual picks on this station.                                                                                                                                                                            |
+| ![Rename a phase](../icons/sync.png "Rename a phase")                            | -              | -                           | Click this button and then the picked phase to rename it.                                                                                                                                                           |
+| ![Continue](images/gui/picking/continue.png "Continue with next station")        | -              | -                           | If checked, after accepting the manual picks for this station with 'OK', the picking window for the next station will be opened. This option is useful for fast manual picking of a complete event.                 |
+| Estimated onsets                                                                 | -              | -                           | Show the theoretical onsets for this station. Needs metadata and origin information.                                                                                                                                |
+| Compare to channel                                                               | -              | -                           | Select a data channel to compare against. The selected channel will be displayed in the picking window behind every channel allowing the analyst to visually compare signal correlation between different channels. |
+| Scaling                                                                          | -              | -                           | Individual means every channel is scaled to its own maximum. If a channel is selected here, all channels will be scaled relatively to this channel.                                                                 |
 
-Menu Command | Shortcut | Description
----|---|---
-P Channels and S Channels | - | Select which channels should be treated as P or S channels during picking. When picking a phase, only the corresponding channels will be shown during the precise pick. Normally, the Z channel should be selected for the P phase and the N and E channel for the S phase. 
+| Menu Command              | Shortcut | Description                                                                                                                                                                                                                                                                 |
+|---------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P Channels and S Channels | -        | Select which channels should be treated as P or S channels during picking. When picking a phase, only the corresponding channels will be shown during the precise pick. Normally, the Z channel should be selected for the P phase and the N and E channel for the S phase. |
 
 ### Filtering
 
