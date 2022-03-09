@@ -505,6 +505,8 @@ class MainWindow(QMainWindow):
                                        """Show either the documentation
                                        homepage (internet connection available),
                                        or shipped documentation files.""")
+        logAction = self.createAction(self, "&Show Log", self.showLogWidget,
+                                      tip="""Display Log""")
 
         # create button group for component selection
 
@@ -604,7 +606,7 @@ class MainWindow(QMainWindow):
         autoPickActions = (self.auto_pick, self.auto_pick_local, self.auto_pick_sge)
 
         self.helpMenu = self.menuBar().addMenu('&Help')
-        helpActions = (helpAction,)
+        helpActions = (helpAction,logAction)
 
         fileToolActions = (self.newProjectAction,
                            self.openProjectAction, self.saveProjectAction,
@@ -770,6 +772,10 @@ class MainWindow(QMainWindow):
         self.test_event_button.clicked.connect(self.toggleTest)
         self.ref_event_button.setEnabled(False)
         self.test_event_button.setEnabled(False)
+
+    def showLogWidget(self):
+        self.logwidget.show()
+        self.logwidget.activateWindow()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Control:

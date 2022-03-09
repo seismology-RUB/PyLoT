@@ -131,6 +131,7 @@ class LogWidget(QtWidgets.QWidget):
     def reset_error(self):
         # used to make sure that write errors is finished before raising new Message box etc.
         self.current_active_error = False
+        self.stderr.append(60*'#' + '\n\n')
 
 
 def getDataType(parent):
