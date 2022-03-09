@@ -4606,7 +4606,7 @@ class PropertiesDlg(QDialog):
                 self._current_values.append(values)
 
     def reset_current(self):
-        for values in self._current_values():
+        for values in self._current_values:
             self.setValues(values)
 
     @staticmethod

@@ -42,7 +42,7 @@ class MplCanvas(FigureCanvas):
 class Array_map(QtWidgets.QWidget):
     def __init__(self, parent, metadata, parameter=None, axes=None, annotate=True, pointsize=25.,
                  linewidth=1.5, width=5e6, height=2e6):
-        QtWidgets.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self, parent=parent)
 
         assert (parameter is not None or parent is not None), 'either parent or parameter has to be set'
         # set properties
