@@ -5,9 +5,8 @@ from distutils.core import setup
 setup(
     name='PyLoT',
     version='0.2',
-    packages=['pylot', 'pylot.core', 'pylot.core.loc', 'pylot.core.pick',
-              'pylot.core.io', 'pylot.core.util', 'pylot.core.active',
-              'pylot.core.analysis', 'pylot.testing'],
+    packages=['pylot', 'pylot.core', 'pylot.core.io', 'pylot.core.loc', 'pylot.core.pick', 'pylot.core.util',
+              'pylot.core.analysis', 'pylot.styles'],
     requires=['obspy', 'PySide2', 'matplotlib', 'numpy', 'scipy', 'pyqtgraph', 'cartopy'],
     url='dummy',
     license='LGPLv3',
