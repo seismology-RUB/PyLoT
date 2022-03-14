@@ -1,11 +1,11 @@
 # PyLoT
 
-version: 0.2
+version: 0.3
 
 The Python picking and Localisation Tool
 
 This python library contains a graphical user interfaces for picking seismic phases. This software needs [ObsPy][ObsPy]
-and the PySide Qt4 bindings for python to be installed first.
+and the PySide2 Qt5 bindings for python to be installed first.
 
 PILOT has originally been developed in Mathworks' MatLab. In order to distribute PILOT without facing portability
 problems, it has been decided to redevelop the software package in Python. The great work of the ObsPy group allows easy
@@ -18,16 +18,31 @@ The development of PyLoT is part of the joint research project MAGS2 and AlpArra
 At the moment there is no automatic installation procedure available for PyLoT. Best way to install is to clone the
 repository and add the path to your Python path.
 
+It is highly recommended to use Anaconda for a simple creation of a Python installation using either the *pylot.yml* or the *requirements.txt* file found in the PyLoT root directory. First make sure that the *conda-forge* channel is available in your Anaconda installation:
+
+    conda config --add channels conda-forge
+
+Afterwards run (from the PyLoT main directory)
+
+    conda create --name pylot_38 --file requirements.txt
+or
+    
+    conda env create -f pylot.yml
+
 #### Prerequisites:
 
 In order to run PyLoT you need to install:
 
-- python 2 or 3
+- Python 3
+- obspy
+- pyside2
+- pyqtgraph
+- cartopy
+
+(the following are already dependencies of the above packages):
 - scipy
 - numpy
 - matplotlib
-- obspy
-- pyside
 
 #### Some handwork:
 
@@ -73,8 +88,6 @@ PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 - location determination with external installation of [NonLinLoc](http://alomax.free.fr/nlloc/index.html)
 
 #### Known issues:
-
-- Sometimes an error might occur when using Qt
 
 We hope to solve these with the next release.
 
