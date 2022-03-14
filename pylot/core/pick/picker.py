@@ -508,9 +508,9 @@ class PragPicker(AutoPicker):
             if flagpick_l > 0 and flagpick_r > 0 and cfpick_l <= 3 * cfpick_r:
                 self.Pick = pick_l
                 pickflag = 1
-            elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
-                self.Pick = pick_r
-                pickflag = 1
+            # elif flagpick_l > 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
+            #     self.Pick = pick_r
+            #     pickflag = 1
             elif flagpick_l == 0 and flagpick_r > 0 and cfpick_l >= cfpick_r:
                 self.Pick = pick_l
                 pickflag = 1
