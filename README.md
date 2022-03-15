@@ -22,12 +22,18 @@ It is highly recommended to use Anaconda for a simple creation of a Python insta
 
     conda config --add channels conda-forge
 
-Afterwards run (from the PyLoT main directory)
+Afterwards run (from the PyLoT main directory where the files *requirements.txt* and *pylot.yml* are located)
 
     conda create --name pylot_38 --file requirements.txt
 or
     
     conda env create -f pylot.yml
+
+to create a new Anaconda environment called "pylot_38".
+
+Afterwards activate the environment by typing
+
+    conda activate pylot_38
 
 #### Prerequisites:
 
