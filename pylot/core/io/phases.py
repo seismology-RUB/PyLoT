@@ -766,7 +766,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        usedarrivals = chooseArrival(arrivals)
+        usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
             # P onsets
             if usedarrivals[key].has_key('P'):
@@ -827,7 +827,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        usedarrivals = chooseArrival(arrivals)
+        usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
             if usedarrivals[key].has_key('P'):
                 # P onsets
@@ -878,7 +878,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             arrivals = picksdict_from_picks(evt)
         # check for automatic and manual picks
         # prefer manual picks
-        usedarrivals = chooseArrival(arrivals)
+        usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
             if usedarrivals[key].has_key('P'):
                 if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
@@ -1007,7 +1007,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid2.close()
 
 
-def chooseArrival(arrivals):
+def chooseArrivals(arrivals):
     """
     takes arrivals and returns the manual picks if manual and automatic ones are there
     returns automatic picks if only automatic picks are there
