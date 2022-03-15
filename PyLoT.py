@@ -3729,6 +3729,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self.okToContinue():
+            self.logwidget.close()
             event.accept()
         else:
             event.ignore()
