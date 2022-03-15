@@ -42,7 +42,7 @@ In order to run PyLoT you need to install:
 (the following are already dependencies of the above packages):
 - scipy
 - numpy
-- matplotlib
+- matplotlib <= 3.3.x
 
 #### Some handwork:
 
