@@ -1073,12 +1073,14 @@ def getQualitiesfromxml(path, errorsP, errorsS, plotflag=1, figure=None, verbosi
     """
 
     def calc_perc(uncertainties, ntotal):
+        ''' simple function that calculates percentage of number of uncertainties (list length)'''
         if len(uncertainties) == 0:
             return 0
         else:
-            return 100 / ntotal * len(uncertainties)
+            return 100. / ntotal * len(uncertainties)
 
     def calc_weight_perc(psweights, weight_ids):
+        ''' calculate percentages of different weights (pick classes!?) of total number of uncertainties of a phase'''
         # count total number of list items for this phase
         numWeights = np.sum([len(weight) for weight in psweights.values()])
 
@@ -1089,6 +1091,7 @@ def getQualitiesfromxml(path, errorsP, errorsS, plotflag=1, figure=None, verbosi
 
         return plot_list, numWeights
 
+    # get all xmlfiles in path (maybe this should be changed to one xml file for this function, selectable via GUI?)
     xmlnames = glob.glob(os.path.join(path, '*.xml'))
     if len(xmlnames) == 0:
         print(f'No files found in path {path}.')
