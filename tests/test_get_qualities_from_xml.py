@@ -5,7 +5,7 @@ from pylot.core.io.phases import getQualitiesfromxml
 
 class TestQualityFromXML(unittest.TestCase):
     def setUp(self):
-        self.xmlpaths = ['PyLoT_e0019.048.13.xml']
+        self.path = '.'
         self.ErrorsP = [0.02, 0.04, 0.08, 0.16]
         self.ErrorsS = [0.04, 0.08, 0.16, 0.32]
         self.test0_result = [[0.0136956521739, 0.0126, 0.0101612903226, 0.00734848484849, 0.0135069444444,
@@ -23,10 +23,10 @@ class TestQualityFromXML(unittest.TestCase):
                             [92.0, 4.0, 4.0, 0, 0]
 
     def test_result_plotflag0(self):
-        self.assertEqual(getQualitiesfromxml(self.xmlpaths, self.ErrorsP, self.ErrorsS, 0), self.test0_result)
+        self.assertEqual(getQualitiesfromxml(self.path, self.ErrorsP, self.ErrorsS, 0), self.test0_result)
 
     def test_result_plotflag1(self):
-        self.assertEqual(getQualitiesfromxml(self.xmlpaths, self.ErrorsP, self.ErrorsS, 1), self.test1_result)
+        self.assertEqual(getQualitiesfromxml(self.path, self.ErrorsP, self.ErrorsS, 1), self.test1_result)
 
 
 if __name__ == '__main__':

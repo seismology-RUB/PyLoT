@@ -89,7 +89,7 @@ from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
 from pylot.core.util.version import get_git_version as _getVersionString
 from pylot.core.io.getEventListFromXML import geteventlistfromxml
-from pylot.core.io.getQualitiesfromxml import getQualitiesfromxml
+from pylot.core.io.phases import getQualitiesfromxml
 
 from pylot.styles import style_settings
 
@@ -1669,8 +1669,8 @@ class MainWindow(QMainWindow):
         self.cmpw.show()
 
     def pickQualities(self):
-        path = self._inputs['rootpath'] + '/' + self._inputs['datapath'] + '/' + self._inputs['database']
-        getQualitiesfromxml(path)
+        path = self.get_current_event_path()
+        getQualitiesfromxml(path, self._inputs.get('timeerrorsP'), self._inputs.get('timeerrorsS'), plotflag=1)
         return
 
     def eventlistXml(self):
