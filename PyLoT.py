@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
             self._inputs.export2File(infile)
         self.infile = infile
 
-    def setupUi(self):
+    def setupUi(self, use_logwidget=True):
         try:
             self.startTime = min(
                 [tr.stats.starttime for tr in self.data.wfdata])
@@ -731,10 +731,14 @@ class MainWindow(QMainWindow):
         _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
-        self.logwidget = LogWidget(parent=None)
-        self.logwidget.show()
-        sys.stdout = self.logwidget.stdout
-        sys.stderr = self.logwidget.stderr
+        if use_logwidget:
+            self.logwidget = LogWidget(parent=None)
+            self.logwidget.show()
+            self.stdout = self.logwidget.stdout
+            self.stderr = self.logwidget.stderr
+
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
 
         self.setCentralWidget(_widget)
 
