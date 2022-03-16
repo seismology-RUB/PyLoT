@@ -1103,14 +1103,14 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
                     if phase == 'P':
                         if ((mpick.waveform_id.station_code == mstation) or
                             (mpick.waveform_id.station_code == mstation_ext)) and \
-                                (mpick.method_id.split('/')[1] == 'auto') and \
+                                (mpick.method_id.id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
                             del mpick
                             break
                     elif phase == 'S':
                         if ((mpick.waveform_id.station_code == mstation) or
                             (mpick.waveform_id.station_code == mstation_ext)) and \
-                                (mpick.method_id.split('/')[1] == 'auto') and \
+                                (mpick.method_id.id.split('/')[1] == 'auto') and \
                                 (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
                             del mpick
                             break
@@ -1208,3 +1208,5 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         plt.xlabel('Qualities')
         plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights))
         plt.show()
+
+        return [P0perc, P1perc, P2perc, P3perc, P4perc], [S0perc, S1perc, S2perc, S3perc, S4perc]
