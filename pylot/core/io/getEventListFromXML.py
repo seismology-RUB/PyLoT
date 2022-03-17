@@ -8,7 +8,7 @@
    Edited for use in PyLoT
    JG, igem, 01/2022
 """
-import pdb
+
 import os
 import argparse
 import numpy as np
