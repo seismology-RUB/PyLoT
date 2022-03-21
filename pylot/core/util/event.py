@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from obspy import UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.core.event import Origin, ResourceIdentifier
@@ -21,12 +22,13 @@ class Event(ObsPyEvent):
         :param path: path to event directory
         :type path: str
         """
+        # TODO: remove rootpath and database
         self.pylot_id = path.split('/')[-1]
         # initialize super class
         super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/' + self.pylot_id))
         self.path = path
         self.database = path.split('/')[-2]
-        self.datapath = path.split('/')[-3]
+        self.datapath = os.path.split(path)[0]  # path.split('/')[-3]
         self.rootpath = '/' + os.path.join(*path.split('/')[:-3])
         self.pylot_autopicks = {}
         self.pylot_picks = {}
@@ -73,7 +75,7 @@ class Event(ObsPyEvent):
                 text = lines[0]
                 self.addNotes(text)
                 try:
-                    datetime = UTCDateTime(path.split('/')[-1])
+                    datetime = UTCDateTime(self.path.split('/')[-1])
                     origin = Origin(resource_id=self.resource_id, time=datetime, latitude=0, longitude=0, depth=0)
                     self.origins.append(origin)
                 except:
@@ -296,13 +298,13 @@ class Event(ObsPyEvent):
         :rtype: None
         """
         try:
-            import cPickle
+            import pickle
         except ImportError:
-            import _pickle as cPickle
+            import _pickle as pickle
 
         try:
             outfile = open(filename, 'wb')
-            cPickle.dump(self, outfile, -1)
+            pickle.dump(self, outfile, -1)
             self.dirty = False
         except Exception as e:
             print('Could not pickle PyLoT event. Reason: {}'.format(e))
@@ -317,11 +319,11 @@ class Event(ObsPyEvent):
         :rtype: Event
         """
         try:
-            import cPickle
+            import pickle
         except ImportError:
-            import _pickle as cPickle
+            import _pickle as pickle
         infile = open(filename, 'rb')
-        event = cPickle.load(infile)
+        event = pickle.load(infile)
         event.dirty = False
         print('Loaded %s' % filename)
         return event

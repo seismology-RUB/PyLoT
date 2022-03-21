@@ -515,9 +515,9 @@ defaults = {'rootpath': {'type': str,
                            'namestring': 'TauPy model'},
 
             'taup_phases': {'type': str,
-                           'tooltip': 'Specify possible phases for TauPy (comma separated). See Obspy TauPy documentation for possible values.',
-                           'value': 'ttall',
-                           'namestring': 'TauPy phases'},
+                            'tooltip': 'Specify possible phases for TauPy (comma separated). See Obspy TauPy documentation for possible values.',
+                            'value': 'ttall',
+                            'namestring': 'TauPy phases'},
             }
 
 settings_main = {

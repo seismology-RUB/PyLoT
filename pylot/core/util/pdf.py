@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import warnings
+
+import numpy as np
 from obspy import UTCDateTime
 
 from pylot.core.util.utils import fit_curve, clims

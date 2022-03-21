@@ -4,8 +4,8 @@ import os
 import sys
 import traceback
 
-from PySide.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout
+from PySide2.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
+from PySide2.QtWidgets import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
 
 
 class Thread(QThread):
@@ -22,9 +22,11 @@ class Thread(QThread):
         self.abortButton = abortButton
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
+        self.old_stdout = None
 
     def run(self):
         if self.redirect_stdout:
+            self.old_stdout = sys.stdout
             sys.stdout = self
         try:
             if self.arg is not None:
@@ -39,7 +41,7 @@ class Thread(QThread):
             exctype, value = sys.exc_info()[:2]
             self._executedErrorInfo = '{} {} {}'. \
                 format(exctype, value, traceback.format_exc())
-        sys.stdout = sys.__stdout__
+        sys.stdout = self.old_stdout
 
     def showProgressbar(self):
         if self.progressText:
@@ -49,7 +51,23 @@ class Thread(QThread):
             #     self.pb_widget.setWindowFlags(Qt.SplashScreen)
             #     self.pb_widget.setModal(True)
 
-            self.pb_widget.label.setText(self.progressText)
+            # generate widget if not given in init
+            if not self.pb_widget:
+                self.pb_widget = QDialog(self.parent())
+                self.pb_widget.setWindowFlags(Qt.SplashScreen)
+                self.pb_widget.setModal(True)
+
+            # add button
+            delete_button = QPushButton('X')
+            delete_button.clicked.connect(self.exit)
+            hl = QHBoxLayout()
+            pb = QProgressBar()
+            pb.setRange(0, 0)
+            hl.addWidget(pb)
+            hl.addWidget(QLabel(self.progressText))
+            if self.abortButton:
+                hl.addWidget(delete_button)
+            self.pb_widget.setLayout(hl)
             self.pb_widget.show()
 
     def hideProgressbar(self):
@@ -80,10 +98,12 @@ class Worker(QRunnable):
         self.progressText = progressText
         self.pb_widget = pb_widget
         self.redirect_stdout = redirect_stdout
+        self.old_stdout = None
 
     @Slot()
     def run(self):
         if self.redirect_stdout:
+            self.old_stdout = sys.stdout
             sys.stdout = self
 
         try:
@@ -96,7 +116,7 @@ class Worker(QRunnable):
             self.signals.result.emit(result)
         finally:
             self.signals.finished.emit('Done')
-        sys.stdout = sys.__stdout__
+        sys.stdout = self.old_stdout
 
     def write(self, text):
         self.signals.message.emit(text)
@@ -128,11 +148,13 @@ class MultiThread(QThread):
         self.progressText = progressText
         self.pb_widget = pb_widget
         self.redirect_stdout = redirect_stdout
+        self.old_stdout = None
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
 
     def run(self):
         if self.redirect_stdout:
+            self.old_stdout = sys.stdout
             sys.stdout = self
         try:
             if not self.ncores:
@@ -148,7 +170,7 @@ class MultiThread(QThread):
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print('Exception: {}, file: {}, line: {}'.format(exc_type, fname, exc_tb.tb_lineno))
-        sys.stdout = sys.__stdout__
+        sys.stdout = self.old_stdout
 
     def showProgressbar(self):
         if self.progressText:

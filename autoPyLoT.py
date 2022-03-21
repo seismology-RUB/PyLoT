@@ -8,6 +8,7 @@ import datetime
 import glob
 import os
 import traceback
+
 from obspy import read_events
 from obspy.core.event import ResourceIdentifier
 
@@ -145,7 +146,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
 
         exf = ['root', 'dpath', 'dbase']
 
-        if parameter['eventID'] is not '*' and fnames == 'None':
+        if parameter['eventID'] != '*' and fnames == 'None':
             dsfields['eventID'] = parameter['eventID']
             exf.append('eventID')
 
@@ -189,12 +190,12 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
-            if fnames == 'None' and parameter['eventID'] is '*':
+            if fnames == 'None' and parameter['eventID'] == '*':
                 # multiple event processing
                 # read each event in database
                 events = [event for event in glob.glob(os.path.join(datapath, '*')) if
                           (os.path.isdir(event) and not event.endswith('EVENTS-INFO'))]
-            elif fnames == 'None' and parameter['eventID'] is not '*' and not type(parameter['eventID']) == list:
+            elif fnames == 'None' and parameter['eventID'] != '*' and not type(parameter['eventID']) == list:
                 # single event processing
                 events = glob.glob(os.path.join(datapath, parameter['eventID']))
             elif fnames == 'None' and type(parameter['eventID']) == list:
@@ -277,7 +278,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 if not wfdat:
                     print('Could not find station {}. STOP!'.format(station))
                     return
-            #wfdat = remove_underscores(wfdat)
+            # wfdat = remove_underscores(wfdat)
             # trim components for each station to avoid problems with different trace starttimes for one station
             wfdat = check4gapsAndRemove(wfdat)
             wfdat = check4doubled(wfdat)

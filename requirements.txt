@@ -1,0 +1,12 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: win-64
+cartopy=0.20.2
+matplotlib-base=3.3.4
+numpy=1.22.3
+obspy=1.3.0
+pyqtgraph=0.12.4
+pyside2=5.13.2
+python=3.8.12
+qt=5.12.9
+scipy=1.8.0

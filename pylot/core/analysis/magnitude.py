@@ -223,14 +223,14 @@ class LocalMagnitude(Magnitude):
                  in 'Z3']
         # checking horizontal count and calculating power_sum accordingly
         if len(power) == 1:
-                print ('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
-                power_sum = power[0]
+            print('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
+            power_sum = power[0]
         elif len(power) == 2:
-                power_sum = power[0] + power[1]
-        else: 
-                raise ValueError('Wood-Anderson aomplitude defintion only valid for'
-                        ' up to two horizontals: {0} given'.format(len(power)))
- 
+            power_sum = power[0] + power[1]
+        else:
+            raise ValueError('Wood-Anderson aomplitude defintion only valid for'
+                             ' up to two horizontals: {0} given'.format(len(power)))
+
         sqH = np.sqrt(power_sum)
 
         # get time array
@@ -325,7 +325,7 @@ class LocalMagnitude(Magnitude):
             if self.verbose:
                 print(
                     "Local Magnitude for station {0}: ML = {1:3.1f}".format(
-                       station, magnitude.mag))
+                        station, magnitude.mag))
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
@@ -404,7 +404,7 @@ class MomentMagnitude(Magnitude):
             if not wf:
                 continue
             try:
-               scopy = wf.copy()
+                scopy = wf.copy()
             except AssertionError:
                 print("WARNING: Something's wrong with the data,"
                       "station {},"
@@ -464,7 +464,7 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
 
     # additional common parameters for calculating Mo
     # average radiation pattern of P waves (Aki & Richards, 1980)
-    rP = 2 / np.sqrt(15)  
+    rP = 2 / np.sqrt(15)
     freesurf = 2.0  # free surface correction, assuming vertical incidence
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf)
@@ -524,7 +524,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             iplot = 2
         else:
             iplot = 0
-    
+
     # get Q value
     Q, A = qp
 
@@ -594,13 +594,13 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
         # fft
         fny = freq / 2
-        #l = len(xdat) / freq
+        # l = len(xdat) / freq
         # number of fft bins after Bath
-        #n = freq * l
+        # n = freq * l
         # find next power of 2 of data length
         m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
         N = min(int(np.power(m, 2)), 16384)
-        #N = int(np.power(m, 2))
+        # N = int(np.power(m, 2))
         y = dt * np.fft.fft(xdat, N)
         Y = abs(y[: N / 2])
         L = (N - 1) / freq
@@ -643,8 +643,8 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         w0 = np.median([w01, w02])
         Fc = np.median([fc1, fc2])
         if verbosity:
-           print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-              w0, Fc))
+            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+                w0, Fc))
     if iplot >= 1:
         f1 = plt.figure()
         tLdat = np.arange(0, len(Ldat) * dt, dt)
@@ -733,7 +733,7 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
             iplot = 2
         else:
             iplot = 0
-    
+
     w0 = []
     stdw0 = []
     fc = []
