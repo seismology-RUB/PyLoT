@@ -24,10 +24,10 @@ It is highly recommended to use Anaconda for a simple creation of a Python insta
 
 Afterwards run (from the PyLoT main directory where the files *requirements.txt* and *pylot.yml* are located)
 
-    conda create --name pylot_38 --file requirements.txt
+    conda env create -f pylot.yml
 or
     
-    conda env create -f pylot.yml
+    conda create --name pylot_38 --file requirements.txt
 
 to create a new Anaconda environment called "pylot_38".
 

@@ -120,7 +120,7 @@ class LogWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.tabs)
 
     def active_error(self):
-        if self.current_active_error == False:
+        if not self.current_active_error:
             self.current_active_error = True
             self.show()
             self.activateWindow()

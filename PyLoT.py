@@ -734,11 +734,9 @@ class MainWindow(QMainWindow):
         if use_logwidget:
             self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
-            self.stdout = self.logwidget.stdout
-            self.stderr = self.logwidget.stderr
 
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
+            sys.stdout = self.logwidget.stdout
+            sys.stderr = self.logwidget.stderr
 
         self.setCentralWidget(_widget)
 
