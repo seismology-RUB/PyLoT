@@ -33,6 +33,7 @@ class HidePrints:
         def silencer(*args, **kwargs):
             with HidePrints():
                 func(*args, **kwargs)
+
         return silencer
 
     def __init__(self, hide_prints=True):

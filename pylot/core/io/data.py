@@ -1,18 +1,18 @@
-#!/usr/bin/env pyth n
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import copy
 import os
+
+from PySide2.QtWidgets import QMessageBox
 from obspy import read_events
 from obspy.core import read, Stream, UTCDateTime
 from obspy.core.event import Event as ObsPyEvent
 from obspy.io.sac import SacIOError
 
-from PySide.QtGui import QMessageBox
-
-import pylot.core.loc.velest as velest
 import pylot.core.loc.focmec as focmec
 import pylot.core.loc.hypodd as hypodd
+import pylot.core.loc.velest as velest
 from pylot.core.io.phases import readPILOTEvent, picks_from_picksdict, \
     picksdict_from_pilot, merge_picks, PylotParameter
 from pylot.core.util.errors import FormatError, OverwriteError
@@ -21,13 +21,14 @@ from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
     check4gapsAndMerge, trim_station_components
 
+
 class Data(object):
     """
     Data container with attributes wfdata holding ~obspy.core.stream.
 
-    :type parent: PySide.QtGui.QWidget object, optional
-    :param parent: A PySide.QtGui.QWidget object utilized when
-    called by a GUI to display a PySide.QtGui.QMessageBox instead of printing
+    :type parent: PySide2.QtWidgets.QWidget object, optional
+    :param parent: A PySide2.QtWidgets.QWidget object utilized when
+    called by a GUI to display a PySide2.QtWidgets.QMessageBox instead of printing
     to standard out.
     :type evtdata: ~obspy.core.event.Event object, optional
     :param evtdata ~obspy.core.event.Event object containing all derived or
@@ -47,10 +48,10 @@ class Data(object):
         elif isinstance(evtdata, dict):
             evt = readPILOTEvent(**evtdata)
             evtdata = evt
-        elif type(evtdata) in [str, unicode]:
+        elif isinstance(evtdata, str):
             try:
                 cat = read_events(evtdata)
-                if len(cat) is not 1:
+                if len(cat) != 1:
                     raise ValueError('ambiguous event information for file: '
                                      '{file}'.format(file=evtdata))
                 evtdata = cat[0]
@@ -99,7 +100,7 @@ class Data(object):
                                       old_pick.phase_hint == new_pick.phase_hint,
                                       old_pick.method_id == new_pick.method_id]
                         if all(comparison):
-                            del(old_pick)
+                            del (old_pick)
                 old_picks.append(new_pick)
         elif not other.isNew() and self.isNew():
             new = other + self
@@ -111,7 +112,7 @@ class Data(object):
             return self + other
         else:
             raise ValueError("both Data objects have differing "
-              "unique Event identifiers")
+                             "unique Event identifiers")
         return self
 
     def getPicksStr(self):
@@ -162,9 +163,8 @@ class Data(object):
 
     def checkEvent(self, event, fcheck, forceOverwrite=False):
         """
-        Check information in supplied event and own event and replace own
-        information with supplied information if own information not exiisting
-        or forced by forceOverwrite
+        Check information in supplied event and own event and replace with own
+        information if no other information are given or forced by forceOverwrite
         :param event: Event that supplies information for comparison
         :type event: pylot.core.util.event.Event
         :param fcheck: check and delete existing information
@@ -250,7 +250,7 @@ class Data(object):
             for pick in self.get_evt_data().picks:
                 if picktype in str(pick.method_id.id):
                     picks.append(pick)
-                
+
     def exportEvent(self, fnout, fnext='.xml', fcheck='auto', upperErrors=None):
         """
         Export event to file
@@ -260,7 +260,7 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
-        
+
         if not type(fcheck) == list:
             fcheck = [fcheck]
 
@@ -293,7 +293,7 @@ class Data(object):
                     return
                 self.checkEvent(event, fcheck)
                 self.setEvtData(event)
-                
+
             self.get_evt_data().write(fnout + fnext, format=evtformat)
 
         # try exporting event
@@ -318,7 +318,7 @@ class Data(object):
                             del picks_copy[k]
                             break
             lendiff = len(picks) - len(picks_copy)
-            if lendiff is not 0:
+            if lendiff != 0:
                 print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
 
             if upperErrors:
@@ -360,13 +360,13 @@ class Data(object):
                     nllocfile = open(fnout + fnext)
                     l = nllocfile.readlines()
                     # Adding A0/Generic Amplitude to .obs file
-                    #l2 = []
-                    #for li in l:
+                    # l2 = []
+                    # for li in l:
                     #    for amp in evtdata_org.amplitudes:
                     #        if amp.waveform_id.station_code == li[0:5].strip():
                     #            li = li[0:64] + '{:0.2e}'.format(amp.generic_amplitude) + li[73:-1] + '\n'
                     #            l2.append(li)
-                    #l = l2
+                    # l = l2
                     nllocfile.close()
                     l.insert(0, header)
                     nllocfile = open(fnout + fnext, 'w')
@@ -503,7 +503,8 @@ class Data(object):
                     real_or_syn_data[synthetic] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
                 except Exception as e:
                     try:
-                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart, endtime=self.tstop)
+                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart,
+                                                            endtime=self.tstop)
                     except Exception as e:
                         warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
@@ -794,8 +795,8 @@ class PilotDataStructure(GenericDataStructure):
 
     def __init__(self, **fields):
         if not fields:
-            fields = {'database': '2006.01',
-                      'root': '/data/Egelados/EVENT_DATA/LOCAL'}
+            fields = {'database': '',
+                      'root': ''}
 
         GenericDataStructure.__init__(self, **fields)
 

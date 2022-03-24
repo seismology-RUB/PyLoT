@@ -1,5 +1,7 @@
 import unittest
+
 from pylot.core.pick.autopick import PickingResults
+
 
 class TestPickingResults(unittest.TestCase):
 
@@ -70,9 +72,9 @@ class TestPickingResults(unittest.TestCase):
             curr_len = len(self.pr)
         except Exception:
             self.fail("test_dunder_attributes overwrote an instance internal dunder method")
-        self.assertEqual(prev_len+1, curr_len)        # +1 for the added __len__ key/value-pair
+        self.assertEqual(prev_len + 1, curr_len)  # +1 for the added __len__ key/value-pair
 
         self.pr.__len__ = 42
 
         self.assertEqual(42, self.pr['__len__'])
-        self.assertEqual(prev_len+1, curr_len, msg="__len__ was overwritten")
+        self.assertEqual(prev_len + 1, curr_len, msg="__len__ was overwritten")

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import numpy as np
 import os
 import sys
+
+import numpy as np
 from obspy import UTCDateTime, read_inventory, read
 from obspy.io.xseed import Parser
 
@@ -46,7 +47,7 @@ class Metadata(object):
     def __repr__(self):
         return self.__str__()
 
-    def add_inventory(self, path_to_inventory, obspy_dmt_inv = False):
+    def add_inventory(self, path_to_inventory, obspy_dmt_inv=False):
         """
         Add path to list of inventories.
         :param path_to_inventory: Path to a folder
@@ -83,10 +84,10 @@ class Metadata(object):
             print('Path {} not in inventories list.'.format(path_to_inventory))
             return
         self.inventories.remove(path_to_inventory)
-        for filename in self.inventory_files.keys():
+        for filename in list(self.inventory_files.keys()):
             if filename.startswith(path_to_inventory):
                 del (self.inventory_files[filename])
-        for seed_id in self.seed_ids.keys():
+        for seed_id in list(self.seed_ids.keys()):
             if self.seed_ids[seed_id].startswith(path_to_inventory):
                 del (self.seed_ids[seed_id])
         # have to clean self.stations_dict as well
@@ -211,6 +212,7 @@ class Metadata(object):
                         self.stations_dict[st_id] = {'latitude': station[0].latitude,
                                                      'longitude': station[0].longitude,
                                                      'elevation': station[0].elevation}
+
         read_stat = {'xml': stat_info_from_inventory,
                      'dless': stat_info_from_parser}
 
@@ -351,25 +353,25 @@ def check_time(datetime):
     :type datetime: list
     :return: returns True if Values are in supposed range, returns False otherwise
 
-    >>> check_time([1999, 01, 01, 23, 59, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 59, 59, 999000])
     True
-    >>> check_time([1999, 01, 01, 23, 59, 60, 999000])
+    >>> check_time([1999, 1, 1, 23, 59, 60, 999000])
     False
-    >>> check_time([1999, 01, 01, 23, 59, 59, 1000000])
+    >>> check_time([1999, 1, 1, 23, 59, 59, 1000000])
     False
-    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 60, 59, 999000])
     False
-    >>> check_time([1999, 01, 01, 23, 60, 59, 999000])
+    >>> check_time([1999, 1, 1, 23, 60, 59, 999000])
     False
-    >>> check_time([1999, 01, 01, 24, 59, 59, 999000])
+    >>> check_time([1999, 1, 1, 24, 59, 59, 999000])
     False
-    >>> check_time([1999, 01, 31, 23, 59, 59, 999000])
+    >>> check_time([1999, 1, 31, 23, 59, 59, 999000])
     True
-    >>> check_time([1999, 02, 30, 23, 59, 59, 999000])
+    >>> check_time([1999, 2, 30, 23, 59, 59, 999000])
     False
-    >>> check_time([1999, 02, 29, 23, 59, 59, 999000])
+    >>> check_time([1999, 2, 29, 23, 59, 59, 999000])
     False
-    >>> check_time([2000, 02, 29, 23, 59, 59, 999000])
+    >>> check_time([2000, 2, 29, 23, 59, 59, 999000])
     True
     >>> check_time([2000, 13, 29, 23, 59, 59, 999000])
     False
@@ -381,6 +383,7 @@ def check_time(datetime):
         return False
 
 
+# TODO: change root to datapath
 def get_file_list(root_dir):
     """
     Function uses a directorie to get all the *.gse files from it.
@@ -444,7 +447,7 @@ def evt_head_check(root_dir, out_dir=None):
     """
     if not out_dir:
         print('WARNING files are going to be overwritten!')
-        inp = str(raw_input('Continue? [y/N]'))
+        inp = str(input('Continue? [y/N]'))
         if not inp == 'y':
             sys.exit()
     filelist = get_file_list(root_dir)

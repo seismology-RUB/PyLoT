@@ -1,21 +1,21 @@
 <?xml version='1.0' encoding='utf-8'?>
 <q:quakeml xmlns:q="http://quakeml.org/xmlns/quakeml/1.2" xmlns="http://quakeml.org/xmlns/bed/1.2">
-  <eventParameters publicID="smi:local/53a38563-739a-48b2-9f34-bf40ee7b656a">
-    <event publicID="smi:local/e0001.024.16">
-      <origin publicID="smi:local/e0001.024.16">
-        <time>
-          <value>2016-01-24T10:30:30.000000Z</value>
-        </time>
-        <latitude>
-          <value>59.66</value>
-        </latitude>
-        <longitude>
-          <value>-153.45</value>
-        </longitude>
-        <depth>
-          <value>128.0</value>
-        </depth>
-      </origin>
-    </event>
-  </eventParameters>
+    <eventParameters publicID="smi:local/53a38563-739a-48b2-9f34-bf40ee7b656a">
+        <event publicID="smi:local/e0001.024.16">
+            <origin publicID="smi:local/e0001.024.16">
+                <time>
+                    <value>2016-01-24T10:30:30.000000Z</value>
+                </time>
+                <latitude>
+                    <value>59.66</value>
+                </latitude>
+                <longitude>
+                    <value>-153.45</value>
+                </longitude>
+                <depth>
+                    <value>128.0</value>
+                </depth>
+            </origin>
+        </event>
+    </eventParameters>
 </q:quakeml>

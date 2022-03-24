@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import numpy as np
 import os
 import platform
 import re
 import subprocess
 import warnings
+
+import numpy as np
 from obspy import UTCDateTime, read
 from obspy.core import AttribDict
 from obspy.signal.rotate import rotate2zne
@@ -227,7 +228,7 @@ def findComboBoxIndex(combo_box, val):
     :type val: basestring
     :return: index value of item with name val or 0
     """
-    return combo_box.findText(val) if combo_box.findText(val) is not -1 else 0
+    return combo_box.findText(val) if combo_box.findText(val) != -1 else 0
 
 
 def find_in_list(list, str):
@@ -950,10 +951,13 @@ def check4rotated(data, metadata=None, verbosity=1):
         if any(rotation_required):
             t_start = full_range(wfstream)
             try:
-                azimuts = [metadata.get_coordinates(tr_id, t_start)['azimuth'] for tr_id in trace_ids]
-                dips = [metadata.get_coordinates(tr_id, t_start)['dip'] for tr_id in trace_ids]
+                azimuts = []
+                dips = []
+                for tr_id in trace_ids:
+                    azimuts.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
+                    dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
             except (KeyError, TypeError) as e:
-                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(trace_id))
+                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(tr_id))
                 return wfstream
             if len(wfstream) < 3:
                 print('Failed to rotate Stream {}, not enough components available.'.format(wfstream))
@@ -964,7 +968,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
                                      wfstream[1], azimuts[1], dips[1],
                                      wfstream[2], azimuts[2], dips[2])
-                print('check4rotated: rotated trace {} to ZNE'.format(trace_id))
+                print('check4rotated: rotated trace {} to ZNE'.format(trace_ids))
                 # replace old data with rotated data, change the channel code to ZNE
                 z_index = dips.index(min(
                     dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
@@ -1013,7 +1017,7 @@ def scaleWFData(data, factor=None, components='all'):
     :return:  scaled waveform data
     :rtype: `~obspy.core.stream.Stream` object
     """
-    if components is not 'all':
+    if components != 'all':
         for comp in components:
             if factor is None:
                 max_val = np.max(np.abs(data.select(component=comp)[0].data))

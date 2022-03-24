@@ -4,11 +4,12 @@
 import glob
 import os
 import subprocess
+
 from obspy import read_events
 
 from pylot.core.io.phases import writephases
-from pylot.core.util.utils import getPatternLine, runProgram
 from pylot.core.util.gui import which
+from pylot.core.util.utils import getPatternLine, runProgram
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
