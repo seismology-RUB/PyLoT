@@ -101,11 +101,11 @@ We hope to solve these with the next release.
 
 Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
 
-Developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, M. Paffrath
+Developer(s): S. Wehling-Benatelli, M. Paffrath, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, D. Arnold, K. Cökerim, S. Zimmermann
 
 Others: A. Bruestle, T. Meier, W. Friederich
 
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-September 2017
+April 2022
