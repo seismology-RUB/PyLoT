@@ -661,13 +661,14 @@ class AutopickStation(object):
                         ax2.plot([self.s_results.lpp, self.s_results.lpp], [-1.1, 1.1], 'g--', label='lpp')
                         ax2.plot([self.s_results.epp, self.s_results.epp], [-1.1, 1.1], 'g--', label='epp')
                         title = '{channel}, S weight={sweight}, SNR={snr:7.2}, SNR[dB]={snrdb:7.2}'
-                        ax2.set_title(title.format(channel=self.etrace.stats.channel,
-                                                   sweight=self.s_results.weight,
-                                                   snr=self.s_results.snr,
-                                                   snrdb=self.s_results.snrdb))
+                        ax2.set_title(title.format(channel=str(self.etrace.stats.channel),
+                                                   sweight=str(self.s_results.weight),
+                                                   snr=str(self.s_results.snr),
+                                                   snrdb=str(self.s_results.snrdb)))
                     else:
                         title = '{channel}, S weight={sweight}, SNR=None, SNR[dB]=None'
-                        ax2.set_title(title.format(channel=self.etrace.stats.channel, sweight=self.s_results.weight))
+                        ax2.set_title(title.format(channel=str(self.etrace.stats.channel),
+                                                   sweight=str(self.s_results.weight)))
                 ax2.legend(loc=1)
                 ax2.set_yticks([])
                 ax2.set_ylim([-1.5, 1.5])

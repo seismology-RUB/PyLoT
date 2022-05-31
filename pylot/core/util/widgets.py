@@ -3675,6 +3675,7 @@ class TuneAutopicker(QWidget):
                                picks=self.get_current_event_picks(station),
                                autopicks=self.get_current_event_autopicks(station),
                                metadata=metadata, event=event, filteroptions=filteroptions,
+                               model=self.parameter.get('taup_model'),
                                embedded=True, wftype=wftype)
         self.pickDlg.update_picks.connect(self.picks_from_pickdlg)
         self.pickDlg.update_picks.connect(self.fill_eventbox)
