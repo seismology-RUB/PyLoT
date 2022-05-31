@@ -429,7 +429,7 @@ class AutopickStation(object):
             if station_coords is None:
                 exit_taupy()
                 raise AttributeError('Warning: Could not find station in metadata')
-            # TODO raise when metadata.get_coordinates returns None
+            # TODO: raise when metadata.get_coordinates returns None
             source_origin = origin[0]
             model = TauPyModel(taup_model)
             taup_phases = self.pickparams['taup_phases']
@@ -471,11 +471,13 @@ class AutopickStation(object):
             """If taupy failed to calculate theoretical starttimes, picking continues.
             For this a clean exit is required, since the P starttime is no longer relative to the theoretic onset but
             to the vertical trace starttime, eg. it can't be < 0."""
+            # TODO here the pickparams is modified, instead of a copy
             if self.pickparams["pstart"] < 0:
-                # TODO here the pickparams is modified, instead of a copy
                 self.pickparams["pstart"] = 0
+            if self.pickparams["sstart"] < 0:
+                self.pickparams["sstart"] = 0
 
-        if self.pickparams["use_taup"] is False:
+        if get_Bool(self.pickparams["use_taup"]) is False:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
             exit_taupy()
@@ -499,6 +501,20 @@ class AutopickStation(object):
         self.pickparams["pstart"] = max(self.pickparams["pstart"], 0)
         self.pickparams["pstop"] = min(self.pickparams["pstop"], len(self.ztrace) * self.ztrace.stats.delta)
 
+        if self.horizontal_traces_exist():
+            # for the two horizontal components take earliest and latest time to make sure that the s onset is not clipped
+            # if start and endtime of horizontal traces differ, the s windowsize will automatically increase
+            trace_s_start = min([self.etrace.stats.starttime, self.ntrace.stats.starttime])
+            # modifiy sstart and sstop relative to estimated first S arrival (relative to station time axis)
+            self.pickparams["sstart"] += (self.origin[0].time + estFirstS) - trace_s_start
+            self.pickparams["sstop"] += (self.origin[0].time + estFirstS) - trace_s_start
+            print('autopick: CF calculation times respectively:'
+                  ' sstart: {} s, sstop: {} s'.format(self.pickparams["sstart"], self.pickparams["sstop"]))
+            # make sure pstart and pstop are inside the starttime/endtime of horizontal traces
+            self.pickparams["sstart"] = max(self.pickparams["sstart"], 0)
+            self.pickparams["sstop"] = min(self.pickparams["sstop"], len(self.ntrace) * self.ntrace.stats.delta,
+                                           len(self.etrace) * self.etrace.stats.delta)
+
     def autopickstation(self):
         """
         Main function of autopickstation, which calculates P and S picks and returns them in a dictionary.
@@ -508,6 +524,17 @@ class AutopickStation(object):
         station's value is the station name on which the picks were calculated.
         :rtype: dict
         """
+
+        if get_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
+            try:
+                # modify pstart, pstop, sstart, sstop to be around theoretical onset if taupy should be used,
+                # else do nothing
+                self.modify_starttimes_taupy()
+            except AttributeError as ae:
+                print(ae)
+            except MissingTraceException as mte:
+                print(mte)
+
         try:
             self.pick_p_phase()
         except MissingTraceException as mte:
@@ -515,13 +542,15 @@ class AutopickStation(object):
         except PickingFailedException as pfe:
             print(pfe)
 
-        if self.horizontal_traces_exist() and self.p_results.weight is not None and self.p_results.weight < 4:
-            try:
-                self.pick_s_phase()
-            except MissingTraceException as mte:
-                print(mte)
-            except PickingFailedException as pfe:
-                print(pfe)
+        if self.horizontal_traces_exist():
+            if (self.p_results.weight is not None and self.p_results.weight < 4) or \
+                    get_Bool(self.pickparams.get('use_taup')):
+                try:
+                    self.pick_s_phase()
+                except MissingTraceException as mte:
+                    print(mte)
+                except PickingFailedException as pfe:
+                    print(pfe)
 
         self.plot_pick_results()
         self.finish_picking()
@@ -795,15 +824,6 @@ class AutopickStation(object):
         tr_filt, z_copy = self.prepare_wfstream(self.zstream, self.pickparams["bpz1"][0], self.pickparams["bpz1"][1])
         # save filtered trace in instance for later plotting
         self.tr_filt_z_bpz2 = tr_filt
-
-        if get_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
-            try:
-                # modify pstart, pstop to be around theoretical onset if taupy should be used, else does nothing
-                self.modify_starttimes_taupy()
-            except AttributeError as ae:
-                print(ae)
-            except MissingTraceException as mte:
-                print(mte)
 
         Lc = self.pickparams['pstop'] - self.pickparams['pstart']
 
@@ -1128,9 +1148,11 @@ class AutopickStation(object):
                   ''.format(self.s_results.weight, self.s_results.snr, self.s_results.snrdb))
 
     def pick_s_phase(self):
-
-        # determine time window for calculating CF after P onset
-        cuttimesh = self._calculate_cuttimes(type='S', iteration=1)
+        if get_Bool(self.pickparams.get('use_taup')) is True:
+            cuttimesh = (self.pickparams.get('sstart'), self.pickparams.get('sstop'))
+        else:
+            # determine time window for calculating CF after P onset
+            cuttimesh = self._calculate_cuttimes(type='S', iteration=1)
 
         # calculate autoregressive CF
         self.arhcf1 = self._calculate_autoregressive_cf_s_pick(cuttimesh)
