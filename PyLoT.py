@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
             self._inputs.export2File(infile)
         self.infile = infile
 
-    def setupUi(self, use_logwidget=True):
+    def setupUi(self, use_logwidget=False):
         try:
             self.startTime = min(
                 [tr.stats.starttime for tr in self.data.wfdata])
