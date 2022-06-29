@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
             self._inputs.export2File(infile)
         self.infile = infile
 
-    def setupUi(self, use_logwidget=True):
+    def setupUi(self, use_logwidget=False):
         try:
             self.startTime = min(
                 [tr.stats.starttime for tr in self.data.wfdata])
@@ -734,11 +734,9 @@ class MainWindow(QMainWindow):
         if use_logwidget:
             self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
-            self.stdout = self.logwidget.stdout
-            self.stderr = self.logwidget.stderr
 
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
+            sys.stdout = self.logwidget.stdout
+            sys.stderr = self.logwidget.stderr
 
         self.setCentralWidget(_widget)
 
@@ -2550,6 +2548,7 @@ class MainWindow(QMainWindow):
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
+                          model=self.inputs.get('taup_model'),
                           filteroptions=self.filteroptions, wftype=wftype)
         if self.filterActionP.isChecked():
             pickDlg.currentPhase = "P"
@@ -2663,7 +2662,7 @@ class MainWindow(QMainWindow):
         self.init_fig_dict()
         # if not self.tap:
         # init TuneAutopicker object
-        self.tap = TuneAutopicker(self)
+        self.tap = TuneAutopicker(self, self.obspy_dmt)
         # first call of update to init tabs with empty canvas
         self.update_autopicker()
         # connect update signal of TuneAutopicker with update function

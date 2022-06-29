@@ -24,10 +24,10 @@ It is highly recommended to use Anaconda for a simple creation of a Python insta
 
 Afterwards run (from the PyLoT main directory where the files *requirements.txt* and *pylot.yml* are located)
 
-    conda create --name pylot_38 --file requirements.txt
+    conda env create -f pylot.yml
 or
     
-    conda env create -f pylot.yml
+    conda create --name pylot_38 --file requirements.txt
 
 to create a new Anaconda environment called "pylot_38".
 
@@ -101,11 +101,11 @@ We hope to solve these with the next release.
 
 Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
 
-Developer(s): S. Wehling-Benatelli, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, M. Paffrath
+Developer(s): S. Wehling-Benatelli, M. Paffrath, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, D. Arnold, K. Cökerim, S. Zimmermann
 
 Others: A. Bruestle, T. Meier, W. Friederich
 
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-September 2017
+April 2022
