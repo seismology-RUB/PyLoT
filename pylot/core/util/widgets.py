@@ -90,6 +90,7 @@ class TextLogWidget(QtWidgets.QTextEdit):
     def __init__(self, parent, highlight_input=False):
         super(TextLogWidget, self).__init__(parent)
         self.highlight_input = highlight_input
+        self.append('DUMMY TEXT\n')
 
     def write(self, text):
         self.append(text)
@@ -107,7 +108,9 @@ class LogWidget(QtWidgets.QWidget):
         self.setMinimumHeight(600)
 
         self.stdout = TextLogWidget(self)
+        self.stdout.write('DUMMY TEXT 2\n')
         self.stderr = TextLogWidget(self, highlight_input=True)
+        self.stderr.write('DUMMY TEXT 2\n')
         self.stderr.highlight.connect(self.active_error)
 
         self.tabs = QTabWidget()
@@ -221,6 +224,7 @@ class AddMetadataWidget(QWidget):
         self.show()
         # self.__test__()
 
+    # TODO: what is this for? Remove?
     def __test__(self):
         self.add_item(r'/rscratch/minos14/marcel/git/pylot/tests')
         self.add_item(r'/rscratch/minos14/marcel/git/pylot/inputs')

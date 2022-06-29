@@ -8,16 +8,13 @@
    Edited for use in PyLoT
    JG, igem, 01/2022
 """
-<<<<<<< HEAD
 
 import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-=======
 import glob
 
->>>>>>> 83ba63a3fdd8ad0a212333928cfcd6f45fcb5baa
 from obspy.core.event import read_events
 from pyproj import Proj
 
