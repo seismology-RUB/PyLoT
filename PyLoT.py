@@ -1170,7 +1170,7 @@ class MainWindow(QMainWindow):
         '''
         if not self.project:
             self.createNewProject()
-        ed = getExistingDirectories(self, 'Select event directories...')
+        ed = GetExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
             eventlist = [event for event in ed.selectedFiles() if not event.endswith('EVENTS-INFO')]
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
@@ -3967,13 +3967,13 @@ class Project(object):
         return project
 
 
-class getExistingDirectories(QFileDialog):
+class GetExistingDirectories(QFileDialog):
     '''
     File dialog with possibility to select multiple folders.
     '''
 
     def __init__(self, *args):
-        super(getExistingDirectories, self).__init__(*args)
+        super(GetExistingDirectories, self).__init__(*args)
         self.setOption(self.DontUseNativeDialog, True)
         self.setOption(self.ReadOnly, True)
         self.setFileMode(self.Directory)
