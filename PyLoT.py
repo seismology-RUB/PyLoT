@@ -480,7 +480,7 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
-        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...',
+        self.qualities_action = self.createAction(parent=self, text='Show pick qualities...',
                                                   slot=self.pickQualities, shortcut='Alt+Q',
                                                   icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
@@ -2861,7 +2861,9 @@ class MainWindow(QMainWindow):
         self.log_deleted_picks([deleted_pick])
 
     def log_deleted_picks(self, deleted_picks, event_path=None):
-        ''' Log deleted picks to list self.deleted_picks '''
+        '''
+        Log deleted picks to list self.deleted_picks
+        '''
         if not event_path:
             event_path = self.get_current_event_path()
         for deleted_pick in deleted_picks:
@@ -2875,7 +2877,9 @@ class MainWindow(QMainWindow):
             self.deleted_picks[event_path].append(deleted_pick)
 
     def dump_deleted_picks(self, event_path):
-        ''' Save deleted picks to json file for event in event_path. Load old file before and merge'''
+        '''
+        Save deleted picks to json file for event in event_path. Load old file before and merge
+        '''
         try:
             deleted_picks_from_file = self.load_deleted_picks(event_path)
         except Exception as e:
@@ -3783,7 +3787,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(self,
-                            'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                            'https://github.com/seismology-RUB/PyLoT')
         else:
             form = HelpForm(self, ':/help.html')
         form.show()

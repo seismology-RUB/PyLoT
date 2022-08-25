@@ -78,7 +78,7 @@ defaults = {'rootpath': {'type': str,
 
             'vp': {'type': float,
                    'tooltip': 'average P-wave velocity',
-                   'value': 3530.,
+                   'value': 3531.,
                    'min': 0.,
                    'max': np.inf,
                    'namestring': 'P-velocity'},
