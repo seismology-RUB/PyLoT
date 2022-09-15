@@ -144,6 +144,10 @@ class Magnitude(object):
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             else:
                 # no scaling necessary
+                # Temporary fix needs rework
+                if (len(self.magnitudes.keys()) == 0 ):
+                    print ( "Error in local magnitude calculation " )
+                    return None
                 mag = ope.Magnitude(
                     mag=np.median([M.mag for M in self.magnitudes.values()]),
                     magnitude_type=self.type,
@@ -602,7 +606,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         N = min(int(np.power(m, 2)), 16384)
         # N = int(np.power(m, 2))
         y = dt * np.fft.fft(xdat, N)
-        Y = abs(y[: N / 2])
+        Y = abs(y[: int( N / 2)])
         L = (N - 1) / freq
         f = np.arange(0, fny, 1 / L)
 

@@ -56,7 +56,7 @@ def which(program, parameter):
         nllocpath = ":" + parameter.get('nllocbin')
         os.environ['PATH'] += nllocpath
     except Exception as e:
-        print(e.message)
+        print(e)
 
     def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)

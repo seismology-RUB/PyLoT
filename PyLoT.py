@@ -734,7 +734,6 @@ class MainWindow(QMainWindow):
         if use_logwidget:
             self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
-
             sys.stdout = self.logwidget.stdout
             sys.stderr = self.logwidget.stderr
 
@@ -3086,7 +3085,7 @@ class MainWindow(QMainWindow):
         phasefile = os.path.join(obsdir, filename + '.obs')
         lt.modify_inputs(ctrfile, locroot, filename, phasefile, ttt)
         try:
-            lt.locate(ctrfile)
+            lt.locate(ctrfile, self._inputs)
         except RuntimeError as e:
             print(e.message)
         # finally:
@@ -3488,10 +3487,9 @@ class MainWindow(QMainWindow):
             return None
 
         wf_copy = self.get_data().getWFData().copy()
-
         wf_select = Stream()
         # restitute only picked traces
-        for station in np.unique(self.getPicks('manual').keys() + self.getPicks('auto').keys()):
+        for station in np.unique(list(self.getPicks('manual').keys()) + list(self.getPicks('auto').keys())):
             wf_select += wf_copy.select(station=station)
 
         corr_wf = restitute_data(wf_select, self.metadata)
