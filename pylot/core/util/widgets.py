@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Mar 19 11:27:35 2014
-
 @author: sebastianw
 """
 
@@ -3161,7 +3160,6 @@ class CanvasWidget(QWidget):
 class MultiEventWidget(QWidget):
     start = Signal()
     '''
-
     '''
 
     def __init__(self, options=None, parent=None, windowflag=Qt.Window):
@@ -3438,7 +3436,6 @@ class TuneAutopicker(QWidget):
     update = QtCore.Signal(str)
     '''
     QWidget used to modifiy and test picking parameters for autopicking algorithm.
-
     :param: parent
     :type: PyLoT Mainwindow
     '''
@@ -3959,10 +3956,8 @@ class PylotParaBox(QtWidgets.QWidget):
     def __init__(self, parameter, parent=None, windowflag=Qt.Window):
         '''
         Generate Widget containing parameters for PyLoT.
-
         :param: parameter
         :type: PylotParameter (object)
-
         '''
         QtWidgets.QWidget.__init__(self, parent, windowflag)
         self.parameter = parameter
@@ -5559,6 +5554,164 @@ class HelpForm(QDialog):
 
     def updatePageTitle(self):
         self.pageLabel.setText(self.webBrowser.title())
+
+
+class PickQualitiesFromXml(QWidget):
+    """
+            PyLoT widget PickQualitiesFromXml is a QWidget object. It is an UI that enables the user
+            to create a plot showing the pick qualities in the event selected inside the QComboBox created
+            by this Widget. The user can also choose to select all Events.
+            The plot is being shown by a FigureCanvas from matlplotlib.
+    """
+
+    def __init__(self, parent=None, figure=Figure(), path="", inputVar=None):
+        super(PickQualitiesFromXml, self).__init__(parent)
+
+        self.fig = figure
+        self.chooseBox = QComboBox()
+        self.path = path
+        self.inputs = inputVar
+        self.setupUi()
+
+    def setupUi(self):
+        self.setWindowTitle("Get pick qualities from xml files")
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.figureC = FigureCanvas(self.fig)
+        self.chooseBox = self.createComboBox()
+        if self.chooseBox:
+            self.main_layout.addWidget(self.chooseBox)
+        self.main_layout.addWidget(self.figureC)
+        self.setLayout(self.main_layout)
+
+    def showUI(self):
+        self.show()
+
+    # Creates a QComboBox and adds all events in the current folder as options. Also gives the option to choose all events
+    def createComboBox(self):
+        self.chooseBox.addItems(glob.glob(os.path.join(os.path.dirname(self.path) + "/*/", '*.xml')))
+        self.chooseBox.addItem("All")
+        self.chooseBox.currentIndexChanged.connect(self.selectionChanged)
+        self.chooseBox.setCurrentIndex(self.chooseBox.count() - 1)
+        return self.chooseBox
+
+    # Function that gets called when the user changes the current selection in the QComboBox. Redraws the plot with the new data
+    def selectionChanged(self):
+        self.figureC.setParent(None)
+        if self.chooseBox.currentIndex() == self.chooseBox.count() - 1:
+            (_, _, plot) = getQualitiesfromxml(self.path, self.inputs.get('timeerrorsP'),
+                                               self.inputs.get('timeerrorsS'), plotflag=1)
+            self.figureC = FigureCanvas(plot)
+        else:
+            (_, _, plot) = getQualitiesfromxml(self.path, self.inputs.get('timeerrorsP'),
+                                               self.inputs.get('timeerrorsS'), plotflag=1,
+                                               xmlnames=[self.chooseBox.currentText()])
+            self.figureC = FigureCanvas(plot)
+        self.figureC.draw()
+        self.main_layout.addWidget(self.figureC)
+        self.setLayout(self.main_layout)
+
+
+class SourceSpecWindow(QWidget):
+    def __init__(self, parent=None, figure=Figure()):
+        super(SourceSpecWindow, self).__init__(parent)
+        self.main_layout = QVBoxLayout()
+        self.setWindowTitle("Display source spectrum from selected trace")
+        self.fig = figure
+
+    def setupUi(self):
+        self.figureC = FigureCanvas(self.fig)
+        self.main_layout.addWidget(self.figureC)
+        self.setLayout(self.main_layout)
+
+
+class ChooseWaveFormWindow(QWidget):
+    def __init__(self, parent=None, WaveForms=[], traces=[], stream=None, chooseB=False):
+        super(ChooseWaveFormWindow, self).__init__(parent)
+        self.main_layout = QVBoxLayout()
+        self.setWindowTitle("Choose trace to display source spectrum")
+        self.wFs = WaveForms
+        self.chooseBoxTraces = QComboBox()
+        self.chooseBoxComponent = QComboBox()
+        self.submitButton = QPushButton(text='test')
+
+        self.chooseB = chooseB
+
+        self.verticalButton = QPushButton(text='Z')
+        self.northButton = QPushButton(text='N')
+        self.eastButton = QPushButton(text='E')
+        self.component = ''
+
+        self.traces = traces
+        self.stream = stream
+        self.setupUI()
+        self.currentSpectro = Figure()
+
+    def setupUI(self):
+        self.submitButton.clicked.connect(self.submit)
+        self.createComboBoxTraces()
+        self.main_layout.addWidget(self.chooseBoxTraces)
+
+        if self.chooseB:
+            self.createComboBoxComponent()
+            self.main_layout.addWidget(self.submitButton)
+            self.main_layout.addWidget(self.chooseBoxComponent)
+        else:
+            self.createButtonsComponent()
+
+        self.setLayout(self.main_layout)
+
+    def submit(self):
+        matplotlib.pyplot.close(self.currentSpectro)
+        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        self.currentSpectro = self.traces[
+            self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
+        self.currentSpectro.show()
+
+    def submitN(self):
+        matplotlib.pyplot.close(self.currentSpectro)
+        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        self.currentSpectro = self.traces[
+            self.chooseBoxTraces.currentText()[3:]]['N'].spectrogram(show=False, title=t)
+        self.currentSpectro.show()
+
+    def submitE(self):
+        matplotlib.pyplot.close(self.currentSpectro)
+        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        self.currentSpectro = self.traces[
+            self.chooseBoxTraces.currentText()[3:]]['E'].spectrogram(show=False, title=t)
+        self.currentSpectro.show()
+
+    def submitZ(self):
+        matplotlib.pyplot.close(self.currentSpectro)
+        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        self.currentSpectro = self.traces[
+            self.chooseBoxTraces.currentText()[3:]]['Z'].spectrogram(show=False, title=t)
+        self.currentSpectro.show()
+
+    # Creates a QComboBox and adds all traces provided
+    def createComboBoxTraces(self):
+        if len(self.wFs) <= 0:
+            raise 'No traces provided'
+        self.chooseBoxTraces.addItems(self.wFs)
+        self.chooseBoxTraces.currentIndexChanged.connect(self.selectionChanged)
+        self.chooseBoxTraces.setCurrentIndex(0)
+        return self.chooseBoxTraces
+
+    def createButtonsComponent(self):
+        self.northButton.clicked.connect(self.submitN)
+        self.eastButton.clicked.connect(self.submitE)
+        self.verticalButton.clicked.connect(self.submitZ)
+
+        self.main_layout.addWidget(self.verticalButton)
+        self.main_layout.addWidget(self.northButton)
+        self.main_layout.addWidget(self.eastButton)
+
+    def createComboBoxComponent(self):
+        self.chooseBoxComponent.addItems(['Z', 'N', 'E'])
+
+    # Function that gets called when the user changes the current selection in the QComboBox.
+    def selectionChanged(self):
+        pass
 
 
 if __name__ == '__main__':

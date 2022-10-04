@@ -145,8 +145,8 @@ class Magnitude(object):
             else:
                 # no scaling necessary
                 # Temporary fix needs rework
-                if (len(self.magnitudes.keys()) == 0 ):
-                    print ( "Error in local magnitude calculation " )
+                if (len(self.magnitudes.keys()) == 0):
+                    print("Error in local magnitude calculation ")
                     return None
                 mag = ope.Magnitude(
                     mag=np.median([M.mag for M in self.magnitudes.values()]),
@@ -436,6 +436,40 @@ class MomentMagnitude(Magnitude):
             self.event.station_magnitudes.append(magnitude)
             self.magnitudes = (station, magnitude)
 
+    # WIP JG
+    def getSourceSpec(self):
+        for a in self.arrivals:
+            if a.phase not in 'pP':
+                continue
+            # make sure calculating Mo only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            if len(self.stream) <= 2:
+                print("Station:" '{0}'.format(station))
+                print("WARNING: No instrument corrected data available,"
+                      " no magnitude calculation possible! Go on.")
+                continue
+            wf = self.stream.select(station=station)
+            if not wf:
+                continue
+            try:
+                scopy = wf.copy()
+            except AssertionError:
+                print("WARNING: Something's wrong with the data,"
+                      "station {},"
+                      "no calculation of moment magnitude possible! Go on.".format(station))
+                continue
+            onset = pick.time
+            distance = degrees2kilometers(a.distance)
+            azimuth = a.azimuth
+            incidence = a.takeoff_angle
+            w0, fc, plt = calcsourcespec(scopy, onset, self.p_velocity, distance,
+                                    azimuth, incidence, self.p_attenuation,
+                                    3, self.verbose)
+            return w0, fc, plt
 
 def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
     '''
@@ -606,7 +640,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         N = min(int(np.power(m, 2)), 16384)
         # N = int(np.power(m, 2))
         y = dt * np.fft.fft(xdat, N)
-        Y = abs(y[: int( N / 2)])
+        Y = abs(y[: int(N / 2)])
         L = (N - 1) / freq
         f = np.arange(0, fny, 1 / L)
 
@@ -683,6 +717,8 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
+            if iplot == 3:
+                return w0, Fc, plt
             plt.show()
             try:
                 input()
