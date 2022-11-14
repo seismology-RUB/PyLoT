@@ -4038,16 +4038,7 @@ def create_window():
     return app, app_created
 
 
-def main(args=None):
-    project_filename = None
-    # args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
-    pylot_infile = None
-    if args:
-        if args.project_filename:
-            project_filename = args.project_filename
-        if args.input_filename:
-            pylot_infile = args.input_filename
-        reset_qsettings = args.reset_qsettings
+def main(project_filename=None, pylot_infile=None, reset_qsettings=False):
 
     # create the Qt application
     pylot_app, app_created = create_window()
@@ -4096,4 +4087,5 @@ if __name__ == "__main__":
     parser.add_argument('--reset_qsettings', default=False, action='store_true',
                         help='reset qsettings (debug option)')
     args = parser.parse_args()
-    sys.exit(main(args))
+    sys.exit(main(project_filename=args.project_filename, pylot_infile=args.input_filename,
+                  reset_qsettings=args.reset_qsettings))
