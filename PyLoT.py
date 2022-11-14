@@ -734,14 +734,11 @@ class MainWindow(QMainWindow):
         _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
+        self.logwidget = LogWidget(parent=None)
         if use_logwidget:
-            self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
             self.stdout = self.logwidget.stdout
             self.stderr = self.logwidget.stderr
-
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
 
             # Not sure why but the lines above kept messing with the Ouput even with use_logwidget disabled
             sys.stdout = self.stdout
