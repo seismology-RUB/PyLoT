@@ -60,7 +60,7 @@ except ImportError:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude
+from pylot.core.analysis.magnitude import LocalMagnitude, MomentMagnitude, calcsourcespec
 from pylot.core.io.data import Data
 from pylot.core.io.inputs import FilterOptions, PylotParameter
 from autoPyLoT import autoPyLoT
@@ -83,7 +83,8 @@ from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
-    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget
+    CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget, PickQualitiesFromXml, \
+    SourceSpecWindow, ChooseWaveFormWindow
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -734,11 +735,21 @@ class MainWindow(QMainWindow):
         if use_logwidget:
             self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
+            self.stdout = self.logwidget.stdout
+            self.stderr = self.logwidget.stderr
 
-            sys.stdout = self.logwidget.stdout
-            sys.stderr = self.logwidget.stderr
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
+
+            # Not sure why but the lines above kept messing with the Ouput even with use_logwidget disabled
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
 
         self.setCentralWidget(_widget)
+
+        # Need to store PickQualities Window somewhere so it doesnt disappear
+        self.pickQualitiesWindow = None
+
 
     def init_wfWidget(self):
         xlab = self.startTime.strftime('seconds since %Y/%m/%d %H:%M:%S (%Z)')
@@ -1668,14 +1679,40 @@ class MainWindow(QMainWindow):
 
     def pickQualities(self):
         path = self.get_current_event_path()
-        getQualitiesfromxml(path, self._inputs.get('timeerrorsP'), self._inputs.get('timeerrorsS'), plotflag=1)
-        return
+        (_, _, plot) = getQualitiesfromxml(path, self._inputs.get('timeerrorsP'), self._inputs.get('timeerrorsS'),plotflag=1)
+        self.pickQualitiesWindow = PickQualitiesFromXml(figure=plot, path=self.get_current_event_path(),inputVar=self._inputs)
+        self.pickQualitiesWindow.showUI()
+        return 
 
-    def eventlistXml(self):
+    # WIP JG
+    def eventlistXml2(self):
         path = self._inputs['rootpath'] + '/' + self._inputs['datapath'] + '/' + self._inputs['database']
         outpath = self.project.location[:self.project.location.rfind('/')]
         geteventlistfromxml(path, outpath)
         return
+
+    # WIP JG
+    def eventlistXml(self):
+        global test
+        stations = []
+        names = []
+        traces = {}
+        for tr in self.get_data().wfdata.traces:
+            if not tr.stats.station in stations:
+                stations.append(tr.stats.station)
+                names.append(tr.stats.network + '.' + tr.stats.station)
+        for station in stations:
+            traces[station] = {}
+        for ch in ['Z', 'N', 'E']:
+            for tr in self.get_data().wfdata.select(component=ch).traces:
+                traces[tr.stats.station][ch] = tr
+
+
+        names.sort()
+        a = self.get_current_event()
+        test = ChooseWaveFormWindow(WaveForms=names, traces=traces, stream=self.get_data())
+        #self.get_data().wfdata.spectrogram()
+        test.show()
 
     def compareMulti(self):
         if not self.compareoptions:
@@ -3075,11 +3112,13 @@ class MainWindow(QMainWindow):
         lt = locateTool[loctool]
         # get working directory
         locroot = parameter['nllocroot']
+        #locroot = 'E:/NLL/src/Insheim'
         if locroot is None:
             self.PyLoTprefs()
             self.locate_event()
 
         ctrfile = os.path.join(locroot, 'run', parameter['ctrfile'])
+        #ctrfile = 'E:/NLL/src/Insheim/run/Insheim_min1d032016.in'
         ttt = parameter['ttpatter']
         outfile = parameter['outpatter']
         eventname = self.get_current_event_name()
@@ -3090,7 +3129,7 @@ class MainWindow(QMainWindow):
         phasefile = os.path.join(obsdir, filename + '.obs')
         lt.modify_inputs(ctrfile, locroot, filename, phasefile, ttt)
         try:
-            lt.locate(ctrfile)
+            lt.locate(ctrfile, self.obspy_dmt)
         except RuntimeError as e:
             print(e.message)
         # finally:
@@ -3495,7 +3534,7 @@ class MainWindow(QMainWindow):
 
         wf_select = Stream()
         # restitute only picked traces
-        for station in np.unique(self.getPicks('manual').keys() + self.getPicks('auto').keys()):
+        for station in np.unique(list(self.getPicks('manual').keys()) + list(self.getPicks('auto').keys())):
             wf_select += wf_copy.select(station=station)
 
         corr_wf = restitute_data(wf_select, self.metadata)
