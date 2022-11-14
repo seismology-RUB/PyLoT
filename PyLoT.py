@@ -118,15 +118,13 @@ class MainWindow(QMainWindow):
             infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
             print('Using default input file {}'.format(infile))
         if os.path.isfile(infile) == False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')[0]
 
-            if not os.path.exists(infile[0]):
+            if not os.path.exists(infile):
                 QMessageBox.warning(self, "PyLoT Warning",
                                     "No PyLoT-input file declared!")
                 sys.exit(0)
-            self.infile = infile[0]
-        else:
-            self.infile = infile
+        self.infile = infile
         self._inputs = PylotParameter(infile)
         self._props = None
 
