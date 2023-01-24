@@ -738,12 +738,12 @@ class MainWindow(QMainWindow):
             self.stdout = self.logwidget.stdout
             self.stderr = self.logwidget.stderr
 
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
+            self.stdout = self.stdout
+            self.stderr = self.stderr
 
             # Not sure why but the lines above kept messing with the Ouput even with use_logwidget disabled
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
 
         self.setCentralWidget(_widget)
 
@@ -2517,9 +2517,13 @@ class MainWindow(QMainWindow):
             self.dataPlot.draw()
 
     def pickOnStation(self, gui_event):
+        sys.stdout = sys.__stdout__
+
+        print ( "xxxxxxxxxxx" )
+        
         if self.pg:
             button = gui_event.button()
-            if not button in [1, 4]:
+            if not button in [1,2, 4]:
                 return
         else:
             button = gui_event.button
@@ -2539,8 +2543,25 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         location = self.getLocationName(wfID)
         seed_id = self.getTraceID(wfID)
-        if button == 1:
+        if button == 2:
             self.pickDialog(wfID, seed_id)
+        elif button == 1:
+            print ( " XXX " )
+            stations = []
+            names = []
+            traces = {}
+
+            for tr in self.get_data().wfdata.traces:
+                if not tr.stats.station in stations:
+                    stations.append(tr.stats.station)
+                    names.append(tr.stats.network + '.' + tr.stats.station)
+            for station in stations:
+                traces[station] = {}
+            for ch in ['Z', 'N', 'E']:
+                for tr in self.get_data().wfdata.select(component=ch).traces:
+                    traces[tr.stats.station][ch] = tr
+            print ( traces[station]['Z'] )
+            print ( "XXXXXXXXXXXXXXXXXXXXXXXXXXX" )
         elif button == 4:
             self.toggle_station_color(wfID, network, station, location)
 
