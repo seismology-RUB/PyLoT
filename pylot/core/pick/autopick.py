@@ -22,7 +22,7 @@ from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class
 from pylot.core.util.utils import getPatternLine, gen_Pool, \
-    get_Bool, identifyPhaseID, get_None, correct_iplot
+    get_bool, identifyPhaseID, get_None, correct_iplot
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
@@ -477,7 +477,7 @@ class AutopickStation(object):
             if self.pickparams["sstart"] < 0:
                 self.pickparams["sstart"] = 0
 
-        if get_Bool(self.pickparams["use_taup"]) is False:
+        if get_bool(self.pickparams["use_taup"]) is False:
             # correct user mistake where a relative cuttime is selected (pstart < 0) but use of taupy is disabled/ has
             # not the required parameters
             exit_taupy()
@@ -525,7 +525,7 @@ class AutopickStation(object):
         :rtype: dict
         """
 
-        if get_Bool(self.pickparams['use_taup']) is True and self.origin is not None:
+        if get_bool(self.pickparams['use_taup']) is True and self.origin is not None:
             try:
                 # modify pstart, pstop, sstart, sstop to be around theoretical onset if taupy should be used,
                 # else do nothing
@@ -544,7 +544,7 @@ class AutopickStation(object):
 
         if self.horizontal_traces_exist():
             if (self.p_results.weight is not None and self.p_results.weight < 4) or \
-                    get_Bool(self.pickparams.get('use_taup')):
+                    get_bool(self.pickparams.get('use_taup')):
                 try:
                     self.pick_s_phase()
                 except MissingTraceException as mte:
@@ -1148,7 +1148,7 @@ class AutopickStation(object):
                   ''.format(self.s_results.weight, self.s_results.snr, self.s_results.snrdb))
 
     def pick_s_phase(self):
-        if get_Bool(self.pickparams.get('use_taup')) is True:
+        if get_bool(self.pickparams.get('use_taup')) is True:
             cuttimesh = (self.pickparams.get('sstart'), self.pickparams.get('sstop'))
         else:
             # determine time window for calculating CF after P onset

@@ -327,20 +327,41 @@ def get_None(value):
         return value
 
 
-def get_Bool(value):
+def get_bool(value):
     """
     Convert string representations of bools to their true boolean value
     :param value:
-    :type value: str, bool
+    :type value: str, bool, int, float
     :return: true boolean value
     :rtype: bool
+
+    >>> get_bool(True)
+    True
+    >>> get_bool(False)
+    False
+    >>> get_bool(0)
+    False
+    >>> get_bool(0.)
+    False
+    >>> get_bool(0.1)
+    True
+    >>> get_bool(2)
+    True
+    >>> get_bool(-1)
+    False
+    >>> get_bool(-0.3)
+    False
     """
-    if value in ['True', 'true']:
+    if type(value) == bool:
+        return value
+    elif value in ['True', 'true']:
         return True
     elif value in ['False', 'false']:
         return False
+    elif value > 0. or value > 0:
+        return True
     else:
-        return value
+        return False
 
 
 def four_digits(year):
@@ -352,8 +373,8 @@ def four_digits(year):
     :return: four digit year correspondent
     :rtype: int
 
-    >>> four_digits(20)
-    1920
+    >>> four_digits(75)
+    1975
     >>> four_digits(16)
     2016
     >>> four_digits(00)
@@ -510,6 +531,11 @@ def is_executable(fn):
     :param fn: path to the file to be tested
     :return: True or False
     :rtype: bool
+
+    >>> is_executable('/bin/ls')
+    True
+    >>> is_executable('/var/log/system.log')
+    False
     """
     return os.path.isfile(fn) and os.access(fn, os.X_OK)
 
@@ -616,13 +642,13 @@ def find_horizontals(data):
     :param data: waveform data
     :type data: `obspy.core.stream.Stream`
     :return: components list
-    :rtype: list
+    :rtype: List(str)
 
     ..example::
 
     >>> st = read()
     >>> find_horizontals(st)
-    [u'N', u'E']
+    ['N', 'E']
     """
     rval = []
     for tr in data:
@@ -897,11 +923,11 @@ def check4doubled(data):
 
 def get_stations(data):
     """
-    Get list of all station names in data stream
+    Get list of all station names in data-stream
     :param data: stream containing seismic traces
     :type data: `~obspy.core.stream.Stream`
     :return: list of all station names in data, no duplicates
-    :rtype: list of str
+    :rtype: List(str)
     """
     stations = []
     for tr in data:
@@ -957,7 +983,7 @@ def check4rotated(data, metadata=None, verbosity=1):
         if len(wfs_in) < 3:
             print(f"Stream {wfs_in=}, has not enough components to rotate.")
             return wfs_in
-        
+
         # check if any traces in this station need to be rotated
         trace_ids = [trace.id for trace in wfs_in]
         if not rotation_required(trace_ids):
@@ -1188,7 +1214,7 @@ def correct_iplot(iplot):
     try:
         iplot = int(iplot)
     except ValueError:
-        if get_Bool(iplot):
+        if get_bool(iplot):
             iplot = 2
         else:
             iplot = 0
