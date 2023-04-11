@@ -117,17 +117,19 @@ class MainWindow(QMainWindow):
         if not infile:
             infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
             print('Using default input file {}'.format(infile))
-        if os.path.isfile(infile) == False:
-            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')
+        if os.path.isfile(infile) is False:
+            infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')[0]
 
-            if not os.path.exists(infile[0]):
+            if not os.path.exists(infile):
                 QMessageBox.warning(self, "PyLoT Warning",
-                                    "No PyLoT-input file declared!")
-                sys.exit(0)
-            self.infile = infile[0]
-        else:
-            self.infile = infile
+                                    "No PyLoT-input file declared! Using default parameters!")
+                infile = None
+
         self._inputs = PylotParameter(infile)
+        if not infile:
+            self._inputs.reset_defaults()
+
+        self.infile = infile
         self._props = None
 
         self.gain = 1.
@@ -481,7 +483,7 @@ class MainWindow(QMainWindow):
                                                               "automatic pick "
                                                               "data.", False)
         self.compare_action.setEnabled(False)
-        self.qualities_action = self.createAction(parent=self, text='Show pick qualitites...',
+        self.qualities_action = self.createAction(parent=self, text='Show pick qualities...',
                                                   slot=self.pickQualities, shortcut='Alt+Q',
                                                   icon=qualities_icon, tip='Histogram of pick qualities')
         self.qualities_action.setEnabled(False)
@@ -732,18 +734,15 @@ class MainWindow(QMainWindow):
         _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
+        self.logwidget = LogWidget(parent=None)
         if use_logwidget:
-            self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
             self.stdout = self.logwidget.stdout
             self.stderr = self.logwidget.stderr
 
-            self.stdout = self.stdout
-            self.stderr = self.stderr
-
             # Not sure why but the lines above kept messing with the Ouput even with use_logwidget disabled
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
 
         self.setCentralWidget(_widget)
 
@@ -1181,7 +1180,7 @@ class MainWindow(QMainWindow):
         '''
         if not self.project:
             self.createNewProject()
-        ed = getExistingDirectories(self, 'Select event directories...')
+        ed = GetExistingDirectories(self, 'Select event directories...')
         if ed.exec_():
             eventlist = [event for event in ed.selectedFiles() if not event.endswith('EVENTS-INFO')]
             basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
@@ -2517,13 +2516,9 @@ class MainWindow(QMainWindow):
             self.dataPlot.draw()
 
     def pickOnStation(self, gui_event):
-        sys.stdout = sys.__stdout__
-
-        print ( "xxxxxxxxxxx" )
-        
         if self.pg:
             button = gui_event.button()
-            if not button in [1,2, 4]:
+            if not button in [1, 4]:
                 return
         else:
             button = gui_event.button
@@ -2543,25 +2538,8 @@ class MainWindow(QMainWindow):
         station = self.getStationName(wfID)
         location = self.getLocationName(wfID)
         seed_id = self.getTraceID(wfID)
-        if button == 2:
+        if button == 1:
             self.pickDialog(wfID, seed_id)
-        elif button == 1:
-            print ( " XXX " )
-            stations = []
-            names = []
-            traces = {}
-
-            for tr in self.get_data().wfdata.traces:
-                if not tr.stats.station in stations:
-                    stations.append(tr.stats.station)
-                    names.append(tr.stats.network + '.' + tr.stats.station)
-            for station in stations:
-                traces[station] = {}
-            for ch in ['Z', 'N', 'E']:
-                for tr in self.get_data().wfdata.select(component=ch).traces:
-                    traces[tr.stats.station][ch] = tr
-            print ( traces[station]['Z'] )
-            print ( "XXXXXXXXXXXXXXXXXXXXXXXXXXX" )
         elif button == 4:
             self.toggle_station_color(wfID, network, station, location)
 
@@ -2919,7 +2897,9 @@ class MainWindow(QMainWindow):
         self.log_deleted_picks([deleted_pick])
 
     def log_deleted_picks(self, deleted_picks, event_path=None):
-        ''' Log deleted picks to list self.deleted_picks '''
+        '''
+        Log deleted picks to list self.deleted_picks
+        '''
         if not event_path:
             event_path = self.get_current_event_path()
         for deleted_pick in deleted_picks:
@@ -2933,7 +2913,9 @@ class MainWindow(QMainWindow):
             self.deleted_picks[event_path].append(deleted_pick)
 
     def dump_deleted_picks(self, event_path):
-        ''' Save deleted picks to json file for event in event_path. Load old file before and merge'''
+        '''
+        Save deleted picks to json file for event in event_path. Load old file before and merge
+        '''
         try:
             deleted_picks_from_file = self.load_deleted_picks(event_path)
         except Exception as e:
@@ -3843,7 +3825,7 @@ class MainWindow(QMainWindow):
     def helpHelp(self):
         if checkurl():
             form = HelpForm(self,
-                            'https://ariadne.geophysik.ruhr-uni-bochum.de/trac/PyLoT/wiki')
+                            'https://github.com/seismology-RUB/PyLoT')
         else:
             form = HelpForm(self, ':/help.html')
         form.show()
@@ -4023,13 +4005,13 @@ class Project(object):
         return project
 
 
-class getExistingDirectories(QFileDialog):
+class GetExistingDirectories(QFileDialog):
     '''
     File dialog with possibility to select multiple folders.
     '''
 
     def __init__(self, *args):
-        super(getExistingDirectories, self).__init__(*args)
+        super(GetExistingDirectories, self).__init__(*args)
         self.setOption(self.DontUseNativeDialog, True)
         self.setOption(self.ReadOnly, True)
         self.setFileMode(self.Directory)
@@ -4055,16 +4037,7 @@ def create_window():
     return app, app_created
 
 
-def main(args=None):
-    project_filename = None
-    # args.project_filename = 'C:/Shared/AlpArray/alparray_data/project_alparray_test.plp'
-    pylot_infile = None
-    if args:
-        if args.project_filename:
-            project_filename = args.project_filename
-        if args.input_filename:
-            pylot_infile = args.input_filename
-        reset_qsettings = args.reset_qsettings
+def main(project_filename=None, pylot_infile=None, reset_qsettings=False):
 
     # create the Qt application
     pylot_app, app_created = create_window()
@@ -4113,4 +4086,5 @@ if __name__ == "__main__":
     parser.add_argument('--reset_qsettings', default=False, action='store_true',
                         help='reset qsettings (debug option)')
     args = parser.parse_args()
-    sys.exit(main(args))
+    sys.exit(main(project_filename=args.project_filename, pylot_infile=args.input_filename,
+                  reset_qsettings=args.reset_qsettings))

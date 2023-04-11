@@ -26,9 +26,7 @@ elif system_name == "Windows":
 # suffix for phase name if not phase identified by last letter (P, p, etc.)
 ALTSUFFIX = ['diff', 'n', 'g', '1', '2', '3']
 
-FILTERDEFAULTS = readDefaultFilterInformation(os.path.join(os.path.expanduser('~'),
-                                                           '.pylot',
-                                                           'pylot.in'))
+FILTERDEFAULTS = readDefaultFilterInformation()
 
 TIMEERROR_DEFAULTS = os.path.join(os.path.expanduser('~'),
                                   '.pylot',

@@ -37,15 +37,14 @@ def getAutoFilteroptions(phase, parameter):
     return filteroptions
 
 
-def readDefaultFilterInformation(fname):
+def readDefaultFilterInformation():
     """
     Read default filter information from pylot.in file
-    :param fname: path to pylot.in file
-    :type fname: str
     :return: dictionary containing the defailt filter information
     :rtype: dict
     """
-    pparam = PylotParameter(fname)
+    pparam = PylotParameter()
+    pparam.reset_defaults()
     return readFilterInformation(pparam)
 
 

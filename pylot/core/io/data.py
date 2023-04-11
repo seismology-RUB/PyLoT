@@ -260,6 +260,10 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
+        import sys
+
+        sys.stdout = sys.__stdout__
+        print ( fnext )
 
         if not type(fcheck) == list:
             fcheck = [fcheck]
@@ -327,20 +331,31 @@ class Data(object):
                 for j in range(len(picks)):
                     for i in range(len(picks_copy)):
                         if picks_copy[i].phase_hint[0] == 'P':
-                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] is None):
+                            print(picks_copy[i].time_errors)
+
+                            # Testing if exporting works without upper_uncertatinty
+                            if picks_copy[i].time_errors['upper_uncertainty'] is None:
+                                break
+
+                            if  (picks_copy[i].time_errors['uncertainty'] is None) or \
+                                    (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[0]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
                                 print("{1} P-Pick of station {0} will not be saved in outputfile".format(
                                     picks_copy[i].waveform_id.station_code,
                                     picks_copy[i].method_id))
-                                print("#")
+                                print("#######")
                                 del picks_copy[i]
                                 break
                         if picks_copy[i].phase_hint[0] == 'S':
-                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] is None):
+
+                            # Testing if exporting works without upper_uncertatinty
+                            if picks_copy[i].time_errors['upper_uncertainty'] is None:
+                                break
+
+                            if (picks_copy[i].time_errors['uncertainty'] is None) or \
+                                (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[1]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
@@ -773,9 +788,12 @@ class GenericDataStructure(object):
         """
         expandList = []
         for item in self.getExpandFields():
+            print ( item )
             expandList.append(self.getFieldValue(item))
         if self.hasSuffix():
             expandList.append('*%s' % self.getFieldValue('suffix'))
+        print ( expandList )
+        print ( self.getFields() )
         return os.path.join(*expandList)
 
     def getCatalogName(self):

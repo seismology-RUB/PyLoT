@@ -517,7 +517,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
+            if 'P' in arrivals[key]:
                 try:
                     fm = arrivals[key]['P']['fm']
                 except KeyError as e:
@@ -551,7 +551,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                                            ss_ms,
                                                                                            pweight))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']['mpp'] is not None:
+            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
                 fm = '?'
                 onset = arrivals[key]['S']['mpp']
                 year = onset.year
@@ -670,7 +670,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
-            if arrivals[key].has_key('P') and arrivals[key]['P']['mpp'] is not None:
+            if 'P' in  arrivals[key] and arrivals[key]['P']['mpp'] is not None:
                 if arrivals[key]['P']['weight'] < 4:
                     Ponset = arrivals[key]['P']['mpp']
                     pyear = Ponset.year
@@ -699,7 +699,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']['mpp'] is not None:
+            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
                     syear = Sonset.year
@@ -768,7 +768,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
             # P onsets
-            if usedarrivals[key].has_key('P'):
+            if 'P' in usedarrivals[key]:
                 if usedarrivals[key]['P']['weight'] < 4:
                     n += 1
                     stat = key
@@ -782,7 +782,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     else:
                         fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
                         # S onsets
-            if usedarrivals[key].has_key('S'):
+            if 'S' in usedarrivals[key]:
                 if usedarrivals[key]['S']['weight'] < 4:
                     n += 1
                     stat = key
@@ -828,13 +828,13 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # prefer manual picks
         usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
-            if usedarrivals[key].has_key('P'):
+            if 'P' in usedarrivals[key]:
                 # P onsets
                 if usedarrivals[key]['P']['weight'] < 4:
                     Ponset = usedarrivals[key]['P']['mpp']
                     Prt = Ponset - stime  # onset time relative to source time
                     fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-            if usedarrivals[key].has_key('S'):
+            if 'S' in usedarrivals[key]:
                 # S onsets
                 if usedarrivals[key]['S']['weight'] < 4:
                     Sonset = usedarrivals[key]['S']['mpp']
@@ -879,7 +879,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # prefer manual picks
         usedarrivals = chooseArrivals(arrivals)
         for key in usedarrivals:
-            if usedarrivals[key].has_key('P'):
+            if 'P' in usedarrivals[key]:
                 if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
@@ -961,7 +961,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         # write phase lines
         for key in arrivals:
-            if arrivals[key].has_key('P'):
+            if 'P' in arrivals[key]:
                 if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
                     stat = key
                     ccode = arrivals[key]['P']['channel']

@@ -5663,9 +5663,49 @@ class ChooseWaveFormWindow(QWidget):
     def submit(self):
         matplotlib.pyplot.close(self.currentSpectro)
         t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
-        self.currentSpectro = self.traces[
-            self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
-        self.currentSpectro.show()
+        #self.currentSpectro = self.traces[
+        #    self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
+        #self.currentSpectro.show()
+        applyFFT()
+ 
+    def applyFFT(self, trace):
+        sys.stdout = sys.__stdout__
+        tra = self.traces[self.chooseBoxTraces.currentText()[3:]]['Z']
+        transformed = abs(np.fft.rfft(tra.data))
+        print ( transformed )
+        matplotlib.pyplot.plot ( transformed )
+        matplotlib.pyplot.show()
+
+    def applyFFTs(self, tra):
+        sys.stdout = sys.__stdout__
+        transformed = abs(np.fft.rfft(tra.data))
+        print ( transformed )
+        matplotlib.pyplot.plot ( transformed )
+        matplotlib.pyplot.show()
+
+
+    def applyFFT2(self, trace):
+        sys.stdout = sys.__stdout__
+        tra = self.traces[self.chooseBoxTraces.currentText()[3:]]['Z']
+        from pylot.core.pick.utils import select_for_phase
+        zdat = select_for_phase(tra, "P")
+        freq = zdat[0].stats.sampling_rate
+        # fft
+        fny = freq / 2
+        # l = len(xdat) / freq
+        # number of fft bins after Bath
+        # n = freq * l
+        # find next power of 2 of data length
+        m = pow(2, np.ceil(np.log(len(zdat)) / np.log(2)))
+        N = min(int(np.power(m, 2)), 16384)
+        # N = int(np.power(m, 2))
+        y = dt * np.fft.fft(zdat, N)
+        Y = abs(y[: int(N / 2)])
+        #L = (N - 1) / freq
+        #f = np.arange(0, fny, 1 / L)
+
+        matplotlib.pyplot.plot (Y)
+        matplotlib.pyplot.show()
 
     def submitN(self):
         matplotlib.pyplot.close(self.currentSpectro)
@@ -5674,19 +5714,53 @@ class ChooseWaveFormWindow(QWidget):
             self.chooseBoxTraces.currentText()[3:]]['N'].spectrogram(show=False, title=t)
         self.currentSpectro.show()
 
-    def submitE(self):
+    def submitE2(self):
         matplotlib.pyplot.close(self.currentSpectro)
         t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
         self.currentSpectro = self.traces[
             self.chooseBoxTraces.currentText()[3:]]['E'].spectrogram(show=False, title=t)
         self.currentSpectro.show()
 
+    def submitE(self):
+        sys.stdout = sys.__stdout__
+        matplotlib.pyplot.close(self.currentSpectro)
+        #t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        #self.currentSpectro = self.traces[
+        #    self.chooseBoxTraces.currentText()[3:]]['Z'].spectrogram(show=False, title=t)
+        #self.currentSpectro.show()
+        #self.applyFFT('s')
+        i = 0
+       
+        figure, axis = matplotlib.pyplot.subplots(len(self.traces), sharex=True)
+        for t in self.traces:
+            tra = self.traces[t]['Z']
+            transformed = abs(np.fft.rfft(tra.data))
+            axis[i].plot(transformed, label = t)
+            #axis[i].tick_params(labelbottom=False)
+            axis[i].spines['top'].set_visible(False)
+            axis[i].spines['right'].set_visible(False)
+            axis[i].spines['left'].set_visible(False)
+            if not (len(self.traces) == i - 1) :
+                axis[i].spines['bottom'].set_visible(False)
+            axis[i].set_yticks([])
+            axis[i].set_ylabel(t,loc='center', rotation='horizontal')
+            #axis[i].axis('off')
+            i += 1
+            #self.applyFFTs(t)
+
+        matplotlib.pyplot.margins(0)
+        return FigureCanvas(figure)
+        #return figure, axis
+        matplotlib.pyplot.show()
+
     def submitZ(self):
         matplotlib.pyplot.close(self.currentSpectro)
-        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
-        self.currentSpectro = self.traces[
-            self.chooseBoxTraces.currentText()[3:]]['Z'].spectrogram(show=False, title=t)
-        self.currentSpectro.show()
+        #t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
+        #self.currentSpectro = self.traces[
+        #    self.chooseBoxTraces.currentText()[3:]]['Z'].spectrogram(show=False, title=t)
+        #self.currentSpectro.show()
+        self.applyFFT2('s')
+
 
     # Creates a QComboBox and adds all traces provided
     def createComboBoxTraces(self):
