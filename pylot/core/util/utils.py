@@ -301,7 +301,7 @@ def fnConstructor(s):
     if type(s) is str:
         s = s.split(':')[-1]
     else:
-        s = getHash(UTCDateTime())
+        s = get_hash(UTCDateTime())
 
     badchars = re.compile(r'[^A-Za-z0-9_. ]+|^\.|\.$|^ | $|^$')
     badsuffix = re.compile(r'(aux|com[1-9]|con|lpt[1-9]|prn)(\.|$)')
@@ -473,16 +473,25 @@ def backtransformFilterString(st):
     return st
 
 
-def getHash(time):
+def get_hash(time):
     """
     takes a time object and returns the corresponding SHA1 hash of the formatted date string
     :param time: time object for which a hash should be calculated
     :type time: `~obspy.core.utcdatetime.UTCDateTime`
     :return: SHA1 hash
     :rtype: str
+
+    >>> time = UTCDateTime(0)
+    >>> get_hash(time)
+    '7627cce3b1b58dd21b005dac008b34d18317dd15'
+    >>> get_hash(0)
+    Traceback (most recent call last):
+    ...
+    AssertionError: 'time' is not an ObsPy UTCDateTime object
     """
+    assert isinstance(time, UTCDateTime), '\'time\' is not an ObsPy UTCDateTime object'
     hg = hashlib.sha1()
-    hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f'))
+    hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f').encode('utf-8'))
     return hg.hexdigest()
 
 
@@ -496,13 +505,21 @@ def getLogin():
     return getpass.getuser()
 
 
-def getOwner(fn):
+def get_owner(fn):
     """
     takes a filename and return the login ID of the actual owner of the file
     :param fn: filename of the file tested
     :type fn: str
     :return: login ID of the file's owner
     :rtype: str
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile() as tmpfile:
+    ...     tmpfile.write(b'') and True
+    ...     tmpfile.flush()
+    ...     get_owner(tmpfile.name) == os.path.expanduser('~').split('/')[-1]
+    0
+    True
     """
     system_name = platform.system()
     if system_name in ["Linux", "Darwin"]:
