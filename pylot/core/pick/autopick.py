@@ -22,7 +22,7 @@ from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
     getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class
 from pylot.core.util.utils import getPatternLine, gen_Pool, \
-    get_bool, identifyPhaseID, get_None, correct_iplot
+    get_bool, identifyPhaseID, get_none, correct_iplot
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
@@ -272,7 +272,7 @@ class AutopickStation(object):
         self.pickparams = copy.deepcopy(pickparam)
         self.verbose = verbose
         self.iplot = correct_iplot(iplot)
-        self.fig_dict = get_None(fig_dict)
+        self.fig_dict = get_none(fig_dict)
         self.metadata = metadata
         self.origin = origin
 

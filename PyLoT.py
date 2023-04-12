@@ -76,7 +76,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, get_bool, get_None
+    check_all_pylot, get_bool, get_none
 from pylot.core.util.gui import make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
@@ -1956,8 +1956,8 @@ class MainWindow(QMainWindow):
 
         if len(curr_event.origins) > 0:
             origin_time = curr_event.origins[0].time
-            tstart = settings.value('tstart') if get_None(settings.value('tstart')) else 0
-            tstop = settings.value('tstop') if get_None(settings.value('tstop')) else 0
+            tstart = settings.value('tstart') if get_none(settings.value('tstart')) else 0
+            tstop = settings.value('tstop') if get_none(settings.value('tstop')) else 0
             tstart = origin_time + float(tstart)
             tstop = origin_time + float(tstop)
         else:

@@ -53,7 +53,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
+    identifyPhaseID, get_bool, get_none, pick_color, getAutoFilteroptions, SetChannelComponents, \
     station_id_remove_channel
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
@@ -4669,8 +4669,8 @@ class InputsTab(PropTab):
         self.tstopBox = QSpinBox()
         for spinbox in [self.tstartBox, self.tstopBox]:
             spinbox.setRange(-99999, 99999)
-        self.tstartBox.setValue(float(settings.value('tstart')) if get_None(settings.value('tstart')) else 0)
-        self.tstopBox.setValue(float(settings.value('tstop')) if get_None(settings.value('tstop')) else 1e6)
+        self.tstartBox.setValue(float(settings.value('tstart')) if get_none(settings.value('tstart')) else 0)
+        self.tstopBox.setValue(float(settings.value('tstop')) if get_none(settings.value('tstop')) else 1e6)
         self.cuttimesLayout.addWidget(self.tstartBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
         self.cuttimesLayout.addWidget(self.tstopBox, 10)

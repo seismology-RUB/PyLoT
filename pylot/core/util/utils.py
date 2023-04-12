@@ -313,15 +313,32 @@ def fnConstructor(s):
     return fn
 
 
-def get_None(value):
+def get_none(value):
     """
     Convert "None" to None
     :param value:
-    :type value: str, bool
+    :type value: str, NoneType
     :return:
-    :rtype: bool
+    :rtype: type(value) or NoneType
+
+    >>> st = read()
+    >>> print(get_none(st))
+    3 Trace(s) in Stream:
+    BW.RJOB..EHZ | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    BW.RJOB..EHN | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    BW.RJOB..EHE | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    >>> get_none('Stream')
+    'Stream'
+    >>> get_none(0)
+    0
+    >>> get_none(0.)
+    0.0
+    >>> print(get_none('None'))
+    None
+    >>> print(get_none(None))
+    None
     """
-    if value == 'None':
+    if value is None or (type(value) is str and value == 'None'):
         return None
     else:
         return value
