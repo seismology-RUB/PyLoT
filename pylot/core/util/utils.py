@@ -634,13 +634,19 @@ def is_iterable(obj):
 def key_for_set_value(d):
     """
     takes a dictionary and returns the first key for which's value the
-    boolean is True
+    boolean representation is True
     :param d: dictionary containing values
     :type d: dict
     :return: key to the first non-False value found; None if no value's
     boolean equals True
-    :rtype:
+    :rtype: bool or NoneType
+
+    >>> key_for_set_value({'one': 0, 'two': 1})
+    'two'
+    >>> print(key_for_set_value({1: 0, 2: False}))
+    None
     """
+    assert type(d) is dict, "Function only defined for inputs of type 'dict'."
     r = None
     for k, v in d.items():
         if v:
