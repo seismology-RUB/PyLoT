@@ -596,13 +596,13 @@ def isSorted(iterable):
     >>> isSorted([2,3,1,4])
     False
     """
-    assert isIterable(iterable), "object is not iterable; object: {}".format(iterable)
+    assert is_iterable(iterable), "object is not iterable; object: {}".format(iterable)
     if type(iterable) is str:
         iterable = [s for s in iterable]
     return sorted(iterable) == iterable
 
 
-def isIterable(obj):
+def is_iterable(obj):
     """
     takes a python object and returns True is the object is iterable and
     False otherwise
@@ -610,9 +610,22 @@ def isIterable(obj):
     :type obj: obj
     :return: True of False
     :rtype: bool
+
+    >>> is_iterable(1)
+    False
+    >>> is_iterable(True)
+    False
+    >>> is_iterable(0.)
+    False
+    >>> is_iterable((0,1,3,4))
+    True
+    >>> is_iterable([1])
+    True
+    >>> is_iterable('a')
+    True
     """
     try:
-        iterator = iter(obj)
+        iter(obj)
     except TypeError as te:
         return False
     return True
