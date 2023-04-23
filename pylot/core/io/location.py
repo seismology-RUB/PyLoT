@@ -1,7 +1,7 @@
 from obspy import UTCDateTime
 from obspy.core import event as ope
 
-from pylot.core.util.utils import getLogin, get_hash
+from pylot.core.util.utils import get_login, get_hash
 
 
 def create_amplitude(pickID, amp, unit, category, cinfo):
@@ -61,7 +61,7 @@ def create_creation_info(agency_id=None, creation_time=None, author=None):
     :return:
     '''
     if author is None:
-        author = getLogin()
+        author = get_login()
     if creation_time is None:
         creation_time = UTCDateTime()
     return ope.CreationInfo(agency_id=agency_id, author=author,

@@ -86,25 +86,6 @@ def fit_curve(x, y):
     return splev, splrep(x, y)
 
 
-def getindexbounds(f, eta):
-    """
-    Get indices of values closest below and above maximum value in an array
-    :param f: array
-    :type f: `~numpy.ndarray`
-    :param eta: look for value in array that is closes to max_value * eta
-    :type eta: float
-    :return: tuple containing index of max value, index of value closest below max value,
-     index of value closest above max value
-    :rtype: (int, int, int)
-    """
-    mi = f.argmax()  # get indices of max values
-    m = max(f)  # get maximum value
-    b = m * eta  #
-    l = find_nearest(f[:mi], b)  # find closest value below max value
-    u = find_nearest(f[mi:], b) + mi  # find closest value above max value
-    return mi, l, u
-
-
 def gen_Pool(ncores=0):
     """
     Generate mulitprocessing pool object utilizing ncores amount of cores
@@ -500,10 +481,10 @@ def get_hash(time):
     return hg.hexdigest()
 
 
-def getLogin():
+def get_login():
     """
-    returns the actual user's login ID
-    :return: login ID
+    returns the actual user's name
+    :return: login name
     :rtype: str
     """
     import getpass
@@ -884,21 +865,6 @@ def transform_colors_mpl(colors):
     return colors_mpl
 
 
-def remove_underscores(data):
-    """
-    takes a `obspy.core.stream.Stream` object and removes all underscores
-    from station names
-    :param data: stream of seismic data
-    :type data: `~obspy.core.stream.Stream`
-    :return: data stream
-    :rtype: `~obspy.core.stream.Stream`
-    """
-    # for tr in data:
-    #    # remove underscores
-    #    tr.stats.station = tr.stats.station.strip('_')
-    return data
-
-
 def trim_station_components(data, trim_start=True, trim_end=True):
     """
     cut a stream so only the part common to all three traces is kept to avoid dealing with offsets
@@ -1130,38 +1096,6 @@ def check4rotated(data, metadata=None, verbosity=1):
     for station in stations:  # loop through all stations and rotate data if neccessary
         wf_station = data.select(station=station)
         rotate_components(wf_station, metadata)
-    return data
-
-
-def scaleWFData(data, factor=None, components='all'):
-    """
-    produce scaled waveforms from given waveform data and a scaling factor,
-    waveform may be selected by their components name
-    :param data: waveform data to be scaled
-    :type data: `~obspy.core.stream.Stream` object
-    :param factor: scaling factor
-    :type factor: float
-    :param components: components labels for the traces in data to be scaled by
-     the scaling factor (optional, default: 'all')
-    :type components: tuple
-    :return:  scaled waveform data
-    :rtype: `~obspy.core.stream.Stream` object
-    """
-    if components != 'all':
-        for comp in components:
-            if factor is None:
-                max_val = np.max(np.abs(data.select(component=comp)[0].data))
-                data.select(component=comp)[0].data /= 2 * max_val
-            else:
-                data.select(component=comp)[0].data /= 2 * factor
-    else:
-        for tr in data:
-            if factor is None:
-                max_val = float(np.max(np.abs(tr.data)))
-                tr.data /= 2 * max_val
-            else:
-                tr.data /= 2 * factor
-
     return data
 
 
