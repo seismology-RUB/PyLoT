@@ -49,7 +49,7 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.autopick import fmpicker
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
-from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
+from pylot.core.util.utils import prep_time_axis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
@@ -923,10 +923,10 @@ class WaveformWidgetPG(QtWidgets.QWidget):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
-            time_ax = prepTimeAxis(stime, trace)
+            time_ax = prep_time_axis(stime, trace)
             if st_syn:
                 stime_syn = trace_syn.stats.starttime - self.wfstart
-                time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
+                time_ax_syn = prep_time_axis(stime_syn, trace_syn)
 
             if method == 'fast':
                 trace.data, time_ax = self.minMax(trace, time_ax)
@@ -1409,7 +1409,7 @@ class PylotCanvas(FigureCanvas):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - wfstart
-            time_ax = prepTimeAxis(stime, trace)
+            time_ax = prep_time_axis(stime, trace)
             if time_ax is not None:
                 if scaleToChannel:
                     st_scale = wfdata.select(channel=scaleToChannel)
@@ -1447,7 +1447,7 @@ class PylotCanvas(FigureCanvas):
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
-                time_ax = prepTimeAxis(stime, trace)
+                time_ax = prep_time_axis(stime, trace)
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 p_data = compare_stream[0].data
                 # #normalize
@@ -2548,7 +2548,7 @@ class PickDlg(QDialog):
 
         # prepare plotting of data
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
+            t = prep_time_axis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
             # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
