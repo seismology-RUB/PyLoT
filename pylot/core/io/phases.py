@@ -1014,7 +1014,6 @@ def chooseArrivals(arrivals):
     :return: arrivals but with the manual picks prefered if possible
     """
     # If len of arrivals is greater than 2 it comes from autopicking so only autopicks are available
-    print("=== CHOOSE ===")
     if len(arrivals) > 2:
         return arrivals
     if arrivals['auto'] and arrivals['manual']:
