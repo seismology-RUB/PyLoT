@@ -5663,9 +5663,23 @@ class ChooseWaveFormWindow(QWidget):
     def submit(self):
         matplotlib.pyplot.close(self.currentSpectro)
         t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
-        self.currentSpectro = self.traces[
-            self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
-        self.currentSpectro.show()
+        #self.currentSpectro = self.traces[
+        #    self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
+        #self.currentSpectro.show()
+        applyFFT()
+
+    def applyFFT(self, trace):
+        tra = self.traces[self.chooseBoxTraces.currentText()[3:]]['Z']
+        transformed = abs(np.fft.rfft(tra.data))
+        print ( transformed )
+        matplotlib.pyplot.plot ( transformed )
+        matplotlib.pyplot.show()
+
+    def applyFFTs(self, tra):
+        transformed = abs(np.fft.rfft(tra.data))
+        print ( transformed )
+        matplotlib.pyplot.plot ( transformed )
+        matplotlib.pyplot.show()
 
     def submitN(self):
         matplotlib.pyplot.close(self.currentSpectro)
@@ -5679,13 +5693,6 @@ class ChooseWaveFormWindow(QWidget):
         t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
         self.currentSpectro = self.traces[
             self.chooseBoxTraces.currentText()[3:]]['E'].spectrogram(show=False, title=t)
-        self.currentSpectro.show()
-
-    def submitZ(self):
-        matplotlib.pyplot.close(self.currentSpectro)
-        t = self.chooseBoxTraces.currentText() + " " + self.chooseBoxComponent.currentText()
-        self.currentSpectro = self.traces[
-            self.chooseBoxTraces.currentText()[3:]]['Z'].spectrogram(show=False, title=t)
         self.currentSpectro.show()
 
     # Creates a QComboBox and adds all traces provided
@@ -5712,6 +5719,86 @@ class ChooseWaveFormWindow(QWidget):
     # Function that gets called when the user changes the current selection in the QComboBox.
     def selectionChanged(self):
         pass
+
+
+class SpectrogramTab(QWidget):
+    def __init__(self, traces, wfdata, parent=None):
+        super(SpectrogramTab, self).__init__(parent)
+        self.setupUi()
+        self.traces = traces
+        self.wfdata = wfdata
+
+    def setupUi(self):
+        pass
+    def makeSpecFig(self, direction = 'Z', height = 0, width = 0, parent = None):
+
+        i = 0
+        grams = []
+        figure, axis = matplotlib.pyplot.subplots(len(self.traces), sharex=True)
+
+        start, end = full_range(self.wfdata)
+
+        if height != 0 and width != 0:
+            figure.figsize = (width, height)
+            figure.set_figwidth = width
+            figure.set_figheight = height
+
+        #figure.tight_layout()
+
+        for t in self.traces:
+            tra = self.traces[t][direction]
+            #print(start, end)
+
+            # Set Title
+            if i == 0:
+                if direction == 'Z':
+                    figure.suptitle("section: vertical components")
+                elif direction == 'E':
+                    figure.suptitle("section: east-west components")
+                elif direction == 'N':
+                    figure.suptitle("section: north-south components")
+                axis[i].vlines(0, axis[i].get_ylim()[0], axis[i].get_ylim()[1],
+                          colors='m', linestyles='dashed',
+                          linewidth=2)
+
+            # Different axis settings for visual improvements
+            # axis[i].set_xlim(left=0, right=end - start)
+            # axis[i].spines['top'].set_visible(False)
+            # axis[i].spines['right'].set_visible(False)
+            # # axis[i].spines['left'].set_visible(False)
+
+            # axis[i].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+            # if not (len(self.traces) == i - 1):
+                # axis[i].spines['bottom'].set_visible(False)
+            # axis[i].set_yticks([])
+            # axis[i].set_ylabel(t, loc='center', rotation='horizontal')
+
+            #ax.axhline(n, color="0.5", lw=0.5)
+
+
+            grams.append(tra.spectrogram(show=False, axes=axis[i]))
+            i+=1
+
+        #figure.setXLims([0, end - start])
+        figure.set_tight_layout(True)
+        fC = FigureCanvas(figure)
+        return fC
+
+    #for t in self.traces:
+       # tra = self.traces[t]['Z']
+       # transformed = abs(np.fft.rfft(tra.data))
+       # axis[i].plot(transformed, label=t)
+       # # axis[i].tick_params(labelbottom=False)
+       # axis[i].spines['top'].set_visible(False)
+       # axis[i].spines['right'].set_visible(False)
+       # axis[i].spines['left'].set_visible(False)
+       # if not (len(self.traces) == i - 1):
+       #     axis[i].spines['bottom'].set_visible(False)
+       # axis[i].set_yticks([])
+       # axis[i].set_ylabel(t, loc='center', rotation='horizontal')
+       # # axis[i].axis('off')
+       # i += 1
+       # # self.applyFFTs(t)
 
 
 if __name__ == '__main__':

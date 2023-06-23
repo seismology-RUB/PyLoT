@@ -41,7 +41,8 @@ class Thread(QThread):
             exctype, value = sys.exc_info()[:2]
             self._executedErrorInfo = '{} {} {}'. \
                 format(exctype, value, traceback.format_exc())
-        sys.stdout = self.old_stdout
+        if self.redirect_stdout:
+            sys.stdout = self.old_stdout
 
     def showProgressbar(self):
         if self.progressText:

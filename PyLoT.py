@@ -84,7 +84,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget, PickQualitiesFromXml, \
-    SourceSpecWindow, ChooseWaveFormWindow
+    SourceSpecWindow, ChooseWaveFormWindow, SpectrogramTab
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -496,7 +496,6 @@ class MainWindow(QMainWindow):
                                                       icon=eventlist_xml_icon,
                                                       tip='Create an Eventlist from a XML File')
         self.eventlist_xml_action.setEnabled(False)
-
         printAction = self.createAction(self, "&Print event ...",
                                         self.show_event_information, QKeySequence.Print,
                                         print_icon,
@@ -698,14 +697,17 @@ class MainWindow(QMainWindow):
         wf_tab = QtWidgets.QWidget(self)
         array_tab = QtWidgets.QWidget(self)
         events_tab = QtWidgets.QWidget(self)
+        spectro_tab = QtWidgets.QWidget(self)
 
         # init main widgets layouts
         self.wf_layout = QtWidgets.QVBoxLayout()
         self.array_layout = QtWidgets.QVBoxLayout()
         self.events_layout = QtWidgets.QVBoxLayout()
+        self.spectro_layout = QtWidgets.QVBoxLayout()
         wf_tab.setLayout(self.wf_layout)
         array_tab.setLayout(self.array_layout)
         events_tab.setLayout(self.events_layout)
+        spectro_tab.setLayout(self.spectro_layout)
 
         # tighten up layouts inside tabs
         for layout in [self.wf_layout, self.array_layout, self.events_layout]:
@@ -716,12 +718,14 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(wf_tab, 'Waveform Plot')
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
+        self.tabs.addTab(spectro_tab, 'Spectro')
 
         self.wf_layout.addWidget(self.no_data_label)
         self.wf_layout.addWidget(self.wf_scroll_area)
         self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
         self.init_event_table()
+        self.init_spectro_tab()
         self.tabs.setCurrentIndex(0)
 
         self.eventLabel = QLabel()
@@ -734,15 +738,12 @@ class MainWindow(QMainWindow):
         _widget.setLayout(self._main_layout)
         _widget.showFullScreen()
 
-        self.logwidget = LogWidget(parent=None)
+
         if use_logwidget:
+            self.logwidget = LogWidget(parent=None)
             self.logwidget.show()
             self.stdout = self.logwidget.stdout
             self.stderr = self.logwidget.stderr
-
-            # Not sure why but the lines above kept messing with the Ouput even with use_logwidget disabled
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
 
         self.setCentralWidget(_widget)
 
@@ -1678,20 +1679,20 @@ class MainWindow(QMainWindow):
 
     def pickQualities(self):
         path = self.get_current_event_path()
-        (_, _, plot) = getQualitiesfromxml(path, self._inputs.get('timeerrorsP'), self._inputs.get('timeerrorsS'),plotflag=1)
+        (_, plot) = getQualitiesfromxml(path, self._inputs.get('timeerrorsP'), self._inputs.get('timeerrorsS'),plotflag=1)
         self.pickQualitiesWindow = PickQualitiesFromXml(figure=plot, path=self.get_current_event_path(),inputVar=self._inputs)
         self.pickQualitiesWindow.showUI()
         return 
 
     # WIP JG
-    def eventlistXml2(self):
+    def eventlistXml(self):
         path = self._inputs['rootpath'] + '/' + self._inputs['datapath'] + '/' + self._inputs['database']
         outpath = self.project.location[:self.project.location.rfind('/')]
         geteventlistfromxml(path, outpath)
         return
 
-    # WIP JG
-    def eventlistXml(self):
+        # WIP JG
+    def spectogramView(self):
         global test
         stations = []
         names = []
@@ -1706,12 +1707,25 @@ class MainWindow(QMainWindow):
             for tr in self.get_data().wfdata.select(component=ch).traces:
                 traces[tr.stats.station][ch] = tr
 
-
         names.sort()
         a = self.get_current_event()
-        test = ChooseWaveFormWindow(WaveForms=names, traces=traces, stream=self.get_data())
-        #self.get_data().wfdata.spectrogram()
-        test.show()
+
+        print (self.get_data().wfdata.traces[0])
+
+        test = SpectrogramTab(traces, self.get_data().wfdata)
+        height = self.tabs.widget(0).height()
+        width = self.tabs.widget(0).width()
+        self.tabs.setCurrentIndex(3)
+        figCanvas = test.makeSpecFig(direction=self.dispComponent, height = height, width = width, parent = self.tabs.widget)
+        return figCanvas
+        #self.spectro_layout.addWidget()
+        # self.get_data().wfdata.spectrogram()
+        # self.tabs.addTab(figCanvas, 'Spectrogram')
+        # self.tabs[3] = figCanvas
+        # self.refreshTabs()
+        # test.show()
+
+
 
     def compareMulti(self):
         if not self.compareoptions:
@@ -1898,6 +1912,13 @@ class MainWindow(QMainWindow):
                     self.newWF(plot=False)
                 self.update_obspy_dmt()
                 self.refresh_array_map()
+        if self.tabs.currentIndex() == 3:
+            if self.spectroWidget != None:
+                self.spectro_layout.removeWidget(self.spectroWidget)
+            newSpectroWidget = self.spectogramView()
+            self.spectro_layout.addWidget(newSpectroWidget)
+            self.spectroWidget = newSpectroWidget
+
 
     def newWF(self, event=None, plot=True):
         '''
@@ -2155,6 +2176,7 @@ class MainWindow(QMainWindow):
             self.locateEventAction.setEnabled(True)
             self.qualities_action.setEnabled(True)
             self.eventlist_xml_action.setEnabled(True)
+
         if True in self.comparable.values():
             self.compare_action.setEnabled(True)
         self.draw()
@@ -3128,7 +3150,7 @@ class MainWindow(QMainWindow):
         phasefile = os.path.join(obsdir, filename + '.obs')
         lt.modify_inputs(ctrfile, locroot, filename, phasefile, ttt)
         try:
-            lt.locate(ctrfile, self.obspy_dmt)
+            lt.locate(ctrfile, self._inputs)
         except RuntimeError as e:
             print(e.message)
         # finally:
@@ -3182,7 +3204,7 @@ class MainWindow(QMainWindow):
         '''
         if checked: pass  # dummy argument for QAction trigger signal
         self.tabs.setCurrentIndex(1)
-        # if there is no metadata (invetories is an empty list), just initialize the default empty tab
+        # if there is no metadata (inventories is an empty list), just initialize the default empty tab
         if not self.metadata.inventories:
             self.init_array_tab()
             return
@@ -3203,6 +3225,15 @@ class MainWindow(QMainWindow):
         self.array_layout.addWidget(self.array_map)
         self.tabs.setCurrentIndex(index)
         self.refresh_array_map()
+
+    def init_spectro_tab(self):
+        '''
+        Init spectrogram tab with currently selected event.
+        '''
+        self.spectroWidget = None
+        #self.spectro_layout.addWidget( self.spectogramView() )
+        pass
+
 
     def array_map_thread(self):
         '''

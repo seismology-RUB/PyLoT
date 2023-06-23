@@ -260,7 +260,6 @@ class Data(object):
         can be a str or a list of strings of ['manual', 'auto', 'origin', 'magnitude']
         """
         from pylot.core.util.defaults import OUTPUTFORMATS
-
         if not type(fcheck) == list:
             fcheck = [fcheck]
 
@@ -321,35 +320,61 @@ class Data(object):
             if lendiff != 0:
                 print("Manual as well as automatic picks available. Prefered the {} manual ones!".format(lendiff))
 
+
+            no_uncertainties_p = []
+            no_uncertainties_s = []
             if upperErrors:
                 # check for pick uncertainties exceeding adjusted upper errors
                 # Picks with larger uncertainties will not be saved in output file!
                 for j in range(len(picks)):
                     for i in range(len(picks_copy)):
                         if picks_copy[i].phase_hint[0] == 'P':
-                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] is None):
+                            # Skipping pick if no upper_uncertainty is found and warning user
+                            if picks_copy[i].time_errors['upper_uncertainty'] is None:
+                                #print("{1} P-Pick of station {0} does not have upper_uncertainty and cant be checked".format(
+                                 #   picks_copy[i].waveform_id.station_code,
+                                  #  picks_copy[i].method_id))
+                                if not picks_copy[i].waveform_id.station_code in no_uncertainties_p:
+                                    no_uncertainties_p.append(picks_copy[i].waveform_id.station_code)
+                                continue
+
+                            #print ("checking for upper_uncertainty")
+                            if  (picks_copy[i].time_errors['uncertainty'] is None) or \
+                                    (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[0]):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[0]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
                                 print("{1} P-Pick of station {0} will not be saved in outputfile".format(
                                     picks_copy[i].waveform_id.station_code,
                                     picks_copy[i].method_id))
-                                print("#")
                                 del picks_copy[i]
                                 break
                         if picks_copy[i].phase_hint[0] == 'S':
-                            if (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]) or \
-                                    (picks_copy[i].time_errors['uncertainty'] is None):
+
+                            # Skipping pick if no upper_uncertainty is found and warning user
+                            if picks_copy[i].time_errors['upper_uncertainty'] is None:
+                                #print("{1} S-Pick of station {0} does not have upper_uncertainty and cant be checked".format(
+                                    #picks_copy[i].waveform_id.station_code,
+                                    #picks_copy[i].method_id))
+                                if not picks_copy[i].waveform_id.station_code in no_uncertainties_s:
+                                    no_uncertainties_s.append(picks_copy[i].waveform_id.station_code)
+                                continue
+
+
+                            if (picks_copy[i].time_errors['uncertainty'] is None) or \
+                                (picks_copy[i].time_errors['upper_uncertainty'] >= upperErrors[1]):
                                 print("Uncertainty exceeds or equal adjusted upper time error!")
                                 print("Adjusted uncertainty: {}".format(upperErrors[1]))
                                 print("Pick uncertainty: {}".format(picks_copy[i].time_errors['uncertainty']))
                                 print("{1} S-Pick of station {0} will not be saved in outputfile".format(
                                     picks_copy[i].waveform_id.station_code,
                                     picks_copy[i].method_id))
-                                print("#")
                                 del picks_copy[i]
                                 break
+            for s in no_uncertainties_p:
+                print("P-Pick of station {0} does not have upper_uncertainty and cant be checked".format(s))
+            for s in no_uncertainties_s:
+                print("S-Pick of station {0} does not have upper_uncertainty and cant be checked".format(s))
 
             if fnext == '.obs':
                 try:
