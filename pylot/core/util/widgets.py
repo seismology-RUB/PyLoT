@@ -1786,7 +1786,7 @@ class PickDlg(QDialog):
 
         # init expected picks using obspy Taup
         try:
-            if self.metadata and model is not None:
+            if self.metadata and model != "None":
                 self.model = TauPyModel(model)
                 self.get_arrivals()
                 self.drawArrivals()
