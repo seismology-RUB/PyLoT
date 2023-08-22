@@ -76,7 +76,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, get_Bool, get_None
+    check_all_pylot, get_bool, get_None
 from pylot.core.util.gui import make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
@@ -507,6 +507,8 @@ class MainWindow(QMainWindow):
                                        or shipped documentation files.""")
         logAction = self.createAction(self, "&Show Log", self.showLogWidget,
                                       tip="""Display Log""")
+
+        logAction.setEnabled(use_logwidget)
 
         # create button group for component selection
 
@@ -2293,7 +2295,7 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
-        if get_Bool(settings.value('large_dataset')) == True:
+        if get_bool(settings.value('large_dataset')):
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'
@@ -3743,7 +3745,7 @@ class MainWindow(QMainWindow):
             filename = fnm[0] + '.plp'
         self.project.parameter = self._inputs
         settings = QSettings()
-        autosaveXML = get_Bool(settings.value('autosaveXML', True))
+        autosaveXML = get_bool(settings.value('autosaveXML', True))
         if autosaveXML:
             self.exportEvents()
         if not self.project.save(filename): return False
@@ -3767,7 +3769,7 @@ class MainWindow(QMainWindow):
                 self.metadata.clear_inventory()
                 self.project.parameter = self._inputs
                 settings = QSettings()
-                autosaveXML = get_Bool(settings.value('autosaveXML', True))
+                autosaveXML = get_bool(settings.value('autosaveXML', True))
                 if autosaveXML:
                     self.exportEvents()
                 if not self.project.save(): return False

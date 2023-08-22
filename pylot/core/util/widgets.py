@@ -53,7 +53,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, merge_stream, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, get_Bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
+    identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
     station_id_remove_channel
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
@@ -1876,7 +1876,7 @@ class PickDlg(QDialog):
         self.sChannels.triggered.connect(self.updateChannelSettingsS)
 
         settings = QSettings()
-        self.autoFilterAction.setChecked(get_Bool(settings.value('autoFilter')))
+        self.autoFilterAction.setChecked(get_bool(settings.value('autoFilter')))
 
         # create other widget elements
         phaseitems = [None] + list(FILTERDEFAULTS.keys())
@@ -2355,7 +2355,7 @@ class PickDlg(QDialog):
         settings = QSettings()
         phaseID = self.getPhaseID(phase)
 
-        if get_Bool(settings.value('useGuiFilter')) or gui_filter:
+        if get_bool(settings.value('useGuiFilter')) or gui_filter:
             filteroptions = self.filteroptions[phaseID]
         else:
             filteroptions = getAutoFilteroptions(phaseID, self.parameter)
@@ -3025,7 +3025,7 @@ class PickDlg(QDialog):
     @staticmethod
     def getChannelSettingsP(channel):
         settings = QSettings()
-        rval = get_Bool(settings.value('p_channel_{}'.format(channel)))
+        rval = get_bool(settings.value('p_channel_{}'.format(channel)))
         compclass = SetChannelComponents.from_qsettings(settings)
         components = ['Z']
         for component in components[:]:
@@ -3040,7 +3040,7 @@ class PickDlg(QDialog):
     @staticmethod
     def getChannelSettingsS(channel):
         settings = QSettings()
-        rval = get_Bool(settings.value('s_channel_{}'.format(channel)))
+        rval = get_bool(settings.value('s_channel_{}'.format(channel)))
         compclass = SetChannelComponents.from_qsettings(settings)
         components = ['N', 'E']
         for component in components[:]:
@@ -5194,7 +5194,7 @@ class FilterOptionsDialog(QDialog):
                            'S': QtWidgets.QGroupBox('S Filter')}
 
         settings = QSettings()
-        overwriteFilter = get_Bool(settings.value('useGuiFilter'))
+        overwriteFilter = get_bool(settings.value('useGuiFilter'))
 
         self.overwriteFilterCheckbox = QCheckBox('Overwrite filteroptions')
         self.overwriteFilterCheckbox.setToolTip('Overwrite filter settings for refined pick with GUI settings')

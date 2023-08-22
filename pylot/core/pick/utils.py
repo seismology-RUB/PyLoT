@@ -15,7 +15,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 from scipy.signal import argrelmax
 
-from pylot.core.util.utils import get_Bool, get_None, SetChannelComponents
+from pylot.core.util.utils import get_bool, get_None, SetChannelComponents
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -62,8 +62,8 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
     plt_flag = 0
     try:
         iplot = int(iplot)
-    except:
-        if get_Bool(iplot):
+    except ValueError:
+        if get_bool(iplot):
             iplot = 2
         else:
             iplot = 0
@@ -816,7 +816,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
     try:
         iplot = int(iplot)
     except:
-        if get_Bool(iplot):
+        if get_bool(iplot):
             iplot = 2
         else:
             iplot = 0
@@ -1130,7 +1130,7 @@ def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
     try:
         iplot = int(iplot)
     except:
-        if get_Bool(iplot):
+        if get_bool(iplot):
             iplot = 2
         else:
             iplot = 0
@@ -1499,7 +1499,7 @@ def get_pickparams(pickparam):
     first_motion_params = dict(zip(first_motion_names, fm_parameter_values))
     signal_length_params = dict(zip(signal_length_names, sl_parameter_values))
 
-    p_params['use_taup'] = get_Bool(p_params['use_taup'])
+    p_params['use_taup'] = get_bool(p_params['use_taup'])
 
     return p_params, s_params, first_motion_params, signal_length_params
 

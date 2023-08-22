@@ -327,7 +327,7 @@ def get_None(value):
         return value
 
 
-def get_Bool(value):
+def get_bool(value):
     """
     Convert string representations of bools to their true boolean value
     :param value:
@@ -335,13 +335,14 @@ def get_Bool(value):
     :return: true boolean value
     :rtype: bool
     """
-    if value in ['True', 'true']:
+    if type(value) is bool:
+        return value
+    elif value in ['True', 'true']:
         return True
     elif value in ['False', 'false']:
         return False
     else:
-        return value
-
+        return bool(value)
 
 def four_digits(year):
     """
@@ -1168,7 +1169,7 @@ def correct_iplot(iplot):
     try:
         iplot = int(iplot)
     except ValueError:
-        if get_Bool(iplot):
+        if get_bool(iplot):
             iplot = 2
         else:
             iplot = 0
