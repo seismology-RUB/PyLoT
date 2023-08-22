@@ -271,7 +271,7 @@ class Metadata(object):
                     continue
             invtype, robj = self._read_metadata_file(os.path.join(path_to_inventory, fname))
             try:
-                robj.get_coordinates(station_seed_id)
+                # robj.get_coordinates(station_seed_id)  # TODO: Commented out, failed with Parser, is this needed?
                 self.inventory_files[fname] = {'invtype': invtype,
                                                'data': robj}
                 if station_seed_id in self.seed_ids.keys():
