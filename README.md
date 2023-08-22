@@ -99,7 +99,7 @@ We hope to solve these with the next release.
 
 ## Staff
 
-Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
+Original author(s): M. Rische, S. Wehling-Benatelli, L. Kueperkoch, M. Bischoff (PILOT)
 
 Developer(s): S. Wehling-Benatelli, M. Paffrath, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, D. Arnold, K. Cökerim, S. Zimmermann
 
