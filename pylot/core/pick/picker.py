@@ -336,7 +336,7 @@ class AICPicker(AutoPicker):
                     self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
                     # normalize slope to maximum of cf to make it unit independent
                     self.slope /= aicsmooth[iaicmax]
-            except ValueError as e:
+            except Exception as e:
                 print("AICPicker: Problems with data fitting! {}".format(e))
 
         else:

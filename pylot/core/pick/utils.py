@@ -275,7 +275,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             try:
                 P1 = np.polyfit(xslope1, xraw[islope1], 1)
                 datafit1 = np.polyval(P1, xslope1)
-            except ValueError as e:
+            except Exception as e:
                 print("fmpicker: Problems with data fit! {}".format(e))
                 print("Skip first motion determination!")
                 return FM
@@ -321,7 +321,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             try:
                 P2 = np.polyfit(xslope2, xfilt[islope2], 1)
                 datafit2 = np.polyval(P2, xslope2)
-            except ValueError as e:
+            except Exception as e:
                 emsg = 'fmpicker: polyfit failed: {}'.format(e)
                 print(emsg)
                 return FM
