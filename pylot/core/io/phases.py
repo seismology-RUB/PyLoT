@@ -280,6 +280,7 @@ def picksdict_from_picks(evt):
             infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
             print('Using default input file {}'.format(infile))
             parameter = PylotParameter(infile)
+            pick.phase_hint = identifyPhase(pick.phase_hint)
             if pick.phase_hint == 'P':
                 errors = parameter['timeerrorsP']
             elif pick.phase_hint == 'S':
