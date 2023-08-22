@@ -3611,14 +3611,14 @@ class TuneAutopicker(QWidget):
         self.listWidget.scrollToBottom()
 
     def get_current_event(self):
-        path = self.eventBox.currentText()
+        path = self.get_current_event_fp()
         return self.parent().project.getEventFromPath(path)
 
     def get_current_event_name(self):
-        return self.eventBox.currentText().split('/')[-1].split('*')[0]
+        return self.eventBox.currentText().split('/')[-1].rstrip('*')
 
     def get_current_event_fp(self):
-        return self.eventBox.currentText().split('*')[0]
+        return self.eventBox.currentText().rstrip('*')
 
     def get_current_event_picks(self, station):
         event = self.get_current_event()
