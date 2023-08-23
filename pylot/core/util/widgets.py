@@ -2513,7 +2513,9 @@ class PickDlg(QDialog):
         data.normalize()
         if not data:
             QtWidgets.QMessageBox.warning(self, 'No channel to plot',
-                                          'No channel to plot for phase: {}.'.format(phase))
+                                          'No channel to plot for phase: {}. '
+                                          'Make sure to select the correct channels for P and S '
+                                          'in the menu in the top panel.'.format(phase))
             self.leave_picking_mode()
             return
 
