@@ -82,8 +82,8 @@ def locate(fnin, parameter=None):
     :param fnin: external program name
     :return: None
     """
-    exe_path = parameter['nllocbin'] + '/bin/NLLoc'    
-    if exe_path is None:
+    exe_path = os.path.join(parameter['nllocbin'], 'NLLoc')
+    if not os.path.isfile(exe_path):
         raise NLLocError('NonLinLoc executable not found; check your '
                          'environment variables')
 
