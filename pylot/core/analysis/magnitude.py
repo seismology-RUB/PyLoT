@@ -418,6 +418,10 @@ class MomentMagnitude(Magnitude):
             distance = degrees2kilometers(a.distance)
             azimuth = a.azimuth
             incidence = a.takeoff_angle
+            if not 0. <= incidence <= 360.:
+                if self.verbose:
+                    print(f'WARNING: Incidence angle outside bounds - {incidence}')
+                return
             w0, fc = calcsourcespec(scopy, onset, self.p_velocity, distance,
                                     azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
