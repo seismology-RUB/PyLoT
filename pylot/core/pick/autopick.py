@@ -936,7 +936,7 @@ class AutopickStation(object):
             "minFMSNR"]:
             # if SNR is high enough, try to determine first motion of onset
             self.set_current_figure('fm_picker')
-            self.p_results.fm = fmpicker(self.zstream, z_copy, self.pickparams["fmpickwin"], self.p_results.mpp,
+            self.p_results.fm = fmpicker(self.zstream.copy(), z_copy, self.pickparams["fmpickwin"], self.p_results.mpp,
                                          self.iplot, self.current_figure, self.current_linecolor)
         msg = "autopickstation: P-weight: {}, SNR: {}, SNR[dB]: {}, Polarity: {}"
         msg = msg.format(self.p_results.weight, self.p_results.snr, self.p_results.snrdb, self.p_results.fm)

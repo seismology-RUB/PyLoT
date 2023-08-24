@@ -7,4 +7,6 @@
 #$ -l h_vmem=2G
 #$ -l os=*stretch
 
-python ./autoPyLoT.py -i /home/marcel/.pylot/pylot_alparray_mantle_corr_stack_0.03-0.5.in -dmt processed -c $NSLOTS
+conda activate pylot_38
+
+python ./autoPyLoT.py -i /home/marcel/.pylot/pylot_janis_noisy.in -c $NSLOTS
