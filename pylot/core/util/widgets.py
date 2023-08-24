@@ -2655,7 +2655,7 @@ class PickDlg(QDialog):
             minFMSNR = parameter.get('minFMSNR')
             quality = get_quality_class(spe, parameter.get('timeerrorsP'))
             if quality <= minFMweight and snr >= minFMSNR:
-                FM = fmpicker(self.getWFData().select(channel=channel), wfdata, parameter.get('fmpickwin'),
+                FM = fmpicker(self.getWFData().select(channel=channel).copy(), wfdata.copy(), parameter.get('fmpickwin'),
                               pick - stime_diff)
 
         # save pick times for actual phase
