@@ -1135,12 +1135,12 @@ class PylotCanvas(FigureCanvas):
         ax.set_xlim(self.cur_xlim)
         ax.set_ylim(self.cur_ylim)
         self.refreshPickDlgText()
-        ax.figure.canvas.draw()
+        ax.figure.canvas.draw_idle()
 
     def panRelease(self, gui_event):
         self.press = None
         self.press_rel = None
-        self.figure.canvas.draw()
+        self.figure.canvas.draw_idle()
 
     def panZoom(self, gui_event, threshold=2., factor=1.1):
         if not gui_event.x and not gui_event.y:
@@ -3756,7 +3756,7 @@ class TuneAutopicker(QWidget):
             self.plot_manual_pick_to_ax(ax=ax, picks=picks, phase='S',
                                         starttime=starttime, quality=qualitySpick)
         for canvas in self.parent().canvas_dict.values():
-            canvas.draw()
+            canvas.draw_idle()
 
     def plot_manual_pick_to_ax(self, ax, picks, phase, starttime, quality):
         mpp = picks[phase]['mpp'] - starttime
