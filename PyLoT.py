@@ -1384,7 +1384,7 @@ class MainWindow(QMainWindow):
         index = eventBox.currentIndex()
         tv = QtWidgets.QTableView()
         header = tv.horizontalHeader()
-        header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         header.hide()
         tv.verticalHeader().hide()
@@ -3459,7 +3459,7 @@ class MainWindow(QMainWindow):
                     self.event_table.setCellWidget(r_index, c_index, item)
 
         header = self.event_table.horizontalHeader()
-        header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(True)
         self.event_table.cellChanged[int, int].connect(cell_changed)
         self.event_table.cellClicked[int, int].connect(cell_clicked)
