@@ -75,7 +75,6 @@ class Array_map(QtWidgets.QWidget):
 
         self._style = None if not hasattr(parent, '_style') else parent._style
 
-        self.show()
 
     def init_map(self):
         self.init_colormap()
