@@ -860,13 +860,26 @@ class WaveformWidgetPG(QtWidgets.QWidget):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-    def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0,
-                   method='normal', gain=1.):
+    def plotWFData(self, wfdata, wfsyn=None, title=None, scaleddata=False, mapping=True,
+                   component='*', nth_sample=1, verbosity=0, method='normal', gain=1., shift_syn=0.2):
+        def station_sort(nslc):
+            """Try to sort after station integer in case of a line array (e.g. active seismics)"""
+            try:
+                rval = sorted(nslc, key=lambda x: int(x.split('.')[1]))
+                return rval
+            except ValueError as e:
+                # this is the standard case for seismological stations
+                pass
+            except Exception as e:
+                print(f'Sorting by station integer failed with unknown exception: {e}')
+
+            # fallback to default sorting
+            return sorted(nslc)
+
         if not wfdata:
             print('Nothing to plot.')
             return
+
         self.title = title
         self.clearPlotDict()
         self.wfstart, self.wfend = full_range(wfdata)
@@ -891,7 +904,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         for trace in st_select:
             nslc.append(
                 trace.get_id())  # (trace.stats.network, trace.stats.station, trace.stats.location trace.stats.channel))
-        nslc.sort()
+        nslc = station_sort(nslc)
         nslc.reverse()
         plots = []
 
