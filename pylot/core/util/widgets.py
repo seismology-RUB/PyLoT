@@ -860,12 +860,6 @@ class WaveformWidgetPG(QtWidgets.QWidget):
     def clearPlotDict(self):
         self.plotdict = dict()
 
-<<<<<<< Updated upstream
-    def plotWFData(self, wfdata, wfsyn=None, title=None, zoomx=None, zoomy=None,
-                   noiselevel=None, scaleddata=False, mapping=True,
-                   component='*', nth_sample=1, iniPick=None, verbosity=0,
-                   method='normal', gain=1.):
-=======
     def plotWFData(self, wfdata, wfsyn=None, title=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, verbosity=0, method='normal', gain=1., shift_syn=0.2):
         def station_sort(nslc):
@@ -882,7 +876,6 @@ class WaveformWidgetPG(QtWidgets.QWidget):
             # fallback to default sorting
             return sorted(nslc)
 
->>>>>>> Stashed changes
         if not wfdata:
             print('Nothing to plot.')
             return
