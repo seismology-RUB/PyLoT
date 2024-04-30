@@ -51,7 +51,7 @@ from pylot.core.pick.autopick import fmpicker
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
 from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
     pick_linestyle_plt, pick_color_plt, \
-    check4rotated, check4doubled, merge_stream, identifyPhase, \
+    check4rotated, check4doubled, check_for_gaps_and_merge, check_for_nan, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
     identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
     station_id_remove_channel
@@ -897,7 +897,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         else:
             st_select = wfdata
 
-        st_select, gaps = merge_stream(st_select)
+        # st_select, gaps = check_for_gaps_and_merge(st_select) #MP MP commented because probably done twice
 
         # list containing tuples of network, station, channel (for sorting)
         nslc = []
@@ -968,7 +968,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         self.ylabel = ''
         self.setXLims([0, self.wfend - self.wfstart])
         self.setYLims([0.5, nmax + 0.5])
-        return plots, gaps
+        return plots
 
     def minMax(self, trace, time_ax):
         '''
@@ -990,7 +990,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         min_ = data.min(axis=1)
         max_ = data.max(axis=1)
         if remaining_samples:
-            extreme_values = np.empty((npixel + 1, 2), dtype=np.float)
+            extreme_values = np.empty((npixel + 1, 2), dtype=float)
             extreme_values[:-1, 0] = min_
             extreme_values[:-1, 1] = max_
             extreme_values[-1, 0] = \
@@ -998,7 +998,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
             extreme_values[-1, 1] = \
                 trace.data[-remaining_samples:].max()
         else:
-            extreme_values = np.empty((npixel, 2), dtype=np.float)
+            extreme_values = np.empty((npixel, 2), dtype=float)
             extreme_values[:, 0] = min_
             extreme_values[:, 1] = max_
         data = extreme_values.flatten()
@@ -3581,8 +3581,9 @@ class TuneAutopicker(QWidget):
             # wfdat = remove_underscores(wfdat)
             # rotate misaligned stations to ZNE
             # check for gaps and doubled channels
-            wfdat, gaps = merge_stream(wfdat)
-            # check4gaps(wfdat)
+            wfdat, _ = check_for_gaps_and_merge(wfdat)
+            # check for nans
+            check_for_nan(wfdat)
             check4doubled(wfdat)
             wfdat = check4rotated(wfdat, self.parent().metadata, verbosity=0)
             # trim station components to same start value
@@ -3737,6 +3738,7 @@ class TuneAutopicker(QWidget):
         st = self.data.getWFData()
         tr = st.select(station=self.get_current_station())[0]
         starttime = tr.stats.starttime
+        # create two lists with figure names and subindices (for subplots) to get the correct axes
         p_axes = [
             ('mainFig', 0),
             ('aicFig', 0),

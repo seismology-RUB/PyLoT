@@ -19,7 +19,7 @@ from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
-    check4gapsAndMerge, trim_station_components
+    check_for_gaps_and_merge, trim_station_components, check_for_nan
 
 
 class Data(object):
@@ -64,7 +64,7 @@ class Data(object):
                     elif 'LOC' in evtdata:
                         raise NotImplementedError('PILOT location information '
                                                   'read support not yet '
-                                                  'implemeted.')
+                                                  'implemented.')
                     elif 'event.pkl' in evtdata:
                         evtdata = qml_from_obspyDMT(evtdata)
                     else:
@@ -457,6 +457,11 @@ class Data(object):
         :param fnames: waveform data names to append
         :type fnames: list
         """
+        def check_fname_exists(filenames: list) -> list:
+            if filenames:
+                filenames = [fn for fn in filenames if os.path.isfile(fn)]
+            return filenames
+
         self.wfdata = Stream()
         self.wforiginal = None
         self.wfsyn = Stream()
@@ -465,6 +470,8 @@ class Data(object):
         self.tstart = tstart
         self.tstop = tstop
 
+        fnames = check_fname_exists(fnames)
+        fnames_syn = check_fname_exists(fnames_syn)
         # if obspy_dmt:
         #     wfdir = 'raw'
         #     self.processed = False
@@ -491,7 +498,9 @@ class Data(object):
         # remove possible underscores in station names
         # self.wfdata = remove_underscores(self.wfdata)
         # check for gaps and merge
-        self.wfdata = check4gapsAndMerge(self.wfdata)
+        self.wfdata, _ = check_for_gaps_and_merge(self.wfdata)
+        # check for nans
+        check_for_nan(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)

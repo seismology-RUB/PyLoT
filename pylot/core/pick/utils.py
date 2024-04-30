@@ -1332,22 +1332,6 @@ def get_quality_class(uncertainty, weight_classes):
     return quality
 
 
-def set_NaNs_to(data, nan_value):
-    """
-    Replace all NaNs in data with nan_value
-    :param data: array holding data
-    :type data: `~numpy.ndarray`
-    :param nan_value: value which all NaNs are set to
-    :type nan_value: float, int
-    :return: data array with all NaNs replaced with nan_value
-    :rtype: `~numpy.ndarray`
-    """
-    nn = np.isnan(data)
-    if np.any(nn):
-        data[nn] = nan_value
-    return data
-
-
 def taper_cf(cf):
     """
     Taper cf data to get rid off of side maximas

@@ -818,19 +818,6 @@ def trim_station_components(data, trim_start=True, trim_end=True):
     return data
 
 
-def merge_stream(stream):
-    gaps = stream.get_gaps()
-    if gaps:
-        # list of merged stations (seed_ids)
-        merged = ['{}.{}.{}.{}'.format(*gap[:4]) for gap in gaps]
-        stream.merge(method=1)
-        print('Merged the following stations because of gaps:')
-        for merged_station in merged:
-            print(merged_station)
-
-    return stream, gaps
-
-
 def check4gapsAndRemove(data):
     """
     check for gaps in Stream and remove them
@@ -851,12 +838,12 @@ def check4gapsAndRemove(data):
     return data
 
 
-def check4gapsAndMerge(data):
+def check_for_gaps_and_merge(data):
     """
     check for gaps in Stream and merge if gaps are found
     :param data: stream of seismic data
     :type data: `~obspy.core.stream.Stream`
-    :return: data stream
+    :return: data stream, gaps returned from obspy get_gaps
     :rtype: `~obspy.core.stream.Stream`
     """
     gaps = data.get_gaps()
@@ -867,7 +854,7 @@ def check4gapsAndMerge(data):
         for merged_station in merged:
             print(merged_station)
 
-    return data
+    return data, gaps
 
 
 def check4doubled(data):
@@ -895,6 +882,21 @@ def check4doubled(data):
                 ))
                 data.remove(trace)
     return data
+
+
+def check_for_nan(data, nan_value=0.):
+    """
+    Replace all NaNs in data with nan_value (in place)
+    :param data: stream of seismic data
+    :type data: `~obspy.core.stream.Stream`
+    :param nan_value: value which all NaNs are set to
+    :type nan_value: float, int
+    :return: None
+    """
+    if not data:
+        return
+    for trace in data:
+        np.nan_to_num(trace.data, copy=False, nan=nan_value)
 
 
 def get_stations(data):

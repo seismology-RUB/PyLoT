@@ -9,4 +9,4 @@
 
 conda activate pylot_38
 
-python ./autoPyLoT.py -i /home/marcel/.pylot/pylot_janis_noisy.in -c $NSLOTS
+python ./autoPyLoT.py -i /home/marcel/.pylot/pylot_adriaarray.in -c 20 -dmt processed

@@ -660,7 +660,7 @@ class AutopickStation(object):
             ax1.set_ylim([-1.5, 1.5])
             ax1.set_ylabel('Normalized Counts')
 
-            if self.horizontal_traces_exist() and self.s_data.Sflag == 1:
+            if self.horizontal_traces_exist():# and self.s_data.Sflag == 1:
                 # plot E trace
                 ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
                 th1data = np.linspace(0, self.etrace.stats.endtime - self.etrace.stats.starttime,

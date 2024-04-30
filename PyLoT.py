@@ -2127,7 +2127,7 @@ class MainWindow(QMainWindow):
 
     def finish_pg_plot(self):
         self.getPlotWidget().updateWidget()
-        plots, gaps = self.wfp_thread.data
+        plots = self.wfp_thread.data
         # do not show plot if no data are given
         self.wf_scroll_area.setVisible(len(plots) > 0)
         self.no_data_label.setVisible(not len(plots) > 0)
@@ -2301,8 +2301,8 @@ class MainWindow(QMainWindow):
             self.plot_method = 'normal'
         rval = plotWidget.plotWFData(wfdata=wfst, wfsyn=wfsyn, title=title, mapping=False, component=comp,
                                      nth_sample=int(nth_sample), method=self.plot_method, gain=self.gain)
-        plots, gaps = rval if rval else ([], [])
-        return plots, gaps
+        plots = rval if rval else []
+        return plots
 
     def adjustPlotHeight(self):
         if self.pg:
@@ -3807,7 +3807,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self.okToContinue():
-            self.logwidget.close()
+            if hasattr(self, 'logwidget'):
+                self.logwidget.close()
             event.accept()
         else:
             event.ignore()
