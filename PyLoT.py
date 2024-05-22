@@ -76,7 +76,7 @@ from pylot.core.util.utils import fnConstructor, getLogin, \
     full_range, readFilterInformation, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, get_bool, get_None
+    check_all_pylot, get_bool, get_None, get_pylot_eventfile_with_extension
 from pylot.core.util.gui import make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
@@ -84,7 +84,7 @@ from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
     ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget, PickQualitiesFromXml, \
-    SourceSpecWindow, ChooseWaveFormWindow, SpectrogramTab
+    SourceSpecWindow, ChooseWaveFormWindow, SpectrogramTab, SearchFileByExtensionDialog
 from pylot.core.util.array_map import Array_map
 from pylot.core.util.structure import DATASTRUCTURE
 from pylot.core.util.thread import Thread, Worker
@@ -1006,16 +1006,15 @@ class MainWindow(QMainWindow):
             return
         refresh = False
         events = self.project.eventlist
-        sld = SingleTextLineDialog(label='Specify file extension: ', default_text='.xml')
+        sld = SearchFileByExtensionDialog(label='Specify file extension: ', default_text='.xml',
+                                          events=events)
         if not sld.exec_():
             return
         fext = sld.lineEdit.text()
         # fext = '.xml'
         for event in events:
-            path = event.path
-            eventname = path.split('/')[-1]  # or event.pylot_id
-            filename = os.path.join(path, 'PyLoT_' + eventname + fext)
-            if os.path.isfile(filename):
+            filename = get_pylot_eventfile_with_extension(event, fext)
+            if filename:
                 self.load_data(filename, draw=False, event=event, overwrite=True)
                 refresh = True
         if not refresh:

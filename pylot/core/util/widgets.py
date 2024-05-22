@@ -54,7 +54,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     check4rotated, check4doubled, check_for_gaps_and_merge, check_for_nan, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
     identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
-    station_id_remove_channel
+    station_id_remove_channel, get_pylot_eventfile_with_extension
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
@@ -1566,6 +1566,78 @@ class PylotCanvas(FigureCanvas):
             self.setXLims(ax, self.getGlobalLimits(ax, 'x'))
             self.setYLims(ax, self.getGlobalLimits(ax, 'y'))
         self.draw()
+
+
+class SearchFileByExtensionDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None, label='Text: ', default_text='.xml', events=None):
+        super(SearchFileByExtensionDialog, self).__init__(parent)
+        self.events = events
+        self.filepaths = []
+        self.default_text = default_text
+        self.label = label
+        self.setButtons()
+        self.setupUi()
+        self.connectSignals()
+        self.showPaths()
+
+        self.resize(800, 450)
+
+
+    def setupUi(self):
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.header_layout = QtWidgets.QHBoxLayout()
+        #
+        self.setLayout(self.main_layout)
+
+        # widgets inside the dialog
+        self.textLabel = QtWidgets.QLabel(self.label)
+        self.lineEdit = QtWidgets.QLineEdit(self.default_text)
+
+        # optional search button, currently disabled. List refreshed when text changes
+        self.searchButton = QtWidgets.QPushButton('Search')
+        self.searchButton.setVisible(False)
+
+        self.textWidget = QtWidgets.QTextEdit()
+        self.textWidget.setMaximumWidth(1e5)
+        self.textWidget.setReadOnly(True)
+
+        self.statusText = QtWidgets.QLabel()
+
+        self.header_layout.addWidget(self.textLabel)
+        self.header_layout.addWidget(self.lineEdit)
+        self.header_layout.addWidget(self.searchButton)
+
+        self.main_layout.addLayout(self.header_layout)
+        self.main_layout.addWidget(self.textWidget)
+        self.main_layout.addWidget(self.statusText)
+        self.main_layout.addWidget(self._buttonbox)
+
+    def showPaths(self):
+        self.filepaths = []
+        fext = self.lineEdit.text()
+        for event in self.events:
+            filename = get_pylot_eventfile_with_extension(event, fext)
+            if filename:
+                self.filepaths.append(filename)
+                self.textWidget.append(f'{filename}')
+        if len(self.filepaths) > 0:
+            status_text = f'Found {len(self.filepaths)} eventfiles. Do you want to load them?'
+        else:
+            status_text = 'Did not find any files for specified file mask.'
+            self.textWidget.setText('')
+        self.statusText.setText(status_text)
+
+
+    def setButtons(self):
+        self._buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
+                                           QDialogButtonBox.Cancel)
+
+    def connectSignals(self):
+        self._buttonbox.accepted.connect(self.accept)
+        self._buttonbox.rejected.connect(self.reject)
+        self.lineEdit.textChanged.connect(self.showPaths)
+        self.searchButton.clicked.connect(self.showPaths)
+
 
 
 class SingleTextLineDialog(QtWidgets.QDialog):

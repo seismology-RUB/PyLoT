@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
+import logging
 import os
 import platform
 import re
@@ -897,6 +898,18 @@ def check_for_nan(data, nan_value=0.):
         return
     for trace in data:
         np.nan_to_num(trace.data, copy=False, nan=nan_value)
+
+
+def get_pylot_eventfile_with_extension(event, fext):
+    if hasattr(event, 'path'):
+        eventpath = event.path
+    else:
+        logging.warning('No attribute path found for event.')
+        return
+    eventname = eventpath.split('/')[-1]  # or event.pylot_id
+    filename = os.path.join(eventpath, 'PyLoT_' + eventname + fext)
+    if os.path.isfile(filename):
+        return filename
 
 
 def get_stations(data):
