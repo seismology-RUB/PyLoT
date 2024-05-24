@@ -191,11 +191,10 @@ class Metadata(object):
         if not metadata:
             return
         try:
-            metadata['data'].get_coordinates(seed_id, time)
+            return metadata['data'].get_coordinates(seed_id, time)
         # no specific exception defined in obspy inventory
         except Exception as e:
             logging.warning(f'Could not get metadata for {seed_id}')
-        return
 
     def get_all_coordinates(self):
         def stat_info_from_parser(parser):
