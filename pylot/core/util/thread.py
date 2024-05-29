@@ -160,7 +160,7 @@ class MultiThread(QThread):
         try:
             if not self.ncores:
                 self.ncores = multiprocessing.cpu_count()
-            pool = multiprocessing.Pool(self.ncores)
+            pool = multiprocessing.Pool(self.ncores, maxtasksperchild=1000)
             self.data = pool.map_async(self.func, self.args, callback=self.emitDone)
             # self.data = pool.apply_async(self.func, self.shotlist, callback=self.emitDone) #emit each time returned
             pool.close()

@@ -120,7 +120,7 @@ def gen_Pool(ncores=0):
 
     print('gen_Pool: Generated multiprocessing Pool with {} cores\n'.format(ncores))
 
-    pool = multiprocessing.Pool(ncores)
+    pool = multiprocessing.Pool(ncores, maxtasksperchild=100)
     return pool
 
 

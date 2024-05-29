@@ -42,7 +42,7 @@ def main(project_file_path, manual=False, auto=True, file_format='png', f_ext=''
         for item in input_list:
             array_map_worker(item)
     else:
-        pool = multiprocessing.Pool(ncores)
+        pool = multiprocessing.Pool(ncores, maxtasksperchild=1000)
         pool.map(array_map_worker, input_list)
         pool.close()
         pool.join()
