@@ -13,6 +13,7 @@ import obspy
 from PySide2 import QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from pylot.core.util.utils import identifyPhaseID
 from scipy.interpolate import griddata
 
 from pylot.core.pick.utils import get_quality_class
@@ -279,9 +280,12 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.axes.figure.canvas.draw_idle()
 
     def onpick(self, event):
+        btn_msg = {1: ' in selection. Aborted', 2: ' to delete a pick on. Aborted', 3: ' to display info.'}
         ind = event.ind
         button = event.mouseevent.button
-        if ind == []:
+        msg_reason = None
+        if len(ind) > 1:
+            self._parent.update_status(f'Found more than one station {btn_msg.get(button)}')
             return
         if button == 1:
             self.openPickDlg(ind)
@@ -384,7 +388,14 @@ class Array_map(QtWidgets.QWidget):
                 try:
                     station_name = st_id.split('.')[-1]
                     # current_picks_dict: auto or manual
-                    pick = self.current_picks_dict()[station_name][phase]
+                    station_picks = self.current_picks_dict().get(station_name)
+                    if not station_picks:
+                        continue
+                    for phase_hint, pick in station_picks.items():
+                        if identifyPhaseID(phase_hint) == phase:
+                            break
+                    else:
+                        continue
                     if pick['picker'] == 'auto':
                         if not pick['spe']:
                             continue
