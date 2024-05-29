@@ -1886,6 +1886,7 @@ class MainWindow(QMainWindow):
         # which will read in data input twice. Therefore current tab is changed to 0
         # in loadProject before calling this function.
         self.fill_eventbox()
+        #print(f'{self.get_current_event()=}')
         plotted = False
         if self.tabs.currentIndex() == 2:
             self.init_event_table()
@@ -1919,7 +1920,6 @@ class MainWindow(QMainWindow):
             newSpectroWidget = self.spectogramView()
             self.spectro_layout.addWidget(newSpectroWidget)
             self.spectroWidget = newSpectroWidget
-
 
     def newWF(self, event=None, plot=True):
         '''
@@ -1971,6 +1971,8 @@ class MainWindow(QMainWindow):
         #     ans = False
 
         settings = QSettings()
+        # process application events to wait for event items to appear in event box
+        QApplication.processEvents()
         curr_event = self.get_current_event()
         if not curr_event:
             print('Could not find current event. Try reload?')
@@ -3632,7 +3634,7 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    def update_status(self, message, duration=5000):
+    def update_status(self, message, duration=10000):
         self.statusBar().showMessage(message, duration)
         if self.get_data() is not None:
             if not self.get_current_event() or not self.project.location:

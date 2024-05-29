@@ -36,7 +36,7 @@ from PySide2.QtWidgets import QAction, QApplication, QCheckBox, QComboBox, \
     QGridLayout, QLabel, QLineEdit, QMessageBox, \
     QTabWidget, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, \
     QPushButton, QFileDialog, QInputDialog
-from PySide2.QtCore import QSettings, Qt, QUrl, Signal
+from PySide2.QtCore import QSettings, Qt, QUrl, Signal, QTimer
 from PySide2.QtWebEngineWidgets import QWebEngineView as QWebView
 from obspy import Stream, Trace, UTCDateTime
 from obspy.core.util import AttribDict
@@ -1579,6 +1579,9 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.setupUi()
         self.connectSignals()
         self.showPaths()
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.timeout.connect(self.showPaths)
+        self.refresh_timer.start(10000)
 
         self.resize(800, 450)
 
@@ -1597,9 +1600,16 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.searchButton = QtWidgets.QPushButton('Search')
         self.searchButton.setVisible(False)
 
-        self.textWidget = QtWidgets.QTextEdit()
-        self.textWidget.setMaximumWidth(1e5)
-        self.textWidget.setReadOnly(True)
+        self.tableWidget = QtWidgets.QTableWidget()
+        tableWidget = self.tableWidget
+        tableWidget.setColumnCount(2)
+        tableWidget.setRowCount(len(self.events))
+        tableWidget.setHorizontalHeaderLabels(('Filename', 'Last modified'))
+        tableWidget.setEditTriggers(tableWidget.NoEditTriggers)
+        tableWidget.setSortingEnabled(True)
+        header = tableWidget.horizontalHeader()
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        header.setStretchLastSection(True)
 
         self.statusText = QtWidgets.QLabel()
 
@@ -1608,23 +1618,31 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.header_layout.addWidget(self.searchButton)
 
         self.main_layout.addLayout(self.header_layout)
-        self.main_layout.addWidget(self.textWidget)
+        self.main_layout.addWidget(self.tableWidget)
         self.main_layout.addWidget(self.statusText)
         self.main_layout.addWidget(self._buttonbox)
 
     def showPaths(self):
         self.filepaths = []
         fext = self.lineEdit.text()
-        for event in self.events:
+        self.tableWidget.clearContents()
+        for index, event in enumerate(self.events):
             filename = get_pylot_eventfile_with_extension(event, fext)
             if filename:
                 self.filepaths.append(filename)
-                self.textWidget.append(f'{filename}')
+                ts = int(os.path.getmtime(filename))
+
+                # create QTableWidgetItems of filepath and last modification time
+                fname_item = QtWidgets.QTableWidgetItem(f'{filename}')
+                ts_item = QtWidgets.QTableWidgetItem(f'{datetime.datetime.fromtimestamp(ts)}')
+                self.tableWidget.setItem(index, 0, fname_item)
+                self.tableWidget.setItem(index, 1, ts_item)
+
+        # TODO: Idea -> only refresh if table contents changed. Use selection to load only a subset of files
         if len(self.filepaths) > 0:
             status_text = f'Found {len(self.filepaths)} eventfiles. Do you want to load them?'
         else:
             status_text = 'Did not find any files for specified file mask.'
-            self.textWidget.setText('')
         self.statusText.setText(status_text)
 
 
