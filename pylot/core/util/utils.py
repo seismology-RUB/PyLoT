@@ -8,6 +8,7 @@ import platform
 import re
 import subprocess
 import warnings
+from functools import lru_cache
 
 import numpy as np
 from obspy import UTCDateTime, read
@@ -1121,6 +1122,7 @@ def identifyPhase(phase):
         return False
 
 
+@lru_cache
 def identifyPhaseID(phase):
     """
     Returns phase id (capital P or S)

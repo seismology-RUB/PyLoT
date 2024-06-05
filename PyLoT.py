@@ -1403,25 +1403,28 @@ class MainWindow(QMainWindow):
 
         for id, event in enumerate(self.project.eventlist):
             event_path = event.path
-            phaseErrors = {'P': self._inputs['timeerrorsP'],
-                           'S': self._inputs['timeerrorsS']}
+            #phaseErrors = {'P': self._inputs['timeerrorsP'],
+            #               'S': self._inputs['timeerrorsS']}
 
-            ma_props = {'manual': event.pylot_picks,
-                        'auto': event.pylot_autopicks}
-            ma_count = {'manual': 0,
-                        'auto': 0}
-            ma_count_total = {'manual': 0,
-                              'auto': 0}
+            man_au_picks = {'manual': event.pylot_picks,
+                            'auto': event.pylot_autopicks}
+            npicks = {'manual': {'P': 0, 'S': 0},
+                      'auto': {'P': 0, 'S': 0}}
+            npicks_total = {'manual': {'P': 0, 'S': 0},
+                            'auto': {'P': 0, 'S': 0}}
 
-            for ma in ma_props.keys():
-                if ma_props[ma]:
-                    for picks in ma_props[ma].values():
+            for ma in man_au_picks.keys():
+                if man_au_picks[ma]:
+                    for picks in man_au_picks[ma].values():
                         for phasename, pick in picks.items():
                             if not type(pick) in [dict, AttribDict]:
                                 continue
+                            phase_ID = identifyPhaseID(phasename)
+                            if not phase_ID in npicks[ma].keys():
+                                continue
                             if pick.get('spe'):
-                                ma_count[ma] += 1
-                            ma_count_total[ma] += 1
+                                npicks[ma][phase_ID] += 1
+                            npicks_total[ma][phase_ID] += 1
 
             event_ref = event.isRefEvent()
             event_test = event.isTestEvent()
@@ -1456,16 +1459,23 @@ class MainWindow(QMainWindow):
             if event.dirty:
                 event_str += '*'
             item_path = QStandardItem(event_str)
-            item_time = QStandardItem('{}'.format(time))
+            item_time = QStandardItem('{}'.format(time.strftime("%Y-%m-%d %H:%M:%S")))
             item_lat = QStandardItem('{}'.format(lat))
             item_lon = QStandardItem('{}'.format(lon))
             item_depth = QStandardItem('{}'.format(depth))
             item_localmag = QStandardItem('{}'.format(localmag))
             item_momentmag = QStandardItem('{}'.format(momentmag))
-            item_nmp = QStandardItem('{}({})'.format(ma_count['manual'], ma_count_total['manual']))
+
+            item_nmp = QStandardItem()
+            item_nap = QStandardItem()
             item_nmp.setIcon(self.manupicksicon_small)
-            item_nap = QStandardItem('{}({})'.format(ma_count['auto'], ma_count_total['auto']))
             item_nap.setIcon(self.autopicksicon_small)
+
+            for picktype, item_np in [('manual', item_nmp), ('auto', item_nap)]:
+                npicks_str = f"{npicks[picktype]['P']}|{npicks[picktype]['S']}"
+                #npicks_str += f"({npicks_total[picktype]['P']}/{npicks_total[picktype]['S']})"
+                item_np.setText(npicks_str)
+
             item_ref = QStandardItem()  # str(event_ref))
             item_test = QStandardItem()  # str(event_test))
             if event_ref:
