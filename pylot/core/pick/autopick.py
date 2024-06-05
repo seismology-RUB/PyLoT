@@ -20,7 +20,7 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
-    getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class
+    getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class, PickingFailedException, MissingTraceException
 from pylot.core.util.utils import getPatternLine, gen_Pool, \
     get_bool, identifyPhaseID, get_None, correct_iplot
 
@@ -230,20 +230,6 @@ class PickingContainer:
         self.aicSflag = 0
         self.Pflag = 0
         self.Sflag = 0
-
-
-class MissingTraceException(ValueError):
-    """
-    Used to indicate missing traces in a obspy.core.stream.Stream object
-    """
-    pass
-
-
-class PickingFailedException(Exception):
-    """
-    Raised when picking fails due to missing values etc.
-    """
-    pass
 
 
 class AutopickStation(object):

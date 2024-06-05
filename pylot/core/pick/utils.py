@@ -890,6 +890,8 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
                 input()
             except SyntaxError:
                 pass
+            except EOFError:
+                pass
             plt.close(fig)
 
     return returnflag
@@ -1516,3 +1518,17 @@ if __name__ == '__main__':
     import doctest
 
     doctest.testmod()
+
+
+class PickingFailedException(Exception):
+    """
+    Raised when picking fails due to missing values etc.
+    """
+    pass
+
+
+class MissingTraceException(ValueError):
+    """
+    Used to indicate missing traces in a obspy.core.stream.Stream object
+    """
+    pass

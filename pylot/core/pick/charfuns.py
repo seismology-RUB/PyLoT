@@ -20,6 +20,8 @@ import numpy as np
 from scipy import signal
 from obspy.core import Stream
 
+from pylot.core.pick.utils import PickingFailedException
+
 
 class CharacteristicFunction(object):
     """
@@ -488,6 +490,9 @@ class ARHcf(CharacteristicFunction):
         print('Calculating AR-prediction error from both horizontal traces ...')
 
         xnp = self.getDataArray(self.getCut())
+        if len(xnp[0]) == 0:
+            raise PickingFailedException('calcCF: Found empty data trace for cut times. Return')
+
         n0 = np.isnan(xnp[0].data)
         if len(n0) > 1:
             xnp[0].data[n0] = 0
