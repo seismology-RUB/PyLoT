@@ -293,7 +293,7 @@ class HOScf(CharacteristicFunction):
             if j < 4:
                 LTA[j] = 0
                 STA[j] = 0
-            elif j <= ista:
+            elif j <= ista and self.getOrder() == 2:
                 lta = (y[j] + lta * (j - 1)) / j
                 if self.getOrder() == 2:
                     sta = (y[j] + sta * (j - 1)) / j
