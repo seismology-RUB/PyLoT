@@ -3687,10 +3687,13 @@ class MainWindow(QMainWindow):
         if not self.okToContinue():
             return
         if not fnm:
-            dlg = QFileDialog(parent=self)
+            settings = QSettings()
+            dir = settings.value('current_project_path')
+            dlg = QFileDialog(parent=self, directory=dir)
             fnm = dlg.getOpenFileName(self, 'Open project file...', filter='Pylot project (*.plp)')[0]
             if not fnm:
                 return
+            settings.setValue('current_project_path', os.path.split(fnm)[0])
         if not os.path.exists(fnm):
             QMessageBox.warning(self, 'Could not open file',
                                 'Could not open project file {}. File does not exist.'.format(fnm))

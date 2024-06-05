@@ -199,7 +199,7 @@ class AICPicker(AutoPicker):
         # minimum in AIC function 
         icfmax = np.argmax(cf)
 
-        # MP MP testing threshold
+        # TODO: If this shall be kept, maybe add thresh_factor to pylot parameters
         thresh_hit = False
         thresh_factor = 0.7
         thresh = thresh_factor * cf[icfmax]
@@ -211,7 +211,6 @@ class AICPicker(AutoPicker):
                 if sample <= cf[index - 1]:
                     icfmax = index - 1
                     break
-        # MP MP ---
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))
