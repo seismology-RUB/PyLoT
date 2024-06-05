@@ -1602,9 +1602,9 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
 
         self.tableWidget = QtWidgets.QTableWidget()
         tableWidget = self.tableWidget
-        tableWidget.setColumnCount(2)
+        tableWidget.setColumnCount(3)
         tableWidget.setRowCount(len(self.events))
-        tableWidget.setHorizontalHeaderLabels(('Filename', 'Last modified'))
+        tableWidget.setHorizontalHeaderLabels(('Event ID', 'Filename', 'Last modified'))
         tableWidget.setEditTriggers(tableWidget.NoEditTriggers)
         tableWidget.setSortingEnabled(True)
         header = tableWidget.horizontalHeader()
@@ -1628,6 +1628,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.tableWidget.clearContents()
         for index, event in enumerate(self.events):
             filename = get_pylot_eventfile_with_extension(event, fext)
+            self.tableWidget.setItem(index, 0, QtWidgets.QTableWidgetItem(f'{event.pylot_id}'))
             if filename:
                 self.filepaths.append(filename)
                 ts = int(os.path.getmtime(filename))
@@ -1635,8 +1636,8 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
                 # create QTableWidgetItems of filepath and last modification time
                 fname_item = QtWidgets.QTableWidgetItem(f'{filename}')
                 ts_item = QtWidgets.QTableWidgetItem(f'{datetime.datetime.fromtimestamp(ts)}')
-                self.tableWidget.setItem(index, 0, fname_item)
-                self.tableWidget.setItem(index, 1, ts_item)
+                self.tableWidget.setItem(index, 1, fname_item)
+                self.tableWidget.setItem(index, 2, ts_item)
 
         # TODO: Idea -> only refresh if table contents changed. Use selection to load only a subset of files
         if len(self.filepaths) > 0:
