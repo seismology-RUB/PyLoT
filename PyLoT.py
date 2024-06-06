@@ -1010,7 +1010,7 @@ class MainWindow(QMainWindow):
                                           events=events)
         if not sld.exec_():
             return
-        fext = sld.lineEdit.text()
+        fext = sld.comboBox.currentText()
         # fext = '.xml'
         for event in events:
             filename = get_pylot_eventfile_with_extension(event, fext)

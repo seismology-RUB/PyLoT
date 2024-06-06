@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import glob
 import hashlib
 import logging
 import os
@@ -907,10 +907,23 @@ def get_pylot_eventfile_with_extension(event, fext):
     else:
         logging.warning('No attribute path found for event.')
         return
-    eventname = eventpath.split('/')[-1]  # or event.pylot_id
+    eventname = event.pylot_id #path.split('/')[-1]  # or event.pylot_id
     filename = os.path.join(eventpath, 'PyLoT_' + eventname + fext)
     if os.path.isfile(filename):
         return filename
+
+
+def get_possible_pylot_eventfile_extensions(event, fext):
+    if hasattr(event, 'path'):
+        eventpath = event.path
+    else:
+        logging.warning('No attribute path found for event.')
+        return []
+    eventname = event.pylot_id
+    filename = os.path.join(eventpath, 'PyLoT_' + eventname + fext)
+    filenames = glob.glob(filename)
+    extensions = [os.path.split(path)[-1].split('PyLoT_' + eventname)[-1] for path in filenames]
+    return extensions
 
 
 def get_stations(data):

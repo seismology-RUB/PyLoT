@@ -54,7 +54,7 @@ from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorte
     check4rotated, check4doubled, check_for_gaps_and_merge, check_for_nan, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
     identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
-    station_id_remove_channel, get_pylot_eventfile_with_extension
+    station_id_remove_channel, get_pylot_eventfile_with_extension, get_possible_pylot_eventfile_extensions
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
 from pylot.core.util.dataprocessing import Metadata
@@ -1573,12 +1573,14 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         super(SearchFileByExtensionDialog, self).__init__(parent)
         self.events = events
         self.filepaths = []
+        self.file_extensions = []
         self.default_text = default_text
         self.label = label
         self.setButtons()
         self.setupUi()
         self.connectSignals()
         self.showPaths()
+        self.refreshSelectionBox()
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.showPaths)
         self.refresh_timer.start(10000)
@@ -1594,7 +1596,9 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
 
         # widgets inside the dialog
         self.textLabel = QtWidgets.QLabel(self.label)
-        self.lineEdit = QtWidgets.QLineEdit(self.default_text)
+        self.comboBox = QtWidgets.QComboBox()
+        self.comboBox.addItem(self.default_text)
+        self.comboBox.setEditable(True)
 
         # optional search button, currently disabled. List refreshed when text changes
         self.searchButton = QtWidgets.QPushButton('Search')
@@ -1614,7 +1618,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.statusText = QtWidgets.QLabel()
 
         self.header_layout.addWidget(self.textLabel)
-        self.header_layout.addWidget(self.lineEdit)
+        self.header_layout.addWidget(self.comboBox)
         self.header_layout.addWidget(self.searchButton)
 
         self.main_layout.addLayout(self.header_layout)
@@ -1624,7 +1628,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
 
     def showPaths(self):
         self.filepaths = []
-        fext = self.lineEdit.text()
+        fext = self.comboBox.currentText()
         self.tableWidget.clearContents()
         for index, event in enumerate(self.events):
             filename = get_pylot_eventfile_with_extension(event, fext)
@@ -1634,7 +1638,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
                 ts = int(os.path.getmtime(filename))
 
                 # create QTableWidgetItems of filepath and last modification time
-                fname_item = QtWidgets.QTableWidgetItem(f'{filename}')
+                fname_item = QtWidgets.QTableWidgetItem(f'{os.path.split(filename)[-1]}')
                 ts_item = QtWidgets.QTableWidgetItem(f'{datetime.datetime.fromtimestamp(ts)}')
                 self.tableWidget.setItem(index, 1, fname_item)
                 self.tableWidget.setItem(index, 2, ts_item)
@@ -1646,6 +1650,19 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
             status_text = 'Did not find any files for specified file mask.'
         self.statusText.setText(status_text)
 
+    def refreshSelectionBox(self):
+        fext = self.comboBox.currentText()
+        self.file_extensions = [fext]
+
+        for event in self.events:
+            extensions = get_possible_pylot_eventfile_extensions(event, '*.xml')
+            for ext in extensions:
+                if not ext in self.file_extensions:
+                    self.file_extensions.append(ext)
+
+        self.comboBox.clear()
+        for ext in sorted(self.file_extensions):
+            self.comboBox.addItem(ext)
 
     def setButtons(self):
         self._buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
@@ -1654,7 +1671,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
     def connectSignals(self):
         self._buttonbox.accepted.connect(self.accept)
         self._buttonbox.rejected.connect(self.reject)
-        self.lineEdit.textChanged.connect(self.showPaths)
+        self.comboBox.editTextChanged.connect(self.showPaths)
         self.searchButton.clicked.connect(self.showPaths)
 
 
