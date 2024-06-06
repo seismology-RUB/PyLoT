@@ -1459,7 +1459,7 @@ class MainWindow(QMainWindow):
             if event.dirty:
                 event_str += '*'
             item_path = QStandardItem(event_str)
-            item_time = QStandardItem('{}'.format(time.strftime("%Y-%m-%d %H:%M:%S")))
+            item_time = QStandardItem('{}'.format(time.strftime("%Y-%m-%d %H:%M:%S") if time else ''))
             item_lat = QStandardItem('{}'.format(lat))
             item_lon = QStandardItem('{}'.format(lon))
             item_depth = QStandardItem('{}'.format(depth))
