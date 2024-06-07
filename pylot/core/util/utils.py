@@ -1072,7 +1072,7 @@ def check4rotated(data, metadata=None, verbosity=1):
         # check if any traces in this station need to be rotated
         trace_ids = [trace.id for trace in wfs_in]
         if not rotation_required(trace_ids):
-            print(f"Stream does not need any rotation: Traces are {trace_ids=}")
+            logging.debug(f"Stream does not need any rotation: Traces are {trace_ids=}")
             return wfs_in
 
         # check metadata quality
@@ -1084,7 +1084,7 @@ def check4rotated(data, metadata=None, verbosity=1):
                 azimuths.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
                 dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
         except (KeyError, TypeError) as err:
-            print(f"{type(err)=} occurred: {err=} Rotating not possible, not all azimuth and dip information "
+            logging.error(f"{type(err)=} occurred: {err=} Rotating not possible, not all azimuth and dip information "
                   f"available in metadata. Stream remains unchanged.")
             return wfs_in
         except Exception as err:
