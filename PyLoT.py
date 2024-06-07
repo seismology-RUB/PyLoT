@@ -72,11 +72,11 @@ from pylot.core.util.errors import DatastructureError, \
     OverwriteError
 from pylot.core.util.connection import checkurl
 from pylot.core.util.dataprocessing import Metadata, restitute_data
-from pylot.core.util.utils import fnConstructor, getLogin, \
+from pylot.core.util.utils import fnConstructor, get_login, \
     full_range, readFilterInformation, pick_color_plt, \
     pick_linestyle_plt, identifyPhaseID, excludeQualityClasses, \
     transform_colors_mpl, transform_colors_mpl_str, getAutoFilteroptions, check_all_obspy, \
-    check_all_pylot, get_bool, get_None, get_pylot_eventfile_with_extension
+    check_all_pylot, get_bool, get_none, get_pylot_eventfile_with_extension
 from pylot.core.util.gui import make_pen
 from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
                 if settings.value("user/FullName", None) is None:
                     fulluser = QInputDialog.getText(self, "Enter Name:", "Full name")
                     settings.setValue("user/FullName", fulluser)
-                    settings.setValue("user/Login", getLogin())
+                    settings.setValue("user/Login", get_login())
                 if settings.value("agency_id", None) is None:
                     agency = QInputDialog.getText(self,
                                                   "Enter authority/institution name:",
@@ -1990,8 +1990,8 @@ class MainWindow(QMainWindow):
 
         if len(curr_event.origins) > 0:
             origin_time = curr_event.origins[0].time
-            tstart = settings.value('tstart') if get_None(settings.value('tstart')) else 0
-            tstop = settings.value('tstop') if get_None(settings.value('tstop')) else 0
+            tstart = settings.value('tstart') if get_none(settings.value('tstart')) else 0
+            tstop = settings.value('tstop') if get_none(settings.value('tstop')) else 0
             tstart = origin_time + float(tstart)
             tstop = origin_time + float(tstop)
         else:
@@ -2306,7 +2306,7 @@ class MainWindow(QMainWindow):
         # wfst += self.get_data().getWFData().select(component=alter_comp)
         plotWidget = self.getPlotWidget()
         self.adjustPlotHeight()
-        if get_bool(settings.value('large_dataset')):
+        if get_bool(settings.value('large_dataset')) == True:
             self.plot_method = 'fast'
         else:
             self.plot_method = 'normal'

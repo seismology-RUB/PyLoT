@@ -8,6 +8,7 @@ import platform
 import re
 import subprocess
 import warnings
+from typing import Literal, Tuple, Type
 from functools import lru_cache
 
 import numpy as np
@@ -19,6 +20,10 @@ from scipy.interpolate import splrep, splev
 from pylot.core.io.inputs import PylotParameter, FilterOptions
 from pylot.core.util.obspyDMT_interface import check_obspydmt_eventfolder
 from pylot.styles import style_settings
+
+Rgba: Type[tuple] = Tuple[int, int, int, int]
+Mplrgba: Type[tuple] = Tuple[float, float, float, float]
+Mplrgbastr: Type[tuple] = Tuple[str, str, str, str]
 
 
 def _pickle_method(m):
@@ -81,25 +86,6 @@ def fit_curve(x, y):
     :rtype: (func, (t, c, k))
     """
     return splev, splrep(x, y)
-
-
-def getindexbounds(f, eta):
-    """
-    Get indices of values closest below and above maximum value in an array
-    :param f: array
-    :type f: `~numpy.ndarray`
-    :param eta: look for value in array that is closes to max_value * eta
-    :type eta: float
-    :return: tuple containing index of max value, index of value closest below max value,
-     index of value closest above max value
-    :rtype: (int, int, int)
-    """
-    mi = f.argmax()  # get indices of max values
-    m = max(f)  # get maximum value
-    b = m * eta  #
-    l = find_nearest(f[:mi], b)  # find closest value below max value
-    u = find_nearest(f[mi:], b) + mi  # find closest value above max value
-    return mi, l, u
 
 
 def gen_Pool(ncores=0):
@@ -167,11 +153,11 @@ def clims(lim1, lim2):
     """
     takes two pairs of limits and returns one pair of common limts
     :param lim1: limit 1
-    :type lim1: int
+    :type lim1: List[int]
     :param lim2: limit 2
-    :type lim2: int
+    :type lim2: List[int]
     :return: new upper and lower limit common to both given limits
-    :rtype: [int, int]
+    :rtype: List[int]
 
     >>> clims([0, 4], [1, 3])
     [0, 4]
@@ -303,7 +289,7 @@ def fnConstructor(s):
     if type(s) is str:
         s = s.split(':')[-1]
     else:
-        s = getHash(UTCDateTime())
+        s = get_hash(UTCDateTime())
 
     badchars = re.compile(r'[^A-Za-z0-9_. ]+|^\.|\.$|^ | $|^$')
     badsuffix = re.compile(r'(aux|com[1-9]|con|lpt[1-9]|prn)(\.|$)')
@@ -315,15 +301,32 @@ def fnConstructor(s):
     return fn
 
 
-def get_None(value):
+def get_none(value):
     """
     Convert "None" to None
     :param value:
-    :type value: str, bool
+    :type value: str, NoneType
     :return:
-    :rtype: bool
+    :rtype: type(value) or NoneType
+
+    >>> st = read()
+    >>> print(get_none(st))
+    3 Trace(s) in Stream:
+    BW.RJOB..EHZ | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    BW.RJOB..EHN | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    BW.RJOB..EHE | 2009-08-24T00:20:03.000000Z - 2009-08-24T00:20:32.990000Z | 100.0 Hz, 3000 samples
+    >>> get_none('Stream')
+    'Stream'
+    >>> get_none(0)
+    0
+    >>> get_none(0.)
+    0.0
+    >>> print(get_none('None'))
+    None
+    >>> print(get_none(None))
+    None
     """
-    if value == 'None':
+    if value is None or (type(value) is str and value == 'None'):
         return None
     else:
         return value
@@ -333,9 +336,26 @@ def get_bool(value):
     """
     Convert string representations of bools to their true boolean value
     :param value:
-    :type value: str, bool
+    :type value: str, bool, int, float
     :return: true boolean value
     :rtype: bool
+
+    >>> get_bool(True)
+    True
+    >>> get_bool(False)
+    False
+    >>> get_bool(0)
+    False
+    >>> get_bool(0.)
+    False
+    >>> get_bool(0.1)
+    True
+    >>> get_bool(2)
+    True
+    >>> get_bool(-1)
+    False
+    >>> get_bool(-0.3)
+    False
     """
     if type(value) is bool:
         return value
@@ -343,8 +363,11 @@ def get_bool(value):
         return True
     elif value in ['False', 'false']:
         return False
+    elif value > 0. or value > 0:
+        return True
     else:
-        return bool(value)
+        return False
+
 
 def four_digits(year):
     """
@@ -355,8 +378,8 @@ def four_digits(year):
     :return: four digit year correspondent
     :rtype: int
 
-    >>> four_digits(20)
-    1920
+    >>> four_digits(75)
+    1975
     >>> four_digits(16)
     2016
     >>> four_digits(00)
@@ -438,36 +461,53 @@ def backtransformFilterString(st):
     return st
 
 
-def getHash(time):
+def get_hash(time):
     """
     takes a time object and returns the corresponding SHA1 hash of the formatted date string
     :param time: time object for which a hash should be calculated
     :type time: `~obspy.core.utcdatetime.UTCDateTime`
     :return: SHA1 hash
     :rtype: str
+
+    >>> time = UTCDateTime(0)
+    >>> get_hash(time)
+    '7627cce3b1b58dd21b005dac008b34d18317dd15'
+    >>> get_hash(0)
+    Traceback (most recent call last):
+    ...
+    AssertionError: 'time' is not an ObsPy UTCDateTime object
     """
+    assert isinstance(time, UTCDateTime), '\'time\' is not an ObsPy UTCDateTime object'
     hg = hashlib.sha1()
-    hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f'))
+    hg.update(time.strftime('%Y-%m-%d %H:%M:%S.%f').encode('utf-8'))
     return hg.hexdigest()
 
 
-def getLogin():
+def get_login():
     """
-    returns the actual user's login ID
-    :return: login ID
+    returns the actual user's name
+    :return: login name
     :rtype: str
     """
     import getpass
     return getpass.getuser()
 
 
-def getOwner(fn):
+def get_owner(fn):
     """
     takes a filename and return the login ID of the actual owner of the file
     :param fn: filename of the file tested
     :type fn: str
     :return: login ID of the file's owner
     :rtype: str
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile() as tmpfile:
+    ...     tmpfile.write(b'') and True
+    ...     tmpfile.flush()
+    ...     get_owner(tmpfile.name) == os.path.expanduser('~').split('/')[-1]
+    0
+    True
     """
     system_name = platform.system()
     if system_name in ["Linux", "Darwin"]:
@@ -513,6 +553,11 @@ def is_executable(fn):
     :param fn: path to the file to be tested
     :return: True or False
     :rtype: bool
+
+    >>> is_executable('/bin/ls')
+    True
+    >>> is_executable('/var/log/system.log')
+    False
     """
     return os.path.isfile(fn) and os.access(fn, os.X_OK)
 
@@ -539,24 +584,36 @@ def isSorted(iterable):
     >>> isSorted([2,3,1,4])
     False
     """
-    assert isIterable(iterable), 'object is not iterable; object: {' \
-                                 '}'.format(iterable)
+    assert is_iterable(iterable), "object is not iterable; object: {}".format(iterable)
     if type(iterable) is str:
         iterable = [s for s in iterable]
     return sorted(iterable) == iterable
 
 
-def isIterable(obj):
+def is_iterable(obj):
     """
     takes a python object and returns True is the object is iterable and
     False otherwise
     :param obj: a python object
-    :type obj: object
+    :type obj: obj
     :return: True of False
     :rtype: bool
+
+    >>> is_iterable(1)
+    False
+    >>> is_iterable(True)
+    False
+    >>> is_iterable(0.)
+    False
+    >>> is_iterable((0,1,3,4))
+    True
+    >>> is_iterable([1])
+    True
+    >>> is_iterable('a')
+    True
     """
     try:
-        iterator = iter(obj)
+        iter(obj)
     except TypeError as te:
         return False
     return True
@@ -565,13 +622,19 @@ def isIterable(obj):
 def key_for_set_value(d):
     """
     takes a dictionary and returns the first key for which's value the
-    boolean is True
+    boolean representation is True
     :param d: dictionary containing values
     :type d: dict
     :return: key to the first non-False value found; None if no value's
     boolean equals True
-    :rtype:
+    :rtype: bool or NoneType
+
+    >>> key_for_set_value({'one': 0, 'two': 1})
+    'two'
+    >>> print(key_for_set_value({1: 0, 2: False}))
+    None
     """
+    assert type(d) is dict, "Function only defined for inputs of type 'dict'."
     r = None
     for k, v in d.items():
         if v:
@@ -579,32 +642,53 @@ def key_for_set_value(d):
     return r
 
 
-def prepTimeAxis(stime, trace, verbosity=0):
+def prep_time_axis(offset, trace, verbosity=0):
     """
-    takes a starttime and a trace object and returns a valid time axis for
+    takes an offset and a trace object and returns a valid time axis for
     plotting
-    :param stime: start time of the actual seismogram as UTCDateTime
-    :type stime: `~obspy.core.utcdatetime.UTCDateTime`
+    :param offset: offset of the actual seismogram on plotting axis
+    :type offset: float or int
     :param trace: seismic trace object
     :type trace: `~obspy.core.trace.Trace`
     :param verbosity: if != 0, debug output will be written to console
     :type verbosity: int
     :return: valid numpy array with time stamps for plotting
     :rtype: `~numpy.ndarray`
+
+    >>> tr = read()[0]
+    >>> prep_time_axis(0., tr)
+    array([0.00000000e+00, 1.00033344e-02, 2.00066689e-02, ...,
+           2.99799933e+01, 2.99899967e+01, 3.00000000e+01])
+    >>> prep_time_axis(22.5, tr)
+    array([22.5       , 22.51000333, 22.52000667, ..., 52.47999333,
+           52.48999667, 52.5       ])
+    >>> prep_time_axis(tr.stats.starttime, tr)
+    Traceback (most recent call last):
+    ...
+    AssertionError: 'offset' is not of type 'float' or 'int'; type: <class 'obspy.core.utcdatetime.UTCDateTime'>
+    >>> tr.stats.npts -= 1
+    >>> prep_time_axis(0, tr)
+    array([0.00000000e+00, 1.00033356e-02, 2.00066711e-02, ...,
+           2.99699933e+01, 2.99799967e+01, 2.99900000e+01])
+    >>> tr.stats.npts += 2
+    >>> prep_time_axis(0, tr)
+    array([0.00000000e+00, 1.00033333e-02, 2.00066667e-02, ...,
+           2.99899933e+01, 2.99999967e+01, 3.00100000e+01])
     """
+    assert isinstance(offset, (float, int)), "'offset' is not of type 'float' or 'int'; type: {}".format(type(offset))
     nsamp = trace.stats.npts
     srate = trace.stats.sampling_rate
     tincr = trace.stats.delta
-    etime = stime + nsamp / srate
-    time_ax = np.linspace(stime, etime, nsamp)
+    etime = offset + nsamp / srate
+    time_ax = np.linspace(offset, etime, nsamp)
     if len(time_ax) < nsamp:
         if verbosity:
             print('elongate time axes by one datum')
-        time_ax = np.arange(stime, etime + tincr, tincr)
+        time_ax = np.arange(offset, etime + tincr, tincr)
     elif len(time_ax) > nsamp:
         if verbosity:
             print('shorten time axes by one datum')
-        time_ax = np.arange(stime, etime - tincr, tincr)
+        time_ax = np.arange(offset, etime - tincr, tincr)
     if len(time_ax) != nsamp:
         print('Station {0}, {1} samples of data \n '
               '{2} length of time vector \n'
@@ -620,13 +704,13 @@ def find_horizontals(data):
     :param data: waveform data
     :type data: `obspy.core.stream.Stream`
     :return: components list
-    :rtype: list
+    :rtype: List(str)
 
     ..example::
 
     >>> st = read()
     >>> find_horizontals(st)
-    [u'N', u'E']
+    ['N', 'E']
     """
     rval = []
     for tr in data:
@@ -637,7 +721,7 @@ def find_horizontals(data):
     return rval
 
 
-def pick_color(picktype, phase, quality=0):
+def pick_color(picktype: Literal['manual', 'automatic'], phase: Literal['P', 'S'], quality: int = 0) -> Rgba:
     """
     Create pick color by modifying the base color by the quality.
 
@@ -650,7 +734,7 @@ def pick_color(picktype, phase, quality=0):
     :param quality: quality of pick. Decides the new intensity of the modifier color
     :type quality: int
     :return: tuple containing modified rgba color values
-    :rtype: (int, int, int, int)
+    :rtype: Rgba
     """
     min_quality = 3
     bpc = base_phase_colors(picktype, phase)  # returns dict like {'modifier': 'g', 'rgba': (0, 0, 255, 255)}
@@ -706,17 +790,17 @@ def pick_linestyle_plt(picktype, key):
     return linestyles[picktype][key]
 
 
-def modify_rgba(rgba, modifier, intensity):
+def modify_rgba(rgba: Rgba, modifier: Literal['r', 'g', 'b'], intensity: float) -> Rgba:
     """
     Modify rgba color by adding the given intensity to the modifier color
     :param rgba: tuple containing rgba values
-    :type rgba: (int, int, int, int)
-    :param modifier: which color should be modified, eg. 'r', 'g', 'b'
-    :type modifier: str
+    :type rgba: Rgba
+    :param modifier: which color should be modified; options: 'r', 'g', 'b'
+    :type modifier: Literal['r', 'g', 'b']
     :param intensity: intensity to be added to selected color
     :type intensity: float
     :return: tuple containing rgba values
-    :rtype: (int, int, int, int)
+    :rtype: Rgba
     """
     rgba = list(rgba)
     index = {'r': 0,
@@ -750,18 +834,20 @@ def transform_colors_mpl_str(colors, no_alpha=False):
     Transforms rgba color values to a matplotlib string of color values with a range of [0, 1]
     :param colors: tuple of rgba color values ranging from [0, 255]
     :type colors: (float, float, float, float)
-    :param no_alpha: Wether to return a alpha value in the matplotlib color string
+    :param no_alpha: Whether to return an alpha value in the matplotlib color string
     :type no_alpha: bool
     :return: String containing r, g, b values and alpha value if no_alpha is False (default)
     :rtype: str
+
+    >>> transform_colors_mpl_str((255., 255., 255., 255.), True)
+    '(1.0, 1.0, 1.0)'
+    >>> transform_colors_mpl_str((255., 255., 255., 255.))
+    '(1.0, 1.0, 1.0, 1.0)'
     """
-    colors = list(colors)
-    colors_mpl = tuple([color / 255. for color in colors])
     if no_alpha:
-        colors_mpl = '({}, {}, {})'.format(*colors_mpl)
+        return '({}, {}, {})'.format(*transform_colors_mpl(colors))
     else:
-        colors_mpl = '({}, {}, {}, {})'.format(*colors_mpl)
-    return colors_mpl
+        return '({}, {}, {}, {})'.format(*transform_colors_mpl(colors))
 
 
 def transform_colors_mpl(colors):
@@ -771,25 +857,14 @@ def transform_colors_mpl(colors):
     :type colors: (float, float, float, float)
     :return: tuple of rgba color values ranging from [0, 1]
     :rtype: (float, float, float, float)
+
+    >>> transform_colors_mpl((127.5, 0., 63.75, 255.))
+    (0.5, 0.0, 0.25, 1.0)
+    >>> transform_colors_mpl(())
     """
     colors = list(colors)
     colors_mpl = tuple([color / 255. for color in colors])
     return colors_mpl
-
-
-def remove_underscores(data):
-    """
-    takes a `obspy.core.stream.Stream` object and removes all underscores
-    from station names
-    :param data: stream of seismic data
-    :type data: `~obspy.core.stream.Stream`
-    :return: data stream
-    :rtype: `~obspy.core.stream.Stream`
-    """
-    # for tr in data:
-    #    # remove underscores
-    #    tr.stats.station = tr.stats.station.strip('_')
-    return data
 
 
 def trim_station_components(data, trim_start=True, trim_end=True):
@@ -928,11 +1003,11 @@ def get_possible_pylot_eventfile_extensions(event, fext):
 
 def get_stations(data):
     """
-    Get list of all station names in data stream
+    Get list of all station names in data-stream
     :param data: stream containing seismic traces
     :type data: `~obspy.core.stream.Stream`
     :return: list of all station names in data, no duplicates
-    :rtype: list of str
+    :rtype: List(str)
     """
     stations = []
     for tr in data:
@@ -959,66 +1034,87 @@ def check4rotated(data, metadata=None, verbosity=1):
     :rtype: `~obspy.core.stream.Stream`
     """
 
-    def rotate_components(wfstream, metadata=None):
+    def rotation_required(trace_ids):
+        """
+        Derive if any rotation is required from the orientation code of the input.
+
+        :param trace_ids: string identifier of waveform data trace
+        :type trace_ids: List(str)
+        :return: boolean representing if rotation is necessary for any of the traces
+        :rtype: bool
+        """
+        orientations = [trace_id[-1] for trace_id in trace_ids]
+        return any([orientation.isnumeric() for orientation in orientations])
+
+    def rotate_components(wfs_in, metadata=None):
         """
         Rotate components if orientation code is numeric (= non traditional orientation).
 
         Azimut and dip are fetched from metadata. To be rotated, traces of a station have to be cut to the same length.
         Returns unrotated traces of no metadata is provided
-        :param wfstream: stream containing seismic traces of a station
-        :type wfstream: `~obspy.core.stream.Stream`
+        :param wfs_in: stream containing seismic traces of a station
+        :type wfs_in: `~obspy.core.stream.Stream`
         :param metadata: tuple containing metadata type string and metadata parser object
         :type metadata: (str, `~obspy.io.xseed.parser.Parser`)
         :return: stream object with traditionally oriented traces (ZNE)
         :rtype: `~obspy.core.stream.Stream`
         """
 
-        # check if any traces in this station need to be rotated
-        trace_ids = [trace.id for trace in wfstream]
-        orientations = [trace_id[-1] for trace_id in trace_ids]
-        rotation_required = [orientation.isnumeric() for orientation in orientations]
-        if any(rotation_required):
-            t_start = full_range(wfstream)
-            try:
-                azimuts = []
-                dips = []
-                for tr_id in trace_ids:
-                    azimuts.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
-                    dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
-            except (KeyError, TypeError) as e:
-                print('Failed to rotate trace {}, no azimuth or dip available in metadata'.format(tr_id))
-                return wfstream
-            if len(wfstream) < 3:
-                print('Failed to rotate Stream {}, not enough components available.'.format(wfstream))
-                return wfstream
-            # to rotate all traces must have same length, so trim them
-            wfstream = trim_station_components(wfstream, trim_start=True, trim_end=True)
-            try:
-                z, n, e = rotate2zne(wfstream[0], azimuts[0], dips[0],
-                                     wfstream[1], azimuts[1], dips[1],
-                                     wfstream[2], azimuts[2], dips[2])
-                print('check4rotated: rotated trace {} to ZNE'.format(trace_ids))
-                # replace old data with rotated data, change the channel code to ZNE
-                z_index = dips.index(min(
-                    dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90 being vertical)
-                wfstream[z_index].data = z
-                wfstream[z_index].stats.channel = wfstream[z_index].stats.channel[0:-1] + 'Z'
-                del trace_ids[z_index]
-                for trace_id in trace_ids:
-                    coordinates = metadata.get_coordinates(trace_id, t_start)
-                    dip, az = coordinates['dip'], coordinates['azimuth']
-                    trace = wfstream.select(id=trace_id)[0]
-                    if az > 315 or az <= 45 or az > 135 and az <= 225:
-                        trace.data = n
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'N'
-                    elif az > 45 and az <= 135 or az > 225 and az <= 315:
-                        trace.data = e
-                        trace.stats.channel = trace.stats.channel[0:-1] + 'E'
-            except (ValueError) as e:
-                print(e)
-                return wfstream
+        if len(wfs_in) < 3:
+            print(f"Stream {wfs_in=}, has not enough components to rotate.")
+            return wfs_in
 
-        return wfstream
+        # check if any traces in this station need to be rotated
+        trace_ids = [trace.id for trace in wfs_in]
+        if not rotation_required(trace_ids):
+            print(f"Stream does not need any rotation: Traces are {trace_ids=}")
+            return wfs_in
+
+        # check metadata quality
+        t_start = full_range(wfs_in)
+        try:
+            azimuths = []
+            dips = []
+            for tr_id in trace_ids:
+                azimuths.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
+                dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
+        except (KeyError, TypeError) as err:
+            print(f"{type(err)=} occurred: {err=} Rotating not possible, not all azimuth and dip information "
+                  f"available in metadata. Stream remains unchanged.")
+            return wfs_in
+        except Exception as err:
+            print(f"Unexpected {err=}, {type(err)=}")
+            raise
+
+        # to rotate all traces must have same length, so trim them
+        wfs_out = trim_station_components(wfs_in, trim_start=True, trim_end=True)
+        try:
+            z, n, e = rotate2zne(wfs_out[0], azimuths[0], dips[0],
+                                 wfs_out[1], azimuths[1], dips[1],
+                                 wfs_out[2], azimuths[2], dips[2])
+            print('check4rotated: rotated trace {} to ZNE'.format(trace_ids))
+            # replace old data with rotated data, change the channel code to ZNE
+            z_index = dips.index(min(
+                dips))  # get z-trace index, z has minimum dip of -90 (dip is measured from 0 to -90, with -90
+            # being vertical)
+            wfs_out[z_index].data = z
+            wfs_out[z_index].stats.channel = wfs_out[z_index].stats.channel[0:-1] + 'Z'
+            del trace_ids[z_index]
+            for trace_id in trace_ids:
+                coordinates = metadata.get_coordinates(trace_id, t_start)
+                dip, az = coordinates['dip'], coordinates['azimuth']
+                trace = wfs_out.select(id=trace_id)[0]
+                if az > 315 or az <= 45 or 135 < az <= 225:
+                    trace.data = n
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'N'
+                elif 45 < az <= 135 or 225 < az <= 315:
+                    trace.data = e
+                    trace.stats.channel = trace.stats.channel[0:-1] + 'E'
+        except ValueError as err:
+            print(f"{err=} Rotation failed. Stream remains unchanged.")
+            return wfs_in
+
+        return wfs_out
 
     if metadata is None:
         if verbosity:
@@ -1029,38 +1125,6 @@ def check4rotated(data, metadata=None, verbosity=1):
     for station in stations:  # loop through all stations and rotate data if neccessary
         wf_station = data.select(station=station)
         rotate_components(wf_station, metadata)
-    return data
-
-
-def scaleWFData(data, factor=None, components='all'):
-    """
-    produce scaled waveforms from given waveform data and a scaling factor,
-    waveform may be selected by their components name
-    :param data: waveform data to be scaled
-    :type data: `~obspy.core.stream.Stream` object
-    :param factor: scaling factor
-    :type factor: float
-    :param components: components labels for the traces in data to be scaled by
-     the scaling factor (optional, default: 'all')
-    :type components: tuple
-    :return:  scaled waveform data
-    :rtype: `~obspy.core.stream.Stream` object
-    """
-    if components != 'all':
-        for comp in components:
-            if factor is None:
-                max_val = np.max(np.abs(data.select(component=comp)[0].data))
-                data.select(component=comp)[0].data /= 2 * max_val
-            else:
-                data.select(component=comp)[0].data /= 2 * factor
-    else:
-        for tr in data:
-            if factor is None:
-                max_val = float(np.max(np.abs(tr.data)))
-                tr.data /= 2 * max_val
-            else:
-                tr.data /= 2 * factor
-
     return data
 
 

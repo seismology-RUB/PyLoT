@@ -16,7 +16,7 @@ from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
 from pylot.core.pick.utils import select_for_phase, get_quality_class
-from pylot.core.util.utils import getOwner, full_range, four_digits, transformFilterString4Export, \
+from pylot.core.util.utils import get_owner, full_range, four_digits, transformFilterString4Export, \
     backtransformFilterString, loopIdentifyPhase, identifyPhase
 
 
@@ -58,7 +58,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     if phasfn is not None and os.path.isfile(phasfn):
         phases = sio.loadmat(phasfn)
         phasctime = UTCDateTime(os.path.getmtime(phasfn))
-        phasauthor = getOwner(phasfn)
+        phasauthor = get_owner(phasfn)
     else:
         phases = None
         phasctime = None
@@ -66,7 +66,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     if locfn is not None and os.path.isfile(locfn):
         loc = sio.loadmat(locfn)
         locctime = UTCDateTime(os.path.getmtime(locfn))
-        locauthor = getOwner(locfn)
+        locauthor = get_owner(locfn)
     else:
         loc = None
         locctime = None

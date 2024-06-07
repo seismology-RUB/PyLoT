@@ -15,7 +15,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 from scipy.signal import argrelmax
 
-from pylot.core.util.utils import get_bool, get_None, SetChannelComponents
+from pylot.core.util.utils import get_bool, get_none, SetChannelComponents
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -136,7 +136,7 @@ def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecol
     PickError = symmetrize_error(diffti_te, diffti_tl)
 
     if iplot > 1:
-        if get_None(fig) is None:
+        if get_none(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -275,7 +275,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             try:
                 P1 = np.polyfit(xslope1, xraw[islope1], 1)
                 datafit1 = np.polyval(P1, xslope1)
-            except Exception as e:
+            except ValueError as e:
                 print("fmpicker: Problems with data fit! {}".format(e))
                 print("Skip first motion determination!")
                 return FM
@@ -321,7 +321,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
             try:
                 P2 = np.polyfit(xslope2, xfilt[islope2], 1)
                 datafit2 = np.polyval(P2, xslope2)
-            except Exception as e:
+            except ValueError as e:
                 emsg = 'fmpicker: polyfit failed: {}'.format(e)
                 print(emsg)
                 return FM
@@ -344,7 +344,7 @@ def fmpicker(Xraw, Xfilt, pickwin, Pick, iplot=0, fig=None, linecolor='k'):
         print("fmpicker: Found polarity %s" % FM)
 
     if iplot > 1:
-        if get_None(fig) is None:
+        if get_none(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -868,7 +868,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
             returnflag = 0
 
     if iplot > 1:
-        if get_None(fig) is None:
+        if get_none(fig) is None:
             fig = plt.figure()  # iplot)
             plt_flag = 1
         fig._tight = True
@@ -1213,14 +1213,14 @@ def checkZ4S(X, pick, pickparams, iplot, fig=None, linecolor='k'):
             t = np.linspace(diff_dict[key], trace.stats.endtime - trace.stats.starttime + diff_dict[key],
                             trace.stats.npts)
             if i == 0:
-                if get_None(fig) is None:
+                if get_none(fig) is None:
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax1 = fig.add_subplot(3, 1, i + 1)
                 ax = ax1
                 ax.set_title('CheckZ4S, Station %s' % zdat[0].stats.station)
             else:
-                if get_None(fig) is None:
+                if get_none(fig) is None:
                     fig = plt.figure()  # self.iplot) ### WHY? MP MP
                     plt_flag = 1
                 ax = fig.add_subplot(3, 1, i + 1, sharex=ax1)
@@ -1494,7 +1494,7 @@ def getQualityFromUncertainty(uncertainty, Errors):
     # set initial quality to 4 (worst) and change only if one condition is hit
     quality = 4
 
-    if get_None(uncertainty) is None:
+    if get_none(uncertainty) is None:
         return quality
 
     if uncertainty <= Errors[0]:

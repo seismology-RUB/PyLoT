@@ -7,6 +7,7 @@ Created on Wed Mar 19 11:27:35 2014
 import copy
 import datetime
 import getpass
+import glob
 import multiprocessing
 import os
 import subprocess
@@ -16,6 +17,7 @@ import traceback
 
 import matplotlib
 import numpy as np
+from pylot.core.io.phases import getQualitiesfromxml
 
 matplotlib.use('QT5Agg')
 
@@ -49,11 +51,11 @@ from pylot.core.pick.utils import getSNR, earllatepicker, getnoisewin, \
 from pylot.core.pick.compare import Comparison
 from pylot.core.pick.autopick import fmpicker
 from pylot.core.util.defaults import OUTPUTFORMATS, FILTERDEFAULTS
-from pylot.core.util.utils import prepTimeAxis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
+from pylot.core.util.utils import prep_time_axis, full_range, demeanTrace, isSorted, findComboBoxIndex, clims, \
     pick_linestyle_plt, pick_color_plt, \
     check4rotated, check4doubled, check_for_gaps_and_merge, check_for_nan, identifyPhase, \
     loopIdentifyPhase, trim_station_components, transformFilteroptions2String, \
-    identifyPhaseID, get_bool, get_None, pick_color, getAutoFilteroptions, SetChannelComponents, \
+    identifyPhaseID, get_bool, get_none, pick_color, getAutoFilteroptions, SetChannelComponents, \
     station_id_remove_channel, get_pylot_eventfile_with_extension, get_possible_pylot_eventfile_extensions
 from autoPyLoT import autoPyLoT
 from pylot.core.util.thread import Thread
@@ -936,10 +938,10 @@ class WaveformWidgetPG(QtWidgets.QWidget):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - self.wfstart
-            time_ax = prepTimeAxis(stime, trace)
+            time_ax = prep_time_axis(stime, trace)
             if st_syn:
                 stime_syn = trace_syn.stats.starttime - self.wfstart
-                time_ax_syn = prepTimeAxis(stime_syn, trace_syn)
+                time_ax_syn = prep_time_axis(stime_syn, trace_syn)
 
             if method == 'fast':
                 trace.data, time_ax = self.minMax(trace, time_ax)
@@ -1422,7 +1424,7 @@ class PylotCanvas(FigureCanvas):
                 msg = 'plotting %s channel of station %s' % (channel, station)
                 print(msg)
             stime = trace.stats.starttime - wfstart
-            time_ax = prepTimeAxis(stime, trace)
+            time_ax = prep_time_axis(stime, trace)
             if time_ax is not None:
                 if scaleToChannel:
                     st_scale = wfdata.select(channel=scaleToChannel)
@@ -1460,7 +1462,7 @@ class PylotCanvas(FigureCanvas):
                 if not scaleddata:
                     trace.detrend('constant')
                     trace.normalize(np.max(np.abs(trace.data)) * 2)
-                time_ax = prepTimeAxis(stime, trace)
+                time_ax = prep_time_axis(stime, trace)
                 times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
                 p_data = compare_stream[0].data
                 # #normalize
@@ -2267,7 +2269,7 @@ class PickDlg(QDialog):
 
                 # create action and add to menu
                 # phase name transferred using lambda function
-                slot = lambda phase=phase, phaseID=phaseID: phaseSelect[phaseID](phase)
+                slot = lambda ph=phase, phID=phaseID: phaseSelect[phID](ph)
                 picksAction = createAction(parent=self, text=phase,
                                            slot=slot,
                                            shortcut=shortcut)
@@ -2671,7 +2673,7 @@ class PickDlg(QDialog):
 
         # prepare plotting of data
         for trace in data:
-            t = prepTimeAxis(trace.stats.starttime - stime, trace)
+            t = prep_time_axis(trace.stats.starttime - stime, trace)
             inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
             trace = demeanTrace(trace, inoise)
             # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
@@ -4794,8 +4796,8 @@ class InputsTab(PropTab):
         self.tstopBox = QSpinBox()
         for spinbox in [self.tstartBox, self.tstopBox]:
             spinbox.setRange(-99999, 99999)
-        self.tstartBox.setValue(float(settings.value('tstart')) if get_None(settings.value('tstart')) else 0)
-        self.tstopBox.setValue(float(settings.value('tstop')) if get_None(settings.value('tstop')) else 1e6)
+        self.tstartBox.setValue(float(settings.value('tstart')) if get_none(settings.value('tstart')) else 0)
+        self.tstopBox.setValue(float(settings.value('tstop')) if get_none(settings.value('tstop')) else 1e6)
         self.cuttimesLayout.addWidget(self.tstartBox, 10)
         self.cuttimesLayout.addWidget(QLabel('[s] and'), 0)
         self.cuttimesLayout.addWidget(self.tstopBox, 10)
@@ -5791,7 +5793,7 @@ class ChooseWaveFormWindow(QWidget):
         #self.currentSpectro = self.traces[
         #    self.chooseBoxTraces.currentText()[3:]][self.chooseBoxComponent.currentText()].spectrogram(show=False, title=t)
         #self.currentSpectro.show()
-        applyFFT()
+        self.applyFFT()
 
     def applyFFT(self, trace):
         tra = self.traces[self.chooseBoxTraces.currentText()[3:]]['Z']
