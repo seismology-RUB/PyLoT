@@ -334,7 +334,7 @@ def get_none(value):
 
 def get_bool(value):
     """
-    Convert string representations of bools to their true boolean value
+    Convert string representations of bools to their true boolean value. Return value if it cannot be identified as bool.
     :param value:
     :type value: str, bool, int, float
     :return: true boolean value
@@ -356,6 +356,8 @@ def get_bool(value):
     False
     >>> get_bool(-0.3)
     False
+    >>> get_bool(None)
+    None
     """
     if type(value) is bool:
         return value
@@ -363,10 +365,13 @@ def get_bool(value):
         return True
     elif value in ['False', 'false']:
         return False
-    elif value > 0. or value > 0:
-        return True
+    elif isinstance(value, float) or isinstance(value, int):
+        if value > 0. or value > 0:
+            return True
+        else:
+            return False
     else:
-        return False
+        return value
 
 
 def four_digits(year):
