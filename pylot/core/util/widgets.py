@@ -1577,6 +1577,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.filepaths = []
         self.file_extensions = []
         self.check_all_state = True
+        self.merge_strategy = None
         self.default_text = default_text
         self.label = label
         self.setButtons()
@@ -1611,6 +1612,15 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         # check/uncheck button for table
         self.checkAllButton = QtWidgets.QPushButton('Check/Uncheck all')
 
+        # radiobutton for merge selection
+        self.mergeRadioButtonGroup = QtWidgets.QButtonGroup()
+        self.merge_button = QtWidgets.QRadioButton('Merge')
+        self.overwrite_button = QtWidgets.QRadioButton('Overwrite')
+        self.mergeRadioButtonGroup.addButton(self.merge_button)
+        self.mergeRadioButtonGroup.addButton(self.overwrite_button)
+        self.merge_button.setChecked(True)
+        self.merge_strategy = self.merge_button.text()
+
         # table
         self.tableWidget = QtWidgets.QTableWidget()
         tableWidget = self.tableWidget
@@ -1631,7 +1641,11 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
 
         self.footer_layout.addWidget(self.checkAllButton)
         self.footer_layout.addWidget(self.statusText)
+        self.footer_layout.addWidget(self.merge_button)
+        self.footer_layout.addWidget(self.overwrite_button)
+
         self.footer_layout.setStretch(0, 0)
+        self.footer_layout.setStretch(1, 1)
 
         self.main_layout.addLayout(self.header_layout)
         self.main_layout.addWidget(self.tableWidget)
@@ -1645,10 +1659,8 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         for index, event in enumerate(self.events):
             filename = get_pylot_eventfile_with_extension(event, fext)
             pf_selected_item = QtWidgets.QTableWidgetItem()
-            if filename:
-                pf_selected_item.setCheckState(QtCore.Qt.Checked)
-            #check_state = QtCore.Qt.Checked if filename else QtCore.Qt.Unchecked
-            #pf_selected_item.setCheckState(check_state)
+            check_state = QtCore.Qt.Checked if filename else QtCore.Qt.Unchecked
+            pf_selected_item.setCheckState(check_state)
             self.tableWidget.setItem(index, 0, pf_selected_item)
             self.tableWidget.setItem(index, 1, QtWidgets.QTableWidgetItem(f'{event.pylot_id}'))
             if filename:
@@ -1698,8 +1710,9 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
             item_check = self.tableWidget.item(row_ind, 0)
             if item_check.checkState() == QtCore.Qt.Checked:
                 item_fname = self.tableWidget.item(row_ind, 2)
-                filepath = item_fname.data(3)
-                filepaths.append(filepath)
+                if item_fname:
+                    filepath = item_fname.data(3)
+                    filepaths.append(filepath)
         return filepaths
 
     def update_status(self, row=None, col=None):
@@ -1707,11 +1720,15 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
             return
         filepaths = self.getChecked()
         if len(filepaths) > 0:
-            status_text = f'Found {len(filepaths)} eventfiles. Do you want to load them?'
+            status_text = f"Found {len(filepaths)} eventfile{'s' if len(filepaths) > 1 else ''}. Do you want to load them?"
         else:
-            status_text = 'Did not find any files for specified file mask.'
+            status_text = 'Did not find/select any files for specified file mask.'
         self.statusText.setText(status_text)
 
+    def update_merge_strategy(self):
+        for button in (self.merge_button, self.overwrite_button):
+            if button.isChecked():
+                self.merge_strategy = button.text()
 
     def connectSignals(self):
         self._buttonbox.accepted.connect(self.accept)
@@ -1721,7 +1738,8 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.checkAllButton.clicked.connect(self.toggleCheckAll)
         self.checkAllButton.clicked.connect(self.update_status)
         self.tableWidget.cellClicked.connect(self.update_status)
-
+        self.merge_button.clicked.connect(self.update_merge_strategy)
+        self.overwrite_button.clicked.connect(self.update_merge_strategy)
 
 
 class SingleTextLineDialog(QtWidgets.QDialog):

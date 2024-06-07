@@ -1010,11 +1010,12 @@ class MainWindow(QMainWindow):
                                           events=events)
         if not sld.exec_():
             return
+
         filenames = sld.getChecked()
         for event in events:
             for filename in filenames:
                 if os.path.isfile(filename) and event.pylot_id in filename:
-                    self.load_data(filename, draw=False, event=event, overwrite=True)
+                    self.load_data(filename, draw=False, event=event, ask_user=True, merge_strategy=sld.merge_strategy)
                     refresh = True
         if not refresh:
             return
@@ -1023,8 +1024,8 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.setDirty(True)
 
-    def load_data(self, fname=None, loc=False, draw=True, event=None, overwrite=False):
-        if not overwrite:
+    def load_data(self, fname=None, loc=False, draw=True, event=None, ask_user=False, merge_strategy='Overwrite'):
+        if not ask_user:
             if not self.okToContinue():
                 return
         if fname is None:
@@ -1038,9 +1039,12 @@ class MainWindow(QMainWindow):
         data = Data(self, event)
         try:
             data_new = Data(self, evtdata=str(fname))
-            # MP MP commented because adding several picks might cause inconsistencies
-            data = data_new
-            # data += data_new
+            if merge_strategy == 'Overwrite':
+                data = data_new
+            elif merge_strategy == 'Merge':
+                data += data_new
+            else:
+                raise NotImplementedError(f'Unknown merge strategy: {merge_strategy}')
         except ValueError:
             qmb = QMessageBox(self, icon=QMessageBox.Question,
                               text='Warning: Missmatch in event identifiers {} and {}. Continue?'.format(
