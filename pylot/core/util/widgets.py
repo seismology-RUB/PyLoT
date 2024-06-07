@@ -1576,6 +1576,7 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.events = events
         self.filepaths = []
         self.file_extensions = []
+        self.check_all_state = True
         self.default_text = default_text
         self.label = label
         self.setButtons()
@@ -1583,16 +1584,17 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.connectSignals()
         self.showPaths()
         self.refreshSelectionBox()
-        self.refresh_timer = QTimer(self)
-        self.refresh_timer.timeout.connect(self.showPaths)
-        self.refresh_timer.start(10000)
+        # self.refresh_timer = QTimer(self)
+        # self.refresh_timer.timeout.connect(self.showPaths)
+        # self.refresh_timer.start(10000)
 
         self.resize(800, 450)
 
-
     def setupUi(self):
+        ncol = 4
         self.main_layout = QtWidgets.QVBoxLayout()
         self.header_layout = QtWidgets.QHBoxLayout()
+        self.footer_layout = QtWidgets.QHBoxLayout()
         #
         self.setLayout(self.main_layout)
 
@@ -1606,11 +1608,15 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.searchButton = QtWidgets.QPushButton('Search')
         self.searchButton.setVisible(False)
 
+        # check/uncheck button for table
+        self.checkAllButton = QtWidgets.QPushButton('Check/Uncheck all')
+
+        # table
         self.tableWidget = QtWidgets.QTableWidget()
         tableWidget = self.tableWidget
-        tableWidget.setColumnCount(3)
+        tableWidget.setColumnCount(ncol)
         tableWidget.setRowCount(len(self.events))
-        tableWidget.setHorizontalHeaderLabels(('Event ID', 'Filename', 'Last modified'))
+        tableWidget.setHorizontalHeaderLabels(('', 'Event ID', 'Filename', 'Last modified'))
         tableWidget.setEditTriggers(tableWidget.NoEditTriggers)
         tableWidget.setSortingEnabled(True)
         header = tableWidget.horizontalHeader()
@@ -1623,9 +1629,13 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.header_layout.addWidget(self.comboBox)
         self.header_layout.addWidget(self.searchButton)
 
+        self.footer_layout.addWidget(self.checkAllButton)
+        self.footer_layout.addWidget(self.statusText)
+        self.footer_layout.setStretch(0, 0)
+
         self.main_layout.addLayout(self.header_layout)
         self.main_layout.addWidget(self.tableWidget)
-        self.main_layout.addWidget(self.statusText)
+        self.main_layout.addLayout(self.footer_layout)
         self.main_layout.addWidget(self._buttonbox)
 
     def showPaths(self):
@@ -1634,23 +1644,25 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self.tableWidget.clearContents()
         for index, event in enumerate(self.events):
             filename = get_pylot_eventfile_with_extension(event, fext)
-            self.tableWidget.setItem(index, 0, QtWidgets.QTableWidgetItem(f'{event.pylot_id}'))
+            pf_selected_item = QtWidgets.QTableWidgetItem()
+            if filename:
+                pf_selected_item.setCheckState(QtCore.Qt.Checked)
+            #check_state = QtCore.Qt.Checked if filename else QtCore.Qt.Unchecked
+            #pf_selected_item.setCheckState(check_state)
+            self.tableWidget.setItem(index, 0, pf_selected_item)
+            self.tableWidget.setItem(index, 1, QtWidgets.QTableWidgetItem(f'{event.pylot_id}'))
             if filename:
                 self.filepaths.append(filename)
                 ts = int(os.path.getmtime(filename))
 
                 # create QTableWidgetItems of filepath and last modification time
                 fname_item = QtWidgets.QTableWidgetItem(f'{os.path.split(filename)[-1]}')
+                fname_item.setData(3, filename)
                 ts_item = QtWidgets.QTableWidgetItem(f'{datetime.datetime.fromtimestamp(ts)}')
-                self.tableWidget.setItem(index, 1, fname_item)
-                self.tableWidget.setItem(index, 2, ts_item)
+                self.tableWidget.setItem(index, 2, fname_item)
+                self.tableWidget.setItem(index, 3, ts_item)
 
-        # TODO: Idea -> only refresh if table contents changed. Use selection to load only a subset of files
-        if len(self.filepaths) > 0:
-            status_text = f'Found {len(self.filepaths)} eventfiles. Do you want to load them?'
-        else:
-            status_text = 'Did not find any files for specified file mask.'
-        self.statusText.setText(status_text)
+        self.update_status()
 
     def refreshSelectionBox(self):
         fext = self.comboBox.currentText()
@@ -1670,11 +1682,45 @@ class SearchFileByExtensionDialog(QtWidgets.QDialog):
         self._buttonbox = QDialogButtonBox(QDialogButtonBox.Ok |
                                            QDialogButtonBox.Cancel)
 
+    def toggleCheckAll(self):
+        self.check_all_state = not self.check_all_state
+        self.checkAll(self.check_all_state)
+
+    def checkAll(self, state):
+        state = QtCore.Qt.Checked if state else QtCore.Qt.Unchecked
+        for row_ind in range(self.tableWidget.rowCount()):
+            item = self.tableWidget.item(row_ind, 0)
+            item.setCheckState(state)
+
+    def getChecked(self):
+        filepaths = []
+        for row_ind in range(self.tableWidget.rowCount()):
+            item_check = self.tableWidget.item(row_ind, 0)
+            if item_check.checkState() == QtCore.Qt.Checked:
+                item_fname = self.tableWidget.item(row_ind, 2)
+                filepath = item_fname.data(3)
+                filepaths.append(filepath)
+        return filepaths
+
+    def update_status(self, row=None, col=None):
+        if col is not None and col != 0:
+            return
+        filepaths = self.getChecked()
+        if len(filepaths) > 0:
+            status_text = f'Found {len(filepaths)} eventfiles. Do you want to load them?'
+        else:
+            status_text = 'Did not find any files for specified file mask.'
+        self.statusText.setText(status_text)
+
+
     def connectSignals(self):
         self._buttonbox.accepted.connect(self.accept)
         self._buttonbox.rejected.connect(self.reject)
         self.comboBox.editTextChanged.connect(self.showPaths)
         self.searchButton.clicked.connect(self.showPaths)
+        self.checkAllButton.clicked.connect(self.toggleCheckAll)
+        self.checkAllButton.clicked.connect(self.update_status)
+        self.tableWidget.cellClicked.connect(self.update_status)
 
 
 

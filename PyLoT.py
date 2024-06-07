@@ -1010,13 +1010,12 @@ class MainWindow(QMainWindow):
                                           events=events)
         if not sld.exec_():
             return
-        fext = sld.comboBox.currentText()
-        # fext = '.xml'
+        filenames = sld.getChecked()
         for event in events:
-            filename = get_pylot_eventfile_with_extension(event, fext)
-            if filename:
-                self.load_data(filename, draw=False, event=event, overwrite=True)
-                refresh = True
+            for filename in filenames:
+                if os.path.isfile(filename) and event.pylot_id in filename:
+                    self.load_data(filename, draw=False, event=event, overwrite=True)
+                    refresh = True
         if not refresh:
             return
         if self.get_current_event().pylot_picks:
