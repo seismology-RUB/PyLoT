@@ -124,8 +124,8 @@ class Array_map(QtWidgets.QWidget):
         self.cmaps_box = QtWidgets.QComboBox()
         self.cmaps_box.setMaxVisibleItems(20)
         [self.cmaps_box.addItem(map_name) for map_name in sorted(plt.colormaps())]
-        # try to set to hsv as default
-        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('hsv'))
+        # try to set to viridis as default
+        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('viridis'))
 
         self.top_row.addWidget(QtWidgets.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
