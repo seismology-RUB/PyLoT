@@ -119,13 +119,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             obspyDMT_wfpath = input_dict['obspyDMT_wfpath']
 
     if not parameter:
-        if inputfile:
-            parameter = PylotParameter(inputfile)
-            # iplot = parameter['iplot']
-        else:
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-            parameter = PylotParameter(infile)
+        if not inputfile:
+            print('Using default input parameter')
+        parameter = PylotParameter(inputfile)
     else:
         if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))

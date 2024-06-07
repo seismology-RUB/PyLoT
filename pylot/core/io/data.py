@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import logging
 import os
 
 from PySide2.QtWidgets import QMessageBox
@@ -408,18 +409,16 @@ class Data(object):
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '_focmec.in':
                 try:
-                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-                    print('Using default input file {}'.format(infile))
-                    parameter = PylotParameter(infile)
+                    parameter = PylotParameter()
+                    logging.warning('Using default input parameter')
                     focmec.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.pha':
                 try:
-                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-                    print('Using default input file {}'.format(infile))
-                    parameter = PylotParameter(infile)
+                    parameter = PylotParameter()
+                    logging.warning('Using default input parameter')
                     hypodd.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format

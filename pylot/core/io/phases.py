@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glob
+import logging
 import os
 import warnings
 
@@ -217,7 +218,7 @@ def picksdict_from_obs(fn):
     return picks
 
 
-def picksdict_from_picks(evt):
+def picksdict_from_picks(evt, parameter=None):
     """
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
@@ -230,6 +231,7 @@ def picksdict_from_picks(evt):
         'auto': {}
     }
     for pick in evt.picks:
+        errors = None
         phase = {}
         station = pick.waveform_id.station_code
         if pick.waveform_id.channel_code is None:
@@ -273,32 +275,28 @@ def picksdict_from_picks(evt):
         phase['epp'] = epp
         phase['lpp'] = lpp
         phase['spe'] = spe
-        try:
-            phase['weight'] = weight
-        except:
-            # get onset weight from uncertainty
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-            parameter = PylotParameter(infile)
+        weight = phase.get('weight')
+        if not weight:
+            if not parameter:
+                logging.warning('Using ')
+                logging.warning('Using default input parameter')
+                parameter = PylotParameter()
             pick.phase_hint = identifyPhase(pick.phase_hint)
             if pick.phase_hint == 'P':
                 errors = parameter['timeerrorsP']
             elif pick.phase_hint == 'S':
                 errors = parameter['timeerrorsS']
-            weight = get_quality_class(spe, errors)
-            phase['weight'] = weight
+            if errors:
+                weight = get_quality_class(spe, errors)
+                phase['weight'] = weight
         phase['channel'] = channel
         phase['network'] = network
         phase['picker'] = pick_method
-        try:
-            if pick.polarity == 'positive':
-                phase['fm'] = 'U'
-            elif pick.polarity == 'negative':
-                phase['fm'] = 'D'
-            else:
-                phase['fm'] = 'N'
-        except:
-            print("No FM info available!")
+        if pick.polarity == 'positive':
+            phase['fm'] = 'U'
+        elif pick.polarity == 'negative':
+            phase['fm'] = 'D'
+        else:
             phase['fm'] = 'N'
         phase['filter_id'] = filter_id if filter_id is not None else ''
 

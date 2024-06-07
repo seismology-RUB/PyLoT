@@ -25,6 +25,7 @@ https://www.iconfinder.com/iconsets/flavour
 
 import argparse
 import json
+import logging
 import os
 import platform
 import shutil
@@ -113,11 +114,7 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None, infile=None, reset_qsettings=False):
         super(MainWindow, self).__init__(parent)
 
-        # check for default pylot.in-file
-        if not infile:
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-        if os.path.isfile(infile) is False:
+        if infile and os.path.isfile(infile) is False:
             infile = QFileDialog().getOpenFileName(caption='Choose PyLoT-input file')[0]
 
             if not os.path.exists(infile):
@@ -253,7 +250,7 @@ class MainWindow(QMainWindow):
             self._inputs.reset_defaults()
             # check for default pylot.in-file
             infile = os.path.join(pylot_config_dir, '.pylot.in')
-            print('Using default input file {}'.format(infile))
+            logging.warning('Using default input file {}'.format(infile))
             self._inputs.export2File(infile)
         self.infile = infile
 
