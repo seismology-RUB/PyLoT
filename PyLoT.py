@@ -178,6 +178,7 @@ class MainWindow(QMainWindow):
         self.autodata = Data(self)
 
         self.fnames = None
+        self.fnames_comp = None
         self._stime = None
 
         # track deleted picks for logging
@@ -1129,16 +1130,19 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-    def getWFFnames_from_eventbox(self, eventbox=None):
+    def getWFFnames_from_eventbox(self, eventbox: str = None, subpath: str = None) -> list:
         '''
         Return waveform filenames from event in eventbox.
         '''
         # TODO: add dataStructure class for obspyDMT here, this is just a workaround!
         eventpath = self.get_current_event_path(eventbox)
-        basepath = eventpath.split(os.path.basename(eventpath))[0]
+        if subpath:
+            eventpath = os.path.join(eventpath, subpath)
+        if not os.path.isdir(eventpath):
+            return []
         if self.dataStructure:
             if not eventpath:
-                return
+                return []
             fnames = [os.path.join(eventpath, f) for f in os.listdir(eventpath)]
         else:
             raise DatastructureError('not specified')
@@ -1960,13 +1964,20 @@ class MainWindow(QMainWindow):
 
     def prepareLoadWaveformData(self):
         self.fnames = self.getWFFnames_from_eventbox()
-        self.fnames_syn = []
+        self.fnames_comp = []
+        fnames_comp = self.getWFFnames_from_eventbox(subpath='compare')
+        self.dataPlot.activateCompareOptions(bool(fnames_comp))
+        if fnames_comp:
+            if self.dataPlot.comp_checkbox.isChecked():
+                self.fnames_comp = fnames_comp
+
         eventpath = self.get_current_event_path()
         basepath = eventpath.split(os.path.basename(eventpath))[0]
         self.obspy_dmt = check_obspydmt_structure(basepath)
         self.dataPlot.activateObspyDMToptions(self.obspy_dmt)
         if self.obspy_dmt:
             self.prepareObspyDMT_data(eventpath)
+            self.dataPlot.activateCompareOptions(True)
 
     def loadWaveformData(self):
         '''
@@ -1999,7 +2010,7 @@ class MainWindow(QMainWindow):
             tstop = None
 
         self.data.setWFData(self.fnames,
-                            self.fnames_syn,
+                            self.fnames_comp,
                             checkRotated=True,
                             metadata=self.metadata,
                             tstart=tstart,
@@ -2007,7 +2018,7 @@ class MainWindow(QMainWindow):
 
     def prepareObspyDMT_data(self, eventpath):
         qcbox_processed = self.dataPlot.qcombo_processed
-        qcheckb_syn = self.dataPlot.syn_checkbox
+        qcheckb_syn = self.dataPlot.comp_checkbox
         qcbox_processed.setEnabled(False)
         qcheckb_syn.setEnabled(False)
         for fpath in os.listdir(eventpath):
@@ -2015,8 +2026,8 @@ class MainWindow(QMainWindow):
             if 'syngine' in fpath:
                 eventpath_syn = os.path.join(eventpath, fpath)
                 qcheckb_syn.setEnabled(True)
-                if self.dataPlot.syn_checkbox.isChecked():
-                    self.fnames_syn = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
+                if self.dataPlot.comp_checkbox.isChecked():
+                    self.fnames_comp = [os.path.join(eventpath_syn, filename) for filename in os.listdir(eventpath_syn)]
             if 'processed' in fpath:
                 qcbox_processed.setEnabled(True)
         if qcbox_processed.isEnabled():
@@ -2297,7 +2308,7 @@ class MainWindow(QMainWindow):
         comp = self.getComponent()
         title = 'section: {0} components'.format(zne_text[comp])
         wfst = self.get_data().getWFData()
-        wfsyn = self.get_data().getSynWFData()
+        wfsyn = self.get_data().getAltWFdata()
         if self.filterActionP.isChecked() and filter:
             self.filterWaveformData(plot=False, phase='P')
         elif self.filterActionS.isChecked() and filter:
@@ -2609,18 +2620,21 @@ class MainWindow(QMainWindow):
             print("Warning! No network, station, and location info available!")
             return
         self.update_status('picking on station {0}'.format(station))
-        data = self.get_data().getOriginalWFData().copy()
+        wfdata = self.get_data().getOriginalWFData().copy()
+        wfdata_comp = self.get_data().getAltWFdata().copy()
         event = self.get_current_event()
         wftype = self.dataPlot.qcombo_processed.currentText() if self.obspy_dmt else None
         pickDlg = PickDlg(self, parameter=self._inputs,
-                          data=data.select(station=station),
+                          data=wfdata.select(station=station),
+                          data_compare=wfdata_comp.select(station=station),
                           station=station, network=network,
                           location=location,
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
                           model=self.inputs.get('taup_model'),
-                          filteroptions=self.filteroptions, wftype=wftype)
+                          filteroptions=self.filteroptions, wftype=wftype,
+                          show_comp_data=self.dataPlot.comp_checkbox.isChecked())
         if self.filterActionP.isChecked():
             pickDlg.currentPhase = "P"
             pickDlg.filterWFData()

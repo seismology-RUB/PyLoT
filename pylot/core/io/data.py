@@ -450,10 +450,11 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None, tstart=0, tstop=0):
+    def setWFData(self, fnames, fnames_alt=None, checkRotated=False, metadata=None, tstart=0, tstop=0):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
+        :param fnames_alt: alternative data to show (e.g. synthetic/processed)
         :type fnames: list
         """
         def check_fname_exists(filenames: list) -> list:
@@ -463,14 +464,16 @@ class Data(object):
 
         self.wfdata = Stream()
         self.wforiginal = None
-        self.wfsyn = Stream()
+        self.wf_alt = Stream()
         if tstart == tstop:
             tstart = tstop = None
         self.tstart = tstart
         self.tstop = tstop
 
+        # remove directories
         fnames = check_fname_exists(fnames)
-        fnames_syn = check_fname_exists(fnames_syn)
+        fnames_alt = check_fname_exists(fnames_alt)
+
         # if obspy_dmt:
         #     wfdir = 'raw'
         #     self.processed = False
@@ -488,8 +491,8 @@ class Data(object):
         #     wffnames = fnames
         if fnames is not None:
             self.appendWFData(fnames)
-            if fnames_syn is not None:
-                self.appendWFData(fnames_syn, synthetic=True)
+            if fnames_alt is not None:
+                self.appendWFData(fnames_alt, alternative=True)
         else:
             return False
 
@@ -511,7 +514,7 @@ class Data(object):
         self.dirty = False
         return True
 
-    def appendWFData(self, fnames, synthetic=False):
+    def appendWFData(self, fnames, alternative=False):
         """
         Read waveform data from fnames and append it to current wf data
         :param fnames: waveform data to append
@@ -524,20 +527,20 @@ class Data(object):
         if self.dirty:
             self.resetWFData()
 
-        real_or_syn_data = {True: self.wfsyn,
-                            False: self.wfdata}
+        orig_or_alternative_data = {True: self.wf_alt,
+                                    False: self.wfdata}
 
         warnmsg = ''
         for fname in set(fnames):
             try:
-                real_or_syn_data[synthetic] += read(fname, starttime=self.tstart, endtime=self.tstop)
+                orig_or_alternative_data[alternative] += read(fname, starttime=self.tstart, endtime=self.tstop)
             except TypeError:
                 try:
-                    real_or_syn_data[synthetic] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
+                    orig_or_alternative_data[alternative] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
                 except Exception as e:
                     try:
-                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart,
-                                                            endtime=self.tstop)
+                        orig_or_alternative_data[alternative] += read(fname, format='SEGY', starttime=self.tstart,
+                                                                      endtime=self.tstop)
                     except Exception as e:
                         warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
@@ -552,8 +555,8 @@ class Data(object):
     def getOriginalWFData(self):
         return self.wforiginal
 
-    def getSynWFData(self):
-        return self.wfsyn
+    def getAltWFdata(self):
+        return self.wf_alt
 
     def resetWFData(self):
         """

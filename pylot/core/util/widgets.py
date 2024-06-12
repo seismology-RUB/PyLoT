@@ -795,7 +795,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
 
     def connect_signals(self):
         self.qcombo_processed.activated.connect(self.parent().newWF)
-        self.syn_checkbox.clicked.connect(self.parent().newWF)
+        self.comp_checkbox.clicked.connect(self.parent().newWF)
 
     def init_labels(self):
         self.label_layout.addWidget(self.status_label)
@@ -806,13 +806,13 @@ class WaveformWidgetPG(QtWidgets.QWidget):
         # use widgets as placeholder, so that child widgets keep position when others are hidden
         mid_layout = QHBoxLayout()
         right_layout = QHBoxLayout()
-        mid_layout.addWidget(self.syn_checkbox)
+        mid_layout.addWidget(self.comp_checkbox)
         right_layout.addWidget(self.qcombo_processed)
         mid_widget.setLayout(mid_layout)
         right_widget.setLayout(right_layout)
         self.label_layout.addWidget(mid_widget)
         self.label_layout.addWidget(right_widget)
-        self.syn_checkbox.setLayoutDirection(Qt.RightToLeft)
+        self.comp_checkbox.setLayoutDirection(Qt.RightToLeft)
         self.label_layout.setStretch(0, 4)
         self.label_layout.setStretch(1, 0)
         self.label_layout.setStretch(2, 0)
@@ -827,7 +827,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
             label = QtWidgets.QLabel()
             self.perm_labels.append(label)
         self.qcombo_processed = QtWidgets.QComboBox()
-        self.syn_checkbox = QtWidgets.QCheckBox('synthetics')
+        self.comp_checkbox = QtWidgets.QCheckBox('Load comparison data')
         self.addQCboxItem('processed', 'green')
         self.addQCboxItem('raw', 'black')
         # self.perm_qcbox_right.setAlignment(2)
@@ -836,9 +836,11 @@ class WaveformWidgetPG(QtWidgets.QWidget):
     def getPlotDict(self):
         return self.plotdict
 
-    def activateObspyDMToptions(self, activate):
-        self.syn_checkbox.setVisible(activate)
-        self.qcombo_processed.setVisible(activate)
+    def activateObspyDMToptions(self, activate: bool) -> None:
+        self.qcombo_processed.setEnabled(activate)
+
+    def activateCompareOptions(self, activate: bool) -> None:
+        self.comp_checkbox.setEnabled(activate)
 
     def setPermText(self, number, text=None, color='black'):
         if not 0 <= number < len(self.perm_labels):
@@ -961,7 +963,7 @@ class WaveformWidgetPG(QtWidgets.QWidget):
                     [time for index, time in enumerate(time_ax_syn) if not index % nth_sample] if st_syn else [])
                 trace.data = np.array(
                     [datum * gain + n for index, datum in enumerate(trace.data) if not index % nth_sample])
-                trace_syn.data = np.array([datum + n for index, datum in enumerate(trace_syn.data)
+                trace_syn.data = np.array([datum + n + shift_syn for index, datum in enumerate(trace_syn.data)
                                            if not index % nth_sample] if st_syn else [])
                 plots.append((times, trace.data,
                               times_syn, trace_syn.data))
@@ -1150,12 +1152,12 @@ class PylotCanvas(FigureCanvas):
         ax.set_xlim(self.cur_xlim)
         ax.set_ylim(self.cur_ylim)
         self.refreshPickDlgText()
-        ax.figure.canvas.draw()
+        ax.figure.canvas.draw_idle()
 
     def panRelease(self, gui_event):
         self.press = None
         self.press_rel = None
-        self.figure.canvas.draw()
+        self.figure.canvas.draw_idle()
 
     def panZoom(self, gui_event, threshold=2., factor=1.1):
         if not gui_event.x and not gui_event.y:
@@ -1373,11 +1375,15 @@ class PylotCanvas(FigureCanvas):
             plot_positions[channel] = plot_pos
         return plot_positions
 
-    def plotWFData(self, wfdata, title=None, zoomx=None, zoomy=None,
+    def plotWFData(self, wfdata, wfdata_compare=None, title=None, zoomx=None, zoomy=None,
                    noiselevel=None, scaleddata=False, mapping=True,
                    component='*', nth_sample=1, iniPick=None, verbosity=0,
                    plot_additional=False, additional_channel=None, scaleToChannel=None,
                    snr=None):
+        def get_wf_dict(data: Stream = Stream(), linecolor = 'k', offset: float = 0., **plot_kwargs):
+            return dict(data=data, linecolor=linecolor, offset=offset, plot_kwargs=plot_kwargs)
+
+
         ax = self.axes[0]
         ax.cla()
 
@@ -1388,21 +1394,33 @@ class PylotCanvas(FigureCanvas):
         settings = QSettings()
         compclass = SetChannelComponents.from_qsettings(settings)
 
+        linecolor = (0., 0., 0., 1.) if not self.style else self.style['linecolor']['rgba_mpl']
+
+        plot_streams = dict(wfdata=get_wf_dict(linecolor=linecolor, linewidth=0.7),
+                            wfdata_comp=get_wf_dict(offset=0.1, linecolor='b', alpha=0.7, linewidth=0.5))
+
         if not component == '*':
             alter_comp = compclass.getCompPosition(component)
             # alter_comp = str(alter_comp[0])
 
-            st_select = wfdata.select(component=component)
-            st_select += wfdata.select(component=alter_comp)
+            plot_streams['wfdata']['data'] = wfdata.select(component=component)
+            plot_streams['wfdata']['data'] += wfdata.select(component=alter_comp)
+            if wfdata_compare:
+                plot_streams['wfdata_comp']['data'] = wfdata_compare.select(component=component)
+                plot_streams['wfdata_comp']['data'] += wfdata_compare.select(component=alter_comp)
         else:
-            st_select = wfdata
+            plot_streams['wfdata']['data'] = wfdata
+            if wfdata_compare:
+                plot_streams['wfdata_comp']['data'] = wfdata_compare
+
+        st_main = plot_streams['wfdata']['data']
 
         if mapping:
-            plot_positions = self.calcPlotPositions(st_select, compclass)
+            plot_positions = self.calcPlotPositions(st_main, compclass)
 
         # list containing tuples of network, station, channel and plot position (for sorting)
         nslc = []
-        for plot_pos, trace in enumerate(st_select):
+        for plot_pos, trace in enumerate(st_main):
             if not trace.stats.channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
                 print('Warning: Unrecognized channel {}'.format(trace.stats.channel))
                 continue
@@ -1410,44 +1428,48 @@ class PylotCanvas(FigureCanvas):
         nslc.sort()
         nslc.reverse()
 
-        linecolor = (0., 0., 0., 1.) if not self.style else self.style['linecolor']['rgba_mpl']
-
         for n, seed_id in enumerate(nslc):
             network, station, location, channel = seed_id.split('.')
-            st = st_select.select(id=seed_id)
-            trace = st[0].copy()
-            if mapping:
-                n = plot_positions[trace.stats.channel]
-            if n > nmax:
-                nmax = n
-            if verbosity:
-                msg = 'plotting %s channel of station %s' % (channel, station)
-                print(msg)
-            stime = trace.stats.starttime - wfstart
-            time_ax = prep_time_axis(stime, trace)
-            if time_ax is not None:
-                if scaleToChannel:
-                    st_scale = wfdata.select(channel=scaleToChannel)
-                    if st_scale:
-                        tr = st_scale[0]
+            for wf_name, wf_dict in plot_streams.items():
+                st_select = wf_dict.get('data')
+                if not st_select:
+                    continue
+                st = st_select.select(id=seed_id)
+                trace = st[0].copy()
+                if mapping:
+                    n = plot_positions[trace.stats.channel]
+                if n > nmax:
+                    nmax = n
+                if verbosity:
+                    msg = 'plotting %s channel of station %s' % (channel, station)
+                    print(msg)
+                stime = trace.stats.starttime - wfstart
+                time_ax = prep_time_axis(stime, trace)
+                if time_ax is not None:
+                    if scaleToChannel:
+                        st_scale = wfdata.select(channel=scaleToChannel)
+                        if st_scale:
+                            tr = st_scale[0]
+                            trace.detrend('constant')
+                            trace.normalize(np.max(np.abs(tr.data)) * 2)
+                            scaleddata = True
+                    if not scaleddata:
                         trace.detrend('constant')
-                        trace.normalize(np.max(np.abs(tr.data)) * 2)
-                        scaleddata = True
-                if not scaleddata:
-                    trace.detrend('constant')
-                    trace.normalize(np.max(np.abs(trace.data)) * 2)
+                        trace.normalize(np.max(np.abs(trace.data)) * 2)
 
-                times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
-                data = [datum + n for index, datum in enumerate(trace.data) if not index % nth_sample]
-                ax.axhline(n, color="0.5", lw=0.5)
-                ax.plot(times, data, color=linecolor, linewidth=0.7)
-                if noiselevel is not None:
-                    for level in [-noiselevel[channel], noiselevel[channel]]:
-                        ax.plot([time_ax[0], time_ax[-1]],
-                                [n + level, n + level],
-                                color=linecolor,
-                                linestyle='dashed')
-                self.setPlotDict(n, seed_id)
+                    offset = wf_dict.get('offset')
+
+                    times = [time for index, time in enumerate(time_ax) if not index % nth_sample]
+                    data = [datum + n + offset for index, datum in enumerate(trace.data) if not index % nth_sample]
+                    ax.axhline(n, color="0.5", lw=0.5)
+                    ax.plot(times, data, color=wf_dict.get('linecolor'), **wf_dict.get('plot_kwargs'))
+                    if noiselevel is not None:
+                        for level in [-noiselevel[channel], noiselevel[channel]]:
+                            ax.plot([time_ax[0], time_ax[-1]],
+                                    [n + level, n + level],
+                                    color=wf_dict.get('linecolor'),
+                                    linestyle='dashed')
+                    self.setPlotDict(n, seed_id)
         if plot_additional and additional_channel:
             compare_stream = wfdata.select(channel=additional_channel)
             if compare_stream:
@@ -1846,8 +1868,8 @@ class PhaseDefaults(QtWidgets.QDialog):
 class PickDlg(QDialog):
     update_picks = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, data=None, station=None, network=None, location=None, picks=None,
-                 autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None,
+    def __init__(self, parent=None, data=None, data_compare=None, station=None, network=None, location=None, picks=None,
+                 autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None, show_comp_data=False,
                  event=None, filteroptions=None, model=None, wftype=None):
         super(PickDlg, self).__init__(parent, Qt.Window)
         self.orig_parent = parent
@@ -1856,6 +1878,7 @@ class PickDlg(QDialog):
         # initialize attributes
         self.parameter = parameter
         self._embedded = embedded
+        self.showCompData = show_comp_data
         self.station = station
         self.network = network
         self.location = location
@@ -1894,22 +1917,6 @@ class PickDlg(QDialog):
         else:
             self.filteroptions = FILTERDEFAULTS
         self.pick_block = False
-        self.nextStation = QtWidgets.QCheckBox('Continue with next station ')
-
-        # comparison channel
-        self.compareChannel = QtWidgets.QComboBox()
-        self.compareChannel.activated.connect(self.resetPlot)
-
-        # scale channel
-        self.scaleChannel = QtWidgets.QComboBox()
-        self.scaleChannel.activated.connect(self.resetPlot)
-
-        # initialize panning attributes
-        self.press = None
-        self.xpress = None
-        self.ypress = None
-        self.cur_xlim = None
-        self.cur_ylim = None
 
         # set attribute holding data
         if data is None or not data:
@@ -1922,6 +1929,31 @@ class PickDlg(QDialog):
                 raise Exception(errmsg)
         else:
             self.data = data
+        self.data_compare = data_compare
+
+        self.nextStation = QtWidgets.QCheckBox('Continue with next station ')
+
+        # comparison channel
+        self.referenceChannel = QtWidgets.QComboBox()
+        self.referenceChannel.activated.connect(self.resetPlot)
+
+        # comparison channel
+        self.compareCB = QtWidgets.QCheckBox()
+        self.compareCB.setChecked(self.showCompData)
+        self.compareCB.clicked.connect(self.switchCompData)
+        self.compareCB.clicked.connect(self.resetPlot)
+        self.compareCB.setVisible(bool(self.data_compare))
+
+        # scale channel
+        self.scaleChannel = QtWidgets.QComboBox()
+        self.scaleChannel.activated.connect(self.resetPlot)
+
+        # initialize panning attributes
+        self.press = None
+        self.xpress = None
+        self.ypress = None
+        self.cur_xlim = None
+        self.cur_ylim = None
 
         self.stime, self.etime = full_range(self.getWFData())
 
@@ -1934,12 +1966,12 @@ class PickDlg(QDialog):
         self.setupUi()
 
         # fill compare and scale channels
-        self.compareChannel.addItem('-', None)
+        self.referenceChannel.addItem('-', None)
         self.scaleChannel.addItem('individual', None)
 
         for trace in self.getWFData():
             channel = trace.stats.channel
-            self.compareChannel.addItem(channel, trace)
+            self.referenceChannel.addItem(channel, trace)
             if not channel[-1] in ['Z', 'N', 'E', '1', '2', '3']:
                 print('Skipping unknown channel for scaling: {}'.format(channel))
                 continue
@@ -1956,7 +1988,7 @@ class PickDlg(QDialog):
         if self.wftype is not None:
             title += ' | ({})'.format(self.wftype)
 
-        self.multicompfig.plotWFData(wfdata=self.getWFData(),
+        self.multicompfig.plotWFData(wfdata=self.getWFData(), wfdata_compare=self.getWFDataComp(),
                                      title=title)
 
         self.multicompfig.setZoomBorders2content()
@@ -2132,8 +2164,11 @@ class PickDlg(QDialog):
         _dialtoolbar.addWidget(est_label)
         _dialtoolbar.addWidget(self.plot_arrivals_button)
         _dialtoolbar.addSeparator()
-        _dialtoolbar.addWidget(QtWidgets.QLabel('Compare to channel: '))
-        _dialtoolbar.addWidget(self.compareChannel)
+        _dialtoolbar.addWidget(QtWidgets.QLabel('Plot reference channel: '))
+        _dialtoolbar.addWidget(self.referenceChannel)
+        _dialtoolbar.addSeparator()
+        _dialtoolbar.addWidget(QtWidgets.QLabel('Compare: '))
+        _dialtoolbar.addWidget(self.compareCB)
         _dialtoolbar.addSeparator()
         _dialtoolbar.addWidget(QtWidgets.QLabel('Scaling: '))
         _dialtoolbar.addWidget(self.scaleChannel)
@@ -2470,7 +2505,7 @@ class PickDlg(QDialog):
     def activatePicking(self):
         self.leave_rename_phase()
         self.renamePhaseAction.setEnabled(False)
-        self.compareChannel.setEnabled(False)
+        self.referenceChannel.setEnabled(False)
         self.scaleChannel.setEnabled(False)
         phase = self.currentPhase
         phaseID = self.getPhaseID(phase)
@@ -2502,7 +2537,7 @@ class PickDlg(QDialog):
         self.disconnectPressEvent()
         self.multicompfig.connectEvents()
         self.renamePhaseAction.setEnabled(True)
-        self.compareChannel.setEnabled(True)
+        self.referenceChannel.setEnabled(True)
         self.scaleChannel.setEnabled(True)
         self.connect_pick_delete()
         self.draw()
@@ -2574,6 +2609,12 @@ class PickDlg(QDialog):
 
     def getWFData(self):
         return self.data
+
+    def getWFDataComp(self):
+        if self.showCompData:
+            return self.data_compare
+        else:
+            return Stream()
 
     def selectWFData(self, channel):
         component = channel[-1].upper()
@@ -2696,11 +2737,16 @@ class PickDlg(QDialog):
 
         stime = self.getStartTime()
 
-        # copy data for plotting
-        data = self.getWFData().copy()
-        data = self.getPickPhases(data, phase)
-        data.normalize()
-        if not data:
+        # copy wfdata for plotting
+        wfdata = self.getWFData().copy()
+        wfdata_comp = self.getWFDataComp().copy()
+        wfdata = self.getPickPhases(wfdata, phase)
+        wfdata_comp = self.getPickPhases(wfdata_comp, phase)
+        for wfd in [wfdata, wfdata_comp]:
+            if wfd:
+                wfd.normalize()
+
+        if not wfdata:
             QtWidgets.QMessageBox.warning(self, 'No channel to plot',
                                           'No channel to plot for phase: {}. '
                                           'Make sure to select the correct channels for P and S '
@@ -2708,14 +2754,16 @@ class PickDlg(QDialog):
             self.leave_picking_mode()
             return
 
-        # filter data and trace on which is picked prior to determination of SNR
+        # filter wfdata and trace on which is picked prior to determination of SNR
         filterphase = self.currentFilterPhase()
         if filterphase:
             filteroptions = self.getFilterOptions(filterphase).parseFilterOptions()
             try:
-                data.detrend('linear')
-                data.filter(**filteroptions)
-                # wfdata.filter(**filteroptions)# MP MP removed filtering of original data
+                for wfd in [wfdata, wfdata_comp]:
+                    if wfd:
+                        wfd.detrend('linear')
+                        wfd.filter(**filteroptions)
+                # wfdata.filter(**filteroptions)# MP MP removed filtering of original wfdata
             except ValueError as e:
                 self.qmb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information,
                                                  'Denied',
@@ -2725,8 +2773,8 @@ class PickDlg(QDialog):
         snr = []
         noiselevels = {}
         # determine SNR and noiselevel
-        for trace in data.traces:
-            st = data.select(channel=trace.stats.channel)
+        for trace in wfdata.traces:
+            st = wfdata.select(channel=trace.stats.channel)
             stime_diff = trace.stats.starttime - stime
             result = getSNR(st, (noise_win, gap_win, signal_win), ini_pick - stime_diff)
             snr.append(result[0])
@@ -2737,23 +2785,25 @@ class PickDlg(QDialog):
                 noiselevel = nfac
             noiselevels[trace.stats.channel] = noiselevel
 
-        # prepare plotting of data
-        for trace in data:
-            t = prep_time_axis(trace.stats.starttime - stime, trace)
-            inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
-            trace = demeanTrace(trace, inoise)
-            # upscale trace data in a way that each trace is vertically zoomed to noiselevel*factor
-            channel = trace.stats.channel
-            noiselevel = noiselevels[channel]
-            noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
-            trace.data *= noiseScaleFactor
-            noiselevels[channel] *= noiseScaleFactor
+        # prepare plotting of wfdata
+        for wfd in [wfdata, wfdata_comp]:
+            if wfd:
+                for trace in wfd:
+                    t = prep_time_axis(trace.stats.starttime - stime, trace)
+                    inoise = getnoisewin(t, ini_pick, noise_win, gap_win)
+                    trace = demeanTrace(trace, inoise)
+                    # upscale trace wfdata in a way that each trace is vertically zoomed to noiselevel*factor
+                    channel = trace.stats.channel
+                    noiselevel = noiselevels[channel]
+                    noiseScaleFactor = self.calcNoiseScaleFactor(noiselevel, zoomfactor=5.)
+                    trace.data *= noiseScaleFactor
+                    noiselevels[channel] *= noiseScaleFactor
 
         mean_snr = np.mean(snr)
         x_res = getResolutionWindow(mean_snr, parameter.get('extent'))
 
         xlims = [ini_pick - x_res, ini_pick + x_res]
-        ylims = list(np.array([-.5, .5]) + [0, len(data) - 1])
+        ylims = list(np.array([-.5, .5]) + [0, len(wfdata) - 1])
 
         title = self.getStation() + ' picking mode'
         title += ' | SNR: {}'.format(mean_snr)
@@ -2761,9 +2811,10 @@ class PickDlg(QDialog):
             filtops_str = transformFilteroptions2String(filteroptions)
             title += ' | Filteroptions: {}'.format(filtops_str)
 
-        plot_additional = bool(self.compareChannel.currentText())
-        additional_channel = self.compareChannel.currentText()
-        self.multicompfig.plotWFData(wfdata=data,
+        plot_additional = bool(self.referenceChannel.currentText())
+        additional_channel = self.referenceChannel.currentText()
+        self.multicompfig.plotWFData(wfdata=wfdata,
+                                     wfdata_compare=wfdata_comp,
                                      title=title,
                                      zoomx=xlims,
                                      zoomy=ylims,
@@ -3154,7 +3205,8 @@ class PickDlg(QDialog):
         self.cur_xlim = self.multicompfig.axes[0].get_xlim()
         self.cur_ylim = self.multicompfig.axes[0].get_ylim()
         # self.multicompfig.updateCurrentLimits()
-        data = self.getWFData().copy()
+        wfdata = self.getWFData().copy()
+        wfdata_comp = self.getWFDataComp().copy()
         title = self.getStation()
         if filter:
             filtoptions = None
@@ -3162,19 +3214,22 @@ class PickDlg(QDialog):
                 filtoptions = self.getFilterOptions(self.getPhaseID(phase), gui_filter=True).parseFilterOptions()
 
             if filtoptions is not None:
-                data.detrend('linear')
-                data.taper(0.02, type='cosine')
-                data.filter(**filtoptions)
+                for wfd in [wfdata, wfdata_comp]:
+                    if wfd:
+                        wfd.detrend('linear')
+                        wfd.taper(0.02, type='cosine')
+                        wfd.filter(**filtoptions)
                 filtops_str = transformFilteroptions2String(filtoptions)
                 title += ' | Filteroptions: {}'.format(filtops_str)
 
         if self.wftype is not None:
             title += ' | ({})'.format(self.wftype)
 
-        plot_additional = bool(self.compareChannel.currentText())
-        additional_channel = self.compareChannel.currentText()
+        plot_additional = bool(self.referenceChannel.currentText())
+        additional_channel = self.referenceChannel.currentText()
         scale_channel = self.scaleChannel.currentText()
-        self.multicompfig.plotWFData(wfdata=data, title=title,
+        self.multicompfig.plotWFData(wfdata=wfdata, wfdata_compare=wfdata_comp,
+                                     title=title,
                                      zoomx=self.getXLims(),
                                      zoomy=self.getYLims(),
                                      plot_additional=plot_additional,
@@ -3246,6 +3301,9 @@ class PickDlg(QDialog):
     def resetPlot(self):
         self.resetZoom()
         self.refreshPlot()
+
+    def switchCompData(self):
+        self.showCompData = self.compareCB.isChecked()
 
     def refreshPlot(self):
         if self.autoFilterAction.isChecked():
@@ -3858,11 +3916,13 @@ class TuneAutopicker(QWidget):
             location = None
 
         wfdata = self.data.getWFData()
+        wfdata_comp = self.data.getWFDataComp()
         metadata = self.parent().metadata
         event = self.get_current_event()
         filteroptions = self.parent().filteroptions
         wftype = self.wftype if self.obspy_dmt else ''
         self.pickDlg = PickDlg(self.parent(), data=wfdata.select(station=station).copy(),
+                               data_comp=wfdata_comp.select(station=station).copy(),
                                station=station, network=network,
                                location=location, parameter=self.parameter,
                                picks=self.get_current_event_picks(station),
@@ -3947,7 +4007,7 @@ class TuneAutopicker(QWidget):
             self.plot_manual_pick_to_ax(ax=ax, picks=picks, phase='S',
                                         starttime=starttime, quality=qualitySpick)
         for canvas in self.parent().canvas_dict.values():
-            canvas.draw()
+            canvas.draw_idle()
 
     def plot_manual_pick_to_ax(self, ax, picks, phase, starttime, quality):
         mpp = picks[phase]['mpp'] - starttime

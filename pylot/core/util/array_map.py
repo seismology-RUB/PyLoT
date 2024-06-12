@@ -474,17 +474,19 @@ class Array_map(QtWidgets.QWidget):
                                                                   transform=ccrs.PlateCarree(), label='deleted'))
 
     def openPickDlg(self, ind):
-        data = self._parent.get_data().getWFData()
+        wfdata = self._parent.get_data().getWFData()
+        wfdata_comp = self._parent.get_data().getWFDataComp()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
             pyl_mw = self._parent
             try:
-                data = data.select(station=station)
-                if not data:
+                wfdata = wfdata.select(station=station)
+                wfdata_comp = wfdata_comp.select(station=station)
+                if not wfdata:
                     self._warn('No data for station {}'.format(station))
                     return
                 pickDlg = PickDlg(self._parent, parameter=self.parameter,
-                                  data=data, network=network, station=station,
+                                  data=wfdata.copy(), data_compare=wfdata_comp.copy(), network=network, station=station,
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
                                   filteroptions=self._parent.filteroptions, metadata=self.metadata,
