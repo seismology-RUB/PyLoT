@@ -2999,9 +2999,15 @@ class MainWindow(QMainWindow):
             event = self.get_current_event()
         event.pylot_picks = {}
         event.pylot_autopicks = {}
-        picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data())
+        picksdict = picksdict_from_picks(evt=self.get_data().get_evt_data(), parameter=self.getParameter())
         event.addPicks(picksdict['manual'])
         event.addAutopicks(picksdict['auto'])
+
+    def getParameter(self):
+        if hasattr(self.project, 'parameter') and isinstance(self.project.parameter, PylotParameter):
+            return self.project.parameter
+        else:
+            return self._inputs
 
     def drawPicks(self, station=None, picktype=None, stime=None):
         # if picktype not specified, draw both
