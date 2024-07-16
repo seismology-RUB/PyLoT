@@ -21,25 +21,6 @@ from pylot.core.util.utils import get_owner, full_range, four_digits, transformF
     backtransformFilterString, loopIdentifyPhase, identifyPhase
 
 
-def add_amplitudes(event, amplitudes):
-    amplitude_list = []
-    for pick in event.picks:
-        try:
-            a0 = amplitudes[pick.waveform_id.station_code]
-            amplitude = ope.Amplitude(generic_amplitude=a0 * 1e-3)
-            amplitude.unit = 'm'
-            amplitude.category = 'point'
-            amplitude.waveform_id = pick.waveform_id
-            amplitude.magnitude_hint = 'ML'
-            amplitude.pick_id = pick.resource_id
-            amplitude.type = 'AML'
-            amplitude_list.append(amplitude)
-        except KeyError:
-            continue
-    event.amplitudes = amplitude_list
-    return event
-
-
 def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     """
     readPILOTEvent - function
@@ -191,31 +172,6 @@ def convert_pilot_times(time_array):
     microseconds = int((time_array[-1] - times[-1]) * 1e6)
     times.append(microseconds)
     return UTCDateTime(*times)
-
-
-def picksdict_from_obs(fn):
-    """
-    create pick dictionary from obs file
-    :param fn: filename
-    :type fn:
-    :return:
-    :rtype:
-    """
-    picks = dict()
-    station_name = str()
-    for line in open(fn, 'r'):
-        if line.startswith('#'):
-            continue
-        else:
-            phase_line = line.split()
-            if not station_name == phase_line[0]:
-                phase = dict()
-            station_name = phase_line[0]
-            phase_name = phase_line[4].upper()
-            pick = UTCDateTime(phase_line[6] + phase_line[7] + phase_line[8])
-            phase[phase_name] = dict(mpp=pick, fm=phase_line[5])
-            picks[station_name] = phase
-    return picks
 
 
 def picksdict_from_picks(evt, parameter=None):
@@ -373,636 +329,149 @@ def picks_from_picksdict(picks, creation_info=None):
     return picks_list
 
 
-def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
-    # TODO: change root to datapath
-    db_root = os.path.join(root_dir, db_dir)
-    evt_list = glob.glob1(db_root, 'e????.???.??')
-
-    for evt in evt_list:
-        if verbosity > 0:
-            print('Reassessing event {0}'.format(evt))
-        reassess_pilot_event(root_dir, db_dir, evt, out_dir, fn_param, verbosity)
-
-
-def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None, verbosity=0):
-    from obspy import read
-
-    from pylot.core.io.inputs import PylotParameter
-    from pylot.core.pick.utils import earllatepicker
-    # TODO: change root to datapath
-
-    default = PylotParameter(fn_param, verbosity)
-
-    search_base = os.path.join(root_dir, db_dir, event_id)
-    phases_file = glob.glob(os.path.join(search_base, 'PHASES.mat'))
-    if not phases_file:
-        return
-    if verbosity > 1:
-        print('Opening PILOT phases file: {fn}'.format(fn=phases_file[0]))
-    picks_dict = picksdict_from_pilot(phases_file[0])
-    if verbosity > 0:
-        print('Dictionary read from PHASES.mat:\n{0}'.format(picks_dict))
-    datacheck = list()
-    info = None
-    for station in picks_dict.keys():
-        fn_pattern = os.path.join(search_base, '{0}*'.format(station))
-        try:
-            st = read(fn_pattern)
-        except TypeError as e:
-            if 'Unknown format for file' in e.message:
-                try:
-                    st = read(fn_pattern, format='GSE2')
-                except ValueError as e:
-                    if e.message == 'second must be in 0..59':
-                        info = 'A known Error was raised. Please find the list of corrupted files and double-check these files.'
-                        datacheck.append(fn_pattern + ' (time info)\n')
-                        continue
-                    else:
-                        raise ValueError(e.message)
-                except Exception as e:
-                    if 'No file matching file pattern:' in e.message:
-                        if verbosity > 0:
-                            warnings.warn('no waveform data found for station {station}'.format(station=station),
-                                          RuntimeWarning)
-                        datacheck.append(fn_pattern + ' (no data)\n')
-                        continue
-                    else:
-                        raise e
-            else:
-                raise e
-        for phase in picks_dict[station].keys():
-            try:
-                mpp = picks_dict[station][phase]['mpp']
-            except KeyError as e:
-                print(e.message, station)
-                continue
-            sel_st = select_for_phase(st, phase)
-            if not sel_st:
-                msg = 'no waveform data found for station {station}'.format(station=station)
-                warnings.warn(msg, RuntimeWarning)
-                continue
-            stime, etime = full_range(sel_st)
-            rel_pick = mpp - stime
-            epp, lpp, spe = earllatepicker(sel_st,
-                                           default.get('nfac{0}'.format(phase)),
-                                           default.get('tsnrz' if phase == 'P' else 'tsnrh'),
-                                           Pick1=rel_pick,
-                                           iplot=0,
-                                           verbosity=0)
-            if epp is None or lpp is None:
-                continue
-            epp = stime + epp
-            lpp = stime + lpp
-            min_diff = 3 * st[0].stats.delta
-            if lpp - mpp < min_diff:
-                lpp = mpp + min_diff
-            if mpp - epp < min_diff:
-                epp = mpp - min_diff
-            picks_dict[station][phase] = dict(epp=epp, mpp=mpp, lpp=lpp, spe=spe)
-    if datacheck:
-        if info:
-            if verbosity > 0:
-                print(info + ': {0}'.format(search_base))
-        fncheck = open(os.path.join(search_base, 'datacheck_list'), 'w')
-        fncheck.writelines(datacheck)
-        fncheck.close()
-        del datacheck
-    # create Event object for export
-    evt = ope.Event(resource_id=event_id)
-    evt.picks = picks_from_picksdict(picks_dict)
-    # write phase information to file
-    if not out_dir:
-        fnout_prefix = os.path.join(root_dir, db_dir, event_id, 'PyLoT_{0}.'.format(event_id))
-    else:
-        out_dir = os.path.join(out_dir, db_dir)
-        if not os.path.isdir(out_dir):
-            os.makedirs(out_dir)
-        fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
-    evt.write(fnout_prefix + 'xml', format='QUAKEML')
-
-
 def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     """
-    Function of methods to write phases to the following standard file
-    formats used for locating earthquakes:
+    Writes earthquake phase data to different file formats.
 
-    HYPO71, NLLoc, VELEST, HYPOSAT, FOCMEC, and hypoDD
-
-    :param arrivals:dictionary containing all phase information including
-     station ID, phase, first motion, weight (uncertainty), ...
+    :param arrivals: Dictionary containing phase information (station ID, phase, first motion, weight, etc.)
     :type arrivals: dict
-
-    :param fformat: chosen file format (location routine),
-    choose between NLLoc, HYPO71, HYPOSAT, VELEST,
-    HYPOINVERSE, FOCMEC, and hypoDD
+    :param fformat: File format to write to (e.g., 'NLLoc', 'HYPO71', 'HYPOSAT', 'VELEST', 'HYPODD', 'FOCMEC')
     :type fformat: str
-
-    :param filename: full path and name of phase file
-    :type filename:  string
-
-    :param parameter: all input information
-    :type parameter:  object
-
-    :param eventinfo: optional, needed for VELEST-cnv file
-            and FOCMEC- and HASH-input files 
-    :type eventinfo: `obspy.core.event.Event` object
+    :param filename: Path and name of the output phase file
+    :type filename: str
+    :param parameter: Additional parameters for writing the phase data
+    :type parameter: object
+    :param eventinfo: Event information needed for specific formats like VELEST, FOCMEC, and HASH
+    :type eventinfo: obspy.core.event.Event
     """
-    if fformat == 'NLLoc':
-        print("Writing phases to %s for NLLoc" % filename)
-        fid = open("%s" % filename, 'w')
-        # write header
-        fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
-                  (parameter.get('database'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
-        for key in arrivals:
-            # P onsets
-            if 'P' in arrivals[key]:
-                try:
-                    fm = arrivals[key]['P']['fm']
-                except KeyError as e:
-                    print(e)
-                    fm = None
-                if fm is None:
-                    fm = '?'
-                onset = arrivals[key]['P']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                pweight = 1  # use pick
-                try:
-                    if arrivals[key]['P']['weight'] >= 4:
-                        pweight = 0  # do not use pick
-                        print("Station {}: Uncertain pick, do not use it!".format(key))
-                except KeyError as e:
-                    print(e.message + '; no weight set during processing')
-                fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                                                                                           fm,
-                                                                                           year,
-                                                                                           month,
-                                                                                           day,
-                                                                                           hh,
-                                                                                           mm,
-                                                                                           ss_ms,
-                                                                                           pweight))
-            # S onsets
-            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
-                fm = '?'
-                onset = arrivals[key]['S']['mpp']
-                year = onset.year
-                month = onset.month
-                day = onset.day
-                hh = onset.hour
-                mm = onset.minute
-                ss = onset.second
-                ms = onset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                sweight = 1  # use pick
-                try:
-                    if arrivals[key]['S']['weight'] >= 4:
-                        sweight = 0  # do not use pick
-                except KeyError as e:
-                    print(str(e) + '; no weight set during processing')
-                Ao = arrivals[key]['S']['Ao']  # peak-to-peak amplitude
-                if Ao == None:
-                    Ao = 0.0
-                # fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
-                                                                                               fm,
-                                                                                               year,
-                                                                                               month,
-                                                                                               day,
-                                                                                               hh,
-                                                                                               mm,
-                                                                                               ss_ms,
-                                                                                               Ao,
-                                                                                               sweight))
 
-        fid.close()
-    elif fformat == 'HYPO71':
-        print("Writing phases to %s for HYPO71" % filename)
-        fid = open("%s" % filename, 'w')
-        # write header
-        fid.write('                                                                %s\n' %
-                  parameter.get('eventID'))
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
-        for key in arrivals:
-            if arrivals[key]['P']['weight'] < 4:
-                stat = key
-                if len(stat) > 4:  # HYPO71 handles only 4-string station IDs
-                    stat = stat[1:5]
-                Ponset = arrivals[key]['P']['mpp']
-                Sonset = arrivals[key]['S']['mpp']
-                pweight = arrivals[key]['P']['weight']
-                sweight = arrivals[key]['S']['weight']
-                fm = arrivals[key]['P']['fm']
-                if fm is None:
-                    fm = '-'
-                Ao = arrivals[key]['S']['Ao']
-                if Ao is None:
-                    Ao = ''
-                else:
-                    Ao = str('%7.2f' % Ao)
-                year = Ponset.year
-                if year >= 2000:
-                    year = year - 2000
-                else:
-                    year = year - 1900
-                month = Ponset.month
-                day = Ponset.day
-                hh = Ponset.hour
-                mm = Ponset.minute
-                ss = Ponset.second
-                ms = Ponset.microsecond
-                ss_ms = ss + ms / 1000000.0
-                if pweight < 2:
-                    pstr = 'I'
-                elif pweight >= 2:
-                    pstr = 'E'
-                if arrivals[key]['S']['weight'] < 4:
-                    Sss = Sonset.second
-                    Sms = Sonset.microsecond
-                    Sss_ms = Sss + Sms / 1000000.0
-                    Sss_ms = str('%5.02f' % Sss_ms)
-                    if sweight < 2:
-                        sstr = 'I'
-                    elif sweight >= 2:
-                        sstr = 'E'
-                    fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f       %s%sS %d   %s\n' % (stat,
-                                                                                               pstr,
-                                                                                               fm,
-                                                                                               pweight,
-                                                                                               year,
-                                                                                               month,
-                                                                                               day,
-                                                                                               hh,
-                                                                                               mm,
-                                                                                               ss_ms,
-                                                                                               Sss_ms,
-                                                                                               sstr,
-                                                                                               sweight,
-                                                                                               Ao))
-                else:
-                    fid.write('%-4s%sP%s%d %02d%02d%02d%02d%02d%5.2f                  %s\n' % (stat,
-                                                                                               pstr,
-                                                                                               fm,
-                                                                                               pweight,
-                                                                                               year,
-                                                                                               month,
-                                                                                               day,
-                                                                                               hh,
-                                                                                               mm,
-                                                                                               ss_ms,
-                                                                                               Ao))
+    def write_nlloc():
+        with open(filename, 'w') as fid:
+            fid.write('# EQEVENT: {} Label: EQ{}  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n'.format(
+                parameter.get('database'), parameter.get('eventID')))
+            for key, value in arrivals.items():
+                for phase in ['P', 'S']:
+                    if phase in value:
+                        fm = value[phase].get('fm', '?')
+                        onset = value[phase]['mpp']
+                        ss_ms = onset.second + onset.microsecond / 1000000.0
+                        weight = 1 if value[phase].get('weight', 0) < 4 else 0
+                        amp = value[phase].get('Ao', 0.0) if phase == 'S' else ''
+                        fid.write('{} ? ? ? {}   {}{}{} {}{} {:7.4f} GAU 0 {} 0 0 {}\n'.format(
+                            key, phase, fm, onset.year, onset.month, onset.day, onset.hour, onset.minute, ss_ms, amp,
+                            weight))
 
-        fid.close()
+    def write_hypo71():
+        with open(filename, 'w') as fid:
+            fid.write(
+                '                                                                {}\n'.format(parameter.get('eventID')))
+            for key, value in arrivals.items():
+                if value['P'].get('weight', 0) < 4:
+                    stat = key[:4]
+                    Ponset = value['P']['mpp']
+                    Sonset = value.get('S', {}).get('mpp')
+                    pweight = value['P'].get('weight', 0)
+                    sweight = value.get('S', {}).get('weight', 0)
+                    fm = value['P'].get('fm', '-')
+                    Ao = value.get('S', {}).get('Ao', '')
+                    year = Ponset.year - 2000 if Ponset.year >= 2000 else Ponset.year - 1900
+                    ss_ms = Ponset.second + Ponset.microsecond / 1000000.0
+                    if Sonset:
+                        Sss_ms = Sonset.second + Sonset.microsecond / 1000000.0
+                        fid.write('{}P{}{}{} {}{}{}{}{} {:5.2f}       {}{}S {}   {}\n'.format(
+                            stat, 'I' if pweight < 2 else 'E', fm, pweight, year, Ponset.month, Ponset.day,
+                            Ponset.hour, Ponset.minute, ss_ms, Sss_ms, 'I' if sweight < 2 else 'E', sweight, Ao))
+                    else:
+                        fid.write('{}P{}{}{} {}{}{}{}{} {:5.2f}                  {}\n'.format(
+                            stat, 'I' if pweight < 2 else 'E', fm, pweight, year, Ponset.month, Ponset.day,
+                            Ponset.hour, Ponset.minute, ss_ms, Ao))
 
-    elif fformat == 'HYPOSAT':
-        print("Writing phases to %s for HYPOSAT" % filename)
-        fid = open("%s" % filename, 'w')
-        # write header
-        fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
-        for key in arrivals:
-            # P onsets
-            if 'P' in  arrivals[key] and arrivals[key]['P']['mpp'] is not None:
-                if arrivals[key]['P']['weight'] < 4:
-                    Ponset = arrivals[key]['P']['mpp']
-                    pyear = Ponset.year
-                    pmonth = Ponset.month
-                    pday = Ponset.day
-                    phh = Ponset.hour
-                    pmm = Ponset.minute
-                    pss = Ponset.second
-                    pms = Ponset.microsecond
-                    Pss = pss + pms / 1000000.0
-                    # use symmetrized picking error as std
-                    # (read the HYPOSAT manual)
-                    pstd = arrivals[key]['P']['spe']
-                    if pstd is None:
-                        errorsP = parameter.get('timeerrorsP')
-                        if arrivals[key]['P']['weight'] == 0:
-                            pstd = errorsP[0]
-                        elif arrivals[key]['P']['weight'] == 1:
-                            pstd = errorsP[1]
-                        elif arrivals[key]['P']['weight'] == 2:
-                            pstd = errorsP[2]
-                        elif arrivals[key]['P']['weight'] == 3:
-                            psrd = errorsP[3]
-                        else:
-                            pstd = errorsP[4]
-                    fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
-                              % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
-            # S onsets
-            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
-                if arrivals[key]['S']['weight'] < 4:
-                    Sonset = arrivals[key]['S']['mpp']
-                    syear = Sonset.year
-                    smonth = Sonset.month
-                    sday = Sonset.day
-                    shh = Sonset.hour
-                    smm = Sonset.minute
-                    sss = Sonset.second
-                    sms = Sonset.microsecond
-                    Sss = sss + sms / 1000000.0
-                    sstd = arrivals[key]['S']['spe']
-                    if pstd is None:
-                        errorsS = parameter.get('timeerrorsS')
-                        if arrivals[key]['S']['weight'] == 0:
-                            pstd = errorsS[0]
-                        elif arrivals[key]['S']['weight'] == 1:
-                            pstd = errorsS[1]
-                        elif arrivals[key]['S']['weight'] == 2:
-                            pstd = errorsS[2]
-                        elif arrivals[key]['S']['weight'] == 3:
-                            psrd = errorsS[3]
-                        else:
-                            pstd = errorsP[4]
-                    fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
-                              % (key, syear, smonth, sday, shh, smm, Sss, sstd))
-        fid.close()
+    def write_hyposat():
+        with open(filename, 'w') as fid:
+            fid.write('{}, event {} \n'.format(parameter.get('database'), parameter.get('eventID')))
+            for key, value in arrivals.items():
+                for phase in ['P', 'S']:
+                    if phase in value and value[phase].get('weight', 0) < 4:
+                        onset = value[phase]['mpp']
+                        ss_ms = onset.second + onset.microsecond / 1000000.0
+                        std = value[phase].get('spe', parameter.get('timeerrorsP')[value[phase].get('weight', 0)])
+                        fid.write(
+                            '{:<5} {}1       {:4} {:02} {:02} {:02} {:02} {:05.02f}   {:5.3f} -999.   0.00 -999.  0.00\n'.format(
+                                key, phase, onset.year, onset.month, onset.day, onset.hour, onset.minute, ss_ms, std))
 
-    elif fformat == 'VELEST':
-        print("Writing phases to %s for VELEST" % filename)
-        fid = open("%s" % filename, 'w')
-        # get informations needed in cnv-file
-        # check, whether latitude is N or S and longitude is E or W
-        try:
-            eventsource = eventinfo.origins[0]
-        except:
+    def write_velest():
+        if not eventinfo:
             print("No source origin calculated yet, thus no cnv-file creation possible!")
             return
-        if eventsource['latitude'] < 0:
-            cns = 'S'
-        else:
-            cns = 'N'
-        if eventsource['longitude'] < 0:
-            cew = 'W'
-        else:
-            cew = 'E'
-        # get last two integers of origin year
-        stime = eventsource['time']
-        if stime.year - 2000 >= 0:
-            syear = stime.year - 2000
-        else:
-            syear = stime.year - 1900
-        ifx = 0  # default value, see VELEST manual, pp. 22-23
-        # write header
-        fid.write('%s%02d%02d %02d%02d %05.2f %7.4f%c %8.4f%c %7.2f %6.2f     %02.0f  0.0 0.03  1.0  1.0\n' % (
-            syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
-            cns, eventsource['longitude'], cew, eventsource['depth'], eventinfo.magnitudes[0]['mag'], ifx))
-        n = 0
-        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
-        if isinstance(arrivals, dict) == False:
-            # convert pick object (PyLoT) into dictionary
-            evt = ope.Event(resource_id=eventinfo['resource_id'])
-            evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
-        # check for automatic and manual picks
-        # prefer manual picks
-        usedarrivals = chooseArrivals(arrivals)
-        for key in usedarrivals:
-            # P onsets
-            if 'P' in usedarrivals[key]:
-                if usedarrivals[key]['P']['weight'] < 4:
-                    n += 1
-                    stat = key
-                    if len(stat) > 4:  # VELEST handles only 4-string station IDs
-                        stat = stat[1:5]
-                    Ponset = usedarrivals[key]['P']['mpp']
-                    Pweight = usedarrivals[key]['P']['weight']
-                    Prt = Ponset - stime  # onset time relative to source time
-                    if n % 6 != 0:
-                        fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
-                    else:
-                        fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
-                        # S onsets
-            if 'S' in usedarrivals[key]:
-                if usedarrivals[key]['S']['weight'] < 4:
-                    n += 1
-                    stat = key
-                    if len(stat) > 4:  # VELEST handles only 4-string station IDs
-                        stat = stat[1:5]
-                    Sonset = usedarrivals[key]['S']['mpp']
-                    Sweight = usedarrivals[key]['S']['weight']
-                    Srt = Ponset - stime  # onset time relative to source time
-                    if n % 6 != 0:
-                        fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
-                    else:
-                        fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))
-        fid.close()
+        with open(filename, 'w') as fid:
+            origin = eventinfo.origins[0]
+            lat_dir = 'S' if origin.latitude < 0 else 'N'
+            lon_dir = 'W' if origin.longitude < 0 else 'E'
+            year = origin.time.year - 2000 if origin.time.year >= 2000 else origin.time.year - 1900
+            fid.write(
+                '{}{}{} {}{} {} {:05.2f} {:7.4f}{} {:8.4f}{} {:7.2f} {:6.2f}     {:02.0f}  0.0 0.03  1.0  1.0\n'.format(
+                    year, origin.time.month, origin.time.day, origin.time.hour, origin.time.minute, origin.time.second,
+                    origin.latitude, lat_dir, origin.longitude, lon_dir, origin.depth, eventinfo.magnitudes[0].mag, 0))
+            for key, value in arrivals.items():
+                for phase in ['P', 'S']:
+                    if phase in value and value[phase].get('weight', 0) < 4:
+                        onset = value[phase]['mpp']
+                        rt = (onset - origin.time).total_seconds()
+                        fid.write('{:<4}{}{}{:6.2f}\n'.format(key[:4], phase, value[phase].get('weight', 0), rt))
 
-    elif fformat == 'HYPODD':
-        print("Writing phases to %s for hypoDD" % filename)
-        fid = open("%s" % filename, 'w')
-        # get event information needed for hypoDD-phase file
-        try:
-            eventsource = eventinfo.origins[0]
-        except:
+    def write_hypodd():
+        if not eventinfo:
             print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
             return
-        stime = eventsource['time']
-        try:
-            event = eventinfo['pylot_id']
-            hddID = event.split('.')[0][1:5]
-        except:
-            print("Error 1111111!")
-            hddID = "00000"
-            # write header
-        fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
-            stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
-            eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
-            eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
-        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
-        if isinstance(arrivals, dict) == False:
-            # convert pick object (PyLoT) into dictionary
-            evt = ope.Event(resource_id=eventinfo['resource_id'])
-            evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
-        # check for automatic and manual picks
-        # prefer manual picks
-        usedarrivals = chooseArrivals(arrivals)
-        for key in usedarrivals:
-            if 'P' in usedarrivals[key]:
-                # P onsets
-                if usedarrivals[key]['P']['weight'] < 4:
-                    Ponset = usedarrivals[key]['P']['mpp']
-                    Prt = Ponset - stime  # onset time relative to source time
-                    fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-            if 'S' in usedarrivals[key]:
-                # S onsets
-                if usedarrivals[key]['S']['weight'] < 4:
-                    Sonset = usedarrivals[key]['S']['mpp']
-                    Srt = Sonset - stime  # onset time relative to source time
-                    fid.write('%-5s    %6.3f  1  S\n' % (key, Srt))
+        with open(filename, 'w') as fid:
+            origin = eventinfo.origins[0]
+            stime = origin.time
+            fid.write('# {}  {} {} {} {} {} {:7.4f} +{:6.4f} {:7.4f} {:4.2f} 0.1 0.5 {:4.2f}      {}\n'.format(
+                stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
+                origin.latitude, origin.longitude, origin.depth / 1000, eventinfo.magnitudes[0].mag,
+                origin.quality.standard_error, "00000"))
+            for key, value in arrivals.items():
+                for phase in ['P', 'S']:
+                    if phase in value and value[phase].get('weight', 0) < 4:
+                        onset = value[phase]['mpp']
+                        rt = (onset - stime).total_seconds()
+                        fid.write('{}    {:6.3f}  1  {}\n'.format(key, rt, phase))
 
-        fid.close()
-
-    elif fformat == 'FOCMEC':
-        print("Writing phases to %s for FOCMEC" % filename)
-        fid = open("%s" % filename, 'w')
-        # get event information needed for FOCMEC-input file
-        try:
-            eventsource = eventinfo.origins[0]
-        except:
+    def write_focmec():
+        if not eventinfo:
             print("No source origin calculated yet, thus no FOCMEC-infile creation possible!")
             return
-        stime = eventsource['time']
-
-        # avoid printing '*' in focmec-input file
-        if parameter.get('eventid') == '*' or parameter.get('eventid') is None:
-            evID = 'e0000'
-        else:
-            evID = parameter.get('eventid')
-
-        # write header line including event information
-        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (evID,
-                                                                             stime.year, stime.month, stime.day,
-                                                                             stime.hour, stime.minute, stime.second,
-                                                                             eventsource['latitude'],
-                                                                             eventsource['longitude'],
-                                                                             eventsource['depth'] / 1000,
-                                                                             eventinfo.magnitudes[0]['mag']))
-        picks = eventinfo.picks
-        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
-        if isinstance(arrivals, dict) == False:
-            # convert pick object (PyLoT) into dictionary
-            evt = ope.Event(resource_id=eventinfo['resource_id'])
-            evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
-        # check for automatic and manual picks
-        # prefer manual picks
-        usedarrivals = chooseArrivals(arrivals)
-        for key in usedarrivals:
-            if 'P' in usedarrivals[key]:
-                if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
-                    stat = key
-                    for i in range(len(picks)):
-                        station = picks[i].waveform_id.station_code
-                        if station == stat:
-                            # get resource ID
-                            resid_picks = picks[i].get('resource_id')
-                            # find same ID in eventinfo
-                            # there it is the pick_id!!
-                            for j in range(len(eventinfo.origins[0].arrivals)):
-                                resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
-                                if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
-                                    if len(stat) > 4:  # FOCMEC handles only 4-string station IDs
-                                        stat = stat[1:5]
-                                    az = eventinfo.origins[0].arrivals[j].get('azimuth')
-                                    inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
-                                    fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
-                                                                           az,
-                                                                           inz,
-                                                                           usedarrivals[key]['P']['fm']))
+        with open(filename, 'w') as fid:
+            origin = eventinfo.origins[0]
+            stime = origin.time
+            fid.write('{} {}{:02d}{:02d}{:02d}{:02d}{:02.0f} {:7.4f} {:6.4f} {:3.1f} {:3.1f}\n'.format(
+                parameter.get('eventid', 'e0000'), stime.year, stime.month, stime.day, stime.hour, stime.minute,
+                stime.second, origin.latitude, origin.longitude, origin.depth / 1000, eventinfo.magnitudes[0].mag))
+            for key, value in arrivals.items():
+                if 'P' in value and value['P'].get('weight', 0) < 4 and value['P'].get('fm'):
+                    for pick in eventinfo.picks:
+                        if pick.waveform_id.station_code == key:
+                            for arrival in origin.arrivals:
+                                if arrival.pick_id == pick.resource_id and arrival.phase == 'P':
+                                    stat = key[:4]
+                                    az = arrival.azimuth
+                                    inz = arrival.takeoff_angle
+                                    fid.write('{:<4}  {:6.2f}  {:6.2f}{}\n'.format(stat, az, inz, value['P']['fm']))
                                     break
 
-        fid.close()
+    if fformat == 'NLLoc':
+        write_nlloc()
+    elif fformat == 'HYPO71':
+        write_hypo71()
+    elif fformat == 'HYPOSAT':
+        write_hyposat()
+    elif fformat == 'VELEST':
+        write_velest()
+    elif fformat == 'HYPODD':
+        write_hypodd()
+    elif fformat == 'FOCMEC':
+        write_focmec()
 
-    elif fformat == 'HASH':
-        # two different input files for 
-        # HASH-driver 1 and 2 (see HASH manual!)
-        filename1 = filename + 'drv1' + '.phase'
-        filename2 = filename + 'drv2' + '.phase'
-        print("Writing phases to %s for HASH for HASH-driver 1" % filename1)
-        fid1 = open("%s" % filename1, 'w')
-        print("Writing phases to %s for HASH for HASH-driver 2" % filename2)
-        fid2 = open("%s" % filename2, 'w')
-        # get event information needed for HASH-input file
-        try:
-            eventsource = eventinfo.origins[0]
-        except:
-            print("No source origin calculated yet, thus no cnv-file creation possible!")
-            return
-        eventsource = eventinfo.origins[0]
-        event = parameter.get('eventID')
-        hashID = event.split('.')[0][1:5]
-        latdeg = eventsource['latitude']
-        latmin = eventsource['latitude'] * 60 / 10000
-        londeg = eventsource['longitude']
-        lonmin = eventsource['longitude'] * 60 / 10000
-        erh = 1 / 2 * (eventsource.origin_uncertainty['min_horizontal_uncertainty'] +
-                       eventsource.origin_uncertainty['max_horizontal_uncertainty']) / 1000
-        erz = eventsource.depth_errors['uncertainty']
-        stime = eventsource['time']
-        if stime.year - 2000 >= 0:
-            syear = stime.year - 2000
-        else:
-            syear = stime.year - 1900
-        picks = eventinfo.picks
-        # write header line including event information
-        # for HASH-driver 1
-        fid1.write('%s%02d%02d%02d%02d%5.2f%2dN%5.2f%3dE%5.2f%6.3f%4.2f%5.2f%5.2f%s\n' % (syear,
-                                                                                          stime.month, stime.day,
-                                                                                          stime.hour, stime.minute,
-                                                                                          stime.second,
-                                                                                          latdeg, latmin, londeg,
-                                                                                          lonmin, eventsource['depth'],
-                                                                                          eventinfo.magnitudes[0][
-                                                                                              'mag'], erh, erz,
-                                                                                          hashID))
-        # write header line including event information
-        # for HASH-driver 2
-        fid2.write(
-            '%d%02d%02d%02d%02d%5.2f%dN%5.2f%3dE%6.2f%5.2f    %d                                          %5.2f %5.2f                                        %4.2f      %s \n' % (
-                syear, stime.month, stime.day,
-                stime.hour, stime.minute, stime.second,
-                latdeg, latmin, londeg, lonmin,
-                eventsource['depth'],
-                eventsource['quality']['used_phase_count'],
-                erh, erz, eventinfo.magnitudes[0]['mag'],
-                hashID))
-        # Prefer Manual Picks over automatic ones if possible
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
-        # write phase lines
-        for key in arrivals:
-            if 'P' in arrivals[key]:
-                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
-                    stat = key
-                    ccode = arrivals[key]['P']['channel']
-                    ncode = arrivals[key]['P']['network']
-
-                    if arrivals[key]['P']['weight'] < 2:
-                        Pqual = 'I'
-                    else:
-                        Pqual = 'E'
-
-                    for i in range(len(picks)):
-                        station = picks[i].waveform_id.station_code
-                        if station == stat:
-                            # get resource ID
-                            resid_picks = picks[i].get('resource_id')
-                            # find same ID in eventinfo
-                            # there it is the pick_id!!
-                            for j in range(len(eventinfo.origins[0].arrivals)):
-                                resid_eventinfo = eventinfo.origins[0].arrivals[j].get('pick_id')
-                                if resid_eventinfo == resid_picks and eventinfo.origins[0].arrivals[j].phase == 'P':
-                                    if len(stat) > 4:  # HASH handles only 4-string station IDs
-                                        stat = stat[1:5]
-                                    az = eventinfo.origins[0].arrivals[j].get('azimuth')
-                                    inz = eventinfo.origins[0].arrivals[j].get('takeoff_angle')
-                                    dist = eventinfo.origins[0].arrivals[j].get('distance')
-                                    # write phase line for HASH-driver 1
-                                    fid1.write(
-                                        '%-4s%sP%s%d                   0                                   %3.1f          %03d %03d   2     1   %s\n' % (
-                                            stat, Pqual, arrivals[key]['P']['fm'], arrivals[key]['P']['weight'],
-                                            dist, inz, az, ccode))
-                                    # write phase line for HASH-driver 2
-                                    fid2.write('%-4s %s   %s %s %s                    \n' % (
-                                        stat,
-                                        ncode,
-                                        ccode,
-                                        Pqual,
-                                        arrivals[key]['P']['fm']))
-                                    break
-
-        fid1.write('                                    %s' % hashID)
-        fid1.close()
-        fid2.close()
 
 
 def chooseArrivals(arrivals):
