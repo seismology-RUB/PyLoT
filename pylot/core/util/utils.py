@@ -358,6 +358,8 @@ def get_bool(value):
     False
     >>> get_bool(None)
     None
+    >>> get_bool('Stream')
+    'Stream'
     """
     if type(value) is bool:
         return value
