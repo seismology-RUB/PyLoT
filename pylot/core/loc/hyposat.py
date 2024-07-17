@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pylot.core.io.phases import writephases
+from pylot.core.io.phases import write_phases
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -22,4 +22,4 @@ def export(picks, fnout, parameter):
     :type parameter:  object
     '''
     # write phases to HYPOSAT-phase file
-    writephases(picks, 'HYPOSAT', fnout, parameter)
+    write_phases(picks, 'HYPOSAT', fnout, parameter)

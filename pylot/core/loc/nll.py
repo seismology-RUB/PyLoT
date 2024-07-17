@@ -7,7 +7,7 @@ import subprocess
 
 from obspy import read_events
 
-from pylot.core.io.phases import writephases
+from pylot.core.io.phases import write_phases
 from pylot.core.util.gui import which
 from pylot.core.util.utils import getPatternLine, runProgram
 from pylot.core.util.version import get_git_version as _getVersionString
@@ -34,7 +34,7 @@ def export(picks, fnout, parameter):
     :type parameter:  object
     '''
     # write phases to NLLoc-phase file
-    writephases(picks, 'NLLoc', fnout, parameter)
+    write_phases(picks, 'NLLoc', fnout, parameter)
 
 
 def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):

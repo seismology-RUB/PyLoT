@@ -329,7 +329,7 @@ def picks_from_picksdict(picks, creation_info=None):
     return picks_list
 
 
-def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
+def write_phases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     """
     Writes earthquake phase data to different file formats.
 
@@ -459,6 +459,84 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                     fid.write('{:<4}  {:6.2f}  {:6.2f}{}\n'.format(stat, az, inz, value['P']['fm']))
                                     break
 
+    def write_hash():
+        # Define filenames for HASH driver 1 and 2
+        filename1 = f"{filename}drv1.phase"
+        filename2 = f"{filename}drv2.phase"
+
+        print(f"Writing phases to {filename1} for HASH-driver 1")
+        print(f"Writing phases to {filename2} for HASH-driver 2")
+
+        # Open files for writing
+        with open(filename1, 'w') as fid1, open(filename2, 'w') as fid2:
+            # Get event information needed for HASH-input file
+            try:
+                eventsource = eventinfo.origins[0]
+            except IndexError:
+                print("No source origin calculated yet, thus no cnv-file creation possible!")
+                return
+
+            event = parameter.get('eventID')
+            hashID = event.split('.')[0][1:5]
+            latdeg = eventsource['latitude']
+            latmin = (eventsource['latitude'] * 60) / 10000
+            londeg = eventsource['longitude']
+            lonmin = (eventsource['longitude'] * 60) / 10000
+
+            erh = (eventsource.origin_uncertainty['min_horizontal_uncertainty'] +
+                   eventsource.origin_uncertainty['max_horizontal_uncertainty']) / 2000
+            erz = eventsource.depth_errors['uncertainty']
+
+            stime = eventsource['time']
+            syear = stime.year % 100  # Calculate two-digit year
+
+            picks = eventinfo.picks
+
+            # Write header line including event information for HASH-driver 1
+            fid1.write(f"{syear:02d}{stime.month:02d}{stime.day:02d}{stime.hour:02d}{stime.minute:02d}"
+                       f"{stime.second:05.2f}{latdeg:2d}N{latmin:05.2f}{londeg:3d}E{lonmin:05.2f}"
+                       f"{eventsource['depth']:6.2f}{eventinfo.magnitudes[0]['mag']:4.2f}{erh:5.2f}{erz:5.2f}{hashID}\n")
+
+            # Write header line including event information for HASH-driver 2
+            fid2.write(f"{syear:02d}{stime.month:02d}{stime.day:02d}{stime.hour:02d}{stime.minute:02d}"
+                       f"{stime.second:05.2f}{latdeg}N{latmin:05.2f}{londeg}E{lonmin:6.2f}{eventsource['depth']:5.2f}"
+                       f"{eventsource['quality']['used_phase_count']:3d}{erh:5.2f}{erz:5.2f}"
+                       f"{eventinfo.magnitudes[0]['mag']:4.2f}{hashID}\n")
+
+            # Write phase lines
+            for key, arrival in arrivals.items():
+                if 'P' in arrival and arrival['P']['weight'] < 4 and arrival['P']['fm'] is not None:
+                    stat = key
+                    ccode = arrival['P']['channel']
+                    ncode = arrival['P']['network']
+                    Pqual = 'I' if arrival['P']['weight'] < 2 else 'E'
+
+                    for pick in picks:
+                        if pick.waveform_id.station_code == stat:
+                            resid_picks = pick.get('resource_id')
+                            for origin_arrival in eventinfo.origins[0].arrivals:
+                                if (origin_arrival.get('pick_id') == resid_picks and
+                                        origin_arrival.phase == 'P'):
+                                    if len(stat) > 4:  # HASH handles only 4-character station IDs
+                                        stat = stat[1:5]
+
+                                    az = origin_arrival.get('azimuth')
+                                    inz = origin_arrival.get('takeoff_angle')
+                                    dist = origin_arrival.get('distance')
+
+                                    # Write phase line for HASH-driver 1
+                                    fid1.write(f"{stat:<4}{Pqual}P{arrival['P']['fm']}{arrival['P']['weight']:d}"
+                                               f"{dist:3.1f}{inz:03d}{az:03d}{ccode}\n")
+
+                                    # Write phase line for HASH-driver 2
+                                    fid2.write(f"{stat:<4} {ncode} {ccode} {Pqual} {arrival['P']['fm']}\n")
+                                    break
+
+            fid1.write(f"{'':<36}{hashID}")
+
+    # Prefer Manual Picks over automatic ones if possible
+    arrivals = chooseArrivals(arrivals)  # Function not defined, assumed to exist
+
     if fformat == 'NLLoc':
         write_nlloc()
     elif fformat == 'HYPO71':
@@ -471,7 +549,8 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         write_hypodd()
     elif fformat == 'FOCMEC':
         write_focmec()
-
+    elif fformat == 'HASH':
+        write_hash()
 
 
 def chooseArrivals(arrivals):
@@ -591,7 +670,7 @@ def getQualitiesfromxml(path, errorsP, errorsS, plotflag=1, figure=None, verbosi
                 mstation = pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
-                    phase = identifyPhase(loopIdentifyPhase(pick.phase_hint)) # MP MP catch if this fails?
+                    phase = identifyPhase(loopIdentifyPhase(pick.phase_hint))  # MP MP catch if this fails?
                     if ((mpick.waveform_id.station_code == mstation) or
                         (mpick.waveform_id.station_code == mstation_ext)) and \
                             (mpick.method_id.id.split('/')[1] == 'auto') and \

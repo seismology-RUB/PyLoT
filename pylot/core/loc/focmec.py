@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pylot.core.io.phases import writephases
+from pylot.core.io.phases import write_phases
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -25,4 +25,4 @@ def export(picks, fnout, parameter, eventinfo):
     :type eventinfo:  list object
     '''
     # write phases to FOCMEC-phase file
-    writephases(picks, 'FOCMEC', fnout, parameter, eventinfo)
+    write_phases(picks, 'FOCMEC', fnout, parameter, eventinfo)

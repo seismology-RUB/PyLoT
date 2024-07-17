@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pylot.core.io.phases import writephases
+from pylot.core.io.phases import write_phases
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -25,4 +25,4 @@ def export(picks, fnout, eventinfo, parameter=None):
     :type parameter:  object
     '''
     # write phases to VELEST-phase file
-    writephases(picks, 'VELEST', fnout, parameter, eventinfo)
+    write_phases(picks, 'VELEST', fnout, parameter, eventinfo)
