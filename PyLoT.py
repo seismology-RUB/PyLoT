@@ -1553,11 +1553,6 @@ class MainWindow(QMainWindow):
             fname = str(action.data().toString())
         return fname
 
-    def getEventFileName(self, type='manual'):
-        if self.get_fnames(type) is None:
-            self.set_fname(self.get_data().getEventFileName(), type)
-        return self.get_fnames(type)
-
     def saveData(self, event=None, directory=None, outformats=['.xml', '.cnv', '.obs', '_focmec.in', '.pha']):
         '''
         Save event data to directory with specified output formats.
