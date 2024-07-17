@@ -6,7 +6,7 @@ Created on Wed Jan 26 17:47:25 2015
 @author: sebastianw
 """
 
-from pylot.core.io.data import SeiscompDataStructure, PilotDataStructure, ObspyDMTdataStructure
+from pylot.core.io.data import SeiscompDataStructure, PilotDataStructure
 
 DATASTRUCTURE = {'PILOT': PilotDataStructure, 'SeisComP': SeiscompDataStructure,
-                 'obspyDMT': ObspyDMTdataStructure, None: PilotDataStructure}
+                 'obspyDMT': PilotDataStructure, None: PilotDataStructure}
