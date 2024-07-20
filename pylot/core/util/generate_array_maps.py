@@ -20,7 +20,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 sys.path.append(os.path.join('/'.join(sys.argv[0].split('/')[:-1]), '../../..'))
 
-from PyLoT import Project
+from pylot.core.io.project import Project
 from pylot.core.util.dataprocessing import Metadata
 from pylot.core.util.array_map import Array_map
 
