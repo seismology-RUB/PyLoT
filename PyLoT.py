@@ -108,6 +108,7 @@ locateTool = dict(nll=nll)
 
 
 class MainWindow(QMainWindow):
+    _metadata: Metadata
     __version__ = _getVersionString()
     closing = Signal()
 
@@ -240,20 +241,6 @@ class MainWindow(QMainWindow):
         self.updateFilteroptions()
 
         self.loc = False
-
-    def init_config_files(self, infile):
-        pylot_config_dir = os.path.join(os.path.expanduser('~'), '.pylot')
-        if not os.path.exists(pylot_config_dir):
-            os.mkdir(pylot_config_dir)
-
-        self._inputs = PylotParameter(infile)
-        if not infile:
-            self._inputs.reset_defaults()
-            # check for default pylot.in-file
-            infile = os.path.join(pylot_config_dir, '.pylot.in')
-            logging.warning('Using default input file {}'.format(infile))
-            self._inputs.export2File(infile)
-        self.infile = infile
 
     def setupUi(self, use_logwidget=False):
         try:
@@ -911,7 +898,7 @@ class MainWindow(QMainWindow):
         return self._metadata
 
     @metadata.setter
-    def metadata(self, value):
+    def metadata(self, value: Metadata):
         self._metadata = value
 
     def updateFilteroptions(self):
@@ -1069,9 +1056,6 @@ class MainWindow(QMainWindow):
                 self.refreshEvents()
             self.setDirty(True)
 
-    def add_recentfile(self, event):
-        self.recentfiles.insert(0, event)
-
     def set_button_border_color(self, button, color=None):
         '''
         Set background color of a button.
@@ -1180,104 +1164,117 @@ class MainWindow(QMainWindow):
     def getLastEvent(self):
         return self.recentfiles[0]
 
-    def add_events(self):
+    def add_events(self) -> None:
         '''
         Creates and adds events by user selection of event folders to GUI.
         '''
         if not self.project:
             self.createNewProject()
-        ed = GetExistingDirectories(self, 'Select event directories...')
-        if ed.exec_():
-            eventlist = [event for event in ed.selectedFiles() if not event.endswith('EVENTS-INFO')]
-            basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
-            # small hack: if a file "eventlist.txt" is found in the basepath use only those events specified inside
-            eventlist_file = os.path.join(basepath, 'eventlist.txt')
-            if os.path.isfile(eventlist_file):
-                with open(eventlist_file, 'r') as infile:
-                    eventlist_subset = [os.path.join(basepath, filename.split('\n')[0]) for filename in
-                                        infile.readlines()]
-                    msg = 'Found file "eventlist.txt" in database path. WILL ONLY USE SELECTED EVENTS out of {} events ' \
-                          'contained in this subset'
-                    print(msg.format(len(eventlist_subset)))
-                    eventlist = [eventname for eventname in eventlist if eventname in eventlist_subset]
-            if check_obspydmt_structure(basepath):
-                print('Recognized obspyDMT structure in selected files. Setting Datastructure to ObspyDMT')
-                self.dataStructure = DATASTRUCTURE['obspyDMT']()
-                eventlist = check_all_obspy(eventlist)
-            else:
-                print('Setting Datastructure to PILOT')
-                self.dataStructure = DATASTRUCTURE['PILOT']()
-                eventlist = check_all_pylot(eventlist)
-            if not eventlist:
-                print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
-                      ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16 or obspyDMT database')
-                return
-        else:
-            return
-        if not self.project:
-            print('No project found.')
+
+        eventlist, basepath = self.get_event_directories()
+        if not eventlist:
             return
 
-        # get path from first event in list and split them
-        path = eventlist[0]
+        eventlist = self.set_data_structure(basepath, eventlist)
+        if not eventlist:
+            self.show_no_events_message()
+            return
+
+        dirs = self.initialize_directory_structure(eventlist[0])
+        if not dirs:
+            return
+
+        self.update_project_settings(dirs)
+
+        self.project.add_eventlist(eventlist)
+        self.init_events()
+        self.setDirty(True)
+
+    def get_event_directories(self):
+        ed = GetExistingDirectories(self, 'Select event directories...')
+        if not ed.exec_():
+            return None, None
+
+        eventlist = [event for event in ed.selectedFiles() if not event.endswith('EVENTS-INFO')]
+        basepath = eventlist[0].split(os.path.basename(eventlist[0]))[0]
+        eventlist = self.filter_eventlist_with_file(eventlist, basepath)
+        return eventlist, basepath
+
+    def filter_eventlist_with_file(self, eventlist, basepath):
+        eventlist_file = os.path.join(basepath, 'eventlist.txt')
+        if os.path.isfile(eventlist_file):
+            with open(eventlist_file, 'r') as infile:
+                eventlist_subset = [os.path.join(basepath, filename.strip()) for filename in infile]
+                print(
+                    f'Found file "eventlist.txt" in database path. WILL ONLY USE SELECTED EVENTS out of {len(eventlist_subset)} events contained in this subset')
+                eventlist = [eventname for eventname in eventlist if eventname in eventlist_subset]
+        return eventlist
+
+    def set_data_structure(self, basepath, eventlist):
+        if check_obspydmt_structure(basepath):
+            print('Recognized obspyDMT structure in selected files. Setting Datastructure to ObspyDMT')
+            self.dataStructure = DATASTRUCTURE['obspyDMT']()
+            eventlist = check_all_obspy(eventlist)
+        else:
+            print('Setting Datastructure to PILOT')
+            self.dataStructure = DATASTRUCTURE['PILOT']()
+            eventlist = check_all_pylot(eventlist)
+        return eventlist
+
+    def show_no_events_message(self):
+        print('No events found! Expected structure for event folders: [eEVID.DOY.YR],\n'
+              ' e.g. eventID=1, doy=2, yr=2016: e0001.002.16 or obspyDMT database')
+
+    def initialize_directory_structure(self, path):
         try:
             system_name = platform.system()
             if system_name in ["Linux", "Darwin"]:
                 dirs = {
                     'database': path.split('/')[-2],
-                    'datapath': os.path.split(path)[0],  # path.split('/')[-3],
+                    'datapath': os.path.split(path)[0],
                     'rootpath': '/' + os.path.join(*path.split('/')[:-3])
                 }
             elif system_name == "Windows":
                 rootpath = path.split('/')[:-3]
                 rootpath[0] += '/'
                 dirs = {
-                    # TODO: Arrange path to meet Win standards
                     'database': path.split('/')[-2],
                     'datapath': path.split('/')[-3],
                     'rootpath': os.path.join(*rootpath)
                 }
         except Exception as e:
-            dirs = {
-                'database': '',
-                'datapath': '',
-                'rootpath': ''
-            }
-            print('Warning: Could not automatically init folder structure. ({})'.format(e))
+            print(f'Warning: Could not automatically init folder structure. ({e})')
+            return None
 
+        self.save_directory_settings(dirs['datapath'])
+        return dirs
+
+    def save_directory_settings(self, datapath):
         settings = QSettings()
-        settings.setValue("data/dataRoot", dirs['datapath'])  # d irs['rootpath'])
+        settings.setValue("data/dataRoot", datapath)
         settings.sync()
 
+    def update_project_settings(self, dirs):
         if not self.project.eventlist:
-            # init parameter object
-            self.setParameter(show=False)
-            # hide all parameter (show all needed parameter later)
+            self.set_parameter(show=False)
             self.paraBox.hide_parameter()
-            for directory in dirs.keys():
-                # set parameter
-                box = self.paraBox.boxes[directory]
-                self.paraBox.setValue(box, dirs[directory])
-                # show needed parameter in box
-                self.paraBox.show_parameter(directory)
-            dirs_box = self.paraBox.get_groupbox_dialog('Directories')
-            if not dirs_box.exec_():
+            self.update_paraBox(dirs)
+            if not self.paraBox.get_groupbox_dialog('Directories').exec_():
                 return
             self.project.rootpath = dirs['rootpath']
             self.project.datapath = dirs['datapath']
         else:
-            if hasattr(self.project, 'datapath'):
-                if not self.project.datapath == dirs['datapath']:
-                    QMessageBox.warning(self, "PyLoT Warning",
-                                        'Datapath missmatch to current project!')
-                    return
-            else:
-                self.project.rootpath = dirs['rootpath']
-                self.project.datapath = dirs['datapath']
+            if hasattr(self.project, 'datapath') and self.project.datapath != dirs['datapath']:
+                QMessageBox.warning(self, "PyLoT Warning", 'Datapath mismatch to current project!')
+                return
+            self.project.rootpath = dirs['rootpath']
+            self.project.datapath = dirs['datapath']
 
-        self.project.add_eventlist(eventlist)
-        self.init_events()
-        self.setDirty(True)
+    def update_paraBox(self, dirs):
+        for directory, path in dirs.items():
+            box = self.paraBox.boxes[directory]
+            self.paraBox.setValue(box, path)
+            self.paraBox.show_parameter(directory)
 
     def remove_event(self, event):
         qmb = QMessageBox(self, icon=QMessageBox.Question,
@@ -1297,11 +1294,6 @@ class MainWindow(QMainWindow):
         '''
         qcb = QComboBox()
         palette = qcb.palette()
-        # change highlight color:
-        # palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight,
-        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
-        # palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Highlight,
-        #                  QtGui.QBrush(QtGui.QColor(0,0,127,127)))
         qcb.setPalette(palette)
         return qcb
 
@@ -1376,15 +1368,40 @@ class MainWindow(QMainWindow):
         :type: str
         '''
 
-        # if pick widget is open, refresh tooltips as well
+        self.refresh_tooltips()
+
+        if not eventBox:
+            eventBox = self.eventBox
+        self.setup_eventBox(eventBox)
+
+        current_event = self.get_current_event()
+        eventBox.clear()
+        model = eventBox.model()
+
+        plmax = self.get_max_path_length()
+        index = eventBox.currentIndex()
+
+        for id, event in enumerate(self.project.eventlist):
+            event_data = self.collect_event_data(event, plmax)
+            itemlist = self.create_event_items(event_data)
+            self.setItemColor(itemlist, id, event, current_event)
+
+            if event.isTestEvent() and select_events == 'ref' or self.isEmpty(event.path):
+                self.disable_items(itemlist)
+
+            model.appendRow(itemlist)
+            self.validate_event_path(event.path, id)
+
+        eventBox.setCurrentIndex(index)
+        self.refreshRefTestButtons()
+
+    def refresh_tooltips(self):
         if self.apw:
             self.apw.refresh_tooltips()
         if hasattr(self, 'cmpw'):
             self.cmpw.refresh_tooltips()
 
-        if not eventBox:
-            eventBox = self.eventBox
-        index = eventBox.currentIndex()
+    def setup_eventBox(self, eventBox):
         tv = QtWidgets.QTableView()
         header = tv.horizontalHeader()
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -1392,136 +1409,107 @@ class MainWindow(QMainWindow):
         header.hide()
         tv.verticalHeader().hide()
         tv.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-
-        current_event = self.get_current_event()
-
         eventBox.setView(tv)
-        eventBox.clear()
-        model = eventBox.model()
-        plmax = 0
-        # set maximum length of path string
-        for event in self.project.eventlist:
-            pl = len(event.path)
-            if pl > plmax:
-                plmax = pl
 
-        for id, event in enumerate(self.project.eventlist):
-            event_path = event.path
-            #phaseErrors = {'P': self._inputs['timeerrorsP'],
-            #               'S': self._inputs['timeerrorsS']}
+    def get_max_path_length(self):
+        return max(len(event.path) for event in self.project.eventlist)
 
-            man_au_picks = {'manual': event.pylot_picks,
-                            'auto': event.pylot_autopicks}
-            npicks = {'manual': {'P': 0, 'S': 0},
-                      'auto': {'P': 0, 'S': 0}}
-            npicks_total = {'manual': {'P': 0, 'S': 0},
-                            'auto': {'P': 0, 'S': 0}}
+    def collect_event_data(self, event, plmax):
+        data = {
+            'path': event.path,
+            'picks': self.get_picks(event),
+            'is_ref': event.isRefEvent(),
+            'is_test': event.isTestEvent(),
+            'time': None,
+            'lat': None,
+            'lon': None,
+            'depth': None,
+            'localmag': None,
+            'momentmag': None,
+            'notes': event.notes,
+            'dirty': event.dirty,
+            'plmax': plmax,
+        }
 
-            for ma in man_au_picks.keys():
-                if man_au_picks[ma]:
-                    for picks in man_au_picks[ma].values():
-                        for phasename, pick in picks.items():
-                            if not type(pick) in [dict, AttribDict]:
-                                continue
+        if event.origins:
+            origin = event.origins[0]
+            data['time'] = origin.time + 0  # add 0 to avoid exception for time = 0s
+            data['lat'] = origin.latitude
+            data['lon'] = origin.longitude
+            data['depth'] = origin.depth
+
+        if event.magnitudes:
+            data['momentmag'] = '{:.1f}'.format(event.magnitudes[0].mag)
+            data['localmag'] = '{:.1f}'.format(event.magnitudes[1].mag) if len(event.magnitudes) > 1 else ' '
+
+        return data
+
+    def get_picks(self, event):
+        man_au_picks = {'manual': event.pylot_picks, 'auto': event.pylot_autopicks}
+        npicks = {'manual': {'P': 0, 'S': 0}, 'auto': {'P': 0, 'S': 0}}
+        npicks_total = {'manual': {'P': 0, 'S': 0}, 'auto': {'P': 0, 'S': 0}}
+
+        for ma, picks in man_au_picks.items():
+            if picks:
+                for pick_values in picks.values():
+                    for phasename, pick in pick_values.items():
+                        if isinstance(pick, (dict, AttribDict)):
                             phase_ID = identifyPhaseID(phasename)
-                            if not phase_ID in npicks[ma].keys():
-                                continue
-                            if pick.get('spe'):
-                                npicks[ma][phase_ID] += 1
-                            npicks_total[ma][phase_ID] += 1
+                            if phase_ID in npicks[ma]:
+                                if pick.get('spe'):
+                                    npicks[ma][phase_ID] += 1
+                                npicks_total[ma][phase_ID] += 1
 
-            event_ref = event.isRefEvent()
-            event_test = event.isTestEvent()
+        return npicks, npicks_total
 
-            time = lat = lon = depth = localmag = None
-            if len(event.origins) == 1:
-                origin = event.origins[0]
-                time = origin.time + 0  # add 0 because there was an exception for time = 0s
-                lat = origin.latitude
-                lon = origin.longitude
-                depth = origin.depth
-            if len(event.magnitudes):  # if magnitude information exists, i.e., event.magnitudes has at least 1 entry
-                moment_magnitude = event.magnitudes[0]
-                momentmag = '%4.1f' % moment_magnitude.mag
-                if len(event.magnitudes) > 1:
-                    local_magnitude = event.magnitudes[1]
-                    localmag = '%4.1f' % local_magnitude.mag
-                else:
-                    localmag = ' '
+    def create_event_items(self, data):
+        items = [
+            self.create_standard_item(data['path'], data['plmax'],
+                                      icon=self.style().standardIcon(QStyle.SP_DirOpenIcon)),
+            self.create_standard_item(data['time'].strftime("%Y-%m-%d %H:%M:%S") if data['time'] else ''),
+            self.create_standard_item(data['lat']),
+            self.create_standard_item(data['lon']),
+            self.create_standard_item(data['depth']),
+            self.create_standard_item(data['localmag']),
+            self.create_standard_item(data['momentmag']),
+            self.create_pick_item(data['picks'][0]['manual']),
+            self.create_pick_item(data['picks'][0]['auto']),
+            self.create_ref_test_item(data['is_ref'], 'ref'),
+            self.create_ref_test_item(data['is_test'], 'test'),
+            self.create_standard_item(data['notes'])
+        ]
 
-            else:
-                momentmag = ' '
-                localmag = ' '
+        for item in items:
+            item.setTextAlignment(Qt.AlignCenter)
+            if data['dirty'] and item == items[0]:
+                item.setText(f"{item.text()}*")
 
-            # text = '{path:{plen}} | manual: [{p:3d}] | auto: [{a:3d}]'
-            # text = text.format(path=event_path,
-            #                    plen=plmax,
-            #                    p=event_npicks,
-            #                    a=event_nautopicks)
+        return items
 
-            event_str = '{path:{plen}}'.format(path=event_path, plen=plmax)
-            if event.dirty:
-                event_str += '*'
-            item_path = QStandardItem(event_str)
-            item_time = QStandardItem('{}'.format(time.strftime("%Y-%m-%d %H:%M:%S") if time else ''))
-            item_lat = QStandardItem('{}'.format(lat))
-            item_lon = QStandardItem('{}'.format(lon))
-            item_depth = QStandardItem('{}'.format(depth))
-            item_localmag = QStandardItem('{}'.format(localmag))
-            item_momentmag = QStandardItem('{}'.format(momentmag))
+    def create_standard_item(self, text, max_length=None, icon=None):
+        item = QStandardItem(f"{text:{max_length}}" if max_length else str(text))
+        if icon:
+            item.setIcon(icon)
+        return item
 
-            item_nmp = QStandardItem()
-            item_nap = QStandardItem()
-            item_nmp.setIcon(self.manupicksicon_small)
-            item_nap.setIcon(self.autopicksicon_small)
+    def create_pick_item(self, picks):
+        item = QStandardItem()
+        item.setText(f"{picks['P']}|{picks['S']}")
+        return item
 
-            for picktype, item_np in [('manual', item_nmp), ('auto', item_nap)]:
-                npicks_str = f"{npicks[picktype]['P']}|{npicks[picktype]['S']}"
-                #npicks_str += f"({npicks_total[picktype]['P']}/{npicks_total[picktype]['S']})"
-                item_np.setText(npicks_str)
+    def create_ref_test_item(self, condition, color_key):
+        item = QStandardItem()
+        if condition:
+            item.setBackground(self._ref_test_colors[color_key])
+        return item
 
-            item_ref = QStandardItem()  # str(event_ref))
-            item_test = QStandardItem()  # str(event_test))
-            if event_ref:
-                item_ref.setBackground(self._ref_test_colors['ref'])
-            if event_test:
-                item_test.setBackground(self._ref_test_colors['test'])
-            item_notes = QStandardItem(event.notes)
+    def disable_items(self, items):
+        for item in items:
+            item.setEnabled(False)
 
-            openIcon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
-            item_path.setIcon(openIcon)
-            # if ref: set different color e.g.
-            # if event_ref:
-            #     item.setBackground(self._colors['ref'])
-            # if event_test:
-            #     itemt.setBackground(self._colors['test'])
-            # item.setForeground(QtGui.QColor('black'))
-            # font = item.font()
-            # font.setPointSize(10)
-            # item.setFont(font)
-            # item2.setForeground(QtGui.QColor('black'))
-            # item2.setFont(font)
-            itemlist = [item_path, item_time, item_lat, item_lon, item_depth,
-                        item_localmag, item_momentmag, item_nmp, item_nap, item_ref, item_test, item_notes]
-            for item in itemlist:
-                item.setTextAlignment(Qt.AlignCenter)
-            if event_test and select_events == 'ref' or self.isEmpty(event_path):
-                for item in itemlist:
-                    item.setEnabled(False)
-
-            # item color
-            self.setItemColor(itemlist, id, event, current_event)
-
-            model.appendRow(itemlist)
-            if not event.path == self.eventBox.itemText(id).split('*')[0].strip():
-                message = ('Path missmatch creating eventbox.\n'
-                           '{} unequal {}.'
-                           .format(event.path, self.eventBox.itemText(id)))
-                raise ValueError(message)
-                # not working with obspy events
-                # eventBox.setItemData(id, event)
-        eventBox.setCurrentIndex(index)
-        self.refreshRefTestButtons()
+    def validate_event_path(self, path, id):
+        if path != self.eventBox.itemText(id).split('*')[0].strip():
+            raise ValueError(f"Path mismatch creating eventbox. {path} unequal {self.eventBox.itemText(id)}")
 
     def isEmpty(self, event_path):
         wf_stat = {True: 'processed',
@@ -1978,14 +1966,6 @@ class MainWindow(QMainWindow):
         '''
         Load waveform data corresponding to current selected event.
         '''
-        # if self.fnames and self.okToContinue():
-        #     self.setDirty(True)
-        #     ans = self.data.setWFData(self.fnames)
-        # elif self.fnames is None and self.okToContinue():
-        #     ans = self.data.setWFData(self.getWFFnames())
-        # else:
-        #     ans = False
-
         settings = QSettings()
         # process application events to wait for event items to appear in event box
         QApplication.processEvents()
@@ -2033,21 +2013,6 @@ class MainWindow(QMainWindow):
         eventpath_dmt = os.path.join(eventpath, wftype)
         self.fnames = [os.path.join(eventpath_dmt, filename) for filename in os.listdir(eventpath_dmt)]
 
-    # def setWFstatus(self):
-    #     '''
-    #     show status of current data, can be either 'raw' or 'processed'
-    #     :param status:
-    #     :return:
-    #     '''
-    #     status = self.data.processed
-    #     wf_stat_color = {True: 'green',
-    #                      False: 'black',
-    #                      None: None}
-    #     wf_stat = {True: 'processed',
-    #                False: 'raw',
-    #                None: None}
-    #     self.dataPlot.setQCboxItem(wf_stat[status])
-
     def check_plot_quantity(self):
         """
         Check the amount of samples to be plotted and ask user to reduce the amount if it is too large.
@@ -2067,24 +2032,6 @@ class MainWindow(QMainWindow):
             self.update_status('Dataset is very large. Using fast plotting method (MIN/MAX)', 10000)
         settings.sync()
         return True
-        # nth_sample_new = int(np.ceil(npts/npts_max))
-        # message = "You are about to plot a huge dataset with {npts} datapoints. With a current setting of " \
-        #           "nth_sample = {nth_sample} a total of {npts2plot} points will be plotted which is more " \
-        #           "than the maximum setting of {npts_max}. " \
-        #           "PyLoT recommends to raise nth_sample from {nth_sample} to {nth_sample_new}. Do you want "\
-        #           "to change nth_sample to {nth_sample_new} now?"
-        #
-        # ans = QMessageBox.question(self, self.tr("Optimize plot performance..."),
-        #                            self.tr(message.format(npts=npts,
-        #                                                   nth_sample=nth_sample,
-        #                                                   npts_max=npts_max,
-        #                                                   nth_sample_new=nth_sample_new,
-        #                                                   npts2plot=npts2plot)),
-        #                            QMessageBox.Yes | QMessageBox.No,
-        #                            QMessageBox.Yes)
-        # if ans == QMessageBox.Yes:
-        #     settings.setValue("nth_sample", nth_sample_new)
-        #     settings.sync()
 
     def get_npts_to_plot(self):
         if not hasattr(self.data, 'wfdata'):
@@ -2334,20 +2281,14 @@ class MainWindow(QMainWindow):
     def plotZ(self):
         self.setComponent('Z')
         self.plotWaveformDataThread()
-        # self.drawPicks()
-        # self.draw()
 
     def plotN(self):
         self.setComponent('N')
         self.plotWaveformDataThread()
-        # self.drawPicks()
-        # self.draw()
 
     def plotE(self):
         self.setComponent('E')
         self.plotWaveformDataThread()
-        # self.drawPicks()
-        # self.draw()
 
     def pushFilterWF(self, param_args):
         self.get_data().filterWFData(param_args)
@@ -2393,8 +2334,6 @@ class MainWindow(QMainWindow):
                 self.get_data().resetWFData()
             if plot:
                 self.plotWaveformDataThread(filter=False)
-                # self.drawPicks()
-                # self.draw()
 
     def getAutoFilteroptions(self, phase):
         return getAutoFilteroptions(phase, self._inputs)
@@ -2426,20 +2365,8 @@ class MainWindow(QMainWindow):
 
     def getFilterOptions(self):
         return self.filteroptions
-        # try:
-        #     return self.filteroptions[self.getSeismicPhase()]
-        # except AttributeError as e:
-        #     print(e)
-        #     return FilterOptions(None, None, None)
 
-    def getFilters(self):
-        return self.filteroptions
-
-    def setFilterOptions(self, filterOptions):  # , seismicPhase=None):
-        # if seismicPhase is None:
-        #     self.getFilterOptions()[self.getSeismicPhase()] = filterOptions
-        # else:
-        #     self.getFilterOptions()[seismicPhase] = filterOptions
+    def setFilterOptions(self, filterOptions):
         self.filterOptions = filterOptions
         filterP = filterOptions['P']
         filterS = filterOptions['S']
@@ -2468,28 +2395,6 @@ class MainWindow(QMainWindow):
 
         self.checkFilterOptions()
 
-    # def updateFilterOptions(self):
-    #     try:
-    #         settings = QSettings()
-    #         if settings.value("filterdefaults",
-    #                           None) is None and not self.getFilters():
-    #             for key, value in FILTERDEFAULTS.items():
-    #                 self.setFilterOptions(FilterOptions(**value), key)
-    #         elif settings.value("filterdefaults", None) is not None:
-    #             for key, value in settings.value("filterdefaults"):
-    #                 self.setFilterOptions(FilterOptions(**value), key)
-    #     except Exception as e:
-    #         self.update_status('Error ...')
-    #         emsg = QErrorMessage(self)
-    #         emsg.showMessage('Error: {0}'.format(e))
-    #     else:
-    #         self.update_status('Filter loaded ... '
-    #                            '[{0}: {1} Hz]'.format(
-    #             self.getFilterOptions().getFilterType(),
-    #             self.getFilterOptions().getFreq()))
-    #     if self.filterActionP.isChecked() or self.filterActionS.isChecked():
-    #         self.filterWaveformData()
-
     def getSeismicPhase(self):
         return self.seismicPhase
 
@@ -2514,11 +2419,6 @@ class MainWindow(QMainWindow):
 
     def alterPhase(self):
         pass
-
-    def setSeismicPhase(self, phase):
-        self.seismicPhase = self.seismicPhaseButtonGroup.getValue()
-        self.update_status('Seismic phase changed to '
-                           '{0}'.format(self.getSeismicPhase()))
 
     def scrollPlot(self, gui_event):
         '''
@@ -2935,11 +2835,6 @@ class MainWindow(QMainWindow):
         automanu[type](station=station, pick=picks)
         return rval
 
-    def deletePicks(self, station, deleted_pick, type):
-        deleted_pick['station'] = station
-        self.addPicks(station, {}, type=type)
-        self.log_deleted_picks([deleted_pick])
-
     def log_deleted_picks(self, deleted_picks, event_path=None):
         '''
         Log deleted picks to list self.deleted_picks
@@ -3074,10 +2969,6 @@ class MainWindow(QMainWindow):
                     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsP'])
                 elif phaseID == 'S':
                     quality = getQualityFromUncertainty(picks['spe'], self._inputs['timeerrorsS'])
-
-                # quality = getPickQuality(self.get_data().getWFData(),
-                #                          stat_picks, self._inputs, phaseID,
-                #                          compclass)
 
                 if not picks['mpp']: continue
 
@@ -3628,19 +3519,6 @@ class MainWindow(QMainWindow):
     def check4Loc(self):
         return self.picksNum() >= 4
 
-    # def check4Comparison(self):
-    #     mpicks = self.getPicks()
-    #     apicks = self.getPicks('auto')
-    #     for station, phases in mpicks.items():
-    #         try:
-    #             aphases = apicks[station]
-    #             for phase in phases.keys():
-    #                 if phase in aphases.keys():
-    #                     return True
-    #         except KeyError:
-    #             continue
-    #     return False
-
     def picksNum(self, type='manual'):
         num = 0
         for phases in self.getPicks(type).values():
@@ -3680,16 +3558,6 @@ class MainWindow(QMainWindow):
 
     def show_event_information(self):
         pass
-
-    def createNewEvent(self):
-        if self.okToContinue():
-            new = NewEventDlg()
-            if new.exec_() != QDialog.Rejected:
-                evtpar = new.getValues()
-                cinfo = create_creation_info(agency_id=self.agency)
-                event = create_event(evtpar['origintime'], cinfo)
-                self.data = Data(self, evtdata=event)
-                self.setDirty(True)
 
     def createNewProject(self):
         '''
@@ -3833,16 +3701,6 @@ class MainWindow(QMainWindow):
         self.project.setDirty(value)
         self.dirty = value
         self.fill_eventbox()
-
-    def closeEvent(self, event):
-        if self.okToContinue():
-            if hasattr(self, 'logwidget'):
-                self.logwidget.close()
-            event.accept()
-        else:
-            event.ignore()
-            # self.closing.emit()
-            # QMainWindow.closeEvent(self, event)
 
     def setParameter(self, checked=0, show=True):
         if checked: pass  # dummy argument to receive trigger signal (checked) if called by QAction
@@ -4095,8 +3953,6 @@ def create_window():
     app.setOrganizationDomain("rub.de")
     app.setApplicationName("PyLoT")
     app.references = set()
-    # app.references.add(window)
-    # window.show()
     return app, app_created
 
 
@@ -4104,7 +3960,6 @@ def main(project_filename=None, pylot_infile=None, reset_qsettings=False):
 
     # create the Qt application
     pylot_app, app_created = create_window()
-    # pylot_app = QApplication(sys.argv)
     pixmap = QPixmap(":/splash/splash.png")
     splash = QSplashScreen(pixmap)
     splash.show()
