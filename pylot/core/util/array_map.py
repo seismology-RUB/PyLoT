@@ -475,7 +475,7 @@ class Array_map(QtWidgets.QWidget):
 
     def openPickDlg(self, ind):
         wfdata = self._parent.get_data().getWFData()
-        wfdata_comp = self._parent.get_data().getWFDataComp()
+        wfdata_comp = self._parent.get_data().getAltWFdata()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
             pyl_mw = self._parent
