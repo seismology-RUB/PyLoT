@@ -1408,7 +1408,10 @@ class MainWindow(QMainWindow):
         eventBox.setView(tv)
 
     def get_max_path_length(self):
-        return max(len(event.path) for event in self.project.eventlist)
+        if self.project.eventlist:
+            return max(len(event.path) for event in self.project.eventlist)
+        else:
+            return None
 
     def collect_event_data(self, event, plmax):
         data = {
