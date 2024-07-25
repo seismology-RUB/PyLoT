@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import logging
 import os
 
 from PySide2.QtWidgets import QMessageBox
@@ -19,7 +20,7 @@ from pylot.core.util.errors import FormatError, OverwriteError
 from pylot.core.util.event import Event
 from pylot.core.util.obspyDMT_interface import qml_from_obspyDMT
 from pylot.core.util.utils import fnConstructor, full_range, check4rotated, \
-    check4gapsAndMerge, trim_station_components
+    check_for_gaps_and_merge, trim_station_components, check_for_nan
 
 
 class Data(object):
@@ -64,7 +65,7 @@ class Data(object):
                     elif 'LOC' in evtdata:
                         raise NotImplementedError('PILOT location information '
                                                   'read support not yet '
-                                                  'implemeted.')
+                                                  'implemented.')
                     elif 'event.pkl' in evtdata:
                         evtdata = qml_from_obspyDMT(evtdata)
                     else:
@@ -408,18 +409,16 @@ class Data(object):
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '_focmec.in':
                 try:
-                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-                    print('Using default input file {}'.format(infile))
-                    parameter = PylotParameter(infile)
+                    parameter = PylotParameter()
+                    logging.warning('Using default input parameter')
                     focmec.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.pha':
                 try:
-                    infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-                    print('Using default input file {}'.format(infile))
-                    parameter = PylotParameter(infile)
+                    parameter = PylotParameter()
+                    logging.warning('Using default input parameter')
                     hypodd.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
@@ -451,19 +450,29 @@ class Data(object):
         data.filter(**kwargs)
         self.dirty = True
 
-    def setWFData(self, fnames, fnames_syn=None, checkRotated=False, metadata=None, tstart=0, tstop=0):
+    def setWFData(self, fnames, fnames_alt=None, checkRotated=False, metadata=None, tstart=0, tstop=0):
         """
         Clear current waveform data and set given waveform data
         :param fnames: waveform data names to append
+        :param fnames_alt: alternative data to show (e.g. synthetic/processed)
         :type fnames: list
         """
+        def check_fname_exists(filenames: list) -> list:
+            if filenames:
+                filenames = [fn for fn in filenames if os.path.isfile(fn)]
+            return filenames
+
         self.wfdata = Stream()
         self.wforiginal = None
-        self.wfsyn = Stream()
+        self.wf_alt = Stream()
         if tstart == tstop:
             tstart = tstop = None
         self.tstart = tstart
         self.tstop = tstop
+
+        # remove directories
+        fnames = check_fname_exists(fnames)
+        fnames_alt = check_fname_exists(fnames_alt)
 
         # if obspy_dmt:
         #     wfdir = 'raw'
@@ -482,8 +491,8 @@ class Data(object):
         #     wffnames = fnames
         if fnames is not None:
             self.appendWFData(fnames)
-            if fnames_syn is not None:
-                self.appendWFData(fnames_syn, synthetic=True)
+            if fnames_alt is not None:
+                self.appendWFData(fnames_alt, alternative=True)
         else:
             return False
 
@@ -491,7 +500,9 @@ class Data(object):
         # remove possible underscores in station names
         # self.wfdata = remove_underscores(self.wfdata)
         # check for gaps and merge
-        self.wfdata = check4gapsAndMerge(self.wfdata)
+        self.wfdata, _ = check_for_gaps_and_merge(self.wfdata)
+        # check for nans
+        check_for_nan(self.wfdata)
         # check for stations with rotated components
         if checkRotated and metadata is not None:
             self.wfdata = check4rotated(self.wfdata, metadata, verbosity=0)
@@ -503,7 +514,7 @@ class Data(object):
         self.dirty = False
         return True
 
-    def appendWFData(self, fnames, synthetic=False):
+    def appendWFData(self, fnames, alternative=False):
         """
         Read waveform data from fnames and append it to current wf data
         :param fnames: waveform data to append
@@ -516,20 +527,20 @@ class Data(object):
         if self.dirty:
             self.resetWFData()
 
-        real_or_syn_data = {True: self.wfsyn,
-                            False: self.wfdata}
+        orig_or_alternative_data = {True: self.wf_alt,
+                                    False: self.wfdata}
 
         warnmsg = ''
         for fname in set(fnames):
             try:
-                real_or_syn_data[synthetic] += read(fname, starttime=self.tstart, endtime=self.tstop)
+                orig_or_alternative_data[alternative] += read(fname, starttime=self.tstart, endtime=self.tstop)
             except TypeError:
                 try:
-                    real_or_syn_data[synthetic] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
+                    orig_or_alternative_data[alternative] += read(fname, format='GSE2', starttime=self.tstart, endtime=self.tstop)
                 except Exception as e:
                     try:
-                        real_or_syn_data[synthetic] += read(fname, format='SEGY', starttime=self.tstart,
-                                                            endtime=self.tstop)
+                        orig_or_alternative_data[alternative] += read(fname, format='SEGY', starttime=self.tstart,
+                                                                      endtime=self.tstop)
                     except Exception as e:
                         warnmsg += '{0}\n{1}\n'.format(fname, e)
             except SacIOError as se:
@@ -544,8 +555,8 @@ class Data(object):
     def getOriginalWFData(self):
         return self.wforiginal
 
-    def getSynWFData(self):
-        return self.wfsyn
+    def getAltWFdata(self):
+        return self.wf_alt
 
     def resetWFData(self):
         """

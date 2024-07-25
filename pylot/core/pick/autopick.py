@@ -20,9 +20,9 @@ from pylot.core.pick.charfuns import CharacteristicFunction
 from pylot.core.pick.charfuns import HOScf, AICcf, ARZcf, ARHcf, AR3Ccf
 from pylot.core.pick.picker import AICPicker, PragPicker
 from pylot.core.pick.utils import checksignallength, checkZ4S, earllatepicker, \
-    getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class
+    getSNR, fmpicker, checkPonsets, wadaticheck, get_quality_class, PickingFailedException, MissingTraceException
 from pylot.core.util.utils import getPatternLine, gen_Pool, \
-    get_bool, identifyPhaseID, get_None, correct_iplot
+    get_bool, identifyPhaseID, get_none, correct_iplot
 
 
 def autopickevent(data, param, iplot=0, fig_dict=None, fig_dict_wadatijack=None, ncores=0, metadata=None, origin=None):
@@ -232,20 +232,6 @@ class PickingContainer:
         self.Sflag = 0
 
 
-class MissingTraceException(ValueError):
-    """
-    Used to indicate missing traces in a obspy.core.stream.Stream object
-    """
-    pass
-
-
-class PickingFailedException(Exception):
-    """
-    Raised when picking fails due to missing values etc.
-    """
-    pass
-
-
 class AutopickStation(object):
 
     def __init__(self, wfstream, pickparam, verbose, iplot=0, fig_dict=None, metadata=None, origin=None):
@@ -272,7 +258,7 @@ class AutopickStation(object):
         self.pickparams = copy.deepcopy(pickparam)
         self.verbose = verbose
         self.iplot = correct_iplot(iplot)
-        self.fig_dict = get_None(fig_dict)
+        self.fig_dict = get_none(fig_dict)
         self.metadata = metadata
         self.origin = origin
 
@@ -660,7 +646,7 @@ class AutopickStation(object):
             ax1.set_ylim([-1.5, 1.5])
             ax1.set_ylabel('Normalized Counts')
 
-            if self.horizontal_traces_exist() and self.s_data.Sflag == 1:
+            if self.horizontal_traces_exist():# and self.s_data.Sflag == 1:
                 # plot E trace
                 ax2 = fig.add_subplot(3, 1, 2, sharex=ax1)
                 th1data = np.linspace(0, self.etrace.stats.endtime - self.etrace.stats.starttime,

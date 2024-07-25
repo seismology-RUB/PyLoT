@@ -1,7 +1,7 @@
 from obspy import UTCDateTime
 from obspy.core import event as ope
 
-from pylot.core.util.utils import getLogin, getHash
+from pylot.core.util.utils import get_login, get_hash
 
 
 def create_amplitude(pickID, amp, unit, category, cinfo):
@@ -61,7 +61,7 @@ def create_creation_info(agency_id=None, creation_time=None, author=None):
     :return:
     '''
     if author is None:
-        author = getLogin()
+        author = get_login()
     if creation_time is None:
         creation_time = UTCDateTime()
     return ope.CreationInfo(agency_id=agency_id, author=author,
@@ -210,7 +210,7 @@ def create_resourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
     assert isinstance(timetohash, UTCDateTime), "'timetohash' is not an ObsPy" \
                                                 "UTCDateTime object"
-    hid = getHash(timetohash)
+    hid = get_hash(timetohash)
     if hrstr is None:
         resID = ope.ResourceIdentifier(restype + '/' + hid[0:6])
     else:

@@ -28,7 +28,7 @@ from pylot.core.util.dataprocessing import restitute_data, Metadata
 from pylot.core.util.defaults import SEPARATOR
 from pylot.core.util.event import Event
 from pylot.core.util.structure import DATASTRUCTURE
-from pylot.core.util.utils import get_None, trim_station_components, check4gapsAndRemove, check4doubled, \
+from pylot.core.util.utils import get_none, trim_station_components, check4gapsAndRemove, check4doubled, \
     check4rotated
 from pylot.core.util.version import get_git_version as _getVersionString
 
@@ -91,9 +91,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                                                               sp=sp_info)
     print(splash)
 
-    parameter = get_None(parameter)
-    inputfile = get_None(inputfile)
-    eventid = get_None(eventid)
+    parameter = get_none(parameter)
+    inputfile = get_none(inputfile)
+    eventid = get_none(eventid)
 
     fig_dict = None
     fig_dict_wadatijack = None
@@ -119,13 +119,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
             obspyDMT_wfpath = input_dict['obspyDMT_wfpath']
 
     if not parameter:
-        if inputfile:
-            parameter = PylotParameter(inputfile)
-            # iplot = parameter['iplot']
-        else:
-            infile = os.path.join(os.path.expanduser('~'), '.pylot', 'pylot.in')
-            print('Using default input file {}'.format(infile))
-            parameter = PylotParameter(infile)
+        if not inputfile:
+            print('Using default input parameter')
+        parameter = PylotParameter(inputfile)
     else:
         if not type(parameter) == PylotParameter:
             print('Wrong input type for parameter: {}'.format(type(parameter)))
@@ -154,7 +150,7 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         datastructure.setExpandFields(exf)
 
         # check if default location routine NLLoc is available and all stations are used
-        if get_None(parameter['nllocbin']) and station == 'all':
+        if get_none(parameter['nllocbin']) and station == 'all':
             locflag = 1
             # get NLLoc-root path
             nllocroot = parameter.get('nllocroot')

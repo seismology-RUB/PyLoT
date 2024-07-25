@@ -13,6 +13,7 @@ import obspy
 from PySide2 import QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from pylot.core.util.utils import identifyPhaseID
 from scipy.interpolate import griddata
 
 from pylot.core.pick.utils import get_quality_class
@@ -123,8 +124,8 @@ class Array_map(QtWidgets.QWidget):
         self.cmaps_box = QtWidgets.QComboBox()
         self.cmaps_box.setMaxVisibleItems(20)
         [self.cmaps_box.addItem(map_name) for map_name in sorted(plt.colormaps())]
-        # try to set to hsv as default
-        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('hsv'))
+        # try to set to viridis as default
+        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('viridis'))
 
         self.top_row.addWidget(QtWidgets.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
@@ -279,9 +280,12 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.axes.figure.canvas.draw_idle()
 
     def onpick(self, event):
+        btn_msg = {1: ' in selection. Aborted', 2: ' to delete a pick on. Aborted', 3: ' to display info.'}
         ind = event.ind
         button = event.mouseevent.button
-        if ind == []:
+        msg_reason = None
+        if len(ind) > 1:
+            self._parent.update_status(f'Found more than one station {btn_msg.get(button)}')
             return
         if button == 1:
             self.openPickDlg(ind)
@@ -384,7 +388,14 @@ class Array_map(QtWidgets.QWidget):
                 try:
                     station_name = st_id.split('.')[-1]
                     # current_picks_dict: auto or manual
-                    pick = self.current_picks_dict()[station_name][phase]
+                    station_picks = self.current_picks_dict().get(station_name)
+                    if not station_picks:
+                        continue
+                    for phase_hint, pick in station_picks.items():
+                        if identifyPhaseID(phase_hint) == phase:
+                            break
+                    else:
+                        continue
                     if pick['picker'] == 'auto':
                         if not pick['spe']:
                             continue
@@ -463,17 +474,19 @@ class Array_map(QtWidgets.QWidget):
                                                                   transform=ccrs.PlateCarree(), label='deleted'))
 
     def openPickDlg(self, ind):
-        data = self._parent.get_data().getWFData()
+        wfdata = self._parent.get_data().getWFData()
+        wfdata_comp = self._parent.get_data().getAltWFdata()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
             pyl_mw = self._parent
             try:
-                data = data.select(station=station)
-                if not data:
+                wfdata = wfdata.select(station=station)
+                wfdata_comp = wfdata_comp.select(station=station)
+                if not wfdata:
                     self._warn('No data for station {}'.format(station))
                     return
                 pickDlg = PickDlg(self._parent, parameter=self.parameter,
-                                  data=data, network=network, station=station,
+                                  data=wfdata.copy(), data_compare=wfdata_comp.copy(), network=network, station=station,
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
                                   filteroptions=self._parent.filteroptions, metadata=self.metadata,

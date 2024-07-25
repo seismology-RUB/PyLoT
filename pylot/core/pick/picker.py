@@ -178,7 +178,9 @@ class AICPicker(AutoPicker):
         aic = tap * self.cf + max(abs(self.cf))
         # smooth AIC-CF
         ismooth = int(round(self.Tsmooth / self.dt))
-        aicsmooth = np.zeros(len(aic))
+        # MP MP better start with original data than zeros if array shall be smoothed, created artificial value before
+        # when starting with i in range(1...) loop below and subtracting offset afterwards
+        aicsmooth = np.copy(aic)
         if len(aic) < ismooth:
             print('AICPicker: Tsmooth larger than CF!')
             return
@@ -188,7 +190,7 @@ class AICPicker(AutoPicker):
                     ii1 = i - ismooth
                     aicsmooth[i] = aicsmooth[i - 1] + (aic[i] - aic[ii1]) / ismooth
                 else:
-                    aicsmooth[i] = np.mean(aic[1: i])
+                    aicsmooth[i] = np.mean(aic[0: i]) # MP MP created np.nan for i=1
         # remove offset in AIC function
         offset = abs(min(aic) - min(aicsmooth))
         aicsmooth = aicsmooth - offset
@@ -197,7 +199,7 @@ class AICPicker(AutoPicker):
         # minimum in AIC function 
         icfmax = np.argmax(cf)
 
-        # MP MP testing threshold
+        # TODO: If this shall be kept, maybe add thresh_factor to pylot parameters
         thresh_hit = False
         thresh_factor = 0.7
         thresh = thresh_factor * cf[icfmax]
@@ -209,7 +211,6 @@ class AICPicker(AutoPicker):
                 if sample <= cf[index - 1]:
                     icfmax = index - 1
                     break
-        # MP MP ---
 
         # find minimum in AIC-CF front of maximum of HOS/AR-CF
         lpickwindow = int(round(self.PickWindow / self.dt))
