@@ -1,0 +1,90 @@
+#############################  correlation parameters  #####################################
+# min_corr_stacking: minimum correlation coefficient for building beam trace
+# min_corr_export: minimum correlation coefficient for pick export
+# min_stack: minimum number of stations for building beam trace
+# t_before: correlation window before pick
+# t_after: correlation window after pick#
+# cc_maxlag: maximum shift for initial correlation
+# cc_maxlag2: maximum shift for second (final) correlation (also for calculating pick uncertainty)
+# initial_pick_outlier_threshold: (hopefully) threshold for excluding large outliers of initial (AIC) picks
+# export_threshold: automatically exclude all onsets which deviate more than this threshold from corrected taup onsets
+# min_picks_export: minimum number of correlated picks for export
+# min_picks_autopylot: minimum number of reference autopicks picks to continue with event
+# check_RMS: do RMS check to search for restitution errors (very experimental)
+# use_taupy_onsets: use taupy onsets as reference picks instead of external picks
+# station_list: use the following stations as reference for stacking
+# use_stacked_trace: use existing stacked trace if found (spare re-computation)
+# data_dir: obspyDMT data subdirectory (e.g. 'raw', 'processed')
+# pickfile_extension: use quakeML files (PyLoT output) with the following extension, e.g. '_autopylot' for pickfiles
+#                     such as 'PyLoT_20170501_141822_autopylot.xml'
+
+logging: info
+pick_phases: ['P', 'S']
+
+# P-phase
+P:
+  min_corr_stacking: 0.8
+  min_corr_export: 0.6
+  min_stack: 20
+  t_before: 30.
+  t_after: 50.
+  cc_maxlag: 50.
+  cc_maxlag2: 5.
+  initial_pick_outlier_threshold: 30.
+  export_threshold: 2.5
+  min_picks_export: 100
+  min_picks_autopylot: 50
+  check_RMS: True
+  use_taupy_onsets: False
+  station_list: ['HU.MORH', 'HU.TIH',  'OX.FUSE', 'OX.BAD']
+  use_stacked_trace: False
+  data_dir: 'processed'
+  pickfile_extension: '_autopylot'
+  dt_stacking: [250, 250]
+
+  # filter for first correlation (rough)
+  filter_options:
+    freqmax: 0.5
+    freqmin: 0.03
+  # filter for second correlation (fine)
+  filter_options_final:
+    freqmax: 0.5
+    freqmin: 0.03
+
+  filter_type: bandpass
+  sampfreq: 20.0
+
+# S-phase
+S:
+  min_corr_stacking: 0.7
+  min_corr_export: 0.6
+  min_stack: 20
+  t_before: 60.
+  t_after: 60.
+  cc_maxlag: 100.
+  cc_maxlag2: 25.
+  initial_pick_outlier_threshold: 30.
+  export_threshold: 5.0
+  min_picks_export: 200
+  min_picks_autopylot: 50
+  check_RMS: True
+  use_taupy_onsets: False
+  station_list: ['HU.MORH','HU.TIH',  'OX.FUSE', 'OX.BAD']
+  use_stacked_trace: False
+  data_dir: 'processed'
+  pickfile_extension: '_autopylot'
+  dt_stacking: [250, 250]
+
+  # filter for first correlation (rough)
+  filter_options:
+    freqmax: 0.1
+    freqmin: 0.01
+
+  # filter for second correlation (fine)
+  filter_options_final:
+    freqmax: 0.2
+    freqmin: 0.01
+
+  filter_type: bandpass
+  sampfreq: 20.0
+
