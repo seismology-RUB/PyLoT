@@ -10,6 +10,7 @@ import traceback
 
 import matplotlib.pyplot as plt
 import yaml
+
 from code_base.fmtomo_tools.fmtomo_teleseismic_utils import *
 from code_base.util.utils import get_metadata
 from joblib import Parallel, delayed
@@ -17,12 +18,14 @@ from obspy import read, Stream
 from obspy.core.event.base import WaveformStreamID, ResourceIdentifier
 from obspy.core.event.origin import Pick
 from obspy.signal.cross_correlation import correlate, xcorr_max
+
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.phases import picks_from_picksdict
 from pylot.core.pick.autopick import autopickstation
 from pylot.core.util.utils import check4rotated
 from pylot.core.util.utils import identifyPhaseID
 from pylot.core.util.event import Event as PylotEvent
+
 
 class CorrelationParameters(object):
     """
@@ -83,7 +86,7 @@ class CorrelationParameters(object):
             self.__parameter[key] = value
 
 
-class Xcorr_pick_correction:
+class XcorrPickCorrection:
     def __init__(self, pick1, trace1, pick2, trace2, t_before, t_after, cc_maxlag, frac_max=0.5):
         """
         MP MP : Modified version of obspy xcorr_pick_correction
@@ -558,8 +561,6 @@ def correlate_event(eventdir, pylot_parameter, params, channel_config, update):
             taupypicks_corr_initial, median_diff = get_corrected_taupy_picks(picks, taupypicks_orig)
             picks = remove_outliers(picks, taupypicks_corr_initial,
                                     params[phase_type]['initial_pick_outlier_threshold'])
-
-            # # MP MP TEST  # taupypicks, time_shift = get_corrected_taupy_picks(picks, taupypicks_orig, all_available=True)  #  # picks = copy.deepcopy(taupypicks)  # for pick in picks:  #     pick.method_id.id = 'auto'  # # MP MP
 
         if phase_type == 'S':
             # check whether rotation to ZNE is possible (to get rid of horizontal channel 1,2,3)
@@ -1517,15 +1518,15 @@ def correlation_worker(input_dict):
 
     try:
         logging.debug(f'Starting Pick correction for {nwst_id}')
-        xcpc = Xcorr_pick_correction(pick_this.time, input_dict['trace1'], other_pick.time, input_dict['trace2'],
-                                     t_before=t_before, t_after=t_after, cc_maxlag=cc_maxlag)
+        xcpc = XcorrPickCorrection(pick_this.time, input_dict['trace1'], other_pick.time, input_dict['trace2'],
+                                   t_before=t_before, t_after=t_after, cc_maxlag=cc_maxlag)
 
         dpick, ccc, uncert, fwm = xcpc.cross_correlation(plot, fig_dir, plot_name='dpick')
         logging.debug(f'dpick of first correlation: {dpick}')
 
         if input_dict['ncorr'] > 1:  # and not ccc <= 0:
-            xcpc2 = Xcorr_pick_correction(pick_this.time, input_dict['trace1_highf'], other_pick.time + dpick,
-                                          input_dict['trace2_highf'], t_before=1., t_after=40., cc_maxlag=cc_maxlag2)
+            xcpc2 = XcorrPickCorrection(pick_this.time, input_dict['trace1_highf'], other_pick.time + dpick,
+                                        input_dict['trace2_highf'], t_before=1., t_after=40., cc_maxlag=cc_maxlag2)
 
             dpick2, ccc, uncert, fwm = xcpc2.cross_correlation(plot=plot, fig_dir=fig_dir, plot_name='error',
                                                                min_corr=input_dict['min_corr'])
