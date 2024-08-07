@@ -10,3 +10,5 @@ pyside2=5.13.2
 python=3.8.12
 qt=5.12.9
 scipy=1.8.0
+pyaml=6.0.1
+joblib=1.4.2

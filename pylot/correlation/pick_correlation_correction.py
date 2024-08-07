@@ -2,22 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 import argparse
 import copy
 import logging
 import random
 import traceback
+import glob
+import json
+from datetime import datetime
 from typing import Any
 
+import numpy as np
 import matplotlib.pyplot as plt
 import yaml
 
-from code_base.fmtomo_tools.fmtomo_teleseismic_utils import *
-from code_base.util.utils import get_metadata
 from joblib import Parallel, delayed
-from obspy import read, Stream, Trace
+from obspy import read, Stream, UTCDateTime, Trace
+from obspy.taup import TauPyModel
 from obspy.core.event.base import WaveformStreamID, ResourceIdentifier
 from obspy.core.event.origin import Pick
+from obspy.geodetics.base import gps2dist_azimuth
 from obspy.signal.cross_correlation import correlate, xcorr_max
 
 from pylot.core.io.inputs import PylotParameter
@@ -26,6 +31,8 @@ from pylot.core.pick.autopick import autopickstation
 from pylot.core.util.utils import check4rotated
 from pylot.core.util.utils import identifyPhaseID
 from pylot.core.util.event import Event as PylotEvent
+from pylot.correlation.utils import (get_event_id, get_event_pylot, get_event_obspy_dmt, get_picks, write_json,
+                                     get_metadata)
 
 
 class CorrelationParameters:
