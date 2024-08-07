@@ -490,7 +490,6 @@ class Array_map(QtWidgets.QWidget):
                                   picks=self._parent.get_current_event().getPick(station),
                                   autopicks=self._parent.get_current_event().getAutopick(station),
                                   filteroptions=self._parent.filteroptions, metadata=self.metadata,
-                                  model=self.parameter.get('taup_model'),
                                   event=pyl_mw.get_current_event())
             except Exception as e:
                 message = 'Could not generate Plot for station {st}.\n {er}'.format(st=station, er=e)

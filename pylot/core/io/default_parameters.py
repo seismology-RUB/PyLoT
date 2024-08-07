@@ -511,7 +511,7 @@ defaults = {'rootpath': {'type': str,
 
             'taup_model': {'type': str,
                            'tooltip': 'Define TauPy model for traveltime estimation. Possible values: 1066a, 1066b, ak135, ak135f, herrin, iasp91, jb, prem, pwdk, sp6',
-                           'value': None,
+                           'value': 'iasp91',
                            'namestring': 'TauPy model'},
 
             'taup_phases': {'type': str,
