@@ -49,12 +49,12 @@ class TestXCorrPickCorrection():
         test_trace = self.trace1
         pick_time = self.tpick1
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             xcpc = XCorrPickCorrection(UTCDateTime(), Trace(), UTCDateTime(), Trace(),
-                                       t_before=self.t_before - 20, t_after=self.t_after, cc_maxlag=self.cc_maxlag)
+                                       t_before=self.t_before + 20, t_after=self.t_after, cc_maxlag=self.cc_maxlag)
             xcpc.slice_trace(test_trace, pick_time)
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             xcpc = XCorrPickCorrection(UTCDateTime(), Trace(), UTCDateTime(), Trace(),
                                        t_before=self.t_before, t_after=self.t_after + 50, cc_maxlag=self.cc_maxlag)
             xcpc.slice_trace(test_trace, pick_time)

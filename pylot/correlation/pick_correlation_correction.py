@@ -174,12 +174,12 @@ class XCorrPickCorrection:
             msg = f"Trace {tr.id} starts too late. Decrease t_before or cc_maxlag."
             logging.debug(f'start: {start}, t_before: {self.t_before}, cc_maxlag: {self.cc_maxlag},'
                           f'pick: {pick}')
-            raise Exception(msg)
+            raise ValueError(msg)
         if tr.stats.endtime < end:
             msg = f"Trace {tr.id} ends too early. Deacrease t_after or cc_maxlag."
             logging.debug(f'end: {end}, t_after: {self.t_after}, cc_maxlag: {self.cc_maxlag},'
                           f'pick: {pick}')
-            raise Exception(msg)
+            raise ValueError(msg)
 
         # apply signal processing and take correct slice of data
         return tr.slice(start, end)
