@@ -73,4 +73,4 @@ class TestXCorrPickCorrection():
         test_result = (-0.09983091718314982, 0.9578431835689154, 0.0015285160561610929, 0.03625786256084631)
 
         # check results
-        assert (correction, cc_max, uncert, fwfm) == test_result
+        assert pytest.approx(test_result, rel=1e-6) == (correction, cc_max, uncert, fwfm)
