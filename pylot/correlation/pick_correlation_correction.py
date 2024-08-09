@@ -691,10 +691,8 @@ def correlate_event(eventdir: str, pylot_parameter: PylotParameter, params: dict
 
         # continue if there is not enough traces for stacking
         if nstack < params[phase_type]['min_stack']:
-            logging.warning('Not enough traces to stack: {} (min_stack = {}). Skip this event'.format(nstack,
-                                                                                                      params[
-                                                                                                          phase_type][
-                                                                                                          'min_stack']))
+            logging.warning(f"Not enough traces to stack: {nstack} "
+                            f"(min_stack = {params[phase_type]['min_stack']}). Skip this event")
             continue
 
         # write unfiltered trace
@@ -847,9 +845,8 @@ def get_corrected_taupy_picks(picks, taupypicks, all_available=False):
     mean_diff = taupy_mean - picks_mean
 
     logging.info(f'Calculated {len(taupypicks_new)} TauPy theoretical picks.')
-    logging.info(
-        'Calculated median difference from TauPy theoretical picks of {} seconds. (mean: {})'.format(median_diff,
-                                                                                                     mean_diff))
+    logging.info(f'Calculated median difference from TauPy '
+                 f'theoretical picks of {median_diff} seconds. (mean: {mean_diff})')
 
     # return all available taupypicks corrected for median difference to autopicks
     if all_available:
@@ -1267,9 +1264,9 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
                    check_rms: bool, dt_pre: float = 250., dt_post: float = 250., plot: bool = False,
                    fig_dir: str = None) -> tuple:
 
-    def check_trace_length_and_cut(trace: Trace):
-        starttime = correlated_midtime - dt_pre
-        endtime = correlated_midtime + dt_post
+    def check_trace_length_and_cut(trace: Trace, pick_time: UTCDateTime = None):
+        starttime = pick_time - dt_pre
+        endtime = pick_time + dt_post
 
         if trace.stats.starttime > starttime or trace.stats.endtime < endtime:
             raise ValueError('Trace too short for safe cutting. Would create inconsistent stacking. Abort!')
@@ -1282,7 +1279,7 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
 
     trace_master = trace_master.copy()
     trace_master.stats.location = 'ST'
-    check_trace_length_and_cut(trace_master)
+    check_trace_length_and_cut(trace_master, pick.time)
 
     # empty trace so that it does not stack twice
     trace_master.data = np.zeros(len(trace_master.data))
@@ -1296,7 +1293,7 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
         stream_other = wfdata.select(network=nw, station=st, channel=channel)
         correlated_midtime = pick_other.time - dpick
         trace_other = stream_other[0].copy()
-        check_trace_length_and_cut(trace_other)
+        check_trace_length_and_cut(trace_other, correlated_midtime)
 
         if not len(trace_other) == len(trace_master):
             logging.warning(
@@ -1306,23 +1303,25 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
         traces4stack.append(trace_other)
 
     if check_rms:
-        traces4stack = checkRMS(traces4stack, plot=plot, fig_dir=fig_dir)
+        traces4stack = check_rms(traces4stack, plot=plot, fig_dir=fig_dir)
 
     if plot:
         fig = plt.figure(figsize=(16, 9))
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
+    else:
+        fig = ax1 = ax2 = None
 
     for trace_other in traces4stack:
         # stack on mastertrace
         trace_normalized = trace_other.copy().normalize()
         trace_master.data += trace_normalized.data
         count += 1
-        if plot:
+        if plot and ax1 and ax2:
             ax1.plot(trace_master.data, label=count)
             ax2.plot(trace_normalized.data, color='k', alpha=0.1)
 
-    if plot:
+    if plot and fig:
         if fig_dir:
             fig.savefig(os.path.join(fig_dir, 'traces_stacked.svg'), dpi=300.)
         else:
@@ -1335,7 +1334,7 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
     return trace_master, count
 
 
-def checkRMS(traces4stack, plot=False, fig_dir=None, max_it=10, ntimes_std=5.):
+def check_rms(traces4stack, plot=False, fig_dir=None, max_it=10, ntimes_std=5.):
     rms_list = []
     trace_names = []
 
@@ -1353,7 +1352,7 @@ def checkRMS(traces4stack, plot=False, fig_dir=None, max_it=10, ntimes_std=5.):
     while iterate:
         count += 1
         if count >= max_it:
-            logging.debug('Maximum iterations ({}) of checkRMS function reached.'.format(max_it))
+            logging.debug('Maximum iterations ({}) of check_rms function reached.'.format(max_it))
             break
         std = np.std(rms_list)
         mean = np.mean(rms_list)
