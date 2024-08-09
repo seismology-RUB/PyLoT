@@ -1423,6 +1423,7 @@ def resample_parallel(stream: Stream, freq: float, ncores: int) -> Stream:
     stream.traces = output_list
     return stream
 
+# TODO: Check why metadata, channels and ncores are not used
 
 def rotate_stream(stream: Stream, metadata: Metadata, origin: Origin, stations_dict: dict, channels: list,
                   inclination: float, ncores: int) -> Stream:
@@ -1672,6 +1673,7 @@ def get_stations_min_corr(corr_results: dict, min_corr: float) -> dict:
     return corr_results
 
 
+# TODO check if wfdata is needed
 def plot_mastertrace_corr(nwst_id: str, corr_results: dict, wfdata: Stream, stations_dict: dict, picks: list,
                           trace_master: Trace, method: str, min_corr: float, title: str,
                           fig_dir: str = None) -> None:
