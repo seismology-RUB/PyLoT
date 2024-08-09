@@ -1308,7 +1308,7 @@ def apply_stacking(trace_master: Trace, stations4stack: dict, wfdata: Stream, pi
 
         traces4stack.append(trace_other)
 
-    if check_rms:
+    if do_rms_check:
         traces4stack = check_rms(traces4stack, plot=plot, fig_dir=fig_dir)
 
     if plot:
