@@ -11,7 +11,7 @@ PILOT has originally been developed in Mathworks' MatLab. In order to distribute
 problems, it has been decided to redevelop the software package in Python. The great work of the ObsPy group allows easy
 handling of a bunch of seismic data and PyLoT will benefit a lot compared to the former MatLab version.
 
-The development of PyLoT is part of the joint research project MAGS2 and AlpArray.
+The development of PyLoT is part of the joint research project MAGS2, AlpArray and AdriaArray.
 
 ## Installation
 
@@ -27,28 +27,30 @@ Afterwards run (from the PyLoT main directory where the files *requirements.txt*
     conda env create -f pylot.yml
 or
     
-    conda create --name pylot_38 --file requirements.txt
+    conda create -c conda-forge --name pylot_311 python=3.11 --file requirements.txt
 
-to create a new Anaconda environment called "pylot_38".
+to create a new Anaconda environment called *pylot_311*.
 
 Afterwards activate the environment by typing
 
-    conda activate pylot_38
+    conda activate pylot_311
 
 #### Prerequisites:
 
 In order to run PyLoT you need to install:
 
 - Python 3
-- obspy
-- pyside2
-- pyqtgraph
 - cartopy
+- joblib
+- obspy
+- pyaml
+- pyqtgraph
+- pyside2
 
 (the following are already dependencies of the above packages):
 - scipy
 - numpy
-- matplotlib <= 3.3.x
+- matplotlib
 
 #### Some handwork:
 
@@ -108,4 +110,4 @@ Others: A. Bruestle, T. Meier, W. Friederich
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-April 2022
+August 2024
