@@ -1032,6 +1032,21 @@ class MainWindow(QMainWindow):
                 fname = self.filename_from_action(action)
                 if not fname:
                     return
+
+        qmb = QMessageBox(self, icon=QMessageBox.Question,
+                          text='Do you want to overwrite this data?',)
+        overwrite_button = qmb.addButton('Overwrite', QMessageBox.YesRole)
+        merge_button = qmb.addButton('Merge', QMessageBox.NoRole)
+
+        qmb.exec_()
+
+        if qmb.clickedButton() == overwrite_button:
+            merge_strategy = 'Overwrite'
+        elif qmb.clickedButton() == merge_button:
+            merge_strategy = 'Merge'
+        else:
+            return
+
         if not event:
             event = self.get_current_event()
         data = Data(self, event)
