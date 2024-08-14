@@ -686,10 +686,9 @@ class MainWindow(QMainWindow):
         # add scroll area used in case number of traces gets too high
         self.wf_scroll_area = QtWidgets.QScrollArea(self)
         self.wf_scroll_area.setVisible(False)
-        self.no_data_label = QLabel('No Data')
+        self.no_data_label = QLabel('No Data. If data were already loaded, try to select the event again in the eventbox.')
         self.no_data_label.setStyleSheet('color: red')
         self.no_data_label.setAlignment(Qt.AlignCenter)
-
         # create central matplotlib figure canvas widget
         self.init_wfWidget()
 
