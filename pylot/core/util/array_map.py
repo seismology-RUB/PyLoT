@@ -432,6 +432,9 @@ class Array_map(QtWidgets.QWidget):
                     picks_rel[st_id] = pick
             return picks_rel
 
+        def get_picks_rel_mean_corr(picks):
+            return get_picks_rel(picks, func=np.nanmean)
+
         self.picks, self.uncertainties = get_picks(self.stations_dict)
         self.picks_rel = get_picks_rel(self.picks)
 
