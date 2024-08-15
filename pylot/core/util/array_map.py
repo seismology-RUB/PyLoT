@@ -231,7 +231,9 @@ class Array_map(QtWidgets.QWidget):
         if cont:
             indices = inds['ind']
             text += ' | Station: ' if len(indices) == 1 else ' | Stations: '
-            text += ' - '.join([self._station_onpick_ids[index] for index in indices])
+            text += ' - '.join([self._station_onpick_ids[index] for index in indices[:5]])
+            if len(indices) > 5:
+                text += '...'
 
         self.status_label.setText(text)
 
