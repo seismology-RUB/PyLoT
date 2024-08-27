@@ -8,6 +8,7 @@ import copy
 import datetime
 import getpass
 import glob
+import logging
 import multiprocessing
 import os
 import subprocess
@@ -3835,7 +3836,7 @@ class TuneAutopicker(QWidget):
         self.stb_names = ['aicARHfig', 'refSpick', 'el_S1pick', 'el_S2pick']
 
     def add_parameters(self):
-        self.paraBox = PylotParaBox(self.parameter, parent=self, windowflag=Qt.Widget)
+        self.paraBox = PylotParameterWidget(self.parameter, parent=self, windowflag=Qt.Widget)
         self.paraBox.set_tune_mode(True)
         self.update_eventID()
         self.parameter_layout.addWidget(self.paraBox)
@@ -4202,7 +4203,7 @@ class TuneAutopicker(QWidget):
         self.qmb.show()
 
 
-class PylotParaBox(QtWidgets.QWidget):
+class PylotParameterWidget(QtWidgets.QWidget):
     accepted = QtCore.Signal(str)
     rejected = QtCore.Signal(str)
 
@@ -4316,6 +4317,11 @@ class PylotParaBox(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout()
 
         for index1, name in enumerate(parameter_names):
+            if name in ['rootpath', 'database']:
+                logging.warning(
+                    f'Deprecated parameter loaded: {name}. Check if datapath is still correct in parameter widget.'
+                )
+                continue
             default_item = self.parameter.get_defaults()[name]
             tooltip = default_item['tooltip']
             tooltip += ' | type: {}'.format(default_item['type'])
@@ -4885,7 +4891,7 @@ class PropTab(QWidget):
     def getValues(self):
         return None
 
-    def resetValues(self, infile=None):
+    def resetValues(self, infile):
         return None
 
 
@@ -4982,12 +4988,7 @@ class InputsTab(PropTab):
         else:
             index = 2
         datapath = para.get('datapath') if not para.get('datapath') is None else ''
-        rootpath = para.get('rootpath') if not para.get('rootpath') is None else ''
-        database = para.get('database') if not para.get('database') is None else ''
-        if isinstance(database, int):
-            database = str(database)
-        path = os.path.join(os.path.expanduser('~'), rootpath, datapath, database)
-        values = {"data/dataRoot": self.dataDirEdit.setText("%s" % path),
+        values = {"data/dataRoot": self.dataDirEdit.setText("%s" % datapath),
                   "user/FullName": self.fullNameEdit.text(),
                   "data/Structure": self.structureSelect.setCurrentIndex(index),
                   "tstart": self.tstartBox.setValue(0),

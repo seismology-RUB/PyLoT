@@ -83,7 +83,7 @@ from pylot.core.util.event import Event
 from pylot.core.io.location import create_creation_info, create_event
 from pylot.core.util.widgets import FilterOptionsDialog, NewEventDlg, \
     PylotCanvas, WaveformWidgetPG, PropertiesDlg, HelpForm, createAction, PickDlg, \
-    ComparisonWidget, TuneAutopicker, PylotParaBox, AutoPickDlg, CanvasWidget, AutoPickWidget, \
+    ComparisonWidget, TuneAutopicker, PylotParameterWidget, AutoPickDlg, CanvasWidget, AutoPickWidget, \
     CompareEventsWidget, ProgressBarWidget, AddMetadataWidget, SingleTextLineDialog, LogWidget, PickQualitiesFromXml, \
     SpectrogramTab, SearchFileByExtensionDialog
 from pylot.core.util.array_map import Array_map
@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
         self.project.parameter = self._inputs
         self.tap = None
         self.apw = None
-        self.paraBox = None
+        self.parameterWidget = None
         self.array_map = None
         self._metadata = Metadata(verbosity=0)
         self._eventChanged = [False, False]
@@ -188,7 +188,6 @@ class MainWindow(QMainWindow):
         self.table_headers = ['', 'Event', 'Time', 'Lat', 'Lon', 'Depth', 'Ml', 'Mw', '[N] MP', '[N] AP', 'Tuning Set',
                               'Test Set', 'Notes']
 
-        # TODO: refactor rootpath to datapath
         while True:
             try:
                 if settings.value("user/FullName", None) is None:
@@ -1210,7 +1209,7 @@ class MainWindow(QMainWindow):
                 with open(eventlist_file, 'r') as infile:
                     eventlist_subset = [os.path.join(basepath, filename.split('\n')[0]) for filename in
                                         infile.readlines()]
-                    msg = 'Found file "eventlist.txt" in database path. WILL ONLY USE SELECTED EVENTS out of {} events ' \
+                    msg = 'Found file "eventlist.txt" in datapath. WILL ONLY USE SELECTED EVENTS out of {} events ' \
                           'contained in this subset'
                     print(msg.format(len(eventlist_subset)))
                     eventlist = [eventname for eventname in eventlist if eventname in eventlist_subset]
@@ -1235,49 +1234,34 @@ class MainWindow(QMainWindow):
         # get path from first event in list and split them
         path = eventlist[0]
         try:
-            system_name = platform.system()
-            if system_name in ["Linux", "Darwin"]:
-                dirs = {
-                    'database': path.split('/')[-2],
-                    'datapath': os.path.split(path)[0],  # path.split('/')[-3],
-                    'rootpath': '/' + os.path.join(*path.split('/')[:-3])
-                }
-            elif system_name == "Windows":
-                rootpath = path.split('/')[:-3]
-                rootpath[0] += '/'
-                dirs = {
-                    # TODO: Arrange path to meet Win standards
-                    'database': path.split('/')[-2],
-                    'datapath': path.split('/')[-3],
-                    'rootpath': os.path.join(*rootpath)
-                }
+            datapath = os.path.split(path)[0]
+            dirs = {
+                'datapath': datapath,
+            }
         except Exception as e:
             dirs = {
-                'database': '',
                 'datapath': '',
-                'rootpath': ''
             }
             print('Warning: Could not automatically init folder structure. ({})'.format(e))
 
         settings = QSettings()
-        settings.setValue("data/dataRoot", dirs['datapath'])  # d irs['rootpath'])
+        settings.setValue("data/dataRoot", dirs['datapath'])
         settings.sync()
 
         if not self.project.eventlist:
             # init parameter object
             self.setParameter(show=False)
             # hide all parameter (show all needed parameter later)
-            self.paraBox.hide_parameter()
+            self.parameterWidget.hide_parameter()
             for directory in dirs.keys():
                 # set parameter
-                box = self.paraBox.boxes[directory]
-                self.paraBox.setValue(box, dirs[directory])
+                box = self.parameterWidget.boxes[directory]
+                self.parameterWidget.setValue(box, dirs[directory])
                 # show needed parameter in box
-                self.paraBox.show_parameter(directory)
-            dirs_box = self.paraBox.get_groupbox_dialog('Directories')
+                self.parameterWidget.show_parameter(directory)
+            dirs_box = self.parameterWidget.get_groupbox_dialog('Directories')
             if not dirs_box.exec_():
                 return
-            self.project.rootpath = dirs['rootpath']
             self.project.datapath = dirs['datapath']
         else:
             if hasattr(self.project, 'datapath'):
@@ -1286,7 +1270,6 @@ class MainWindow(QMainWindow):
                                         'Datapath missmatch to current project!')
                     return
             else:
-                self.project.rootpath = dirs['rootpath']
                 self.project.datapath = dirs['datapath']
 
         self.project.add_eventlist(eventlist)
@@ -1374,11 +1357,10 @@ class MainWindow(QMainWindow):
             return True
 
     def modify_project_path(self, new_rootpath):
-        # TODO: change root to datapath
-        self.project.rootpath = new_rootpath
+        self.project.datapath = new_rootpath
         for event in self.project.eventlist:
-            event.rootpath = new_rootpath
-            event.path = os.path.join(event.rootpath, event.datapath, event.database, event.pylot_id)
+            event.datapath = new_rootpath
+            event.path = os.path.join(event.datapath, event.pylot_id)
             event.path = event.path.replace('\\', '/')
             event.path = event.path.replace('//', '/')
 
@@ -1572,7 +1554,7 @@ class MainWindow(QMainWindow):
             self.set_fname(self.get_data().getEventFileName(), type)
         return self.get_fnames(type)
 
-    def saveData(self, event=None, directory=None, outformats=['.xml', '.cnv', '.obs', '_focmec.in', '.pha']):
+    def saveData(self, event=None, directory=None, outformats=None):
         '''
         Save event data to directory with specified output formats.
         :param event: PyLoT Event, if not set current event will be used
@@ -1580,6 +1562,8 @@ class MainWindow(QMainWindow):
         :param outformats: str/list of output formats
         :return:
         '''
+        if outformats is None:
+            outformats = ['.xml', '.cnv', '.obs', '_focmec.in', '.pha']
         if not event:
             event = self.get_current_event()
         if not type(outformats) == list:
@@ -1715,7 +1699,7 @@ class MainWindow(QMainWindow):
 
     # WIP JG
     def eventlistXml(self):
-        path = self._inputs['rootpath'] + '/' + self._inputs['datapath'] + '/' + self._inputs['database']
+        path = self._inputs['datapath']
         outpath = self.project.location[:self.project.location.rfind('/')]
         geteventlistfromxml(path, outpath)
         return
@@ -2441,7 +2425,7 @@ class MainWindow(QMainWindow):
         filterS = filteroptions['S']
         minP, maxP = filterP.getFreq()
         minS, maxS = filterS.getFreq()
-        self.paraBox.params_to_gui()
+        self.parameterWidget.params_to_gui()
 
     def getFilterOptions(self):
         return self.filteroptions
@@ -3190,8 +3174,8 @@ class MainWindow(QMainWindow):
         ttt = parameter['ttpatter']
         outfile = parameter['outpatter']
         eventname = self.get_current_event_name()
-        obsdir = os.path.join(self._inputs['rootpath'], self._inputs['datapath'], self._inputs['database'], eventname)
-        self.saveData(event=self.get_current_event(), directory=obsdir, outformats='.obs')
+        obsdir = os.path.join(self._inputs['datapath'], eventname)
+        self.saveData(event=self.get_current_event(), directory=obsdir, outformats=['.obs'])
         filename = 'PyLoT_' + eventname
         locpath = os.path.join(locroot, 'loc', filename)
         phasefile = os.path.join(obsdir, filename + '.obs')
@@ -3748,6 +3732,7 @@ class MainWindow(QMainWindow):
                 if self.project.parameter:
                     # do this step to update default parameter on older PyLoT projects
                     self.project.parameter.reinit_default_parameters()
+                    PylotParameter.check_deprecated_parameters(self.project.parameter)
 
                     self._inputs = self.project.parameter
                     self.updateFilteroptions()
@@ -3865,13 +3850,13 @@ class MainWindow(QMainWindow):
 
     def setParameter(self, checked=0, show=True):
         if checked: pass  # dummy argument to receive trigger signal (checked) if called by QAction
-        if not self.paraBox:
-            self.paraBox = PylotParaBox(self._inputs, parent=self, windowflag=Qt.Window)
-            self.paraBox.accepted.connect(self._setDirty)
-            self.paraBox.accepted.connect(self.filterOptionsFromParameter)
+        if not self.parameterWidget:
+            self.parameterWidget = PylotParameterWidget(self._inputs, parent=self, windowflag=Qt.Window)
+            self.parameterWidget.accepted.connect(self._setDirty)
+            self.parameterWidget.accepted.connect(self.filterOptionsFromParameter)
         if show:
-            self.paraBox.params_to_gui()
-            self.paraBox.show()
+            self.parameterWidget.params_to_gui()
+            self.parameterWidget.show()
 
     def deleteAllAutopicks(self):
         qmb = QMessageBox(self, icon=QMessageBox.Question,
@@ -3918,15 +3903,17 @@ class Project(object):
     Pickable class containing information of a PyLoT project, like event lists and file locations.
     '''
 
-    # TODO: remove rootpath
     def __init__(self):
         self.eventlist = []
         self.location = None
-        self.rootpath = None
         self.datapath = None
         self.dirty = False
         self.parameter = None
         self._table = None
+
+    @property
+    def rootpath(self):
+        return self.datapath
 
     def add_eventlist(self, eventlist):
         '''
@@ -3937,8 +3924,6 @@ class Project(object):
             return
         for item in eventlist:
             event = Event(item)
-            event.rootpath = self.parameter['rootpath']
-            event.database = self.parameter['database']
             event.datapath = self.parameter['datapath']
             if not event.path in self.getPaths():
                 self.eventlist.append(event)

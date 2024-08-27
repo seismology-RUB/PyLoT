@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
+import os
 
 from pylot.core.io import default_parameters
 from pylot.core.util.errors import ParameterError
@@ -88,10 +90,10 @@ class PylotParameter(object):
         return bool(self.__parameter)
 
     def __getitem__(self, key):
-        try:
+        if key in self.__parameter:
             return self.__parameter[key]
-        except:
-            return None
+        else:
+            logging.warning(f'{key} not found in PylotParameter')
 
     def __setitem__(self, key, value):
         try:
@@ -417,6 +419,28 @@ class PylotParameter(object):
                 ttip = '%{}\n'.format(tooltip)
             line = value + name + ttip
             fid.write(line)
+
+    @staticmethod
+    def check_deprecated_parameters(parameters):
+        if parameters.hasParam('database') and parameters.hasParam('rootpath'):
+            parameters['datapath'] = os.path.join(parameters['rootpath'], parameters['datapath'],
+                                                  parameters['database'])
+            logging.warning(
+                f'Parameters database and rootpath are deprecated. '
+                f'Tried to merge them to now path: {parameters["datapath"]}.'
+            )
+
+        remove_keys = []
+        for key in parameters:
+            if not key in default_parameters.defaults.keys():
+                remove_keys.append(key)
+                logging.warning(f'Removing deprecated parameter: {key}')
+
+        for key in remove_keys:
+            del parameters[key]
+
+        parameters._settings_main = default_parameters.settings_main
+        parameters._settings_special_pick = default_parameters.settings_special_pick
 
 
 class FilterOptions(object):

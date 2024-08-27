@@ -4,10 +4,8 @@
 %Parameters are optimized for %extent data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #main settings#
-                                                   #rootpath#       %project path                                                                                        
-                                                   #datapath#       %data path                                                                                           
-                                                   #database#       %name of data base                                                                                   
-                                                   #eventID#        %event ID for single event processing (* for all events found in database)                           
+                                                   #datapath#       %data path
+                                                   #eventID#        %event ID for single event processing (* for all events found in datapath)
                                                    #invdir#         %full path to  inventory or dataless-seed file                                                       
 PILOT                                              #datastructure#  %choose data structure                                                                               
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        

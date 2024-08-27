@@ -136,11 +136,9 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
     if parameter.hasParam('datastructure'):
         # getting information on data structure
         datastructure = DATASTRUCTURE[parameter.get('datastructure')]()
-        dsfields = {'root': parameter.get('rootpath'),
-                    'dpath': parameter.get('datapath'),
-                    'dbase': parameter.get('database')}
+        dsfields = {'dpath': parameter.get('datapath'),}
 
-        exf = ['root', 'dpath', 'dbase']
+        exf = ['dpath']
 
         if parameter['eventID'] != '*' and fnames == 'None':
             dsfields['eventID'] = parameter['eventID']
@@ -206,12 +204,10 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 locflag = 2
         else:
             # started in tune or interactive mode
-            datapath = os.path.join(parameter['rootpath'],
-                                    parameter['datapath'])
+            datapath = parameter['datapath']
             events = []
             for eventID in eventid:
                 events.append(os.path.join(datapath,
-                                           parameter['database'],
                                            eventID))
 
         if not events:

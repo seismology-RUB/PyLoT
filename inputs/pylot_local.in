@@ -4,10 +4,8 @@
 %Parameters are optimized for %extent data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #main settings#
-/DATA/Insheim                                      #rootpath#       %project path                                                                                        
-EVENT_DATA/LOCAL                                   #datapath#       %data path                                                                                           
-2018.02_Insheim                                    #database#       %name of data base                                                                                   
-e0006.038.18                                       #eventID#        %event ID for single event processing (* for all events found in database)                           
+/DATA/Insheim/EVENT_DATA/LOCAL/2018.02_Insheim     #datapath#       %data path
+e0006.038.18                                       #eventID#        %event ID for single event processing (* for all events found in datapath)
 /DATA/Insheim/STAT_INFO                            #invdir#         %full path to  inventory or dataless-seed file                                                       
 PILOT                                              #datastructure#  %choose data structure                                                                               
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        
