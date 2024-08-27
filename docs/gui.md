@@ -203,8 +203,6 @@ The meaning of the header entries is:
 PyLoT GUI starts with an empty project. To add events, use the add event data button. Select one or multiple folders
 containing events.
 
-[//]: <> (TODO: explain _Directories: Root path, Data path, Database path_)
-
 ### Saving projects
 
 Save the current project from the menu with File->Save project or File->Save project as. PyLoT uses ``.plp`` files to

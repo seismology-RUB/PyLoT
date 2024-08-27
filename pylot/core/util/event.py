@@ -22,14 +22,11 @@ class Event(ObsPyEvent):
         :param path: path to event directory
         :type path: str
         """
-        # TODO: remove rootpath and database
         self.pylot_id = path.split('/')[-1]
         # initialize super class
         super(Event, self).__init__(resource_id=ResourceIdentifier('smi:local/' + self.pylot_id))
         self.path = path
-        self.database = path.split('/')[-2]
         self.datapath = os.path.split(path)[0]  # path.split('/')[-3]
-        self.rootpath = '/' + os.path.join(*path.split('/')[:-3])
         self.pylot_autopicks = {}
         self.pylot_picks = {}
         self.notes = ''

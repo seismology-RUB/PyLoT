@@ -5,12 +5,13 @@ import traceback
 
 import cartopy.crs as ccrs
 import cartopy.feature as cf
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import matplotlib
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from pylot.core.util.utils import identifyPhaseID
@@ -24,10 +25,10 @@ matplotlib.use('Qt5Agg')
 
 class MplCanvas(FigureCanvas):
 
-    def __init__(self, parent=None, extern_axes=None, width=5, height=4, dpi=100):
+    def __init__(self, extern_axes=None, projection=None, width=15, height=5, dpi=100):
         if extern_axes is None:
             self.fig = plt.figure(figsize=(width, height), dpi=dpi)
-            self.axes = self.fig.add_subplot(111)
+            self.axes = self.fig.add_subplot(111, projection=projection)
         else:
             self.fig = extern_axes.figure
             self.axes = extern_axes
@@ -63,19 +64,24 @@ class Array_map(QtWidgets.QWidget):
         self.highlighted_stations = []
 
         # call functions to draw everything
+        self.projection = ccrs.PlateCarree()
         self.init_graphics()
+        self.ax = self.canvas.axes
+        self.ax.set_adjustable('datalim')
+
         self.init_stations()
         self.init_crtpyMap()
         self.init_map()
+
         # set original map limits to fall back on when home button is pressed
-        self.org_xlim = self.canvas.axes.get_xlim()
-        self.org_ylim = self.canvas.axes.get_ylim()
+        self.org_xlim = self.ax.get_xlim()
+        self.org_ylim = self.ax.get_ylim()
+
         # initial map without event
-        self.canvas.axes.set_xlim(self.org_xlim[0], self.org_xlim[1])
-        self.canvas.axes.set_ylim(self.org_ylim[0], self.org_ylim[1])
+        self.ax.set_xlim(self.org_xlim[0], self.org_xlim[1])
+        self.ax.set_ylim(self.org_ylim[0], self.org_ylim[1])
 
         self._style = None if not hasattr(parent, '_style') else parent._style
-
 
     def init_map(self):
         self.init_colormap()
@@ -89,11 +95,11 @@ class Array_map(QtWidgets.QWidget):
         # initialize figure elements
 
         if self.extern_plot_axes is None:
-            self.canvas = MplCanvas(self)
-            self.plotWidget = FigureCanvas(self.canvas.fig)
+            self.canvas = MplCanvas(projection=self.projection)
         else:
-            self.canvas = MplCanvas(self, extern_axes=self.extern_plot_axes)
-            self.plotWidget = FigureCanvas(self.canvas.fig)
+            self.canvas = MplCanvas(extern_axes=self.extern_plot_axes)
+
+        self.plotWidget = self.canvas
 
         # initialize GUI elements
         self.status_label = QtWidgets.QLabel()
@@ -105,7 +111,7 @@ class Array_map(QtWidgets.QWidget):
         self.setLayout(self.main_box)
 
         self.top_row = QtWidgets.QHBoxLayout()
-        self.main_box.addLayout(self.top_row, 1)
+        self.main_box.addLayout(self.top_row, 0)
 
         self.comboBox_phase = QtWidgets.QComboBox()
         self.comboBox_phase.insertItem(0, 'P')
@@ -138,10 +144,10 @@ class Array_map(QtWidgets.QWidget):
         self.top_row.addWidget(self.auto_refresh_box)
         self.top_row.addWidget(self.refresh_button)
 
-        self.main_box.addWidget(self.plotWidget, 1)
+        self.main_box.addWidget(self.plotWidget, 10)
 
         self.bot_row = QtWidgets.QHBoxLayout()
-        self.main_box.addLayout(self.bot_row, 0.3)
+        self.main_box.addLayout(self.bot_row, 0)
         self.bot_row.addWidget(QtWidgets.QLabel(''), 5)
         self.bot_row.addWidget(self.map_reset_button, 2)
         self.bot_row.addWidget(self.go2eq_button, 2)
@@ -153,14 +159,12 @@ class Array_map(QtWidgets.QWidget):
         self.init_lat_lon_grid()
 
     def init_crtpyMap(self):
-        self.canvas.axes.cla()
-        self.canvas.axes = plt.axes(projection=ccrs.PlateCarree())
-        self.canvas.axes.add_feature(cf.LAND)
-        self.canvas.axes.add_feature(cf.OCEAN)
-        self.canvas.axes.add_feature(cf.COASTLINE, linewidth=1, edgecolor='gray')
-        self.canvas.axes.add_feature(cf.BORDERS, alpha=0.7)
-        self.canvas.axes.add_feature(cf.LAKES, alpha=0.7)
-        self.canvas.axes.add_feature(cf.RIVERS, linewidth=1)
+        self.ax.add_feature(cf.LAND)
+        self.ax.add_feature(cf.OCEAN)
+        self.ax.add_feature(cf.COASTLINE, linewidth=1, edgecolor='gray')
+        self.ax.add_feature(cf.BORDERS, alpha=0.7)
+        self.ax.add_feature(cf.LAKES, alpha=0.7)
+        self.ax.add_feature(cf.RIVERS, linewidth=1)
 
         # parallels and meridians
         self.add_merid_paral()
@@ -168,12 +172,8 @@ class Array_map(QtWidgets.QWidget):
         self.canvas.fig.tight_layout()
 
     def add_merid_paral(self):
-        self.gridlines = self.canvas.axes.gridlines(draw_labels=False, alpha=0.6, color='gray',
-                                                    linewidth=self.linewidth / 2, zorder=7)
-        # TODO: current cartopy version does not support label removal. Devs are working on it.
-        #  Should be fixed in coming cartopy versions
-        # self.gridlines.xformatter = LONGITUDE_FORMATTER
-        # self.gridlines.yformatter = LATITUDE_FORMATTER
+        self.gridlines = self.ax.gridlines(draw_labels=False, alpha=0.6, color='gray',
+                                           linewidth=self.linewidth / 2, zorder=7, crs=ccrs.PlateCarree())
 
     def remove_merid_paral(self):
         if len(self.gridlines.xline_artists):
@@ -181,24 +181,24 @@ class Array_map(QtWidgets.QWidget):
             self.gridlines.yline_artists[0].remove()
 
     def org_map_view(self):
-        self.canvas.axes.set_xlim(self.org_xlim[0], self.org_xlim[1])
-        self.canvas.axes.set_ylim(self.org_ylim[0], self.org_ylim[1])
+        self.ax.set_xlim(self.org_xlim[0], self.org_xlim[1])
+        self.ax.set_ylim(self.org_ylim[0], self.org_ylim[1])
         # parallels and meridians
-        self.remove_merid_paral()
-        self.add_merid_paral()
+        #self.remove_merid_paral()
+        #self.add_merid_paral()
 
-        self.canvas.axes.figure.canvas.draw_idle()
+        self.canvas.draw_idle()
 
     def go2eq(self):
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.canvas.axes.set_xlim(lons - 10, lons + 10)
-            self.canvas.axes.set_ylim(lats - 5, lats + 5)
+            self.ax.set_xlim(lons - 10, lons + 10)
+            self.ax.set_ylim(lats - 5, lats + 5)
             # parallels and meridians
-            self.remove_merid_paral()
-            self.add_merid_paral()
+            #self.remove_merid_paral()
+            #self.add_merid_paral()
 
-            self.canvas.axes.figure.canvas.draw_idle()
+            self.canvas.draw_idle()
 
         else:
             self.status_label.setText('No event information available')
@@ -220,21 +220,32 @@ class Array_map(QtWidgets.QWidget):
 
     # set mouse events -----------------------------------------------------
     def mouse_moved(self, event):
-        if not event.inaxes == self.canvas.axes:
+        if not event.inaxes == self.ax:
             return
+        else:
+            cont, inds = self.sc.contains(event)
         lat = event.ydata
         lon = event.xdata
-        self.status_label.setText('Latitude: {:3.5f}, Longitude: {:3.5f}'.format(lat, lon))
+        text = f'Longitude: {lon:3.3f}, Latitude: {lat:3.3f}'
+
+        if cont:
+            indices = inds['ind']
+            text += ' | Station: ' if len(indices) == 1 else ' | Stations: '
+            text += ' - '.join([self._station_onpick_ids[index] for index in indices[:5]])
+            if len(indices) > 5:
+                text += '...'
+
+        self.status_label.setText(text)
 
     def mouse_scroll(self, event):
-        if not event.inaxes == self.canvas.axes:
+        if not event.inaxes == self.ax:
             return
 
         zoom = {'up': 1. / 2., 'down': 2.}
 
         if event.button in zoom:
-            xlim = self.canvas.axes.get_xlim()
-            ylim = self.canvas.axes.get_ylim()
+            xlim = self.ax.get_xlim()
+            ylim = self.ax.get_ylim()
 
             x, y = event.xdata, event.ydata
 
@@ -246,24 +257,24 @@ class Array_map(QtWidgets.QWidget):
             yb = y - 0.5 * ydiff
             yt = y + 0.5 * ydiff
 
-            self.canvas.axes.set_xlim(xl, xr)
-            self.canvas.axes.set_ylim(yb, yt)
+            self.ax.set_xlim(xl, xr)
+            self.ax.set_ylim(yb, yt)
             # parallels and meridians
-            self.remove_merid_paral()
-            self.add_merid_paral()
+            #self.remove_merid_paral()
+            #self.add_merid_paral()
 
-            self.canvas.axes.figure.canvas.draw_idle()
+            self.ax.figure.canvas.draw_idle()
 
     def mouseLeftPress(self, event):
-        if not event.inaxes == self.canvas.axes:
+        if not event.inaxes == self.ax:
             return
         self.map_x = event.xdata
         self.map_y = event.ydata
-        self.map_xlim = self.canvas.axes.get_xlim()
-        self.map_ylim = self.canvas.axes.get_ylim()
+        self.map_xlim = self.ax.get_xlim()
+        self.map_ylim = self.ax.get_ylim()
 
     def mouseLeftRelease(self, event):
-        if not event.inaxes == self.canvas.axes:
+        if not event.inaxes == self.ax:
             return
         new_x = event.xdata
         new_y = event.ydata
@@ -271,13 +282,13 @@ class Array_map(QtWidgets.QWidget):
         dx = new_x - self.map_x
         dy = new_y - self.map_y
 
-        self.canvas.axes.set_xlim((self.map_xlim[0] - dx, self.map_xlim[1] - dx))
-        self.canvas.axes.set_ylim(self.map_ylim[0] - dy, self.map_ylim[1] - dy)
+        self.ax.set_xlim((self.map_xlim[0] - dx, self.map_xlim[1] - dx))
+        self.ax.set_ylim(self.map_ylim[0] - dy, self.map_ylim[1] - dy)
         # parallels and meridians
-        self.remove_merid_paral()
-        self.add_merid_paral()
+        #self.remove_merid_paral()
+        #self.add_merid_paral()
 
-        self.canvas.axes.figure.canvas.draw_idle()
+        self.ax.figure.canvas.draw_idle()
 
     def onpick(self, event):
         btn_msg = {1: ' in selection. Aborted', 2: ' to delete a pick on. Aborted', 3: ' to display info.'}
@@ -421,6 +432,9 @@ class Array_map(QtWidgets.QWidget):
                     picks_rel[st_id] = pick
             return picks_rel
 
+        def get_picks_rel_mean_corr(picks):
+            return get_picks_rel(picks, func=np.nanmean)
+
         self.picks, self.uncertainties = get_picks(self.stations_dict)
         self.picks_rel = get_picks_rel(self.picks)
 
@@ -469,12 +483,19 @@ class Array_map(QtWidgets.QWidget):
         stat_dict = self.stations_dict['{}.{}'.format(network, station)]
         lat = stat_dict['latitude']
         lon = stat_dict['longitude']
-        self.highlighted_stations.append(self.canvas.axes.scatter(lon, lat, s=self.pointsize, edgecolors=color,
-                                                                  facecolors='none', zorder=12,
-                                                                  transform=ccrs.PlateCarree(), label='deleted'))
+        self.highlighted_stations.append(self.ax.scatter(lon, lat, s=self.pointsize, edgecolors=color,
+                                                         facecolors='none', zorder=12,
+                                                         transform=ccrs.PlateCarree(), label='deleted'))
 
     def openPickDlg(self, ind):
-        wfdata = self._parent.get_data().getWFData()
+        try:
+            wfdata = self._parent.get_data().getWFData()
+        except AttributeError:
+            QtWidgets.QMessageBox.warning(
+                self, "PyLoT Warning",
+                "No waveform data found. Check if they were already loaded in Waveform plot tab."
+            )
+            return
         wfdata_comp = self._parent.get_data().getAltWFdata()
         for index in ind:
             network, station = self._station_onpick_ids[index].split('.')[:2]
@@ -520,9 +541,9 @@ class Array_map(QtWidgets.QWidget):
     def draw_contour_filled(self, nlevel=50):
         levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
 
-        self.contourf = self.canvas.axes.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
-                                                  linewidths=self.linewidth * 5, transform=ccrs.PlateCarree(),
-                                                  alpha=0.4, zorder=8, cmap=self.get_colormap())
+        self.contourf = self.ax.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
+                                         linewidths=self.linewidth * 5, transform=ccrs.PlateCarree(),
+                                         alpha=0.4, zorder=8, cmap=self.get_colormap())
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
@@ -530,18 +551,18 @@ class Array_map(QtWidgets.QWidget):
     def scatter_all_stations(self):
         stations, lats, lons = self.get_st_lat_lon_for_plot()
 
-        self.sc = self.canvas.axes.scatter(lons, lats, s=self.pointsize * 3, facecolor='none', marker='.',
-                                           zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
-                                           transform=ccrs.PlateCarree())
+        self.sc = self.ax.scatter(lons, lats, s=self.pointsize * 3, facecolor='none', marker='.',
+                                  zorder=10, picker=True, edgecolor='0.5', label='Not Picked',
+                                  transform=ccrs.PlateCarree())
 
         self.cid = self.plotWidget.mpl_connect('pick_event', self.onpick)
         self._station_onpick_ids = stations
         if self.eventLoc:
             lats, lons = self.eventLoc
-            self.sc_event = self.canvas.axes.scatter(lons, lats, s=5 * self.pointsize, facecolor='red', zorder=11,
-                                                     label='Event (might be outside map region)', marker='*',
-                                                     edgecolors='black',
-                                                     transform=ccrs.PlateCarree())
+            self.sc_event = self.ax.scatter(lons, lats, s=5 * self.pointsize, facecolor='red', zorder=11,
+                                            label='Event (might be outside map region)', marker='*',
+                                            edgecolors='black',
+                                            transform=ccrs.PlateCarree())
 
     def scatter_picked_stations(self):
         picks, uncertainties, lats, lons = self.get_picks_lat_lon()
@@ -554,8 +575,8 @@ class Array_map(QtWidgets.QWidget):
                           for uncertainty in uncertainties])
 
         cmap = self.get_colormap()
-        self.sc_picked = self.canvas.axes.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
-                                                  c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
+        self.sc_picked = self.ax.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
+                                         c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
 
     def annotate_ax(self):
         self.annotations = []
@@ -573,20 +594,20 @@ class Array_map(QtWidgets.QWidget):
             if st in self.marked_stations:
                 color = 'red'
             self.annotations.append(
-                self.canvas.axes.annotate(' %s' % st, xy=(x + 0.003, y + 0.003), fontsize=self.pointsize / 4.,
-                                          fontweight='semibold', color=color, alpha=0.8,
-                                          transform=ccrs.PlateCarree(), zorder=14,
-                                          path_effects=[PathEffects.withStroke(
-                                              linewidth=self.pointsize / 15., foreground='k')]))
+                self.ax.annotate(f'{st}', xy=(x + 0.003, y + 0.003), fontsize=self.pointsize / 4.,
+                                 fontweight='semibold', color=color, alpha=0.8,
+                                 transform=ccrs.PlateCarree(), zorder=14,
+                                 path_effects=[PathEffects.withStroke(
+                                     linewidth=self.pointsize / 15., foreground='k')]))
 
-        self.legend = self.canvas.axes.legend(loc=1, framealpha=1)
+        self.legend = self.ax.legend(loc=1, framealpha=1)
         self.legend.set_zorder(100)
         self.legend.get_frame().set_facecolor((1, 1, 1, 0.95))
 
     def add_cbar(self, label):
-        self.cbax_bg = inset_axes(self.canvas.axes, width="6%", height="75%", loc=5)
-        cbax = inset_axes(self.canvas.axes, width='2%', height='70%', loc=5)
-        cbar = self.canvas.axes.figure.colorbar(self.sc_picked, cax=cbax)
+        self.cbax_bg = inset_axes(self.ax, width="6%", height="75%", loc=5)
+        cbax = inset_axes(self.ax, width='2%', height='70%', loc=5)
+        cbar = self.ax.figure.colorbar(self.sc_picked, cax=cbax)
         cbar.set_label(label)
         cbax.yaxis.tick_left()
         cbax.yaxis.set_label_position('left')

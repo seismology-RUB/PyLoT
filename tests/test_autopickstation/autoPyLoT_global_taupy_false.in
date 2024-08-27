@@ -4,10 +4,8 @@
 %Parameters are optimized for %extent data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #main settings#
-/home/darius                                       #rootpath#       %project path                                                                                        
-alparray                                           #datapath#       %data path                                                                                           
-waveforms_used                                     #database#       %name of data base                                                                                   
-e0093.173.16                                       #eventID#        %event ID for single event processing (* for all events found in database)                           
+/home/darius/alparray/waveforms_used               #datapath#       %data path
+e0093.173.16                                       #eventID#        %event ID for single event processing (* for all events found in datapath)
 /home/darius/alparray/metadata                     #invdir#         %full path to  inventory or dataless-seed file                                                       
 PILOT                                              #datastructure#  %choose data structure                                                                               
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        

@@ -6,24 +6,14 @@ import numpy as np
 Default parameters used for picking
 """
 
-defaults = {'rootpath': {'type': str,
-                         'tooltip': 'project path',
-                         'value': '',
-                         'namestring': 'Root path'},
-
-            'datapath': {'type': str,
-                         'tooltip': 'data path',
+defaults = {'datapath': {'type': str,
+                         'tooltip': 'path to eventfolders',
                          'value': '',
                          'namestring': 'Data path'},
 
-            'database': {'type': str,
-                         'tooltip': 'name of data base',
-                         'value': '',
-                         'namestring': 'Database path'},
-
             'eventID': {'type': str,
-                        'tooltip': 'event ID for single event processing (* for all events found in database)',
-                        'value': '',
+                        'tooltip': 'event ID for single event processing (* for all events found in datapath)',
+                        'value': '*',
                         'namestring': 'Event ID'},
 
             'extent': {'type': str,
@@ -522,9 +512,7 @@ defaults = {'rootpath': {'type': str,
 
 settings_main = {
     'dirs': [
-        'rootpath',
         'datapath',
-        'database',
         'eventID',
         'invdir',
         'datastructure',

@@ -512,7 +512,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
-                  (parameter.get('database'), parameter.get('eventID')))
+                  (parameter.get('datapath'), parameter.get('eventID')))
         arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
@@ -665,7 +665,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for HYPOSAT" % filename)
         fid = open("%s" % filename, 'w')
         # write header
-        fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
+        fid.write('%s, event %s \n' % (parameter.get('datapath'), parameter.get('eventID')))
         arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets

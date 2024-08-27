@@ -1084,8 +1084,9 @@ def check4rotated(data, metadata=None, verbosity=1):
                 azimuths.append(metadata.get_coordinates(tr_id, t_start)['azimuth'])
                 dips.append(metadata.get_coordinates(tr_id, t_start)['dip'])
         except (KeyError, TypeError) as err:
-            logging.error(f"{type(err)=} occurred: {err=} Rotating not possible, not all azimuth and dip information "
-                  f"available in metadata. Stream remains unchanged.")
+            logging.warning(f"Rotating not possible, not all azimuth and dip information "
+                            f"available in metadata. Stream remains unchanged.")
+            logging.debug(f"Rotating not possible, {err=}, {type(err)=}")
             return wfs_in
         except Exception as err:
             print(f"Unexpected {err=}, {type(err)=}")
