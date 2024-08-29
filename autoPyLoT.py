@@ -184,15 +184,15 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
         if not input_dict:
             # started in production mode
             datapath = datastructure.expandDataPath()
-            if fnames == 'None' and parameter['eventID'] == '*':
+            if fnames in [None, 'None'] and parameter['eventID'] == '*':
                 # multiple event processing
                 # read each event in database
                 events = [event for event in glob.glob(os.path.join(datapath, '*')) if
                           (os.path.isdir(event) and not event.endswith('EVENTS-INFO'))]
-            elif fnames == 'None' and parameter['eventID'] != '*' and not type(parameter['eventID']) == list:
+            elif fnames in [None, 'None'] and parameter['eventID'] != '*' and not type(parameter['eventID']) == list:
                 # single event processing
                 events = glob.glob(os.path.join(datapath, parameter['eventID']))
-            elif fnames == 'None' and type(parameter['eventID']) == list:
+            elif fnames in [None, 'None'] and type(parameter['eventID']) == list:
                 # multiple event processing
                 events = []
                 for eventID in parameter['eventID']:
@@ -234,12 +234,15 @@ def autoPyLoT(input_dict=None, parameter=None, inputfile=None, fnames=None, even
                 data.get_evt_data().path = eventpath
                 print('Reading event data from filename {}...'.format(filename))
             except Exception as e:
-                print('Could not read event from file {}: {}'.format(filename, e))
+                if type(e) == FileNotFoundError:
+                    print('Creating new event file.')
+                else:
+                    print('Could not read event from file {}: {}'.format(filename, e))
                 data = Data()
                 pylot_event = Event(eventpath)  # event should be path to event directory
                 data.setEvtData(pylot_event)
-            if fnames == 'None':
-                data.setWFData(glob.glob(os.path.join(datapath, event_datapath, '*')))
+            if fnames in [None, 'None']:
+                data.setWFData(glob.glob(os.path.join(event_datapath, '*')))
                 # the following is necessary because within
                 # multiple event processing no event ID is provided
                 # in autopylot.in

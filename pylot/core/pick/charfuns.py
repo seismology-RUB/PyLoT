@@ -231,7 +231,7 @@ class AICcf(CharacteristicFunction):
         ind = np.where(~np.isnan(xnp))[0]
         if ind.size:
             xnp[:ind[0]] = xnp[ind[0]]
-        xnp = signal.tukey(len(xnp), alpha=0.05) * xnp
+        xnp = tukey(len(xnp), alpha=0.05) * xnp
         xnp = xnp - np.mean(xnp)
         datlen = len(xnp)
         k = np.arange(1, datlen)

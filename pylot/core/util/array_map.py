@@ -14,6 +14,8 @@ import obspy
 from PySide2 import QtWidgets, QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from obspy import UTCDateTime
+
 from pylot.core.util.utils import identifyPhaseID
 from scipy.interpolate import griddata
 
@@ -60,6 +62,7 @@ class Array_map(QtWidgets.QWidget):
         self.parameter = parameter if parameter else parent._inputs
 
         self.picks_rel = {}
+        self.picks_rel_mean_corrected = {}
         self.marked_stations = []
         self.highlighted_stations = []
 
@@ -106,6 +109,7 @@ class Array_map(QtWidgets.QWidget):
         self.map_reset_button = QtWidgets.QPushButton('Reset Map View')
         self.save_map_button = QtWidgets.QPushButton('Save Map')
         self.go2eq_button = QtWidgets.QPushButton('Go to Event Location')
+        self.subtract_mean_cb = QtWidgets.QCheckBox('Subtract mean')
 
         self.main_box = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_box)
@@ -152,6 +156,7 @@ class Array_map(QtWidgets.QWidget):
         self.bot_row.addWidget(self.map_reset_button, 2)
         self.bot_row.addWidget(self.go2eq_button, 2)
         self.bot_row.addWidget(self.save_map_button, 2)
+        self.bot_row.addWidget(self.subtract_mean_cb, 0)
         self.bot_row.addWidget(self.status_label, 5)
 
     def init_colormap(self):
@@ -212,6 +217,7 @@ class Array_map(QtWidgets.QWidget):
         self.map_reset_button.clicked.connect(self.org_map_view)
         self.go2eq_button.clicked.connect(self.go2eq)
         self.save_map_button.clicked.connect(self.saveFigure)
+        self.subtract_mean_cb.stateChanged.connect(self.toggle_subtract_mean)
 
         self.plotWidget.mpl_connect('motion_notify_event', self.mouse_moved)
         self.plotWidget.mpl_connect('scroll_event', self.mouse_scroll)
@@ -368,12 +374,6 @@ class Array_map(QtWidgets.QWidget):
     def get_max_from_stations(self, key):
         return self._from_dict(max, key)
 
-    def get_min_from_picks(self):
-        return min(self.picks_rel.values())
-
-    def get_max_from_picks(self):
-        return max(self.picks_rel.values())
-
     def current_picks_dict(self):
         picktype = self.comboBox_am.currentText().split(' ')[0]
         auto_manu = {'auto': self.autopicks_dict,
@@ -418,17 +418,17 @@ class Array_map(QtWidgets.QWidget):
                     print('Cannot display pick for station {}. Reason: {}'.format(station_name, e))
             return picks, uncertainties
 
-        def get_picks_rel(picks):
+        def get_picks_rel(picks, func=min):
             picks_rel = {}
             picks_utc = []
             for pick in picks.values():
-                if type(pick) is obspy.core.utcdatetime.UTCDateTime:
-                    picks_utc.append(pick)
+                if type(pick) is UTCDateTime:
+                    picks_utc.append(pick.timestamp)
             if picks_utc:
-                self._earliest_picktime = min(picks_utc)
+                self._reference_picktime = UTCDateTime(func(picks_utc))
                 for st_id, pick in picks.items():
-                    if type(pick) is obspy.core.utcdatetime.UTCDateTime:
-                        pick -= self._earliest_picktime
+                    if type(pick) is UTCDateTime:
+                        pick -= self._reference_picktime
                     picks_rel[st_id] = pick
             return picks_rel
 
@@ -437,6 +437,15 @@ class Array_map(QtWidgets.QWidget):
 
         self.picks, self.uncertainties = get_picks(self.stations_dict)
         self.picks_rel = get_picks_rel(self.picks)
+        self.picks_rel_mean_corrected = get_picks_rel_mean_corr(self.picks)
+
+    def toggle_subtract_mean(self):
+        if self.subtract_mean_cb.isChecked():
+            cmap = 'seismic'
+        else:
+            cmap = 'viridis'
+        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText(cmap))
+        self._refresh_drawings()
 
     def init_lat_lon_dimensions(self):
         # init minimum and maximum lon and lat dimensions
@@ -467,11 +476,12 @@ class Array_map(QtWidgets.QWidget):
         return stations, latitudes, longitudes
 
     def get_picks_lat_lon(self):
+        picks_rel = self.picks_rel_mean_corrected if self.subtract_mean_cb.isChecked() else self.picks_rel
         picks = []
         uncertainties = []
         latitudes = []
         longitudes = []
-        for st_id, pick in self.picks_rel.items():
+        for st_id, pick in picks_rel.items():
             picks.append(pick)
             uncertainties.append(self.uncertainties.get(st_id))
             latitudes.append(self.stations_dict[st_id]['latitude'])
@@ -538,12 +548,19 @@ class Array_map(QtWidgets.QWidget):
                 print(message, e)
                 print(traceback.format_exc())
 
-    def draw_contour_filled(self, nlevel=50):
-        levels = np.linspace(self.get_min_from_picks(), self.get_max_from_picks(), nlevel)
+    def draw_contour_filled(self, nlevel=51):
+        if self.subtract_mean_cb.isChecked():
+            abs_max = self.get_residuals_absmax()
+            levels = np.linspace(-abs_max, abs_max, nlevel)
+        else:
+            levels = np.linspace(min(self.picks_rel.values()), max(self.picks_rel.values()), nlevel)
 
         self.contourf = self.ax.contourf(self.longrid, self.latgrid, self.picksgrid_active, levels,
                                          linewidths=self.linewidth * 5, transform=ccrs.PlateCarree(),
                                          alpha=0.4, zorder=8, cmap=self.get_colormap())
+
+    def get_residuals_absmax(self):
+        return np.max(np.absolute(list(self.picks_rel_mean_corrected.values())))
 
     def get_colormap(self):
         return plt.get_cmap(self.cmaps_box.currentText())
@@ -575,7 +592,12 @@ class Array_map(QtWidgets.QWidget):
                           for uncertainty in uncertainties])
 
         cmap = self.get_colormap()
-        self.sc_picked = self.ax.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap,
+
+        vmin = vmax = None
+        if self.subtract_mean_cb.isChecked():
+            vmin, vmax = -self.get_residuals_absmax(), self.get_residuals_absmax()
+
+        self.sc_picked = self.ax.scatter(lons, lats, s=sizes, edgecolors='white', cmap=cmap, vmin=vmin, vmax=vmax,
                                          c=picks, zorder=11, label='Picked', transform=ccrs.PlateCarree())
 
     def annotate_ax(self):
@@ -652,7 +674,9 @@ class Array_map(QtWidgets.QWidget):
         if picks_available:
             self.scatter_picked_stations()
             if hasattr(self, 'sc_picked'):
-                self.cbar = self.add_cbar(label='Time relative to first onset ({}) [s]'.format(self._earliest_picktime))
+                self.cbar = self.add_cbar(
+                    label='Time relative to reference onset ({}) [s]'.format(self._reference_picktime)
+                )
             self.comboBox_phase.setEnabled(True)
         else:
             self.comboBox_phase.setEnabled(False)

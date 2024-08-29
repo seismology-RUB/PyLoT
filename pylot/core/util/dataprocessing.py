@@ -27,6 +27,10 @@ class Metadata(object):
         # saves which metadata files are from obspy dmt
         self.obspy_dmt_invs = []
         if inventory:
+            # make sure that no accidental backslashes mess up the path
+            if isinstance(inventory, str):
+                inventory = inventory.replace('\\', '/')
+                inventory = os.path.abspath(inventory)
             if os.path.isdir(inventory):
                 self.add_inventory(inventory)
             if os.path.isfile(inventory):

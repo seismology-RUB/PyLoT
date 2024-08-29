@@ -1031,22 +1031,23 @@ class MainWindow(QMainWindow):
                 if not fname:
                     return
 
-        qmb = QMessageBox(self, icon=QMessageBox.Question,
-                          text='Do you want to overwrite this data?',)
-        overwrite_button = qmb.addButton('Overwrite', QMessageBox.YesRole)
-        merge_button = qmb.addButton('Merge', QMessageBox.NoRole)
-
-        qmb.exec_()
-
-        if qmb.clickedButton() == overwrite_button:
-            merge_strategy = 'Overwrite'
-        elif qmb.clickedButton() == merge_button:
-            merge_strategy = 'Merge'
-        else:
-            return
-
         if not event:
             event = self.get_current_event()
+
+        if event.picks:
+            qmb = QMessageBox(self, icon=QMessageBox.Question,
+                              text='Do you want to overwrite the data?',)
+            overwrite_button = qmb.addButton('Overwrite', QMessageBox.YesRole)
+            merge_button = qmb.addButton('Merge', QMessageBox.NoRole)
+            qmb.exec_()
+
+            if qmb.clickedButton() == overwrite_button:
+                merge_strategy = 'Overwrite'
+            elif qmb.clickedButton() == merge_button:
+                merge_strategy = 'Merge'
+            else:
+                return
+
         data = Data(self, event)
         try:
             data_new = Data(self, evtdata=str(fname))
