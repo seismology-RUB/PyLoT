@@ -17,7 +17,10 @@ autoregressive prediction: application ot local and regional distances, Geophys.
 :author: MAGS2 EP3 working group
 """
 import numpy as np
-from scipy import signal
+try:
+    from scipy.signal import tukey
+except ImportError:
+    from scipy.signal.windows import tukey
 from obspy.core import Stream
 
 from pylot.core.pick.utils import PickingFailedException
@@ -227,7 +230,7 @@ class AICcf(CharacteristicFunction):
         ind = np.where(~np.isnan(xnp))[0]
         if ind.size:
             xnp[:ind[0]] = xnp[ind[0]]
-        xnp = signal.tukey(len(xnp), alpha=0.05) * xnp
+        xnp = tukey(len(xnp), alpha=0.05) * xnp
         xnp = xnp - np.mean(xnp)
         datlen = len(xnp)
         k = np.arange(1, datlen)
