@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import pytest
 
 import obspy
 from obspy import UTCDateTime
@@ -105,7 +106,6 @@ class TestAutopickStation(unittest.TestCase):
         # show complete diff when difference in results dictionaries are found
         self.maxDiff = None
 
-    # @skip("Works")
     def test_autopickstation_taupy_disabled_gra1(self):
         expected = {
             'P': {'picker': 'auto', 'snrdb': 15.405649120980094, 'weight': 0, 'Mo': None, 'marked': [], 'Mw': None,
@@ -121,8 +121,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_taupy_enabled_gra1(self):
@@ -140,8 +140,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_taupy_disabled_gra2(self):
@@ -157,8 +157,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('GRA2', station)
 
     def test_autopickstation_taupy_enabled_gra2(self):
@@ -175,8 +175,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('GRA2', station)
 
     def test_autopickstation_taupy_disabled_ech(self):
@@ -190,8 +190,8 @@ class TestAutopickStation(unittest.TestCase):
                           'fm': None, 'spe': None, 'channel': u'LHE'}}
         with HidePrints():
             result, station = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_disabled)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('ECH', station)
 
     def test_autopickstation_taupy_enabled_ech(self):
@@ -208,8 +208,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('ECH', station)
 
     def test_autopickstation_taupy_disabled_fiesa(self):
@@ -224,8 +224,8 @@ class TestAutopickStation(unittest.TestCase):
                           'fm': None, 'spe': None, 'channel': u'LHE'}}
         with HidePrints():
             result, station = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_disabled)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('FIESA', station)
 
     def test_autopickstation_taupy_enabled_fiesa(self):
@@ -242,8 +242,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertDictContainsSubset(expected=expected['P'], actual=result['P'])
-        self.assertDictContainsSubset(expected=expected['S'], actual=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'])
+        compare_dicts(expected=expected['S'], result=result['S'])
         self.assertEqual('FIESA', station)
 
     def test_autopickstation_gra1_z_comp_missing(self):
@@ -272,7 +272,7 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        self.assertEqual(expected, result)
+        compare_dicts(result, expected)
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_a106_taupy_enabled(self):
@@ -290,7 +290,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a106, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertEqual(expected, result)
+        compare_dicts(result=result, expected=expected)
+
 
     def test_autopickstation_station_missing_in_metadata(self):
         """This station is not in the metadata, but Taupy is enabled. Taupy should exit cleanly and modify the starttime
@@ -311,7 +312,19 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a005a, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        self.assertEqual(expected, result)
+        compare_dicts(result, expected)
+
+
+def compare_dicts(result, expected):
+    for key, expected_value in expected.items():
+        if isinstance(expected_value, dict):
+            compare_dicts(result[key], expected[key])
+        else:
+            res = result[key]
+            if isinstance(res, UTCDateTime) and isinstance(expected_value, UTCDateTime):
+                res = res.timestamp
+                expected_value = expected_value.timestamp
+            assert expected_value == pytest.approx(res), f'{key}: {expected_value} != {res}'
 
 
 if __name__ == '__main__':
