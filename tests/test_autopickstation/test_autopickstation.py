@@ -315,10 +315,10 @@ class TestAutopickStation(unittest.TestCase):
         compare_dicts(result, expected)
 
 
-def compare_dicts(result, expected):
+def run_dict_comparison(result, expected):
     for key, expected_value in expected.items():
         if isinstance(expected_value, dict):
-            compare_dicts(result[key], expected[key])
+            run_dict_comparison(result[key], expected[key])
         else:
             res = result[key]
             if isinstance(res, UTCDateTime) and isinstance(expected_value, UTCDateTime):
@@ -326,6 +326,22 @@ def compare_dicts(result, expected):
                 expected_value = expected_value.timestamp
             assert expected_value == pytest.approx(res), f'{key}: {expected_value} != {res}'
 
+
+def compare_dicts(result, expected):
+    try:
+        run_dict_comparison(result, expected)
+    except AssertionError:
+        raise AssertionError(f'Dictionaries not equal.'
+                             f'\n<<Expected>>: \n\n{pretty_print_dict(expected)}'
+                             f'\n<<Result>>: \n{pretty_print_dict(result)}')
+
+
+def pretty_print_dict(dct):
+    retstr = ''
+    for key, value in sorted(dct.items(), key=lambda x: x[0]):
+        retstr += f"{key} : {value}\n"
+
+    return retstr
 
 if __name__ == '__main__':
     unittest.main()
