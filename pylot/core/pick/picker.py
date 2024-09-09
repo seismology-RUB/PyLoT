@@ -316,16 +316,7 @@ class AICPicker(AutoPicker):
                             plt.close(fig)
                     return
                 iislope = islope[0][0:imax + 1]
-            # MP MP change slope calculation
-            # get all maxima of aicsmooth
-            iaicmaxima = argrelmax(aicsmooth)[0]
-            # get first index of maximum after pickindex (indices saved in iaicmaxima)
-            aicmax = iaicmaxima[np.where(iaicmaxima > pickindex)[0]]
-            if len(aicmax) > 0:
-                iaicmax = aicmax[0]
-            else:
-                iaicmax = -1
-            dataslope = aicsmooth[pickindex: iaicmax]
+            dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
             try:
@@ -336,7 +327,7 @@ class AICPicker(AutoPicker):
                 else:
                     self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
                     # normalize slope to maximum of cf to make it unit independent
-                    self.slope /= aicsmooth[iaicmax]
+                    self.slope /= self.Data[0].data[icfmax]
             except Exception as e:
                 print("AICPicker: Problems with data fitting! {}".format(e))
 
@@ -376,7 +367,7 @@ class AICPicker(AutoPicker):
                             label='Signal Window')
                 ax2.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
                             label='Slope Window')
-                ax2.plot(self.Tcf[pickindex: iaicmax], datafit, 'g', linewidth=2,
+                ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2,
                          label='Slope')  # MP MP changed temporarily!
 
                 if self.slope is not None:
