@@ -173,7 +173,7 @@ class AICPicker(AutoPicker):
         nn = np.isnan(self.cf)
         if len(nn) > 1:
             self.cf[nn] = 0
-        # taper AIC-CF to get rid off side maxima
+        # taper AIC-CF to get rid of side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
         # smooth AIC-CF

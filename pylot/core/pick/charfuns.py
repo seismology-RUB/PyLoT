@@ -59,7 +59,7 @@ class CharacteristicFunction(object):
         self.setOrder(order)
         self.setFnoise(fnoise)
         self.setARdetStep(t2)
-        self.calcCF(self.getDataArray())
+        self.calcCF()
         self.arpara = np.array([])
         self.xpred = np.array([])
 
@@ -211,17 +211,15 @@ class CharacteristicFunction(object):
             data = self.orig_data.copy()
             return data
 
-    def calcCF(self, data=None):
-        self.cf = data
+    def calcCF(self):
+        pass
 
 
 class AICcf(CharacteristicFunction):
 
-    def calcCF(self, data):
+    def calcCF(self):
         """
         Function to calculate the Akaike Information Criterion (AIC) after Maeda (1985).
-        :param data: data, time series (whether seismogram or CF)
-        :type data: tuple
         :return: AIC function
         :rtype:
         """
@@ -259,13 +257,11 @@ class HOScf(CharacteristicFunction):
         """
         super(HOScf, self).__init__(data, cut, pickparams["tlta"], pickparams["hosorder"])
 
-    def calcCF(self, data):
+    def calcCF(self):
         """
         Function to calculate skewness (statistics of order 3) or kurtosis
         (statistics of order 4), using one long moving window, as published
         in Kueperkoch et al. (2010), or order 2, i.e. STA/LTA.
-        :param data: data, time series (whether seismogram or CF)
-        :type data: tuple
         :return: HOS cf
         :rtype:
         """
@@ -342,12 +338,10 @@ class ARZcf(CharacteristicFunction):
         super(ARZcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Parorder"],
                                     fnoise=pickparams["addnoise"])
 
-    def calcCF(self, data):
+    def calcCF(self):
         """
         function used to calculate the AR prediction error from a single vertical trace. Can be used to pick
         P onsets.
-        :param data:
-        :type data: ~obspy.core.stream.Stream
         :return: ARZ cf
         :rtype:
         """
@@ -478,14 +472,12 @@ class ARHcf(CharacteristicFunction):
         super(ARHcf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"],
                                     fnoise=pickparams["addnoise"])
 
-    def calcCF(self, data):
+    def calcCF(self):
         """
         Function to calculate a characteristic function using autoregressive modelling of the waveform of
         both horizontal traces.
         The waveform is predicted in a moving time window using the calculated AR parameters. The difference
         between the predicted and the actual waveform servers as a characteristic function.
-        :param data: wavefor stream
-        :type data: ~obspy.core.stream.Stream
         :return: ARH cf
         :rtype:
         """
@@ -634,14 +626,12 @@ class AR3Ccf(CharacteristicFunction):
         super(AR3Ccf, self).__init__(data, cut, t1=t1, t2=t2, order=pickparams["Sarorder"],
                                      fnoise=pickparams["addnoise"])
 
-    def calcCF(self, data):
+    def calcCF(self):
         """
         Function to calculate a characteristic function using autoregressive modelling of the waveform of
         all three traces.
         The waveform is predicted in a moving time window using the calculated AR parameters. The difference
         between the predicted and the actual waveform servers as a characteristic function
-        :param data: stream holding all three traces
-        :type data: ~obspy.core.stream.Stream
         :return: AR3C cf
         :rtype:
         """
