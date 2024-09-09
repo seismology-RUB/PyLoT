@@ -276,47 +276,28 @@ class HOScf(CharacteristicFunction):
         elif self.getOrder() == 4:  # this is kurtosis
             y = np.power(xnp, 4)
             y1 = np.power(xnp, 2)
-        elif self.getOrder() == 2:  # this is variance, used for STA/LTA processing
-            y = np.power(xnp, 2)
-            y1 = np.power(xnp, 2)
 
         # Initialisation
         # t2: long term moving window
         ilta = int(round(self.getTime2() / self.getIncrement()))
-        ista = int(round((self.getTime2() / 10) / self.getIncrement()))  # TODO: still hard coded!!
         lta = y[0]
         lta1 = y1[0]
-        sta = y[0]
         # moving windows
         LTA = np.zeros(len(xnp))
-        STA = np.zeros(len(xnp))
         for j in range(0, len(xnp)):
             if j < 4:
                 LTA[j] = 0
-                STA[j] = 0
-            elif j <= ista and self.getOrder() == 2:
-                lta = (y[j] + lta * (j - 1)) / j
-                if self.getOrder() == 2:
-                    sta = (y[j] + sta * (j - 1)) / j
-            # elif j < 4:
             elif j <= ilta:
                 lta = (y[j] + lta * (j - 1)) / j
                 lta1 = (y1[j] + lta1 * (j - 1)) / j
-                if self.getOrder() == 2:
-                    sta = (y[j] - y[j - ista]) / ista + sta
             else:
                 lta = (y[j] - y[j - ilta]) / ilta + lta
                 lta1 = (y1[j] - y1[j - ilta]) / ilta + lta1
-                if self.getOrder() == 2:
-                    sta = (y[j] - y[j - ista]) / ista + sta
             # define LTA
             if self.getOrder() == 3:
                 LTA[j] = lta / np.power(lta1, 1.5)
             elif self.getOrder() == 4:
                 LTA[j] = lta / np.power(lta1, 2)
-            else:
-                LTA[j] = lta
-                STA[j] = sta
 
         # remove NaN's with first not-NaN-value,
         # so autopicker doesnt pick discontinuity at start of the trace
@@ -325,10 +306,7 @@ class HOScf(CharacteristicFunction):
             first = ind[0]
             LTA[:first] = LTA[first]
 
-        if self.getOrder() > 2:
-            self.cf = LTA
-        else:  # order 2 means STA/LTA!
-            self.cf = STA / LTA
+        self.cf = LTA
         self.xcf = x
 
 
