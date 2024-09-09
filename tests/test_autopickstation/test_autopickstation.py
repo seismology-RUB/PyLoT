@@ -272,7 +272,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        compare_dicts(result, expected)
+        compare_dicts(result=result['P'], expected=expected['P'])
+        compare_dicts(result=result['S'], expected=expected['S'])
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_a106_taupy_enabled(self):
@@ -290,7 +291,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a106, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(result=result, expected=expected)
+        compare_dicts(result=result['P'], expected=expected['P'])
+        compare_dicts(result=result['S'], expected=expected['S'])
 
 
     def test_autopickstation_station_missing_in_metadata(self):
@@ -312,7 +314,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a005a, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(result, expected)
+        compare_dicts(result=result['P'], expected=expected['P'])
+        compare_dicts(result=result['S'], expected=expected['S'])
 
 
 def run_dict_comparison(result, expected):
@@ -332,8 +335,8 @@ def compare_dicts(result, expected):
         run_dict_comparison(result, expected)
     except AssertionError:
         raise AssertionError(f'Dictionaries not equal.'
-                             f'\n<<Expected>>: \n\n{pretty_print_dict(expected)}'
-                             f'\n<<Result>>: \n{pretty_print_dict(result)}')
+                             f'\n\n<<Expected>>\n{pretty_print_dict(expected)}'
+                             f'\n\n<<Result>>\n{pretty_print_dict(result)}')
 
 
 def pretty_print_dict(dct):
