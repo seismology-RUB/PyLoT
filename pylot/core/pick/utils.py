@@ -15,7 +15,7 @@ import numpy as np
 from obspy.core import Stream, UTCDateTime
 from scipy.signal import argrelmax
 
-from pylot.core.util.utils import get_bool, get_none, SetChannelComponents
+from pylot.core.util.utils import get_bool, get_none, SetChannelComponents, common_range
 
 
 def earllatepicker(X, nfac, TSNR, Pick1, iplot=0, verbosity=1, fig=None, linecolor='k'):
@@ -828,13 +828,19 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
     if len(X) > 1:
         # all three components available
         # make sure, all components have equal lengths
-        # MP MP: TODO: This is highly problematic in case of different starttimes (or sampling rates) of the traces
-        ilen = min([len(X[0].data), len(X[1].data), len(X[2].data)])
-        x1 = X[0][0:ilen]
-        x2 = X[1][0:ilen]
-        x3 = X[2][0:ilen]
+        earliest_starttime = min(tr.stats.starttime for tr in X)
+        cuttimes = common_range(X)
+        X = X.slice(cuttimes[0], cuttimes[1])
+        x1, x2, x3 = X[:3]
+
+        if not (len(x1) == len(x2) == len(x3)):
+            raise PickingFailedException('checksignallength: unequal lengths of components!')
+
         # get RMS trace
         rms = np.sqrt((np.power(x1, 2) + np.power(x2, 2) + np.power(x3, 2)) / 3)
+        ilen = len(rms)
+        dt = earliest_starttime - X[0].stats.starttime
+        pick -= dt
     else:
         x1 = X[0].data
         x2 = x3 = None
