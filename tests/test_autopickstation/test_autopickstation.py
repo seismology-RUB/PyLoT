@@ -121,8 +121,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_taupy_enabled_gra1(self):
@@ -140,8 +140,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra1, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_taupy_disabled_gra2(self):
@@ -157,8 +157,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('GRA2', station)
 
     def test_autopickstation_taupy_enabled_gra2(self):
@@ -175,8 +175,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.gra2, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('GRA2', station)
 
     def test_autopickstation_taupy_disabled_ech(self):
@@ -190,8 +190,8 @@ class TestAutopickStation(unittest.TestCase):
                           'fm': None, 'spe': None, 'channel': u'LHE'}}
         with HidePrints():
             result, station = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_disabled)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('ECH', station)
 
     def test_autopickstation_taupy_enabled_ech(self):
@@ -208,8 +208,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.ech, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('ECH', station)
 
     def test_autopickstation_taupy_disabled_fiesa(self):
@@ -224,8 +224,8 @@ class TestAutopickStation(unittest.TestCase):
                           'fm': None, 'spe': None, 'channel': u'LHE'}}
         with HidePrints():
             result, station = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_disabled)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('FIESA', station)
 
     def test_autopickstation_taupy_enabled_fiesa(self):
@@ -242,8 +242,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.fiesa, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(expected=expected['P'], result=result['P'])
-        compare_dicts(expected=expected['S'], result=result['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('FIESA', station)
 
     def test_autopickstation_gra1_z_comp_missing(self):
@@ -272,8 +272,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=wfstream, pickparam=self.pickparam_taupy_disabled,
                                               metadata=(None, None))
-        compare_dicts(result=result['P'], expected=expected['P'])
-        compare_dicts(result=result['S'], expected=expected['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
         self.assertEqual('GRA1', station)
 
     def test_autopickstation_a106_taupy_enabled(self):
@@ -291,8 +291,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a106, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(result=result['P'], expected=expected['P'])
-        compare_dicts(result=result['S'], expected=expected['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
 
 
     def test_autopickstation_station_missing_in_metadata(self):
@@ -314,8 +314,8 @@ class TestAutopickStation(unittest.TestCase):
         with HidePrints():
             result, station = autopickstation(wfstream=self.a005a, pickparam=self.pickparam_taupy_enabled,
                                               metadata=self.metadata, origin=self.origin)
-        compare_dicts(result=result['P'], expected=expected['P'])
-        compare_dicts(result=result['S'], expected=expected['S'])
+        compare_dicts(expected=expected['P'], result=result['P'], hint='P-')
+        compare_dicts(expected=expected['S'], result=result['S'], hint='S-')
 
 
 def run_dict_comparison(result, expected):
@@ -330,11 +330,11 @@ def run_dict_comparison(result, expected):
             assert expected_value == pytest.approx(res), f'{key}: {expected_value} != {res}'
 
 
-def compare_dicts(result, expected):
+def compare_dicts(result, expected, hint=''):
     try:
         run_dict_comparison(result, expected)
     except AssertionError:
-        raise AssertionError(f'Dictionaries not equal.'
+        raise AssertionError(f'{hint}Dictionaries not equal.'
                              f'\n\n<<Expected>>\n{pretty_print_dict(expected)}'
                              f'\n\n<<Result>>\n{pretty_print_dict(result)}')
 
