@@ -37,7 +37,8 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None, linecolor='k'):
+    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None,
+                 fig=None, linecolor='k', ogstream=None):
         """
         Create AutoPicker object
         :param cf: characteristic function, on which the picking algorithm is applied
@@ -59,12 +60,15 @@ class AutoPicker(object):
         :type fig: `~matplotlib.figure.Figure`
         :param linecolor: matplotlib line color string
         :type linecolor: str
+        :param ogstream: original stream (waveform), e.g. for plotting purposes
+        :type ogstream: `~obspy.core.stream.Stream`
         """
 
         assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
         self._linecolor = linecolor
         self._pickcolor_p = 'b'
         self.cf = cf.getCF()
+        self.ogstream = ogstream
         self.Tcf = cf.getTimeArray()
         self.Data = cf.getXCF()
         self.dt = cf.getIncrement()
@@ -347,6 +351,12 @@ class AICPicker(AutoPicker):
                 self.Tcf = self.Tcf[0:len(self.Tcf) - 1]
             ax1.plot(self.Tcf, cf / max(cf), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
+            # plot the original waveform also for evaluation of the CF and pick
+            if self.ogstream:
+                data = self.ogstream[0].data
+                if len(data) == len(self.Tcf):
+                    ax1.plot(self.Tcf, 0.5 * data / max(data), 'k', label='Seismogram', alpha=0.3, zorder=0,
+                             lw=0.5)
             if self.Pick is not None:
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
             ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)

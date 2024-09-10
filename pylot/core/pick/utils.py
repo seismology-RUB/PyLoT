@@ -828,6 +828,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
     if len(X) > 1:
         # all three components available
         # make sure, all components have equal lengths
+        # MP MP: TODO: This is highly problematic in case of different starttimes (or sampling rates) of the traces
         ilen = min([len(X[0].data), len(X[1].data), len(X[2].data)])
         x1 = X[0][0:ilen]
         x2 = X[1][0:ilen]
@@ -836,6 +837,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         rms = np.sqrt((np.power(x1, 2) + np.power(x2, 2) + np.power(x3, 2)) / 3)
     else:
         x1 = X[0].data
+        x2 = x3 = None
         ilen = len(x1)
         rms = abs(x1)
 
@@ -874,6 +876,10 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         fig._tight = True
         ax = fig.add_subplot(111)
         ax.plot(t, rms, color=linecolor, linewidth=0.7, label='RMS Data')
+        ax.plot(t, x1, 'k', alpha=0.3, lw=0.3, zorder=0)
+        if x2 is not None and x3 is not None:
+            ax.plot(t, x2, 'r', alpha=0.3, lw=0.3, zorder=0)
+            ax.plot(t, x3, 'g', alpha=0.3, lw=0.3, zorder=0)
         ax.axvspan(t[inoise[0]], t[inoise[-1]], color='y', alpha=0.2, lw=0, label='Noise Window')
         ax.axvspan(t[isignal[0]], t[isignal[-1]], color='b', alpha=0.2, lw=0, label='Signal Window')
         ax.plot([t[isignal[0]], t[isignal[len(isignal) - 1]]],
@@ -883,6 +889,7 @@ def checksignallength(X, pick, minsiglength, pickparams, iplot=0, fig=None, line
         ax.set_xlabel('Time [s] since %s' % X[0].stats.starttime)
         ax.set_ylabel('Counts')
         ax.set_title('Check for Signal Length, Station %s' % X[0].stats.station)
+        ax.set_xlim(pickparams["pstart"], pickparams["pstop"])
         ax.set_yticks([])
         if plt_flag == 1:
             fig.show()
