@@ -620,7 +620,7 @@ class AutopickStation(object):
             # plot pickwindows for P
             pstart, pstop = self.pickparams['pstart'], self.pickparams['pstop']
             if pstart is not None and pstop is not None:
-                ax1.axvspan(pstart, pstop, color='r', alpha=0.2, zorder=0, label='P window')
+                ax1.axvspan(pstart, pstop, color='r', alpha=0.1, zorder=0, label='P window')
             if self.estFirstP is not None:
                 ax1.axvline(self.estFirstP, ls='dashed', color='r', alpha=0.4, label='TauPy estimate')
             if self.p_results.weight < 4:
@@ -732,7 +732,7 @@ class AutopickStation(object):
                 sstart, sstop = self.pickparams['sstart'], self.pickparams['sstop']
                 if sstart is not None and sstop is not None:
                     for axis in [ax2, ax3]:
-                        axis.axvspan(sstart, sstop, color='b', alpha=0.2, zorder=0, label='S window')
+                        axis.axvspan(sstart, sstop, color='b', alpha=0.1, zorder=0, label='S window')
                         if self.estFirstS is not None:
                             axis.axvline(self.estFirstS, ls='dashed', color='b', alpha=0.4, label='TauPy estimate')
 
