@@ -1076,7 +1076,7 @@ def check4rotated(data, metadata=None, verbosity=1):
             return wfs_in
 
         # check metadata quality
-        t_start = full_range(wfs_in)
+        t_start = full_range(wfs_in)[0]
         try:
             azimuths = []
             dips = []

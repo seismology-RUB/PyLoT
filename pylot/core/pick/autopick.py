@@ -262,6 +262,10 @@ class AutopickStation(object):
         self.metadata = metadata
         self.origin = origin
 
+        # initialize TauPy pick estimates
+        self.estFirstP = None
+        self.estFirstS = None
+
         # initialize picking results
         self.p_results = PickingResults()
         self.s_results = PickingResults()
@@ -443,15 +447,15 @@ class AutopickStation(object):
             for arr in arrivals:
                 phases[identifyPhaseID(arr.phase.name)].append(arr)
             # get first P and S onsets from arrivals list
-            estFirstP = 0
-            estFirstS = 0
+            arrival_time_p = 0
+            arrival_time_s = 0
             if len(phases['P']) > 0:
-                arrP, estFirstP = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
+                arrP, arrival_time_p = min([(arr, arr.time) for arr in phases['P']], key=lambda t: t[1])
             if len(phases['S']) > 0:
-                arrS, estFirstS = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
+                arrS, arrival_time_s = min([(arr, arr.time) for arr in phases['S']], key=lambda t: t[1])
             print('autopick: estimated first arrivals for P: {} s, S:{} s after event'
-                  ' origin time using TauPy'.format(estFirstP, estFirstS))
-            return estFirstP, estFirstS
+                  ' origin time using TauPy'.format(arrival_time_p, arrival_time_s))
+            return arrival_time_p, arrival_time_s
 
         def exit_taupy():
             """If taupy failed to calculate theoretical starttimes, picking continues.
@@ -477,10 +481,13 @@ class AutopickStation(object):
             raise AttributeError('No source origins given!')
 
         arrivals = create_arrivals(self.metadata, self.origin, self.pickparams["taup_model"])
-        estFirstP, estFirstS = first_PS_onsets(arrivals)
+        arrival_P, arrival_S = first_PS_onsets(arrivals)
+
+        self.estFirstP = (self.origin[0].time + arrival_P) - self.ztrace.stats.starttime
+
         # modifiy pstart and pstop relative to estimated first P arrival (relative to station time axis)
-        self.pickparams["pstart"] += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
-        self.pickparams["pstop"] += (self.origin[0].time + estFirstP) - self.ztrace.stats.starttime
+        self.pickparams["pstart"] += self.estFirstP
+        self.pickparams["pstop"] += self.estFirstP
         print('autopick: CF calculation times respectively:'
               ' pstart: {} s, pstop: {} s'.format(self.pickparams["pstart"], self.pickparams["pstop"]))
         # make sure pstart and pstop are inside the starttime/endtime of vertical trace
@@ -491,9 +498,10 @@ class AutopickStation(object):
             # for the two horizontal components take earliest and latest time to make sure that the s onset is not clipped
             # if start and endtime of horizontal traces differ, the s windowsize will automatically increase
             trace_s_start = min([self.etrace.stats.starttime, self.ntrace.stats.starttime])
+            self.estFirstS = (self.origin[0].time + arrival_S) - trace_s_start
             # modifiy sstart and sstop relative to estimated first S arrival (relative to station time axis)
-            self.pickparams["sstart"] += (self.origin[0].time + estFirstS) - trace_s_start
-            self.pickparams["sstop"] += (self.origin[0].time + estFirstS) - trace_s_start
+            self.pickparams["sstart"] += self.estFirstS
+            self.pickparams["sstop"] += self.estFirstS
             print('autopick: CF calculation times respectively:'
                   ' sstart: {} s, sstop: {} s'.format(self.pickparams["sstart"], self.pickparams["sstop"]))
             # make sure pstart and pstop are inside the starttime/endtime of horizontal traces
@@ -609,6 +617,12 @@ class AutopickStation(object):
             # plot tapered trace filtered with bpz2 filter settings
             ax1.plot(tdata, self.tr_filt_z_bpz2.data / max(self.tr_filt_z_bpz2.data), color=linecolor, linewidth=0.7,
                      label='Data')
+            # plot pickwindows for P
+            pstart, pstop = self.pickparams['pstart'], self.pickparams['pstop']
+            if pstart is not None and pstop is not None:
+                ax1.axvspan(pstart, pstop, color='r', alpha=0.1, zorder=0, label='P window')
+            if self.estFirstP is not None:
+                ax1.axvline(self.estFirstP, ls='dashed', color='r', alpha=0.4, label='TauPy estimate')
             if self.p_results.weight < 4:
                 # plot CF of initial onset (HOScf or ARZcf)
                 ax1.plot(self.cf1.getTimeArray(), self.cf1.getCF() / max(self.cf1.getCF()), 'b', label='CF1')
@@ -713,6 +727,15 @@ class AutopickStation(object):
                         ax3.plot([refSpick.getpick() - 0.5, refSpick.getpick() + 0.5], [-1.3, -1.3], 'g', linewidth=2)
                         ax3.plot([self.s_results.lpp, self.s_results.lpp], [-1.1, 1.1], 'g--', label='lpp')
                         ax3.plot([self.s_results.epp, self.s_results.epp], [-1.1, 1.1], 'g--', label='epp')
+
+                # plot pickwindows for S
+                sstart, sstop = self.pickparams['sstart'], self.pickparams['sstop']
+                if sstart is not None and sstop is not None:
+                    for axis in [ax2, ax3]:
+                        axis.axvspan(sstart, sstop, color='b', alpha=0.1, zorder=0, label='S window')
+                        if self.estFirstS is not None:
+                            axis.axvline(self.estFirstS, ls='dashed', color='b', alpha=0.4, label='TauPy estimate')
+
                 ax3.legend(loc=1)
                 ax3.set_yticks([])
                 ax3.set_ylim([-1.5, 1.5])
@@ -835,14 +858,21 @@ class AutopickStation(object):
             self.cf1 = None
         assert isinstance(self.cf1, CharacteristicFunction), 'cf1 is not set correctly: maybe the algorithm name ({})' \
                                                              ' is corrupted'.format(self.pickparams["algoP"])
+        # get the original waveform stream from first CF class cut to identical length as CF for plotting
+        cut_ogstream = self.cf1.getDataArray(self.cf1.getCut())
+
+        # MP: Rename to cf_stream for further use of z_copy and to prevent chaos when z_copy suddenly becomes a cf
+        # stream and later again a waveform stream
+        cf_stream = z_copy.copy()
+        cf_stream[0].data = self.cf1.getCF()
+
         # calculate AIC cf from first cf (either HOS or ARZ)
-        z_copy[0].data = self.cf1.getCF()
-        aiccf = AICcf(z_copy, cuttimes)
+        aiccf = AICcf(cf_stream, cuttimes)
         # get preliminary onset time from AIC-CF
         self.set_current_figure('aicFig')
         aicpick = AICPicker(aiccf, self.pickparams["tsnrz"], self.pickparams["pickwinP"], self.iplot,
                             Tsmooth=self.pickparams["aictsmooth"], fig=self.current_figure,
-                            linecolor=self.current_linecolor)
+                            linecolor=self.current_linecolor, ogstream=cut_ogstream)
         # save aicpick for plotting later
         self.p_data.aicpick = aicpick
         # add pstart and pstop to aic plot
@@ -855,7 +885,7 @@ class AutopickStation(object):
                           label='P stop')
                 ax.legend(loc=1)
 
-        Pflag = self._pick_p_quality_control(aicpick, z_copy, tr_filt)
+        Pflag = self._pick_p_quality_control(aicpick, cf_stream, tr_filt)
         # go on with processing if AIC onset passes quality control
         slope = aicpick.getSlope()
         if not slope: slope = 0
@@ -894,7 +924,7 @@ class AutopickStation(object):
         refPpick = PragPicker(self.cf2, self.pickparams["tsnrz"], self.pickparams["pickwinP"], self.iplot,
                               self.pickparams["ausP"],
                               self.pickparams["tsmoothP"], aicpick.getpick(), self.current_figure,
-                              self.current_linecolor)
+                              self.current_linecolor, ogstream=cut_ogstream)
         # save PragPicker result for plotting
         self.p_data.refPpick = refPpick
         self.p_results.mpp = refPpick.getpick()
@@ -1146,11 +1176,14 @@ class AutopickStation(object):
         # calculate AIC cf
         haiccf = self._calculate_aic_cf_s_pick(cuttimesh)
 
+        # get the original waveform stream cut to identical length as CF for plotting
+        ogstream = haiccf.getDataArray(haiccf.getCut())
+
         # get preliminary onset time from AIC cf
         self.set_current_figure('aicARHfig')
         aicarhpick = AICPicker(haiccf, self.pickparams["tsnrh"], self.pickparams["pickwinS"], self.iplot,
                                Tsmooth=self.pickparams["aictsmoothS"], fig=self.current_figure,
-                               linecolor=self.current_linecolor)
+                               linecolor=self.current_linecolor, ogstream=ogstream)
         # save pick for later plotting
         self.aicarhpick = aicarhpick
 

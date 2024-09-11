@@ -41,6 +41,7 @@ global                                             #extent#         %extent of a
 875.0                                              #sstop#          %end time [s] after P-onset for calculating CF for S-picking                                         
 True                                               #use_taup#       %use estimated traveltimes from TauPy for calculating windows for CF                                 
 IASP91                                             #taup_model#     %define TauPy model for traveltime estimation. Possible values: 1066a, 1066b, ak135, ak135f, herrin, iasp91, jb, prem, pwdk, sp6
+P,Pdiff,S,Sdiff                                    #taup_phases#    %Specify possible phases for TauPy (comma separated). See Obspy TauPy documentation for possible values.
 0.01 0.1                                           #bpz1#           %lower/upper corner freq. of first band pass filter Z-comp. [Hz]                                     
 0.001 0.5                                          #bpz2#           %lower/upper corner freq. of second band pass filter Z-comp. [Hz]                                    
 0.01 0.5                                           #bph1#           %lower/upper corner freq. of first band pass filter H-comp. [Hz]                                     

@@ -37,7 +37,8 @@ class AutoPicker(object):
 
     warnings.simplefilter('ignore')
 
-    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None, fig=None, linecolor='k'):
+    def __init__(self, cf, TSNR, PickWindow, iplot=0, aus=None, Tsmooth=None, Pick1=None,
+                 fig=None, linecolor='k', ogstream=None):
         """
         Create AutoPicker object
         :param cf: characteristic function, on which the picking algorithm is applied
@@ -59,12 +60,15 @@ class AutoPicker(object):
         :type fig: `~matplotlib.figure.Figure`
         :param linecolor: matplotlib line color string
         :type linecolor: str
+        :param ogstream: original stream (waveform), e.g. for plotting purposes
+        :type ogstream: `~obspy.core.stream.Stream`
         """
 
         assert isinstance(cf, CharacteristicFunction), "%s is not a CharacteristicFunction object" % str(cf)
         self._linecolor = linecolor
         self._pickcolor_p = 'b'
         self.cf = cf.getCF()
+        self.ogstream = ogstream
         self.Tcf = cf.getTimeArray()
         self.Data = cf.getXCF()
         self.dt = cf.getIncrement()
@@ -173,7 +177,7 @@ class AICPicker(AutoPicker):
         nn = np.isnan(self.cf)
         if len(nn) > 1:
             self.cf[nn] = 0
-        # taper AIC-CF to get rid off side maxima
+        # taper AIC-CF to get rid of side maxima
         tap = np.hanning(len(self.cf))
         aic = tap * self.cf + max(abs(self.cf))
         # smooth AIC-CF
@@ -316,16 +320,7 @@ class AICPicker(AutoPicker):
                             plt.close(fig)
                     return
                 iislope = islope[0][0:imax + 1]
-            # MP MP change slope calculation
-            # get all maxima of aicsmooth
-            iaicmaxima = argrelmax(aicsmooth)[0]
-            # get first index of maximum after pickindex (indices saved in iaicmaxima)
-            aicmax = iaicmaxima[np.where(iaicmaxima > pickindex)[0]]
-            if len(aicmax) > 0:
-                iaicmax = aicmax[0]
-            else:
-                iaicmax = -1
-            dataslope = aicsmooth[pickindex: iaicmax]
+            dataslope = self.Data[0].data[iislope]
             # calculate slope as polynomal fit of order 1
             xslope = np.arange(0, len(dataslope), 1)
             try:
@@ -336,7 +331,7 @@ class AICPicker(AutoPicker):
                 else:
                     self.slope = 1 / (len(dataslope) * self.Data[0].stats.delta) * (datafit[-1] - datafit[0])
                     # normalize slope to maximum of cf to make it unit independent
-                    self.slope /= aicsmooth[iaicmax]
+                    self.slope /= self.Data[0].data[icfmax]
             except Exception as e:
                 print("AICPicker: Problems with data fitting! {}".format(e))
 
@@ -356,6 +351,12 @@ class AICPicker(AutoPicker):
                 self.Tcf = self.Tcf[0:len(self.Tcf) - 1]
             ax1.plot(self.Tcf, cf / max(cf), color=self._linecolor, linewidth=0.7, label='(HOS-/AR-) Data')
             ax1.plot(self.Tcf, aicsmooth / max(aicsmooth), 'r', label='Smoothed AIC-CF')
+            # plot the original waveform also for evaluation of the CF and pick
+            if self.ogstream:
+                data = self.ogstream[0].data
+                if len(data) == len(self.Tcf):
+                    ax1.plot(self.Tcf, 0.5 * data / max(data), 'k', label='Seismogram', alpha=0.3, zorder=0,
+                             lw=0.5)
             if self.Pick is not None:
                 ax1.plot([self.Pick, self.Pick], [-0.1, 0.5], 'b', linewidth=2, label='AIC-Pick')
             ax1.set_xlabel('Time [s] since %s' % self.Data[0].stats.starttime)
@@ -376,7 +377,7 @@ class AICPicker(AutoPicker):
                             label='Signal Window')
                 ax2.axvspan(self.Tcf[iislope[0]], self.Tcf[iislope[-1]], color='g', alpha=0.2, lw=0,
                             label='Slope Window')
-                ax2.plot(self.Tcf[pickindex: iaicmax], datafit, 'g', linewidth=2,
+                ax2.plot(self.Tcf[iislope], datafit, 'g', linewidth=2,
                          label='Slope')  # MP MP changed temporarily!
 
                 if self.slope is not None:
