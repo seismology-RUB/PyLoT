@@ -54,33 +54,14 @@ In order to run PyLoT you need to install:
 
 #### Some handwork:
 
-PyLoT needs a properties folder on your system to work. It should be situated in your home directory
-(on Windows usually C:/Users/*username*):
-
-    mkdir ~/.pylot
-
-In the next step you have to copy some files to this directory:
-
-*for local distance seismicity*
-
-    cp path-to-pylot/inputs/pylot_local.in ~/.pylot/pylot.in
-
-*for regional distance seismicity*
-
-    cp path-to-pylot/inputs/pylot_regional.in ~/.pylot/pylot.in
-
-*for global distance seismicity*
-
-    cp path-to-pylot/inputs/pylot_global.in ~/.pylot/pylot.in
-
-and some extra information on error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling
+Some extra information on error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling
 relation
 
     cp path-to-pylot/inputs/PILOT_TimeErrors.in path-to-pylot/inputs/richter_scaling.data ~/.pylot/
 
 You may need to do some modifications to these files. Especially folder names should be reviewed.
 
-PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
+PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10/11.
 
 ## Release notes
 
@@ -89,6 +70,7 @@ PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 - event organisation in project files and waveform visualisation
 - consistent manual phase picking through predefined SNR dependant zoom level
 - consistent automatic phase picking routines using Higher Order Statistics, AIC and Autoregression
+- pick correlation correction for teleseismic waveforms
 - interactive tuning of auto-pick parameters
 - uniform uncertainty estimation from waveform's properties for automatic and manual picks
 - pdf representation and comparison of picks taking the uncertainty intrinsically into account
@@ -97,7 +79,7 @@ PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 
 #### Known issues:
 
-We hope to solve these with the next release.
+Current release is still in development progress and has several issues. We are currently lacking manpower, but hope to assess many of the issues in the near future.
 
 ## Staff
 
@@ -110,4 +92,4 @@ Others: A. Bruestle, T. Meier, W. Friederich
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-August 2024
+September 2024
