@@ -21,6 +21,7 @@ try:
     from scipy.signal import tukey
 except ImportError:
     from scipy.signal.windows import tukey
+
 from obspy.core import Stream
 
 from pylot.core.pick.utils import PickingFailedException

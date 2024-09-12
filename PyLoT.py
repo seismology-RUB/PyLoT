@@ -2196,7 +2196,8 @@ class MainWindow(QMainWindow):
         if event.pylot_autopicks:
             self.drawPicks(picktype='auto')
         if event.pylot_picks or event.pylot_autopicks:
-            self.locateEventAction.setEnabled(True)
+            if not self._inputs.get('extent') == 'global':
+                self.locateEventAction.setEnabled(True)
             self.qualities_action.setEnabled(True)
             self.eventlist_xml_action.setEnabled(True)
 
@@ -2631,7 +2632,6 @@ class MainWindow(QMainWindow):
                           picks=self.getPicksOnStation(station, 'manual'),
                           autopicks=self.getPicksOnStation(station, 'auto'),
                           metadata=self.metadata, event=event,
-                          model=self.inputs.get('taup_model'),
                           filteroptions=self.filteroptions, wftype=wftype,
                           show_comp_data=self.dataPlot.comp_checkbox.isChecked())
         if self.filterActionP.isChecked():

@@ -1871,13 +1871,14 @@ class PickDlg(QDialog):
 
     def __init__(self, parent=None, data=None, data_compare=None, station=None, network=None, location=None, picks=None,
                  autopicks=None, rotate=False, parameter=None, embedded=False, metadata=None, show_comp_data=False,
-                 event=None, filteroptions=None, model=None, wftype=None):
+                 event=None, filteroptions=None, wftype=None):
         super(PickDlg, self).__init__(parent, Qt.Window)
         self.orig_parent = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         # initialize attributes
         self.parameter = parameter
+        model = self.parameter.get('taup_model')
         self._embedded = embedded
         self.showCompData = show_comp_data
         self.station = station
@@ -2270,8 +2271,8 @@ class PickDlg(QDialog):
         arrivals = func[plot](source_origin.depth,
                               source_origin.latitude,
                               source_origin.longitude,
-                              station_coords['latitude'],
-                              station_coords['longitude'],
+                              station_coords.get('latitude'),
+                              station_coords.get('longitude'),
                               phases)
         self.arrivals = arrivals
 
