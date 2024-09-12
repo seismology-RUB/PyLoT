@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+from functools import lru_cache
 
 try:
     import pyqtgraph as pg
@@ -25,14 +26,14 @@ def pick_linestyle_pg(picktype, key):
     :return: Qt line style parameters
     :rtype:
     """
-    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2.),
-                       'epp': (QtCore.Qt.DashLine, 1.),
-                       'lpp': (QtCore.Qt.DashLine, 1.),
-                       'spe': (QtCore.Qt.DashLine, 1.)}
-    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 2.),
-                       'epp': (QtCore.Qt.DashDotLine, 1.),
-                       'lpp': (QtCore.Qt.DashDotLine, 1.),
-                       'spe': (QtCore.Qt.DashDotLine, 1.)}
+    linestyles_manu = {'mpp': (QtCore.Qt.SolidLine, 2),
+                       'epp': (QtCore.Qt.DashLine, 1),
+                       'lpp': (QtCore.Qt.DashLine, 1),
+                       'spe': (QtCore.Qt.DashLine, 1)}
+    linestyles_auto = {'mpp': (QtCore.Qt.DotLine, 2),
+                       'epp': (QtCore.Qt.DashDotLine, 1),
+                       'lpp': (QtCore.Qt.DashDotLine, 1),
+                       'spe': (QtCore.Qt.DashDotLine, 1)}
     linestyles = {'manual': linestyles_manu,
                   'auto': linestyles_auto}
     return linestyles[picktype][key]
@@ -80,6 +81,7 @@ def which(program, parameter):
     return None
 
 
+@lru_cache(maxsize=128)
 def make_pen(picktype, phase, key, quality):
     """
     Make  PyQtGraph.QPen

@@ -2153,10 +2153,11 @@ class MainWindow(QMainWindow):
         self.wf_scroll_area.setVisible(len(plots) > 0)
         self.no_data_label.setVisible(not len(plots) > 0)
         for times, data, times_syn, data_syn in plots:
-            self.dataPlot.plotWidget.getPlotItem().plot(times, data,
-                                                        pen=self.dataPlot.pen_linecolor)
+            self.dataPlot.plotWidget.getPlotItem().plot(np.array(times), np.array(data),
+                                                        pen=self.dataPlot.pen_linecolor,
+                                                        skipFiniteCheck=True)
             if len(data_syn) > 0:
-                self.dataPlot.plotWidget.getPlotItem().plot(times_syn, data_syn,
+                self.dataPlot.plotWidget.getPlotItem().plot(np.array(times_syn), np.array(data_syn),
                                                             pen=self.dataPlot.pen_linecolor_syn)
         self.dataPlot.reinitMoveProxy()
         self.highlight_stations()
@@ -3096,7 +3097,7 @@ class MainWindow(QMainWindow):
 
                 if self.pg:
                     if spe:
-                        if picks['epp'] and picks['lpp']:
+                        if not self.plot_method == 'fast' and picks['epp'] and picks['lpp']:
                             pen = make_pen(picktype, phaseID, 'epp', quality)
                             self.drawnPicks[picktype][station].append(pw.plot([epp, epp], ylims,
                                                                               alpha=.25, pen=pen, name='EPP'))
