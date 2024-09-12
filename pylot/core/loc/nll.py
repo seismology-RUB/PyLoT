@@ -6,8 +6,10 @@ import os
 import subprocess
 
 from obspy import read_events
+
 from pylot.core.io.phases import writephases
-from pylot.core.util.utils import getPatternLine, runProgram, which
+from pylot.core.util.gui import which
+from pylot.core.util.utils import getPatternLine, runProgram
 from pylot.core.util.version import get_git_version as _getVersionString
 
 __version__ = _getVersionString()
@@ -28,8 +30,8 @@ def export(picks, fnout, parameter):
     :param fnout: complete path to the exporting obs file
     :type fnout: str
  
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
     '''
     # write phases to NLLoc-phase file
     writephases(picks, 'NLLoc', fnout, parameter)
@@ -38,19 +40,19 @@ def export(picks, fnout, parameter):
 def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     '''
     :param ctrfn: name of NLLoc-control file
-    :type: str
+    :type ctrfn: str
 
     :param root: root path to NLLoc working directory
-    :type: str
+    :type root: str
 
     :param nllocoutn: name of NLLoc-location output file
-    :type: str
+    :type nllocoutn: str
 
     :param phasefn: name of NLLoc-input phase file
-    :type: str
+    :type phasefn: str
 
     :param tttn: pattern of precalculated NLLoc traveltime tables
-    :type: str
+    :type tttn: str
     '''
     # For locating the event the NLLoc-control file has to be modified!
     # create comment line for NLLoc-control file NLLoc-output file
@@ -73,18 +75,15 @@ def modify_inputs(ctrfn, root, nllocoutn, phasefn, tttn):
     nllfile.close()
 
 
-def locate(fnin, infile=None):
+def locate(fnin, parameter=None):
     """
-    takes an external program name
-    :param fnin:
-    :return:
+    takes an external program name and tries to run it
+    :param parameter: PyLoT Parameter object
+    :param fnin: external program name
+    :return: None
     """
-
-    if infile is None:
-        exe_path = which('NLLoc')
-    else:
-        exe_path = which('NLLoc', infile)
-    if exe_path is None:
+    exe_path = os.path.join(parameter['nllocbin'], 'NLLoc')
+    if not os.path.isfile(exe_path):
         raise NLLocError('NonLinLoc executable not found; check your '
                          'environment variables')
 
@@ -97,10 +96,15 @@ def locate(fnin, infile=None):
 
 def read_location(fn):
     path, file = os.path.split(fn)
-    file = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
-    if len(file) > 1:
-        raise IOError('ambiguous location name {0}'.format(file))
-    fn = os.path.join(path, file[0])
+    nllfile = glob.glob1(path, file + '.[0-9]*.grid0.loc.hyp')
+    if len(nllfile) > 1:
+        # get most recent file
+        print("Found several location files matching pattern!")
+        print("Using the most recent one ...")
+        files_to_search = '{0}/{1}'.format(path, file) + '.[0-9]*.grid0.loc.hyp'
+        fn = max(glob.glob(files_to_search), key=os.path.getctime)
+    else:
+        fn = os.path.join(path, nllfile[0])
     return read_events(fn)[0]
 
 

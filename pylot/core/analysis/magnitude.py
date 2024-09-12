@@ -6,15 +6,17 @@ Revised/extended summer 2017.
 
 :author: Ludger Küperkoch / MAGS2 EP3 working group
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy.core.event as ope
 from obspy.geodetics import degrees2kilometers
+from scipy import integrate, signal
+from scipy.optimize import curve_fit
+
 from pylot.core.pick.utils import getsignalwin, crossings_nonzero_all, \
     select_for_phase
 from pylot.core.util.utils import common_range, fit_curve
-from scipy import integrate, signal
-from scipy.optimize import curve_fit
 
 
 def richter_magnitude_scaling(delta):
@@ -117,12 +119,20 @@ class Magnitude(object):
         pass
 
     def updated_event(self, magscaling=None):
-        self.event.magnitudes.append(self.net_magnitude(magscaling))
+        net_ml = self.net_magnitude(magscaling)
+        if net_ml:
+            self.event.magnitudes.append(net_ml)
         return self.event
 
     def net_magnitude(self, magscaling=None):
         if self:
-            if magscaling is not None and str(magscaling) is not '[0.0, 0.0]':
+            if magscaling is None:
+                scaling = False
+            elif magscaling[0] == 0.0 and magscaling[1] == 0.0:
+                scaling = False
+            else:
+                scaling = True
+            if scaling == True:
                 # scaling necessary
                 print("Scaling network magnitude ...")
                 mag = ope.Magnitude(
@@ -133,7 +143,11 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             else:
-                # no saling necessary
+                # no scaling necessary
+                # Temporary fix needs rework
+                if (len(self.magnitudes.keys()) == 0):
+                    print("Error in local magnitude calculation ")
+                    return None
                 mag = ope.Magnitude(
                     mag=np.median([M.mag for M in self.magnitudes.values()]),
                     magnitude_type=self.type,
@@ -141,7 +155,6 @@ class Magnitude(object):
                     station_count=len(self.magnitudes),
                     azimuthal_gap=self.origin_id.get_referred_object().quality.azimuthal_gap)
             return mag
-        return None
 
 
 class LocalMagnitude(Magnitude):
@@ -212,15 +225,20 @@ class LocalMagnitude(Magnitude):
 
         power = [np.power(tr.data, 2) for tr in st if tr.stats.channel[-1] not
                  in 'Z3']
-        if len(power) != 2:
-            raise ValueError('Wood-Anderson amplitude defintion only valid for '
-                             'two horizontals: {0} given'.format(len(power)))
-        power_sum = power[0] + power[1]
-        #
+        # checking horizontal count and calculating power_sum accordingly
+        if len(power) == 1:
+            print('WARNING: Only one horizontal found for station {0}.'.format(st[0].stats.station))
+            power_sum = power[0]
+        elif len(power) == 2:
+            power_sum = power[0] + power[1]
+        else:
+            raise ValueError('Wood-Anderson aomplitude defintion only valid for'
+                             ' up to two horizontals: {0} given'.format(len(power)))
+
         sqH = np.sqrt(power_sum)
 
         # get time array
-        th = np.arange(0, len(sqH) * dt, dt)
+        th = np.arange(0, st[0].stats.npts / st[0].stats.sampling_rate, dt)
         # get maximum peak within pick window
         iwin = getsignalwin(th, t0 - stime, self.calc_win)
         ii = min([iwin[len(iwin) - 1], len(th)])
@@ -233,17 +251,34 @@ class LocalMagnitude(Magnitude):
         # check for plot flag (for debugging only)
         fig = None
         if iplot > 1:
-            st.plot()
             fig = plt.figure()
-            ax = fig.add_subplot(111)
+            ax = fig.add_subplot(211)
+            ax.plot(th, st[0].data, 'k')
             ax.plot(th, sqH)
             ax.plot(th[iwin], sqH[iwin], 'g')
-            ax.plot([t0, t0], [0, max(sqH)], 'r', linewidth=2)
-            ax.title(
-                'Station %s, RMS Horizontal Traces, WA-peak-to-peak=%4.1f mm' \
-                % (st[0].stats.station, wapp))
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Station %s, Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[0].stats.station,
+                                                       st[0].stats.channel,
+                                                       wapp))
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Displacement [mm]')
+            ax = fig.add_subplot(212)
+            ax.plot(th, st[1].data, 'k')
+            ax.plot(th, sqH)
+            ax.plot(th[iwin], sqH[iwin], 'g')
+            ax.plot([t0 - stime, t0 - stime], [0, max(sqH)], 'r', linewidth=2)
+            ax.set_title('Channel %s, RMS Horizontal Trace, '
+                         'WA-peak-to-peak=%6.3f mm' % (st[1].stats.channel,
+                                                       wapp))
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Displacement [mm]')
+            fig.show()
+            try:
+                input()
+            except SyntaxError:
+                pass
+            plt.close(fig)
 
         return wapp, fig
 
@@ -253,6 +288,11 @@ class LocalMagnitude(Magnitude):
                 continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
+            # make sure calculating Ml only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
+                print("Uncertain pick at Station {}, do not use it!".format(station))
+                continue
             wf = select_for_phase(self.stream.select(
                 station=station), a.phase)
             if not wf:
@@ -284,8 +324,12 @@ class LocalMagnitude(Magnitude):
                 a0 = a0 * 1e03  # mm to nm (see Havskov & Ottemöller, 2010)
                 magnitude = ope.StationMagnitude(mag=np.log10(a0) \
                                                      + self.wascaling[0] * np.log10(delta) + self.wascaling[1]
-                                                                                             * delta + self.wascaling[
+                                                     * delta + self.wascaling[
                                                          2])
+            if self.verbose:
+                print(
+                    "Local Magnitude for station {0}: ML = {1:3.1f}".format(
+                        station, magnitude.mag))
             magnitude.origin_id = self.origin_id
             magnitude.waveform_id = pick.waveform_id
             magnitude.amplitude_id = amplitude.resource_id
@@ -349,26 +393,43 @@ class MomentMagnitude(Magnitude):
         for a in self.arrivals:
             if a.phase not in 'pP':
                 continue
+            # make sure calculating Mo only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
+                continue
             pick = a.pick_id.get_referred_object()
             station = pick.waveform_id.station_code
-            scopy = self.stream.copy()
-            wf = scopy.select(station=station)
+            if len(self.stream) <= 2:
+                print("Station:" '{0}'.format(station))
+                print("WARNING: No instrument corrected data available,"
+                      " no magnitude calculation possible! Go on.")
+                continue
+            wf = self.stream.select(station=station)
             if not wf:
+                continue
+            try:
+                scopy = wf.copy()
+            except AssertionError:
+                print("WARNING: Something's wrong with the data,"
+                      "station {},"
+                      "no calculation of moment magnitude possible! Go on.".format(station))
                 continue
             onset = pick.time
             distance = degrees2kilometers(a.distance)
             azimuth = a.azimuth
             incidence = a.takeoff_angle
-            w0, fc = calcsourcespec(wf, onset, self.p_velocity, distance,
+            if not 0. <= incidence <= 360.:
+                if self.verbose:
+                    print(f'WARNING: Incidence angle outside bounds - {incidence}')
+                return
+            w0, fc = calcsourcespec(scopy, onset, self.p_velocity, distance,
                                     azimuth, incidence, self.p_attenuation,
                                     self.plot_flag, self.verbose)
             if w0 is None or fc is None:
                 if self.verbose:
                     print("WARNING: insufficient frequency information")
                 continue
-            WF = select_for_phase(self.stream.select(
-                station=station), a.phase)
-            WF = select_for_phase(WF, "P")
+            WF = select_for_phase(scopy, "P")
             m0, mw = calcMoMw(WF, w0, self.rock_density, self.p_velocity,
                               distance, self.verbose)
             self.moment_props = (station, dict(w0=w0, fc=fc, Mo=m0))
@@ -379,6 +440,40 @@ class MomentMagnitude(Magnitude):
             self.event.station_magnitudes.append(magnitude)
             self.magnitudes = (station, magnitude)
 
+    # WIP JG
+    def getSourceSpec(self):
+        for a in self.arrivals:
+            if a.phase not in 'pP':
+                continue
+            # make sure calculating Mo only from reliable onsets
+            # NLLoc: time_weight = 0 => do not use onset!
+            if a.time_weight == 0:
+                continue
+            pick = a.pick_id.get_referred_object()
+            station = pick.waveform_id.station_code
+            if len(self.stream) <= 2:
+                print("Station:" '{0}'.format(station))
+                print("WARNING: No instrument corrected data available,"
+                      " no magnitude calculation possible! Go on.")
+                continue
+            wf = self.stream.select(station=station)
+            if not wf:
+                continue
+            try:
+                scopy = wf.copy()
+            except AssertionError:
+                print("WARNING: Something's wrong with the data,"
+                      "station {},"
+                      "no calculation of moment magnitude possible! Go on.".format(station))
+                continue
+            onset = pick.time
+            distance = degrees2kilometers(a.distance)
+            azimuth = a.azimuth
+            incidence = a.takeoff_angle
+            w0, fc, plt = calcsourcespec(scopy, onset, self.p_velocity, distance,
+                                    azimuth, incidence, self.p_attenuation,
+                                    3, self.verbose)
+            return w0, fc, plt
 
 def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
     '''
@@ -406,17 +501,18 @@ def calcMoMw(wfstream, w0, rho, vp, delta, verbosity=False):
 
     if verbosity:
         print(
-            "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw for station {0} ...".format(
-                tr.stats.station))
+            "calcMoMw: Calculating seismic moment Mo and moment magnitude Mw \
+                for station {0} ...".format(tr.stats.station))
 
     # additional common parameters for calculating Mo
-    rP = 2 / np.sqrt(
-        15)  # average radiation pattern of P waves (Aki & Richards, 1980)
+    # average radiation pattern of P waves (Aki & Richards, 1980)
+    rP = 2 / np.sqrt(15)
     freesurf = 2.0  # free surface correction, assuming vertical incidence
 
     Mo = w0 * 4 * np.pi * rho * np.power(vp, 3) * delta / (rP * freesurf)
 
-    # Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979), defined for [dyn*cm]!
+    # Mw = np.log10(Mo * 1e07) * 2 / 3 - 10.7 # after Hanks & Kanamori (1979),
+    # defined for [dyn*cm]!
     Mw = np.log10(Mo) * 2 / 3 - 6.7  # for metric units
 
     if verbosity:
@@ -476,10 +572,14 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
     dist = delta * 1000  # hypocentral distance in [m]
 
-    fc = None
+    Fc = None
     w0 = None
-
     zdat = select_for_phase(wfstream, "P")
+
+    if len(zdat) == 0:
+        print("No vertical component found in stream:\n{}".format(wfstream))
+        print("No calculation of source spectrum possible!")
+        return w0, Fc
 
     dt = zdat[0].stats.delta
 
@@ -488,7 +588,6 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
     # trim traces to common range (for rotation)
     trstart, trend = common_range(wfstream)
     wfstream.trim(trstart, trend)
-
     # rotate into LQT (ray-coordindate-) system using Obspy's rotate
     # L: P-wave direction
     # Q: SV-wave direction
@@ -529,9 +628,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
             print("calcsourcespec: Something is wrong with the waveform, "
                   "no zero crossings derived!\n")
             print("No calculation of source spectrum possible!")
-        plotflag = 0
     else:
-        plotflag = 1
         index = min([3, len(zc) - 1])
         calcwin = (zc[index] - zc[0]) * dt
         iwin = getsignalwin(t, rel_onset, calcwin)
@@ -539,14 +636,15 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
 
         # fft
         fny = freq / 2
-        l = len(xdat) / freq
+        # l = len(xdat) / freq
         # number of fft bins after Bath
-        n = freq * l
+        # n = freq * l
         # find next power of 2 of data length
         m = pow(2, np.ceil(np.log(len(xdat)) / np.log(2)))
-        N = int(np.power(m, 2))
+        N = min(int(np.power(m, 2)), 16384)
+        # N = int(np.power(m, 2))
         y = dt * np.fft.fft(xdat, N)
-        Y = abs(y[: N / 2])
+        Y = abs(y[: int(N / 2)])
         L = (N - 1) / freq
         f = np.arange(0, fny, 1 / L)
 
@@ -573,26 +671,23 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         # use of implicit scipy otimization function
         fit = synthsourcespec(F, w0in, Fcin)
         [optspecfit, _] = curve_fit(synthsourcespec, F, YYcor, [w0in, Fcin])
-        w0 = optspecfit[0]
-        fc = optspecfit[1]
-        # w01 = optspecfit[0]
-        # fc1 = optspecfit[1]
+        w01 = optspecfit[0]
+        fc1 = optspecfit[1]
         if verbosity:
             print("calcsourcespec: Determined w0-value: %e m/Hz, \n"
-                  "calcsourcespec: Determined corner frequency: %f Hz" % (w0, fc))
+                  "calcsourcespec: Determined corner frequency: %f Hz" % (w01, fc1))
 
-            # use of conventional fitting
-            # [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
+        # use of conventional fitting
+        [w02, fc2] = fitSourceModel(F, YYcor, Fcin, iplot, verbosity)
 
-            # get w0 and fc as median of both
-            # source spectrum fits
-            # w0 = np.median([w01, w02])
-            # fc = np.median([fc1, fc2])
-            # if verbosity:
-            #    print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
-            #    w0, fc))
-
-    if iplot > 1:
+        # get w0 and fc as median of both
+        # source spectrum fits
+        w0 = np.median([w01, w02])
+        Fc = np.median([fc1, fc2])
+        if verbosity:
+            print("calcsourcespec: Using w0-value = %e m/Hz and fc = %f Hz" % (
+                w0, Fc))
+    if iplot >= 1:
         f1 = plt.figure()
         tLdat = np.arange(0, len(Ldat) * dt, dt)
         plt.subplot(2, 1, 1)
@@ -600,7 +695,7 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         p1, = plt.plot(t, np.multiply(inttrz, 1000), 'k')
         p2, = plt.plot(tLdat, np.multiply(Ldat, 1000))
         plt.legend([p1, p2], ['Displacement', 'Rotated Displacement'])
-        if plotflag == 1:
+        if iplot == 1:
             plt.plot(t[iwin], np.multiply(xdat, 1000), 'g')
             plt.title('Seismogram and P Pulse, Station %s-%s' \
                       % (zdat[0].stats.station, zdat[0].stats.channel))
@@ -610,24 +705,32 @@ def calcsourcespec(wfstream, onset, vp, delta, azimuth, incidence,
         plt.xlabel('Time since %s' % zdat[0].stats.starttime)
         plt.ylabel('Displacement [mm]')
 
-        if plotflag == 1:
+        if iplot > 1:
             plt.subplot(2, 1, 2)
             p1, = plt.loglog(f, Y.real, 'k')
             p2, = plt.loglog(F, YY.real)
             p3, = plt.loglog(F, YYcor, 'r')
             p4, = plt.loglog(F, fit, 'g')
-            plt.loglog([fc, fc], [w0 / 100, w0], 'g')
+            plt.loglog([Fc, Fc], [w0 / 100, w0], 'g')
             plt.legend([p1, p2, p3, p4], ['Raw Spectrum',
                                           'Used Raw Spectrum',
                                           'Q-Corrected Spectrum',
                                           'Fit to Spectrum'])
             plt.title('Source Spectrum from P Pulse, w0=%e m/Hz, fc=%6.2f Hz' \
-                      % (w0, fc))
+                      % (w0, Fc))
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Amplitude [m/Hz]')
             plt.grid()
+            if iplot == 3:
+                return w0, Fc, plt
+            plt.show()
+            try:
+                input()
+            except SyntaxError:
+                pass
+            plt.close(f1)
 
-    return w0, fc
+    return w0, Fc
 
 
 def synthsourcespec(f, omega0, fcorner):
@@ -701,13 +804,14 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
     # check difference of il and ir in order to
     # keep calculation time acceptable
     idiff = ir - il
-    if idiff > 10000:
+    if idiff > 100000:
+        increment = 1000
+    elif idiff <= 100000 and idiff > 10000:
         increment = 100
     elif idiff <= 20:
         increment = 1
     else:
         increment = 10
-
     for i in range(il, ir, increment):
         FC = f[i]
         indexdc = np.where((f > 0) & (f <= FC))
@@ -725,37 +829,43 @@ def fitSourceModel(f, S, fc0, iplot, verbosity=False):
 
     # get best found w0 anf fc from minimum
     if len(STD) > 0:
-        fc = fc[np.argmin(STD)]
+        Fc = fc[np.argmin(STD)]
         w0 = w0[np.argmin(STD)]
     elif len(STD) == 0:
-        fc = fc0
+        Fc = fc0
         w0 = max(S)
     if verbosity:
         print(
-            "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(fc, w0))
-
-    if iplot > 1:
+            "fitSourceModel: best fc: {0} Hz, best w0: {1} m/Hz".format(Fc, w0))
+    if iplot >= 1:
         plt.figure()  # iplot)
         plt.loglog(f, S, 'k')
-        plt.loglog([f[0], fc], [w0, w0], 'g')
-        plt.loglog([fc, fc], [w0 / 100, w0], 'g')
+        plt.loglog([f[0], Fc], [w0, w0], 'g')
+        plt.loglog([Fc, Fc], [w0 / 100, w0], 'g')
         plt.title('Calculated Source Spectrum, Omega0=%e m/Hz, fc=%6.2f Hz' \
-                  % (w0, fc))
+                  % (w0, Fc))
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/Hz]')
         plt.grid()
-        plt.figure()  # iplot + 1)
-        plt.subplot(311)
-        plt.plot(f[il:ir], STD, '*')
-        plt.title('Common Standard Deviations')
-        plt.xticks([])
-        plt.subplot(312)
-        plt.plot(f[il:ir], stdw0, '*')
-        plt.title('Standard Deviations of w0-Values')
-        plt.xticks([])
-        plt.subplot(313)
-        plt.plot(f[il:ir], stdfc, '*')
-        plt.title('Standard Deviations of Corner Frequencies')
-        plt.xlabel('Corner Frequencies [Hz]')
+        if iplot == 2:
+            plt.figure()  # iplot + 1)
+            plt.subplot(311)
+            plt.plot(fc, STD, '*')
+            plt.title('Common Standard Deviations')
+            plt.xticks([])
+            plt.subplot(312)
+            plt.plot(fc, stdw0, '*')
+            plt.title('Standard Deviations of w0-Values')
+            plt.xticks([])
+            plt.subplot(313)
+            plt.plot(fc, stdfc, '*')
+            plt.title('Standard Deviations of Corner Frequencies')
+            plt.xlabel('Corner Frequencies [Hz]')
+            plt.show()
+        try:
+            input()
+        except SyntaxError:
+            pass
+        plt.close()
 
-    return w0, fc
+    return w0, Fc

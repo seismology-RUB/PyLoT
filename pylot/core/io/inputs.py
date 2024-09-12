@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
+import os
 
 from pylot.core.io import default_parameters
 from pylot.core.util.errors import ParameterError
@@ -48,6 +50,7 @@ class PylotParameter(object):
         self.__init_default_paras()
         self.__init_subsettings()
         self.__filename = fnin
+        self.__parameter = {}
         self._verbosity = verbosity
         self._parFileCont = {}
         # io from parsed arguments alternatively
@@ -70,6 +73,7 @@ class PylotParameter(object):
 
     # Set default values of parameter names
     def __init_default_paras(self):
+        """set default values of parameter names"""
         parameters = default_parameters.defaults
         self.__defaults = parameters
 
@@ -86,12 +90,17 @@ class PylotParameter(object):
         return bool(self.__parameter)
 
     def __getitem__(self, key):
-        try:
+        if key in self.__parameter:
             return self.__parameter[key]
-        except:
-            return None
+        else:
+            logging.warning(f'{key} not found in PylotParameter')
 
     def __setitem__(self, key, value):
+        try:
+            value = self.check_range(value, self.__defaults[key]['max'], self.__defaults[key]['min'])
+        except KeyError:
+            # no min/max values in defaults
+            pass
         self.__parameter[key] = value
 
     def __delitem__(self, key):
@@ -104,15 +113,32 @@ class PylotParameter(object):
         return len(self.__parameter.keys())
 
     def iteritems(self):
+        """
+        Iterate over parameters
+        :return: key, value tupel
+        :rtype:
+        """
         for key, value in self.__parameter.items():
             yield key, value
 
     def hasParam(self, parameter):
-        if parameter in self.__parameter.keys():
-            return True
-        return False
+        """
+        Check if parameter is in keys
+        :param parameter: parameter to look for in keys
+        :type parameter:
+        :return:
+        :rtype: bool
+        """
+        return parameter in self.__parameter.keys()
 
     def get(self, *args):
+        """
+        Get first available parameter in args
+        :param args:
+        :type args:
+        :return:
+        :rtype:
+        """
         try:
             for param in args:
                 try:
@@ -128,15 +154,35 @@ class PylotParameter(object):
                 raise ParameterError(e)
 
     def get_defaults(self):
+        """
+        get default parameters
+        :return:
+        :rtype: dict
+        """
         return self.__defaults
 
     def get_main_para_names(self):
+        """
+        Get main parameter names
+        :return: list of keys available in parameters
+        :rtype:
+        """
         return self._settings_main
 
     def get_special_para_names(self):
+        """
+        Get pick parameter names
+        :return: list of keys available in parameters
+        :rtype:
+        """
         return self._settings_special_pick
 
     def get_all_para_names(self):
+        """
+        Get all parameter names
+        :return:
+        :rtype: list
+        """
         all_names = []
         all_names += self.get_main_para_names()['dirs']
         all_names += self.get_main_para_names()['nlloc']
@@ -150,7 +196,46 @@ class PylotParameter(object):
         all_names += self.get_special_para_names()['quality']
         return all_names
 
+    def reinit_default_parameters(self):
+        self.__init_default_paras()
+
+    @staticmethod
+    def check_range(value, max_value, min_value):
+        """
+        Check if value is within the min/max values defined in default_parameters. Works for tuple and scalar values.
+        :param value: Value to be checked against min/max range
+        :param max_value: Maximum allowed value, tuple or scalar
+        :param min_value: Minimum allowed value, tuple or scalar
+        :return: value tuple/scalar clamped to the valid range
+
+        >>> checkRange(-5, 10, 0)
+         0
+         >>> checkRange((-5., 100.), (10., 10.), (0., 0.))
+         (0.0, 10.0)
+        """
+        try:
+            # Try handling tuples by comparing their elements
+            comparisons = [(a > b) for a, b in zip(value, max_value)]
+            if True in comparisons:
+                value = tuple(max_value[i] if comp else value[i] for i, comp in enumerate(comparisons))
+            comparisons = [(a < b) for a, b in zip(value, min_value)]
+            if True in comparisons:
+                value = tuple(min_value[i] if comp else value[i] for i, comp in enumerate(comparisons))
+        except TypeError:
+            value = max(min_value, min(max_value, value))
+        return value
+
     def checkValue(self, param, value):
+        """
+        Check type of value against expected type of param.
+        Print warning message if type check fails
+        :param param:
+        :type param:
+        :param value:
+        :type value:
+        :return:
+        :rtype:
+        """
         is_type = type(value)
         expect_type = self.get_defaults()[param]['type']
         if not is_type == expect_type and not is_type == tuple:
@@ -159,9 +244,25 @@ class PylotParameter(object):
             print(Warning(message))
 
     def setParamKV(self, param, value):
+        """
+        set parameter param to value
+        :param param:
+        :type param:
+        :param value:
+        :type value:
+        :return:
+        :rtype: None
+        """
         self.__setitem__(param, value)
 
     def setParam(self, **kwargs):
+        """
+        Set multiple parameters
+        :param kwargs:
+        :type kwargs:
+        :return:
+        :rtype: None
+        """
         for key in kwargs:
             self.__setitem__(key, kwargs[key])
 
@@ -170,11 +271,23 @@ class PylotParameter(object):
         print('ParameterError:\n non-existent parameter %s' % errmsg)
 
     def reset_defaults(self):
+        """
+        Reset current parameters to default parameters
+        :return:
+        :rtype: None
+        """
         defaults = self.get_defaults()
-        for param in defaults:
-            self.setParamKV(param, defaults[param]['value'])
+        for param_name, param in defaults.items():
+            self.setParamKV(param_name, param['value'])
 
     def from_file(self, fnin=None):
+        """
+        read parameters from file and set values to read values
+        :param fnin: filename
+        :type fnin:
+        :return:
+        :rtype: None
+        """
         if not fnin:
             if self.__filename is not None:
                 fnin = self.__filename
@@ -221,6 +334,13 @@ class PylotParameter(object):
         self.__parameter = self._parFileCont
 
     def export2File(self, fnout):
+        """
+        Export parameters to file
+        :param fnout: Filename of export file
+        :type fnout: str
+        :return:
+        :rtype:
+        """
         fid_out = open(fnout, 'w')
         lines = []
         # for key, value in self.iteritems():
@@ -257,6 +377,19 @@ class PylotParameter(object):
                            'quality assessment', None)
 
     def write_section(self, fid, names, title, separator):
+        """
+        write a section of parameters to file
+        :param fid: File object to write to
+        :type fid:
+        :param names: which parameter names to write to file
+        :type names:
+        :param title: title of section
+        :type title: str
+        :param separator: section separator, written at start of section
+        :type separator: str
+        :return:
+        :rtype:
+        """
         if separator:
             fid.write(separator)
         fid.write('#{}#\n'.format(title))
@@ -286,6 +419,28 @@ class PylotParameter(object):
                 ttip = '%{}\n'.format(tooltip)
             line = value + name + ttip
             fid.write(line)
+
+    @staticmethod
+    def check_deprecated_parameters(parameters):
+        if parameters.hasParam('database') and parameters.hasParam('rootpath'):
+            parameters['datapath'] = os.path.join(parameters['rootpath'], parameters['datapath'],
+                                                  parameters['database'])
+            logging.warning(
+                f'Parameters database and rootpath are deprecated. '
+                f'Tried to merge them to now path: {parameters["datapath"]}.'
+            )
+
+        remove_keys = []
+        for key in parameters:
+            if not key in default_parameters.defaults.keys():
+                remove_keys.append(key)
+                logging.warning(f'Removing deprecated parameter: {key}')
+
+        for key in remove_keys:
+            del parameters[key]
+
+        parameters._settings_main = default_parameters.settings_main
+        parameters._settings_special_pick = default_parameters.settings_special_pick
 
 
 class FilterOptions(object):
@@ -341,7 +496,9 @@ class FilterOptions(object):
 
     def parseFilterOptions(self):
         if self:
-            robject = {'type': self.getFilterType(), 'corners': self.getOrder()}
+            robject = {'type': self.getFilterType(),
+                       'corners': self.getOrder(),
+                       'zerophase': False}
             if not self.getFilterType() in ['highpass', 'lowpass']:
                 robject['freqmin'] = self.getFreq()[0]
                 robject['freqmax'] = self.getFreq()[1]

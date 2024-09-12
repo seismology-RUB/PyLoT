@@ -1,7 +1,7 @@
 from obspy import UTCDateTime
 from obspy.core import event as ope
 
-from pylot.core.util.utils import getLogin, getHash
+from pylot.core.util.utils import get_login, get_hash
 
 
 def create_amplitude(pickID, amp, unit, category, cinfo):
@@ -54,14 +54,14 @@ def create_arrival(pickresID, cinfo, phase, azimuth=None, dist=None):
 
 def create_creation_info(agency_id=None, creation_time=None, author=None):
     '''
-
+    get creation info of obspy event
     :param agency_id:
     :param creation_time:
     :param author:
     :return:
     '''
     if author is None:
-        author = getLogin()
+        author = get_login()
     if creation_time is None:
         creation_time = UTCDateTime()
     return ope.CreationInfo(agency_id=agency_id, author=author,
@@ -197,9 +197,9 @@ def create_pick(origintime, picknum, picktime, eventnum, cinfo, phase, station,
 
 def create_resourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
-
-    :param timetohash:
-    :type timetohash
+    create unique resource id
+    :param timetohash: event origin time to hash
+    :type timetohash: class: `~obspy.core.utcdatetime.UTCDateTime` object
     :param restype: type of the resource, e.g. 'orig', 'earthquake' ...
     :type restype: str
     :param authority_id: name of the institution carrying out the processing
@@ -210,7 +210,7 @@ def create_resourceID(timetohash, restype, authority_id=None, hrstr=None):
     '''
     assert isinstance(timetohash, UTCDateTime), "'timetohash' is not an ObsPy" \
                                                 "UTCDateTime object"
-    hid = getHash(timetohash)
+    hid = get_hash(timetohash)
     if hrstr is None:
         resID = ope.ResourceIdentifier(restype + '/' + hid[0:6])
     else:

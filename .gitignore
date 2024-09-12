@@ -1,0 +1,5 @@
+*.pyc
+*~
+.idea
+pylot/RELEASE-VERSION
+/tests/test_autopicker/dmt_database_test/

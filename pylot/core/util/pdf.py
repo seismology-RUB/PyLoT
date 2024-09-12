@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 from obspy import UTCDateTime
+
 from pylot.core.util.utils import fit_curve, clims
 from pylot.core.util.version import get_git_version as _getVersionString
 

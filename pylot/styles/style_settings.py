@@ -5,18 +5,18 @@
 # the base color
 phasecolors = {
     'manual': {
-        'P':{
+        'P': {
             'rgba': (0, 0, 255, 255),
             'modifier': 'g'},
-        'S':{
+        'S': {
             'rgba': (255, 0, 0, 255),
             'modifier': 'b'}
     },
-    'auto':{
-        'P':{
+    'auto': {
+        'P': {
             'rgba': (140, 0, 255, 255),
             'modifier': 'g'},
-        'S':{
+        'S': {
             'rgba': (255, 140, 0, 255),
             'modifier': 'b'}
     }
@@ -24,8 +24,8 @@ phasecolors = {
 
 # Set plot colors and stylesheet for each style
 stylecolors = {
-    'default':{
-        'linecolor':{
+    'default': {
+        'linecolor': {
             'rgba': (0, 0, 0, 255)},
         'background': {
             'rgba': (255, 255, 255, 255)},
@@ -67,4 +67,3 @@ stylecolors = {
             'filename': 'bright.qss'}
     }
 }
-

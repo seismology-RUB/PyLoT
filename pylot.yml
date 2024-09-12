@@ -1,0 +1,12 @@
+name: pylot_311
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cartopy=0.23.0=py311hcf9f919_1
+  - joblib=1.4.2=pyhd8ed1ab_0
+  - obspy=1.4.1=py311he736701_3
+  - pyaml=24.7.0=pyhd8ed1ab_0
+  - pyqtgraph=0.13.7=pyhd8ed1ab_0
+  - pyside2=5.15.8=py311h3d699ce_4
+  - pytest=8.3.2=pyhd8ed1ab_0

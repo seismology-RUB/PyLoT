@@ -1,40 +1,60 @@
 # PyLoT
 
-version: 0.2
+version: 0.3
 
 The Python picking and Localisation Tool
 
-This python library contains a graphical user interfaces for picking
-seismic phases. This software needs [ObsPy][ObsPy]
-and the PySide Qt4 bindings for python to be installed first.
+This python library contains a graphical user interfaces for picking seismic phases. This software needs [ObsPy][ObsPy]
+and the PySide2 Qt5 bindings for python to be installed first.
 
-PILOT has originally been developed in Mathworks' MatLab. In order to
-distribute PILOT without facing portability problems, it has been decided
-to redevelop the software package in Python. The great work of the ObsPy
-group allows easy handling of a bunch of seismic data and PyLoT will
-benefit a lot compared to the former MatLab version.
+PILOT has originally been developed in Mathworks' MatLab. In order to distribute PILOT without facing portability
+problems, it has been decided to redevelop the software package in Python. The great work of the ObsPy group allows easy
+handling of a bunch of seismic data and PyLoT will benefit a lot compared to the former MatLab version.
 
-The development of PyLoT is part of the joint research project MAGS2 and AlpArray.
+The development of PyLoT is part of the joint research project MAGS2, AlpArray and AdriaArray.
 
 ## Installation
 
-At the moment there is no automatic installation procedure available for PyLoT.
-Best way to install is to clone the repository and add the path to your Python path.
+At the moment there is no automatic installation procedure available for PyLoT. Best way to install is to clone the
+repository and add the path to your Python path.
+
+It is highly recommended to use Anaconda for a simple creation of a Python installation using either the *pylot.yml* or the *requirements.txt* file found in the PyLoT root directory. First make sure that the *conda-forge* channel is available in your Anaconda installation:
+
+    conda config --add channels conda-forge
+
+Afterwards run (from the PyLoT main directory where the files *requirements.txt* and *pylot.yml* are located)
+
+    conda env create -f pylot.yml
+or
+    
+    conda create -c conda-forge --name pylot_311 python=3.11 --file requirements.txt
+
+to create a new Anaconda environment called *pylot_311*.
+
+Afterwards activate the environment by typing
+
+    conda activate pylot_311
 
 #### Prerequisites:
 
 In order to run PyLoT you need to install:
 
-- python 2 or 3
+- Python 3
+- cartopy
+- joblib
+- obspy
+- pyaml
+- pyqtgraph
+- pyside2
+
+(the following are already dependencies of the above packages):
 - scipy
 - numpy
 - matplotlib
-- obspy
-- pyside
 
 #### Some handwork:
 
-PyLoT needs a properties folder on your system to work. It should be situated in your home directory 
+PyLoT needs a properties folder on your system to work. It should be situated in your home directory
 (on Windows usually C:/Users/*username*):
 
     mkdir ~/.pylot
@@ -53,7 +73,8 @@ In the next step you have to copy some files to this directory:
 
     cp path-to-pylot/inputs/pylot_global.in ~/.pylot/pylot.in
 
-and some extra information on error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling relation
+and some extra information on error estimates (just needed for reading old PILOT data) and the Richter magnitude scaling
+relation
 
     cp path-to-pylot/inputs/PILOT_TimeErrors.in path-to-pylot/inputs/richter_scaling.data ~/.pylot/
 
@@ -61,50 +82,32 @@ You may need to do some modifications to these files. Especially folder names sh
 
 PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10.
 
-
 ## Release notes
 
 #### Features:
 
-- centralize all functionalities of PyLoT and control them from within the main GUI
-- handling multiple events inside GUI with project files (save and load work progress)
-- GUI based adjustments of pick parameters and I/O
-- interactive tuning of parameters from within the GUI
-- call automatic picking algorithm from within the GUI
-- comparison of automatic with manual picks for multiple events using clear differentiation of manual picks into 'tune' and 'test-set' (beta)
-- manual picking of different (user defined) phase types
-- phase onset estimation with ObsPy TauPy
-- interactive zoom/scale functionalities in all plots (mousewheel, pan, pan-zoom)
-- array map to visualize stations and control onsets (beta feature, switch to manual picks not implemented)
+- event organisation in project files and waveform visualisation
+- consistent manual phase picking through predefined SNR dependant zoom level
+- consistent automatic phase picking routines using Higher Order Statistics, AIC and Autoregression
+- interactive tuning of auto-pick parameters
+- uniform uncertainty estimation from waveform's properties for automatic and manual picks
+- pdf representation and comparison of picks taking the uncertainty intrinsically into account
+- Richter and moment magnitude estimation
+- location determination with external installation of [NonLinLoc](http://alomax.free.fr/nlloc/index.html)
 
-##### Platform support:
-- Python 3 support
-- Windows support
+#### Known issues:
 
-##### Performance:
-- multiprocessing for automatic picking and restitution of multiple stations
-- use pyqtgraph library for better performance on main waveform plot
-
-##### Visualization:
-- pick uncertainty (quality classes) visualization with gradients
-- pick color unification for all plots
-- new icons and stylesheets
-
-#### Known Issues:
-- some Qt related errors might occur at runtime
-- filter toggle not working in pickDlg
-- PyLoT data structure requires at least three parent directories for waveform data directory
+We hope to solve these with the next release.
 
 ## Staff
 
-Original author(s): L. Kueperkoch, S. Wehling-Benatelli, M. Bischoff (PILOT)
+Original author(s): M. Rische, S. Wehling-Benatelli, L. Kueperkoch, M. Bischoff (PILOT)
 
-Developer(s): S. Wehling-Benatelli, L. Kueperkoch, M. Paffrath, K. Olbert,
-M. Bischoff, C. Wollin, M. Rische
+Developer(s): S. Wehling-Benatelli, M. Paffrath, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, D. Arnold, K. Cökerim, S. Zimmermann
 
 Others: A. Bruestle, T. Meier, W. Friederich
 
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-September 2017
+August 2024

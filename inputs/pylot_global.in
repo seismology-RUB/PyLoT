@@ -4,10 +4,8 @@
 %Parameters are optimized for %extent data sets!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #main settings#
-                                                   #rootpath#       %project path                                                                                        
-                                                   #datapath#       %data path                                                                                           
-                                                   #database#       %name of data base                                                                                   
-                                                   #eventID#        %event ID for single event processing (* for all events found in database)                           
+                                                   #datapath#       %data path
+                                                   #eventID#        %event ID for single event processing (* for all events found in datapath)
                                                    #invdir#         %full path to  inventory or dataless-seed file                                                       
 PILOT                                              #datastructure#  %choose data structure                                                                               
 True                                               #apverbose#      %choose 'True' or 'False' for terminal output                                                        
@@ -43,6 +41,7 @@ global                                             #extent#         %extent of a
 1150.0                                             #sstop#          %end time [s] after P-onset for calculating CF for S-picking                                         
 True                                               #use_taup#       %use estimated traveltimes from TauPy for calculating windows for CF                                 
 iasp91                                             #taup_model#     %define TauPy model for traveltime estimation. Possible values: 1066a, 1066b, ak135, ak135f, herrin, iasp91, jb, prem, pwdk, sp6
+P,Pdiff                                            #taup_phases#    %Specify possible phases for TauPy (comma separated). See Obspy TauPy documentation for possible values.
 0.05 0.5                                           #bpz1#           %lower/upper corner freq. of first band pass filter Z-comp. [Hz]                                     
 0.001 0.5                                          #bpz2#           %lower/upper corner freq. of second band pass filter Z-comp. [Hz]                                    
 0.05 0.5                                           #bph1#           %lower/upper corner freq. of first band pass filter H-comp. [Hz]                                     

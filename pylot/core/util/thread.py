@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys, os, traceback
 import multiprocessing
-from PySide.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
-from PySide.QtGui import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
+import os
+import sys
+import traceback
+
+from PySide2.QtCore import QThread, Signal, Qt, Slot, QRunnable, QObject
+from PySide2.QtWidgets import QDialog, QProgressBar, QLabel, QHBoxLayout, QPushButton
 
 
 class Thread(QThread):
@@ -19,12 +22,14 @@ class Thread(QThread):
         self.abortButton = abortButton
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
+        self.old_stdout = None
 
     def run(self):
         if self.redirect_stdout:
+            self.old_stdout = sys.stdout
             sys.stdout = self
         try:
-            if self.arg:
+            if self.arg is not None:
                 self.data = self.func(self.arg)
             else:
                 self.data = self.func()
@@ -33,13 +38,19 @@ class Thread(QThread):
             self._executed = False
             self._executedError = e
             traceback.print_exc()
-            exctype, value = sys.exc_info ()[:2]
-            self._executedErrorInfo = '{} {} {}'.\
+            exctype, value = sys.exc_info()[:2]
+            self._executedErrorInfo = '{} {} {}'. \
                 format(exctype, value, traceback.format_exc())
-        sys.stdout = sys.__stdout__
+        if self.redirect_stdout:
+            sys.stdout = self.old_stdout
 
     def showProgressbar(self):
         if self.progressText:
+            # # generate widget if not given in init
+            # if not self.pb_widget:
+            #     self.pb_widget = ProgressBarWidget(self.parent())
+            #     self.pb_widget.setWindowFlags(Qt.SplashScreen)
+            #     self.pb_widget.setModal(True)
 
             # generate widget if not given in init
             if not self.pb_widget:
@@ -75,6 +86,7 @@ class Worker(QRunnable):
     '''
     Worker class to be run by MultiThread(QThread).
     '''
+
     def __init__(self, fun, args,
                  progressText=None,
                  pb_widget=None,
@@ -82,28 +94,30 @@ class Worker(QRunnable):
         super(Worker, self).__init__()
         self.fun = fun
         self.args = args
-        #self.kwargs = kwargs
+        # self.kwargs = kwargs
         self.signals = WorkerSignals()
         self.progressText = progressText
         self.pb_widget = pb_widget
         self.redirect_stdout = redirect_stdout
+        self.old_stdout = None
 
     @Slot()
     def run(self):
         if self.redirect_stdout:
+            self.old_stdout = sys.stdout
             sys.stdout = self
 
         try:
             result = self.fun(self.args)
         except:
-            exctype, value = sys.exc_info ()[:2]
+            exctype, value = sys.exc_info()[:2]
             print(exctype, value, traceback.format_exc())
-            self.signals.error.emit ((exctype, value, traceback.format_exc ()))
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:
             self.signals.result.emit(result)
         finally:
             self.signals.finished.emit('Done')
-        sys.stdout = sys.__stdout__
+        sys.stdout = self.old_stdout
 
     def write(self, text):
         self.signals.message.emit(text)
@@ -135,18 +149,20 @@ class MultiThread(QThread):
         self.progressText = progressText
         self.pb_widget = pb_widget
         self.redirect_stdout = redirect_stdout
+        self.old_stdout = None
         self.finished.connect(self.hideProgressbar)
         self.showProgressbar()
 
     def run(self):
         if self.redirect_stdout:
-             sys.stdout = self
+            self.old_stdout = sys.stdout
+            sys.stdout = self
         try:
             if not self.ncores:
                 self.ncores = multiprocessing.cpu_count()
-            pool = multiprocessing.Pool(self.ncores)
+            pool = multiprocessing.Pool(self.ncores, maxtasksperchild=1000)
             self.data = pool.map_async(self.func, self.args, callback=self.emitDone)
-            #self.data = pool.apply_async(self.func, self.shotlist, callback=self.emitDone) #emit each time returned
+            # self.data = pool.apply_async(self.func, self.shotlist, callback=self.emitDone) #emit each time returned
             pool.close()
             self._executed = True
         except Exception as e:
@@ -155,7 +171,7 @@ class MultiThread(QThread):
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print('Exception: {}, file: {}, line: {}'.format(exc_type, fname, exc_tb.tb_lineno))
-        sys.stdout = sys.__stdout__
+        sys.stdout = self.old_stdout
 
     def showProgressbar(self):
         if self.progressText:

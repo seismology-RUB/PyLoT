@@ -35,9 +35,9 @@ from __future__ import print_function
 
 __all__ = "get_git_version"
 
+import inspect
 # NO IMPORTS FROM PYLOT IN THIS FILE! (file gets used at installation time)
 import os
-import inspect
 from subprocess import Popen, PIPE
 
 # NO IMPORTS FROM PYLOT IN THIS FILE! (file gets used at installation time)

@@ -29,10 +29,13 @@
         <file>icons/map.png</file>
         <file>icons/openloc.png</file>
         <file>icons/compare_button.png</file>
+        <file>icons/pick_qualities_button.png</file>
+        <file>icons/eventlist_xml_button.png</file>
         <file>icons/locate_button.png</file>
         <file>icons/Matlab_PILOT_icon.png</file>
         <file>icons/printer.png</file>
         <file>icons/delete.png</file>
+        <file>icons/key_A.png</file>
         <file>icons/key_E.png</file>
         <file>icons/key_N.png</file>
         <file>icons/key_P.png</file>
@@ -45,6 +48,8 @@
         <file>icons/key_W.png</file>
         <file>icons/key_Z.png</file>
         <file>icons/filter.png</file>
+        <file>icons/filter_p.png</file>
+        <file>icons/filter_s.png</file>
         <file>icons/sync.png</file>
         <file>icons/zoom_0.png</file>
         <file>icons/zoom_in.png</file>

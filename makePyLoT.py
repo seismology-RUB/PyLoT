@@ -166,7 +166,7 @@ def installPyLoT(verbosity=None):
     if verbosity > 1:
         print('copying input files into destination folder ...')
     ans = input('please specify scope of interest '
-                '([0]=local, 1=regional, 2=global) :') or 0
+                '([0]=local, 1=regional, 2=global, 3=active) :') or 0
     if not isinstance(ans, int):
         ans = int(ans)
     if ans == 0:
@@ -175,6 +175,8 @@ def installPyLoT(verbosity=None):
         ans = 'regional'
     elif ans == 2:
         ans = 'global'
+    elif ans == 3:
+        ans = 'active'
     link_dest = []
     for file, destination in files_to_copy.items():
         link_file = ans in file

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import glob
+import logging
 import os
 import warnings
 
@@ -12,11 +12,13 @@ import scipy.io as sio
 from obspy.core import UTCDateTime
 from obspy.core.event import read_events
 from obspy.core.util import AttribDict
+
 from pylot.core.io.inputs import PylotParameter
 from pylot.core.io.location import create_event, \
     create_magnitude
-from pylot.core.pick.utils import select_for_phase
-from pylot.core.util.utils import getOwner, full_range, four_digits
+from pylot.core.pick.utils import select_for_phase, get_quality_class
+from pylot.core.util.utils import get_owner, full_range, four_digits, transformFilterString4Export, \
+    backtransformFilterString, loopIdentifyPhase, identifyPhase
 
 
 def add_amplitudes(event, amplitudes):
@@ -57,7 +59,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     if phasfn is not None and os.path.isfile(phasfn):
         phases = sio.loadmat(phasfn)
         phasctime = UTCDateTime(os.path.getmtime(phasfn))
-        phasauthor = getOwner(phasfn)
+        phasauthor = get_owner(phasfn)
     else:
         phases = None
         phasctime = None
@@ -65,7 +67,7 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
     if locfn is not None and os.path.isfile(locfn):
         loc = sio.loadmat(locfn)
         locctime = UTCDateTime(os.path.getmtime(locfn))
-        locauthor = getOwner(locfn)
+        locauthor = get_owner(locfn)
     else:
         loc = None
         locctime = None
@@ -118,6 +120,13 @@ def readPILOTEvent(phasfn=None, locfn=None, authority_id='RUB', **kwargs):
 
 
 def picksdict_from_pilot(fn):
+    """
+    Create pick dictionary from matlab file
+    :param fn: matlab file
+    :type fn:
+    :return: pick dictionary
+    :rtype: dict
+    """
     from pylot.core.util.defaults import TIMEERROR_DEFAULTS
     picks = dict()
     phases_pilot = sio.loadmat(fn)
@@ -147,6 +156,13 @@ def picksdict_from_pilot(fn):
 
 
 def stations_from_pilot(stat_array):
+    """
+    Create stations list from pilot station array
+    :param stat_array:
+    :type stat_array:
+    :return:
+    :rtype: list
+    """
     stations = list()
     cur_stat = None
     for stat in stat_array:
@@ -164,6 +180,13 @@ def stations_from_pilot(stat_array):
 
 
 def convert_pilot_times(time_array):
+    """
+    Convert pilot times to UTCDateTimes
+    :param time_array: pilot times
+    :type time_array:
+    :return:
+    :rtype:
+    """
     times = [int(time) for time in time_array]
     microseconds = int((time_array[-1] - times[-1]) * 1e6)
     times.append(microseconds)
@@ -171,6 +194,13 @@ def convert_pilot_times(time_array):
 
 
 def picksdict_from_obs(fn):
+    """
+    create pick dictionary from obs file
+    :param fn: filename
+    :type fn:
+    :return:
+    :rtype:
+    """
     picks = dict()
     station_name = str()
     for line in open(fn, 'r'):
@@ -188,7 +218,7 @@ def picksdict_from_obs(fn):
     return picks
 
 
-def picksdict_from_picks(evt):
+def picksdict_from_picks(evt, parameter=None):
     """
     Takes an Event object and return the pick dictionary commonly used within
     PyLoT
@@ -201,20 +231,30 @@ def picksdict_from_picks(evt):
         'auto': {}
     }
     for pick in evt.picks:
+        errors = None
         phase = {}
         station = pick.waveform_id.station_code
-        channel = pick.waveform_id.channel_code
+        if pick.waveform_id.channel_code is None:
+            channel = ''
+        else:
+            channel = pick.waveform_id.channel_code
         network = pick.waveform_id.network_code
         mpp = pick.time
         spe = pick.time_errors.uncertainty
+        if pick.filter_id:
+            filter_id = backtransformFilterString(str(pick.filter_id.id))
+        else:
+            filter_id = None
         try:
-            picker = str(pick.method_id)
-            if picker.startswith('smi:local/'):
-                picker = picker.split('smi:local/')[1]
+            pick_method = str(pick.method_id)
+            if pick_method.startswith('smi:local/'):
+                pick_method = pick_method.split('smi:local/')[1]
         except IndexError:
-            picker = 'manual' # MP MP TODO maybe improve statement
+            pick_method = 'manual'  # MP MP TODO maybe improve statement
+        if pick_method == 'None':
+            pick_method = 'manual'
         try:
-            onsets = picksdict[picker][station]
+            onsets = picksdict[pick_method][station]
         except KeyError as e:
             # print(e)
             onsets = {}
@@ -222,24 +262,60 @@ def picksdict_from_picks(evt):
             lpp = mpp + pick.time_errors.upper_uncertainty
             epp = mpp - pick.time_errors.lower_uncertainty
         except TypeError as e:
-            msg = e + ',\n falling back to symmetric uncertainties'
+            if not spe:
+                msg = 'No uncertainties found for pick: {}. Uncertainty set to 0'.format(pick)
+                lpp = mpp
+                epp = mpp
+            else:
+                msg = str(e) + ',\n falling back to symmetric uncertainties'
+                lpp = mpp + spe
+                epp = mpp - spe
             warnings.warn(msg)
-            lpp = mpp + spe
-            epp = mpp - spe
         phase['mpp'] = mpp
         phase['epp'] = epp
         phase['lpp'] = lpp
         phase['spe'] = spe
+        weight = phase.get('weight')
+        if not weight:
+            if not parameter:
+                logging.warning('Using ')
+                logging.warning('Using default input parameter')
+                parameter = PylotParameter()
+            pick.phase_hint = identifyPhase(pick.phase_hint)
+            if pick.phase_hint == 'P':
+                errors = parameter['timeerrorsP']
+            elif pick.phase_hint == 'S':
+                errors = parameter['timeerrorsS']
+            if errors:
+                weight = get_quality_class(spe, errors)
+                phase['weight'] = weight
         phase['channel'] = channel
         phase['network'] = network
-        phase['picker'] = picker
+        phase['picker'] = pick_method
+        if pick.polarity == 'positive':
+            phase['fm'] = 'U'
+        elif pick.polarity == 'negative':
+            phase['fm'] = 'D'
+        else:
+            phase['fm'] = 'N'
+        phase['filter_id'] = filter_id if filter_id is not None else ''
 
         onsets[pick.phase_hint] = phase.copy()
-        picksdict[picker][station] = onsets.copy()
+        picksdict[pick_method][station] = onsets.copy()
     return picksdict
 
 
 def picks_from_picksdict(picks, creation_info=None):
+    """
+    Create a list of picks out of a pick dictionary
+    :param picks: pick dictionary
+    :type picks: dict
+    :param creation_info: obspy creation information to apply to picks
+    :type creation_info:
+    :param creation_info: obspy creation information to apply to picks
+    :return: list of picks
+    :rtype: list
+    """
     picks_list = list()
     for station, onsets in picks.items():
         for label, phase in onsets.items():
@@ -275,25 +351,30 @@ def picks_from_picksdict(picks, creation_info=None):
                                                     channel_code=ccode,
                                                     network_code=ncode)
             try:
-                polarity = phase['fm']
-                if polarity == 'U' or '+':
+                filter_id = phase['filteroptions']
+                filter_id = transformFilterString4Export(filter_id)
+            except KeyError as e:
+                warnings.warn(str(e), RuntimeWarning)
+                filter_id = ''
+            pick.filter_id = filter_id
+
+            try:
+                polarity = picks[station][label]['fm']
+                if polarity == 'U' or polarity == '+':
                     pick.polarity = 'positive'
-                elif polarity == 'D' or '-':
+                elif polarity == 'D' or polarity == '-':
                     pick.polarity = 'negative'
                 else:
                     pick.polarity = 'undecidable'
-            except KeyError as e:
-                if 'fm' in str(e):  # no polarity information found for this phase
-                    pass
-                else:
-                    raise e
+            except:
+                pick.polarity = 'undecidable'
+                print("No polarity information available!")
             picks_list.append(pick)
     return picks_list
 
 
 def reassess_pilot_db(root_dir, db_dir, out_dir=None, fn_param=None, verbosity=0):
-    import glob
-
+    # TODO: change root to datapath
     db_root = os.path.join(root_dir, db_dir)
     evt_list = glob.glob1(db_root, 'e????.???.??')
 
@@ -308,9 +389,7 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
 
     from pylot.core.io.inputs import PylotParameter
     from pylot.core.pick.utils import earllatepicker
-
-    if fn_param is None:
-        fn_param = defaults.AUTOMATIC_DEFAULTS
+    # TODO: change root to datapath
 
     default = PylotParameter(fn_param, verbosity)
 
@@ -400,7 +479,6 @@ def reassess_pilot_event(root_dir, db_dir, event_id, out_dir=None, fn_param=None
             os.makedirs(out_dir)
         fnout_prefix = os.path.join(out_dir, 'PyLoT_{0}.'.format(event_id))
     evt.write(fnout_prefix + 'xml', format='QUAKEML')
-    # evt.write(fnout_prefix + 'cnv', format='VELEST')
 
 
 def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
@@ -408,44 +486,43 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
     Function of methods to write phases to the following standard file
     formats used for locating earthquakes:
 
-    HYPO71, NLLoc, VELEST, HYPOSAT, and hypoDD
+    HYPO71, NLLoc, VELEST, HYPOSAT, FOCMEC, and hypoDD
 
-    :param: arrivals
-    :type: dictionary containing all phase information including
-           station ID, phase, first motion, weight (uncertainty),
-           ....
+    :param arrivals:dictionary containing all phase information including
+     station ID, phase, first motion, weight (uncertainty), ...
+    :type arrivals: dict
 
-    :param: fformat
-    :type:  string, chosen file format (location routine),
-            choose between NLLoc, HYPO71, HYPOSAT, VELEST,
-            HYPOINVERSE, and hypoDD
+    :param fformat: chosen file format (location routine),
+    choose between NLLoc, HYPO71, HYPOSAT, VELEST,
+    HYPOINVERSE, FOCMEC, and hypoDD
+    :type fformat: str
 
-    :param: filename, full path and name of phase file
-    :type:  string
+    :param filename: full path and name of phase file
+    :type filename:  string
 
-    :param: parameter, all input information
-    :type:  object
+    :param parameter: all input information
+    :type parameter:  object
 
-    :param: eventinfo, optional, needed for VELEST-cnv file 
+    :param eventinfo: optional, needed for VELEST-cnv file
             and FOCMEC- and HASH-input files 
-    :type:  `obspy.core.event.Event` object
+    :type eventinfo: `obspy.core.event.Event` object
     """
-
     if fformat == 'NLLoc':
         print("Writing phases to %s for NLLoc" % filename)
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
-                  (parameter.get('database'), parameter.get('eventID')))
+                  (parameter.get('datapath'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
+            if 'P' in arrivals[key]:
                 try:
                     fm = arrivals[key]['P']['fm']
                 except KeyError as e:
                     print(e)
                     fm = None
-                if fm == None:
+                if fm is None:
                     fm = '?'
                 onset = arrivals[key]['P']['mpp']
                 year = onset.year
@@ -460,6 +537,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 try:
                     if arrivals[key]['P']['weight'] >= 4:
                         pweight = 0  # do not use pick
+                        print("Station {}: Uncertain pick, do not use it!".format(key))
                 except KeyError as e:
                     print(e.message + '; no weight set during processing')
                 fid.write('%s ? ? ? P   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
@@ -472,7 +550,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                                            ss_ms,
                                                                                            pweight))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']:
+            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
                 fm = '?'
                 onset = arrivals[key]['S']['mpp']
                 year = onset.year
@@ -489,15 +567,20 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                         sweight = 0  # do not use pick
                 except KeyError as e:
                     print(str(e) + '; no weight set during processing')
-                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
-                                                                                           fm,
-                                                                                           year,
-                                                                                           month,
-                                                                                           day,
-                                                                                           hh,
-                                                                                           mm,
-                                                                                           ss_ms,
-                                                                                           sweight))
+                Ao = arrivals[key]['S']['Ao']  # peak-to-peak amplitude
+                if Ao == None:
+                    Ao = 0.0
+                # fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 0 0 0 %d \n' % (key,
+                fid.write('%s ? ? ? S   %s %d%02d%02d %02d%02d %7.4f GAU 0 %9.2f 0 0 %d \n' % (key,
+                                                                                               fm,
+                                                                                               year,
+                                                                                               month,
+                                                                                               day,
+                                                                                               hh,
+                                                                                               mm,
+                                                                                               ss_ms,
+                                                                                               Ao,
+                                                                                               sweight))
 
         fid.close()
     elif fformat == 'HYPO71':
@@ -506,6 +589,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('                                                                %s\n' %
                   parameter.get('eventID'))
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             if arrivals[key]['P']['weight'] < 4:
                 stat = key
@@ -581,10 +665,11 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for HYPOSAT" % filename)
         fid = open("%s" % filename, 'w')
         # write header
-        fid.write('%s, event %s \n' % (parameter.get('database'), parameter.get('eventID')))
+        fid.write('%s, event %s \n' % (parameter.get('datapath'), parameter.get('eventID')))
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         for key in arrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
+            if 'P' in  arrivals[key] and arrivals[key]['P']['mpp'] is not None:
                 if arrivals[key]['P']['weight'] < 4:
                     Ponset = arrivals[key]['P']['mpp']
                     pyear = Ponset.year
@@ -598,10 +683,22 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     # use symmetrized picking error as std
                     # (read the HYPOSAT manual)
                     pstd = arrivals[key]['P']['spe']
+                    if pstd is None:
+                        errorsP = parameter.get('timeerrorsP')
+                        if arrivals[key]['P']['weight'] == 0:
+                            pstd = errorsP[0]
+                        elif arrivals[key]['P']['weight'] == 1:
+                            pstd = errorsP[1]
+                        elif arrivals[key]['P']['weight'] == 2:
+                            pstd = errorsP[2]
+                        elif arrivals[key]['P']['weight'] == 3:
+                            psrd = errorsP[3]
+                        else:
+                            pstd = errorsP[4]
                     fid.write('%-5s P1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, pyear, pmonth, pday, phh, pmm, Pss, pstd))
             # S onsets
-            if arrivals[key].has_key('S') and arrivals[key]['S']:
+            if 'S' in arrivals[key] and arrivals[key]['S']['mpp'] is not None:
                 if arrivals[key]['S']['weight'] < 4:
                     Sonset = arrivals[key]['S']['mpp']
                     syear = Sonset.year
@@ -613,6 +710,18 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                     sms = Sonset.microsecond
                     Sss = sss + sms / 1000000.0
                     sstd = arrivals[key]['S']['spe']
+                    if pstd is None:
+                        errorsS = parameter.get('timeerrorsS')
+                        if arrivals[key]['S']['weight'] == 0:
+                            pstd = errorsS[0]
+                        elif arrivals[key]['S']['weight'] == 1:
+                            pstd = errorsS[1]
+                        elif arrivals[key]['S']['weight'] == 2:
+                            pstd = errorsS[2]
+                        elif arrivals[key]['S']['weight'] == 3:
+                            psrd = errorsS[3]
+                        else:
+                            pstd = errorsP[4]
                     fid.write('%-5s S1       %4.0f %02d %02d %02d %02d %05.02f   %5.3f -999.   0.00 -999.  0.00\n'
                               % (key, syear, smonth, sday, shh, smm, Sss, sstd))
         fid.close()
@@ -647,60 +756,87 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             syear, stime.month, stime.day, stime.hour, stime.minute, stime.second, eventsource['latitude'],
             cns, eventsource['longitude'], cew, eventsource['depth'], eventinfo.magnitudes[0]['mag'], ifx))
         n = 0
-        for key in arrivals:
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrivals(arrivals)
+        for key in usedarrivals:
             # P onsets
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4:
+            if 'P' in usedarrivals[key]:
+                if usedarrivals[key]['P']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Ponset = arrivals[key]['P']['mpp']
-                    Pweight = arrivals[key]['P']['weight']
+                    Ponset = usedarrivals[key]['P']['mpp']
+                    Pweight = usedarrivals[key]['P']['weight']
                     Prt = Ponset - stime  # onset time relative to source time
-                    if n % 6 is not 0:
+                    if n % 6 != 0:
                         fid.write('%-4sP%d%6.2f' % (stat, Pweight, Prt))
                     else:
                         fid.write('%-4sP%d%6.2f\n' % (stat, Pweight, Prt))
                         # S onsets
-            if arrivals[key].has_key('S'):
-                if arrivals[key]['S']['weight'] < 4:
+            if 'S' in usedarrivals[key]:
+                if usedarrivals[key]['S']['weight'] < 4:
                     n += 1
                     stat = key
                     if len(stat) > 4:  # VELEST handles only 4-string station IDs
                         stat = stat[1:5]
-                    Sonset = arrivals[key]['S']['mpp']
-                    Sweight = arrivals[key]['S']['weight']
+                    Sonset = usedarrivals[key]['S']['mpp']
+                    Sweight = usedarrivals[key]['S']['weight']
                     Srt = Ponset - stime  # onset time relative to source time
-                    if n % 6 is not 0:
+                    if n % 6 != 0:
                         fid.write('%-4sS%d%6.2f' % (stat, Sweight, Srt))
                     else:
                         fid.write('%-4sS%d%6.2f\n' % (stat, Sweight, Srt))
         fid.close()
 
-    elif fformat == 'hypoDD':
+    elif fformat == 'HYPODD':
         print("Writing phases to %s for hypoDD" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for hypoDD-phase file
-        eventsource = eventinfo.origins[0]
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no hypoDD-infile creation possible!")
+            return
         stime = eventsource['time']
-        event = parameter.get('eventID')
-        hddID = event.split('.')[0][1:5]
-        # write header
+        try:
+            event = eventinfo['pylot_id']
+            hddID = event.split('.')[0][1:5]
+        except:
+            print("Error 1111111!")
+            hddID = "00000"
+            # write header
         fid.write('# %d  %d %d %d %d %5.2f %7.4f +%6.4f %7.4f %4.2f 0.1 0.5 %4.2f      %s\n' % (
             stime.year, stime.month, stime.day, stime.hour, stime.minute, stime.second,
             eventsource['latitude'], eventsource['longitude'], eventsource['depth'] / 1000,
             eventinfo.magnitudes[0]['mag'], eventsource['quality']['standard_error'], hddID))
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrivals(arrivals)
+        for key in usedarrivals:
+            if 'P' in usedarrivals[key]:
                 # P onsets
-                if arrivals[key]['P']['weight'] < 4:
-                    Ponset = arrivals[key]['P']['mpp']
+                if usedarrivals[key]['P']['weight'] < 4:
+                    Ponset = usedarrivals[key]['P']['mpp']
                     Prt = Ponset - stime  # onset time relative to source time
                     fid.write('%s    %6.3f  1  P\n' % (key, Prt))
-                    # S onsets
-                if arrivals[key]['S']['weight'] < 4:
-                    Sonset = arrivals[key]['S']['mpp']
+            if 'S' in usedarrivals[key]:
+                # S onsets
+                if usedarrivals[key]['S']['weight'] < 4:
+                    Sonset = usedarrivals[key]['S']['mpp']
                     Srt = Sonset - stime  # onset time relative to source time
                     fid.write('%-5s    %6.3f  1  S\n' % (key, Srt))
 
@@ -710,10 +846,21 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for FOCMEC" % filename)
         fid = open("%s" % filename, 'w')
         # get event information needed for FOCMEC-input file
-        eventsource = eventinfo.origins[0]
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no FOCMEC-infile creation possible!")
+            return
         stime = eventsource['time']
+
+        # avoid printing '*' in focmec-input file
+        if parameter.get('eventid') == '*' or parameter.get('eventid') is None:
+            evID = 'e0000'
+        else:
+            evID = parameter.get('eventid')
+
         # write header line including event information
-        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (parameter.get('eventID'),
+        fid.write('%s %d%02d%02d%02d%02d%02.0f %7.4f %6.4f %3.1f %3.1f\n' % (evID,
                                                                              stime.year, stime.month, stime.day,
                                                                              stime.hour, stime.minute, stime.second,
                                                                              eventsource['latitude'],
@@ -721,9 +868,18 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                                                              eventsource['depth'] / 1000,
                                                                              eventinfo.magnitudes[0]['mag']))
         picks = eventinfo.picks
-        for key in arrivals:
-            if arrivals[key].has_key('P'):
-                if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
+        # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
+        if isinstance(arrivals, dict) == False:
+            # convert pick object (PyLoT) into dictionary
+            evt = ope.Event(resource_id=eventinfo['resource_id'])
+            evt.picks = arrivals
+            arrivals = picksdict_from_picks(evt)
+        # check for automatic and manual picks
+        # prefer manual picks
+        usedarrivals = chooseArrivals(arrivals)
+        for key in usedarrivals:
+            if 'P' in usedarrivals[key]:
+                if usedarrivals[key]['P']['weight'] < 4 and usedarrivals[key]['P']['fm'] is not None:
                     stat = key
                     for i in range(len(picks)):
                         station = picks[i].waveform_id.station_code
@@ -742,7 +898,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                                     fid.write('%-4s  %6.2f  %6.2f%s \n' % (stat,
                                                                            az,
                                                                            inz,
-                                                                           arrivals[key]['P']['fm']))
+                                                                           usedarrivals[key]['P']['fm']))
                                     break
 
         fid.close()
@@ -757,6 +913,11 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         print("Writing phases to %s for HASH for HASH-driver 2" % filename2)
         fid2 = open("%s" % filename2, 'w')
         # get event information needed for HASH-input file
+        try:
+            eventsource = eventinfo.origins[0]
+        except:
+            print("No source origin calculated yet, thus no cnv-file creation possible!")
+            return
         eventsource = eventinfo.origins[0]
         event = parameter.get('eventID')
         hashID = event.split('.')[0][1:5]
@@ -795,10 +956,11 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
                 eventsource['quality']['used_phase_count'],
                 erh, erz, eventinfo.magnitudes[0]['mag'],
                 hashID))
-
+        # Prefer Manual Picks over automatic ones if possible
+        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
         # write phase lines
         for key in arrivals:
-            if arrivals[key].has_key('P'):
+            if 'P' in arrivals[key]:
                 if arrivals[key]['P']['weight'] < 4 and arrivals[key]['P']['fm'] is not None:
                     stat = key
                     ccode = arrivals[key]['P']['channel']
@@ -843,6 +1005,25 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid2.close()
 
 
+def chooseArrivals(arrivals):
+    """
+    takes arrivals and returns the manual picks if manual and automatic ones are there
+    returns automatic picks if only automatic picks are there
+    :param arrivals: 'dictionary' with automatic and or manual arrivals
+    :return: arrivals but with the manual picks prefered if possible
+    """
+    # If len of arrivals is greater than 2 it comes from autopicking so only autopicks are available
+    if len(arrivals) > 2:
+        return arrivals
+    if arrivals['auto'] and arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    elif arrivals['auto']:
+        usedarrivals = arrivals['auto']
+    elif arrivals['manual']:
+        usedarrivals = arrivals['manual']
+    return usedarrivals
+
+
 def merge_picks(event, picks):
     """
     takes an event object and a list of picks and searches for matching
@@ -862,9 +1043,9 @@ def merge_picks(event, picks):
         network = pick.waveform_id.network_code
         method = pick.method_id
         for p in event.picks:
-            if p.waveform_id.station_code == station\
-                    and p.waveform_id.network_code == network\
-                    and p.phase_hint == phase\
+            if p.waveform_id.station_code == station \
+                    and p.waveform_id.network_code == network \
+                    and p.phase_hint == phase \
                     and (str(p.method_id) in str(method)
                          or str(method) in str(p.method_id)):
                 p.time, p.time_errors, p.waveform_id.network_code, p.method_id = time, err, network, method
@@ -872,27 +1053,63 @@ def merge_picks(event, picks):
     return event
 
 
-def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
+def getQualitiesfromxml(path, errorsP, errorsS, plotflag=1, figure=None, verbosity=0):
     """
-   Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
-   Uncertainties are tranformed into quality classes and visualized via histogram if desired.
-   Ludger Küperkoch, BESTEC GmbH, 07/2017
-   """
+    Script to get onset uncertainties from Quakeml.xml files created by PyLoT.
+    Uncertainties are tranformed into quality classes and visualized via histogram if desired.
+    Ludger Küperkoch, BESTEC GmbH, 07/2017
+    :param path: path containing xml files
+    :type path: str
+    :param errorsP: time errors of P waves for the four discrete quality classes
+    :type errorsP:
+    :param errorsS: time errors of S waves for the four discrete quality classes
+    :type errorsS:
+    :param plotflag:
+    :type plotflag:
+    :return:
+    :rtype:
+    """
 
-    from pylot.core.pick.utils import getQualityFromUncertainty
-    from pylot.core.util.utils import loopIdentifyPhase, identifyPhase
+    def calc_perc(uncertainties, ntotal):
+        ''' simple function that calculates percentage of number of uncertainties (list length)'''
+        if len(uncertainties) == 0:
+            return 0
+        else:
+            return 100. / ntotal * len(uncertainties)
 
-    # read all onset weights
-    Pw0 = []
-    Pw1 = []
-    Pw2 = []
-    Pw3 = []
-    Pw4 = []
-    Sw0 = []
-    Sw1 = []
-    Sw2 = []
-    Sw3 = []
-    Sw4 = []
+    def calc_weight_perc(psweights, weight_ids):
+        ''' calculate percentages of different weights (pick classes!?) of total number of uncertainties of a phase'''
+        # count total number of list items for this phase
+        numWeights = np.sum([len(weight) for weight in psweights.values()])
+
+        # iterate over all available weights to return a list with percentages for plotting
+        plot_list = []
+        for weight_id in weight_ids:
+            plot_list.append(calc_perc(psweights[weight_id], numWeights))
+
+        return plot_list, numWeights
+
+    # get all xmlfiles in path (maybe this should be changed to one xml file for this function, selectable via GUI?)
+    xmlnames = glob.glob(os.path.join(path, '*.xml'))
+    if len(xmlnames) == 0:
+        print(f'No files found in path {path}.')
+        return False
+
+    # first define possible phases here
+    phases = ['P', 'S']
+
+    # define possible weights (0-4)
+    weight_ids = list(range(5))
+
+    # put both error lists in a dictionary with P/S key so that amount of code can be halfed by simply using P/S as key
+    errors = dict(P=errorsP, S=errorsS)
+
+    # create dictionaries for each phase (P/S) with a dictionary of empty list for each weight defined in weights
+    # tuple above
+    weights = {}
+    for phase in phases:
+        weights[phase] = {weight_id: [] for weight_id in weight_ids}
+
     for names in xmlnames:
         print("Getting onset weights from {}".format(names))
         cat = read_events(names)
@@ -900,117 +1117,60 @@ def getQualitiesfromxml(xmlnames, ErrorsP, ErrorsS, plotflag=1):
         arrivals = cat.events[0].picks
         arrivals_copy = cat_copy.events[0].picks
         # Prefere manual picks if qualities are sufficient!
-        for Pick in arrivals:
-            if (Pick.method_id.id).split('/')[1] == 'manual':
-                mstation = Pick.waveform_id.station_code
+        for pick in arrivals:
+            if pick.method_id.id.split('/')[1] == 'manual':
+                mstation = pick.waveform_id.station_code
                 mstation_ext = mstation + '_'
                 for mpick in arrivals_copy:
-                    phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
-                    if phase == 'P':
-                        if ((mpick.waveform_id.station_code == mstation) or
-                                (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
-                                (mpick.time_errors['uncertainty'] <= ErrorsP[3]):
-                            del mpick
-                            break
-                    elif phase == 'S':
-                        if ((mpick.waveform_id.station_code == mstation) or
-                                (mpick.waveform_id.station_code == mstation_ext)) and \
-                                ((mpick.method_id).split('/')[1] == 'auto') and \
-                                (mpick.time_errors['uncertainty'] <= ErrorsS[3]):
-                            del mpick
-                            break
+                    phase = identifyPhase(loopIdentifyPhase(pick.phase_hint)) # MP MP catch if this fails?
+                    if ((mpick.waveform_id.station_code == mstation) or
+                        (mpick.waveform_id.station_code == mstation_ext)) and \
+                            (mpick.method_id.id.split('/')[1] == 'auto') and \
+                            (mpick.time_errors['uncertainty'] <= errors[phase][3]):
+                        del mpick
+                        break
         lendiff = len(arrivals) - len(arrivals_copy)
-        if lendiff is not 0:
+        if lendiff != 0:
             print("Found manual as well as automatic picks, prefered the {} manual ones!".format(lendiff))
 
-        for Pick in arrivals_copy:
-            phase = identifyPhase(loopIdentifyPhase(Pick.phase_hint))
-            if phase == 'P':
-                Pqual = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsP)
-                if Pqual == 0:
-                    Pw0.append(Pick.time_errors.uncertainty)
-                elif Pqual == 1:
-                    Pw1.append(Pick.time_errors.uncertainty)
-                elif Pqual == 2:
-                    Pw2.append(Pick.time_errors.uncertainty)
-                elif Pqual == 3:
-                    Pw3.append(Pick.time_errors.uncertainty)
-                elif Pqual == 4:
-                    Pw4.append(Pick.time_errors.uncertainty)
-            elif phase == 'S':
-                Squal = getQualityFromUncertainty(Pick.time_errors.uncertainty, ErrorsS)
-                if Squal == 0:
-                    Sw0.append(Pick.time_errors.uncertainty)
-                elif Squal == 1:
-                    Sw1.append(Pick.time_errors.uncertainty)
-                elif Squal == 2:
-                    Sw2.append(Pick.time_errors.uncertainty)
-                elif Squal == 3:
-                    Sw3.append(Pick.time_errors.uncertainty)
-                elif Squal == 4:
-                    Sw4.append(Pick.time_errors.uncertainty)
-            else:
+        for pick in arrivals_copy:
+            phase = identifyPhase(loopIdentifyPhase(pick.phase_hint))
+            uncertainty = pick.time_errors.uncertainty
+            if not uncertainty:
+                if verbosity > 0:
+                    print('No uncertainty, pick {} invalid!'.format(pick.method_id.id))
+                continue
+            # check P/S phase
+            if phase not in phases:
                 print("Phase hint not defined for picking!")
-                pass
+                continue
+
+            qual = get_quality_class(uncertainty, errors[phase])
+            weights[phase][qual].append(uncertainty)
 
     if plotflag == 0:
-        Punc = [Pw0, Pw1, Pw2, Pw3, Pw4]
-        Sunc = [Sw0, Sw1, Sw2, Sw3, Sw4]
-        return Punc, Sunc
+        p_unc = [weights['P'][weight_id] for weight_id in weight_ids]
+        s_unc = [weights['S'][weight_id] for weight_id in weight_ids]
+        return p_unc, s_unc
     else:
+        if not figure:
+            fig = plt.figure()
+        ax = fig.add_subplot(111)
         # get percentage of weights
-        numPweights = np.sum([len(Pw0), len(Pw1), len(Pw2), len(Pw3), len(Pw4)])
-        numSweights = np.sum([len(Sw0), len(Sw1), len(Sw2), len(Sw3), len(Sw4)])
-        if len(Pw0) > 0:
-            P0perc = 100 / numPweights * len(Pw0)
-        else:
-            P0perc = 0
-        if len(Pw1) > 0:
-            P1perc = 100 / numPweights * len(Pw1)
-        else:  
-            P1perc = 0
-        if len(Pw2) > 0:
-            P2perc = 100 / numPweights * len(Pw2)
-        else:  
-            P2perc = 0
-        if len(Pw3) > 0:
-            P3perc = 100 / numPweights * len(Pw3)
-        else:  
-            P3perc = 0
-        if len(Pw4) > 0:
-            P4perc = 100 / numPweights * len(Pw4)
-        else:  
-            P4perc = 0
-        if len(Sw0) > 0:
-            S0perc = 100 / numSweights * len(Sw0)
-        else:
-            S0perc = 0
-        if len(Sw1) > 0:
-            S1perc = 100 / numSweights * len(Sw1)
-        else:  
-            S1perc = 0
-        if len(Sw2) > 0:
-            S2perc = 100 / numSweights * len(Sw2)
-        else:  
-            S2perc = 0
-        if len(Sw3) > 0:
-            S3perc = 100 / numSweights * len(Sw3)
-        else:  
-            S3perc = 0
-        if len(Sw4) > 0:
-            S4perc = 100 / numSweights * len(Sw4)
-        else:  
-            S4perc = 0
+        listP, numPweights = calc_weight_perc(weights['P'], weight_ids)
+        listS, numSweights = calc_weight_perc(weights['S'], weight_ids)
 
-        weights = ('0', '1', '2', '3', '4')
-        y_pos = np.arange(len(weights))
+        y_pos = np.arange(len(weight_ids))
         width = 0.34
-        plt.bar(y_pos - width, [P0perc, P1perc, P2perc, P3perc, P4perc], width, color='black')
-        plt.bar(y_pos, [S0perc, S1perc, S2perc, S3perc, S4perc], width, color='red')
-        plt.ylabel('%')
-        plt.xticks(y_pos, weights)
-        plt.xlim([-0.5, 4.5])
-        plt.xlabel('Qualities')
-        plt.title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights))
-        plt.show()
+        ax.bar(y_pos - width, listP, width, color='black')
+        ax.bar(y_pos, listS, width, color='red')
+        ax.set_ylabel('%')
+        ax.set_xticks(y_pos, weight_ids)
+        ax.set_xlim([-0.5, 4.5])
+        ax.set_xlabel('Qualities')
+        ax.set_title('{0} P-Qualities, {1} S-Qualities'.format(numPweights, numSweights))
+
+        if not figure:
+            fig.show()
+
+        return listP, listS
