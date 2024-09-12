@@ -1976,7 +1976,6 @@ class MainWindow(QMainWindow):
         self.dataPlot.activateObspyDMToptions(self.obspy_dmt)
         if self.obspy_dmt:
             self.prepareObspyDMT_data(eventpath)
-            self.dataPlot.activateCompareOptions(True)
 
     def loadWaveformData(self):
         '''
