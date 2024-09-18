@@ -59,6 +59,8 @@ class Metadata(object):
         :type path_to_inventory: str
         :return: None
         """
+        path_to_inventory = path_to_inventory.replace('\\', '/')
+        path_to_inventory = os.path.abspath(path_to_inventory)
         assert (os.path.isdir(path_to_inventory)), '{} is no directory'.format(path_to_inventory)
         if path_to_inventory not in self.inventories:
             self.inventories.append(path_to_inventory)

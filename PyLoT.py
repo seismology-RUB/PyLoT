@@ -716,14 +716,14 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(wf_tab, 'Waveform Plot')
         self.tabs.addTab(array_tab, 'Array Map')
         self.tabs.addTab(events_tab, 'Eventlist')
-        self.tabs.addTab(spectro_tab, 'Spectro')
+        #self.tabs.addTab(spectro_tab, 'Spectro')
 
         self.wf_layout.addWidget(self.no_data_label)
         self.wf_layout.addWidget(self.wf_scroll_area)
         self.wf_scroll_area.setWidgetResizable(True)
         self.init_array_tab()
         self.init_event_table()
-        self.init_spectro_tab()
+        #self.init_spectro_tab()
         self.tabs.setCurrentIndex(0)
 
         self.eventLabel = QLabel()
