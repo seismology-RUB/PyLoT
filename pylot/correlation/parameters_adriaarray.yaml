@@ -9,7 +9,7 @@
 # initial_pick_outlier_threshold: (hopefully) threshold for excluding large outliers of initial (AIC) picks
 # export_threshold: automatically exclude all onsets which deviate more than this threshold from corrected taup onsets
 # min_picks_export: minimum number of correlated picks for export
-# min_picks_autopylot: minimum number of reference autopicks picks to continue with event
+# min_picks_autopylot: minimum number of reference auto picks to continue with event
 # check_RMS: do RMS check to search for restitution errors (very experimental)
 # use_taupy_onsets: use taupy onsets as reference picks instead of external picks
 # station_list: use the following stations as reference for stacking
@@ -17,6 +17,11 @@
 # data_dir: obspyDMT data subdirectory (e.g. 'raw', 'processed')
 # pickfile_extension: use quakeML files (PyLoT output) with the following extension, e.g. '_autopylot' for pickfiles
 #                     such as 'PyLoT_20170501_141822_autopylot.xml'
+# dt_stacking: time shift for stacking (e.g. [0, 250] for 0 and 250 seconds shift)
+# filter_options: filter for first correlation (rough)
+# filter_options_final: filter for second correlation (fine)
+# filter_type: e.g. 'bandpass'
+# sampfreq: sampling frequency of the data
 
 logging: info
 pick_phases: ['P', 'S']

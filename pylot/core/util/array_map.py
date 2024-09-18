@@ -134,8 +134,8 @@ class Array_map(QtWidgets.QWidget):
         self.cmaps_box = QtWidgets.QComboBox()
         self.cmaps_box.setMaxVisibleItems(20)
         [self.cmaps_box.addItem(map_name) for map_name in sorted(plt.colormaps())]
-        # try to set to viridis as default
-        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('viridis'))
+        # try to set to plasma as default
+        self.cmaps_box.setCurrentIndex(self.cmaps_box.findText('plasma'))
 
         self.top_row.addWidget(QtWidgets.QLabel('Select a phase: '))
         self.top_row.addWidget(self.comboBox_phase)
