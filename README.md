@@ -63,6 +63,9 @@ You may need to do some modifications to these files. Especially folder names sh
 
 PyLoT has been tested on Mac OSX (10.11), Debian Linux 8 and on Windows 10/11.
 
+## Example Dataset
+An example dataset with waveform data, metadata and automatic picks in the obspy-dmt dataset format for testing the teleseismic picking can be found at https://zenodo.org/doi/10.5281/zenodo.13759803
+
 ## Release notes
 
 #### Features:
