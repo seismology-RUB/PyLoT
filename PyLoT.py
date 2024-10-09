@@ -3590,7 +3590,7 @@ class MainWindow(QMainWindow):
     def calc_magnitude(self):
         self.init_metadata()
         if not self.metadata:
-            return None
+            return []
 
         wf_copy = self.get_data().getWFData().copy()
 
@@ -3598,6 +3598,10 @@ class MainWindow(QMainWindow):
         # restitute only picked traces
         for station in np.unique(list(self.getPicks('manual').keys()) + list(self.getPicks('auto').keys())):
             wf_select += wf_copy.select(station=station)
+
+        if not wf_select:
+            logging.warning('Empty Stream in calc_magnitude. Return.')
+            return []
 
         corr_wf = restitute_data(wf_select, self.metadata)
         # calculate moment magnitude

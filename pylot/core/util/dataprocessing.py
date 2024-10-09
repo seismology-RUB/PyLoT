@@ -654,6 +654,8 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
     """
 
     # data = remove_underscores(data)
+    if not data:
+        return
 
     # loop over traces
     input_tuples = []
@@ -661,9 +663,14 @@ def restitute_data(data, metadata, unit='VEL', force=False, ncores=0):
         input_tuples.append((tr, metadata, unit, force))
         data.remove(tr)
 
-    pool = gen_Pool(ncores)
-    result = pool.imap_unordered(restitute_trace, input_tuples)
-    pool.close()
+    if ncores == 0:
+        result = []
+        for input_tuple in input_tuples:
+            result.append(restitute_trace(input_tuple))
+    else:
+        pool = gen_Pool(ncores)
+        result = pool.imap_unordered(restitute_trace, input_tuples)
+        pool.close()
 
     for tr, remove_trace in result:
         if not remove_trace:
