@@ -269,9 +269,6 @@ class Metadata(object):
             # search for station name in filename
             fnames = glob.glob(os.path.join(path_to_inventory, '*' + station + '*'))
         if not fnames:
-            # search for network name in filename
-            fnames = glob.glob(os.path.join(path_to_inventory, '*' + network + '*'))
-        if not fnames:
             if self.verbosity:
                 print('Could not find filenames matching station name, network name or seed id')
             return
@@ -282,7 +279,7 @@ class Metadata(object):
                     continue
             invtype, robj = self._read_metadata_file(os.path.join(path_to_inventory, fname))
             try:
-                # robj.get_coordinates(station_seed_id)  # TODO: Commented out, failed with Parser, is this needed?
+                robj.get_coordinates(station_seed_id)
                 self.inventory_files[fname] = {'invtype': invtype,
                                                'data': robj}
                 if station_seed_id in self.seed_ids.keys():
@@ -290,6 +287,7 @@ class Metadata(object):
                 self.seed_ids[station_seed_id] = fname
                 return True
             except Exception as e:
+                logging.warning(e)
                 continue
         print('Could not find metadata for station_seed_id {} in path {}'.format(station_seed_id, path_to_inventory))
 
