@@ -760,7 +760,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             # convert pick object (PyLoT) into dictionary
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
+            arrivals = picksdict_from_picks(evt, parameter=parameter)
         # check for automatic and manual picks
         # prefer manual picks
         usedarrivals = chooseArrivals(arrivals)
@@ -821,7 +821,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             # convert pick object (PyLoT) into dictionary
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
+            arrivals = picksdict_from_picks(evt, parameter=parameter)
         # check for automatic and manual picks
         # prefer manual picks
         usedarrivals = chooseArrivals(arrivals)
@@ -872,7 +872,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             # convert pick object (PyLoT) into dictionary
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
-            arrivals = picksdict_from_picks(evt)
+            arrivals = picksdict_from_picks(evt, parameter=parameter)
         # check for automatic and manual picks
         # prefer manual picks
         usedarrivals = chooseArrivals(arrivals)

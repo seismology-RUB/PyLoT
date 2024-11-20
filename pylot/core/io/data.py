@@ -36,8 +36,17 @@ class Data(object):
     loaded event. Container object holding, e.g. phase arrivals, etc.
     """
 
-    def __init__(self, parent=None, evtdata=None):
+    def __init__(self, parent=None, evtdata=None, picking_parameter=None):
         self._parent = parent
+
+        if not picking_parameter:
+            if hasattr(parent, '_inputs'):
+                picking_parameter = parent._inputs
+            else:
+                logging.warning('No picking parameters found! Using default input parameters!!!')
+                picking_parameter = PylotParameter()
+        self.picking_parameter = picking_parameter
+
         if self.getParent():
             self.comp = parent.getComponent()
         else:
@@ -403,23 +412,19 @@ class Data(object):
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.cnv':
                 try:
-                    velest.export(picks_copy, fnout + fnext, eventinfo=self.get_evt_data())
+                    velest.export(picks_copy, fnout + fnext, self.picking_parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '_focmec.in':
                 try:
-                    parameter = PylotParameter()
-                    logging.warning('Using default input parameter')
-                    focmec.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
+                    focmec.export(picks_copy, fnout + fnext, self.picking_parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
             if fnext == '.pha':
                 try:
-                    parameter = PylotParameter()
-                    logging.warning('Using default input parameter')
-                    hypodd.export(picks_copy, fnout + fnext, parameter, eventinfo=self.get_evt_data())
+                    hypodd.export(picks_copy, fnout + fnext, self.picking_parameter, eventinfo=self.get_evt_data())
                 except KeyError as e:
                     raise KeyError('''{0} export format
                                      not implemented: {1}'''.format(evtformat, e))
