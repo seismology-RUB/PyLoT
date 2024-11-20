@@ -278,7 +278,6 @@ def picksdict_from_picks(evt, parameter=None):
         weight = phase.get('weight')
         if not weight:
             if not parameter:
-                logging.warning('Using ')
                 logging.warning('Using default input parameter')
                 parameter = PylotParameter()
             pick.phase_hint = identifyPhase(pick.phase_hint)
@@ -513,7 +512,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         # write header
         fid.write('# EQEVENT: %s Label: EQ%s  Loc:  X 0.00  Y 0.00  Z 10.00  OT 0.00 \n' %
                   (parameter.get('datapath'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if 'P' in arrivals[key]:
@@ -666,7 +665,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
         fid = open("%s" % filename, 'w')
         # write header
         fid.write('%s, event %s \n' % (parameter.get('datapath'), parameter.get('eventID')))
-        arrivals = chooseArrivals(arrivals)  # MP MP what is chooseArrivals? It is not defined anywhere
+        arrivals = chooseArrivals(arrivals)
         for key in arrivals:
             # P onsets
             if 'P' in  arrivals[key] and arrivals[key]['P']['mpp'] is not None:
@@ -757,7 +756,7 @@ def writephases(arrivals, fformat, filename, parameter=None, eventinfo=None):
             cns, eventsource['longitude'], cew, eventsource['depth'], eventinfo.magnitudes[0]['mag'], ifx))
         n = 0
         # check whether arrivals are dictionaries (autoPyLoT) or pick object (PyLoT)
-        if isinstance(arrivals, dict) == False:
+        if isinstance(arrivals, dict) is False:
             # convert pick object (PyLoT) into dictionary
             evt = ope.Event(resource_id=eventinfo['resource_id'])
             evt.picks = arrivals
