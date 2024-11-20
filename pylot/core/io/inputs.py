@@ -53,10 +53,16 @@ class PylotParameter(object):
         self.__parameter = {}
         self._verbosity = verbosity
         self._parFileCont = {}
+
         # io from parsed arguments alternatively
         for key, val in kwargs.items():
             self._parFileCont[key] = val
         self.from_file()
+
+        # if no filename or kwargs given, use default values
+        if not fnin and not kwargs:
+            self.reset_defaults()
+
         if fnout:
             self.export2File(fnout)
 

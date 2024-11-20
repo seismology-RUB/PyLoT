@@ -51,7 +51,6 @@ def readDefaultFilterInformation():
     :rtype: dict
     """
     pparam = PylotParameter()
-    pparam.reset_defaults()
     return readFilterInformation(pparam)
 
 
