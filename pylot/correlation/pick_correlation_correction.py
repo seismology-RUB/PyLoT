@@ -447,8 +447,12 @@ def correlation_main(database_path_dmt: str, pylot_infile_path: str, params: dic
         if event_blacklist and get_event_id(eventdir) in event_blacklist:
             logging.info('Event on blacklist. Continue')
 
-        correlate_event(eventdir, pylot_parameter, params=params, channel_config=channel_config,
-                        update=update)
+        try:
+            correlate_event(eventdir, pylot_parameter, params=params, channel_config=channel_config,
+                            update=update)
+        except Exception as e:
+            logging.error(f'Could not correlate event {eventindex}: {e}')
+            continue
 
     logging.info('Finished script after {} at {}'.format(datetime.now() - tstart, datetime.now()))
 
