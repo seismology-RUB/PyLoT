@@ -1011,7 +1011,7 @@ class MainWindow(QMainWindow):
         for event in events:
             for filename in filenames:
                 if os.path.isfile(filename) and event.pylot_id in filename:
-                    self.load_data(filename, draw=False, event=event, ask_user=True, merge_strategy=sld.merge_strategy)
+                    self.load_data(filename, draw=False, event=event, ask_user=False, merge_strategy=sld.merge_strategy)
                     refresh = True
         if not refresh:
             return
@@ -1020,8 +1020,8 @@ class MainWindow(QMainWindow):
         self.fill_eventbox()
         self.setDirty(True)
 
-    def load_data(self, fname=None, loc=False, draw=True, event=None, ask_user=False, merge_strategy='Overwrite'):
-        if not ask_user:
+    def load_data(self, fname=None, loc=False, draw=True, event=None, ask_user=True, merge_strategy='Overwrite',):
+        if ask_user:
             if not self.okToContinue():
                 return
         if fname is None:
@@ -1034,7 +1034,7 @@ class MainWindow(QMainWindow):
         if not event:
             event = self.get_current_event()
 
-        if event.picks:
+        if event.picks and ask_user:
             qmb = QMessageBox(self, icon=QMessageBox.Question,
                               text='Do you want to overwrite the data?',)
             overwrite_button = qmb.addButton('Overwrite', QMessageBox.YesRole)
