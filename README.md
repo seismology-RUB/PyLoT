@@ -86,13 +86,13 @@ Current release is still in development progress and has several issues. We are 
 
 ## Staff
 
-Original author(s): M. Rische, S. Wehling-Benatelli, L. Kueperkoch, M. Bischoff (PILOT)
+Developer(s): M. Paffrath, S. Wehling-Benatelli, L. Kueperkoch, D. Arnold, K. Cökerim, K. Olbert, M. Bischoff, C. Wollin, M. Rische, S. Zimmermann
 
-Developer(s): S. Wehling-Benatelli, M. Paffrath, L. Kueperkoch, K. Olbert, M. Bischoff, C. Wollin, M. Rische, D. Arnold, K. Cökerim, S. Zimmermann
+Original author(s): M. Rische, S. Wehling-Benatelli, L. Kueperkoch, M. Bischoff (PILOT)
 
 Others: A. Bruestle, T. Meier, W. Friederich
 
 
 [ObsPy]: http://github.com/obspy/obspy/wiki
 
-September 2024
+March 2025
