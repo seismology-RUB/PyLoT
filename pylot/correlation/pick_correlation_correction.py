@@ -436,7 +436,7 @@ def correlation_main(database_path_dmt: str, pylot_infile_path: str, params: dic
 
     # iterate over all events in "database_path_dmt"
     for eventindex, eventdir in enumerate(eventdirs):
-        if not istart <= eventindex < istop:
+        if not istart <= eventindex + 1 < istop:
             continue
 
         if select_events and not os.path.split(eventdir)[-1] in select_events:
@@ -639,10 +639,19 @@ def correlate_event(eventdir: str, pylot_parameter: PylotParameter, params: dict
             if len(picks) < params[phase_type]['min_picks_autopylot']:
                 logging.info('Not enough automatic picks for correlation. Continue!')
                 continue
-            # calculate corrected taupy picks and remove strong outliers
-            taupypicks_corr_initial, median_diff = get_corrected_taupy_picks(picks, taupypicks_orig)
-            picks = remove_outliers(picks, taupypicks_corr_initial,
-                                    params[phase_type]['initial_pick_outlier_threshold'])
+            ## calculate corrected taupy picks and remove strong outliers - part commented out for now. Maybe make this
+            ## another option but I think it is not worth it
+            # taupypicks_corr_initial, median_diff = get_corrected_taupy_picks(picks, taupypicks_orig)
+            # picks = remove_outliers(picks, taupypicks_corr_initial,
+            #                        params[phase_type]['initial_pick_outlier_threshold'])
+
+            # use mean/median corrected picks from taupy as the new reference picks. This largely increases the yield
+            # of final picks since every station has a decent reference onset now for a correlation
+            taupypicks, time_shift = get_corrected_taupy_picks(picks, taupypicks_orig, all_available=True)
+
+            picks = copy.deepcopy(taupypicks)
+            for pick in picks:
+                pick.method_id.id = 'auto'
 
         if phase_type == 'S':
             # check whether rotation to ZNE is possible (to get rid of horizontal channel 1,2,3)
@@ -830,7 +839,7 @@ def get_picks_mean(picks: list) -> UTCDateTime:
 
 
 def get_corrected_taupy_picks(picks: list, taupypicks: list, all_available: bool = False) -> tuple:
-    """ get mean/median from picks taupy picks, correct latter for the difference """
+    """ get mean/median from picks relative to taupy picks, correct latter for the difference """
 
     def nwst_id_from_wfid(wfid):
         return '{}.{}'.format(wfid.network_code if wfid.network_code else '',
@@ -1988,4 +1997,5 @@ if __name__ == "__main__":
     # MAIN +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     correlation_main(ARGS.dmt_path, ARGS.pylot_infile, params=CORR_PARAMS, istart=int(ARGS.istart),
                      istop=int(ARGS.istop),
-                     channel_config=CHANNELS, update=ARGS.update, event_blacklist=ARGS.blacklist)
+                     channel_config=CHANNELS, update=ARGS.update, event_blacklist=ARGS.blacklist,
+                     select_events=['20250107_010516.a'])

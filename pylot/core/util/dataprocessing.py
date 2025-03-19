@@ -220,9 +220,9 @@ class Metadata(object):
                     network_name = network.code
                     if not station_name in self.stations_dict.keys():
                         st_id = '{}.{}'.format(network_name, station_name)
-                        self.stations_dict[st_id] = {'latitude': station[0].latitude,
-                                                     'longitude': station[0].longitude,
-                                                     'elevation': station[0].elevation}
+                        self.stations_dict[st_id] = {'latitude': station.latitude,
+                                                     'longitude': station.longitude,
+                                                     'elevation': station.elevation}
 
         read_stat = {'xml': stat_info_from_inventory,
                      'dless': stat_info_from_parser}
