@@ -32,9 +32,10 @@ export PYTHONPATH="$PYTHONPATH:/home/marcel/git/pylot/"
 #python pick_correlation_correction.py '/data/AlpArray_Data/dmt_database_mantle_M5.8-6.0' '/home/marcel/.pylot/pylot_alparray_mantle_corr_stack_0.03-0.5.in' -pd -n ${NSLOTS:=1} -istart 100 -istop 200
 #python pick_correlation_correction.py 'H:\sciebo\dmt_database' 'H:\Sciebo\dmt_database\pylot_alparray_mantle_corr_S_0.01-0.2.in' -pd -n 4 -t
 
-pylot_infile='/home/marcel/.pylot/pylot_alparray_syn_fwi_mk6_it3.in'
-#pylot_infile='/home/marcel/.pylot/pylot_adriaarray_corr_P_and_S.in'
+#pylot_infile='/home/marcel/.pylot/pylot_alparray_syn_fwi_mk6_it3.in'
+pylot_infile='/home/marcel/.pylot/pylot_adriaarray_corr_P_and_S.in'
 
 # THIS SCRIPT SHOLD BE CALLED BY "submit_to_grid_engine.py" using the following line:
-python pick_correlation_correction.py $1 $pylot_infile -pd -n ${NSLOTS:=1} -istart $2 --params 'parameters_fwi_mk6_it3.yaml'
+# use -pd for detailed plots in eventdir/correlation_XX_XX/figures
+python pick_correlation_correction.py $1 $pylot_infile -n ${NSLOTS:=1} -istart $2 --params 'parameters_adriaarray.yaml' # -pd
 #--event_blacklist eventlist.txt

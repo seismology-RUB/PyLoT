@@ -436,14 +436,15 @@ def correlation_main(database_path_dmt: str, pylot_infile_path: str, params: dic
 
     # iterate over all events in "database_path_dmt"
     for eventindex, eventdir in enumerate(eventdirs):
-        if not istart <= eventindex + 1 < istop:
+        eventindex += 1
+        if not istart <= eventindex < istop:
             continue
 
         if select_events and not os.path.split(eventdir)[-1] in select_events:
             continue
 
         logging.info('\n' + 100 * '#')
-        logging.info('Working on event {} ({}/{})'.format(eventdir, eventindex + 1, len(eventdirs)))
+        logging.info('Working on event {} ({}/{})'.format(eventdir, eventindex, len(eventdirs)))
         if event_blacklist and get_event_id(eventdir) in event_blacklist:
             logging.info('Event on blacklist. Continue')
 
@@ -526,7 +527,7 @@ def cut_stream_to_same_length(wfdata: Stream) -> None:
         st.trim(tstart, tend, pad=True, fill_value=0.)
         # check for stream length
         if len(st) < 3:
-            logging.info('Not enough traces in stream, remove it from dataset:', str(st))
+            logging.info(f'Not enough traces in stream, remove it from dataset: {st}')
             remove(wfdata, st)
             continue
         if st[0].stats.starttime != st[1].stats.starttime or st[1].stats.starttime != st[2].stats.starttime:
@@ -684,19 +685,56 @@ def correlate_event(eventdir: str, pylot_parameter: PylotParameter, params: dict
         if not params[phase_type]['use_stacked_trace']:
             # first stack mastertrace by using stations with high correlation on that station in station list with the
             # highest correlation coefficient
-            stack_result = stack_mastertrace(wfdata_lowf, wfdata_highf, wfdata, picks, params=params[phase_type],
-                                             channels=channels_list, method=method, fig_dir=fig_dir)
-        else:
-            stack_result = load_stacked_trace(eventdir, params[phase_type]['min_corr_stacking'])
+            logging.info('Searching for master trace. ' + 20 * '-')
+            best_result = None
+            for stack_result in stack_mastertrace(wfdata_lowf, wfdata_highf, wfdata, picks, params=params[phase_type],
+                                                  channels=channels_list, method=method, fig_dir=fig_dir):
 
-        if not stack_result:
-            logging.info('No stack result. Continue.')
-            continue
+                if not stack_result:
+                    continue
+
+                # save best result in case it is still needed
+                if not best_result:
+                    best_result = stack_result
+
+                # extract stack result
+                correlations_dict, nwst_id, trace_master, nstack = stack_result
+
+                # now pick stacked trace with PyLoT for a more precise pick (use raw trace, gets filtered by autoPyLoT)
+                pick_stacked = repick_master_trace(wfdata_lowf, trace_master, pylot_parameter, event, event_id, metadata,
+                                                   phase_type, correlation_out_dir)
+
+                if not pick_stacked or not pick_stacked.time_errors.uncertainty:
+                    logging.info(f'Invalid autoPyLoT pick on master trace. Try next one.')
+                    continue
+                else:
+                    break
+
+            else:
+                logging.info('Did not find autoPyLoT pick for any stacked trace.')
+
+                if params[phase_type]['ignore_autopylot_fail_on_master'] is True:
+                    # Fallback in case autopylot failed
+                    logging.warning(f'Could not pick stacked trace. Using reference pick instead. If you need '
+                                    f'absolute onsets you need to account for a time-shift.')
+
+                    correlations_dict, nwst_id, trace_master, nstack = best_result
+                    pick_stacked = get_pick4station(picks, network_code=trace_master.stats.network,
+                                                    station_code=trace_master.stats.station, method='auto')
+                else:
+                    pick_stacked = None
+
+                if not pick_stacked:
+                    logging.info('Could not find reference pick also. Continue with next phase.')
+                    continue
+
+        else:
+            raise NotImplementedError('Loading stacked trace currently not implemented')
+            # stack_result = load_stacked_trace(eventdir, params[phase_type]['min_corr_stacking'])
+
 
         #############################################
         # NOW DO THE FINAL CORRELATION
-        # extract stack result
-        correlations_dict, nwst_id, trace_master, nstack = stack_result
 
         if params[phase_type]['plot']:
             # plot correlations of traces used to generate stacked trace
@@ -713,11 +751,6 @@ def correlate_event(eventdir: str, pylot_parameter: PylotParameter, params: dict
         # write unfiltered trace
         trace_master.write(os.path.join(correlation_out_dir, '{}_stacked.mseed'.format(trace_master.id)))
 
-        # now pick stacked trace with PyLoT for a more precise pick (use raw trace, gets filtered by autoPyLoT)
-        pick_stacked = repick_master_trace(wfdata_lowf, trace_master, pylot_parameter, event, event_id, metadata,
-                                           phase_type, correlation_out_dir)
-        if not pick_stacked:
-            continue
 
         # correlate stations with repicked and stacked master trace
         fig_dir_traces = make_figure_dirs(fig_dir, trace_master.id)
@@ -1178,38 +1211,38 @@ def stack_mastertrace(wfdata_lowf: Stream, wfdata_highf: Stream, wfdata_raw: Str
     A master trace will be created by stacking well correlating traces onto this station.
     """
 
-    def get_best_station4stack(sta_result):
-        """ return station with maximum mean_ccc"""
+    def get_best_stations4stack(sta_result, n_max=4):
+        """ return stations sorted after maximum mean_ccc"""
         ccc_means = {nwst_id: value['mean_ccc'] for nwst_id, value in sta_result.items() if
                      not np.isnan(value['mean_ccc'])}
         if len(ccc_means) < 1:
             logging.warning('No valid station found for stacking! Return.')
             return
-        best_station_id = max(ccc_means, key=ccc_means.get)
-        logging.info(
-            'Found highest mean correlation for station {} ({})'.format(best_station_id, max(ccc_means.values())))
-        return best_station_id
+        best_station_ids = sorted(ccc_means, key=ccc_means.get, reverse=True)[:n_max]
+        logging.info(f'Found mean correlations for stations: {ccc_means}')
+        return best_station_ids, ccc_means
 
     station_results = iterate_correlation(wfdata_lowf, wfdata_highf, channels, picks, method, params, fig_dir=fig_dir)
-    nwst_id_master = get_best_station4stack(station_results)
+    nwst_ids_master, ccc_means = get_best_stations4stack(station_results)
 
     # in case no stream with a valid pick is found
-    if not nwst_id_master:
-        logging.info('No mastertrace found! Will skip this event.')
+    if not nwst_ids_master:
+        logging.info('No mastertrace found! Continue with next.')
         return None
 
-    trace_master = station_results[nwst_id_master]['trace']
-    stations4stack = station_results[nwst_id_master]['stations4stack']
-    correlations_dict = station_results[nwst_id_master]['correlations_dict']
+    for nwst_id_master in nwst_ids_master:
+        trace_master = station_results[nwst_id_master]['trace']
+        stations4stack = station_results[nwst_id_master]['stations4stack']
+        correlations_dict = station_results[nwst_id_master]['correlations_dict']
 
-    wfdata_highf += trace_master
+        wfdata_highf += trace_master
 
-    dt_pre, dt_post = params['dt_stacking']
-    trace_master, nstack = apply_stacking(trace_master, stations4stack, wfdata_raw, picks, method=method,
-                                          do_rms_check=params['check_RMS'], plot=params['plot'], fig_dir=fig_dir,
-                                          dt_pre=dt_pre, dt_post=dt_post)
+        dt_pre, dt_post = params['dt_stacking']
+        trace_master, nstack = apply_stacking(trace_master, stations4stack, wfdata_raw, picks, method=method,
+                                              do_rms_check=params['check_RMS'], plot=params['plot'], fig_dir=fig_dir,
+                                              dt_pre=dt_pre, dt_post=dt_post)
 
-    return correlations_dict, nwst_id_master, trace_master, nstack
+        yield correlations_dict, nwst_id_master, trace_master, nstack
 
 
 def iterate_correlation(wfdata_lowf: Stream, wfdata_highf: Stream, channels: list, picks: list, method: str,
@@ -1998,4 +2031,4 @@ if __name__ == "__main__":
     correlation_main(ARGS.dmt_path, ARGS.pylot_infile, params=CORR_PARAMS, istart=int(ARGS.istart),
                      istop=int(ARGS.istop),
                      channel_config=CHANNELS, update=ARGS.update, event_blacklist=ARGS.blacklist,
-                     select_events=['20250107_010516.a'])
+                     select_events=None) # can add a list of event ids if only specific events shall be picked

@@ -59,6 +59,9 @@ P:
   filter_type: bandpass
   sampfreq: 20.0
 
+  # ignore if autopylot fails to pick master-trace (not recommended if absolute onset times matter)
+  ignore_autopylot_fail_on_master: True
+
 # S-phase
 S:
   min_corr_stacking: 0.7
@@ -92,4 +95,7 @@ S:
 
   filter_type: bandpass
   sampfreq: 20.0
+
+  # ignore if autopylot fails to pick master-trace (not recommended if absolute onset times matter)
+  ignore_autopylot_fail_on_master: True
 

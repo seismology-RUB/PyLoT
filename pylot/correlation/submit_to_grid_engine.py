@@ -3,14 +3,22 @@
 import subprocess
 
 fnames = [
-    ('/data/AlpArray_Data/dmt_database_synth_model_mk6_it3_no_rotation', 0),
+    ('/data/AdriaArray_Data/dmt_database_mantle_M5.0-5.4', 0),
+    ('/data/AdriaArray_Data/dmt_database_mantle_M5.4-5.7', 0),
+    ('/data/AdriaArray_Data/dmt_database_mantle_M5.7-6.0', 0),
+    ('/data/AdriaArray_Data/dmt_database_mantle_M6.0-6.3', 0),
+    ('/data/AdriaArray_Data/dmt_database_mantle_M6.3-10.0', 0),
+    # ('/data/AdriaArray_Data/dmt_database_ISC_mantle_M5.0-5.4', 0),
+    # ('/data/AdriaArray_Data/dmt_database_ISC_mantle_M5.4-5.7', 0),
+    # ('/data/AdriaArray_Data/dmt_database_ISC_mantle_M5.7-6.0', 0),
+    # ('/data/AdriaArray_Data/dmt_database_ISC_mantle_M6.0-10.0', 0),
           ]
 
 #fnames = [('/data/AlpArray_Data/dmt_database_mantle_0.01-0.2_SKS-phase', 0),
 #          ('/data/AlpArray_Data/dmt_database_mantle_0.01-0.2_S-phase', 0),]
 
 ####
-script_location = '/home/marcel/VersionCtrl/git/code_base/correlation_picker/submit_pick_corr_correction.sh'
+script_location = '/home/marcel/VersionCtrl/git/pylot/pylot/correlation/submit_pick_corr_correction.sh'
 ####
 
 for fnin, istart in fnames:
@@ -18,6 +26,3 @@ for fnin, istart in fnames:
 
     print(input_cmds)
     print(subprocess.check_output(input_cmds.split()))
-
-
-
