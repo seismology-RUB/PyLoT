@@ -4,6 +4,8 @@ version: 0.3
 
 The Python picking and Localisation Tool
 
+![main](docs/images/gui/pylot-waveform-plot.png)
+
 This python library contains a graphical user interfaces for picking seismic phases. This software needs [ObsPy][ObsPy]
 and the PySide2 Qt5 bindings for python to be installed first.
 
