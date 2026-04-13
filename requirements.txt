@@ -4,4 +4,4 @@ obspy==1.4.1
 pyaml==24.7.0
 pyqtgraph==0.13.7
 PySide2==5.15.8
-pytest==8.3.2
+pytest==9.0.3
